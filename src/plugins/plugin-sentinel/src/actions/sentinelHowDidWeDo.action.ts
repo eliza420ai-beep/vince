@@ -33,7 +33,10 @@ export const sentinelHowDidWeDoAction: Action = {
   description:
     "Produces a short 'How did we do?' report: cost vs budget/burn, paper bot (Leaderboard → Trading Bot), usage (Leaderboard → Usage tab), one-line takeaway.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsHowDidWeDo(text);
   },
@@ -59,9 +62,10 @@ Context:\n${contextBlock}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,
       });
-      const text = (typeof response === "string"
-        ? response
-        : (response as { text?: string })?.text ?? String(response)
+      const text = (
+        typeof response === "string"
+          ? response
+          : ((response as { text?: string })?.text ?? String(response))
       ).trim();
       const out = "Here's how we did—\n\n" + text;
       await callback({ text: out });
@@ -71,7 +75,10 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Report couldn't be generated. Check TREASURY for cost vs budget; Leaderboard → Trading Bot for paper PnL; Leaderboard → Usage for usage. Ask for cost status for details.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

@@ -14,7 +14,13 @@ import { logger } from "@elizaos/core";
 import { withLock } from "./fileLock";
 
 /** Action item status */
-export type ActionItemStatus = "new" | "in_progress" | "done" | "cancelled" | "failed" | "pending_approval";
+export type ActionItemStatus =
+  | "new"
+  | "in_progress"
+  | "done"
+  | "cancelled"
+  | "failed"
+  | "pending_approval";
 
 /** Action item urgency */
 export type ActionItemUrgency = "now" | "today" | "this_week" | "backlog";
@@ -46,8 +52,12 @@ interface ActionItemStore {
 
 /** Get the action items file path */
 function getActionItemsPath(): string {
-  const dir = process.env.STANDUP_DELIVERABLES_DIR?.trim() ||
-    path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
+  const dir =
+    process.env.STANDUP_DELIVERABLES_DIR?.trim() ||
+    path.join(
+      process.cwd(),
+      process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
+    );
   return path.join(dir, "action-items.json");
 }
 
@@ -94,7 +104,9 @@ function generateId(): string {
 /**
  * Add a new action item
  */
-export async function addActionItem(item: Omit<ActionItem, "id" | "status" | "createdAt" | "updatedAt">): Promise<ActionItem> {
+export async function addActionItem(
+  item: Omit<ActionItem, "id" | "status" | "createdAt" | "updatedAt">,
+): Promise<ActionItem> {
   const store = await loadStore();
 
   const newItem: ActionItem = {
@@ -117,7 +129,9 @@ export async function addActionItem(item: Omit<ActionItem, "id" | "status" | "cr
  */
 export async function updateActionItem(
   id: string,
-  updates: Partial<Pick<ActionItem, "status" | "outcome" | "pnl" | "priority" | "completedAt">>
+  updates: Partial<
+    Pick<ActionItem, "status" | "outcome" | "pnl" | "priority" | "completedAt">
+  >,
 ): Promise<ActionItem | null> {
   const filepath = getActionItemsPath();
   let result: ActionItem | null = null;
@@ -134,14 +148,17 @@ export async function updateActionItem(
       ...store.items[index],
       ...updates,
       updatedAt: new Date().toISOString(),
-      ...(updates.status === "done" || updates.status === "failed" || updates.status === "cancelled"
+      ...(updates.status === "done" ||
+      updates.status === "failed" ||
+      updates.status === "cancelled"
         ? { completedAt: new Date().toISOString() }
         : {}),
     };
     result = store.items[index];
     await writeStoreUnlocked(store);
   });
-  if (result) logger.info(`[ActionItems] Updated ${id}: ${updates.status ?? "fields"}`);
+  if (result)
+    logger.info(`[ActionItems] Updated ${id}: ${updates.status ?? "fields"}`);
   return result;
 }
 
@@ -149,7 +166,7 @@ export async function updateActionItem(
  * Batch-update priorities for action items (e.g. after planner run).
  */
 export async function updateActionItemPriorities(
-  updates: Array<{ id: string; priority: number }>
+  updates: Array<{ id: string; priority: number }>,
 ): Promise<void> {
   if (updates.length === 0) return;
   const filepath = getActionItemsPath();
@@ -159,7 +176,11 @@ export async function updateActionItemPriorities(
     for (const { id, priority } of updates) {
       const index = store.items.findIndex((item) => item.id === id);
       if (index !== -1) {
-        store.items[index] = { ...store.items[index], priority, updatedAt: now };
+        store.items[index] = {
+          ...store.items[index],
+          priority,
+          updatedAt: now,
+        };
       }
     }
     await writeStoreUnlocked(store);
@@ -170,7 +191,9 @@ export async function updateActionItemPriorities(
 /**
  * Get action items by status
  */
-export async function getActionItemsByStatus(status: ActionItemStatus): Promise<ActionItem[]> {
+export async function getActionItemsByStatus(
+  status: ActionItemStatus,
+): Promise<ActionItem[]> {
   const store = await loadStore();
   return store.items.filter((item) => item.status === status);
 }
@@ -180,7 +203,9 @@ export async function getActionItemsByStatus(status: ActionItemStatus): Promise<
  */
 export async function getPendingActionItems(): Promise<ActionItem[]> {
   const store = await loadStore();
-  return store.items.filter((item) => item.status === "new" || item.status === "in_progress");
+  return store.items.filter(
+    (item) => item.status === "new" || item.status === "in_progress",
+  );
 }
 
 /**
@@ -195,7 +220,9 @@ export async function getTodayActionItems(): Promise<ActionItem[]> {
 /**
  * Get recent completed action items with outcomes
  */
-export async function getRecentCompletedItems(days: number = 7): Promise<ActionItem[]> {
+export async function getRecentCompletedItems(
+  days: number = 7,
+): Promise<ActionItem[]> {
   const store = await loadStore();
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
@@ -209,9 +236,15 @@ export async function getRecentCompletedItems(days: number = 7): Promise<ActionI
 /**
  * Calculate win rate from completed items
  */
-export async function calculateWinRate(): Promise<{ wins: number; losses: number; rate: number }> {
+export async function calculateWinRate(): Promise<{
+  wins: number;
+  losses: number;
+  rate: number;
+}> {
   const store = await loadStore();
-  const completed = store.items.filter((item) => item.status === "done" && item.pnl !== undefined);
+  const completed = store.items.filter(
+    (item) => item.status === "done" && item.pnl !== undefined,
+  );
 
   const wins = completed.filter((item) => (item.pnl || 0) > 0).length;
   const losses = completed.filter((item) => (item.pnl || 0) < 0).length;
@@ -234,11 +267,15 @@ export function formatActionItemsTable(items: ActionItem[]): string {
     done: "✅",
     cancelled: "⏹️",
     failed: "❌",
+    pending_approval: "⏳",
   };
 
   const rows = items.map((item) => {
     const status = statusEmoji[item.status];
-    const outcome = item.pnl !== undefined ? `$${item.pnl > 0 ? "+" : ""}${item.pnl}` : item.outcome || "—";
+    const outcome =
+      item.pnl !== undefined
+        ? `$${item.pnl > 0 ? "+" : ""}${item.pnl}`
+        : item.outcome || "—";
     return `| ${item.date} | ${item.what.slice(0, 30)} | @${item.owner} | ${status} | ${outcome} |`;
   });
 
@@ -250,18 +287,28 @@ ${rows.join("\n")}`;
 /**
  * Parse action items from a day report
  */
-export function parseActionItemsFromReport(report: string, date: string): Partial<ActionItem>[] {
+export function parseActionItemsFromReport(
+  report: string,
+  date: string,
+): Partial<ActionItem>[] {
   const items: Partial<ActionItem>[] = [];
 
   // Look for action plan table
-  const tableMatch = report.match(/\|\s*WHAT\s*\|\s*HOW\s*\|\s*WHY\s*\|\s*OWNER[\s\S]*?\n([\s\S]*?)(?=\n\n|\n#|$)/i);
+  const tableMatch = report.match(
+    /\|\s*WHAT\s*\|\s*HOW\s*\|\s*WHY\s*\|\s*OWNER[\s\S]*?\n([\s\S]*?)(?=\n\n|\n#|$)/i,
+  );
 
   if (!tableMatch) return items;
 
-  const rows = tableMatch[1].split("\n").filter((row) => row.trim().startsWith("|"));
+  const rows = tableMatch[1]
+    .split("\n")
+    .filter((row) => row.trim().startsWith("|"));
 
   for (const row of rows) {
-    const cells = row.split("|").map((c) => c.trim()).filter(Boolean);
+    const cells = row
+      .split("|")
+      .map((c) => c.trim())
+      .filter(Boolean);
     if (cells.length >= 4 && !cells[0].match(/^-+$/)) {
       const owner = cells[3].replace("@", "").trim();
       if (owner && owner !== "OWNER") {

@@ -35,8 +35,15 @@ export interface CdpService {
   getWalletAddress?(): Promise<string>;
   getBalances?(): Promise<CdpBalance[]>;
   getNfts?(): Promise<CdpNft[]>;
-  approve?(token: string, spender: string, amount: string): Promise<{ success?: boolean; txHash?: string; hash?: string }>;
-  revoke?(token: string, spender: string): Promise<{ success?: boolean; txHash?: string; hash?: string }>;
+  approve?(
+    token: string,
+    spender: string,
+    amount: string,
+  ): Promise<{ success?: boolean; txHash?: string; hash?: string }>;
+  revoke?(
+    token: string,
+    spender: string,
+  ): Promise<{ success?: boolean; txHash?: string; hash?: string }>;
   writeContract?(params: {
     address: `0x${string}`;
     abi: string[] | readonly unknown[];
@@ -44,7 +51,9 @@ export interface CdpService {
     args?: unknown[];
     value?: bigint;
   }): Promise<{ success?: boolean; txHash?: string; hash?: string }>;
-  sendTransaction?(params: unknown): Promise<{ success?: boolean; txHash?: string; hash?: string }>;
+  sendTransaction?(
+    params: unknown,
+  ): Promise<{ success?: boolean; txHash?: string; hash?: string }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,14 +65,16 @@ export interface BankrAgentService {
   submitPrompt?(prompt: string): Promise<{ jobId: string }>;
   pollJobUntilComplete?(
     jobId: string,
-    opts: { intervalMs: number; maxAttempts: number }
+    opts: { intervalMs: number; maxAttempts: number },
   ): Promise<{
     status: string;
     response?: string;
     error?: string;
     transactions?: Array<{ hash?: string }>;
   }>;
-  getAccountInfo?(): Promise<{ wallets?: Array<{ chain: string; address: string }> }>;
+  getAccountInfo?(): Promise<{
+    wallets?: Array<{ chain: string; address: string }>;
+  }>;
 }
 
 export interface BankrOrder {
@@ -84,7 +95,10 @@ export interface BankrOrder {
 
 export interface BankrOrdersService {
   isConfigured?(): boolean;
-  listOrders?(params: { maker: string; status?: string }): Promise<{ orders?: BankrOrder[] }>;
+  listOrders?(params: {
+    maker: string;
+    status?: string;
+  }): Promise<{ orders?: BankrOrder[] }>;
   getActiveOrders?(): Promise<BankrOrder[]>;
 }
 
@@ -93,21 +107,31 @@ export interface BankrOrdersService {
 // ---------------------------------------------------------------------------
 
 export interface MorphoService {
-  deposit?(params: { vault?: string; assets: string; chain?: string }): Promise<{ success?: boolean; txHash?: string }>;
-  withdraw?(params: { vault?: string; assets: string; chain?: string }): Promise<{ success?: boolean; txHash?: string }>;
+  deposit?(params: {
+    vault?: string;
+    assets: string;
+    chain?: string;
+  }): Promise<{ success?: boolean; txHash?: string }>;
+  withdraw?(params: {
+    vault?: string;
+    assets: string;
+    chain?: string;
+  }): Promise<{ success?: boolean; txHash?: string }>;
   getVaultByAsset?(asset: string): Promise<{ address?: string } | null>;
   getVaultApy?(asset: string): Promise<number>;
-  getUserPositions?(address: string): Promise<Array<{
-    type?: string;
-    asset?: string;
-    token?: string;
-    amount?: string;
-    balance?: string;
-    usdValue?: number;
-    apy?: number;
-    healthFactor?: number;
-    chain?: string;
-  }>>;
+  getUserPositions?(address: string): Promise<
+    Array<{
+      type?: string;
+      asset?: string;
+      token?: string;
+      amount?: string;
+      balance?: string;
+      usdValue?: number;
+      apy?: number;
+      healthFactor?: number;
+      chain?: string;
+    }>
+  >;
 }
 
 // ---------------------------------------------------------------------------

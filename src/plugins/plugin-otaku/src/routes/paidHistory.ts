@@ -98,12 +98,12 @@ async function handleHistory(
       chainFilter === "base"
         ? "https://api.basescan.org/api"
         : chainFilter === "ethereum"
-        ? "https://api.etherscan.io/api"
-        : chainFilter === "arbitrum"
-        ? "https://api.arbiscan.io/api"
-        : chainFilter === "polygon"
-        ? "https://api.polygonscan.com/api"
-        : null;
+          ? "https://api.etherscan.io/api"
+          : chainFilter === "arbitrum"
+            ? "https://api.arbiscan.io/api"
+            : chainFilter === "polygon"
+              ? "https://api.polygonscan.com/api"
+              : null;
 
     if (baseUrl) {
       try {
@@ -131,11 +131,19 @@ async function handleHistory(
                 tx.to?.toLowerCase() === walletAddress.toLowerCase();
               transactions.push({
                 hash: tx.hash,
-                type: isReceive ? "receive" : tx.input === "0x" ? "send" : "contract",
+                type: isReceive
+                  ? "receive"
+                  : tx.input === "0x"
+                    ? "send"
+                    : "contract",
                 from: tx.from,
                 to: tx.to,
-                value: tx.value ? `${(parseInt(tx.value) / 1e18).toFixed(6)} ETH` : undefined,
-                timestamp: new Date(parseInt(tx.timeStamp) * 1000).toISOString(),
+                value: tx.value
+                  ? `${(parseInt(tx.value) / 1e18).toFixed(6)} ETH`
+                  : undefined,
+                timestamp: new Date(
+                  parseInt(tx.timeStamp) * 1000,
+                ).toISOString(),
                 status: tx.txreceipt_status === "1" ? "confirmed" : "failed",
                 chain: chainFilter,
               });
@@ -176,7 +184,8 @@ async function handleHistory(
 
     // Sort by timestamp descending
     transactions.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 
     res.status(200).json({

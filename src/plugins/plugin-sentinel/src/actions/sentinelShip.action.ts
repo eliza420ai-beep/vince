@@ -23,7 +23,11 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 
 import { NO_AI_SLOP } from "../utils/alohaStyle";
-import { scanProject, getProjectSummary, type ProjectState } from "../services/projectRadar.service";
+import {
+  scanProject,
+  getProjectSummary,
+  type ProjectState,
+} from "../services/projectRadar.service";
 import {
   autoScore,
   rankWorkItems,
@@ -54,7 +58,11 @@ function wantsShip(text: string): boolean {
 
 function isRadarOnly(text: string): boolean {
   const lower = text.toLowerCase();
-  return lower.includes("radar") && !lower.includes("ship") && !lower.includes("impact");
+  return (
+    lower.includes("radar") &&
+    !lower.includes("ship") &&
+    !lower.includes("impact")
+  );
 }
 
 function isScoreRequest(text: string): boolean {
@@ -68,14 +76,14 @@ function isScoreRequest(text: string): boolean {
 async function generateShipPriorities(
   runtime: IAgentRuntime,
   state: ProjectState,
-  userContext: string
+  userContext: string,
 ): Promise<string> {
   // Build rich context from project state
   let context = `**Project State:**\n`;
   context += `• ${state.plugins.length} plugins, ${state.totalActions} actions, ${state.totalServices} services\n`;
   context += `• ${state.completed.length} completed, ${state.inProgress.length} in progress, ${state.blocked.length} blocked\n`;
   context += `• ${state.docInsights.length} docs analyzed, ${state.allTodos.length} open TODOs\n\n`;
-  
+
   // Top priorities from docs (most important!)
   if (state.topPriorities.length > 0) {
     context += `**🎯 Top Priorities (extracted from docs):**\n`;
@@ -84,7 +92,7 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // Critical blockers
   if (state.criticalBlockers.length > 0) {
     context += `**🚫 Blockers (from docs):**\n`;
@@ -93,9 +101,9 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // High priority TODOs
-  const highTodos = state.allTodos.filter(t => t.priority === "high");
+  const highTodos = state.allTodos.filter((t) => t.priority === "high");
   if (highTodos.length > 0) {
     context += `**🔴 High Priority TODOs:**\n`;
     for (const t of highTodos.slice(0, 5)) {
@@ -103,9 +111,11 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // North star status
-  const staleOrMissing = state.northStarDeliverables.filter(d => d.status !== "active");
+  const staleOrMissing = state.northStarDeliverables.filter(
+    (d) => d.status !== "active",
+  );
   if (staleOrMissing.length > 0) {
     context += `**North Star Gaps:**\n`;
     for (const d of staleOrMissing) {
@@ -113,7 +123,7 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // Blocked items from progress files
   if (state.blocked.length > 0) {
     context += `**Blocked (progress.txt):**\n`;
@@ -122,7 +132,7 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // In progress
   if (state.inProgress.length > 0) {
     context += `**In Progress:**\n`;
@@ -131,7 +141,7 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // Roadmap items
   if (state.roadmapItems.length > 0) {
     context += `**Roadmap (from docs):**\n`;
@@ -140,7 +150,7 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // Lessons learned
   if (state.lessonsLearned.length > 0) {
     context += `**Lessons Learned:**\n`;
@@ -149,13 +159,13 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // Recent activity
   if (state.recentChanges.length > 0) {
-    const todayChanges = state.recentChanges.filter(c => c.daysAgo === 0);
+    const todayChanges = state.recentChanges.filter((c) => c.daysAgo === 0);
     context += `**Recent Activity:** ${todayChanges.length} files today, ${state.recentChanges.length} this week\n\n`;
   }
-  
+
   // Get learnings from past Sentinel suggestions
   const sentinelLearnings = getLearnings();
   if (sentinelLearnings.length > 0) {
@@ -165,11 +175,14 @@ async function generateShipPriorities(
     }
     context += `\n`;
   }
-  
+
   // Compose RAG state for additional knowledge context
-  const ragState = await runtime.composeState({ content: { text: userContext } } as Memory);
-  const ragContext = typeof ragState.text === "string" ? ragState.text.slice(0, 2500) : "";
-  
+  const ragState = await runtime.composeState({
+    content: { text: userContext },
+  } as Memory);
+  const ragContext =
+    typeof ragState.text === "string" ? ragState.text.slice(0, 2500) : "";
+
   const prompt = `You are Sentinel, the core dev agent. Your job: suggest the MOST IMPACTFUL things to ship to push the project forward. You have analyzed ALL the project docs (${state.docInsights.length} docs) and extracted priorities, TODOs, blockers, and roadmap items.
 
 **PRIORITY ORDER:**
@@ -201,8 +214,11 @@ ${NO_AI_SLOP}
 Output the ship priorities (flowing prose, then short list + top pick):`;
 
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
-  const text = typeof response === "string" ? response : (response as any)?.text ?? String(response);
-  
+  const text =
+    typeof response === "string"
+      ? response
+      : ((response as any)?.text ?? String(response));
+
   return text.trim();
 }
 
@@ -219,7 +235,10 @@ TRIGGERS:
 
 Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE + strategic scoring) for intelligent suggestions.`,
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsShip(text);
   },
@@ -232,7 +251,7 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
     callback: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const userText = (message.content?.text ?? "").trim();
-    
+
     logger.info("[SENTINEL_SHIP] Analyzing project for ship priorities");
 
     try {
@@ -242,19 +261,23 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
         await callback({ text: summary });
         return { success: true };
       }
-      
+
       // Handle impact score request
       if (isScoreRequest(userText)) {
-        const ideaMatch = userText.match(/(?:impact score|score this)[:\s]+(.+)/i);
-        const idea = ideaMatch?.[1]?.trim() || userText.replace(/impact score|score this/gi, "").trim();
-        
+        const ideaMatch = userText.match(
+          /(?:impact score|score this)[:\s]+(.+)/i,
+        );
+        const idea =
+          ideaMatch?.[1]?.trim() ||
+          userText.replace(/impact score|score this/gi, "").trim();
+
         if (!idea || idea.length < 10) {
           await callback({
             text: "Please provide an idea to score:\n`impact score <your idea here>`",
           });
           return { success: true };
         }
-        
+
         const workItem: WorkItem = {
           id: `user-${Date.now()}`,
           title: idea.slice(0, 100),
@@ -263,31 +286,35 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
           suggestedBy: "user",
           createdAt: new Date().toISOString(),
         };
-        
+
         const score = autoScore(workItem);
         const formatted = formatScore(score);
-        
+
         await callback({
           text: `📊 **Impact Score: "${idea.slice(0, 50)}${idea.length > 50 ? "..." : ""}"**\n\n${formatted}`,
         });
         return { success: true };
       }
-      
+
       // Full ship priorities
       const projectState = scanProject();
-      
+
       // Generate summary header
       let response = `🚀 **Ship Priorities**\n\n`;
-      
+
       // Rich state summary
-      const activeNS = projectState.northStarDeliverables.filter(d => d.status === "active").length;
+      const activeNS = projectState.northStarDeliverables.filter(
+        (d) => d.status === "active",
+      ).length;
       const totalNS = projectState.northStarDeliverables.length;
-      const highTodos = projectState.allTodos.filter(t => t.priority === "high").length;
-      
+      const highTodos = projectState.allTodos.filter(
+        (t) => t.priority === "high",
+      ).length;
+
       response += `*Scanned ${projectState.docInsights.length} docs | ${projectState.plugins.length} plugins, ${projectState.totalActions} actions | `;
       response += `${highTodos} high-priority TODOs | North Star: ${activeNS}/${totalNS} | `;
       response += `${projectState.blocked.length + projectState.criticalBlockers.length} blockers*\n\n`;
-      
+
       // Show blockers first if any
       if (projectState.criticalBlockers.length > 0) {
         response += `**🚫 Blockers to clear first:**\n`;
@@ -296,17 +323,21 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
         }
         response += `\n`;
       }
-      
+
       // Generate AI-powered priorities
-      const priorities = await generateShipPriorities(runtime, projectState, userText);
+      const priorities = await generateShipPriorities(
+        runtime,
+        projectState,
+        userText,
+      );
       response += priorities;
-      
+
       // Record suggestions for learning
       const suggestionLines = priorities.match(/^\d+\..+$/gm) || [];
       for (const line of suggestionLines.slice(0, 5)) {
         recordSuggestion(line, "ship-priority");
       }
-      
+
       const out = "Here's what to ship—\n\n" + response;
       await callback({ text: out });
       return { success: true };
@@ -315,7 +346,10 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
       await callback({
         text: "Couldn't analyze ship priorities. Try `project radar` for a state overview, or ask about a specific area.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
@@ -340,7 +374,12 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
       },
     ],
     [
-      { name: "{{user}}", content: { text: "impact score: add a leaderboard for paper trading results" } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "impact score: add a leaderboard for paper trading results",
+        },
+      },
       {
         name: "{{agent}}",
         content: {

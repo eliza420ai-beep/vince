@@ -23,7 +23,12 @@ import { DRAFTS_DIR } from "../config/paths";
 const SUBSTACK_URL = "https://ikigaistudio.substack.com/";
 
 // Essay styles/formats
-type EssayStyle = "deep-dive" | "framework" | "contrarian" | "synthesis" | "playbook";
+type EssayStyle =
+  | "deep-dive"
+  | "framework"
+  | "contrarian"
+  | "synthesis"
+  | "playbook";
 
 interface EssayRequest {
   topic: string;
@@ -41,14 +46,14 @@ const STYLE_PROMPTS: Record<EssayStyle, string> = {
 - Actionable insights
 - Strong closing that ties back to the hook`,
 
-  "framework": `Write a framework essay that gives readers a mental model. Structure:
+  framework: `Write a framework essay that gives readers a mental model. Structure:
 - Problem statement: what's broken or misunderstood
 - The framework: name it, explain the components
 - How to apply it: concrete examples
 - Edge cases and when it doesn't work
 - Summary: the one-liner they'll remember`,
 
-  "contrarian": `Write a contrarian essay that challenges popular opinion. Structure:
+  contrarian: `Write a contrarian essay that challenges popular opinion. Structure:
 - The consensus view (steelman it)
 - Why the consensus is wrong or incomplete
 - Your thesis: the uncomfortable truth
@@ -56,14 +61,14 @@ const STYLE_PROMPTS: Record<EssayStyle, string> = {
 - What this means for the reader
 - Call to action or mindset shift`,
 
-  "synthesis": `Write a synthesis essay connecting multiple domains. Structure:
+  synthesis: `Write a synthesis essay connecting multiple domains. Structure:
 - The surprising connection between X and Y
 - Deep dive into each domain
 - Where they intersect: the insight
 - Why this matters
 - How to use this cross-domain thinking`,
 
-  "playbook": `Write a tactical playbook essay. Structure:
+  playbook: `Write a tactical playbook essay. Structure:
 - What we're optimizing for
 - The strategy (high-level)
 - The tactics (step-by-step)
@@ -101,19 +106,40 @@ Draw from the knowledge base when relevant. Cite frameworks by name. Make it pub
 
 function detectStyle(text: string): EssayStyle {
   const lower = text.toLowerCase();
-  if (lower.includes("deep dive") || lower.includes("deep-dive") || lower.includes("comprehensive")) {
+  if (
+    lower.includes("deep dive") ||
+    lower.includes("deep-dive") ||
+    lower.includes("comprehensive")
+  ) {
     return "deep-dive";
   }
-  if (lower.includes("framework") || lower.includes("mental model") || lower.includes("how to think")) {
+  if (
+    lower.includes("framework") ||
+    lower.includes("mental model") ||
+    lower.includes("how to think")
+  ) {
     return "framework";
   }
-  if (lower.includes("contrarian") || lower.includes("unpopular") || lower.includes("against")) {
+  if (
+    lower.includes("contrarian") ||
+    lower.includes("unpopular") ||
+    lower.includes("against")
+  ) {
     return "contrarian";
   }
-  if (lower.includes("synthesis") || lower.includes("connect") || lower.includes("cross-domain")) {
+  if (
+    lower.includes("synthesis") ||
+    lower.includes("connect") ||
+    lower.includes("cross-domain")
+  ) {
     return "synthesis";
   }
-  if (lower.includes("playbook") || lower.includes("tactical") || lower.includes("step by step") || lower.includes("how to")) {
+  if (
+    lower.includes("playbook") ||
+    lower.includes("tactical") ||
+    lower.includes("step by step") ||
+    lower.includes("how to")
+  ) {
     return "playbook";
   }
   return "deep-dive"; // default
@@ -122,10 +148,13 @@ function detectStyle(text: string): EssayStyle {
 function extractTopic(text: string): string {
   // Remove common prefixes
   const cleaned = text
-    .replace(/^(write|draft|create|generate)\s+(an?\s+)?(essay|article|piece|post|substack)\s+(about|on|for|covering)?\s*/i, "")
+    .replace(
+      /^(write|draft|create|generate)\s+(an?\s+)?(essay|article|piece|post|substack)\s+(about|on|for|covering)?\s*/i,
+      "",
+    )
     .replace(/^(essay|article)\s+(about|on)?\s*/i, "")
     .trim();
-  
+
   return cleaned || "crypto market dynamics";
 }
 
@@ -145,7 +174,7 @@ function saveDraft(title: string, content: string): string {
   const timestamp = Date.now();
   const filename = `draft-${slug}-${timestamp}.md`;
   const filepath = path.join(DRAFTS_DIR, filename);
-  
+
   const frontmatter = `---
 title: "${title.replace(/"/g, '\\"')}"
 status: draft
@@ -155,7 +184,7 @@ url: ${SUBSTACK_URL}
 ---
 
 `;
-  
+
   fs.writeFileSync(filepath, frontmatter + content, "utf-8");
   return filepath;
 }
@@ -195,11 +224,17 @@ Target: ${SUBSTACK_URL}`,
     if (message.entityId === runtime.agentId) return false;
 
     return (
-      (text.includes("essay") && (text.includes("write") || text.includes("draft") || text.includes("create"))) ||
-      (text.includes("substack") && (text.includes("write") || text.includes("draft"))) ||
+      (text.includes("essay") &&
+        (text.includes("write") ||
+          text.includes("draft") ||
+          text.includes("create"))) ||
+      (text.includes("substack") &&
+        (text.includes("write") || text.includes("draft"))) ||
       text.startsWith("essay:") ||
       text.startsWith("essay about") ||
-      (text.includes("article") && text.includes("write") && !text.includes("upload"))
+      (text.includes("article") &&
+        text.includes("write") &&
+        !text.includes("upload"))
     );
   },
 
@@ -211,7 +246,7 @@ Target: ${SUBSTACK_URL}`,
     callback?: HandlerCallback,
   ): Promise<void> => {
     const text = message.content?.text || "";
-    
+
     try {
       const topic = extractTopic(text);
       const style = detectStyle(text);
@@ -244,7 +279,10 @@ Start with the title (# Title) and subtitle, then the essay.`;
         system: ESSAY_SYSTEM_PROMPT + "\n\n" + voiceAddition,
       } as any);
 
-      const essay = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+      const essay =
+        typeof response === "string"
+          ? response
+          : ((response as { text?: string })?.text ?? "");
 
       if (!essay || essay.length < 500) {
         if (callback) {
@@ -316,7 +354,9 @@ ${essay}
     [
       {
         name: "{{user}}",
-        content: { text: "draft a contrarian substack on why most traders fail" },
+        content: {
+          text: "draft a contrarian substack on why most traders fail",
+        },
       },
       {
         name: "{{agent}}",

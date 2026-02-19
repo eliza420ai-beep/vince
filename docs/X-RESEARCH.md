@@ -4,12 +4,12 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 
 ## Design principle
 
-| Use case | Where | Why |
-|----------|--------|-----|
-| **Multi-query research** (decompose → search → refine → synthesize) | **CLI** (`skills/x-research`) | Iterative searches, multiple pages, combine threads and profiles into one briefing. |
-| **Watchlist** (add/remove/check accounts, heartbeat) | **CLI** | Watchlist lives in `skills/x-research/data/watchlist.json`; CLI is the interface. |
-| **Saving research to file** (`--save`, `--markdown`) | **CLI** | Writes to `~/clawd/drafts/` or project drafts; no in-chat file write. |
-| **Quick single-shot** (“what’s CT saying about X?”, “what did @user post?”, “get thread for tweet 123”) | **In-chat** (VINCE / Solus) | One question → one answer in the conversation. |
+| Use case                                                                                                | Where                         | Why                                                                                 |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
+| **Multi-query research** (decompose → search → refine → synthesize)                                     | **CLI** (`skills/x-research`) | Iterative searches, multiple pages, combine threads and profiles into one briefing. |
+| **Watchlist** (add/remove/check accounts, heartbeat)                                                    | **CLI**                       | Watchlist lives in `skills/x-research/data/watchlist.json`; CLI is the interface.   |
+| **Saving research to file** (`--save`, `--markdown`)                                                    | **CLI**                       | Writes to `~/clawd/drafts/` or project drafts; no in-chat file write.               |
+| **Quick single-shot** (“what’s CT saying about X?”, “what did @user post?”, “get thread for tweet 123”) | **In-chat** (VINCE / Solus)   | One question → one answer in the conversation.                                      |
 
 **The CLI stays the primary way to do multi-query research, watchlist management, and saving to file; in-chat is for quick, single-shot queries.**
 
@@ -28,20 +28,20 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 
 ### Bearer tokens (one vs two vs three)
 
-| Variable | Used for | Required? |
-|----------|----------|-----------|
-| **`X_BEARER_TOKEN`** | **In-chat** (search, profile, thread, single tweet) and **CLI**. Must be set for “What are people saying about BTC?” and for `skills/x-research` CLI. | **Yes** for in-chat and CLI. |
-| **`X_BEARER_TOKEN_SENTIMENT`** | **Vibe check**, **sentiment refresh**, and **list feed** only. When set, these use this token so a 429 on vibe check does **not** block in-chat. | Optional. |
-| **`X_BEARER_TOKEN_BACKGROUND`** | Same as SENTIMENT (vibe/sentiment/list). Used only when **`X_BEARER_TOKEN_SENTIMENT`** is not set. If both are set, SENTIMENT is used and BACKGROUND is ignored. | Optional. |
+| Variable                        | Used for                                                                                                                                                         | Required?                    |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **`X_BEARER_TOKEN`**            | **In-chat** (search, profile, thread, single tweet) and **CLI**. Must be set for “What are people saying about BTC?” and for `skills/x-research` CLI.            | **Yes** for in-chat and CLI. |
+| **`X_BEARER_TOKEN_SENTIMENT`**  | **Vibe check**, **sentiment refresh**, and **list feed** only. When set, these use this token so a 429 on vibe check does **not** block in-chat.                 | Optional.                    |
+| **`X_BEARER_TOKEN_BACKGROUND`** | Same as SENTIMENT (vibe/sentiment/list). Used only when **`X_BEARER_TOKEN_SENTIMENT`** is not set. If both are set, SENTIMENT is used and BACKGROUND is ignored. | Optional.                    |
 
 **One token:** Set only `X_BEARER_TOKEN`. In-chat, CLI, and vibe check all share it. When vibe check hits rate limit (429), the shared cooldown blocks in-chat until reset—you may see “X API rate limited. Resets in Ns” in chat.
 
 **One token and you've hit the max number of X apps?** You can't add a second token. To give in-chat headroom, use one of these (add to `.env` and **restart the app**):
 
-| Option | What to set in `.env` | Result |
-|--------|----------------------|--------|
-| **A — Prioritize in-chat** | `X_SENTIMENT_ENABLED=false` | In-chat (“What are people saying about BTC?”) and CLI keep working. Leaderboard News tab no longer shows X vibe tiles until you re-enable sentiment or add another token. |
-| **B — Keep one vibe tile, less load** | `X_SENTIMENT_ASSETS=BTC` and `X_SENTIMENT_STAGGER_INTERVAL_MS=7200000` | One asset (BTC) and 2h stagger; sentiment uses the token much less so in-chat is less likely to hit 429. You still get the BTC vibe tile on the News tab. |
+| Option                                | What to set in `.env`                                                  | Result                                                                                                                                                                    |
+| ------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A — Prioritize in-chat**            | `X_SENTIMENT_ENABLED=false`                                            | In-chat (“What are people saying about BTC?”) and CLI keep working. Leaderboard News tab no longer shows X vibe tiles until you re-enable sentiment or add another token. |
+| **B — Keep one vibe tile, less load** | `X_SENTIMENT_ASSETS=BTC` and `X_SENTIMENT_STAGGER_INTERVAL_MS=7200000` | One asset (BTC) and 2h stagger; sentiment uses the token much less so in-chat is less likely to hit 429. You still get the BTC vibe tile on the News tab.                 |
 
 After changing `.env`, restart so the new values are picked up. An active 429 clears when the reset window (e.g. “Resets in 89s”) ends.
 
@@ -50,6 +50,7 @@ After changing `.env`, restart so the new values are picked up. An active 429 cl
 **Three keys:** You can set all three. In that case only `X_BEARER_TOKEN` and `X_BEARER_TOKEN_SENTIMENT` are used; `X_BEARER_TOKEN_BACKGROUND` is a fallback when SENTIMENT is unset.
 
 **Four (or more) tokens — one per asset:** If you have 4 assets (e.g. BTC, ETH, SOL, HYPE) and still hit rate limits with one or two tokens, set **4 separate sentiment tokens**. Each asset then uses its own token (round-robin by asset index), so 429 on one token doesn’t block the others. Use either:
+
 - **Comma-separated:** `X_BEARER_TOKEN_SENTIMENT=token1,token2,token3,token4`
 - **Numbered:** `X_BEARER_TOKEN_SENTIMENT_1=…` … `X_BEARER_TOKEN_SENTIMENT_4=…` (up to 20 supported)
 
@@ -65,15 +66,15 @@ See [X-API.md](X-API.md) for quotas, spending limits, and the optional second to
 
 **Action:** **VINCE_X_RESEARCH** — one action, multiple intents (search, profile, thread, tweet, Spaces, list discovery, mentions):
 
-| Intent | Example prompts | What runs |
-|--------|------------------|-----------|
-| **Search** | “What are people saying about BNKR?”, “Search X for HYPERSURFACE options”, “What’s CT saying about Echo?” | Search API → top tweets by likes (or recency if “last 24h” etc.) → sourced briefing in chat. |
-| **Profile** | “What did @user post recently?”, “Profile @user”, “Recent tweets from @foo” | User lookup + recent tweets (excl. replies) → short summary in chat. |
-| **Thread** | “Get thread for tweet 123…”, “Thread https://x.com/…/status/123…” | Conversation by ID → thread tweets in chat. |
-| **Tweet** | “Get tweet 123…”, single tweet ID | Single tweet by ID; optional "Quoted by N" and sample quotes. |
-| **Spaces** | "Spaces about BTC", "Upcoming Spaces about crypto" | Spaces search; tier-dependent. |
-| **List discovery** | "What lists does @user have?", "What lists is @user in?" | Owned lists or list memberships. |
-| **Mentions** | "What are people saying to @user?", "Mentions for @user" | Mentions timeline. |
+| Intent             | Example prompts                                                                                           | What runs                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Search**         | “What are people saying about BNKR?”, “Search X for HYPERSURFACE options”, “What’s CT saying about Echo?” | Search API → top tweets by likes (or recency if “last 24h” etc.) → sourced briefing in chat. |
+| **Profile**        | “What did @user post recently?”, “Profile @user”, “Recent tweets from @foo”                               | User lookup + recent tweets (excl. replies) → short summary in chat.                         |
+| **Thread**         | “Get thread for tweet 123…”, “Thread https://x.com/…/status/123…”                                         | Conversation by ID → thread tweets in chat.                                                  |
+| **Tweet**          | “Get tweet 123…”, single tweet ID                                                                         | Single tweet by ID; optional "Quoted by N" and sample quotes.                                |
+| **Spaces**         | "Spaces about BTC", "Upcoming Spaces about crypto"                                                        | Spaces search; tier-dependent.                                                               |
+| **List discovery** | "What lists does @user have?", "What lists is @user in?"                                                  | Owned lists or list memberships.                                                             |
+| **Mentions**       | "What are people saying to @user?", "Mentions for @user"                                                  | Mentions timeline.                                                                           |
 
 **Optional NL in search:** “Last 24h”, “past 7d”, “most recent”, “top 5” / “first 10” are parsed and applied when possible.
 
@@ -91,12 +92,12 @@ See [X-API.md](X-API.md) for quotas, spending limits, and the optional second to
 
 ### How it works
 
-| Layer | What it does |
-|-------|----------------|
-| **Cache file** | `.elizadb/vince-paper-bot/x-sentiment-cache.json` — one JSON object keyed by asset (BTC, ETH, SOL, HYPE). Each entry: `sentiment` (bullish/bearish/neutral), `confidence` (0–100), `hasHighRiskEvent`, `updatedAt`. |
+| Layer                     | What it does                                                                                                                                                                                                                                                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cache file**            | `.elizadb/vince-paper-bot/x-sentiment-cache.json` — one JSON object keyed by asset (BTC, ETH, SOL, HYPE). Each entry: `sentiment` (bullish/bearish/neutral), `confidence` (0–100), `hasHighRiskEvent`, `updatedAt`.                                                                                               |
 | **In-app (when running)** | **VinceXSentimentService** (plugin-vince) loads the cache file on startup, then refreshes **one asset per interval** (default **1 hour**)—no burst. With 4 assets that’s a full cycle every 4h; with 24 assets, one per hour = full cycle every 24h. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
-| **Optional cron** | If the app isn’t always on, or you want all X usage in cron: run `scripts/x-vibe-check.ts` once per asset (at different minutes). Each run does one X search, computes sentiment, and merges that asset into the same cache file. No ElizaOS runtime needed. |
-| **Consumers** | **Signal aggregator** (paper trading algo) calls `getTradingSentiment(asset)` — reads from in-memory cache (backed by the file). **Leaderboard News tab** shows the same data in an “X (Twitter) vibe check” card next to MandoMinutes. |
+| **Optional cron**         | If the app isn’t always on, or you want all X usage in cron: run `scripts/x-vibe-check.ts` once per asset (at different minutes). Each run does one X search, computes sentiment, and merges that asset into the same cache file. No ElizaOS runtime needed.                                                      |
+| **Consumers**             | **Signal aggregator** (paper trading algo) calls `getTradingSentiment(asset)` — reads from in-memory cache (backed by the file). **Leaderboard News tab** shows the same data in an “X (Twitter) vibe check” card next to MandoMinutes.                                                                           |
 
 So: **one cache file**; filled by either the in-app timer or the cron script (or both); read by the app for trading and for the News tab.
 
@@ -114,12 +115,12 @@ So: **one cache file**; filled by either the in-app timer or the cron script (or
 
 X is our **#1 news source** and **#1 sentiment signal**; on the **Leaderboard → News** tab the **X (Twitter) vibe check** card is at the **top** (flex layout), then MandoMinutes TLDR and headlines below. Richer vibe checks in the works: HIP-3 onchain stocks, airdrop alpha, and left-curve memetics (more sophisticated prompt design to maximise signal per request under rate limits).
 
-| | MandoMinutes | X vibe check |
-|--|--------------|---------------|
-| **Source** | MandoMinutes site / shared runtime cache | X search API, keyword sentiment |
-| **Cached where** | Runtime/DB cache (e.g. `mando_minutes:latest:v9`) | File: `.elizadb/vince-paper-bot/x-sentiment-cache.json` |
-| **Filled by** | App (or MANDO_MINUTES action) | In-app 1h stagger (one asset per interval) and/or cron script |
-| **Leaderboard** | TLDR strip + “MandoMinutes” card (headlines, deep dive) | **First:** “X (Twitter) vibe check” card (BTC, ETH, SOL, HYPE tiles) |
+|                  | MandoMinutes                                            | X vibe check                                                         |
+| ---------------- | ------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Source**       | MandoMinutes site / shared runtime cache                | X search API, keyword sentiment                                      |
+| **Cached where** | Runtime/DB cache (e.g. `mando_minutes:latest:v9`)       | File: `.elizadb/vince-paper-bot/x-sentiment-cache.json`              |
+| **Filled by**    | App (or MANDO_MINUTES action)                           | In-app 1h stagger (one asset per interval) and/or cron script        |
+| **Leaderboard**  | TLDR strip + “MandoMinutes” card (headlines, deep dive) | **First:** “X (Twitter) vibe check” card (BTC, ETH, SOL, HYPE tiles) |
 
 Both appear on the **Leaderboard → News** tab when data is available.
 
@@ -135,6 +136,7 @@ Both appear on the **Leaderboard → News** tab when data is available.
 **Crontab examples** (replace `/path/to/vince` with your repo root, e.g. `/Users/macbookpro16/vince`). **Default: Option D** (4 API calls/day). Use A, B, or C for more frequent updates.
 
 - **Option D (default) — One run per asset per day. 4 API calls/day.** Max X API headroom; sentiment rarely shifts intraday.
+
   ```cron
   0 0 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
   0 6 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
@@ -143,11 +145,13 @@ Both appear on the **Leaderboard → News** tab when data is available.
   ```
 
 - **Option A — One line, round-robin every hour (script picks asset from hour). 24 API calls/day.**
+
   ```cron
   0 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
   ```
 
 - **Option B — One asset per hour total (24/day); full cycle every 4h.** Use hour lists; minute-only crons like `0 * * * *` run every hour and cause 96/day.
+
   ```cron
   0 0,4,8,12,16,20 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
   0 1,5,9,13,17,21 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
@@ -169,26 +173,26 @@ A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (c
 
 ### Config (in-app only)
 
-| Env | Default | Meaning |
-|-----|--------|--------|
-| `X_BEARER_TOKEN` | — | Required for in-chat and CLI. Do not comment out if you want “What are people saying about BTC?” to work. |
-| `X_BEARER_TOKEN_SENTIMENT` | — | Optional. When set, vibe check / sentiment / list feed use this token (or a list: comma-separated or `_1`…`_4` for one per asset). In-chat keeps using `X_BEARER_TOKEN`. |
-| `X_BEARER_TOKEN_BACKGROUND` | — | Optional. Same role as SENTIMENT; used only when SENTIMENT is not set. |
-| `X_BEARER_TOKEN_SENTIMENT_1` … `_4` | — | Optional. When set (instead of a single SENTIMENT), each asset uses a different token (round-robin) so rate limits don’t block other assets. |
-| `X_SENTIMENT_STAGGER_INTERVAL_MS` | `3600000` (1h) | Interval between single-asset refreshes in the app. E.g. 24 assets at 1h = full cycle every 24h. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
-| (optional) | `X_SENTIMENT_SINCE`, `X_SENTIMENT_SORT_ORDER`, `X_SENTIMENT_CONFIDENCE_FLOOR`, `X_SENTIMENT_MIN_TWEETS`, `X_SENTIMENT_BULL_BEAR_THRESHOLD`, `X_SENTIMENT_RISK_MIN_TWEETS`, `X_SENTIMENT_ENGAGEMENT_CAP`, `X_SENTIMENT_SOFT_TIER_ENABLED`, `X_SENTIMENT_KEYWORDS_PATH` | Query window, sort order, confidence/thresholds, risk tweet count, engagement cap, soft tier, custom keyword JSON path. See [.env.example](.env.example). |
+| Env                                 | Default                                                                                                                                                                                                                                                               | Meaning                                                                                                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `X_BEARER_TOKEN`                    | —                                                                                                                                                                                                                                                                     | Required for in-chat and CLI. Do not comment out if you want “What are people saying about BTC?” to work.                                                                |
+| `X_BEARER_TOKEN_SENTIMENT`          | —                                                                                                                                                                                                                                                                     | Optional. When set, vibe check / sentiment / list feed use this token (or a list: comma-separated or `_1`…`_4` for one per asset). In-chat keeps using `X_BEARER_TOKEN`. |
+| `X_BEARER_TOKEN_BACKGROUND`         | —                                                                                                                                                                                                                                                                     | Optional. Same role as SENTIMENT; used only when SENTIMENT is not set.                                                                                                   |
+| `X_BEARER_TOKEN_SENTIMENT_1` … `_4` | —                                                                                                                                                                                                                                                                     | Optional. When set (instead of a single SENTIMENT), each asset uses a different token (round-robin) so rate limits don’t block other assets.                             |
+| `X_SENTIMENT_STAGGER_INTERVAL_MS`   | `3600000` (1h)                                                                                                                                                                                                                                                        | Interval between single-asset refreshes in the app. E.g. 24 assets at 1h = full cycle every 24h. Set X_SENTIMENT_ENABLED=false to disable background refresh.            |
+| (optional)                          | `X_SENTIMENT_SINCE`, `X_SENTIMENT_SORT_ORDER`, `X_SENTIMENT_CONFIDENCE_FLOOR`, `X_SENTIMENT_MIN_TWEETS`, `X_SENTIMENT_BULL_BEAR_THRESHOLD`, `X_SENTIMENT_RISK_MIN_TWEETS`, `X_SENTIMENT_ENGAGEMENT_CAP`, `X_SENTIMENT_SOFT_TIER_ENABLED`, `X_SENTIMENT_KEYWORDS_PATH` | Query window, sort order, confidence/thresholds, risk tweet count, engagement cap, soft tier, custom keyword JSON path. See [.env.example](.env.example).                |
 
 See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) (X sentiment: query shape, keywords, confidence, risk).
 
 ### Where it’s implemented
 
-| Piece | Location |
-|-------|----------|
-| In-app service (staggered refresh + cache file) | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts) |
-| Optional cron script | [scripts/x-vibe-check.ts](scripts/x-vibe-check.ts) |
-| Crontab example | [scripts/x-vibe-check-crontab.example](scripts/x-vibe-check-crontab.example) |
-| Leaderboards API (news + xSentiment) | [dashboardLeaderboards.ts](src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts) (`buildNewsSection`) |
-| Leaderboard News tab UI | [leaderboard/page.tsx](src/frontend/components/dashboard/leaderboard/page.tsx) (News tab, “X (Twitter) vibe check” card) |
+| Piece                                           | Location                                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| In-app service (staggered refresh + cache file) | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts)                                     |
+| Optional cron script                            | [scripts/x-vibe-check.ts](scripts/x-vibe-check.ts)                                                                       |
+| Crontab example                                 | [scripts/x-vibe-check-crontab.example](scripts/x-vibe-check-crontab.example)                                             |
+| Leaderboards API (news + xSentiment)            | [dashboardLeaderboards.ts](src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts) (`buildNewsSection`)            |
+| Leaderboard News tab UI                         | [leaderboard/page.tsx](src/frontend/components/dashboard/leaderboard/page.tsx) (News tab, “X (Twitter) vibe check” card) |
 
 ### Sentiment search (searchForSentiment)
 
@@ -196,14 +200,14 @@ The vibe-check pipeline uses **searchForSentiment** when available: English-only
 
 ### Troubleshooting (X vibe check)
 
-| Symptom | Likely cause | What to do |
-|--------|----------------|------------|
-| **No “X vibe check” card on News tab** | `X_BEARER_TOKEN` not set, or service not configured | Set `X_BEARER_TOKEN` in `.env` and restart. First data can take up to one stagger cycle (default 1h). |
-| **“X API rate limited” in chat** (e.g. “What are people saying about BTC?”) | One token shared by in-chat and vibe check; vibe check hit 429 | Add a second X app, set `X_BEARER_TOKEN_SENTIMENT` (or `X_BEARER_TOKEN_BACKGROUND`) in `.env`. In-chat keeps using `X_BEARER_TOKEN`; vibe/sentiment use the second token. See **Bearer tokens** above. |
-| **Card shows “Neutral” (0%) for all assets** | Cache empty or first refresh not done yet | Wait for first refresh, or run cron once per asset. Check logs for `[VinceXSentimentService] Started`. |
-| **One or more assets never update** | X API rate limit (429) | Logs show “X API rate limited. Skipping refresh for N min”. Service serves cached (or neutral) until reset. Reduce cron frequency, or use **four separate sentiment tokens** (one per asset): set `X_BEARER_TOKEN_SENTIMENT=token1,token2,token3,token4` or `X_BEARER_TOKEN_SENTIMENT_1` … `_4` so each asset has its own token and cooldown. See **Bearer tokens** above. |
-| **Cron runs but cache file unchanged** | Wrong cwd, missing `.env`, or script error | Run from repo root: `cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC`. Ensure `X_BEARER_TOKEN` is in `.env`. Check script exit code (0 = success). |
-| **Stale data on leaderboard** | App was down; cron not set or failed | Use cron when the app isn’t always on. Optionally show `updatedAt` in the UI to spot stale tiles. |
+| Symptom                                                                     | Likely cause                                                   | What to do                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **No “X vibe check” card on News tab**                                      | `X_BEARER_TOKEN` not set, or service not configured            | Set `X_BEARER_TOKEN` in `.env` and restart. First data can take up to one stagger cycle (default 1h).                                                                                                                                                                                                                                                                      |
+| **“X API rate limited” in chat** (e.g. “What are people saying about BTC?”) | One token shared by in-chat and vibe check; vibe check hit 429 | Add a second X app, set `X_BEARER_TOKEN_SENTIMENT` (or `X_BEARER_TOKEN_BACKGROUND`) in `.env`. In-chat keeps using `X_BEARER_TOKEN`; vibe/sentiment use the second token. See **Bearer tokens** above.                                                                                                                                                                     |
+| **Card shows “Neutral” (0%) for all assets**                                | Cache empty or first refresh not done yet                      | Wait for first refresh, or run cron once per asset. Check logs for `[VinceXSentimentService] Started`.                                                                                                                                                                                                                                                                     |
+| **One or more assets never update**                                         | X API rate limit (429)                                         | Logs show “X API rate limited. Skipping refresh for N min”. Service serves cached (or neutral) until reset. Reduce cron frequency, or use **four separate sentiment tokens** (one per asset): set `X_BEARER_TOKEN_SENTIMENT=token1,token2,token3,token4` or `X_BEARER_TOKEN_SENTIMENT_1` … `_4` so each asset has its own token and cooldown. See **Bearer tokens** above. |
+| **Cron runs but cache file unchanged**                                      | Wrong cwd, missing `.env`, or script error                     | Run from repo root: `cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC`. Ensure `X_BEARER_TOKEN` is in `.env`. Check script exit code (0 = success).                                                                                                                                                                                                                |
+| **Stale data on leaderboard**                                               | App was down; cron not set or failed                           | Use cron when the app isn’t always on. Optionally show `updatedAt` in the UI to spot stale tiles.                                                                                                                                                                                                                                                                          |
 
 ---
 
@@ -211,16 +215,16 @@ The vibe-check pipeline uses **searchForSentiment** when available: English-only
 
 Ideas to make the system more robust and easier to operate. **Done:** `updatedAt` is exposed per asset and the News tab shows “Updated X min ago” or “Stale” (if &gt;45 min) on each vibe-check tile.
 
-| Area | Improvement | Benefit |
-|------|--------------|---------|
-| **UX** | ~~Expose `updatedAt` per asset~~ ✅ Done: API returns `updatedAt`, UI shows “Updated X min ago” / “Stale” | Users see freshness at a glance; easier to spot rate limits or cron failures. |
-| **UX** | Empty state when configured but no data yet | Show “X vibe check: first refresh in ~7 min” instead of hiding the card. |
-| **Reliability** | **Single shared sentiment logic** — move keyword lists and `simpleSentiment` / `computeSentiment` into a small shared module (e.g. `plugin-vince/src/utils/xSentimentLogic.ts`) used by both the service and the cron script | Prevents drift between in-app and cron; one place to tune thresholds and keywords. |
-| **Reliability** | **Atomic cache writes** — write to a `.tmp` file then rename, in both service and cron | Avoids corrupt or half-written cache if app and cron write at the same time. |
-| **Observability** | Optional debug: expose “last refresh per asset” and “rate limited until” (e.g. in News payload or a small `/api/debug/x-sentiment`) | Support can see why a tile is stale without digging into logs. |
-| **Observability** | Cron: log one JSON line per run (asset, sentiment, confidence, durationMs) | Easier to aggregate and alert (e.g. “no successful run in 1h”). |
-| **Consistency** | Align HYPE query: service uses `"HYPE crypto"`, cron uses `"HYPE crypto -is:retweet"` | Use the same query in both (e.g. both `-is:retweet`) for comparable results. |
-| **Docs / runbook** | When to use cron vs in-app only | e.g. “App always on → in-app stagger is enough. App off most of the day → set up cron and point path to repo.” |
+| Area               | Improvement                                                                                                                                                                                                                  | Benefit                                                                                                        |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **UX**             | ~~Expose `updatedAt` per asset~~ ✅ Done: API returns `updatedAt`, UI shows “Updated X min ago” / “Stale”                                                                                                                    | Users see freshness at a glance; easier to spot rate limits or cron failures.                                  |
+| **UX**             | Empty state when configured but no data yet                                                                                                                                                                                  | Show “X vibe check: first refresh in ~7 min” instead of hiding the card.                                       |
+| **Reliability**    | **Single shared sentiment logic** — move keyword lists and `simpleSentiment` / `computeSentiment` into a small shared module (e.g. `plugin-vince/src/utils/xSentimentLogic.ts`) used by both the service and the cron script | Prevents drift between in-app and cron; one place to tune thresholds and keywords.                             |
+| **Reliability**    | **Atomic cache writes** — write to a `.tmp` file then rename, in both service and cron                                                                                                                                       | Avoids corrupt or half-written cache if app and cron write at the same time.                                   |
+| **Observability**  | Optional debug: expose “last refresh per asset” and “rate limited until” (e.g. in News payload or a small `/api/debug/x-sentiment`)                                                                                          | Support can see why a tile is stale without digging into logs.                                                 |
+| **Observability**  | Cron: log one JSON line per run (asset, sentiment, confidence, durationMs)                                                                                                                                                   | Easier to aggregate and alert (e.g. “no successful run in 1h”).                                                |
+| **Consistency**    | Align HYPE query: service uses `"HYPE crypto"`, cron uses `"HYPE crypto -is:retweet"`                                                                                                                                        | Use the same query in both (e.g. both `-is:retweet`) for comparable results.                                   |
+| **Docs / runbook** | When to use cron vs in-app only                                                                                                                                                                                              | e.g. “App always on → in-app stagger is enough. App off most of the day → set up cron and point path to repo.” |
 
 ---
 
@@ -232,14 +236,14 @@ Ideas to make the system more robust and easier to operate. **Done:** `updatedAt
 
 ### Commands
 
-| Command | Purpose |
-|---------|---------|
-| `bun run x-search.ts search "<query>" [options]` | Search recent tweets. Options: `--sort likes\|impressions\|retweets\|recent`, `--since 1h\|3h\|12h\|1d\|7d`, `--min-likes N`, `--pages N`, `--limit N`, `--no-replies`, `--save`, `--json`, `--markdown`. |
-| `bun run x-search.ts profile <username>` | Recent tweets from a user. `--count N`, `--replies`, `--json`. |
-| `bun run x-search.ts thread <tweet_id>` | Full thread by root tweet ID. `--pages N`. |
-| `bun run x-search.ts tweet <tweet_id>` | Single tweet. `--json`. |
-| `bun run x-search.ts watchlist [add\|remove\|check] …` | Watchlist: add/remove accounts, check recent from all. Data in `data/watchlist.json`. |
-| `bun run x-search.ts cache clear` | Clear 15-min file cache. |
+| Command                                                | Purpose                                                                                                                                                                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run x-search.ts search "<query>" [options]`       | Search recent tweets. Options: `--sort likes\|impressions\|retweets\|recent`, `--since 1h\|3h\|12h\|1d\|7d`, `--min-likes N`, `--pages N`, `--limit N`, `--no-replies`, `--save`, `--json`, `--markdown`. |
+| `bun run x-search.ts profile <username>`               | Recent tweets from a user. `--count N`, `--replies`, `--json`.                                                                                                                                            |
+| `bun run x-search.ts thread <tweet_id>`                | Full thread by root tweet ID. `--pages N`.                                                                                                                                                                |
+| `bun run x-search.ts tweet <tweet_id>`                 | Single tweet. `--json`.                                                                                                                                                                                   |
+| `bun run x-search.ts watchlist [add\|remove\|check] …` | Watchlist: add/remove accounts, check recent from all. Data in `data/watchlist.json`.                                                                                                                     |
+| `bun run x-search.ts cache clear`                      | Clear 15-min file cache.                                                                                                                                                                                  |
 
 ### Saving to file
 
@@ -293,22 +297,22 @@ Run both from the repo root with `X_BEARER_TOKEN` in `.env`.
 
 ## References
 
-| What | Where |
-|------|--------|
-| X API pay-per-use announcement | [Announcing the launch of X API pay-per-use pricing](https://devcommunity.x.com/t/announcing-the-launch-of-x-api-pay-per-use-pricing/256476) |
-| CLI and skill | [skills/x-research/README.md](skills/x-research/README.md) |
-| Skill instructions (agentic loop) | [skills/x-research/SKILL.md](skills/x-research/SKILL.md) |
-| X API reference | [skills/x-research/references/x-api.md](skills/x-research/references/x-api.md) |
-| Live demo (real tweets) | `bun run scripts/x-research-live-demo.ts` |
-| Smoke test (search + getTweet) | `bun run scripts/x-research-live-smoke.ts` |
-| In-chat action | plugin-vince: `VINCE_X_RESEARCH` ([actions/xResearch.action.ts](src/plugins/plugin-vince/src/actions/xResearch.action.ts)) |
-| Service (search, profile, thread, tweet, cache) | [services/xResearch.service.ts](src/plugins/plugin-vince/src/services/xResearch.service.ts) |
-| X vibe check service (staggered refresh, cache file) | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts) |
-| X vibe check cron script | [scripts/x-vibe-check.ts](scripts/x-vibe-check.ts) |
-| Crontab example (staggered by asset) | [scripts/x-vibe-check-crontab.example](scripts/x-vibe-check-crontab.example) |
-| Signal sources (XSentiment weight, cache path) | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
-| Grok Expert (uses X vibe check in context; requires XAI_API_KEY) | [grokExpert.action.ts](src/plugins/plugin-vince/src/actions/grokExpert.action.ts), [grokExpert.tasks.ts](src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts) |
-| Daily report (uses X vibe check in context) | [dailyReport.tasks.ts](src/plugins/plugin-vince/src/tasks/dailyReport.tasks.ts) |
-| **Crypto intel daily report (sub-agents)** | When `GROK_SUB_AGENTS_ENABLED=true`, Grok Expert produces a 10-section report. Memory dir: `.elizadb/vince-paper-bot/crypto-intel/` (`intelligence_log.jsonl`, `session_state.json`, `recommendations.jsonl`, `track_record.json`, `smart_wallets.json`, `watchlist.json`). Report path: `knowledge/internal-docs/grok-daily-<date>.md` or `grok-auto-<date>.md`. Close recommendations in-chat: "close recommendation TOKEN". |
-| X API (pay-per-use, second token, XDK) | [X-API.md](X-API.md) |
-| Project dev guide | [CLAUDE.md](../CLAUDE.md) (X Research skill section) |
+| What                                                             | Where                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| X API pay-per-use announcement                                   | [Announcing the launch of X API pay-per-use pricing](https://devcommunity.x.com/t/announcing-the-launch-of-x-api-pay-per-use-pricing/256476)                                                                                                                                                                                                                                                                                   |
+| CLI and skill                                                    | [skills/x-research/README.md](skills/x-research/README.md)                                                                                                                                                                                                                                                                                                                                                                     |
+| Skill instructions (agentic loop)                                | [skills/x-research/SKILL.md](skills/x-research/SKILL.md)                                                                                                                                                                                                                                                                                                                                                                       |
+| X API reference                                                  | [skills/x-research/references/x-api.md](skills/x-research/references/x-api.md)                                                                                                                                                                                                                                                                                                                                                 |
+| Live demo (real tweets)                                          | `bun run scripts/x-research-live-demo.ts`                                                                                                                                                                                                                                                                                                                                                                                      |
+| Smoke test (search + getTweet)                                   | `bun run scripts/x-research-live-smoke.ts`                                                                                                                                                                                                                                                                                                                                                                                     |
+| In-chat action                                                   | plugin-vince: `VINCE_X_RESEARCH` ([actions/xResearch.action.ts](src/plugins/plugin-vince/src/actions/xResearch.action.ts))                                                                                                                                                                                                                                                                                                     |
+| Service (search, profile, thread, tweet, cache)                  | [services/xResearch.service.ts](src/plugins/plugin-vince/src/services/xResearch.service.ts)                                                                                                                                                                                                                                                                                                                                    |
+| X vibe check service (staggered refresh, cache file)             | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts)                                                                                                                                                                                                                                                                                                                                           |
+| X vibe check cron script                                         | [scripts/x-vibe-check.ts](scripts/x-vibe-check.ts)                                                                                                                                                                                                                                                                                                                                                                             |
+| Crontab example (staggered by asset)                             | [scripts/x-vibe-check-crontab.example](scripts/x-vibe-check-crontab.example)                                                                                                                                                                                                                                                                                                                                                   |
+| Signal sources (XSentiment weight, cache path)                   | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md)                                                                                                                                                                                                                                                                                                                                                                |
+| Grok Expert (uses X vibe check in context; requires XAI_API_KEY) | [grokExpert.action.ts](src/plugins/plugin-vince/src/actions/grokExpert.action.ts), [grokExpert.tasks.ts](src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts)                                                                                                                                                                                                                                                               |
+| Daily report (uses X vibe check in context)                      | [dailyReport.tasks.ts](src/plugins/plugin-vince/src/tasks/dailyReport.tasks.ts)                                                                                                                                                                                                                                                                                                                                                |
+| **Crypto intel daily report (sub-agents)**                       | When `GROK_SUB_AGENTS_ENABLED=true`, Grok Expert produces a 10-section report. Memory dir: `.elizadb/vince-paper-bot/crypto-intel/` (`intelligence_log.jsonl`, `session_state.json`, `recommendations.jsonl`, `track_record.json`, `smart_wallets.json`, `watchlist.json`). Report path: `knowledge/internal-docs/grok-daily-<date>.md` or `grok-auto-<date>.md`. Close recommendations in-chat: "close recommendation TOKEN". |
+| X API (pay-per-use, second token, XDK)                           | [X-API.md](X-API.md)                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Project dev guide                                                | [CLAUDE.md](../CLAUDE.md) (X Research skill section)                                                                                                                                                                                                                                                                                                                                                                           |

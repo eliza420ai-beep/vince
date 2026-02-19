@@ -42,7 +42,9 @@ function getPhraseOverride(text: string): number | null {
 function hasNegationBefore(lower: string, idx: number): boolean {
   const words = lower.slice(0, idx).split(/\s+/);
   const window = words.slice(-NEGATION_WINDOW).join(" ");
-  return /\b(not|n't|never|isn't|wasn't|aren't|won't|don't|doesn't|didn't)\s*$/i.test(window);
+  return /\b(not|n't|never|isn't|wasn't|aren't|won't|don't|doesn't|didn't)\s*$/i.test(
+    window,
+  );
 }
 
 /**
@@ -124,7 +126,9 @@ export interface ComputeSentimentOptions {
   weightedKeywords?: WeightedKeyword[];
 }
 
-const DEFAULT_OPTIONS: Required<Omit<ComputeSentimentOptions, "useWeightedKeywords" | "weightedKeywords">> & {
+const DEFAULT_OPTIONS: Required<
+  Omit<ComputeSentimentOptions, "useWeightedKeywords" | "weightedKeywords">
+> & {
   useWeightedKeywords: boolean;
   weightedKeywords: WeightedKeyword[];
 } = {
@@ -155,10 +159,23 @@ export function computeSentimentFromTweets(
 ): SentimentCacheEntry {
   const now = Date.now();
   const options = { ...DEFAULT_OPTIONS, ...opts };
-  const { keywordLists, minTweets, bullBearThreshold, engagementCap, riskMinTweets, useWeightedKeywords, weightedKeywords } = options;
+  const {
+    keywordLists,
+    minTweets,
+    bullBearThreshold,
+    engagementCap,
+    riskMinTweets,
+    useWeightedKeywords,
+    weightedKeywords,
+  } = options;
 
   if (tweets.length < minTweets) {
-    return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false, updatedAt: now };
+    return {
+      sentiment: "neutral",
+      confidence: 0,
+      hasHighRiskEvent: false,
+      updatedAt: now,
+    };
   }
 
   let sumSentiment = 0;
@@ -170,7 +187,10 @@ export function computeSentimentFromTweets(
     const s =
       useWeightedKeywords && weightedKeywords.length > 0
         ? weightedSentiment(t.text, weightedKeywords)
-        : simpleSentiment(t.text, { bullish: keywordLists.bullish, bearish: keywordLists.bearish });
+        : simpleSentiment(t.text, {
+            bullish: keywordLists.bullish,
+            bearish: keywordLists.bearish,
+          });
     if (hasRiskKeyword(t.text, keywordLists.risk)) riskTweetCount += 1;
     const rawWeight = 1 + Math.log10(1 + (t.metrics?.likes ?? 0));
     const engagementWeight = Math.min(rawWeight, engagementCap);
@@ -202,10 +222,12 @@ export function computeSentimentFromTweets(
   let contrarianNote: string | undefined;
   if (avgSentiment >= CONTRARIAN_THRESHOLD) {
     isContrarian = true;
-    contrarianNote = "Extreme bullish sentiment — contrarian warning: historically extreme greed can precede pullbacks.";
+    contrarianNote =
+      "Extreme bullish sentiment — contrarian warning: historically extreme greed can precede pullbacks.";
   } else if (avgSentiment <= -CONTRARIAN_THRESHOLD) {
     isContrarian = true;
-    contrarianNote = "Extreme bearish sentiment — contrarian note: extreme fear can signal potential bottoms.";
+    contrarianNote =
+      "Extreme bearish sentiment — contrarian note: extreme fear can signal potential bottoms.";
   }
 
   return {

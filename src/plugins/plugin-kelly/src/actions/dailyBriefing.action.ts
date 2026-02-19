@@ -66,18 +66,53 @@ export const kellyDailyBriefingAction: Action = {
 
     // Negative: if the user is asking for something specific, let the specific action handle it
     const specificTriggers = [
-      "workout", "yoga", "gym", "exercise", // workout
-      "what wine", "recommend wine", "wine with", "wine for", "pairing", // wine
-      "where to eat", "restaurant", "recommend a place", "lunch spot", // place
-      "what to cook", "dinner idea", "cook tonight", "bbq", "green egg", "thermomix", // home cooking
-      "rowing", "water rower", "erg", // rowing
-      "surf forecast", "surf report", "wave", "swell", // surf
-      "what to watch", "what to read", "recommend a book", "recommend a movie", "netflix", // entertainment
-      "week ahead", "this week's picks", "plan for the week", // week ahead
-      "spa day", "cooking class", "guided tour", "wine tasting", // experience
-      "swimming", "swim technique", "swim tips", // swimming
-      "tea", "matcha", "brew", // tea
-      "itinerary", "trip", "travel plan", // itinerary
+      "workout",
+      "yoga",
+      "gym",
+      "exercise", // workout
+      "what wine",
+      "recommend wine",
+      "wine with",
+      "wine for",
+      "pairing", // wine
+      "where to eat",
+      "restaurant",
+      "recommend a place",
+      "lunch spot", // place
+      "what to cook",
+      "dinner idea",
+      "cook tonight",
+      "bbq",
+      "green egg",
+      "thermomix", // home cooking
+      "rowing",
+      "water rower",
+      "erg", // rowing
+      "surf forecast",
+      "surf report",
+      "wave",
+      "swell", // surf
+      "what to watch",
+      "what to read",
+      "recommend a book",
+      "recommend a movie",
+      "netflix", // entertainment
+      "week ahead",
+      "this week's picks",
+      "plan for the week", // week ahead
+      "spa day",
+      "cooking class",
+      "guided tour",
+      "wine tasting", // experience
+      "swimming",
+      "swim technique",
+      "swim tips", // swimming
+      "tea",
+      "matcha",
+      "brew", // tea
+      "itinerary",
+      "trip",
+      "travel plan", // itinerary
     ];
     if (specificTriggers.some((t) => text.includes(t))) return false;
 
@@ -108,20 +143,32 @@ export const kellyDailyBriefingAction: Action = {
       logger.info("[KELLY_DAILY_BRIEFING] Building lifestyle briefing...");
 
       const state = await runtime.composeState(_message);
-      const surfSummary = state.values?.surfBiarritzSummary as string | undefined;
+      const surfSummary = state.values?.surfBiarritzSummary as
+        | string
+        | undefined;
       const surfBiarritzLine = surfSummary
         ? surfSummary.replace(/\.\s*When the user asks.*$/i, ".").trim()
         : undefined;
 
-      const wBdx = state.values?.weatherBordeaux as { condition: string; temp: number } | undefined;
-      const wBiarritz = state.values?.weatherBiarritz as { condition: string; temp: number } | undefined;
+      const wBdx = state.values?.weatherBordeaux as
+        | { condition: string; temp: number }
+        | undefined;
+      const wBiarritz = state.values?.weatherBiarritz as
+        | { condition: string; temp: number }
+        | undefined;
       const weatherParts: string[] = [];
-      if (wBdx) weatherParts.push(`Bordeaux: ${wBdx.condition}, ${wBdx.temp}°C`);
-      if (wBiarritz) weatherParts.push(`Biarritz: ${wBiarritz.condition}, ${wBiarritz.temp}°C`);
+      if (wBdx)
+        weatherParts.push(`Bordeaux: ${wBdx.condition}, ${wBdx.temp}°C`);
+      if (wBiarritz)
+        weatherParts.push(
+          `Biarritz: ${wBiarritz.condition}, ${wBiarritz.temp}°C`,
+        );
       const weatherBordeauxBiarritzLine =
         weatherParts.length > 0 ? weatherParts.join(". ") + "." : undefined;
 
-      const wHome = state.values?.weatherHome as { condition: string; temp: number } | undefined;
+      const wHome = state.values?.weatherHome as
+        | { condition: string; temp: number }
+        | undefined;
       const weatherHomeLine = wHome
         ? `Local: ${wHome.condition}, ${wHome.temp}°C`
         : undefined;
@@ -167,7 +214,10 @@ export const kellyDailyBriefingAction: Action = {
             ? "If it's been a heavy week, add one sentence encouraging a weekend rebalance—dinner at home, pool, or a walk—without mentioning work or markets."
             : "",
         wineOfTheDay: lifestyleService.getWineOfTheDay?.() ?? "",
-        travelIdeaOfTheWeek: lifestyleService.getDayTripIdeaOfTheWeek?.() ?? lifestyleService.getTravelIdeaOfTheWeek?.() ?? "",
+        travelIdeaOfTheWeek:
+          lifestyleService.getDayTripIdeaOfTheWeek?.() ??
+          lifestyleService.getTravelIdeaOfTheWeek?.() ??
+          "",
         surfBiarritzLine,
         weatherBordeauxBiarritzLine,
         weatherHomeLine,

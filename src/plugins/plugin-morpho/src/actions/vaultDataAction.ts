@@ -11,7 +11,10 @@ import { MorphoService } from "../services";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
 import type { MorphoVaultData } from "../types";
 import { getEntityWallet } from "../../../../utils/entity";
-import { validateMorphoService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateMorphoService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 
 interface VaultInfoParams {
   vault?: string;
@@ -56,7 +59,12 @@ export const vaultInfoAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validateMorphoService(runtime, "GET_MORPHO_VAULT_INFO", state, message);
+    return validateMorphoService(
+      runtime,
+      "GET_MORPHO_VAULT_INFO",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -70,8 +78,13 @@ export const vaultInfoAction: Action = {
 
     try {
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<VaultInfoParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<VaultInfoParams>;
 
       // Store input parameters for return
       const inputParams: VaultInfoInput = {
@@ -88,7 +101,7 @@ export const vaultInfoAction: Action = {
       ) as MorphoService;
 
       // Determine chain - default to 'base' if not provided
-      const chain = (inputParams.chain as any) || 'base';
+      const chain = (inputParams.chain as any) || "base";
 
       // Get CDP service
       const cdp = runtime.getService(CdpService.serviceType) as CdpService;
@@ -124,7 +137,9 @@ export const vaultInfoAction: Action = {
       );
 
       if (wallet.success === false) {
-        logger.warn("[GET_MORPHO_VAULT_INFO] Entity wallet verification failed");
+        logger.warn(
+          "[GET_MORPHO_VAULT_INFO] Entity wallet verification failed",
+        );
         return {
           ...wallet.result,
           input: inputParams,
@@ -196,9 +211,13 @@ export const vaultInfoAction: Action = {
       // Success message
       const text = inputParams.vault
         ? ` Successfully fetched vault data for ${inputParams.vault} on ${chain}.`
-        : ` Successfully fetched all Morpho vaults on ${chain}. Found ${vaults.length} vault${vaults.length === 1 ? '' : 's'}.`;
+        : ` Successfully fetched all Morpho vaults on ${chain}. Found ${vaults.length} vault${vaults.length === 1 ? "" : "s"}.`;
 
-      const data = { actionName: "GET_MORPHO_VAULT_INFO", params: inputParams, vaults };
+      const data = {
+        actionName: "GET_MORPHO_VAULT_INFO",
+        params: inputParams,
+        vaults,
+      };
 
       if (callback) {
         await callback({
@@ -229,8 +248,13 @@ export const vaultInfoAction: Action = {
       // Try to capture input params even in failure
       let failureInputParams: VaultInfoInput = {};
       try {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams ?? {}) as Partial<VaultInfoParams>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams ??
+          {}) as Partial<VaultInfoParams>;
         failureInputParams = {
           vault: params.vault?.trim(),
           chain: params.chain?.trim()?.toLowerCase(),

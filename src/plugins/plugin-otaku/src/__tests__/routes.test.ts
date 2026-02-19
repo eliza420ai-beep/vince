@@ -6,11 +6,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { IAgentRuntime, RouteRequest, RouteResponse } from "@elizaos/core";
 
 // Mock runtime
-const createMockRuntime = (services: Record<string, any> = {}): IAgentRuntime => ({
-  getService: vi.fn((type: string) => services[type] ?? null),
-  getSetting: vi.fn(),
-  agentId: "test-agent",
-} as unknown as IAgentRuntime);
+const createMockRuntime = (services: Record<string, any> = {}): IAgentRuntime =>
+  ({
+    getService: vi.fn((type: string) => services[type] ?? null),
+    getSetting: vi.fn(),
+    agentId: "test-agent",
+  }) as unknown as IAgentRuntime;
 
 // Mock response
 const createMockResponse = () => {
@@ -93,9 +94,11 @@ describe("Otaku Routes", () => {
 
       const runtime = createMockRuntime({
         bankr_orders: {
-          getActiveOrders: vi.fn().mockResolvedValue([
-            { orderId: "123", type: "limit", status: "active" },
-          ]),
+          getActiveOrders: vi
+            .fn()
+            .mockResolvedValue([
+              { orderId: "123", type: "limit", status: "active" },
+            ]),
         },
       });
       const req = {} as RouteRequest;
@@ -188,9 +191,30 @@ describe("Otaku Routes", () => {
         json: () =>
           Promise.resolve({
             data: [
-              { project: "A", symbol: "USDC", chain: "base", apy: 3, tvlUsd: 1000000, ilRisk: "no" },
-              { project: "B", symbol: "USDC", chain: "base", apy: 8, tvlUsd: 1000000, ilRisk: "no" },
-              { project: "C", symbol: "ETH", chain: "base", apy: 10, tvlUsd: 1000000, ilRisk: "no" },
+              {
+                project: "A",
+                symbol: "USDC",
+                chain: "base",
+                apy: 3,
+                tvlUsd: 1000000,
+                ilRisk: "no",
+              },
+              {
+                project: "B",
+                symbol: "USDC",
+                chain: "base",
+                apy: 8,
+                tvlUsd: 1000000,
+                ilRisk: "no",
+              },
+              {
+                project: "C",
+                symbol: "ETH",
+                chain: "base",
+                apy: 10,
+                tvlUsd: 1000000,
+                ilRisk: "no",
+              },
             ],
           }),
       });

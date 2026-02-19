@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "long term people naval",
@@ -42,11 +46,18 @@ Tie to "Compounding Relationships Make Life Easier." Be direct. No gossip — pr
 
 export const navalLongTermPeopleAction: Action = {
   name: "NAVAL_LONG_TERM_PEOPLE",
-  similes: ["LONG_TERM_PEOPLE", "COMPOUNDING_RELATIONSHIPS", "NAVAL_RELATIONSHIPS_AUDIT"],
+  similes: [
+    "LONG_TERM_PEOPLE",
+    "COMPOUNDING_RELATIONSHIPS",
+    "NAVAL_RELATIONSHIPS_AUDIT",
+  ],
   description:
     "Who in their life are long-term people? Who compounds? One relationship to nurture or one to deprioritize.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsLongTermPeople(text);
   },
@@ -81,7 +92,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -89,14 +100,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Play long-term games with long-term people. Compounding relationships make life easier — same players in 10 years, trust builds. Ask: who compounds? Nurture those. Who doesn't? Deprioritize without drama.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Long term people naval: I have a few close friends, a co-founder I trust, and a lot of work acquaintances. Who should I invest in?" } },
-      { name: "{{agent}}", content: { text: "Long-term people: your co-founder and the close friends who've been there years. They compound — shared context, trust. Work acquaintances are fine but don't over-invest in people who disappear when the project ends. One move: double down on one friend you've neglected; or stop over-investing in one person who takes but doesn't compound." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Long term people naval: I have a few close friends, a co-founder I trust, and a lot of work acquaintances. Who should I invest in?",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Long-term people: your co-founder and the close friends who've been there years. They compound — shared context, trust. Work acquaintances are fine but don't over-invest in people who disappear when the project ends. One move: double down on one friend you've neglected; or stop over-investing in one person who takes but doesn't compound.",
+        },
+      },
     ],
   ],
 };

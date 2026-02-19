@@ -118,7 +118,11 @@ interface WttPickJson {
     alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
     edge: "undiscovered" | "emerging" | "consensus" | "crowded";
     payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
-    timingForgiveness: "very_forgiving" | "forgiving" | "punishing" | "very_punishing";
+    timingForgiveness:
+      | "very_forgiving"
+      | "forgiving"
+      | "punishing"
+      | "very_punishing";
   };
   evThresholdPct?: number;
   killConditions: string[];
@@ -151,9 +155,13 @@ export class VincePaperTradingService extends Service {
   ): Promise<VincePaperTradingService> {
     const service = new VincePaperTradingService(runtime);
     await service.initialize();
-    const aggressive = runtime.getSetting?.("vince_paper_aggressive") === true || runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const aggressive =
+      runtime.getSetting?.("vince_paper_aggressive") === true ||
+      runtime.getSetting?.("vince_paper_aggressive") === "true";
     const assets = getPaperTradeAssets(runtime).join(",");
-    logger.info(`[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}`);
+    logger.info(
+      `[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}`,
+    );
     return service;
   }
 
@@ -439,7 +447,9 @@ export class VincePaperTradingService extends Service {
       }
     }
 
-    const contributingSources = signal.sourceBreakdown ? Object.keys(signal.sourceBreakdown) : [];
+    const contributingSources = signal.sourceBreakdown
+      ? Object.keys(signal.sourceBreakdown)
+      : [];
     // Always store for dashboard (every no-trade is a decision we want to see)
     this.recentNoTrades.push({
       asset,
@@ -454,7 +464,9 @@ export class VincePaperTradingService extends Service {
       timestamp: now,
       contributingSources,
     });
-    if (this.recentNoTrades.length > VincePaperTradingService.MAX_RECENT_NO_TRADES) {
+    if (
+      this.recentNoTrades.length > VincePaperTradingService.MAX_RECENT_NO_TRADES
+    ) {
       this.recentNoTrades.shift();
     }
 
@@ -509,7 +521,10 @@ export class VincePaperTradingService extends Service {
     signal: AggregatedTradeSignal,
     regime: MarketRegime | null,
   ): Promise<boolean> {
-    const topSources = Object.keys(signal.sourceBreakdown ?? {}).slice(0, 5).join(", ") || "—";
+    const topSources =
+      Object.keys(signal.sourceBreakdown ?? {})
+        .slice(0, 5)
+        .join(", ") || "—";
     const regimeStr = regime?.regime ?? "unknown";
     const prompt = `You are a paper-trade entry gate. One candidate only. Reply with exactly one line: APPROVE or VETO, then a short reason.
 
@@ -521,16 +536,23 @@ Reply format: APPROVE reason or VETO reason`;
       const result = await Promise.race([
         this.runtime.useModel(ModelType.TEXT_SMALL, { prompt }),
         new Promise<string>((_, rej) =>
-          setTimeout(() => rej(new Error("entry gate timeout")), VincePaperTradingService.ENTRY_GATE_TIMEOUT_MS),
+          setTimeout(
+            () => rej(new Error("entry gate timeout")),
+            VincePaperTradingService.ENTRY_GATE_TIMEOUT_MS,
+          ),
         ),
       ]);
-      const line = (typeof result === "string" ? result : String(result)).trim().toUpperCase();
+      const line = (typeof result === "string" ? result : String(result))
+        .trim()
+        .toUpperCase();
       if (line.startsWith("VETO")) {
         return false;
       }
       return true;
     } catch (e) {
-      logger.debug(`[VincePaperTrading] Entry gate fallback (proceed): ${(e as Error).message}`);
+      logger.debug(
+        `[VincePaperTrading] Entry gate fallback (proceed): ${(e as Error).message}`,
+      );
       return true;
     }
   }
@@ -627,7 +649,12 @@ Reply format: APPROVE reason or VETO reason`;
     asset: string,
     message: string,
   ): void {
-    this.recentMLInfluences.push({ type, asset, message, timestamp: Date.now() });
+    this.recentMLInfluences.push({
+      type,
+      asset,
+      message,
+      timestamp: Date.now(),
+    });
     if (
       this.recentMLInfluences.length >
       VincePaperTradingService.MAX_RECENT_ML_INFLUENCES
@@ -643,16 +670,24 @@ Reply format: APPROVE reason or VETO reason`;
   private async recordAvoidedDecisionIfNeeded(
     asset: string,
     signal: AggregatedSignal,
-    reason: string
+    reason: string,
   ): Promise<void> {
     const now = Date.now();
     const last = this.lastAvoidedRecord.get(asset);
-    if (last != null && now - last < VincePaperTradingService.AVOIDED_RECORD_INTERVAL_MS) {
+    if (
+      last != null &&
+      now - last < VincePaperTradingService.AVOIDED_RECORD_INTERVAL_MS
+    ) {
       return;
     }
     this.lastAvoidedRecord.set(asset, now);
-    const featureStore = this.getFeatureStore() as VinceFeatureStoreService | null;
-    if (!featureStore || typeof featureStore.recordAvoidedDecision !== "function") return;
+    const featureStore =
+      this.getFeatureStore() as VinceFeatureStoreService | null;
+    if (
+      !featureStore ||
+      typeof featureStore.recordAvoidedDecision !== "function"
+    )
+      return;
     try {
       await featureStore.recordAvoidedDecision({ asset, signal, reason });
     } catch (e) {
@@ -716,7 +751,10 @@ Reply format: APPROVE reason or VETO reason`;
     return order;
   }
 
-  private calculateSlippage(sizeUsd: number, bidAskSpread?: number | null): number {
+  private calculateSlippage(
+    sizeUsd: number,
+    bidAskSpread?: number | null,
+  ): number {
     // Dynamic slippage: use actual bid-ask spread when available, fallback to static base
     let slippageBps: number;
     if (bidAskSpread != null && bidAskSpread > 0) {
@@ -743,7 +781,11 @@ Reply format: APPROVE reason or VETO reason`;
       ? path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR)
       : path.join(process.cwd(), "docs", "standup");
     const dateStr = new Date().toISOString().slice(0, 10);
-    return path.join(base, "whats-the-trade", `${dateStr}-whats-the-trade.json`);
+    return path.join(
+      base,
+      "whats-the-trade",
+      `${dateStr}-whats-the-trade.json`,
+    );
   }
 
   private async readLatestWttPick(): Promise<WttPickJson | null> {
@@ -810,7 +852,9 @@ Reply format: APPROVE reason or VETO reason`;
       return false;
     }
 
-    const asset = normalizeWttTicker(pick.primaryTicker) ?? normalizeWttTicker(pick.altTicker ?? "");
+    const asset =
+      normalizeWttTicker(pick.primaryTicker) ??
+      normalizeWttTicker(pick.altTicker ?? "");
     if (!asset) {
       await this.appendWttPickJsonl(pick, "skipped", "ticker not in universe");
       return false;
@@ -823,7 +867,10 @@ Reply format: APPROVE reason or VETO reason`;
     const { strength, confidence } = wttRubricToSignal(pick.rubric);
     // WTT is a curated daily thesis — set confirmingCount high enough to
     // pass the risk manager's gate (rubric already encodes signal quality).
-    const confirmingCount = Math.max(3, strength >= 80 && confidence >= 80 ? 3 : 2);
+    const confirmingCount = Math.max(
+      3,
+      strength >= 80 && confidence >= 80 ? 3 : 2,
+    );
     const tradeSignal: AggregatedTradeSignal = {
       asset,
       direction: pick.primaryDirection,
@@ -831,7 +878,14 @@ Reply format: APPROVE reason or VETO reason`;
       confidence,
       confirmingCount,
       conflictingCount: 0,
-      signals: [{ source: "wtt", direction: pick.primaryDirection, strength, description: pick.thesis }],
+      signals: [
+        {
+          source: "wtt",
+          direction: pick.primaryDirection,
+          strength,
+          description: pick.thesis,
+        },
+      ],
       reasons: [pick.thesis],
       sourceBreakdown: { wtt: { count: 1, avgStrength: strength } },
       timestamp: Date.now(),
@@ -839,14 +893,19 @@ Reply format: APPROVE reason or VETO reason`;
 
     const signalValidation = riskManager.validateSignal(tradeSignal);
     if (!signalValidation.valid) {
-      logger.debug(`[VincePaperTrading] WTT pick ${asset} rejected: ${signalValidation.reason}`);
+      logger.debug(
+        `[VincePaperTrading] WTT pick ${asset} rejected: ${signalValidation.reason}`,
+      );
       await this.appendWttPickJsonl(pick, "rejected", signalValidation.reason);
       return false;
     }
 
     const portfolio = positionManager.getPortfolio();
     const leverage = Math.min(DEFAULT_LEVERAGE, getAssetMaxLeverage(asset));
-    const sizeUsd = Math.min(portfolio.totalValue * 0.05, portfolio.totalValue * 0.1);
+    const sizeUsd = Math.min(
+      portfolio.totalValue * 0.05,
+      portfolio.totalValue * 0.1,
+    );
     const position = await this.openTrade({
       asset,
       direction: pick.primaryDirection,
@@ -869,7 +928,21 @@ Reply format: APPROVE reason or VETO reason`;
     });
     await this.recordMLFeatures(position, tradeSignal, undefined, wttBlock);
     await this.appendWttPickJsonl(pick, "traded");
-    logger.info(`[VincePaperTrading] WTT trade opened: ${pick.primaryDirection} ${asset}`);
+
+    // Rename pick file so it's not re-evaluated on the next loop cycle
+    try {
+      const pickPath = this.getWttPickPath();
+      await fs.promises.rename(
+        pickPath,
+        pickPath.replace(".json", ".traded.json"),
+      );
+    } catch {
+      // non-fatal: file may already be gone
+    }
+
+    logger.info(
+      `[VincePaperTrading] WTT trade opened: ${pick.primaryDirection} ${asset}`,
+    );
     return true;
   }
 
@@ -928,8 +1001,16 @@ Reply format: APPROVE reason or VETO reason`;
             if (signal.direction !== "neutral" && signal.strength > 30) {
               const reason = `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`;
               this.pushMLInfluence("reject", asset, reason);
-              this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
-              void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
+              this.logSignalRejection(
+                asset,
+                this.toAggregatedTradeSignal(signal),
+                reason,
+              );
+              void this.recordAvoidedDecisionIfNeeded(
+                asset,
+                signal as AggregatedSignal,
+                reason,
+              );
             }
             continue;
           }
@@ -941,20 +1022,50 @@ Reply format: APPROVE reason or VETO reason`;
           this.runtime.getSetting?.("vince_paper_aggressive") === true ||
           this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         if (mlService && !aggressiveMode) {
-          const minStr = (mlService as { getSuggestedMinStrength?: () => number | null }).getSuggestedMinStrength?.();
-          const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
-          if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
+          const minStr = (
+            mlService as { getSuggestedMinStrength?: () => number | null }
+          ).getSuggestedMinStrength?.();
+          const minConf = (
+            mlService as { getSuggestedMinConfidence?: () => number | null }
+          ).getSuggestedMinConfidence?.();
+          if (
+            typeof minStr === "number" &&
+            signal.strength < minStr &&
+            signal.direction !== "neutral" &&
+            signal.strength > 30
+          ) {
             const reason = `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`;
             this.pushMLInfluence("reject", asset, reason);
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
-            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
+            this.logSignalRejection(
+              asset,
+              this.toAggregatedTradeSignal(signal),
+              reason,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              reason,
+            );
             continue;
           }
-          if (typeof minConf === "number" && signal.confidence < minConf && signal.direction !== "neutral" && signal.strength > 30) {
+          if (
+            typeof minConf === "number" &&
+            signal.confidence < minConf &&
+            signal.direction !== "neutral" &&
+            signal.strength > 30
+          ) {
             const reason = `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`;
             this.pushMLInfluence("reject", asset, reason);
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
-            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
+            this.logSignalRejection(
+              asset,
+              this.toAggregatedTradeSignal(signal),
+              reason,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              reason,
+            );
             continue;
           }
         }
@@ -965,8 +1076,16 @@ Reply format: APPROVE reason or VETO reason`;
           if (signal.direction !== "neutral" && signal.strength > 30) {
             const reason = `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`;
             this.pushMLInfluence("reject", asset, reason);
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
-            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
+            this.logSignalRejection(
+              asset,
+              this.toAggregatedTradeSignal(signal),
+              reason,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              reason,
+            );
           }
           continue;
         }
@@ -995,8 +1114,16 @@ Reply format: APPROVE reason or VETO reason`;
             );
         if (bookRejection.reject) {
           const reason = bookRejection.reason!;
-          this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
-          void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
+          this.logSignalRejection(
+            asset,
+            this.toAggregatedTradeSignal(signal),
+            reason,
+          );
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            reason,
+          );
           continue;
         }
         let fundingRate = 0;
@@ -1010,30 +1137,45 @@ Reply format: APPROVE reason or VETO reason`;
             mktCtx.volumeRatio = volumeRatio;
             mktCtx.priceChange24h = ctx?.priceChange24h ?? 0;
             mktCtx.currentPrice = ctx?.currentPrice ?? 0;
-            mktCtx.dailyOpenPrice = (ctx as { dailyOpenPrice?: number })?.dailyOpenPrice ?? undefined;
+            mktCtx.dailyOpenPrice =
+              (ctx as { dailyOpenPrice?: number })?.dailyOpenPrice ?? undefined;
           } catch (_) {}
         }
         // Fetch OI change from CoinGlass
-        const coinglass = this.runtime.getService("VINCE_COINGLASS_SERVICE") as {
-          getOpenInterest?: (asset: string) => { change24h: number | null } | null;
+        const coinglass = this.runtime.getService(
+          "VINCE_COINGLASS_SERVICE",
+        ) as {
+          getOpenInterest?: (
+            asset: string,
+          ) => { change24h: number | null } | null;
           getFearGreed?: () => { value: number; classification: string } | null;
         } | null;
         try {
           const oi = coinglass?.getOpenInterest?.(asset);
           mktCtx.oiChange24h = oi?.change24h ?? undefined;
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
         // Fetch Fear/Greed (used for both confidence and sizing below)
         let fearGreedValue: number | undefined;
         try {
           const fg = coinglass?.getFearGreed?.();
           fearGreedValue = fg?.value ?? undefined;
           mktCtx.fearGreedValue = fearGreedValue;
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
         // Fetch RSI
         try {
-          const rsi = await (marketData as unknown as { estimateRSI?: (asset: string) => Promise<number | null> })?.estimateRSI?.(asset);
+          const rsi = await (
+            marketData as unknown as {
+              estimateRSI?: (asset: string) => Promise<number | null>;
+            }
+          )?.estimateRSI?.(asset);
           mktCtx.rsi = rsi ?? undefined;
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
         const adjustedConfidence = getAdjustedConfidence(
           { direction: signal.direction, confidence: signal.confidence },
           extendedSnapshot,
@@ -1095,7 +1237,9 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Signal hierarchy: at least one primary source required (secondary-only cannot open)
-        const contributingSources = Object.keys(tradeSignal.sourceBreakdown ?? {});
+        const contributingSources = Object.keys(
+          tradeSignal.sourceBreakdown ?? {},
+        );
         const hasPrimary = contributingSources.some((s) =>
           PRIMARY_SIGNAL_SOURCES.has(s),
         );
@@ -1113,7 +1257,11 @@ Reply format: APPROVE reason or VETO reason`;
           if (signal.direction !== "neutral" && signal.strength > 30) {
             const reason = signalValidation.reason || "threshold not met";
             this.logSignalRejection(asset, tradeSignal, reason);
-            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              reason,
+            );
           }
           continue;
         }
@@ -1239,19 +1387,29 @@ Reply format: APPROVE reason or VETO reason`;
         if (fearGreedValue != null && signal.direction !== "neutral") {
           if (fearGreedValue < 20 && signal.direction === "long") {
             baseSizeUsd *= 1.3;
-            logger.debug(`[VincePaperTrading] ${asset} extreme fear (${fearGreedValue}) + long: size +30% (contrarian)`);
+            logger.debug(
+              `[VincePaperTrading] ${asset} extreme fear (${fearGreedValue}) + long: size +30% (contrarian)`,
+            );
           } else if (fearGreedValue < 35 && signal.direction === "long") {
             baseSizeUsd *= 1.15;
-            logger.debug(`[VincePaperTrading] ${asset} fear (${fearGreedValue}) + long: size +15%`);
+            logger.debug(
+              `[VincePaperTrading] ${asset} fear (${fearGreedValue}) + long: size +15%`,
+            );
           } else if (fearGreedValue > 80 && signal.direction === "long") {
             baseSizeUsd *= 0.7;
-            logger.debug(`[VincePaperTrading] ${asset} extreme greed (${fearGreedValue}) + long: size -30% (crowded)`);
+            logger.debug(
+              `[VincePaperTrading] ${asset} extreme greed (${fearGreedValue}) + long: size -30% (crowded)`,
+            );
           } else if (fearGreedValue > 80 && signal.direction === "short") {
             baseSizeUsd *= 1.2;
-            logger.debug(`[VincePaperTrading] ${asset} extreme greed (${fearGreedValue}) + short: size +20% (contrarian)`);
+            logger.debug(
+              `[VincePaperTrading] ${asset} extreme greed (${fearGreedValue}) + short: size +20% (contrarian)`,
+            );
           } else if (fearGreedValue < 20 && signal.direction === "short") {
             baseSizeUsd *= 0.7;
-            logger.debug(`[VincePaperTrading] ${asset} extreme fear (${fearGreedValue}) + short: size -30% (contrarian)`);
+            logger.debug(
+              `[VincePaperTrading] ${asset} extreme fear (${fearGreedValue}) + short: size -30% (contrarian)`,
+            );
           }
         }
 
@@ -1261,12 +1419,14 @@ Reply format: APPROVE reason or VETO reason`;
           const h = now.getUTCHours();
           const m = now.getUTCMinutes();
           const isNearSessionOpen =
-            (h === 0 && m < 30) ||  // Asia open
-            (h === 7 && m < 30) ||  // EU open
-            (h === 13 && m < 30);   // US pre-open
+            (h === 0 && m < 30) || // Asia open
+            (h === 7 && m < 30) || // EU open
+            (h === 13 && m < 30); // US pre-open
           if (isNearSessionOpen) {
             baseSizeUsd *= 0.8;
-            logger.debug(`[VincePaperTrading] ${asset} near session open (${h}:${m.toString().padStart(2, "0")} UTC): size -20% (fakeout risk)`);
+            logger.debug(
+              `[VincePaperTrading] ${asset} near session open (${h}:${m.toString().padStart(2, "0")} UTC): size -20% (fakeout risk)`,
+            );
           }
         }
 
@@ -1289,7 +1449,10 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Context learning: adjust size by historical win-rate per context (marketRegime, vol_regime, session)
-        const contextKeys = buildContextBucketKeys(regime, timeModifiers?.session?.session);
+        const contextKeys = buildContextBucketKeys(
+          regime,
+          timeModifiers?.session?.session,
+        );
         if (contextKeys.length > 0) {
           const contextMult = getContextAdjustmentMultiplier(contextKeys);
           if (contextMult !== 1.0) {
@@ -1558,7 +1721,15 @@ Reply format: APPROVE reason or VETO reason`;
     /** Context bucket keys for context_adjustment learning (recorded on close). */
     contextBucketKeys?: string[];
   }): Promise<Position | null> {
-    const { asset, direction, sizeUsd, leverage, signal, usedPullbackEntry = false, contextBucketKeys } = params;
+    const {
+      asset,
+      direction,
+      sizeUsd,
+      leverage,
+      signal,
+      usedPullbackEntry = false,
+      contextBucketKeys,
+    } = params;
 
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
@@ -1803,10 +1974,16 @@ Reply format: APPROVE reason or VETO reason`;
       try {
         const deribitSvc = this.runtime.getService("VINCE_DERIBIT_SERVICE") as {
           getOptionsContext?: (currency: string) => Promise<{
-            strikes?: Array<{ strike: number; putOI?: number; callOI?: number }>;
+            strikes?: Array<{
+              strike: number;
+              putOI?: number;
+              callOI?: number;
+            }>;
           } | null>;
         } | null;
-        const optCtx = await deribitSvc?.getOptionsContext?.(asset).catch(() => null);
+        const optCtx = await deribitSvc
+          ?.getOptionsContext?.(asset)
+          .catch(() => null);
         if (optCtx?.strikes?.length) {
           // Find highest put OI strike below entry (support)
           const putSupport = optCtx.strikes
@@ -1827,10 +2004,17 @@ Reply format: APPROVE reason or VETO reason`;
               stopLossPrice = supportSL;
             }
           }
-          if (direction === "long" && callResistance && takeProfitPrices.length > 0) {
+          if (
+            direction === "long" &&
+            callResistance &&
+            takeProfitPrices.length > 0
+          ) {
             // Set first TP near call resistance (gamma wall)
             const resistanceTP = callResistance.strike * 0.995; // Just below resistance
-            if (resistanceTP < takeProfitPrices[0] && resistanceTP > entryPrice) {
+            if (
+              resistanceTP < takeProfitPrices[0] &&
+              resistanceTP > entryPrice
+            ) {
               logger.debug(
                 `[VincePaperTrading] ${asset} options OI: call resistance at $${callResistance.strike}, adjusting TP1 from $${takeProfitPrices[0].toFixed(0)} to $${resistanceTP.toFixed(0)}`,
               );
@@ -1846,7 +2030,11 @@ Reply format: APPROVE reason or VETO reason`;
               stopLossPrice = resistanceSL;
             }
           }
-          if (direction === "short" && putSupport && takeProfitPrices.length > 0) {
+          if (
+            direction === "short" &&
+            putSupport &&
+            takeProfitPrices.length > 0
+          ) {
             const supportTP = putSupport.strike * 1.005;
             if (supportTP > takeProfitPrices[0] && supportTP < entryPrice) {
               logger.debug(
@@ -1856,7 +2044,9 @@ Reply format: APPROVE reason or VETO reason`;
             }
           }
         }
-      } catch { /* non-fatal: options OI not available */ }
+      } catch {
+        /* non-fatal: options OI not available */
+      }
     }
 
     // Contributing source names for bandit outcome feedback (weight optimization)
@@ -1887,9 +2077,7 @@ Reply format: APPROVE reason or VETO reason`;
       ((stopLossPrice - entryPrice) / entryPrice) * 100,
     );
     const tp1PctNum = takeProfitPrices[0]
-      ? Math.abs(
-          ((takeProfitPrices[0] - entryPrice) / entryPrice) * 100,
-        )
+      ? Math.abs(((takeProfitPrices[0] - entryPrice) / entryPrice) * 100)
       : 0;
     const slLossUsd = sizeUsd * (slPctNum / 100);
     const tp1ProfitUsd =
@@ -1934,13 +2122,18 @@ Reply format: APPROVE reason or VETO reason`;
         rrRatio: rrNum,
         rrLabel,
         mlQualityScore:
-          typeof (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore === "number"
-            ? (signal as AggregatedTradeSignal & { mlQualityScore: number }).mlQualityScore
+          typeof (signal as AggregatedTradeSignal & { mlQualityScore?: number })
+            .mlQualityScore === "number"
+            ? (signal as AggregatedTradeSignal & { mlQualityScore: number })
+                .mlQualityScore
             : undefined,
         banditWeightsUsed:
-          (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean }).banditWeightsUsed === true,
+          (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean })
+            .banditWeightsUsed === true,
         usedPullbackEntry,
-        ...(contextBucketKeys && contextBucketKeys.length > 0 ? { contextBucketKeys } : {}),
+        ...(contextBucketKeys && contextBucketKeys.length > 0
+          ? { contextBucketKeys }
+          : {}),
       },
     });
 
@@ -1950,10 +2143,15 @@ Reply format: APPROVE reason or VETO reason`;
     }
 
     // Record that recorded data / ML influenced this open (for dashboard)
-    const mlQual = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
-    const banditUsed = (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean }).banditWeightsUsed === true;
+    const mlQual = (
+      signal as AggregatedTradeSignal & { mlQualityScore?: number }
+    ).mlQualityScore;
+    const banditUsed =
+      (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean })
+        .banditWeightsUsed === true;
     const parts: string[] = [];
-    if (typeof mlQual === "number") parts.push(`ML quality ${(mlQual * 100).toFixed(0)}%`);
+    if (typeof mlQual === "number")
+      parts.push(`ML quality ${(mlQual * 100).toFixed(0)}%`);
     if (banditUsed) parts.push("bandit weights used");
     if (parts.length > 0) {
       this.pushMLInfluence("open", asset, `Opened: ${parts.join(", ")}`);
@@ -2079,7 +2277,9 @@ Reply format: APPROVE reason or VETO reason`;
       this.recordTradeOutcome(isWin);
 
       // Context learning: record outcome per bucket for context_adjustment multiplier
-      const contextBucketKeys = closedPosition.metadata?.contextBucketKeys as string[] | undefined;
+      const contextBucketKeys = closedPosition.metadata?.contextBucketKeys as
+        | string[]
+        | undefined;
       if (contextBucketKeys?.length) {
         for (const key of contextBucketKeys) {
           recordContextOutcome(key, isWin);
@@ -2098,9 +2298,16 @@ Reply format: APPROVE reason or VETO reason`;
     }
 
     // Store for dashboard: "X contributed to N of K closed trades"
-    const contributingSources = closedPosition.metadata?.contributingSources as string[] | undefined;
-    this.recentClosedTrades.push({ contributingSources: contributingSources ?? [] });
-    if (this.recentClosedTrades.length > VincePaperTradingService.MAX_RECENT_CLOSED_TRADES) {
+    const contributingSources = closedPosition.metadata?.contributingSources as
+      | string[]
+      | undefined;
+    this.recentClosedTrades.push({
+      contributingSources: contributingSources ?? [],
+    });
+    if (
+      this.recentClosedTrades.length >
+      VincePaperTradingService.MAX_RECENT_CLOSED_TRADES
+    ) {
       this.recentClosedTrades.shift();
     }
 
@@ -2132,7 +2339,10 @@ Reply format: APPROVE reason or VETO reason`;
           100;
     const lev = closedPosition.leverage ?? 1;
 
-    const feesUsdLog = closedPosition.feesUsd != null && closedPosition.feesUsd > 0 ? ` fees -$${closedPosition.feesUsd.toFixed(2)}` : "";
+    const feesUsdLog =
+      closedPosition.feesUsd != null && closedPosition.feesUsd > 0
+        ? ` fees -$${closedPosition.feesUsd.toFixed(2)}`
+        : "";
     logger.debug(
       `[VincePaperTrading] Paper trade closed – ${resultText} ${closedPosition.asset} P&L ${isWin ? "+" : ""}$${pnl.toFixed(2)} (${closeReason})`,
     );
@@ -2204,7 +2414,9 @@ Reply format: APPROVE reason or VETO reason`;
         await featureStore.linkTrade(decisionId, position.id);
 
         // Record execution details (recordId, position, additionalDetails)
-        const usedPullbackEntry = (position.metadata as { usedPullbackEntry?: boolean } | undefined)?.usedPullbackEntry ?? false;
+        const usedPullbackEntry =
+          (position.metadata as { usedPullbackEntry?: boolean } | undefined)
+            ?.usedPullbackEntry ?? false;
         await featureStore.recordExecution(decisionId, position, {
           entryAtrPct: entryATRPct ?? 2.5,
           streakMultiplier: streakInfo.multiplier,
@@ -2378,7 +2590,8 @@ Reply format: APPROVE reason or VETO reason`;
           positionManager.updateMarkPrice(position.asset, ctx.currentPrice);
           // Pass volumeRatio to position for volume-aware trailing stops
           if (ctx.volumeRatio != null) {
-            (position as { _volumeRatio?: number })._volumeRatio = ctx.volumeRatio;
+            (position as { _volumeRatio?: number })._volumeRatio =
+              ctx.volumeRatio;
           }
         }
       } catch (error) {

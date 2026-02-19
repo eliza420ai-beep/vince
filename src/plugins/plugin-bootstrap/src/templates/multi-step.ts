@@ -142,7 +142,6 @@ YOUR FINAL OUTPUT MUST BE IN THIS XML FORMAT:
 </response>
 </output>`;
 
-
 export const multiStepSummaryTemplate = `<task>
 Generate a final, user-facing response based on what the assistant accomplished and the results obtained.
 </task>
@@ -201,4 +200,3 @@ YOUR FINAL OUTPUT MUST BE IN THIS XML FORMAT:
 </response>
 </output>
 `;
-

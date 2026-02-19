@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for Clanker plugin context activation
@@ -7,15 +10,32 @@ import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin
 export const clankerKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
     // Token deployment
-    "clanker", "deploy", "create", "token", "contract", "launch",
+    "clanker",
+    "deploy",
+    "create",
+    "token",
+    "contract",
+    "launch",
     // Token creation
-    "new token", "create token", "token creation", "deploy token",
+    "new token",
+    "create token",
+    "token creation",
+    "deploy token",
     // Contract operations
-    "contract", "smart contract", "mint", "supply",
+    "contract",
+    "smart contract",
+    "mint",
+    "supply",
     // Blockchain
-    "base", "blockchain", "onchain", "on-chain",
+    "base",
+    "blockchain",
+    "onchain",
+    "on-chain",
     // Token properties
-    "symbol", "name", "decimals", "initial supply",
+    "symbol",
+    "name",
+    "decimals",
+    "initial supply",
   ],
   regexPatterns: [
     /deploy.*token/i,
@@ -45,7 +65,10 @@ export const clankerKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldClankerPluginBeInContext(state?: State, message?: Memory): boolean {
+export function shouldClankerPluginBeInContext(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, clankerKeywordPatterns, message);
 }

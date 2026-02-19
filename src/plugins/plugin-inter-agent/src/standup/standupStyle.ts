@@ -12,7 +12,7 @@ export const ALOHA_STYLE_RULES = `STYLE RULES:
 - Skip the formal structure. No "In conclusion", no "Overall".
 - Have a personality. If things are quiet, say so. If something stands out, say why.
 - Don't be sycophantic or hedge everything. Take positions.
-- Around 200-300 words is good for a full report. Don't pad it.`;
+- Punctuation: Do not overuse em dashes (—). Use commas or short sentences instead; heavy em dashes read as AI slop.`;
 
 export const ALOHA_AVOID = `AVOID:
 - Starting every sentence with the same topic or asset name
@@ -23,7 +23,7 @@ export const ALOHA_AVOID = `AVOID:
 
 /** Banned phrases for standup/ALOHA output; aligned with CLAUDE.md brand voice (no AI-slop). */
 export const NO_AI_SLOP =
-  'NEVER use these words or phrases: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I\'d be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day, it\'s worth noting, to be clear, in essence, let\'s dive in. Use concrete, human language only.';
+  "NEVER use these words or phrases: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day, it's worth noting, to be clear, in essence, let's dive in. Use concrete, human language only.";
 
 export const ALOHA_STYLE_BLOCK = `${ALOHA_STYLE_RULES}
 

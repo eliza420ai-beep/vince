@@ -20,7 +20,11 @@ const KNOWLEDGE_ROOT = path.join(REPO_ROOT, "knowledge");
 const PLUGINS_ROOT = path.join(REPO_ROOT, "src/plugins");
 const DOCS_ROOT = path.join(REPO_ROOT, "docs");
 const TASKS_ROOT = path.join(REPO_ROOT, "tasks");
-const RADAR_CACHE = path.join(REPO_ROOT, ".openclaw-cache", "project-radar.json");
+const RADAR_CACHE = path.join(
+  REPO_ROOT,
+  ".openclaw-cache",
+  "project-radar.json",
+);
 
 // Key docs to always scan for priorities
 const KEY_DOCS = [
@@ -86,22 +90,26 @@ export interface DocInsight {
 
 export interface ProjectState {
   scannedAt: string;
-  
+
   // Progress tracking
   completed: ProgressItem[];
   inProgress: ProgressItem[];
   blocked: ProgressItem[];
   planned: ProgressItem[];
-  
+
   // Plugin health
   plugins: PluginStatus[];
   totalActions: number;
   totalServices: number;
-  
+
   // Knowledge state
-  knowledgeCategories: Array<{ name: string; fileCount: number; lastUpdated: string }>;
+  knowledgeCategories: Array<{
+    name: string;
+    fileCount: number;
+    lastUpdated: string;
+  }>;
   knowledgeGaps: string[];
-  
+
   // North star alignment
   northStarDeliverables: Array<{
     deliverable: string;
@@ -109,10 +117,10 @@ export interface ProjectState {
     status: "active" | "stale" | "missing";
     lastOutput?: string;
   }>;
-  
+
   // Recent activity
   recentChanges: Array<{ file: string; daysAgo: number }>;
-  
+
   // NEW: Deep doc analysis
   docInsights: DocInsight[];
   allTodos: TodoItem[];
@@ -125,14 +133,19 @@ export interface ProjectState {
 /**
  * Parse progress.txt files to extract status items
  */
-function parseProgressFile(filepath: string, pluginName: string): ProgressItem[] {
+function parseProgressFile(
+  filepath: string,
+  pluginName: string,
+): ProgressItem[] {
   if (!fs.existsSync(filepath)) return [];
-  
+
   const content = fs.readFileSync(filepath, "utf-8");
   const items: ProgressItem[] = [];
-  
+
   // Match version headers like "## V4.35 - Title (date) ✅"
-  const completedMatches = content.matchAll(/##\s*(V[\d.]+)\s*-\s*([^\n(]+)(?:\(([^)]+)\))?\s*✅/g);
+  const completedMatches = content.matchAll(
+    /##\s*(V[\d.]+)\s*-\s*([^\n(]+)(?:\(([^)]+)\))?\s*✅/g,
+  );
   for (const match of completedMatches) {
     items.push({
       version: match[1],
@@ -142,9 +155,11 @@ function parseProgressFile(filepath: string, pluginName: string): ProgressItem[]
       plugin: pluginName,
     });
   }
-  
+
   // Match in-progress items "## V4.xx - Title (in progress)"
-  const inProgressMatches = content.matchAll(/##\s*(V[\d.]+)\s*-\s*([^\n(]+)(?:\(([^)]*in.?progress[^)]*)\))?/gi);
+  const inProgressMatches = content.matchAll(
+    /##\s*(V[\d.]+)\s*-\s*([^\n(]+)(?:\(([^)]*in.?progress[^)]*)\))?/gi,
+  );
   for (const match of inProgressMatches) {
     if (!match[0].includes("✅")) {
       items.push({
@@ -156,9 +171,11 @@ function parseProgressFile(filepath: string, pluginName: string): ProgressItem[]
       });
     }
   }
-  
+
   // Look for BLOCKED or TODO sections
-  const blockedSection = content.match(/={3,}\s*BLOCKED\s*={3,}([\s\S]*?)(?:={3,}|$)/i);
+  const blockedSection = content.match(
+    /={3,}\s*BLOCKED\s*={3,}([\s\S]*?)(?:={3,}|$)/i,
+  );
   if (blockedSection) {
     const blockedItems = blockedSection[1].matchAll(/[-*]\s*(.+)/g);
     for (const match of blockedItems) {
@@ -170,7 +187,7 @@ function parseProgressFile(filepath: string, pluginName: string): ProgressItem[]
       });
     }
   }
-  
+
   return items;
 }
 
@@ -180,32 +197,38 @@ function parseProgressFile(filepath: string, pluginName: string): ProgressItem[]
 function scanPlugin(pluginPath: string): PluginStatus | null {
   const name = path.basename(pluginPath);
   const srcPath = path.join(pluginPath, "src");
-  
+
   if (!fs.existsSync(srcPath)) return null;
-  
+
   let actionCount = 0;
   let serviceCount = 0;
   let hasTests = false;
   let lastModified = new Date(0);
-  
+
   // Count actions
   const actionsPath = path.join(srcPath, "actions");
   if (fs.existsSync(actionsPath)) {
-    const actionFiles = fs.readdirSync(actionsPath).filter(f => f.endsWith(".ts") && !f.includes(".test."));
+    const actionFiles = fs
+      .readdirSync(actionsPath)
+      .filter((f) => f.endsWith(".ts") && !f.includes(".test."));
     actionCount = actionFiles.length;
   }
-  
+
   // Count services
   const servicesPath = path.join(srcPath, "services");
   if (fs.existsSync(servicesPath)) {
-    const serviceFiles = fs.readdirSync(servicesPath).filter(f => f.endsWith(".ts") && !f.includes(".test."));
+    const serviceFiles = fs
+      .readdirSync(servicesPath)
+      .filter((f) => f.endsWith(".ts") && !f.includes(".test."));
     serviceCount = serviceFiles.length;
   }
-  
+
   // Check for tests
   const testsPath = path.join(srcPath, "__tests__");
-  hasTests = fs.existsSync(testsPath) && fs.readdirSync(testsPath).some(f => f.includes(".test."));
-  
+  hasTests =
+    fs.existsSync(testsPath) &&
+    fs.readdirSync(testsPath).some((f) => f.includes(".test."));
+
   // Find last modified
   function findLastModified(dir: string) {
     if (!fs.existsSync(dir)) return;
@@ -221,7 +244,7 @@ function scanPlugin(pluginPath: string): PluginStatus | null {
     }
   }
   findLastModified(srcPath);
-  
+
   // Calculate health score
   let healthScore = 50;
   if (actionCount > 0) healthScore += 15;
@@ -229,7 +252,7 @@ function scanPlugin(pluginPath: string): PluginStatus | null {
   if (hasTests) healthScore += 20;
   if (actionCount > 5) healthScore += 5;
   if (serviceCount > 5) healthScore += 5;
-  
+
   return {
     name,
     path: pluginPath,
@@ -244,33 +267,41 @@ function scanPlugin(pluginPath: string): PluginStatus | null {
 /**
  * Scan knowledge directories
  */
-function scanKnowledge(): { categories: Array<{ name: string; fileCount: number; lastUpdated: string }>; gaps: string[] } {
-  const categories: Array<{ name: string; fileCount: number; lastUpdated: string }> = [];
+function scanKnowledge(): {
+  categories: Array<{ name: string; fileCount: number; lastUpdated: string }>;
+  gaps: string[];
+} {
+  const categories: Array<{
+    name: string;
+    fileCount: number;
+    lastUpdated: string;
+  }> = [];
   const gaps: string[] = [];
-  
+
   if (!fs.existsSync(KNOWLEDGE_ROOT)) {
     return { categories, gaps: ["Knowledge root doesn't exist"] };
   }
-  
-  const dirs = fs.readdirSync(KNOWLEDGE_ROOT, { withFileTypes: true })
-    .filter(d => d.isDirectory() && !d.name.startsWith("."));
-  
+
+  const dirs = fs
+    .readdirSync(KNOWLEDGE_ROOT, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && !d.name.startsWith("."));
+
   for (const dir of dirs) {
     const dirPath = path.join(KNOWLEDGE_ROOT, dir.name);
-    const files = fs.readdirSync(dirPath).filter(f => f.endsWith(".md"));
-    
+    const files = fs.readdirSync(dirPath).filter((f) => f.endsWith(".md"));
+
     let lastUpdated = new Date(0);
     for (const file of files) {
       const stat = fs.statSync(path.join(dirPath, file));
       if (stat.mtime > lastUpdated) lastUpdated = stat.mtime;
     }
-    
+
     categories.push({
       name: dir.name,
       fileCount: files.length,
       lastUpdated: lastUpdated.toISOString(),
     });
-    
+
     // Identify gaps
     if (files.length === 0) {
       gaps.push(`Empty knowledge category: ${dir.name}`);
@@ -278,15 +309,15 @@ function scanKnowledge(): { categories: Array<{ name: string; fileCount: number;
       gaps.push(`Sparse knowledge: ${dir.name} (${files.length} files)`);
     }
   }
-  
+
   // Check for expected categories that are missing
   const expectedCategories = ["sentinel-docs", "internal-docs", "teammate"];
   for (const expected of expectedCategories) {
-    if (!categories.find(c => c.name === expected)) {
+    if (!categories.find((c) => c.name === expected)) {
       gaps.push(`Missing expected knowledge: ${expected}`);
     }
   }
-  
+
   return { categories, gaps };
 }
 
@@ -301,31 +332,35 @@ function checkNorthStar(): ProjectState["northStarDeliverables"] {
     { deliverable: "Suggested trades", owner: "VINCE", dir: "trades" },
     { deliverable: "Good-life suggestions", owner: "Kelly", dir: "good-life" },
     { deliverable: "PRD for Cursor", owner: "Sentinel", dir: "prds" },
-    { deliverable: "Integration instructions", owner: "Sentinel", dir: "integration-instructions" },
+    {
+      deliverable: "Integration instructions",
+      owner: "Sentinel",
+      dir: "integration-instructions",
+    },
   ];
-  
+
   const standupDir = path.join(REPO_ROOT, "standup-deliverables");
-  
-  return deliverables.map(d => {
+
+  return deliverables.map((d) => {
     const fullPath = path.join(standupDir, d.dir);
-    
+
     if (!fs.existsSync(fullPath)) {
       return { ...d, status: "missing" as const };
     }
-    
-    const files = fs.readdirSync(fullPath).filter(f => f.endsWith(".md"));
+
+    const files = fs.readdirSync(fullPath).filter((f) => f.endsWith(".md"));
     if (files.length === 0) {
       return { ...d, status: "missing" as const };
     }
-    
+
     // Check if most recent is stale (>7 days)
     const latestFile = files.sort().pop()!;
     const stat = fs.statSync(path.join(fullPath, latestFile));
     const daysSince = (Date.now() - stat.mtimeMs) / 86400000;
-    
+
     return {
       ...d,
-      status: daysSince > 7 ? "stale" as const : "active" as const,
+      status: daysSince > 7 ? ("stale" as const) : ("active" as const),
       lastOutput: latestFile,
     };
   });
@@ -336,20 +371,20 @@ function checkNorthStar(): ProjectState["northStarDeliverables"] {
  */
 function parseDocForInsights(filepath: string): DocInsight | null {
   if (!fs.existsSync(filepath)) return null;
-  
+
   try {
     const content = fs.readFileSync(filepath, "utf-8");
     const docName = path.basename(filepath);
     const todos: TodoItem[] = [];
     const priorities: string[] = [];
     const blockers: string[] = [];
-    
+
     // Extract todos: - [ ] item or - [x] item
     const todoMatches = content.matchAll(/^[\s]*[-*]\s*\[([ x])\]\s*(.+)$/gm);
     for (const match of todoMatches) {
       const checked = match[1] === "x";
       const text = match[2].trim();
-      
+
       // Determine priority from keywords
       let priority: TodoItem["priority"] = "medium";
       if (/urgent|critical|asap|blocker|top priority/i.test(text)) {
@@ -357,15 +392,19 @@ function parseDocForInsights(filepath: string): DocInsight | null {
       } else if (/nice to have|later|maybe|low priority/i.test(text)) {
         priority = "low";
       }
-      
+
       todos.push({ text, source: docName, priority, checked });
     }
-    
+
     // Extract priorities from headers and lists
-    const prioritySection = content.match(/(?:##?\s*(?:priorities?|top priority|what's next|roadmap|todo))\s*([\s\S]*?)(?=\n##|\n---|\Z)/gi);
+    const prioritySection = content.match(
+      /(?:##?\s*(?:priorities?|top priority|what's next|roadmap|todo))\s*([\s\S]*?)(?=\n##|\n---|\Z)/gi,
+    );
     if (prioritySection) {
       for (const section of prioritySection) {
-        const items = section.matchAll(/^[\s]*[-*\d.]\s*\*?\*?(.+?)\*?\*?\s*$/gm);
+        const items = section.matchAll(
+          /^[\s]*[-*\d.]\s*\*?\*?(.+?)\*?\*?\s*$/gm,
+        );
         for (const item of items) {
           const text = item[1].trim();
           if (text.length > 5 && text.length < 200 && !text.startsWith("#")) {
@@ -374,7 +413,7 @@ function parseDocForInsights(filepath: string): DocInsight | null {
         }
       }
     }
-    
+
     // Extract blockers
     const blockerPatterns = [
       /blocked(?:\s+by)?[:\s]+(.+)/gi,
@@ -382,18 +421,26 @@ function parseDocForInsights(filepath: string): DocInsight | null {
       /waiting (?:on|for)[:\s]+(.+)/gi,
       /depends on[:\s]+(.+)/gi,
     ];
-    
+
     for (const pattern of blockerPatterns) {
       const matches = content.matchAll(pattern);
       for (const match of matches) {
         blockers.push(match[1].trim().slice(0, 100));
       }
     }
-    
+
     // Generate summary from first meaningful paragraph
-    const lines = content.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("|"));
+    const lines = content
+      .split("\n")
+      .filter(
+        (l) =>
+          l.trim() &&
+          !l.startsWith("#") &&
+          !l.startsWith("-") &&
+          !l.startsWith("|"),
+      );
     const summary = lines.slice(0, 3).join(" ").slice(0, 200);
-    
+
     return {
       doc: docName,
       summary,
@@ -423,7 +470,7 @@ function scanAllDocs(): {
   const lessons: LessonLearned[] = [];
   const topPriorities: string[] = [];
   const blockers: string[] = [];
-  
+
   // Scan root-level key docs
   for (const doc of KEY_DOCS) {
     const insight = parseDocForInsights(path.join(REPO_ROOT, doc));
@@ -434,10 +481,10 @@ function scanAllDocs(): {
       blockers.push(...insight.blockers);
     }
   }
-  
+
   // Scan docs/ folder
   if (fs.existsSync(DOCS_ROOT)) {
-    const docFiles = fs.readdirSync(DOCS_ROOT).filter(f => f.endsWith(".md"));
+    const docFiles = fs.readdirSync(DOCS_ROOT).filter((f) => f.endsWith(".md"));
     for (const doc of docFiles) {
       const insight = parseDocForInsights(path.join(DOCS_ROOT, doc));
       if (insight) {
@@ -448,10 +495,12 @@ function scanAllDocs(): {
       }
     }
   }
-  
+
   // Scan tasks/ folder
   if (fs.existsSync(TASKS_ROOT)) {
-    const taskFiles = fs.readdirSync(TASKS_ROOT).filter(f => f.endsWith(".md"));
+    const taskFiles = fs
+      .readdirSync(TASKS_ROOT)
+      .filter((f) => f.endsWith(".md"));
     for (const task of taskFiles) {
       const insight = parseDocForInsights(path.join(TASKS_ROOT, task));
       if (insight) {
@@ -462,7 +511,7 @@ function scanAllDocs(): {
       }
     }
   }
-  
+
   // Scan sentinel-docs for specific items
   const sentinelDocs = path.join(KNOWLEDGE_ROOT, "sentinel-docs");
   if (fs.existsSync(sentinelDocs)) {
@@ -473,7 +522,7 @@ function scanAllDocs(): {
       "WORTH_IT_PROOF.md",
       "RECENT-SHIPMENTS.md",
     ];
-    
+
     for (const doc of priorityDocs) {
       const insight = parseDocForInsights(path.join(sentinelDocs, doc));
       if (insight) {
@@ -483,7 +532,7 @@ function scanAllDocs(): {
       }
     }
   }
-  
+
   // Parse lessons from tasks/lessons.md
   const lessonsFile = path.join(TASKS_ROOT, "lessons.md");
   if (fs.existsSync(lessonsFile)) {
@@ -501,15 +550,20 @@ function scanAllDocs(): {
       // Skip
     }
   }
-  
+
   // Parse LESSONS-AND-IMPROVEMENTS.md
-  const lessonsImprovements = path.join(TASKS_ROOT, "LESSONS-AND-IMPROVEMENTS.md");
+  const lessonsImprovements = path.join(
+    TASKS_ROOT,
+    "LESSONS-AND-IMPROVEMENTS.md",
+  );
   if (fs.existsSync(lessonsImprovements)) {
     try {
       const content = fs.readFileSync(lessonsImprovements, "utf-8");
-      
+
       // Extract "What to improve next" section
-      const improveSection = content.match(/##\s*What to improve next([\s\S]*?)(?=\n##|\Z)/i);
+      const improveSection = content.match(
+        /##\s*What to improve next([\s\S]*?)(?=\n##|\Z)/i,
+      );
       if (improveSection) {
         const items = improveSection[1].matchAll(/^\d+\.\s*\*\*(.+?)\*\*/gm);
         for (const item of items) {
@@ -524,14 +578,14 @@ function scanAllDocs(): {
       // Skip
     }
   }
-  
+
   // Deduplicate and sort
   const uniquePriorities = [...new Set(topPriorities)].slice(0, 10);
   const uniqueBlockers = [...new Set(blockers)].slice(0, 10);
-  
+
   return {
     insights,
-    allTodos: allTodos.filter(t => !t.checked).slice(0, 50),
+    allTodos: allTodos.filter((t) => !t.checked).slice(0, 50),
     roadmapItems,
     lessons,
     topPriorities: uniquePriorities,
@@ -542,20 +596,22 @@ function scanAllDocs(): {
 /**
  * Find recently changed files
  */
-function findRecentChanges(daysBack = 7): Array<{ file: string; daysAgo: number }> {
+function findRecentChanges(
+  daysBack = 7,
+): Array<{ file: string; daysAgo: number }> {
   const changes: Array<{ file: string; daysAgo: number }> = [];
   const cutoff = Date.now() - daysBack * 86400000;
-  
+
   function scanDir(dir: string, prefix = "") {
     if (!fs.existsSync(dir)) return;
-    
+
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
-      
+
       const fullPath = path.join(dir, entry.name);
       const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
-      
+
       if (entry.isDirectory()) {
         scanDir(fullPath, relativePath);
       } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".md")) {
@@ -569,10 +625,10 @@ function findRecentChanges(daysBack = 7): Array<{ file: string; daysAgo: number 
       }
     }
   }
-  
+
   scanDir(path.join(REPO_ROOT, "src"));
   scanDir(path.join(REPO_ROOT, "knowledge"));
-  
+
   return changes.sort((a, b) => a.daysAgo - b.daysAgo).slice(0, 20);
 }
 
@@ -581,7 +637,7 @@ function findRecentChanges(daysBack = 7): Array<{ file: string; daysAgo: number 
  */
 export function scanProject(): ProjectState {
   logger.info("[ProjectRadar] Scanning project state...");
-  
+
   const state: ProjectState = {
     scannedAt: new Date().toISOString(),
     completed: [],
@@ -603,19 +659,20 @@ export function scanProject(): ProjectState {
     topPriorities: [],
     criticalBlockers: [],
   };
-  
+
   // Scan plugins
   if (fs.existsSync(PLUGINS_ROOT)) {
-    const pluginDirs = fs.readdirSync(PLUGINS_ROOT, { withFileTypes: true })
-      .filter(d => d.isDirectory() && d.name.startsWith("plugin-"));
-    
+    const pluginDirs = fs
+      .readdirSync(PLUGINS_ROOT, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && d.name.startsWith("plugin-"));
+
     for (const dir of pluginDirs) {
       const pluginStatus = scanPlugin(path.join(PLUGINS_ROOT, dir.name));
       if (pluginStatus) {
         state.plugins.push(pluginStatus);
         state.totalActions += pluginStatus.actionCount;
         state.totalServices += pluginStatus.serviceCount;
-        
+
         // Parse progress file if exists
         const progressPath = path.join(PLUGINS_ROOT, dir.name, "progress.txt");
         const items = parseProgressFile(progressPath, dir.name);
@@ -628,18 +685,18 @@ export function scanProject(): ProjectState {
       }
     }
   }
-  
+
   // Scan knowledge
   const { categories, gaps } = scanKnowledge();
   state.knowledgeCategories = categories;
   state.knowledgeGaps = gaps;
-  
+
   // Check north star
   state.northStarDeliverables = checkNorthStar();
-  
+
   // Find recent changes
   state.recentChanges = findRecentChanges();
-  
+
   // NEW: Deep doc analysis
   const docAnalysis = scanAllDocs();
   state.docInsights = docAnalysis.insights;
@@ -648,7 +705,7 @@ export function scanProject(): ProjectState {
   state.lessonsLearned = docAnalysis.lessons;
   state.topPriorities = docAnalysis.topPriorities;
   state.criticalBlockers = docAnalysis.blockers;
-  
+
   // Cache the scan
   try {
     const cacheDir = path.dirname(RADAR_CACHE);
@@ -659,9 +716,11 @@ export function scanProject(): ProjectState {
   } catch (e) {
     // Ignore cache errors
   }
-  
-  logger.info(`[ProjectRadar] Scan complete: ${state.plugins.length} plugins, ${state.totalActions} actions, ${state.docInsights.length} docs analyzed, ${state.allTodos.length} open todos`);
-  
+
+  logger.info(
+    `[ProjectRadar] Scan complete: ${state.plugins.length} plugins, ${state.totalActions} actions, ${state.docInsights.length} docs analyzed, ${state.allTodos.length} open todos`,
+  );
+
   return state;
 }
 
@@ -670,10 +729,10 @@ export function scanProject(): ProjectState {
  */
 export function getProjectSummary(): string {
   const state = scanProject();
-  
+
   let summary = `📡 **Project Radar**\n\n`;
   summary += `*Scanned ${state.docInsights.length} docs, ${state.plugins.length} plugins, ${state.knowledgeCategories.length} knowledge categories*\n\n`;
-  
+
   // Top Priorities (from docs)
   if (state.topPriorities.length > 0) {
     summary += `**🎯 Top Priorities (from docs):**\n`;
@@ -682,7 +741,7 @@ export function getProjectSummary(): string {
     }
     summary += `\n`;
   }
-  
+
   // Critical blockers
   if (state.criticalBlockers.length > 0) {
     summary += `**🚫 Blockers:**\n`;
@@ -691,48 +750,61 @@ export function getProjectSummary(): string {
     }
     summary += `\n`;
   }
-  
+
   // Open TODOs
-  const highTodos = state.allTodos.filter(t => t.priority === "high");
-  const mediumTodos = state.allTodos.filter(t => t.priority === "medium");
-  
+  const highTodos = state.allTodos.filter((t) => t.priority === "high");
+  const mediumTodos = state.allTodos.filter((t) => t.priority === "medium");
+
   summary += `**📋 Open TODOs:** ${state.allTodos.length} total\n`;
   if (highTodos.length > 0) {
     summary += `• 🔴 High: ${highTodos.length}`;
-    if (highTodos.length > 0) summary += ` — "${highTodos[0].text.slice(0, 40)}..."`;
+    if (highTodos.length > 0)
+      summary += ` — "${highTodos[0].text.slice(0, 40)}..."`;
     summary += `\n`;
   }
   if (mediumTodos.length > 0) {
     summary += `• 🟡 Medium: ${mediumTodos.length}\n`;
   }
   summary += `\n`;
-  
+
   // Plugin overview
   summary += `**Plugins (${state.plugins.length}):** ${state.totalActions} actions, ${state.totalServices} services\n`;
-  const topPlugins = state.plugins.sort((a, b) => b.actionCount - a.actionCount).slice(0, 4);
+  const topPlugins = state.plugins
+    .sort((a, b) => b.actionCount - a.actionCount)
+    .slice(0, 4);
   for (const p of topPlugins) {
-    const health = p.healthScore >= 80 ? "🟢" : p.healthScore >= 50 ? "🟡" : "🔴";
+    const health =
+      p.healthScore >= 80 ? "🟢" : p.healthScore >= 50 ? "🟡" : "🔴";
     summary += `${health} ${p.name}: ${p.actionCount}A/${p.serviceCount}S\n`;
   }
   summary += `\n`;
-  
+
   // Progress
   summary += `**Progress:**\n`;
   summary += `• ✅ ${state.completed.length} completed\n`;
   summary += `• 🔄 ${state.inProgress.length} in progress\n`;
-  if (state.blocked.length > 0) summary += `• 🚫 ${state.blocked.length} blocked\n`;
+  if (state.blocked.length > 0)
+    summary += `• 🚫 ${state.blocked.length} blocked\n`;
   summary += `\n`;
-  
+
   // North star
-  const activeNS = state.northStarDeliverables.filter(d => d.status === "active");
-  const staleNS = state.northStarDeliverables.filter(d => d.status === "stale");
-  const missingNS = state.northStarDeliverables.filter(d => d.status === "missing");
-  
+  const activeNS = state.northStarDeliverables.filter(
+    (d) => d.status === "active",
+  );
+  const staleNS = state.northStarDeliverables.filter(
+    (d) => d.status === "stale",
+  );
+  const missingNS = state.northStarDeliverables.filter(
+    (d) => d.status === "missing",
+  );
+
   summary += `**North Star:** ${activeNS.length}/${state.northStarDeliverables.length} active\n`;
-  if (staleNS.length > 0) summary += `• Stale: ${staleNS.map(d => d.deliverable).join(", ")}\n`;
-  if (missingNS.length > 0) summary += `• Missing: ${missingNS.map(d => d.deliverable).join(", ")}\n`;
+  if (staleNS.length > 0)
+    summary += `• Stale: ${staleNS.map((d) => d.deliverable).join(", ")}\n`;
+  if (missingNS.length > 0)
+    summary += `• Missing: ${missingNS.map((d) => d.deliverable).join(", ")}\n`;
   summary += `\n`;
-  
+
   // Lessons learned
   if (state.lessonsLearned.length > 0) {
     summary += `**📚 Lessons (${state.lessonsLearned.length}):**\n`;
@@ -741,14 +813,14 @@ export function getProjectSummary(): string {
     }
     summary += `\n`;
   }
-  
+
   // Recent activity
   if (state.recentChanges.length > 0) {
-    const today = state.recentChanges.filter(c => c.daysAgo === 0);
-    const thisWeek = state.recentChanges.filter(c => c.daysAgo > 0);
+    const today = state.recentChanges.filter((c) => c.daysAgo === 0);
+    const thisWeek = state.recentChanges.filter((c) => c.daysAgo > 0);
     summary += `**Activity:** ${today.length} files today, ${thisWeek.length} this week\n`;
   }
-  
+
   return summary;
 }
 
@@ -773,7 +845,9 @@ export function getLessons(): LessonLearned[] {
  */
 export function getDocInsight(docName: string): DocInsight | undefined {
   const state = scanProject();
-  return state.docInsights.find(d => d.doc.toLowerCase().includes(docName.toLowerCase()));
+  return state.docInsights.find((d) =>
+    d.doc.toLowerCase().includes(docName.toLowerCase()),
+  );
 }
 
 export default {

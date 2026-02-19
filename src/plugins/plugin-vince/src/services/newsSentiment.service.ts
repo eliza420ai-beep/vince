@@ -827,14 +827,23 @@ export class VinceNewsSentimentService extends Service {
 
       const sharedPath =
         process.env.MANDO_SHARED_CACHE_PATH ||
-        path.join(process.cwd(), ".elizadb", "shared", "mando_minutes_latest_v9.json");
+        path.join(
+          process.cwd(),
+          ".elizadb",
+          "shared",
+          "mando_minutes_latest_v9.json",
+        );
       try {
         const dir = path.dirname(sharedPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(sharedPath, JSON.stringify(cacheData, null, 2), "utf-8");
+        fs.writeFileSync(
+          sharedPath,
+          JSON.stringify(cacheData, null, 2),
+          "utf-8",
+        );
       } catch (err) {
         logger.debug(
-          `[VinceNewsSentiment] Shared cache write failed: ${err instanceof Error ? err.message : String(err)}`
+          `[VinceNewsSentiment] Shared cache write failed: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
 
@@ -1060,7 +1069,9 @@ export class VinceNewsSentimentService extends Service {
     if (!line || typeof line !== "string") return false;
     const t = line.trim();
     if (/Cryptocurrency\s+Prices|^Prices:\s*/i.test(t)) return true;
-    return /\b(BTC|ETH|SOL|BNB|BTC\.D):\s*\$?[\d,.]+[kmb]?\s*(\([+-]?\d+\.?\d*%?\))?/i.test(t);
+    return /\b(BTC|ETH|SOL|BNB|BTC\.D):\s*\$?[\d,.]+[kmb]?\s*(\([+-]?\d+\.?\d*%?\))?/i.test(
+      t,
+    );
   }
 
   /**

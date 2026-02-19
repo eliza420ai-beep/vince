@@ -28,7 +28,10 @@ export const whatsTheTradeAction: Action = {
     "TODAYS_TRADE",
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     if (runtime.character?.name !== "ECHO") return false;
     const text = (message.content?.text ?? "").toLowerCase();
     return (
@@ -46,7 +49,7 @@ export const whatsTheTradeAction: Action = {
     _message: Memory,
     _state: State,
     _options: unknown,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | { success: boolean; error?: string }> => {
     try {
       logger.info("[ECHO_WHATS_THE_TRADE] Running report...");

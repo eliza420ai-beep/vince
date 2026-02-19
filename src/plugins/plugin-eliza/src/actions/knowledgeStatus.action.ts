@@ -55,7 +55,12 @@ function countWords(content: string): number {
 
 function analyzeKnowledgeBase(): KnowledgeReport {
   const categories: CategoryStats[] = [];
-  const allFiles: { file: string; category: string; date: Date; words: number }[] = [];
+  const allFiles: {
+    file: string;
+    category: string;
+    date: Date;
+    words: number;
+  }[] = [];
 
   const knowledgeBase = getKnowledgeRoot();
   if (!fs.existsSync(knowledgeBase)) {
@@ -65,17 +70,20 @@ function analyzeKnowledgeBase(): KnowledgeReport {
       categories: [],
       recentAdditions: [],
       oldestCategory: null,
-      suggestions: [`Knowledge base directory not found. Create ${knowledgeBase}/`],
+      suggestions: [
+        `Knowledge base directory not found. Create ${knowledgeBase}/`,
+      ],
     };
   }
 
-  const topLevelDirs = fs.readdirSync(knowledgeBase, { withFileTypes: true })
+  const topLevelDirs = fs
+    .readdirSync(knowledgeBase, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith("."));
 
   for (const dir of topLevelDirs) {
     const categoryPath = path.join(knowledgeBase, dir.name);
     const files = getFilesRecursive(categoryPath);
-    
+
     let totalWords = 0;
     let lastUpdated: Date | null = null;
     const recentFiles: string[] = [];
@@ -128,37 +136,50 @@ function analyzeKnowledgeBase(): KnowledgeReport {
 
   // Find oldest category (might need updates)
   const categoriesWithDates = categories.filter((c) => c.lastUpdated);
-  categoriesWithDates.sort((a, b) => 
-    (a.lastUpdated?.getTime() || 0) - (b.lastUpdated?.getTime() || 0)
+  categoriesWithDates.sort(
+    (a, b) => (a.lastUpdated?.getTime() || 0) - (b.lastUpdated?.getTime() || 0),
   );
   const oldestCategory = categoriesWithDates[0]?.name || null;
 
   // Generate suggestions
   const suggestions: string[] = [];
-  
+
   // Check for small categories
-  const smallCategories = categories.filter((c) => c.fileCount < 5 && c.fileCount > 0);
+  const smallCategories = categories.filter(
+    (c) => c.fileCount < 5 && c.fileCount > 0,
+  );
   if (smallCategories.length > 0) {
-    suggestions.push(`Expand: ${smallCategories.map((c) => c.name).join(", ")} (< 5 files each)`);
+    suggestions.push(
+      `Expand: ${smallCategories.map((c) => c.name).join(", ")} (< 5 files each)`,
+    );
   }
 
   // Check for stale categories (> 30 days old)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const staleCategories = categories.filter(
-    (c) => c.lastUpdated && c.lastUpdated < thirtyDaysAgo
+    (c) => c.lastUpdated && c.lastUpdated < thirtyDaysAgo,
   );
   if (staleCategories.length > 0) {
-    suggestions.push(`Refresh: ${staleCategories.slice(0, 3).map((c) => c.name).join(", ")} (> 30 days stale)`);
+    suggestions.push(
+      `Refresh: ${staleCategories
+        .slice(0, 3)
+        .map((c) => c.name)
+        .join(", ")} (> 30 days stale)`,
+    );
   }
 
   // Empty categories
   const emptyCategories = categories.filter((c) => c.fileCount === 0);
   if (emptyCategories.length > 0) {
-    suggestions.push(`Empty folders: ${emptyCategories.map((c) => c.name).join(", ")}`);
+    suggestions.push(
+      `Empty folders: ${emptyCategories.map((c) => c.name).join(", ")}`,
+    );
   }
 
   if (suggestions.length === 0) {
-    suggestions.push("Knowledge base looks healthy! Keep adding quality content.");
+    suggestions.push(
+      "Knowledge base looks healthy! Keep adding quality content.",
+    );
   }
 
   return {
@@ -173,21 +194,29 @@ function analyzeKnowledgeBase(): KnowledgeReport {
 
 function formatReport(report: KnowledgeReport): string {
   const totalWordsK = (report.totalWords / 1000).toFixed(1);
-  
+
   // Top categories
-  const topCategories = report.categories.slice(0, 10).map((c) => {
-    const wordsK = (c.totalWords / 1000).toFixed(1);
-    const age = c.lastUpdated 
-      ? `${Math.floor((Date.now() - c.lastUpdated.getTime()) / (24 * 60 * 60 * 1000))}d ago`
-      : "never";
-    return `• **${c.name}**: ${c.fileCount} files, ${wordsK}k words (${age})`;
-  }).join("\n");
+  const topCategories = report.categories
+    .slice(0, 10)
+    .map((c) => {
+      const wordsK = (c.totalWords / 1000).toFixed(1);
+      const age = c.lastUpdated
+        ? `${Math.floor((Date.now() - c.lastUpdated.getTime()) / (24 * 60 * 60 * 1000))}d ago`
+        : "never";
+      return `• **${c.name}**: ${c.fileCount} files, ${wordsK}k words (${age})`;
+    })
+    .join("\n");
 
   // Recent additions
-  const recent = report.recentAdditions.slice(0, 5).map((r) => {
-    const daysAgo = Math.floor((Date.now() - r.date.getTime()) / (24 * 60 * 60 * 1000));
-    return `• \`${r.category}/${r.file}\` (${daysAgo}d ago)`;
-  }).join("\n");
+  const recent = report.recentAdditions
+    .slice(0, 5)
+    .map((r) => {
+      const daysAgo = Math.floor(
+        (Date.now() - r.date.getTime()) / (24 * 60 * 60 * 1000),
+      );
+      return `• \`${r.category}/${r.file}\` (${daysAgo}d ago)`;
+    })
+    .join("\n");
 
   // Suggestions
   const suggestions = report.suggestions.map((s) => `• ${s}`).join("\n");
@@ -258,7 +287,7 @@ TRIGGERS:
   ): Promise<void> => {
     try {
       logger.info("[KNOWLEDGE_STATUS] Analyzing knowledge base...");
-      
+
       const report = analyzeKnowledgeBase();
       const formatted = formatReport(report);
 

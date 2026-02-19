@@ -46,7 +46,10 @@ export async function handleUploadRequest(
 
   let callbackMessage = "";
   let explicitSuccess: boolean | null = null;
-  const callback = async (c: { text?: string; success?: boolean }): Promise<Memory[]> => {
+  const callback = async (c: {
+    text?: string;
+    success?: boolean;
+  }): Promise<Memory[]> => {
     if (c?.text) callbackMessage = c.text;
     if (typeof (c as { success?: boolean }).success === "boolean") {
       explicitSuccess = (c as { success?: boolean }).success ?? null;
@@ -59,10 +62,13 @@ export async function handleUploadRequest(
     const isSuccess =
       explicitSuccess === true ||
       (explicitSuccess !== false &&
-        (callbackMessage.includes("✅") || callbackMessage.includes("saved to knowledge")));
+        (callbackMessage.includes("✅") ||
+          callbackMessage.includes("saved to knowledge")));
     return {
       success: isSuccess,
-      message: callbackMessage || (isSuccess ? "Uploaded successfully" : "Upload may have failed"),
+      message:
+        callbackMessage ||
+        (isSuccess ? "Uploaded successfully" : "Upload may have failed"),
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

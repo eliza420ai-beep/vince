@@ -58,7 +58,8 @@ export async function updateRecommendation(
 ): Promise<boolean> {
   const all = await readRecommendations(memoryDir);
   const idx = all.findIndex(
-    (e) => e.ticker.toUpperCase() === ticker.toUpperCase() && e.status === "open",
+    (e) =>
+      e.ticker.toUpperCase() === ticker.toUpperCase() && e.status === "open",
   );
   if (idx === -1) return false;
 

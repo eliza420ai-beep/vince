@@ -36,7 +36,10 @@ export const navalWisdomAction: Action = {
   description:
     "Responds with a Naval-style insight on wealth, happiness, leverage, specific knowledge, reading, or long-term thinking. One clear idea, no fluff.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsNavalWisdom(text);
   },
@@ -70,7 +73,7 @@ Context (knowledge, recent):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -78,13 +81,19 @@ Context (knowledge, recent):\n${contextBlock}`;
       await callback({
         text: "Wealth is assets that earn while you sleep. Happiness is a default you can train. Read for understanding, not status. — Naval-style.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Give me a Naval quote on wealth" } },
+      {
+        name: "{{user}}",
+        content: { text: "Give me a Naval quote on wealth" },
+      },
       {
         name: "{{agent}}",
         content: {

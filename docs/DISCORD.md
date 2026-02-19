@@ -36,13 +36,11 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 
 3. **Env per agent (same key names, different values)**  
    Each agent’s character uses `DISCORD_APPLICATION_ID` and `DISCORD_API_TOKEN` in `settings.secrets`. The plugin reads those from the runtime, so each runtime gets its own bot:
-
    - **VINCE:** `VINCE_DISCORD_APPLICATION_ID` + `VINCE_DISCORD_API_TOKEN` → copied into character as `DISCORD_APPLICATION_ID` / `DISCORD_API_TOKEN`.
    - **Eliza:** `ELIZA_DISCORD_APPLICATION_ID` + `ELIZA_DISCORD_API_TOKEN` (or fallback `DISCORD_*`) → same keys in her character.
 
 4. **When both load Discord**  
    VINCE only loads the Discord plugin when he has his own bot (and it’s not the same app as Eliza). The Discord plugin must be in the **agent’s** `plugins` array (e.g. in `buildPlugins()` in `vince.ts`), not only in `character.plugins` — the framework loads plugins from the agent definition. So set:
-
    - `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` (no separate enabled flag)
    - `ELIZA_DISCORD_APPLICATION_ID` and `ELIZA_DISCORD_API_TOKEN` (Eliza’s app)
 
@@ -55,22 +53,22 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 
 ## Quick Reference: Channel Name → Push Type
 
-| Channel name contains | Receives |
-|-----------------------|----------|
-| `daily` | VINCE market report — **morning** (08:00 UTC). Use e.g. **#daily** or #vince-daily-reports |
-| `news` | VINCE MandoMinutes (16:00 UTC; Mando updates ~4:20 PM Paris) |
-| `lifestyle` | VINCE and/or Kelly briefing (08:00 UTC) |
-| `alerts` | VINCE alerts, paper trades (real-time) |
-| `kelly` or `lifestyle` | Kelly daily concierge briefing (08:00 UTC) |
-| `daily-standup` or `standup` | Kelly standup summary (2×/day) — create **#daily-standup**, all agents ON |
-| `sentinel` or `ops` | Sentinel weekly suggestions (and optional daily) |
+| Channel name contains        | Receives                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `daily`                      | VINCE market report — **morning** (08:00 UTC). Use e.g. **#daily** or #vince-daily-reports |
+| `news`                       | VINCE MandoMinutes (16:00 UTC; Mando updates ~4:20 PM Paris)                               |
+| `lifestyle`                  | VINCE and/or Kelly briefing (08:00 UTC)                                                    |
+| `alerts`                     | VINCE alerts, paper trades (real-time)                                                     |
+| `kelly` or `lifestyle`       | Kelly daily concierge briefing (08:00 UTC)                                                 |
+| `daily-standup` or `standup` | Kelly standup summary (2×/day) — create **#daily-standup**, all agents ON                  |
+| `sentinel` or `ops`          | Sentinel weekly suggestions (and optional daily)                                           |
 
 **Knowledge ingestion (you post, bot ingests):**
 
-| Channel | Purpose |
-|---------|---------|
+| Channel                                         | Purpose                                                                                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `#vince-upload-youtube` or `#youtube-knowledge` | Paste curated YouTube links; VINCE ingests to knowledge (transcript + summary). No need to watch — save to knowledge instead. Say `upload:` or just paste the URL. |
-| `#knowledge` | Post Michelin Guide links; Eliza adds the restaurant to the Michelin knowledge base. General uploads (URLs, paste) also go to the same `knowledge/` folder. |
+| `#knowledge`                                    | Post Michelin Guide links; Eliza adds the restaurant to the Michelin knowledge base. General uploads (URLs, paste) also go to the same `knowledge/` folder.        |
 
 The Leaderboard **"Newly added knowledge"** list (Knowledge tab) reflects the local `knowledge/` folder and updates about every minute when that tab is open. Discord uploads and #knowledge additions write into that same folder, so they appear there after the next refresh.
 
@@ -80,14 +78,14 @@ The Leaderboard **"Newly added knowledge"** list (Knowledge tab) reflects the lo
 
 One category per bot; sub-channels match each agent's core focus. Channel names must contain the keywords above to receive scheduled pushes.
 
-| Category | Sub-channels | Push? |
-|----------|-------------|-------|
-| **CEO — Eliza** | meet_eliza, knowledge, research, gtm_substack | — |
-| **CDO — VINCE** | meet_vince, daily, news, lifestyle, alerts, upload_youtube | daily, news, lifestyle, alerts |
-| **CFO — Solus** | meet_solus, plan_100k, strike_ritual, size_skip_watch, echo_dd, rebalance | — |
-| **COO — Otaku** | meet_otaku, token_discovery, morpho_yield, wallet_ops, defi_intel | — |
-| **CHRO — Kelly** | meet_kelly, kelly, daily_standup, dining_hotels, wine_tea, surf_workout, touch_grass | kelly, daily-standup |
-| **CTO — Sentinel** | meet_sentinel, sentinel_ops, task_brief, cost_onnx, art_clawdbot | sentinel_ops |
+| Category           | Sub-channels                                                                         | Push?                          |
+| ------------------ | ------------------------------------------------------------------------------------ | ------------------------------ |
+| **CEO — Eliza**    | meet_eliza, knowledge, research, gtm_substack                                        | —                              |
+| **CDO — VINCE**    | meet_vince, daily, news, lifestyle, alerts, upload_youtube                           | daily, news, lifestyle, alerts |
+| **CFO — Solus**    | meet_solus, plan_100k, strike_ritual, size_skip_watch, echo_dd, rebalance            | —                              |
+| **COO — Otaku**    | meet_otaku, token_discovery, morpho_yield, wallet_ops, defi_intel                    | —                              |
+| **CHRO — Kelly**   | meet_kelly, kelly, daily_standup, dining_hotels, wine_tea, surf_workout, touch_grass | kelly, daily-standup           |
+| **CTO — Sentinel** | meet_sentinel, sentinel_ops, task_brief, cost_onnx, art_clawdbot                     | sentinel_ops                   |
 
 Create six Discord applications (one per agent), invite each bot to the server, and create the categories and channels above. Set each agent's `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN` in `.env` (see `.env.example`).
 
@@ -97,17 +95,17 @@ Create six Discord applications (one per agent), invite each bot to the server, 
 
 Invite each bot **only** to its category channels plus `#daily-standup`. Do not invite all bots to all channels—every bot in a channel receives every message and runs validation, even when it exits early. Channel isolation cuts overhead and token burn.
 
-| Agent | Invite to |
-|-------|-----------|
-| **Eliza** | CEO category channels (`meet_eliza`, `knowledge`, `research`, `gtm_substack`) + `#daily-standup` |
-| **VINCE** | CDO category channels (`meet_vince`, `daily`, `news`, `lifestyle`, `alerts`, `upload_youtube`) + `#daily-standup` |
-| **Solus** | CFO category channels (`meet_solus`, `plan_100k`, `strike_ritual`, etc.) + `#daily-standup` |
-| **Otaku** | COO category channels (`meet_otaku`, `token_discovery`, etc.) + `#daily-standup` |
-| **Kelly** | CHRO category channels (`meet_kelly`, `kelly`, `daily_standup`, etc.) + `#daily-standup` |
-| **Sentinel** | CTO category channels (`meet_sentinel`, `sentinel_ops`, etc.) + `#daily-standup` |
-| **Echo** | Echo channels (if any) + `#daily-standup` |
-| **Oracle** | Oracle channels (if any) + `#daily-standup` |
-| **Clawterm** | Clawterm/AI Terminal channels (if any) + `#daily-standup` |
+| Agent        | Invite to                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Eliza**    | CEO category channels (`meet_eliza`, `knowledge`, `research`, `gtm_substack`) + `#daily-standup`                  |
+| **VINCE**    | CDO category channels (`meet_vince`, `daily`, `news`, `lifestyle`, `alerts`, `upload_youtube`) + `#daily-standup` |
+| **Solus**    | CFO category channels (`meet_solus`, `plan_100k`, `strike_ritual`, etc.) + `#daily-standup`                       |
+| **Otaku**    | COO category channels (`meet_otaku`, `token_discovery`, etc.) + `#daily-standup`                                  |
+| **Kelly**    | CHRO category channels (`meet_kelly`, `kelly`, `daily_standup`, etc.) + `#daily-standup`                          |
+| **Sentinel** | CTO category channels (`meet_sentinel`, `sentinel_ops`, etc.) + `#daily-standup`                                  |
+| **Echo**     | Echo channels (if any) + `#daily-standup`                                                                         |
+| **Oracle**   | Oracle channels (if any) + `#daily-standup`                                                                       |
+| **Clawterm** | Clawterm/AI Terminal channels (if any) + `#daily-standup`                                                         |
 
 **Example:** Solus should be in `#meet_solus`, `#plan_100k`, `#daily-standup`—not `#vince-daily-reports`.
 
@@ -140,16 +138,16 @@ When set, the progression and kickoff messages use `<@BOT_USER_ID> go.` instead 
 
 From lessons learned running 4–8 agents on one server:
 
-| Item | VINCE config |
-|------|--------------|
-| **Separate bot token per agent** | Option C: one Discord app per agent. Set `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN` per agent. Do not share. |
-| **Dedicated channels per agent** | One category per bot; sub-channels by agent focus. See [LiveTheLifeTV C-suite layout](#livethelifetv-c-suite-layout). |
-| **Channel invite rules** | Invite each bot only to its category channels + `#daily-standup`. See [Channel invite rules](#channel-invite-rules-multi-agent). |
-| **Standup single-responder** | Only Kelly responds to humans in standup. Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`. See [RATE_LIMIT_AND_STANDUP.md](RATE_LIMIT_AND_STANDUP.md). |
+| Item                              | VINCE config                                                                                                                                                          |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Separate bot token per agent**  | Option C: one Discord app per agent. Set `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN` per agent. Do not share.                                                |
+| **Dedicated channels per agent**  | One category per bot; sub-channels by agent focus. See [LiveTheLifeTV C-suite layout](#livethelifetv-c-suite-layout).                                                 |
+| **Channel invite rules**          | Invite each bot only to its category channels + `#daily-standup`. See [Channel invite rules](#channel-invite-rules-multi-agent).                                      |
+| **Standup single-responder**      | Only Kelly responds to humans in standup. Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`. See [RATE_LIMIT_AND_STANDUP.md](RATE_LIMIT_AND_STANDUP.md).                       |
 | **requireMention on specialists** | Solus, Sentinel, Otaku, Echo, Oracle have `shouldRespondOnlyToMentions: true` so they only respond when @mentioned in shared channels. Kelly, VINCE, Eliza stay open. |
-| **Reflection skipped in standup** | Reflection is skipped in standup channels by default. Set `REFLECTION_RUN_IN_STANDUP=true` only if needed. |
-| **Standup channel naming** | Channel name must contain `standup` or `daily-standup` (case-insensitive) so `A2A_STANDUP_CHANNEL_NAMES` matches. Otherwise every agent processes every message. |
-| **Explicit bindings** | "Bindings" = which channels each bot is invited to + `shouldRespond` logic in OtakuMessageService. No gateway; config and invite changes only. |
+| **Reflection skipped in standup** | Reflection is skipped in standup channels by default. Set `REFLECTION_RUN_IN_STANDUP=true` only if needed.                                                            |
+| **Standup channel naming**        | Channel name must contain `standup` or `daily-standup` (case-insensitive) so `A2A_STANDUP_CHANNEL_NAMES` matches. Otherwise every agent processes every message.      |
+| **Explicit bindings**             | "Bindings" = which channels each bot is invited to + `shouldRespond` logic in OtakuMessageService. No gateway; config and invite changes only.                        |
 
 Get the plumbing right first. The intelligence follows.
 
@@ -157,14 +155,14 @@ Get the plumbing right first. The intelligence follows.
 
 ## Agent Capabilities
 
-| Agent | Role | Key Commands / Actions |
-|-------|------|------------------------|
-| **Eliza** | CEO — vision, knowledge, GTM, Substack | Chat, research, UPLOAD, brainstorm, ingest URLs/YouTube |
-| **VINCE** | CDO — data and intel | GM, ALOHA, OPTIONS, PERPS, HIP3, NEWS, LIFESTYLE, INTEL, MEMES, BOT, UPLOAD; pushes to daily, news, lifestyle, alerts |
-| **Solus** | CFO — plan and call | $100K plan, strike ritual, size/skip/watch, Echo DD, rebalance |
-| **Otaku** | COO — DeFi ops | Token discovery, Morpho, wallet, smart money, PnL, yield |
-| **Kelly** | CHRO — lifestyle, balance | Daily briefing, dining, hotels, wine, tea, surf, workout, touch grass; pushes to kelly/lifestyle |
-| **Sentinel** | CTO — core dev, ops, cost | Task brief, cost status, ONNX, ART gems, clawdbot; pushes to sentinel/ops |
+| Agent        | Role                                   | Key Commands / Actions                                                                                                |
+| ------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Eliza**    | CEO — vision, knowledge, GTM, Substack | Chat, research, UPLOAD, brainstorm, ingest URLs/YouTube                                                               |
+| **VINCE**    | CDO — data and intel                   | GM, ALOHA, OPTIONS, PERPS, HIP3, NEWS, LIFESTYLE, INTEL, MEMES, BOT, UPLOAD; pushes to daily, news, lifestyle, alerts |
+| **Solus**    | CFO — plan and call                    | $100K plan, strike ritual, size/skip/watch, Echo DD, rebalance                                                        |
+| **Otaku**    | COO — DeFi ops                         | Token discovery, Morpho, wallet, smart money, PnL, yield                                                              |
+| **Kelly**    | CHRO — lifestyle, balance              | Daily briefing, dining, hotels, wine, tea, surf, workout, touch grass; pushes to kelly/lifestyle                      |
+| **Sentinel** | CTO — core dev, ops, cost              | Task brief, cost status, ONNX, ART gems, clawdbot; pushes to sentinel/ops                                             |
 
 ---
 
@@ -172,16 +170,16 @@ Get the plumbing right first. The intelligence follows.
 
 VINCE sends scheduled and event-driven pushes. **Channel names must contain these keywords** (case-insensitive) to receive each type:
 
-| Keyword | What gets pushed | Schedule |
-|---------|------------------|----------|
-| `daily` | Market report (ALOHA, OPTIONS, PERPS, HIP-3) | **08:00 UTC** (morning) |
-| `news` | MandoMinutes briefing | 16:00 UTC (Mando updates ~4:20 PM Paris) |
-| `lifestyle` | Dining, hotel, health, fitness (curated) | 08:00 UTC |
-| `alerts` | Alerts, paper trades, watchlist events | Real-time |
+| Keyword     | What gets pushed                             | Schedule                                 |
+| ----------- | -------------------------------------------- | ---------------------------------------- |
+| `daily`     | Market report (ALOHA, OPTIONS, PERPS, HIP-3) | **08:00 UTC** (morning)                  |
+| `news`      | MandoMinutes briefing                        | 16:00 UTC (Mando updates ~4:20 PM Paris) |
+| `lifestyle` | Dining, hotel, health, fitness (curated)     | 08:00 UTC                                |
+| `alerts`    | Alerts, paper trades, watchlist events       | Real-time                                |
 
 **Examples:** **#daily**, `#vince-daily-reports`, `#ikigai-daily`, `#news-briefing`, `#vince-lifestyle`, `#vince-alerts`
 
-> **Note:** Alerts and paper trades currently broadcast to *all* connected channels. To avoid noise, invite VINCE only to channels where you want alerts, or use a dedicated `#vince-alerts` and limit bot access.
+> **Note:** Alerts and paper trades currently broadcast to _all_ connected channels. To avoid noise, invite VINCE only to channels where you want alerts, or use a dedicated `#vince-alerts` and limit bot access.
 
 ---
 
@@ -191,16 +189,17 @@ VINCE sends scheduled and event-driven pushes. **Channel names must contain thes
 
 All VINCE automated feeds in one place. Invite VINCE to these channels.
 
-| Channel | Purpose | Contains | Receives |
-|---------|---------|----------|----------|
-| `#vince-daily-reports` | Market pulse | "daily" | Daily report 18:00 UTC |
-| `#vince-news` | News briefing | "news" | MandoMinutes 16:00 UTC |
-| `#vince-lifestyle` | Lifestyle suggestions | "lifestyle" | Dining, hotel, health 08:00 UTC |
-| `#vince-alerts` | High-signal events | "alerts" | Alerts, paper trades |
-| `#vince-upload-youtube` | Curated YouTube → knowledge | — | You paste YouTube links; VINCE ingests (transcript + summary). No watching. |
-| `#general-gm` | General chat with VINCE | — | On-demand: GM, ALOHA, OPTIONS, etc. |
+| Channel                 | Purpose                     | Contains    | Receives                                                                    |
+| ----------------------- | --------------------------- | ----------- | --------------------------------------------------------------------------- |
+| `#vince-daily-reports`  | Market pulse                | "daily"     | Daily report 18:00 UTC                                                      |
+| `#vince-news`           | News briefing               | "news"      | MandoMinutes 16:00 UTC                                                      |
+| `#vince-lifestyle`      | Lifestyle suggestions       | "lifestyle" | Dining, hotel, health 08:00 UTC                                             |
+| `#vince-alerts`         | High-signal events          | "alerts"    | Alerts, paper trades                                                        |
+| `#vince-upload-youtube` | Curated YouTube → knowledge | —           | You paste YouTube links; VINCE ingests (transcript + summary). No watching. |
+| `#general-gm`           | General chat with VINCE     | —           | On-demand: GM, ALOHA, OPTIONS, etc.                                         |
 
 **Channel purpose (copy-paste):**
+
 ```
 #vince-daily-reports: ALOHA + OPTIONS + PERPS + HIP-3. Ask: ALOHA, OPTIONS, PERPS, BOT
 #vince-news: MandoMinutes. Ask: NEWS, MANDO
@@ -212,24 +211,24 @@ All VINCE automated feeds in one place. Invite VINCE to these channels.
 
 ### Category: Find Your Ikigai
 
-| Channel | Purpose |
-|---------|---------|
-| `#aloha-anon` | Anonymous / aloha |
-| `#ikigai-labs-eth` | ETH / project focus |
-| `#proof-of-human` | Identity / verification |
-| `#unlock-channels` | How to unlock |
-| `lofi-radio` | Voice |
+| Channel            | Purpose                 |
+| ------------------ | ----------------------- |
+| `#aloha-anon`      | Anonymous / aloha       |
+| `#ikigai-labs-eth` | ETH / project focus     |
+| `#proof-of-human`  | Identity / verification |
+| `#unlock-channels` | How to unlock           |
+| `lofi-radio`       | Voice                   |
 
 ### Category: LTL NewsFeeds (optional)
 
 Human-curated feeds. Distinct from VINCE’s automated news.
 
-| Channel | Purpose |
-|---------|---------|
-| `#cinemamemes` | Cinema memes |
-| `#soundtracks` | Soundtracks |
-| `#bitcoin` | Bitcoin |
-| `#twitter-feed` | Twitter feed |
+| Channel         | Purpose        |
+| --------------- | -------------- |
+| `#cinemamemes`  | Cinema memes   |
+| `#soundtracks`  | Soundtracks    |
+| `#bitcoin`      | Bitcoin        |
+| `#twitter-feed` | Twitter feed   |
 | `#ox-instagram` | Instagram feed |
 
 ### Categories: Tiers & Community
@@ -250,14 +249,15 @@ Human-curated feeds. Distinct from VINCE’s automated news.
 
 Primary focus. Invite VINCE for lifestyle briefing.
 
-| Channel | Purpose | Contains | Receives |
-|---------|---------|----------|----------|
-| `#vince-lifestyle` | Daily lifestyle briefing | "lifestyle" | Dining, hotel, health, fitness 08:00 UTC |
-| `#the-good-life` | Manual shares, recommendations | — | Community posts |
-| `#culture_code` | Culture & wellness | — | On-demand |
-| `#general` | General chat | — | On-demand |
+| Channel            | Purpose                        | Contains    | Receives                                 |
+| ------------------ | ------------------------------ | ----------- | ---------------------------------------- |
+| `#vince-lifestyle` | Daily lifestyle briefing       | "lifestyle" | Dining, hotel, health, fitness 08:00 UTC |
+| `#the-good-life`   | Manual shares, recommendations | —           | Community posts                          |
+| `#culture_code`    | Culture & wellness             | —           | On-demand                                |
+| `#general`         | General chat                   | —           | On-demand                                |
 
 **Channel purpose:**
+
 ```
 #vince-lifestyle: Daily curated suggestions — dining, hotels, health, fitness. Ask: LIFESTYLE
 #the-good-life: Share recommendations, photos, spots
@@ -294,14 +294,14 @@ Use the same naming so VINCE’s filters work.
 
 ### Channels
 
-| Channel | Purpose |
-|---------|---------|
+| Channel                | Purpose                 |
+| ---------------------- | ----------------------- |
 | `#vince-daily-reports` | Market report 18:00 UTC |
-| `#vince-news` | News 16:00 UTC |
-| `#vince-lifestyle` | Lifestyle 08:00 UTC |
-| `#vince-alerts` | Alerts, paper trades |
-| `#general` | General chat |
-| `#random` | Optional |
+| `#vince-news`          | News 16:00 UTC          |
+| `#vince-lifestyle`     | Lifestyle 08:00 UTC     |
+| `#vince-alerts`        | Alerts, paper trades    |
+| `#general`             | General chat            |
+| `#random`              | Optional                |
 
 ---
 
@@ -309,10 +309,10 @@ Use the same naming so VINCE’s filters work.
 
 Eliza handles research and UPLOAD. She does not run scheduled pushes.
 
-| Channel | Purpose |
-|---------|---------|
+| Channel           | Purpose                                      |
+| ----------------- | -------------------------------------------- |
 | `#eliza-research` | Brainstorm, ask Eliza to ingest URLs/YouTube |
-| `#upload` | Paste URLs/YouTube for knowledge ingestion |
+| `#upload`         | Paste URLs/YouTube for knowledge ingestion   |
 
 Or use the same `#general` as VINCE; both respond to UPLOAD. Topic separation helps if you want research vs trading in different channels.
 
@@ -320,11 +320,11 @@ Or use the same `#general` as VINCE; both respond to UPLOAD. Topic separation he
 
 ## On-Demand vs Push
 
-| Type | Channels | Behavior |
-|------|----------|----------|
-| **Scheduled push** | `daily`, `news`, `lifestyle` | VINCE posts at fixed times |
-| **Event push** | `alerts` | VINCE posts on alerts / paper trades |
-| **On-demand** | Any | User @mentions or asks; VINCE/Eliza reply |
+| Type               | Channels                     | Behavior                                  |
+| ------------------ | ---------------------------- | ----------------------------------------- |
+| **Scheduled push** | `daily`, `news`, `lifestyle` | VINCE posts at fixed times                |
+| **Event push**     | `alerts`                     | VINCE posts on alerts / paper trades      |
+| **On-demand**      | Any                          | User @mentions or asks; VINCE/Eliza reply |
 
 ---
 
@@ -332,13 +332,13 @@ Or use the same `#general` as VINCE; both respond to UPLOAD. Topic separation he
 
 For better context, you can split by topic:
 
-| Channel | Best for | Commands |
-|---------|----------|----------|
-| `#options` | Options flow | OPTIONS |
-| `#perps` | Perps / paper trading | PERPS, BOT |
-| `#news` | News | NEWS |
-| `#lifestyle` | Lifestyle | LIFESTYLE |
-| `#intel` | Intel | INTEL |
+| Channel      | Best for              | Commands   |
+| ------------ | --------------------- | ---------- |
+| `#options`   | Options flow          | OPTIONS    |
+| `#perps`     | Perps / paper trading | PERPS, BOT |
+| `#news`      | News                  | NEWS       |
+| `#lifestyle` | Lifestyle             | LIFESTYLE  |
+| `#intel`     | Intel                 | INTEL      |
 
 VINCE infers intent from the message. A channel named `#options` with "what's the skew?" gives extra signal. Not required, but useful for noisy servers.
 
@@ -421,16 +421,16 @@ When the Discord plugin starts, it prints a **Discord Bot Invite** box with two 
 
 **Enable both bots in one server:** Set VINCE's `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` in `.env` (different app than Eliza's). Restart. Restart. If the second bot fails to connect, set `DELAY_SECOND_DISCORD_MS=3000` (default) to stagger startup; use `0` to disable.
 
-| Env var | Default | Description |
-|---------|---------|-------------|
-| `DELAY_SECOND_DISCORD_MS` | `3000` | Ms to wait after VINCE init before second Discord (Eliza) starts; set `0` to disable. |
-| `VINCE_DAILY_REPORT_ENABLED` | `true` | Daily market report |
-| `VINCE_DAILY_REPORT_HOUR` | `8` | UTC hour (morning briefing) |
-| `VINCE_NEWS_DAILY_ENABLED` | `true` | News briefing |
-| `VINCE_NEWS_HOUR` | `7` | UTC hour |
-| `VINCE_NEWS_PUSH_REQUIRE_FRESH` | `true` | Only push when Mando updated |
-| `VINCE_LIFESTYLE_DAILY_ENABLED` | `true` | Lifestyle briefing |
-| `VINCE_LIFESTYLE_HOUR` | `8` | UTC hour |
+| Env var                         | Default | Description                                                                           |
+| ------------------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `DELAY_SECOND_DISCORD_MS`       | `3000`  | Ms to wait after VINCE init before second Discord (Eliza) starts; set `0` to disable. |
+| `VINCE_DAILY_REPORT_ENABLED`    | `true`  | Daily market report                                                                   |
+| `VINCE_DAILY_REPORT_HOUR`       | `8`     | UTC hour (morning briefing)                                                           |
+| `VINCE_NEWS_DAILY_ENABLED`      | `true`  | News briefing                                                                         |
+| `VINCE_NEWS_HOUR`               | `7`     | UTC hour                                                                              |
+| `VINCE_NEWS_PUSH_REQUIRE_FRESH` | `true`  | Only push when Mando updated                                                          |
+| `VINCE_LIFESTYLE_DAILY_ENABLED` | `true`  | Lifestyle briefing                                                                    |
+| `VINCE_LIFESTYLE_HOUR`          | `8`     | UTC hour                                                                              |
 
 See [NOTIFICATIONS.md](NOTIFICATIONS.md) for full config.
 

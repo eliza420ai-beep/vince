@@ -93,7 +93,7 @@ function getChainName(chainId?: number): string {
 // ---------------------------------------------------------------------------
 
 export async function buildBankrResponse(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): Promise<BankrResponse> {
   const emptyResponse: BankrResponse = {
     configured: false,
@@ -141,7 +141,7 @@ export async function buildBankrResponse(
         chain: w.chain as "evm" | "solana",
         address: w.address,
         shortAddress: shortenAddress(w.address),
-      })
+      }),
     );
 
     // Format Bankr Club status
@@ -253,7 +253,9 @@ export function formatBankrDashboard(data: BankrResponse): string {
 
   // Bankr Club
   if (data.bankrClub?.active) {
-    lines.push(`**Bankr Club:** ✅ Active (${data.bankrClub.subscriptionType})`);
+    lines.push(
+      `**Bankr Club:** ✅ Active (${data.bankrClub.subscriptionType})`,
+    );
   } else {
     lines.push("**Bankr Club:** Not active");
   }
@@ -261,7 +263,7 @@ export function formatBankrDashboard(data: BankrResponse): string {
   // Leaderboard
   if (data.leaderboard?.rank) {
     lines.push(
-      `**Leaderboard:** Rank #${data.leaderboard.rank} (Score: ${data.leaderboard.score ?? "?"})`
+      `**Leaderboard:** Rank #${data.leaderboard.rank} (Score: ${data.leaderboard.score ?? "?"})`,
     );
   }
   lines.push("");
@@ -288,7 +290,7 @@ export function formatBankrDashboard(data: BankrResponse): string {
             : "";
         const fillStr = o.fillPercent ? ` (${o.fillPercent}% filled)` : "";
         lines.push(
-          `- ${o.sellAmount} ${o.sellToken} → ${o.buyToken}${priceStr}${fillStr}`
+          `- ${o.sellAmount} ${o.sellToken} → ${o.buyToken}${priceStr}${fillStr}`,
         );
       }
       if (typeOrders.length > 5) {

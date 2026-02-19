@@ -5,7 +5,12 @@
 
 import type { ActionItem, ActionItemUrgency } from "./actionItemTracker";
 
-const URGENCY_ORDER: ActionItemUrgency[] = ["now", "today", "this_week", "backlog"];
+const URGENCY_ORDER: ActionItemUrgency[] = [
+  "now",
+  "today",
+  "this_week",
+  "backlog",
+];
 
 function urgencyRank(u: ActionItemUrgency | undefined): number {
   const i = URGENCY_ORDER.indexOf(u ?? "today");

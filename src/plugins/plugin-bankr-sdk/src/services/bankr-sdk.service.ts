@@ -44,13 +44,17 @@ export class BankrSdkService extends Service {
   }
 
   isConfigured(): boolean {
-    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as string | undefined;
+    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as
+      | string
+      | undefined;
     return !!key?.trim();
   }
 
   private getClient(): BankrClient {
     if (this.client) return this.client;
-    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as string | undefined;
+    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as
+      | string
+      | undefined;
     if (!key?.trim()) {
       throw new Error("BANKR_PRIVATE_KEY is not set");
     }
@@ -58,8 +62,11 @@ export class BankrSdkService extends Service {
     this.client = new BankrClient({
       privateKey,
       baseUrl: this.baseUrl,
-      ...(this.timeout != null && this.timeout > 0 && { timeout: this.timeout }),
-      ...(this.walletAddress?.trim() && { walletAddress: this.walletAddress.trim() }),
+      ...(this.timeout != null &&
+        this.timeout > 0 && { timeout: this.timeout }),
+      ...(this.walletAddress?.trim() && {
+        walletAddress: this.walletAddress.trim(),
+      }),
     });
     return this.client;
   }

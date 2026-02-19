@@ -28,18 +28,24 @@ function getMessageTextForMichelin(message: Memory): string {
   const parts: string[] = [];
   const content = message.content as Record<string, unknown> | undefined;
   if (content) {
-    if (typeof content.text === "string" && content.text.trim()) parts.push(content.text.trim());
-    const attachments = content.attachments as Array<{ url?: string }> | undefined;
+    if (typeof content.text === "string" && content.text.trim())
+      parts.push(content.text.trim());
+    const attachments = content.attachments as
+      | Array<{ url?: string }>
+      | undefined;
     if (Array.isArray(attachments)) {
       for (const a of attachments) {
         if (a?.url && typeof a.url === "string") parts.push(a.url);
       }
     }
-    const embeds = content.embeds as Array<{ url?: string; thumbnail?: { url?: string } }> | undefined;
+    const embeds = content.embeds as
+      | Array<{ url?: string; thumbnail?: { url?: string } }>
+      | undefined;
     if (Array.isArray(embeds)) {
       for (const e of embeds) {
         if (e?.url && typeof e.url === "string") parts.push(e.url);
-        if (e?.thumbnail?.url && typeof e.thumbnail.url === "string") parts.push(e.thumbnail.url);
+        if (e?.thumbnail?.url && typeof e.thumbnail.url === "string")
+          parts.push(e.thumbnail.url);
       }
     }
   }
@@ -74,13 +80,20 @@ async function getEffectiveRoomName(
   const fromMeta =
     (meta.channelName as string) ??
     (meta.roomName as string) ??
-    (meta.channel && typeof meta.channel === "object" && (meta.channel as Record<string, unknown>).name as string);
+    (meta.channel &&
+      typeof meta.channel === "object" &&
+      ((meta.channel as Record<string, unknown>).name as string));
   if (fromMeta && typeof fromMeta === "string") return fromMeta.toLowerCase();
   const channelIds = process.env.ELIZA_KNOWLEDGE_CHANNEL_IDS?.trim();
-  if (channelIds && meta.channelId && channelIds.split(",").some((id) => id.trim() === String(meta.channelId))) {
+  if (
+    channelIds &&
+    meta.channelId &&
+    channelIds.split(",").some((id) => id.trim() === String(meta.channelId))
+  ) {
     return "knowledge";
   }
-  if (getMessageTextForMichelin(message).includes("guide.michelin.com")) return "knowledge";
+  if (getMessageTextForMichelin(message).includes("guide.michelin.com"))
+    return "knowledge";
   return "";
 }
 
@@ -165,7 +178,8 @@ function formatEntry(
     `- **Price**: ${extract.price || "—"}`,
     `- **Style**: ${extract.style || "—"}`,
   ];
-  if (extract.website?.trim()) lines.push(`- **Website**: ${extract.website.trim()}`);
+  if (extract.website?.trim())
+    lines.push(`- **Website**: ${extract.website.trim()}`);
   if (extract.chef?.trim()) lines.push(`- **Chef**: ${extract.chef.trim()}`);
   lines.push(`- **Notes**: ${extract.notes || "From the Guide"}`);
   if (extract.description?.trim()) {
@@ -199,15 +213,13 @@ function parseJsonFromModelResponse(raw: string): MichelinExtract | null {
 }
 
 function htmlToVisibleText(html: string): string {
-  return (
-    html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
-      .replace(/<a\s+href=["'](https?:\/\/[^"']+)["'][^>]*>/gi, " $1 ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-  );
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+    .replace(/<a\s+href=["'](https?:\/\/[^"']+)["'][^>]*>/gi, " $1 ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const MICHELIN_CONTENT_MAX_CHARS = 12_000;
@@ -218,7 +230,10 @@ async function fetchPageContentViaBrowser(
 ): Promise<string | null> {
   try {
     const browserService = runtime.getService("browser") as {
-      getPageContent?(url: string, rt: IAgentRuntime): Promise<{
+      getPageContent?(
+        url: string,
+        rt: IAgentRuntime,
+      ): Promise<{
         title?: string;
         description?: string;
         bodyContent?: string;
@@ -283,9 +298,7 @@ function insertBlockIntoSection(
   const afterSection = fileContent.slice(sectionIndex + sectionHeading.length);
   const nextHeading = afterSection.match(/\n(#{1,3})\s+/);
   const insertEnd = nextHeading
-    ? sectionIndex +
-      sectionHeading.length +
-      nextHeading.index!
+    ? sectionIndex + sectionHeading.length + nextHeading.index!
     : fileContent.length;
   const before = fileContent.slice(0, insertEnd).trimEnd();
   const after = fileContent.slice(insertEnd);
@@ -410,7 +423,12 @@ ${content.slice(0, 12000)}
     const newBlock = formatEntry(extract, url, cityDisplay);
 
     const knowledgeRoot = getKnowledgeRoot();
-    const filePath = path.join(knowledgeRoot, "the-good-life", "michelin-restaurants", fileName);
+    const filePath = path.join(
+      knowledgeRoot,
+      "the-good-life",
+      "michelin-restaurants",
+      fileName,
+    );
 
     if (!fs.existsSync(filePath)) {
       if (callback) {
@@ -433,11 +451,7 @@ ${content.slice(0, 12000)}
       return;
     }
 
-    fileContent = insertBlockIntoSection(
-      fileContent,
-      sectionHeading,
-      newBlock,
-    );
+    fileContent = insertBlockIntoSection(fileContent, sectionHeading, newBlock);
     fs.writeFileSync(filePath, fileContent, "utf-8");
 
     if (callback) {

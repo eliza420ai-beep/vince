@@ -19,14 +19,36 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
-import { AGENT_ROLES, formatReportDate, getDayOfWeek } from "../standup/standupReports";
+import {
+  AGENT_ROLES,
+  formatReportDate,
+  getDayOfWeek,
+} from "../standup/standupReports";
 import { getRecentReportsContext } from "../standup/dayReportPersistence";
-import { getActionItemsContext, getTodayActionItems, updateActionItemPriorities } from "../standup/actionItemTracker";
+import {
+  getActionItemsContext,
+  getTodayActionItems,
+  updateActionItemPriorities,
+} from "../standup/actionItemTracker";
 import { prioritizeActionItems } from "../standup/standupPlanner";
-import { extractSignalsFromReport, validateAllAssets, buildValidationContext, type AgentSignal } from "../standup/crossAgentValidation";
+import {
+  extractSignalsFromReport,
+  validateAllAssets,
+  buildValidationContext,
+  type AgentSignal,
+} from "../standup/crossAgentValidation";
 import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
-import { startStandupSession, endStandupSession, getSessionStats, isStandupActive } from "../standup/standupState";
-import { STANDUP_REPORT_ORDER, isStandupKickoffRequest, getStandupHumanDiscordId } from "../standup/standup.constants";
+import {
+  startStandupSession,
+  endStandupSession,
+  getSessionStats,
+  isStandupActive,
+} from "../standup/standupState";
+import {
+  STANDUP_REPORT_ORDER,
+  isStandupKickoffRequest,
+  getStandupHumanDiscordId,
+} from "../standup/standup.constants";
 import { generateAndSaveDayReport } from "../standup/standupDayReport";
 import { getElizaOS } from "../types";
 import {
@@ -40,13 +62,23 @@ import {
   useRalphLoop,
 } from "../standup/standup.tasks";
 import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
-import { buildKickoffWithSharedInsights, buildKickoffWithRoles } from "../standup/standup.context";
-import { parseStandupTranscript, countCrossAgentLinks } from "../standup/standup.parse";
+import {
+  buildKickoffWithSharedInsights,
+  buildKickoffWithRoles,
+} from "../standup/standup.context";
+import {
+  parseStandupTranscript,
+  countCrossAgentLinks,
+} from "../standup/standup.parse";
 
 /** Focus areas for this standup (not lifestyle/NFTs/memes) */
 const STANDUP_FOCUS = {
   assets: ["BTC", "SOL", "HYPE", "HIP-3"],
-  products: ["Perps (Hyperliquid)", "Options (Hypersurface)", "Spot/1x leverage"],
+  products: [
+    "Perps (Hyperliquid)",
+    "Options (Hypersurface)",
+    "Spot/1x leverage",
+  ],
   intel: ["X sentiment", "Polymarket"],
   excluded: ["NFTs", "Memetics", "Lifestyle"], // These are for other meetings
 };
@@ -68,7 +100,7 @@ const WRAPUP_TRIGGERS = [
 function buildKickoffMessage(): string {
   const date = formatReportDate();
   const day = getDayOfWeek();
-  
+
   // ULTRA SHORT kickoff — gets to VINCE immediately
   return `## 🎯 Standup ${date} (${day})
 
@@ -82,13 +114,13 @@ BTC · SOL · HYPE · HIP-3 — Numbers only, no fluff.
  */
 function getNextAgent(currentAgent: string): string | null {
   const currentIndex = STANDUP_REPORT_ORDER.findIndex(
-    (a) => a.toLowerCase() === currentAgent.toLowerCase()
+    (a) => a.toLowerCase() === currentAgent.toLowerCase(),
   );
-  
+
   if (currentIndex === -1 || currentIndex === STANDUP_REPORT_ORDER.length - 1) {
     return null; // Last agent or not found
   }
-  
+
   return STANDUP_REPORT_ORDER[currentIndex + 1];
 }
 
@@ -97,11 +129,11 @@ function getNextAgent(currentAgent: string): string | null {
  */
 function buildNextAgentMessage(completedAgent: string): string {
   const next = getNextAgent(completedAgent);
-  
+
   if (!next) {
     return `Got it. Synthesizing action plan now...`;
   }
-  
+
   // Ultra short transition — just call the next agent
   return `@${next}, go.`;
 }
@@ -123,7 +155,8 @@ async function handleWrapUp(
   callback: HandlerCallback | undefined,
 ): Promise<void> {
   const recentContext =
-    state?.recentMessages ?? "No recent messages available. Generate a template Day Report.";
+    state?.recentMessages ??
+    "No recent messages available. Generate a template Day Report.";
   const contextStr = String(recentContext);
   const actionItemsContext = await getActionItemsContext();
   const recentReports = await getRecentReportsContext(3);
@@ -145,17 +178,23 @@ ${recentReports}
 ${validationContext}
 `;
   try {
-    const { reportText, savedPath, parsedItems } = await generateAndSaveDayReport(runtime, contextStr, {
-      extraPrompt,
-    });
+    const { reportText, savedPath, parsedItems } =
+      await generateAndSaveDayReport(runtime, contextStr, {
+        extraPrompt,
+      });
     try {
       const todayItems = await getTodayActionItems();
       const prioritized = prioritizeActionItems(todayItems);
       if (prioritized.length > 0) {
-        await updateActionItemPriorities(prioritized.map((p) => ({ id: p.id, priority: p.priority! })));
+        await updateActionItemPriorities(
+          prioritized.map((p) => ({ id: p.id, priority: p.priority! })),
+        );
       }
     } catch (plannerErr) {
-      logger.warn({ err: plannerErr }, "[STANDUP_FACILITATE] Planner priority update failed (non-fatal)");
+      logger.warn(
+        { err: plannerErr },
+        "[STANDUP_FACILITATE] Planner priority update failed (non-fatal)",
+      );
     }
     if (callback) {
       const savedNote = savedPath ? `\n\n*📁 Saved to ${savedPath}*` : "";
@@ -169,23 +208,42 @@ ${validationContext}
       const parsed = await parseStandupTranscript(runtime, contextStr);
       const crossAgentLinks = countCrossAgentLinks(contextStr);
       if (crossAgentLinks > 0) {
-        logger.info(`[STANDUP_FACILITATE] North star: ${crossAgentLinks} cross-agent link(s) detected`);
+        logger.info(
+          `[STANDUP_FACILITATE] North star: ${crossAgentLinks} cross-agent link(s) detected`,
+        );
       }
-      await persistStandupLessons(runtime, message.roomId, parsed.lessonsByAgentName);
+      await persistStandupLessons(
+        runtime,
+        message.roomId,
+        parsed.lessonsByAgentName,
+      );
       await persistStandupDisagreements(runtime, parsed.disagreements);
       if (!useRalphLoop()) {
-        await createActionItemTasks(runtime, parsed.actionItems, message.roomId, message.entityId);
+        await createActionItemTasks(
+          runtime,
+          parsed.actionItems,
+          message.roomId,
+          message.entityId,
+        );
       }
       logger.info(
         `[STANDUP_FACILITATE] DB persistence: ${Object.keys(parsed.lessonsByAgentName).length} lessons, ${parsed.actionItems.length} action items, ${parsed.disagreements.length} disagreements`,
       );
     } catch (persistErr) {
-      logger.warn({ err: persistErr }, "[STANDUP_FACILITATE] DB persistence failed (non-fatal)");
+      logger.warn(
+        { err: persistErr },
+        "[STANDUP_FACILITATE] DB persistence failed (non-fatal)",
+      );
     }
     await endStandupSession();
-    logger.info(`[STANDUP_FACILITATE] Day report saved, ${parsedItems.length} action items tracked`);
+    logger.info(
+      `[STANDUP_FACILITATE] Day report saved, ${parsedItems.length} action items tracked`,
+    );
   } catch (error) {
-    logger.error({ error }, "[STANDUP_FACILITATE] Failed to generate Day Report");
+    logger.error(
+      { error },
+      "[STANDUP_FACILITATE] Failed to generate Day Report",
+    );
     await endStandupSession();
     if (callback) {
       await callback({
@@ -207,7 +265,9 @@ async function handleKickoff(
   callback: HandlerCallback | undefined,
 ): Promise<{ kickoffText: string; eliza: ReturnType<typeof getElizaOS> }> {
   if (isStandupActive()) {
-    logger.warn("[STANDUP_FACILITATE] Previous session still active — ending it to start fresh");
+    logger.warn(
+      "[STANDUP_FACILITATE] Previous session still active — ending it to start fresh",
+    );
     await endStandupSession();
   }
   await startStandupSession(message.roomId);
@@ -227,7 +287,10 @@ async function handleKickoff(
     try {
       await buildAndSaveSharedDailyInsights(runtime, eliza);
     } catch (err) {
-      logger.warn({ err }, "[STANDUP_FACILITATE] buildAndSaveSharedDailyInsights failed; using short kickoff");
+      logger.warn(
+        { err },
+        "[STANDUP_FACILITATE] buildAndSaveSharedDailyInsights failed; using short kickoff",
+      );
     }
   }
   const sharedContent = (await loadSharedDailyInsights())?.trim();
@@ -248,12 +311,15 @@ async function handleRoundRobin(
   callback: HandlerCallback | undefined,
 ): Promise<void> {
   if (!eliza?.handleMessage) {
-    logger.warn("[STANDUP_FACILITATE] No elizaOS — kickoff posted but agents must self-organize");
+    logger.warn(
+      "[STANDUP_FACILITATE] No elizaOS — kickoff posted but agents must self-organize",
+    );
     await endStandupSession();
     return;
   }
   try {
-    const { roomId: standupRoomId, facilitatorEntityId } = await ensureStandupWorldAndRoom(runtime);
+    const { roomId: standupRoomId, facilitatorEntityId } =
+      await ensureStandupWorldAndRoom(runtime);
     const { transcript, replies } = await runStandupRoundRobin(
       runtime,
       standupRoomId,
@@ -261,26 +327,45 @@ async function handleRoundRobin(
       kickoffText,
     );
     for (const r of replies) {
-      await pushStandupSummaryToChannels(runtime, `**${r.agentName}:**\n${r.text}`);
+      await pushStandupSummaryToChannels(
+        runtime,
+        `**${r.agentName}:**\n${r.text}`,
+      );
     }
     try {
-      const { reportText, savedPath } = await generateAndSaveDayReport(runtime, transcript, {
-        replies: replies.map((r) => ({ agentName: r.agentName, structuredSignals: r.structuredSignals })),
-      });
+      const { reportText, savedPath } = await generateAndSaveDayReport(
+        runtime,
+        transcript,
+        {
+          replies: replies.map((r) => ({
+            agentName: r.agentName,
+            structuredSignals: r.structuredSignals,
+          })),
+        },
+      );
       try {
         const todayItems = await getTodayActionItems();
         const prioritized = prioritizeActionItems(todayItems);
         if (prioritized.length > 0) {
-          await updateActionItemPriorities(prioritized.map((p) => ({ id: p.id, priority: p.priority! })));
+          await updateActionItemPriorities(
+            prioritized.map((p) => ({ id: p.id, priority: p.priority! })),
+          );
         }
       } catch (plannerErr) {
-        logger.warn({ err: plannerErr }, "[STANDUP_FACILITATE] Planner priority update failed (non-fatal)");
+        logger.warn(
+          { err: plannerErr },
+          "[STANDUP_FACILITATE] Planner priority update failed (non-fatal)",
+        );
       }
       const savedNote = savedPath ? `\n\n*Saved to ${savedPath}*` : "";
       try {
-        const pushed = await pushStandupSummaryToChannels(runtime, `${reportText}${savedNote}`, {
-          preferredRoomId: message.roomId,
-        });
+        const pushed = await pushStandupSummaryToChannels(
+          runtime,
+          `${reportText}${savedNote}`,
+          {
+            preferredRoomId: message.roomId,
+          },
+        );
         if (pushed === 0) {
           logger.warn(
             { roomId: message.roomId },
@@ -294,30 +379,52 @@ async function handleRoundRobin(
         );
       }
     } catch (dayReportErr) {
-      logger.warn({ err: dayReportErr }, "[STANDUP_FACILITATE] Day Report generation failed");
+      logger.warn(
+        { err: dayReportErr },
+        "[STANDUP_FACILITATE] Day Report generation failed",
+      );
     }
     try {
       const parsed = await parseStandupTranscript(runtime, transcript);
       const crossAgentLinks = countCrossAgentLinks(transcript);
       if (crossAgentLinks > 0) {
-        logger.info(`[STANDUP_FACILITATE] North star: ${crossAgentLinks} cross-agent link(s)`);
+        logger.info(
+          `[STANDUP_FACILITATE] North star: ${crossAgentLinks} cross-agent link(s)`,
+        );
       }
-      await persistStandupLessons(runtime, message.roomId, parsed.lessonsByAgentName);
+      await persistStandupLessons(
+        runtime,
+        message.roomId,
+        parsed.lessonsByAgentName,
+      );
       await persistStandupDisagreements(runtime, parsed.disagreements);
       if (!useRalphLoop()) {
-        await createActionItemTasks(runtime, parsed.actionItems, message.roomId, message.entityId);
+        await createActionItemTasks(
+          runtime,
+          parsed.actionItems,
+          message.roomId,
+          message.entityId,
+        );
       }
-      const estimateTokens = (text: string) => Math.ceil((text?.length ?? 0) / 4);
+      const estimateTokens = (text: string) =>
+        Math.ceil((text?.length ?? 0) / 4);
       let totalInputTokens = estimateTokens(kickoffText);
       for (let i = 0; i < replies.length; i++) {
         const priorLen =
           kickoffText.length +
-          replies.slice(0, i).reduce((s, r) => s + r.text.length + r.agentName.length + 5, 0);
-        totalInputTokens += estimateTokens(transcript.slice(0, Math.min(priorLen, 48000)));
+          replies
+            .slice(0, i)
+            .reduce((s, r) => s + r.text.length + r.agentName.length + 5, 0);
+        totalInputTokens += estimateTokens(
+          transcript.slice(0, Math.min(priorLen, 48000)),
+        );
       }
-      const totalOutputTokens = replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 1200;
+      const totalOutputTokens =
+        replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 1200;
       const totalEstimatedTokens = totalInputTokens + totalOutputTokens;
-      const costPer1K = parseFloat(process.env.VINCE_USAGE_COST_PER_1K_TOKENS || "0.006");
+      const costPer1K = parseFloat(
+        process.env.VINCE_USAGE_COST_PER_1K_TOKENS || "0.006",
+      );
       const estimatedCost = (totalEstimatedTokens / 1000) * costPer1K;
       logger.info(
         `[STANDUP_FACILITATE] Token estimate: ~${totalEstimatedTokens} tokens (~$${estimatedCost.toFixed(3)})`,
@@ -329,7 +436,8 @@ async function handleRoundRobin(
           process.cwd(),
           process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
         );
-        if (!fs.existsSync(metricsDir)) fs.mkdirSync(metricsDir, { recursive: true });
+        if (!fs.existsSync(metricsDir))
+          fs.mkdirSync(metricsDir, { recursive: true });
         const dateStr = new Date().toISOString().slice(0, 10);
         const metricsLine = JSON.stringify({
           date: dateStr,
@@ -342,7 +450,10 @@ async function handleRoundRobin(
           lessons: Object.keys(parsed.lessonsByAgentName).length,
           disagreements: parsed.disagreements.length,
         });
-        fs.appendFileSync(pathMod.join(metricsDir, "standup-metrics.jsonl"), metricsLine + "\n");
+        fs.appendFileSync(
+          pathMod.join(metricsDir, "standup-metrics.jsonl"),
+          metricsLine + "\n",
+        );
       } catch {
         /* non-fatal */
       }
@@ -350,11 +461,17 @@ async function handleRoundRobin(
         `[STANDUP_FACILITATE] Hybrid standup complete: ${replies.length} agents, ${parsed.actionItems.length} action items`,
       );
     } catch (persistErr) {
-      logger.warn({ err: persistErr }, "[STANDUP_FACILITATE] DB persistence failed (non-fatal)");
+      logger.warn(
+        { err: persistErr },
+        "[STANDUP_FACILITATE] DB persistence failed (non-fatal)",
+      );
     }
     await endStandupSession();
   } catch (roundRobinErr) {
-    logger.error({ err: roundRobinErr }, "[STANDUP_FACILITATE] Round-robin failed");
+    logger.error(
+      { err: roundRobinErr },
+      "[STANDUP_FACILITATE] Round-robin failed",
+    );
     if (callback) {
       await callback({
         text: "Standup round-robin failed. Check logs for details.",
@@ -379,7 +496,10 @@ export const standupFacilitatorAction: Action = {
     "next agent",
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     // Only Kelly can facilitate
     const agentName = (runtime.character?.name || "").toLowerCase();
     if (agentName !== "kelly") {
@@ -390,7 +510,9 @@ export const standupFacilitatorAction: Action = {
 
     // Kickoff: use shared helper so "daily stand up" and "let's do a stand up" match
     const isKickoff = isStandupKickoffRequest(text);
-    const isWrapup = WRAPUP_TRIGGERS.some((t) => text.toLowerCase().includes(t));
+    const isWrapup = WRAPUP_TRIGGERS.some((t) =>
+      text.toLowerCase().includes(t),
+    );
 
     return isKickoff || isWrapup;
   },
@@ -400,17 +522,23 @@ export const standupFacilitatorAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = (message.content?.text || "").toLowerCase();
     const isWrapup = WRAPUP_TRIGGERS.some((t) => text.includes(t));
 
-    logger.info(`[STANDUP_FACILITATE] Kelly ${isWrapup ? "wrapping up" : "kicking off"} standup`);
+    logger.info(
+      `[STANDUP_FACILITATE] Kelly ${isWrapup ? "wrapping up" : "kicking off"} standup`,
+    );
 
     if (isWrapup) {
       await handleWrapUp(runtime, message, state, callback);
     } else {
-      const { kickoffText, eliza } = await handleKickoff(runtime, message, callback);
+      const { kickoffText, eliza } = await handleKickoff(
+        runtime,
+        message,
+        callback,
+      );
       await handleRoundRobin(runtime, message, kickoffText, eliza, callback);
     }
 

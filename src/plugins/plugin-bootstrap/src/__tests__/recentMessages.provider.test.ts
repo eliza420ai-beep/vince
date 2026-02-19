@@ -28,7 +28,9 @@ describe("ensureMessageSendersInRoom (multi-agent entity resolution)", () => {
   it("calls ensureConnection and addParticipant for each unique message sender", async () => {
     const ensureConnection = mock(() => Promise.resolve());
     const addParticipant = mock(() => Promise.resolve(true));
-    const getRoom = mock(() => Promise.resolve({ id: ROOM_ID, worldId: ROOM_ID }));
+    const getRoom = mock(() =>
+      Promise.resolve({ id: ROOM_ID, worldId: ROOM_ID }),
+    );
     const getEntityById = mock(() => Promise.resolve(null));
 
     const runtime = {
@@ -39,9 +41,18 @@ describe("ensureMessageSendersInRoom (multi-agent entity resolution)", () => {
     } as unknown as IAgentRuntime;
 
     const messages: Memory[] = [
-      createMockMemory({ entityId: USER_ENTITY, content: { text: "What about Bitcoin?" } }),
-      createMockMemory({ entityId: ENTITY_OTHER_AGENT, content: { text: "Kelly reply" } }),
-      createMockMemory({ entityId: ENTITY_OTHER_AGENT, content: { text: "Another from same agent" } }),
+      createMockMemory({
+        entityId: USER_ENTITY,
+        content: { text: "What about Bitcoin?" },
+      }),
+      createMockMemory({
+        entityId: ENTITY_OTHER_AGENT,
+        content: { text: "Kelly reply" },
+      }),
+      createMockMemory({
+        entityId: ENTITY_OTHER_AGENT,
+        content: { text: "Another from same agent" },
+      }),
     ];
 
     await ensureMessageSendersInRoom(runtime, ROOM_ID, messages);
@@ -50,10 +61,13 @@ describe("ensureMessageSendersInRoom (multi-agent entity resolution)", () => {
     expect(ensureConnection).toHaveBeenCalledTimes(2);
     expect(addParticipant).toHaveBeenCalledTimes(2);
     expect(ensureConnection).toHaveBeenCalledWith(
-      expect.objectContaining({ entityId: USER_ENTITY, roomId: ROOM_ID })
+      expect.objectContaining({ entityId: USER_ENTITY, roomId: ROOM_ID }),
     );
     expect(ensureConnection).toHaveBeenCalledWith(
-      expect.objectContaining({ entityId: ENTITY_OTHER_AGENT, roomId: ROOM_ID })
+      expect.objectContaining({
+        entityId: ENTITY_OTHER_AGENT,
+        roomId: ROOM_ID,
+      }),
     );
     expect(addParticipant).toHaveBeenCalledWith(USER_ENTITY, ROOM_ID);
     expect(addParticipant).toHaveBeenCalledWith(ENTITY_OTHER_AGENT, ROOM_ID);

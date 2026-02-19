@@ -78,11 +78,11 @@ export const sentinelPlugin: Plugin = {
     "Core dev: world-class PRDs, project radar, impact-scored suggestions, OpenClaw expert. 24/7 market research is TOP PRIORITY. OpenClaw matters A LOT. Sentinel only.",
 
   actions: [
-    sentinelSuggestAction,      // Impact-scored suggestions
-    sentinelPrdAction,          // World-class PRD generation
-    sentinelMultiAgentAction,   // Multi-agent architecture expert
+    sentinelSuggestAction, // Impact-scored suggestions
+    sentinelPrdAction, // World-class PRD generation
+    sentinelMultiAgentAction, // Multi-agent architecture expert
     sentinelTradingIntelAction, // Paper trading + options strategy expert
-    sentinelShipAction,         // What to ship for max impact
+    sentinelShipAction, // What to ship for max impact
     sentinelOpenclawGuideAction,
     sentinelSettingsSuggestAction,
     sentinelOnnxStatusAction,
@@ -101,10 +101,14 @@ export const sentinelPlugin: Plugin = {
     if (name !== "SENTINEL") {
       return;
     }
-    
-    logger.info("[Sentinel] 🦞 Core dev initialized — PRDs, Project Radar, Impact Scorer, OpenClaw Expert");
-    logger.info("[Sentinel] North star: 24/7 market research is TOP PRIORITY. OpenClaw matters A LOT.");
-    
+
+    logger.info(
+      "[Sentinel] 🦞 Core dev initialized — PRDs, Project Radar, Impact Scorer, OpenClaw Expert",
+    );
+    logger.info(
+      "[Sentinel] North star: 24/7 market research is TOP PRIORITY. OpenClaw matters A LOT.",
+    );
+
     setImmediate(async () => {
       try {
         await registerSentinelWeeklyTask(runtime);

@@ -48,13 +48,19 @@ export const getTopHoldersAction: Action = {
   parameters: {
     conditionId: {
       type: "string",
-      description: "Market condition ID (hex string starting with 0x) to check top holders for",
+      description:
+        "Market condition ID (hex string starting with 0x) to check top holders for",
       required: false,
     },
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_TOP_HOLDERS", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_TOP_HOLDERS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -62,13 +68,16 @@ export const getTopHoldersAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_TOP_HOLDERS] Getting top holders");
 
       // Read parameters from state
-      const params = await extractActionParams<GetTopHoldersParams>(runtime, message);
+      const params = await extractActionParams<GetTopHoldersParams>(
+        runtime,
+        message,
+      );
 
       // Extract condition ID
       const conditionId = params.conditionId?.trim();
@@ -111,7 +120,9 @@ export const getTopHoldersAction: Action = {
       }
 
       // Fetch top holders
-      logger.info(`[GET_POLYMARKET_TOP_HOLDERS] Fetching top holders for market ${conditionId}`);
+      logger.info(
+        `[GET_POLYMARKET_TOP_HOLDERS] Fetching top holders for market ${conditionId}`,
+      );
       const holders = await service.getTopHolders(conditionId);
 
       if (holders.length === 0) {
@@ -163,7 +174,10 @@ export const getTopHoldersAction: Action = {
       }
 
       // Calculate total value
-      const totalValue = holders.reduce((sum, h) => sum + parseFloat(h.value), 0);
+      const totalValue = holders.reduce(
+        (sum, h) => sum + parseFloat(h.value),
+        0,
+      );
 
       text += `**Summary:**\n`;
       text += `   Total Top Holders: ${holders.length}\n`;
@@ -192,7 +206,7 @@ export const getTopHoldersAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_TOP_HOLDERS] Successfully fetched ${holders.length} top holders`
+        `[GET_POLYMARKET_TOP_HOLDERS] Successfully fetched ${holders.length} top holders`,
       );
       return result;
     } catch (error) {

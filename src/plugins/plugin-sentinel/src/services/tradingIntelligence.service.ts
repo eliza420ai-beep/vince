@@ -69,7 +69,8 @@ const SIGNAL_SOURCES: SignalSource[] = [
   {
     name: "CoinGlass",
     service: "VinceCoinGlassService",
-    description: "Funding, L/S ratio, OI, OI change, Fear/Greed — 5-8 factors always",
+    description:
+      "Funding, L/S ratio, OI, OI change, Fear/Greed — 5-8 factors always",
     requiresKey: false,
     keyEnv: "COINGLASS_API_KEY",
     defaultWeight: 1.0,
@@ -221,9 +222,18 @@ const FEATURE_CATEGORIES: FeatureCategory[] = [
   {
     category: "market",
     features: [
-      "priceChange24h", "volumeRatio", "fundingPercentile", "longShortRatio",
-      "dvol", "rsi14", "oiChange24h", "fundingDelta", "bookImbalance",
-      "bidAskSpread", "priceVsSma20", "atrPct",
+      "priceChange24h",
+      "volumeRatio",
+      "fundingPercentile",
+      "longShortRatio",
+      "dvol",
+      "rsi14",
+      "oiChange24h",
+      "fundingDelta",
+      "bookImbalance",
+      "bidAskSpread",
+      "priceVsSma20",
+      "atrPct",
     ],
     description: "Market data features from exchanges and aggregators",
   },
@@ -235,32 +245,60 @@ const FEATURE_CATEGORIES: FeatureCategory[] = [
   {
     category: "signal",
     features: [
-      "strength", "confidence", "source_count", "avg_sentiment",
-      "hasCascadeSignal", "hasFundingExtreme", "hasWhaleSignal", "hasOICap",
+      "strength",
+      "confidence",
+      "source_count",
+      "avg_sentiment",
+      "hasCascadeSignal",
+      "hasFundingExtreme",
+      "hasWhaleSignal",
+      "hasOICap",
     ],
     description: "Aggregated signal features from all sources",
   },
   {
     category: "regime",
-    features: ["volatilityRegime", "marketRegime", "volatility_high", "bullish", "bearish"],
+    features: [
+      "volatilityRegime",
+      "marketRegime",
+      "volatility_high",
+      "bullish",
+      "bearish",
+    ],
     description: "Market regime classification",
   },
   {
     category: "news",
     features: [
-      "avg_sentiment", "nasdaqChange", "etfFlowBtc", "etfFlowEth",
-      "macro_risk_on", "macro_risk_off",
+      "avg_sentiment",
+      "nasdaqChange",
+      "etfFlowBtc",
+      "etfFlowEth",
+      "macro_risk_on",
+      "macro_risk_off",
     ],
     description: "News and macro features",
   },
   {
     category: "execution",
-    features: ["entryPrice", "leverage", "positionSizeUsd", "stopLossPrice", "takeProfitPrice"],
+    features: [
+      "entryPrice",
+      "leverage",
+      "positionSizeUsd",
+      "stopLossPrice",
+      "takeProfitPrice",
+    ],
     description: "Trade execution parameters",
   },
   {
     category: "outcome",
-    features: ["realizedPnl", "realizedPnlPct", "exitReason", "durationMs", "feesUsd"],
+    features: [
+      "realizedPnl",
+      "realizedPnlPct",
+      "exitReason",
+      "durationMs",
+      "feesUsd",
+    ],
     description: "Trade outcome features (net of fees)",
   },
   {
@@ -304,19 +342,64 @@ const ML_MODELS: MLModel[] = [
 
 // Hypersurface options
 const HYPERSURFACE_ASSETS: HypersurfaceAsset[] = [
-  { ticker: "HYPE", name: "Hyperliquid", expiry: "Friday 08:00 UTC", strategies: ["covered_call", "secured_put", "wheel"] },
-  { ticker: "SOL", name: "Solana", expiry: "Friday 08:00 UTC", strategies: ["covered_call", "secured_put", "wheel"] },
-  { ticker: "WBTC", name: "Wrapped Bitcoin", expiry: "Friday 08:00 UTC", strategies: ["covered_call", "secured_put", "wheel"] },
-  { ticker: "ETH", name: "Ethereum", expiry: "Friday 08:00 UTC", strategies: ["covered_call", "secured_put", "wheel"] },
+  {
+    ticker: "HYPE",
+    name: "Hyperliquid",
+    expiry: "Friday 08:00 UTC",
+    strategies: ["covered_call", "secured_put", "wheel"],
+  },
+  {
+    ticker: "SOL",
+    name: "Solana",
+    expiry: "Friday 08:00 UTC",
+    strategies: ["covered_call", "secured_put", "wheel"],
+  },
+  {
+    ticker: "WBTC",
+    name: "Wrapped Bitcoin",
+    expiry: "Friday 08:00 UTC",
+    strategies: ["covered_call", "secured_put", "wheel"],
+  },
+  {
+    ticker: "ETH",
+    name: "Ethereum",
+    expiry: "Friday 08:00 UTC",
+    strategies: ["covered_call", "secured_put", "wheel"],
+  },
 ];
 
 // Strike ritual process
 const STRIKE_RITUAL: StrikeRitualStep[] = [
-  { step: 1, actor: "User", action: "Say 'options' to VINCE", output: "IV/DVOL and strike suggestions" },
-  { step: 2, actor: "User", action: "Ask VINCE 'What's CT saying about BTC'", output: "CT vibe and sentiment" },
-  { step: 3, actor: "User", action: "Paste VINCE output to Solus", output: "Context for strike call" },
-  { step: 4, actor: "Solus", action: "Give size/skip/watch with strike", output: "OTM %, invalidation" },
-  { step: 5, actor: "User", action: "Execute on Hypersurface", output: "Position opened" },
+  {
+    step: 1,
+    actor: "User",
+    action: "Say 'options' to VINCE",
+    output: "IV/DVOL and strike suggestions",
+  },
+  {
+    step: 2,
+    actor: "User",
+    action: "Ask VINCE 'What's CT saying about BTC'",
+    output: "CT vibe and sentiment",
+  },
+  {
+    step: 3,
+    actor: "User",
+    action: "Paste VINCE output to Solus",
+    output: "Context for strike call",
+  },
+  {
+    step: 4,
+    actor: "Solus",
+    action: "Give size/skip/watch with strike",
+    output: "OTM %, invalidation",
+  },
+  {
+    step: 5,
+    actor: "User",
+    action: "Execute on Hypersurface",
+    output: "Position opened",
+  },
 ];
 
 // Solus EV framework
@@ -337,14 +420,14 @@ export function getSignalSources(): SignalSource[] {
  * Get sources that require API keys
  */
 export function getKeyRequiredSources(): SignalSource[] {
-  return SIGNAL_SOURCES.filter(s => s.requiresKey);
+  return SIGNAL_SOURCES.filter((s) => s.requiresKey);
 }
 
 /**
  * Get free sources (no API key)
  */
 export function getFreeSources(): SignalSource[] {
-  return SIGNAL_SOURCES.filter(s => !s.requiresKey);
+  return SIGNAL_SOURCES.filter((s) => !s.requiresKey);
 }
 
 /**
@@ -379,54 +462,74 @@ export function getStrikeRitualSteps(): StrikeRitualStep[] {
  * Calculate EV for a recommendation
  */
 export function calculateEV(scenarios: EVScenario[]): number {
-  return scenarios.reduce((ev, s) => ev + (s.probability * s.return_pct), 0);
+  return scenarios.reduce((ev, s) => ev + s.probability * s.return_pct, 0);
 }
 
 /**
  * Format EV calculation
  */
-export function formatEV(ticker: string, price: number, scenarios: EVScenario[]): string {
+export function formatEV(
+  ticker: string,
+  price: number,
+  scenarios: EVScenario[],
+): string {
   const ev = calculateEV(scenarios);
-  const scenarioText = scenarios.map(s => 
-    `${s.name}: ${Math.round(s.probability * 100)}% @ ${s.return_pct >= 0 ? '+' : ''}${s.return_pct}%`
-  ).join('. ');
-  
-  return `${ticker} at $${price.toFixed(2)}. ${scenarioText}. EV: ${ev >= 0 ? '+' : ''}${ev.toFixed(1)}%`;
+  const scenarioText = scenarios
+    .map(
+      (s) =>
+        `${s.name}: ${Math.round(s.probability * 100)}% @ ${s.return_pct >= 0 ? "+" : ""}${s.return_pct}%`,
+    )
+    .join(". ");
+
+  return `${ticker} at $${price.toFixed(2)}. ${scenarioText}. EV: ${ev >= 0 ? "+" : ""}${ev.toFixed(1)}%`;
 }
 
 /**
  * Check paper trading health
  */
-export function checkPaperTradingHealth(): { issues: string[]; suggestions: string[] } {
+export function checkPaperTradingHealth(): {
+  issues: string[];
+  suggestions: string[];
+} {
   const issues: string[] = [];
   const suggestions: string[] = [];
-  
+
   // Check for API keys
   if (!process.env.X_BEARER_TOKEN) {
     issues.push("X_BEARER_TOKEN not set — XSentiment source disabled");
-    suggestions.push("Set X_BEARER_TOKEN to enable X sentiment in signal aggregator");
+    suggestions.push(
+      "Set X_BEARER_TOKEN to enable X sentiment in signal aggregator",
+    );
   }
-  
+
   if (!process.env.SANBASE_API_KEY) {
     issues.push("SANBASE_API_KEY not set — Sanbase sources disabled");
     suggestions.push("Set SANBASE_API_KEY for exchange flow and whale signals");
   }
-  
+
   if (!process.env.COINGLASS_API_KEY) {
-    suggestions.push("Consider COINGLASS_API_KEY for more stable CoinGlass data");
+    suggestions.push(
+      "Consider COINGLASS_API_KEY for more stable CoinGlass data",
+    );
   }
-  
+
   // Check Supabase for ML
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    issues.push("SUPABASE_SERVICE_ROLE_KEY not set — no dual-write for ML training");
-    suggestions.push("Set Supabase keys for feature store persistence across deploys");
+    issues.push(
+      "SUPABASE_SERVICE_ROLE_KEY not set — no dual-write for ML training",
+    );
+    suggestions.push(
+      "Set Supabase keys for feature store persistence across deploys",
+    );
   }
-  
+
   // Check aggressive mode
   if (!process.env.VINCE_PAPER_AGGRESSIVE) {
-    suggestions.push("Consider VINCE_PAPER_AGGRESSIVE=true to collect more training data faster");
+    suggestions.push(
+      "Consider VINCE_PAPER_AGGRESSIVE=true to collect more training data faster",
+    );
   }
-  
+
   return { issues, suggestions };
 }
 
@@ -470,7 +573,7 @@ export function getPaperTradingOverview(): string {
   const freeSources = getFreeSources();
   const keyRequired = getKeyRequiredSources();
   const models = getMLModels();
-  
+
   return `# Paper Trading Bot Architecture (VINCE)
 
 ## North Star
@@ -479,18 +582,18 @@ Self-improving paper trading bot that makes money in 1h/1d/2d. ML loop trains in
 ## Signal Aggregator (${sources.length} sources)
 
 **Free Sources (${freeSources.length}):**
-${freeSources.map(s => `• **${s.name}** (${s.defaultWeight}x): ${s.description}`).join("\n")}
+${freeSources.map((s) => `• **${s.name}** (${s.defaultWeight}x): ${s.description}`).join("\n")}
 
 **API Key Required (${keyRequired.length}):**
-${keyRequired.map(s => `• **${s.name}** (${s.keyEnv}): ${s.description}`).join("\n")}
+${keyRequired.map((s) => `• **${s.name}** (${s.keyEnv}): ${s.description}`).join("\n")}
 
 ## Feature Store (50+ features)
 
-${FEATURE_CATEGORIES.map(c => `**${c.category}:** ${c.features.slice(0, 5).join(", ")}...`).join("\n")}
+${FEATURE_CATEGORIES.map((c) => `**${c.category}:** ${c.features.slice(0, 5).join(", ")}...`).join("\n")}
 
 ## ML Models (ONNX)
 
-${models.map(m => `• **${m.name}:** ${m.purpose}`).join("\n")}
+${models.map((m) => `• **${m.name}:** ${m.purpose}`).join("\n")}
 
 ## Training Pipeline
 1. Collect 90+ closed trades
@@ -513,7 +616,7 @@ ${models.map(m => `• **${m.name}:** ${m.purpose}`).join("\n")}
 export function getSolusOverview(): string {
   const assets = getHypersurfaceAssets();
   const ritual = getStrikeRitualSteps();
-  
+
   return `# Options Strategy Architecture (Solus)
 
 ## North Star
@@ -523,7 +626,7 @@ Solus makes money when: (1) good strike selection, (2) good weekly sentiment. Fr
 
 | Ticker | Strategies | Expiry |
 |--------|------------|--------|
-${assets.map(a => `| ${a.ticker} | ${a.strategies.join(", ")} | ${a.expiry} |`).join("\n")}
+${assets.map((a) => `| ${a.ticker} | ${a.strategies.join(", ")} | ${a.expiry} |`).join("\n")}
 
 ## Strategies
 
@@ -539,7 +642,7 @@ ${assets.map(a => `| ${a.ticker} | ${a.strategies.join(", ")} | ${a.expiry} |`).
 
 ## Strike Ritual Process
 
-${ritual.map(s => `${s.step}. **${s.actor}:** ${s.action} → ${s.output}`).join("\n")}
+${ritual.map((s) => `${s.step}. **${s.actor}:** ${s.action} → ${s.output}`).join("\n")}
 
 ## EV Framework
 

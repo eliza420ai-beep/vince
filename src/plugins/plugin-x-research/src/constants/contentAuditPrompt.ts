@@ -19,10 +19,10 @@ export function buildContentAuditPrompt(tweets: TweetForAudit[]): string {
       const meta =
         t.likeCount != null || t.retweetCount != null
           ? ` (${t.likeCount ?? 0} likes, ${t.retweetCount ?? 0} RTs)`
-          : '';
+          : "";
       return `${i + 1}. ${t.text}${meta}`;
     })
-    .join('\n\n');
+    .join("\n\n");
 
   return `You are analyzing a creator's top-performing X posts to extract a repeatable content playbook. This is a personal playbook from their own track record, not generic advice. Use the data below; do not invent patterns.
 

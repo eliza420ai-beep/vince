@@ -39,14 +39,14 @@ Eliza is the **CEO agent** in the VINCE multi-agent system: 24/7 research, knowl
 
 ## Key Files for Code Review
 
-| Area | Path |
-|------|------|
-| Agent definition | [src/agents/eliza.ts](src/agents/eliza.ts) |
-| Plugin entry | [src/plugins/plugin-eliza/src/index.ts](src/plugins/plugin-eliza/src/index.ts) |
-| Actions | [src/plugins/plugin-eliza/src/actions/](src/plugins/plugin-eliza/src/actions/) |
-| Services | [src/plugins/plugin-eliza/src/services/](src/plugins/plugin-eliza/src/services/) |
-| Paths config | [src/plugins/plugin-eliza/src/config/paths.ts](src/plugins/plugin-eliza/src/config/paths.ts) |
-| Upload route | [src/plugins/plugin-eliza/src/routes/uploadRoute.ts](src/plugins/plugin-eliza/src/routes/uploadRoute.ts) |
+| Area             | Path                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| Agent definition | [src/agents/eliza.ts](src/agents/eliza.ts)                                                               |
+| Plugin entry     | [src/plugins/plugin-eliza/src/index.ts](src/plugins/plugin-eliza/src/index.ts)                           |
+| Actions          | [src/plugins/plugin-eliza/src/actions/](src/plugins/plugin-eliza/src/actions/)                           |
+| Services         | [src/plugins/plugin-eliza/src/services/](src/plugins/plugin-eliza/src/services/)                         |
+| Paths config     | [src/plugins/plugin-eliza/src/config/paths.ts](src/plugins/plugin-eliza/src/config/paths.ts)             |
+| Upload route     | [src/plugins/plugin-eliza/src/routes/uploadRoute.ts](src/plugins/plugin-eliza/src/routes/uploadRoute.ts) |
 
 ---
 

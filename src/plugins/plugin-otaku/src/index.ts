@@ -70,7 +70,8 @@ import { portfolioEvaluator } from "./evaluators";
 
 export const otakuPlugin: Plugin = {
   name: "otaku",
-  description: "Otaku COO execution layer - high-level DeFi operations via BANKR + x402 paid API",
+  description:
+    "Otaku COO execution layer - high-level DeFi operations via BANKR + x402 paid API",
   actions: [
     otakuSwapAction,
     otakuLimitOrderAction,

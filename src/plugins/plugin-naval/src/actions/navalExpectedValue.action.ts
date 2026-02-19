@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "expected value",
@@ -46,7 +50,10 @@ export const navalExpectedValueAction: Action = {
   description:
     "Expected value calculator: best case, worst case, probability per option. Highest EV or reject all. If you can't decide, the answer is no.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsEV(text);
   },
@@ -81,7 +88,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -89,14 +96,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Decide by expected value: best case × P(success) minus worst case × P(fail). If you can't decide, the answer is no.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Expected value: stay at job (safe, boring) vs quit and freelance. Best/worst/probability for each." } },
-      { name: "{{agent}}", content: { text: "Stay: best = steady growth, worst = stagnation, P high. EV = low variance. Quit: best = 3x income, worst = run out of savings, P medium. EV = higher if P(success) > 0.4. If you can't assign P, answer is no — stay until you have signal." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Expected value: stay at job (safe, boring) vs quit and freelance. Best/worst/probability for each.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Stay: best = steady growth, worst = stagnation, P high. EV = low variance. Quit: best = 3x income, worst = run out of savings, P medium. EV = higher if P(success) > 0.4. If you can't assign P, answer is no — stay until you have signal.",
+        },
+      },
     ],
   ],
 };

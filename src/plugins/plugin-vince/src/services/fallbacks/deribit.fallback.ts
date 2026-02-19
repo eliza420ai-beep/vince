@@ -145,7 +145,9 @@ export class DeribitFallbackService implements IDeribitService {
           continue;
         }
 
-        logger.warn(`[DeribitFallback] Fetch failed: ${error instanceof DOMException ? error.name : (error as Error).message}`);
+        logger.warn(
+          `[DeribitFallback] Fetch failed: ${error instanceof DOMException ? error.name : (error as Error).message}`,
+        );
         return null;
       }
     }

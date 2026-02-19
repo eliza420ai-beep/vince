@@ -121,7 +121,7 @@ describe("buildBankrResponse", () => {
 
   it("should handle API errors gracefully", async () => {
     mockBankrAgent.getAccountInfo.mockRejectedValueOnce(
-      new Error("API timeout")
+      new Error("API timeout"),
     );
 
     const runtime = createMockRuntime(true);
@@ -137,7 +137,7 @@ describe("buildBankrResponse", () => {
     });
 
     mockBankrOrders.listOrders.mockRejectedValueOnce(
-      new Error("Order API error")
+      new Error("Order API error"),
     );
 
     const runtime = createMockRuntime(true);

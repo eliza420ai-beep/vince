@@ -30,7 +30,7 @@ function getBaseUrl(): string | null {
 async function controllerFetch(
   baseUrl: string,
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<{ ok: boolean; status: number; data?: unknown }> {
   const url = `${baseUrl.replace(/\/$/, "")}${path}`;
   try {
@@ -53,18 +53,27 @@ async function controllerFetch(
 
 export const vinceCodeTaskAction: Action = {
   name: "VINCE_CODE_TASK",
-  similes: ["DELEGATE_CODE", "CODE_TASK", "RUN_CODE_REVIEW", "CLAUDE_CODE_TASK"],
+  similes: [
+    "DELEGATE_CODE",
+    "CODE_TASK",
+    "RUN_CODE_REVIEW",
+    "CLAUDE_CODE_TASK",
+  ],
   description:
     "Delegates code or repo tasks (e.g. code review, refactor, apply improvement journal) to a Claude Code agent via claude-code-controller. Only available when CLAUDE_CODE_CONTROLLER_URL is set.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     if (!getBaseUrl()) return false;
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("code review") ||
       text.includes("delegate to claude code") ||
       text.includes("claude code") ||
-      (text.includes("refactor") && (text.includes("src") || text.includes("code"))) ||
+      (text.includes("refactor") &&
+        (text.includes("src") || text.includes("code"))) ||
       text.includes("run a code task") ||
       text.includes("code task:")
     );
@@ -87,7 +96,8 @@ export const vinceCodeTaskAction: Action = {
     }
 
     const instruction =
-      message.content.text?.trim() || "Run a quick code review and reply with SendMessage.";
+      message.content.text?.trim() ||
+      "Run a quick code review and reply with SendMessage.";
     const agentName =
       process.env.CLAUDE_CODE_CONTROLLER_AGENT?.trim() || DEFAULT_AGENT_NAME;
 
@@ -116,7 +126,8 @@ export const vinceCodeTaskAction: Action = {
     }
 
     const agentsRes = await controllerFetch(baseUrl, "/agents");
-    const agents = (agentsRes.data as { agents?: { name: string }[] })?.agents ?? [];
+    const agents =
+      (agentsRes.data as { agents?: { name: string }[] })?.agents ?? [];
     const exists = agents.some((a: { name: string }) => a.name === agentName);
     if (!exists) {
       const spawnRes = await controllerFetch(baseUrl, "/agents", {
@@ -139,7 +150,7 @@ export const vinceCodeTaskAction: Action = {
       {
         method: "POST",
         body: JSON.stringify({ message: instruction }),
-      }
+      },
     );
     if (!sendRes.ok) {
       await callback({
@@ -153,13 +164,17 @@ export const vinceCodeTaskAction: Action = {
     let lastReply: string | null = null;
     while (Date.now() - start < TIMEOUT_MS) {
       const actionsRes = await controllerFetch(baseUrl, "/actions");
-      const data = actionsRes.data as {
-        idleAgents?: { name: string }[];
-      } | undefined;
-      if (data?.idleAgents?.some((a: { name: string }) => a.name === agentName)) {
+      const data = actionsRes.data as
+        | {
+            idleAgents?: { name: string }[];
+          }
+        | undefined;
+      if (
+        data?.idleAgents?.some((a: { name: string }) => a.name === agentName)
+      ) {
         const agentRes = await controllerFetch(
           baseUrl,
-          `/agents/${encodeURIComponent(agentName)}`
+          `/agents/${encodeURIComponent(agentName)}`,
         );
         const agentData = agentRes.data as { lastMessage?: string } | undefined;
         if (agentData?.lastMessage) {

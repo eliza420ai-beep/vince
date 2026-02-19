@@ -23,15 +23,43 @@ const AGENDA_PATH = path.join(getCacheRoot(), "research-agenda.json");
  * This aligns the audit with the same directories Eliza's character.knowledge uses.
  */
 const FRAMEWORK_CATEGORY_TO_FOLDERS: Record<string, string[]> = {
-  "crypto-fundamentals": ["bitcoin-maxi", "macro-economy", "altcoins", "solana", "privacy", "security", "commodities"],
+  "crypto-fundamentals": [
+    "bitcoin-maxi",
+    "macro-economy",
+    "altcoins",
+    "solana",
+    "privacy",
+    "security",
+    "commodities",
+  ],
   defi: ["defi-metrics", "stablecoins", "rwa", "airdrops", "bankr"],
-  trading: ["options", "perps-trading", "grinding-the-trenches", "trading", "stocks"],
+  trading: [
+    "options",
+    "perps-trading",
+    "grinding-the-trenches",
+    "trading",
+    "stocks",
+  ],
   layer2: ["substack-essays", "internal-docs"],
   nft: ["art-collections"],
   governance: ["regulation", "legal-compliance", "teammate"],
-  "ai-agents": ["prompt-templates", "internal-docs", "substack-essays", "setup-guides", "clawdbot", "sentinel-docs"],
+  "ai-agents": [
+    "prompt-templates",
+    "internal-docs",
+    "substack-essays",
+    "setup-guides",
+    "clawdbot",
+    "sentinel-docs",
+  ],
   "lifestyle-and-gtm": ["the-good-life", "marketing-gtm"],
-  emerging: ["substack-essays", "venture-capital", "altcoins", "brand", "kelly-btc", "uncategorized"],
+  emerging: [
+    "substack-essays",
+    "venture-capital",
+    "altcoins",
+    "brand",
+    "kelly-btc",
+    "uncategorized",
+  ],
 };
 
 export interface ResearchTopic {
@@ -74,7 +102,7 @@ export interface ResearchAgenda {
   lastUpdated: string;
   lastAudit?: string;
   lastResearchSession?: string;
-  
+
   // Core framework: what knowledge should we have?
   coverageFramework: {
     categories: Array<{
@@ -85,12 +113,12 @@ export interface ResearchAgenda {
       subtopics: string[];
     }>;
   };
-  
+
   // Current state
   gaps: KnowledgeGap[];
   topics: ResearchTopic[];
   sessions: ResearchSession[];
-  
+
   // Stats
   stats: {
     totalTopicsResearched: number;
@@ -110,7 +138,7 @@ const DEFAULT_COVERAGE_FRAMEWORK: ResearchAgenda["coverageFramework"] = {
       priority: "critical",
       subtopics: [
         "Bitcoin fundamentals",
-        "Ethereum fundamentals", 
+        "Ethereum fundamentals",
         "Consensus mechanisms",
         "Cryptographic primitives",
         "Wallet security",
@@ -262,7 +290,7 @@ export function loadAgenda(): ResearchAgenda {
   } catch (e) {
     logger.debug("[ResearchAgenda] No existing agenda, creating new");
   }
-  
+
   const agenda: ResearchAgenda = {
     version: "1.0.0",
     lastUpdated: new Date().toISOString(),
@@ -276,7 +304,7 @@ export function loadAgenda(): ResearchAgenda {
       avgTopicsPerSession: 0,
     },
   };
-  
+
   saveAgenda(agenda);
   return agenda;
 }
@@ -298,7 +326,10 @@ export function saveAgenda(agenda: ResearchAgenda): void {
  * Uses FRAMEWORK_CATEGORY_TO_FOLDERS to map framework categories to actual
  * knowledge dirs (same as Eliza's character.knowledge) and counts .md files recursively.
  */
-export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<string, number> } {
+export function auditKnowledge(): {
+  gaps: KnowledgeGap[];
+  coverage: Record<string, number>;
+} {
   const agenda = loadAgenda();
   const gaps: KnowledgeGap[] = [];
   const coverage: Record<string, number> = {};
@@ -329,8 +360,12 @@ export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<strin
     }
 
     const fileCount = allFilePaths.length;
-    const expectedFiles = category.subtopics.length * (category.targetDepth === "deep" ? 2 : 1);
-    const coveragePercent = Math.min(100, Math.round((fileCount / expectedFiles) * 100));
+    const expectedFiles =
+      category.subtopics.length * (category.targetDepth === "deep" ? 2 : 1);
+    const coveragePercent = Math.min(
+      100,
+      Math.round((fileCount / expectedFiles) * 100),
+    );
     coverage[category.name] = coveragePercent;
 
     if (fileCount < category.subtopics.length / 2) {
@@ -338,14 +373,20 @@ export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<strin
         category: category.name,
         gapType: "shallow",
         description: `Only ${fileCount} files for ${category.subtopics.length} expected subtopics (folders: ${folderNames.join(", ")})`,
-        suggestedTopics: findMissingSubtopicsFromFiles(allFilePaths, category.subtopics),
+        suggestedTopics: findMissingSubtopicsFromFiles(
+          allFilePaths,
+          category.subtopics,
+        ),
         priority: category.priority,
         detectedAt: new Date().toISOString(),
       });
     }
 
     // Always check content for missing subtopics (even when file count is high)
-    const missingSubtopics = findMissingSubtopicsFromFiles(allFilePaths, category.subtopics);
+    const missingSubtopics = findMissingSubtopicsFromFiles(
+      allFilePaths,
+      category.subtopics,
+    );
     if (missingSubtopics.length > 0) {
       gaps.push({
         category: category.name,
@@ -389,7 +430,10 @@ export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<strin
 /**
  * Find subtopics not covered in the given files (by content).
  */
-function findMissingSubtopicsFromFiles(filePaths: string[], subtopics: string[]): string[] {
+function findMissingSubtopicsFromFiles(
+  filePaths: string[],
+  subtopics: string[],
+): string[] {
   let fileContent = "";
   for (const filePath of filePaths) {
     try {
@@ -401,8 +445,12 @@ function findMissingSubtopicsFromFiles(filePaths: string[], subtopics: string[])
 
   const missing: string[] = [];
   for (const subtopic of subtopics) {
-    const keywords = subtopic.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-    const covered = keywords.length > 0 && keywords.some(kw => fileContent.includes(kw));
+    const keywords = subtopic
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+    const covered =
+      keywords.length > 0 && keywords.some((kw) => fileContent.includes(kw));
     if (!covered) {
       missing.push(subtopic);
     }
@@ -421,18 +469,19 @@ export function addResearchTopic(
     reason?: string;
     sources?: string[];
     depth?: ResearchTopic["depth"];
-  } = {}
+  } = {},
 ): ResearchTopic {
   const agenda = loadAgenda();
-  
+
   // Check for duplicate
   const existing = agenda.topics.find(
-    t => t.topic.toLowerCase() === topic.toLowerCase() && t.status !== "completed"
+    (t) =>
+      t.topic.toLowerCase() === topic.toLowerCase() && t.status !== "completed",
   );
   if (existing) {
     return existing;
   }
-  
+
   const newTopic: ResearchTopic = {
     id: `topic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     topic,
@@ -445,10 +494,10 @@ export function addResearchTopic(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  
+
   agenda.topics.push(newTopic);
   saveAgenda(agenda);
-  
+
   logger.info(`[ResearchAgenda] Added topic: ${topic} (${category})`);
   return newTopic;
 }
@@ -458,14 +507,14 @@ export function addResearchTopic(
  */
 export function getNextTopics(limit = 5): ResearchTopic[] {
   const agenda = loadAgenda();
-  
+
   const queued = agenda.topics
-    .filter(t => t.status === "queued")
+    .filter((t) => t.status === "queued")
     .sort((a, b) => {
       const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
-  
+
   return queued.slice(0, limit);
 }
 
@@ -475,24 +524,24 @@ export function getNextTopics(limit = 5): ResearchTopic[] {
 export function updateTopicStatus(
   topicId: string,
   status: ResearchTopic["status"],
-  updates: Partial<ResearchTopic> = {}
+  updates: Partial<ResearchTopic> = {},
 ): void {
   const agenda = loadAgenda();
-  const topic = agenda.topics.find(t => t.id === topicId);
-  
+  const topic = agenda.topics.find((t) => t.id === topicId);
+
   if (!topic) {
     logger.warn(`[ResearchAgenda] Topic not found: ${topicId}`);
     return;
   }
-  
+
   topic.status = status;
   topic.updatedAt = new Date().toISOString();
-  
+
   if (status === "completed") {
     topic.completedAt = new Date().toISOString();
     agenda.stats.totalTopicsResearched++;
   }
-  
+
   Object.assign(topic, updates);
   saveAgenda(agenda);
 }
@@ -502,7 +551,7 @@ export function updateTopicStatus(
  */
 export function startResearchSession(): ResearchSession {
   const agenda = loadAgenda();
-  
+
   const session: ResearchSession = {
     id: `session-${Date.now()}`,
     startedAt: new Date().toISOString(),
@@ -510,11 +559,11 @@ export function startResearchSession(): ResearchSession {
     filesCreated: [],
     sourcesUsed: [],
   };
-  
+
   agenda.sessions.push(session);
   agenda.lastResearchSession = session.startedAt;
   saveAgenda(agenda);
-  
+
   logger.info(`[ResearchAgenda] Started research session: ${session.id}`);
   return session;
 }
@@ -524,30 +573,38 @@ export function startResearchSession(): ResearchSession {
  */
 export function endResearchSession(
   sessionId: string,
-  results: { topicsResearched: string[]; filesCreated: string[]; sourcesUsed: string[]; notes?: string }
+  results: {
+    topicsResearched: string[];
+    filesCreated: string[];
+    sourcesUsed: string[];
+    notes?: string;
+  },
 ): void {
   const agenda = loadAgenda();
-  const session = agenda.sessions.find(s => s.id === sessionId);
-  
+  const session = agenda.sessions.find((s) => s.id === sessionId);
+
   if (!session) {
     logger.warn(`[ResearchAgenda] Session not found: ${sessionId}`);
     return;
   }
-  
+
   session.endedAt = new Date().toISOString();
   session.topicsResearched = results.topicsResearched;
   session.filesCreated = results.filesCreated;
   session.sourcesUsed = results.sourcesUsed;
   session.notes = results.notes;
-  
+
   // Update stats
   agenda.stats.totalFilesCreated += results.filesCreated.length;
-  const completedSessions = agenda.sessions.filter(s => s.endedAt);
-  agenda.stats.avgTopicsPerSession = 
-    completedSessions.reduce((sum, s) => sum + s.topicsResearched.length, 0) / completedSessions.length;
-  
+  const completedSessions = agenda.sessions.filter((s) => s.endedAt);
+  agenda.stats.avgTopicsPerSession =
+    completedSessions.reduce((sum, s) => sum + s.topicsResearched.length, 0) /
+    completedSessions.length;
+
   saveAgenda(agenda);
-  logger.info(`[ResearchAgenda] Ended session: ${results.filesCreated.length} files created`);
+  logger.info(
+    `[ResearchAgenda] Ended session: ${results.filesCreated.length} files created`,
+  );
 }
 
 /**
@@ -556,19 +613,26 @@ export function endResearchSession(
 export function generateTopicsFromGaps(): number {
   const { gaps } = auditKnowledge();
   let added = 0;
-  
+
   for (const gap of gaps) {
     for (const topic of gap.suggestedTopics.slice(0, 3)) {
       addResearchTopic(topic, gap.category, {
         priority: gap.priority,
         reason: `Gap detected: ${gap.gapType} - ${gap.description}`,
-        depth: gap.gapType === "shallow" ? "deep" : gap.gapType === "subtopics" ? "intermediate" : "intermediate",
+        depth:
+          gap.gapType === "shallow"
+            ? "deep"
+            : gap.gapType === "subtopics"
+              ? "intermediate"
+              : "intermediate",
       });
       added++;
     }
   }
-  
-  logger.info(`[ResearchAgenda] Generated ${added} topics from ${gaps.length} gaps`);
+
+  logger.info(
+    `[ResearchAgenda] Generated ${added} topics from ${gaps.length} gaps`,
+  );
   return added;
 }
 
@@ -578,13 +642,13 @@ export function generateTopicsFromGaps(): number {
 export function getAgendaSummary(): string {
   const agenda = loadAgenda();
   const { gaps, coverage } = auditKnowledge();
-  
-  const queuedTopics = agenda.topics.filter(t => t.status === "queued");
-  const criticalTopics = queuedTopics.filter(t => t.priority === "critical");
-  const highTopics = queuedTopics.filter(t => t.priority === "high");
-  
+
+  const queuedTopics = agenda.topics.filter((t) => t.status === "queued");
+  const criticalTopics = queuedTopics.filter((t) => t.priority === "critical");
+  const highTopics = queuedTopics.filter((t) => t.priority === "high");
+
   let summary = `📚 **Research Agenda**\n\n`;
-  
+
   // Coverage overview
   summary += `**Coverage by Category:**\n`;
   for (const [cat, pct] of Object.entries(coverage)) {
@@ -592,7 +656,7 @@ export function getAgendaSummary(): string {
     summary += `${bar} ${cat}: ${pct}%\n`;
   }
   summary += `\n`;
-  
+
   // Gaps
   if (gaps.length > 0) {
     summary += `**Knowledge Gaps (${gaps.length}):**\n`;
@@ -601,25 +665,25 @@ export function getAgendaSummary(): string {
     }
     summary += `\n`;
   }
-  
+
   // Queue
   summary += `**Research Queue:**\n`;
   summary += `• ${criticalTopics.length} critical\n`;
   summary += `• ${highTopics.length} high priority\n`;
   summary += `• ${queuedTopics.length} total queued\n\n`;
-  
+
   // Stats
   summary += `**Stats:**\n`;
   summary += `• ${agenda.stats.totalTopicsResearched} topics researched\n`;
   summary += `• ${agenda.stats.totalFilesCreated} files created\n`;
   summary += `• ${agenda.sessions.length} research sessions\n`;
-  
+
   if (agenda.lastAudit) {
     const auditAge = Date.now() - new Date(agenda.lastAudit).getTime();
     const auditDays = Math.floor(auditAge / 86400000);
     summary += `• Last audit: ${auditDays === 0 ? "today" : `${auditDays} days ago`}\n`;
   }
-  
+
   return summary;
 }
 

@@ -1,9 +1,9 @@
 /**
  * BANKR Trading Engine Service
- * 
+ *
  * Direct programmatic trading via BANKR's external orders API.
  * No AI overhead - perfect for DCA, TWAP, scheduled rebalancing.
- * 
+ *
  * Flow: Quote → Approve (if needed) → Sign EIP-712 → Submit
  */
 
@@ -37,9 +37,9 @@ const CHAINS: Record<number, any> = {
 
 // Token decimals lookup (extend as needed)
 const TOKEN_DECIMALS: Record<string, number> = {
-  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": 6,  // USDC on Base
+  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": 6, // USDC on Base
   "0x4200000000000000000000000000000000000006": 18, // WETH on Base
-  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": 6,  // USDC on Mainnet
+  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": 6, // USDC on Mainnet
   "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 18, // WETH on Mainnet
 };
 
@@ -54,12 +54,14 @@ export class BankrTradingEngineService extends Service {
   constructor(runtime: IAgentRuntime) {
     super(runtime);
     this.chainId = parseInt(
-      (runtime.getSetting("BANKR_CHAIN_ID") as string) || "8453"
+      (runtime.getSetting("BANKR_CHAIN_ID") as string) || "8453",
     );
     this.appFeeBps = parseInt(
-      (runtime.getSetting("BANKR_APP_FEE_BPS") as string) || "0"
+      (runtime.getSetting("BANKR_APP_FEE_BPS") as string) || "0",
     );
-    this.appFeeRecipient = runtime.getSetting("BANKR_APP_FEE_RECIPIENT") as string;
+    this.appFeeRecipient = runtime.getSetting(
+      "BANKR_APP_FEE_RECIPIENT",
+    ) as string;
   }
 
   get capabilityDescription(): string {
@@ -70,7 +72,9 @@ export class BankrTradingEngineService extends Service {
     // No async init needed
   }
 
-  static async start(runtime: IAgentRuntime): Promise<BankrTradingEngineService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<BankrTradingEngineService> {
     logger.info("[BANKR Trading Engine] Starting service");
     const service = new BankrTradingEngineService(runtime);
     await service.initialize(runtime);
@@ -83,14 +87,18 @@ export class BankrTradingEngineService extends Service {
   }
 
   isConfigured(): boolean {
-    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as string | undefined;
+    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as
+      | string
+      | undefined;
     return !!key?.trim();
   }
 
   private getWalletClient(): WalletClient {
     if (this.walletClient) return this.walletClient;
 
-    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as string | undefined;
+    const key = this.runtime.getSetting("BANKR_PRIVATE_KEY") as
+      | string
+      | undefined;
     if (!key?.trim()) {
       throw new Error("BANKR_PRIVATE_KEY is not set");
     }
@@ -119,7 +127,7 @@ export class BankrTradingEngineService extends Service {
 
   private async apiRequest<T>(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${API_BASE_URL}${path}`;
 
@@ -163,17 +171,21 @@ export class BankrTradingEngineService extends Service {
   // Order Execution Flow
   // ============================================================================
 
-  private async executeOrderFlow(quoteRequest: QuoteRequest): Promise<ExternalOrder> {
+  private async executeOrderFlow(
+    quoteRequest: QuoteRequest,
+  ): Promise<ExternalOrder> {
     const wallet = this.getWalletClient();
     const account = wallet.account!;
 
     // 1. Get quote
-    logger.info(`[BANKR Trading Engine] Creating quote for ${quoteRequest.orderType}`);
+    logger.info(
+      `[BANKR Trading Engine] Creating quote for ${quoteRequest.orderType}`,
+    );
     const quote = await this.createQuote(quoteRequest);
 
     // 2. Handle approval if needed
     const approvalAction = quote.actions.find(
-      (a): a is ApprovalAction => a.type === "approval"
+      (a): a is ApprovalAction => a.type === "approval",
     );
 
     if (approvalAction) {
@@ -189,7 +201,7 @@ export class BankrTradingEngineService extends Service {
 
     // 3. Sign EIP-712 order
     const signatureAction = quote.actions.find(
-      (a): a is OrderSignatureAction => a.type === "orderSignature"
+      (a): a is OrderSignatureAction => a.type === "orderSignature",
     );
 
     if (!signatureAction) {
@@ -228,8 +240,8 @@ export class BankrTradingEngineService extends Service {
   async createLimitOrder(params: LimitOrderParams): Promise<ExternalOrder> {
     const decimals = TOKEN_DECIMALS[params.sellToken] ?? 18;
     const sellAmountRaw = parseUnits(params.amount, decimals).toString();
-    const expirationDate = Math.floor(Date.now() / 1000) +
-      (params.expirationHours ?? 24) * 3600;
+    const expirationDate =
+      Math.floor(Date.now() / 1000) + (params.expirationHours ?? 24) * 3600;
 
     const request: QuoteRequest = {
       maker: this.makerAddress,
@@ -256,8 +268,11 @@ export class BankrTradingEngineService extends Service {
     const decimals = TOKEN_DECIMALS[params.sellToken] ?? 18;
     const sellAmountRaw = parseUnits(params.totalAmount, decimals).toString();
     const intervalSeconds = params.intervalMinutes * 60;
-    const expirationDate = Math.floor(Date.now() / 1000) +
-      (params.expirationHours ?? params.intervalMinutes * params.executionCount / 60 + 24) * 3600;
+    const expirationDate =
+      Math.floor(Date.now() / 1000) +
+      (params.expirationHours ??
+        (params.intervalMinutes * params.executionCount) / 60 + 24) *
+        3600;
 
     if (intervalSeconds < 300) {
       throw new Error("Minimum interval is 5 minutes (300 seconds)");
@@ -290,12 +305,17 @@ export class BankrTradingEngineService extends Service {
   async createTWAPOrder(params: TWAPOrderParams): Promise<ExternalOrder> {
     const decimals = TOKEN_DECIMALS[params.sellToken] ?? 18;
     const sellAmountRaw = parseUnits(params.totalAmount, decimals).toString();
-    const intervalSeconds = Math.floor((params.durationMinutes * 60) / params.sliceCount);
-    const expirationDate = Math.floor(Date.now() / 1000) +
+    const intervalSeconds = Math.floor(
+      (params.durationMinutes * 60) / params.sliceCount,
+    );
+    const expirationDate =
+      Math.floor(Date.now() / 1000) +
       (params.expirationHours ?? params.durationMinutes / 60 + 24) * 3600;
 
     if (intervalSeconds < 300) {
-      throw new Error("Calculated interval too short. Increase duration or reduce slice count.");
+      throw new Error(
+        "Calculated interval too short. Increase duration or reduce slice count.",
+      );
     }
 
     const request: QuoteRequest = {
@@ -324,8 +344,8 @@ export class BankrTradingEngineService extends Service {
   async createStopOrder(params: StopOrderParams): Promise<ExternalOrder> {
     const decimals = TOKEN_DECIMALS[params.sellToken] ?? 18;
     const sellAmountRaw = parseUnits(params.amount, decimals).toString();
-    const expirationDate = Math.floor(Date.now() / 1000) +
-      (params.expirationHours ?? 168) * 3600; // 7 days default for stops
+    const expirationDate =
+      Math.floor(Date.now() / 1000) + (params.expirationHours ?? 168) * 3600; // 7 days default for stops
 
     const request: QuoteRequest = {
       maker: this.makerAddress,
@@ -394,7 +414,7 @@ export class BankrTradingEngineService extends Service {
   async getOrder(orderId: string): Promise<ExternalOrder | null> {
     try {
       const response = await this.apiRequest<{ order: ExternalOrder }>(
-        `/${orderId}`
+        `/${orderId}`,
       );
       return response.order;
     } catch (error) {

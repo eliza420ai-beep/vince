@@ -9,7 +9,10 @@
  */
 
 import { logger } from "@elizaos/core";
-import { getStandupTrackedAssets, getStandupHumanName } from "./standup.constants";
+import {
+  getStandupTrackedAssets,
+  getStandupHumanName,
+} from "./standup.constants";
 
 /** Signal direction */
 export type SignalDirection = "bullish" | "bearish" | "neutral";
@@ -44,8 +47,13 @@ export interface ValidationResult {
 /**
  * Validate signals across agents for an asset
  */
-export function validateSignals(signals: AgentSignal[], asset: string): ValidationResult {
-  const assetSignals = signals.filter((s) => s.asset.toUpperCase() === asset.toUpperCase());
+export function validateSignals(
+  signals: AgentSignal[],
+  asset: string,
+): ValidationResult {
+  const assetSignals = signals.filter(
+    (s) => s.asset.toUpperCase() === asset.toUpperCase(),
+  );
 
   if (assetSignals.length === 0) {
     return {
@@ -72,8 +80,10 @@ export function validateSignals(signals: AgentSignal[], asset: string): Validati
     consensus = "divergent";
     confidence = "low";
     recommendation = `⚠️ DIVERGENCE: ${bullish.map((s) => s.agent).join(", ")} bullish vs ${bearish.map((s) => s.agent).join(", ")} bearish. Flag for review.`;
-    
-    logger.warn(`[CrossValidation] ${asset}: Divergence detected - ${bullish.length} bullish, ${bearish.length} bearish`);
+
+    logger.warn(
+      `[CrossValidation] ${asset}: Divergence detected - ${bullish.length} bullish, ${bearish.length} bearish`,
+    );
   } else if (bullish.length >= 2) {
     // Strong bullish consensus
     consensus = "bullish";
@@ -111,11 +121,14 @@ export function validateSignals(signals: AgentSignal[], asset: string): Validati
     signals: assetSignals,
     consensus,
     confidence,
-    divergence: bullish.length > 0 && bearish.length > 0 ? {
-      bullish: bullish.map((s) => s.agent),
-      bearish: bearish.map((s) => s.agent),
-      neutral: neutral.map((s) => s.agent),
-    } : undefined,
+    divergence:
+      bullish.length > 0 && bearish.length > 0
+        ? {
+            bullish: bullish.map((s) => s.agent),
+            bearish: bearish.map((s) => s.agent),
+            neutral: neutral.map((s) => s.agent),
+          }
+        : undefined,
     recommendation,
   };
 }
@@ -133,7 +146,11 @@ const SENTIMENT_PATTERN = /(bullish|bearish|neutral|🟢|🔴|🟡)/gi;
 
 /** Parsed structured block from agent reply (signals array and/or Solus call). */
 export interface ParsedStructuredBlock {
-  signals?: Array<{ asset?: string; direction?: string; confidence_pct?: number }>;
+  signals?: Array<{
+    asset?: string;
+    direction?: string;
+    confidence_pct?: number;
+  }>;
   call?: {
     asset?: string;
     direction?: string;
@@ -145,7 +162,9 @@ export interface ParsedStructuredBlock {
 }
 
 /** Extract fenced JSON block from text. Returns null if not found or invalid. */
-export function parseStructuredBlockFromText(text: string): ParsedStructuredBlock | null {
+export function parseStructuredBlockFromText(
+  text: string,
+): ParsedStructuredBlock | null {
   if (!text || typeof text !== "string") return null;
   const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (!match) return null;
@@ -155,8 +174,13 @@ export function parseStructuredBlockFromText(text: string): ParsedStructuredBloc
     const out: ParsedStructuredBlock = {};
     if (Array.isArray(parsed.signals)) {
       out.signals = parsed.signals.filter(
-        (s): s is { asset?: string; direction?: string; confidence_pct?: number } =>
-          s != null && typeof s === "object",
+        (
+          s,
+        ): s is {
+          asset?: string;
+          direction?: string;
+          confidence_pct?: number;
+        } => s != null && typeof s === "object",
       );
     }
     if (parsed.call != null && typeof parsed.call === "object") {
@@ -165,9 +189,11 @@ export function parseStructuredBlockFromText(text: string): ParsedStructuredBloc
         asset: typeof c.asset === "string" ? c.asset : undefined,
         direction: typeof c.direction === "string" ? c.direction : undefined,
         strike: typeof c.strike === "number" ? c.strike : undefined,
-        confidence_pct: typeof c.confidence_pct === "number" ? c.confidence_pct : undefined,
+        confidence_pct:
+          typeof c.confidence_pct === "number" ? c.confidence_pct : undefined,
         expiry: typeof c.expiry === "string" ? c.expiry : undefined,
-        invalidation: typeof c.invalidation === "number" ? c.invalidation : undefined,
+        invalidation:
+          typeof c.invalidation === "number" ? c.invalidation : undefined,
       };
     }
     return out.signals?.length || out.call ? out : null;
@@ -210,7 +236,12 @@ export function extractSignalsFromStructured(
   }
   if (parsed.call?.asset) {
     const c = parsed.call;
-    const direction: SignalDirection = (c.direction ?? "").toLowerCase() === "above" ? "bullish" : (c.direction ?? "").toLowerCase() === "below" ? "bearish" : "neutral";
+    const direction: SignalDirection =
+      (c.direction ?? "").toLowerCase() === "above"
+        ? "bullish"
+        : (c.direction ?? "").toLowerCase() === "below"
+          ? "bearish"
+          : "neutral";
     result.push({
       agent: agentName,
       asset: (c.asset ?? "").trim().toUpperCase(),
@@ -224,9 +255,15 @@ export function extractSignalsFromStructured(
 }
 
 /** Get the segment of transcript for a given agent (text after "AgentName:" until next agent or end). */
-function getAgentSegmentFromTranscript(transcript: string, agentName: string): string {
+function getAgentSegmentFromTranscript(
+  transcript: string,
+  agentName: string,
+): string {
   const escaped = agentName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`${escaped}\\s*:\\s*([\\s\\S]*?)(?=\\n\\n[A-Z][a-zA-Z]+\\s*:|$)`, "i");
+  const re = new RegExp(
+    `${escaped}\\s*:\\s*([\\s\\S]*?)(?=\\n\\n[A-Z][a-zA-Z]+\\s*:|$)`,
+    "i",
+  );
   const m = transcript.match(re);
   return (m?.[1] ?? transcript).trim();
 }
@@ -235,7 +272,10 @@ function getAgentSegmentFromTranscript(transcript: string, agentName: string): s
  * Extract signals from agent reports.
  * Tries structured JSON block first (from template); falls back to regex scan.
  */
-export function extractSignalsFromReport(agentName: string, report: string): AgentSignal[] {
+export function extractSignalsFromReport(
+  agentName: string,
+  report: string,
+): AgentSignal[] {
   const segment = getAgentSegmentFromTranscript(report, agentName);
   const parsed = parseStructuredBlockFromText(segment);
   if (parsed) {
@@ -283,9 +323,14 @@ export function formatValidationResults(results: ValidationResult[]): string {
   const lines: string[] = ["## 🔍 Cross-Agent Validation\n"];
 
   for (const result of results) {
-    const emoji = result.consensus === "bullish" ? "🟢" :
-      result.consensus === "bearish" ? "🔴" :
-        result.consensus === "divergent" ? "⚠️" : "🟡";
+    const emoji =
+      result.consensus === "bullish"
+        ? "🟢"
+        : result.consensus === "bearish"
+          ? "🔴"
+          : result.consensus === "divergent"
+            ? "⚠️"
+            : "🟡";
 
     lines.push(`### ${result.asset} ${emoji}`);
     lines.push(`- **Consensus**: ${result.consensus.toUpperCase()}`);
@@ -333,7 +378,9 @@ export function getConfidenceAdjustment(results: ValidationResult[]): {
 export function buildValidationContext(signals: AgentSignal[]): string {
   const results = validateAllAssets(signals);
   const divergent = results.filter((r) => r.consensus === "divergent");
-  const aligned = results.filter((r) => r.consensus !== "divergent" && r.confidence === "high");
+  const aligned = results.filter(
+    (r) => r.consensus !== "divergent" && r.confidence === "high",
+  );
 
   let context = "";
 

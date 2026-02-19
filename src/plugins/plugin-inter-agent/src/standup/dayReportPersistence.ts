@@ -17,7 +17,10 @@ function getDeliverablesDir(): string {
   if (envDir) {
     return path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir);
   }
-  return path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
+  return path.join(
+    process.cwd(),
+    process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
+  );
 }
 
 /** Get the day reports directory */
@@ -46,7 +49,10 @@ export function getSharedInsightsPath(date?: Date): string {
  * Save shared daily insights to disk (pre-standup artifact).
  * Location: docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md
  */
-export async function saveSharedDailyInsights(content: string, date?: Date): Promise<string | null> {
+export async function saveSharedDailyInsights(
+  content: string,
+  date?: Date,
+): Promise<string | null> {
   try {
     const dir = getSharedInsightsDir();
     try {
@@ -67,7 +73,10 @@ type: shared-daily-insights
     logger.info(`[SharedInsights] Saved to ${filepath}`);
     return filepath;
   } catch (err) {
-    logger.error({ err }, "[SharedInsights] Failed to save shared daily insights");
+    logger.error(
+      { err },
+      "[SharedInsights] Failed to save shared daily insights",
+    );
     return null;
   }
 }
@@ -75,7 +84,9 @@ type: shared-daily-insights
 /**
  * Load shared daily insights from disk. Returns null if file missing.
  */
-export async function loadSharedDailyInsights(date?: Date): Promise<string | null> {
+export async function loadSharedDailyInsights(
+  date?: Date,
+): Promise<string | null> {
   try {
     const filepath = getSharedInsightsPath(date);
     try {
@@ -84,7 +95,10 @@ export async function loadSharedDailyInsights(date?: Date): Promise<string | nul
       return null;
     }
   } catch (err) {
-    logger.warn({ err }, "[SharedInsights] Failed to load shared daily insights");
+    logger.warn(
+      { err },
+      "[SharedInsights] Failed to load shared daily insights",
+    );
     return null;
   }
 }
@@ -104,7 +118,10 @@ export function getDayReportPath(date?: Date): string {
 /**
  * Save a day report to disk
  */
-export async function saveDayReport(content: string, date?: Date): Promise<string | null> {
+export async function saveDayReport(
+  content: string,
+  date?: Date,
+): Promise<string | null> {
   try {
     const dir = getDayReportsDir();
     try {
@@ -174,7 +191,9 @@ export async function listDayReports(limit: number = 30): Promise<string[]> {
 /**
  * Get recent day reports content (for context)
  */
-export async function getRecentReportsContext(days: number = 3): Promise<string> {
+export async function getRecentReportsContext(
+  days: number = 3,
+): Promise<string> {
   const reports = await listDayReports(days);
 
   if (reports.length === 0) {
@@ -202,8 +221,14 @@ export async function getRecentReportsContext(days: number = 3): Promise<string>
 /**
  * Append to the day report manifest (uses lock)
  */
-export async function updateDayReportManifest(filepath: string, summary: string): Promise<void> {
-  const manifestPath = path.join(getDeliverablesDir(), "day-reports-manifest.md");
+export async function updateDayReportManifest(
+  filepath: string,
+  summary: string,
+): Promise<void> {
+  const manifestPath = path.join(
+    getDeliverablesDir(),
+    "day-reports-manifest.md",
+  );
   try {
     await withLock(manifestPath, async () => {
       const date = new Date().toISOString().slice(0, 10);

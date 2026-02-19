@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "sovereignty",
@@ -47,11 +52,19 @@ Be direct. No hype. No "you should consider" — give them the move.`;
 
 export const navalSovereigntyConvictionAction: Action = {
   name: "NAVAL_SOVEREIGNTY_CONVICTION",
-  similes: ["SOVEREIGNTY_CONVICTION", "NO_PERMISSION", "BUILD_ON_CONVICTION", "NO_VCs"],
+  similes: [
+    "SOVEREIGNTY_CONVICTION",
+    "NO_PERMISSION",
+    "BUILD_ON_CONVICTION",
+    "NO_VCs",
+  ],
   description:
     "Build on conviction alone: no permission, no VCs. Sovereignty over time, money, attention. One concrete move toward owning the game.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSovereigntyConviction(text);
   },
@@ -88,7 +101,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -96,14 +109,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Sovereignty means you don't wait for permission. Build on conviction: underwrite your thesis, then execute. One move — take back time, money, or attention from whoever is renting it from you.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I want to build on conviction, no VCs. Right now I'm full-time and side-project on weekends." } },
-      { name: "{{agent}}", content: { text: "You're already trading permission for a salary. Sovereignty move: name one thing you can ship that earns or compounds without your employer's stamp. Ship it. If it gets traction, you've got a wedge. No pitch deck, no approval — just one asset that pays you or builds your name on your terms." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I want to build on conviction, no VCs. Right now I'm full-time and side-project on weekends.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're already trading permission for a salary. Sovereignty move: name one thing you can ship that earns or compounds without your employer's stamp. Ship it. If it gets traction, you've got a wedge. No pitch deck, no approval — just one asset that pays you or builds your name on your terms.",
+        },
+      },
     ],
   ],
 };

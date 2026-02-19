@@ -94,14 +94,12 @@ export const relayBridgeAction: Action = {
   parameters: {
     originChain: {
       type: "string",
-      description:
-        "Origin chain name (ethereum, base, arbitrum)",
+      description: "Origin chain name (ethereum, base, arbitrum)",
       required: true,
     },
     destinationChain: {
       type: "string",
-      description:
-        "Destination chain name (ethereum, base, arbitrum)",
+      description: "Destination chain name (ethereum, base, arbitrum)",
       required: true,
     },
     currency: {
@@ -175,7 +173,10 @@ export const relayBridgeAction: Action = {
             ["ACTION_STATE"],
             true,
           );
-          const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+          const params = (composedState?.data?.actionParams || {}) as Record<
+            string,
+            any
+          >;
           earlyFailureInput = {
             originChain: params?.originChain,
             destinationChain: params?.destinationChain,
@@ -209,7 +210,10 @@ export const relayBridgeAction: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Validate required parameters
       const originChain = params?.originChain?.toLowerCase().trim();
@@ -691,7 +695,10 @@ export const relayBridgeAction: Action = {
           ["ACTION_STATE"],
           true,
         );
-        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+        const params = (composedState?.data?.actionParams || {}) as Record<
+          string,
+          any
+        >;
         catchFailureInput = {
           originChain: params?.originChain,
           destinationChain: params?.destinationChain,

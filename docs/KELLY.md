@@ -47,18 +47,18 @@ Kelly is the **CVO (Chief Vibes Officer)** agent: five-star hotels, fine dining,
 
 ## Key Files for Code Review
 
-| Area | Path |
-|------|------|
-| Agent definition | [src/agents/kelly.ts](src/agents/kelly.ts) |
-| Plugin entry | [src/plugins/plugin-kelly/src/index.ts](src/plugins/plugin-kelly/src/index.ts) |
-| Actions | [src/plugins/plugin-kelly/src/actions/](src/plugins/plugin-kelly/src/actions/) |
-| Providers | [src/plugins/plugin-kelly/src/providers/](src/plugins/plugin-kelly/src/providers/) |
-| Tasks | [src/plugins/plugin-kelly/src/tasks/lifestyleDaily.tasks.ts](src/plugins/plugin-kelly/src/tasks/lifestyleDaily.tasks.ts) |
-| Home cooking action | [src/plugins/plugin-kelly/src/actions/recommendHomeCooking.action.ts](src/plugins/plugin-kelly/src/actions/recommendHomeCooking.action.ts) |
-| Tea action | [src/plugins/plugin-kelly/src/actions/recommendTea.action.ts](src/plugins/plugin-kelly/src/actions/recommendTea.action.ts) |
-| Entertainment action | [src/plugins/plugin-kelly/src/actions/recommendEntertainment.action.ts](src/plugins/plugin-kelly/src/actions/recommendEntertainment.action.ts) |
-| Creative action | [src/plugins/plugin-kelly/src/actions/recommendCreative.action.ts](src/plugins/plugin-kelly/src/actions/recommendCreative.action.ts) |
-| Evaluator | [src/plugins/plugin-kelly/src/evaluators/lifestyleFeedback.evaluator.ts](src/plugins/plugin-kelly/src/evaluators/lifestyleFeedback.evaluator.ts) |
+| Area                 | Path                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Agent definition     | [src/agents/kelly.ts](src/agents/kelly.ts)                                                                                                       |
+| Plugin entry         | [src/plugins/plugin-kelly/src/index.ts](src/plugins/plugin-kelly/src/index.ts)                                                                   |
+| Actions              | [src/plugins/plugin-kelly/src/actions/](src/plugins/plugin-kelly/src/actions/)                                                                   |
+| Providers            | [src/plugins/plugin-kelly/src/providers/](src/plugins/plugin-kelly/src/providers/)                                                               |
+| Tasks                | [src/plugins/plugin-kelly/src/tasks/lifestyleDaily.tasks.ts](src/plugins/plugin-kelly/src/tasks/lifestyleDaily.tasks.ts)                         |
+| Home cooking action  | [src/plugins/plugin-kelly/src/actions/recommendHomeCooking.action.ts](src/plugins/plugin-kelly/src/actions/recommendHomeCooking.action.ts)       |
+| Tea action           | [src/plugins/plugin-kelly/src/actions/recommendTea.action.ts](src/plugins/plugin-kelly/src/actions/recommendTea.action.ts)                       |
+| Entertainment action | [src/plugins/plugin-kelly/src/actions/recommendEntertainment.action.ts](src/plugins/plugin-kelly/src/actions/recommendEntertainment.action.ts)   |
+| Creative action      | [src/plugins/plugin-kelly/src/actions/recommendCreative.action.ts](src/plugins/plugin-kelly/src/actions/recommendCreative.action.ts)             |
+| Evaluator            | [src/plugins/plugin-kelly/src/evaluators/lifestyleFeedback.evaluator.ts](src/plugins/plugin-kelly/src/evaluators/lifestyleFeedback.evaluator.ts) |
 
 ---
 
@@ -80,7 +80,7 @@ Use this doc to draft a next-iteration PRD for Kelly: e.g. discovery payment flo
 
 **Config:** Optional env: `ENABLE_AUTO_EVOLUTION`, `EVOLUTION_COOLDOWN_MS`, `REQUIRE_ADMIN_APPROVAL`. Character file must be writable; SQL plugin required.
 
-**Example:** *"You should be more encouraging when suggesting wine"* → Kelly can apply a gradual character update and confirm. *"That place was too loud—anywhere quieter?"* feeds into the same learning loop.
+**Example:** _"You should be more encouraging when suggesting wine"_ → Kelly can apply a gradual character update and confirm. _"That place was too loud—anywhere quieter?"_ feeds into the same learning loop.
 
 ---
 

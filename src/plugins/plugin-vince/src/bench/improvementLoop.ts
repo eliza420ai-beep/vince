@@ -36,32 +36,50 @@ const SYSTEM_PROMPT = `You are VinceBench Improver. Analyze the benchmark report
   "missingSignaturesToTarget": ["signature.quality.xyz"] or omit
 }`;
 
-function buildUserPrompt(report: VinceBenchReport, currentParams: CurrentParams): string {
+function buildUserPrompt(
+  report: VinceBenchReport,
+  currentParams: CurrentParams,
+): string {
   const lines: string[] = [
     `Current FINAL_SCORE: ${report.scoring.finalScore.toFixed(2)} (Base: ${report.scoring.base}, Bonus: ${report.scoring.bonus}, Penalty: ${report.scoring.penalty})`,
     "",
     "Domain breakdown:",
     ...Object.entries(report.domainBreakdown).map(
-      ([name, d]) => `- ${name}: weight=${d.weight}, uniqueSignatures=${d.uniqueSignatures}, contribution=${d.contribution.toFixed(2)}`,
+      ([name, d]) =>
+        `- ${name}: weight=${d.weight}, uniqueSignatures=${d.uniqueSignatures}, contribution=${d.contribution.toFixed(2)}`,
     ),
     "",
-    "Unmapped signatures (never matched a domain): " + (report.unmappedSignatures.length ? report.unmappedSignatures.join(", ") : "none"),
+    "Unmapped signatures (never matched a domain): " +
+      (report.unmappedSignatures.length
+        ? report.unmappedSignatures.join(", ")
+        : "none"),
     "",
     "Current parameters:",
     `- minStrength: ${currentParams.minStrength ?? "unknown"}`,
     `- minConfidence: ${currentParams.minConfidence ?? "unknown"}`,
     `- minConfirmingSignals: ${currentParams.minConfirmingSignals ?? "unknown"}`,
   ];
-  if (currentParams.signalWeights && Object.keys(currentParams.signalWeights).length > 0) {
-    lines.push("- signalWeights: " + JSON.stringify(currentParams.signalWeights));
+  if (
+    currentParams.signalWeights &&
+    Object.keys(currentParams.signalWeights).length > 0
+  ) {
+    lines.push(
+      "- signalWeights: " + JSON.stringify(currentParams.signalWeights),
+    );
   }
   const worst = report.perDecision
-    .filter((d) => (d.decisionScore ?? 0) < (report.scoring.finalScore / Math.max(1, report.perDecision.length)))
+    .filter(
+      (d) =>
+        (d.decisionScore ?? 0) <
+        report.scoring.finalScore / Math.max(1, report.perDecision.length),
+    )
     .slice(0, 3);
   if (worst.length > 0) {
     lines.push("", "Sample low-scoring decisions:");
     worst.forEach((d) => {
-      lines.push(`  recordId=${d.recordId}, score=${(d.decisionScore ?? 0).toFixed(2)}, signatures=[${d.signatures.slice(0, 5).join(", ")}...]`);
+      lines.push(
+        `  recordId=${d.recordId}, score=${(d.decisionScore ?? 0).toFixed(2)}, signatures=[${d.signatures.slice(0, 5).join(", ")}...]`,
+      );
     });
   }
   return lines.join("\n");
@@ -89,8 +107,11 @@ async function callOpenAI(userPrompt: string): Promise<string> {
       max_tokens: 1024,
     }),
   });
-  if (!res.ok) throw new Error(`OpenAI API error: ${res.status} ${await res.text()}`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  if (!res.ok)
+    throw new Error(`OpenAI API error: ${res.status} ${await res.text()}`);
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
   const content = data.choices?.[0]?.message?.content?.trim();
   if (!content) throw new Error("Empty response from OpenAI");
   return content;
@@ -100,11 +121,16 @@ async function callOpenAI(userPrompt: string): Promise<string> {
  * Parse LLM JSON response into ImprovementSuggestion.
  */
 function parseSuggestion(raw: string): ImprovementSuggestion {
-  const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+  const cleaned = raw
+    .replace(/^```json\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
   const parsed = JSON.parse(cleaned) as Record<string, unknown>;
   return {
     reasoning: String(parsed.reasoning ?? ""),
-    parameterChanges: (parsed.parameterChanges as ImprovementSuggestion["parameterChanges"]) ?? {},
+    parameterChanges:
+      (parsed.parameterChanges as ImprovementSuggestion["parameterChanges"]) ??
+      {},
     missingSignaturesToTarget: Array.isArray(parsed.missingSignaturesToTarget)
       ? (parsed.missingSignaturesToTarget as string[])
       : undefined,

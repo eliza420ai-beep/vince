@@ -7,10 +7,7 @@
 /**
  * Supported blockchain networks
  */
-export type SupportedChain =
-  | "base"
-  | "ethereum"
-  | "arbitrum";
+export type SupportedChain = "base" | "ethereum" | "arbitrum";
 
 /**
  * Chain UI configuration interface

@@ -39,14 +39,14 @@ VINCE is the **CDO (Chief Data Officer)** agent: unified data intelligence acros
 
 ## Key Files for Code Review
 
-| Area | Path |
-|------|------|
-| Agent definition | [src/agents/vince.ts](src/agents/vince.ts) |
-| Plugin entry | [src/plugins/plugin-vince/src/index.ts](src/plugins/plugin-vince/src/index.ts) |
-| Paper bot / ML | [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (actions, services, tasks, models) |
-| Signal sources | [src/plugins/plugin-vince/SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
-| Feature store | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) |
-| Dashboard routes | [src/plugins/plugin-vince/src/routes/](src/plugins/plugin-vince/src/routes/) |
+| Area             | Path                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Agent definition | [src/agents/vince.ts](src/agents/vince.ts)                                                |
+| Plugin entry     | [src/plugins/plugin-vince/src/index.ts](src/plugins/plugin-vince/src/index.ts)            |
+| Paper bot / ML   | [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (actions, services, tasks, models) |
+| Signal sources   | [src/plugins/plugin-vince/SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md)  |
+| Feature store    | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md)                                            |
+| Dashboard routes | [src/plugins/plugin-vince/src/routes/](src/plugins/plugin-vince/src/routes/)              |
 
 ---
 

@@ -52,351 +52,359 @@ const mockRuntime = {
 // Test Suite: Fallback Services
 // ==========================================
 
-describe.skipIf(skipNetworkTests)("Plugin-Vince Standalone - Fallback Services", () => {
-  describe("Deribit Fallback Service (DVOL, Options P/C Ratio)", () => {
-    let service: DeribitFallbackService;
+describe.skipIf(skipNetworkTests)(
+  "Plugin-Vince Standalone - Fallback Services",
+  () => {
+    describe("Deribit Fallback Service (DVOL, Options P/C Ratio)", () => {
+      let service: DeribitFallbackService;
 
-    beforeAll(() => {
-      service = new DeribitFallbackService();
+      beforeAll(() => {
+        service = new DeribitFallbackService();
+      });
+
+      it(
+        "should fetch BTC volatility index (DVOL)",
+        async () => {
+          const result = await service.getVolatilityIndex("BTC");
+
+          // Result should not be null and should have a current value
+          expect(result).not.toBeNull();
+          expect(result).toHaveProperty("current");
+          expect(typeof result!.current).toBe("number");
+          expect(result!.current).toBeGreaterThan(0);
+
+          console.log(`✅ BTC DVOL: ${result!.current.toFixed(2)}%`);
+          await delay(RATE_LIMIT_DELAY);
+        },
+        TEST_TIMEOUT,
+      );
+
+      it(
+        "should fetch ETH volatility index (DVOL)",
+        async () => {
+          const result = await service.getVolatilityIndex("ETH");
+
+          expect(result).not.toBeNull();
+          expect(result).toHaveProperty("current");
+          expect(typeof result!.current).toBe("number");
+
+          console.log(`✅ ETH DVOL: ${result!.current.toFixed(2)}%`);
+          await delay(RATE_LIMIT_DELAY);
+        },
+        TEST_TIMEOUT,
+      );
+
+      it(
+        "should fetch BTC comprehensive options data",
+        async () => {
+          const result = await service.getComprehensiveData("BTC");
+
+          expect(result).not.toBeNull();
+          expect(result).toHaveProperty("optionsSummary");
+
+          const pcRatio = result!.optionsSummary?.putCallRatio;
+          console.log(
+            `✅ BTC Options: P/C Ratio=${pcRatio?.toFixed(2) || "N/A"}`,
+          );
+          await delay(RATE_LIMIT_DELAY);
+        },
+        TEST_TIMEOUT,
+      );
     });
 
-    it(
-      "should fetch BTC volatility index (DVOL)",
-      async () => {
-        const result = await service.getVolatilityIndex("BTC");
+    describe("Hyperliquid Fallback Service (Funding, OI)", () => {
+      let service: HyperliquidFallbackService;
 
-        // Result should not be null and should have a current value
-        expect(result).not.toBeNull();
-        expect(result).toHaveProperty("current");
-        expect(typeof result!.current).toBe("number");
-        expect(result!.current).toBeGreaterThan(0);
+      beforeAll(() => {
+        service = new HyperliquidFallbackService();
+      });
 
-        console.log(`✅ BTC DVOL: ${result!.current.toFixed(2)}%`);
-        await delay(RATE_LIMIT_DELAY);
-      },
-      TEST_TIMEOUT,
-    );
+      it(
+        "should fetch options pulse (funding rates)",
+        async () => {
+          const result = await service.getOptionsPulse();
 
-    it(
-      "should fetch ETH volatility index (DVOL)",
-      async () => {
-        const result = await service.getVolatilityIndex("ETH");
-
-        expect(result).not.toBeNull();
-        expect(result).toHaveProperty("current");
-        expect(typeof result!.current).toBe("number");
-
-        console.log(`✅ ETH DVOL: ${result!.current.toFixed(2)}%`);
-        await delay(RATE_LIMIT_DELAY);
-      },
-      TEST_TIMEOUT,
-    );
-
-    it(
-      "should fetch BTC comprehensive options data",
-      async () => {
-        const result = await service.getComprehensiveData("BTC");
-
-        expect(result).not.toBeNull();
-        expect(result).toHaveProperty("optionsSummary");
-
-        const pcRatio = result!.optionsSummary?.putCallRatio;
-        console.log(
-          `✅ BTC Options: P/C Ratio=${pcRatio?.toFixed(2) || "N/A"}`,
-        );
-        await delay(RATE_LIMIT_DELAY);
-      },
-      TEST_TIMEOUT,
-    );
-  });
-
-  describe("Hyperliquid Fallback Service (Funding, OI)", () => {
-    let service: HyperliquidFallbackService;
-
-    beforeAll(() => {
-      service = new HyperliquidFallbackService();
-    });
-
-    it(
-      "should fetch options pulse (funding rates)",
-      async () => {
-        const result = await service.getOptionsPulse();
-
-        expect(result).not.toBeNull();
-        expect(result).toHaveProperty("assets");
-
-        // Check that at least BTC or ETH has data
-        const btc = result!.assets?.btc;
-        const eth = result!.assets?.eth;
-        const hasData = btc || eth;
-
-        expect(hasData).toBeTruthy();
-
-        if (btc) {
-          console.log(
-            `✅ HL BTC: Funding=${btc.fundingAnnualized?.toFixed(2) || "N/A"}%, Crowding=${btc.crowdingLevel || "N/A"}`,
-          );
-        }
-        if (eth) {
-          console.log(
-            `✅ HL ETH: Funding=${eth.fundingAnnualized?.toFixed(2) || "N/A"}%, Crowding=${eth.crowdingLevel || "N/A"}`,
-          );
-        }
-        await delay(RATE_LIMIT_DELAY);
-      },
-      TEST_TIMEOUT,
-    );
-
-    it(
-      "should fetch cross-venue funding data",
-      async () => {
-        const result = await service.getCrossVenueFunding();
-
-        // This may return null if there are API issues - that's OK
-        // What matters is the method is callable
-        if (result) {
+          expect(result).not.toBeNull();
           expect(result).toHaveProperty("assets");
-          expect(result).toHaveProperty("arbitrageOpportunities");
-          console.log(
-            `✅ Cross-Venue: ${result.assets.length} assets, ${result.arbitrageOpportunities.length} arb opportunities`,
-          );
-        } else {
-          console.log(
-            "⚠️  Cross-Venue: No data (API may be temporarily unavailable)",
-          );
-        }
-        await delay(RATE_LIMIT_DELAY);
-      },
-      TEST_TIMEOUT,
-    );
-  });
 
-  describe("OpenSea Fallback Service (NFT Floors)", () => {
-    let service: OpenSeaFallbackService;
+          // Check that at least BTC or ETH has data
+          const btc = result!.assets?.btc;
+          const eth = result!.assets?.eth;
+          const hasData = btc || eth;
 
-    beforeAll(() => {
-      service = new OpenSeaFallbackService(mockRuntime);
+          expect(hasData).toBeTruthy();
+
+          if (btc) {
+            console.log(
+              `✅ HL BTC: Funding=${btc.fundingAnnualized?.toFixed(2) || "N/A"}%, Crowding=${btc.crowdingLevel || "N/A"}`,
+            );
+          }
+          if (eth) {
+            console.log(
+              `✅ HL ETH: Funding=${eth.fundingAnnualized?.toFixed(2) || "N/A"}%, Crowding=${eth.crowdingLevel || "N/A"}`,
+            );
+          }
+          await delay(RATE_LIMIT_DELAY);
+        },
+        TEST_TIMEOUT,
+      );
+
+      it(
+        "should fetch cross-venue funding data",
+        async () => {
+          const result = await service.getCrossVenueFunding();
+
+          // This may return null if there are API issues - that's OK
+          // What matters is the method is callable
+          if (result) {
+            expect(result).toHaveProperty("assets");
+            expect(result).toHaveProperty("arbitrageOpportunities");
+            console.log(
+              `✅ Cross-Venue: ${result.assets.length} assets, ${result.arbitrageOpportunities.length} arb opportunities`,
+            );
+          } else {
+            console.log(
+              "⚠️  Cross-Venue: No data (API may be temporarily unavailable)",
+            );
+          }
+          await delay(RATE_LIMIT_DELAY);
+        },
+        TEST_TIMEOUT,
+      );
     });
 
-    it(
-      "should fetch NFT floor analysis for a collection",
-      async () => {
-        const result = await service.analyzeFloorOpportunities(
-          "pudgypenguins",
-          {
-            maxListings: 10,
-          },
-        );
+    describe("OpenSea Fallback Service (NFT Floors)", () => {
+      let service: OpenSeaFallbackService;
 
-        expect(result).not.toBeNull();
-        expect(result).toHaveProperty("floorPrice");
-        expect(typeof result.floorPrice).toBe("number");
+      beforeAll(() => {
+        service = new OpenSeaFallbackService(mockRuntime);
+      });
 
-        console.log(
-          `✅ Pudgy Penguins Floor: ${result.floorPrice.toFixed(4)} ETH`,
-        );
-        if (result.floorThickness) {
-          console.log(`   Thickness: ${result.floorThickness.description}`);
-        }
-        await delay(RATE_LIMIT_DELAY);
-      },
-      TEST_TIMEOUT,
-    );
-  });
+      it(
+        "should fetch NFT floor analysis for a collection",
+        async () => {
+          const result = await service.analyzeFloorOpportunities(
+            "pudgypenguins",
+            {
+              maxListings: 10,
+            },
+          );
 
-  describe("Browser Fallback Service (News Fetching)", () => {
-    let service: BrowserFallbackService;
+          expect(result).not.toBeNull();
+          expect(result).toHaveProperty("floorPrice");
+          expect(typeof result.floorPrice).toBe("number");
 
-    beforeAll(() => {
-      service = new BrowserFallbackService(mockRuntime);
+          console.log(
+            `✅ Pudgy Penguins Floor: ${result.floorPrice.toFixed(4)} ETH`,
+          );
+          if (result.floorThickness) {
+            console.log(`   Thickness: ${result.floorThickness.description}`);
+          }
+          await delay(RATE_LIMIT_DELAY);
+        },
+        TEST_TIMEOUT,
+      );
     });
 
-    it(
-      "should fetch a webpage and parse content",
-      async () => {
-        const result = await service.navigate("https://example.com");
+    describe("Browser Fallback Service (News Fetching)", () => {
+      let service: BrowserFallbackService;
 
-        expect(result).toHaveProperty("success", true);
-        expect(result.content).toBeDefined();
-        expect(result.content!.length).toBeGreaterThan(0);
+      beforeAll(() => {
+        service = new BrowserFallbackService(mockRuntime);
+      });
 
-        console.log(
-          `✅ Browser Fetch: ${result.content!.length} chars from example.com`,
-        );
-        await delay(RATE_LIMIT_DELAY);
-      },
-      TEST_TIMEOUT,
-    );
+      it(
+        "should fetch a webpage and parse content",
+        async () => {
+          const result = await service.navigate("https://example.com");
 
-    it(
-      "should use getPageContent after navigate",
-      async () => {
-        await service.navigate("https://example.com");
-        const content = await service.getPageContent();
+          expect(result).toHaveProperty("success", true);
+          expect(result.content).toBeDefined();
+          expect(result.content!.length).toBeGreaterThan(0);
 
-        expect(content).toBeDefined();
-        expect(content.length).toBeGreaterThan(0);
-        console.log(`✅ getPageContent: ${content.length} chars`);
-      },
-      TEST_TIMEOUT,
-    );
-  });
+          console.log(
+            `✅ Browser Fetch: ${result.content!.length} chars from example.com`,
+          );
+          await delay(RATE_LIMIT_DELAY);
+        },
+        TEST_TIMEOUT,
+      );
 
-  // XAI Fallback Service (Grok Expert) - commented out - Grok feature disabled
-  // describe("XAI Fallback Service (Grok Expert)", () => { ... });
-});
+      it(
+        "should use getPageContent after navigate",
+        async () => {
+          await service.navigate("https://example.com");
+          const content = await service.getPageContent();
+
+          expect(content).toBeDefined();
+          expect(content.length).toBeGreaterThan(0);
+          console.log(`✅ getPageContent: ${content.length} chars`);
+        },
+        TEST_TIMEOUT,
+      );
+    });
+
+    // XAI Fallback Service (Grok Expert) - commented out - Grok feature disabled
+    // describe("XAI Fallback Service (Grok Expert)", () => { ... });
+  },
+);
 
 // ==========================================
 // Test Suite: Direct API Access Verification
 // ==========================================
 
-describe.skipIf(skipNetworkTests)("Plugin-Vince Standalone - Direct API Access", () => {
-  it(
-    "should access Binance Futures API directly",
-    async () => {
-      const response = await fetch(
-        "https://fapi.binance.com/fapi/v1/topLongShortPositionRatio?symbol=BTCUSDT&period=1h&limit=1",
-      );
-
-      // Handle rate limiting gracefully
-      if (!response.ok) {
-        console.log(
-          `⚠️  Binance API: Rate limited or unavailable (${response.status}) - this is OK`,
+describe.skipIf(skipNetworkTests)(
+  "Plugin-Vince Standalone - Direct API Access",
+  () => {
+    it(
+      "should access Binance Futures API directly",
+      async () => {
+        const response = await fetch(
+          "https://fapi.binance.com/fapi/v1/topLongShortPositionRatio?symbol=BTCUSDT&period=1h&limit=1",
         );
-        expect(response.status).toBeGreaterThan(0); // Just verify we got a response
-        return;
-      }
 
-      const data = await response.json();
-      expect(Array.isArray(data)).toBe(true);
+        // Handle rate limiting gracefully
+        if (!response.ok) {
+          console.log(
+            `⚠️  Binance API: Rate limited or unavailable (${response.status}) - this is OK`,
+          );
+          expect(response.status).toBeGreaterThan(0); // Just verify we got a response
+          return;
+        }
 
-      if (data.length > 0) {
-        const ratio = parseFloat(data[0].longShortRatio);
-        console.log(`✅ Binance L/S Ratio API: ${ratio.toFixed(2)}`);
-      }
-      await delay(RATE_LIMIT_DELAY);
-    },
-    TEST_TIMEOUT,
-  );
+        const data = await response.json();
+        expect(Array.isArray(data)).toBe(true);
 
-  it(
-    "should access CoinGecko API directly",
-    async () => {
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
-      );
+        if (data.length > 0) {
+          const ratio = parseFloat(data[0].longShortRatio);
+          console.log(`✅ Binance L/S Ratio API: ${ratio.toFixed(2)}`);
+        }
+        await delay(RATE_LIMIT_DELAY);
+      },
+      TEST_TIMEOUT,
+    );
 
-      expect(response.ok).toBe(true);
-      const data = await response.json();
-      expect(data).toHaveProperty("bitcoin");
+    it(
+      "should access CoinGecko API directly",
+      async () => {
+        const response = await fetch(
+          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+        );
 
-      console.log(
-        `✅ CoinGecko API: BTC=$${data.bitcoin.usd.toLocaleString()}`,
-      );
-      await delay(RATE_LIMIT_DELAY);
-    },
-    TEST_TIMEOUT,
-  );
+        expect(response.ok).toBe(true);
+        const data = await response.json();
+        expect(data).toHaveProperty("bitcoin");
 
-  it(
-    "should access DexScreener API directly",
-    async () => {
-      const response = await fetch(
-        "https://api.dexscreener.com/latest/dex/search?q=PEPE",
-      );
+        console.log(
+          `✅ CoinGecko API: BTC=$${data.bitcoin.usd.toLocaleString()}`,
+        );
+        await delay(RATE_LIMIT_DELAY);
+      },
+      TEST_TIMEOUT,
+    );
 
-      expect(response.ok).toBe(true);
-      const data = await response.json();
-      expect(data).toHaveProperty("pairs");
+    it(
+      "should access DexScreener API directly",
+      async () => {
+        const response = await fetch(
+          "https://api.dexscreener.com/latest/dex/search?q=PEPE",
+        );
 
-      console.log(`✅ DexScreener API: ${data.pairs?.length || 0} PEPE pairs`);
-      await delay(RATE_LIMIT_DELAY);
-    },
-    TEST_TIMEOUT,
-  );
+        expect(response.ok).toBe(true);
+        const data = await response.json();
+        expect(data).toHaveProperty("pairs");
 
-  it(
-    "should access Fear & Greed API directly",
-    async () => {
-      const response = await fetch("https://api.alternative.me/fng/?limit=1");
+        console.log(
+          `✅ DexScreener API: ${data.pairs?.length || 0} PEPE pairs`,
+        );
+        await delay(RATE_LIMIT_DELAY);
+      },
+      TEST_TIMEOUT,
+    );
 
-      expect(response.ok).toBe(true);
-      const data = await response.json();
-      expect(data).toHaveProperty("data");
-      expect(Array.isArray(data.data)).toBe(true);
+    it(
+      "should access Fear & Greed API directly",
+      async () => {
+        const response = await fetch("https://api.alternative.me/fng/?limit=1");
 
-      const fng = data.data[0];
-      console.log(
-        `✅ Fear & Greed API: ${fng.value} (${fng.value_classification})`,
-      );
-      await delay(RATE_LIMIT_DELAY);
-    },
-    TEST_TIMEOUT,
-  );
+        expect(response.ok).toBe(true);
+        const data = await response.json();
+        expect(data).toHaveProperty("data");
+        expect(Array.isArray(data.data)).toBe(true);
 
-  it(
-    "should access Hyperliquid Info API directly",
-    async () => {
-      const response = await fetch("https://api.hyperliquid.xyz/info", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "metaAndAssetCtxs" }),
-      });
+        const fng = data.data[0];
+        console.log(
+          `✅ Fear & Greed API: ${fng.value} (${fng.value_classification})`,
+        );
+        await delay(RATE_LIMIT_DELAY);
+      },
+      TEST_TIMEOUT,
+    );
 
-      expect(response.ok).toBe(true);
-      const data = await response.json();
-      expect(Array.isArray(data)).toBe(true);
-      expect(data.length).toBeGreaterThanOrEqual(2);
+    it(
+      "should access Hyperliquid Info API directly",
+      async () => {
+        const response = await fetch("https://api.hyperliquid.xyz/info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "metaAndAssetCtxs" }),
+        });
 
-      const meta = data[0];
-      console.log(
-        `✅ Hyperliquid API: ${meta.universe?.length || 0} perp markets`,
-      );
-      await delay(RATE_LIMIT_DELAY);
-    },
-    TEST_TIMEOUT,
-  );
+        expect(response.ok).toBe(true);
+        const data = await response.json();
+        expect(Array.isArray(data)).toBe(true);
+        expect(data.length).toBeGreaterThanOrEqual(2);
 
-  it(
-    "should access Deribit Public API directly",
-    async () => {
-      const response = await fetch(
-        "https://www.deribit.com/api/v2/public/get_volatility_index_data?currency=BTC&resolution=3600&start_timestamp=" +
-          (Date.now() - 3600000) +
-          "&end_timestamp=" +
-          Date.now(),
-      );
+        const meta = data[0];
+        console.log(
+          `✅ Hyperliquid API: ${meta.universe?.length || 0} perp markets`,
+        );
+        await delay(RATE_LIMIT_DELAY);
+      },
+      TEST_TIMEOUT,
+    );
 
-      expect(response.ok).toBe(true);
-      const data = await response.json();
-      expect(data).toHaveProperty("result");
+    it(
+      "should access Deribit Public API directly",
+      async () => {
+        const response = await fetch(
+          "https://www.deribit.com/api/v2/public/get_volatility_index_data?currency=BTC&resolution=3600&start_timestamp=" +
+            (Date.now() - 3600000) +
+            "&end_timestamp=" +
+            Date.now(),
+        );
 
-      if (data.result?.data?.length > 0) {
-        const latestDvol = data.result.data[data.result.data.length - 1][4]; // close
-        console.log(`✅ Deribit API: BTC DVOL=${latestDvol.toFixed(2)}%`);
-      }
-      await delay(RATE_LIMIT_DELAY);
-    },
-    TEST_TIMEOUT,
-  );
+        expect(response.ok).toBe(true);
+        const data = await response.json();
+        expect(data).toHaveProperty("result");
 
-  it(
-    "should access Meteora DLMM API directly",
-    async () => {
-      const response = await fetch(
-        "https://dlmm-api.meteora.ag/pair/all?limit=5",
-      );
+        if (data.result?.data?.length > 0) {
+          const latestDvol = data.result.data[data.result.data.length - 1][4]; // close
+          console.log(`✅ Deribit API: BTC DVOL=${latestDvol.toFixed(2)}%`);
+        }
+        await delay(RATE_LIMIT_DELAY);
+      },
+      TEST_TIMEOUT,
+    );
 
-      expect(response.ok).toBe(true);
-      const data = await response.json();
-      expect(Array.isArray(data)).toBe(true);
+    it(
+      "should access Meteora DLMM API directly",
+      async () => {
+        const response = await fetch(
+          "https://dlmm-api.meteora.ag/pair/all?limit=5",
+        );
 
-      console.log(`✅ Meteora API: ${data.length} DLMM pools`);
-      await delay(RATE_LIMIT_DELAY);
-    },
-    TEST_TIMEOUT,
-  );
-});
+        expect(response.ok).toBe(true);
+        const data = await response.json();
+        expect(Array.isArray(data)).toBe(true);
+
+        console.log(`✅ Meteora API: ${data.length} DLMM pools`);
+        await delay(RATE_LIMIT_DELAY);
+      },
+      TEST_TIMEOUT,
+    );
+  },
+);
 
 // ==========================================
 // Test Suite: Service Factory Verification

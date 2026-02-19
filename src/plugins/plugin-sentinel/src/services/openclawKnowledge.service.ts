@@ -56,7 +56,8 @@ const OPENCLAW_OVERVIEW = {
 const OPENCLAW_CAPABILITIES: OpenClawCapability[] = [
   {
     name: "Multi-channel Inbox",
-    description: "WhatsApp, Telegram, Slack, Discord, Signal, iMessage, Teams, Matrix, Google Chat, WebChat",
+    description:
+      "WhatsApp, Telegram, Slack, Discord, Signal, iMessage, Teams, Matrix, Google Chat, WebChat",
     category: "channel",
     relevance: "high",
     docsLink: "https://docs.openclaw.ai/channels",
@@ -70,7 +71,8 @@ const OPENCLAW_CAPABILITIES: OpenClawCapability[] = [
   },
   {
     name: "Skills System",
-    description: "Bundled, managed, and workspace skills for extending capabilities",
+    description:
+      "Bundled, managed, and workspace skills for extending capabilities",
     category: "tool",
     relevance: "high",
     docsLink: "https://docs.openclaw.ai/tools/skills",
@@ -114,8 +116,10 @@ const OPENCLAW_CAPABILITIES: OpenClawCapability[] = [
 const INTEGRATION_PATTERNS: IntegrationPattern[] = [
   {
     name: "OpenClaw Adapter",
-    description: "Bridge Eliza plugins to OpenClaw — actions become tools, providers become hooks",
-    whenToUse: "When you want to reuse Eliza plugins (wallet, trading, connectors) in an OpenClaw agent",
+    description:
+      "Bridge Eliza plugins to OpenClaw — actions become tools, providers become hooks",
+    whenToUse:
+      "When you want to reuse Eliza plugins (wallet, trading, connectors) in an OpenClaw agent",
     implementation: `\`\`\`json
 {
   "plugins": {
@@ -129,37 +133,47 @@ const INTEGRATION_PATTERNS: IntegrationPattern[] = [
   }
 }
 \`\`\``,
-    example: "Our wallet/trading logic can power both Eliza agents AND OpenClaw agents without rewriting",
+    example:
+      "Our wallet/trading logic can power both Eliza agents AND OpenClaw agents without rewriting",
   },
   {
     name: "Milaidy Gateway Integration",
     description: "Send standup action items to Milaidy for execution",
-    whenToUse: "When standup produces 'build' action items that Milaidy can execute",
+    whenToUse:
+      "When standup produces 'build' action items that Milaidy can execute",
     implementation: `Set MILAIDY_GATEWAY_URL (e.g. http://localhost:18789), then POST to /api/standup-action with { description, assigneeAgentName, source: "vince-standup" }`,
-    example: "Standup identifies 'refactor options action' → Milaidy receives task → executes → returns deliverable path",
+    example:
+      "Standup identifies 'refactor options action' → Milaidy receives task → executes → returns deliverable path",
   },
   {
     name: "OpenClaw for Knowledge Research",
-    description: "Daily cron job using official X API → targeted searches → knowledge pipeline (pay-as-you-go, TOS compliant)",
-    whenToUse: "When you need continuous knowledge ingestion from X using official API",
+    description:
+      "Daily cron job using official X API → targeted searches → knowledge pipeline (pay-as-you-go, TOS compliant)",
+    whenToUse:
+      "When you need continuous knowledge ingestion from X using official API",
     implementation: `1. Set X_BEARER_TOKEN in OpenClaw env
 2. Create daily cron job with targeted searches (5-6 queries)
 3. Use x-research skill or VINCE_X_RESEARCH action
 4. Save results to knowledge/research-daily/ via UPLOAD`,
-    example: "Daily cron searches 'ElizaOS', '$BTC alpha', 'AI agents crypto' → saves to knowledge/research-daily/",
+    example:
+      "Daily cron searches 'ElizaOS', '$BTC alpha', 'AI agents crypto' → saves to knowledge/research-daily/",
   },
   {
     name: "Hybrid Agent Mode",
-    description: "VINCE (ElizaOS) for conversation + OpenClaw sub-agents for parallel deep-dive research",
-    whenToUse: "When you need parallel research sessions that don't block the main conversation",
+    description:
+      "VINCE (ElizaOS) for conversation + OpenClaw sub-agents for parallel deep-dive research",
+    whenToUse:
+      "When you need parallel research sessions that don't block the main conversation",
     implementation: `Main agent delegates to OpenClaw research sessions via Gateway API. Results aggregated and presented.`,
-    example: "User asks about $XYZ → spawn 3 research agents (on-chain, social, technical) → aggregate findings",
+    example:
+      "User asks about $XYZ → spawn 3 research agents (on-chain, social, technical) → aggregate findings",
   },
 ];
 
 // OpenClaw knowledge research setup guide (official X API only - TOS compliant)
 const OPENCLAW_RESEARCH_SETUP: ClawdbotSetup = {
-  purpose: "Daily knowledge research using official X API (pay-as-you-go) → knowledge pipeline",
+  purpose:
+    "Daily knowledge research using official X API (pay-as-you-go) → knowledge pipeline",
   requirements: [
     "X API Bearer Token (developer.x.com)",
     "X API credits (pay-as-you-go, with spending limit)",
@@ -200,15 +214,17 @@ export function getCapabilities(): OpenClawCapability[] {
 /**
  * Get capabilities by category
  */
-export function getCapabilitiesByCategory(category: OpenClawCapability["category"]): OpenClawCapability[] {
-  return OPENCLAW_CAPABILITIES.filter(c => c.category === category);
+export function getCapabilitiesByCategory(
+  category: OpenClawCapability["category"],
+): OpenClawCapability[] {
+  return OPENCLAW_CAPABILITIES.filter((c) => c.category === category);
 }
 
 /**
  * Get high-relevance capabilities for VINCE
  */
 export function getHighRelevanceCapabilities(): OpenClawCapability[] {
-  return OPENCLAW_CAPABILITIES.filter(c => c.relevance === "high");
+  return OPENCLAW_CAPABILITIES.filter((c) => c.relevance === "high");
 }
 
 /**
@@ -221,8 +237,12 @@ export function getIntegrationPatterns(): IntegrationPattern[] {
 /**
  * Get specific integration pattern
  */
-export function getIntegrationPattern(name: string): IntegrationPattern | undefined {
-  return INTEGRATION_PATTERNS.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
+export function getIntegrationPattern(
+  name: string,
+): IntegrationPattern | undefined {
+  return INTEGRATION_PATTERNS.find((p) =>
+    p.name.toLowerCase().includes(name.toLowerCase()),
+  );
 }
 
 /**
@@ -256,10 +276,12 @@ openclaw gateway --port 18789 --verbose
 \`\`\`
 
 ## Key Capabilities for VINCE Integration
-${getHighRelevanceCapabilities().map(c => `• **${c.name}:** ${c.description}`).join("\n")}
+${getHighRelevanceCapabilities()
+  .map((c) => `• **${c.name}:** ${c.description}`)
+  .join("\n")}
 
 ## Integration Patterns
-${INTEGRATION_PATTERNS.map(p => `### ${p.name}\n${p.whenToUse}`).join("\n\n")}
+${INTEGRATION_PATTERNS.map((p) => `### ${p.name}\n${p.whenToUse}`).join("\n\n")}
 
 ## Clawdbot for Knowledge Research
 ${OPENCLAW_RESEARCH_SETUP.purpose}
@@ -273,10 +295,12 @@ ${OPENCLAW_RESEARCH_SETUP.steps.join("\n")}
  * Generate integration instructions markdown
  */
 export function generateIntegrationInstructions(): string {
-  const milaidy = INTEGRATION_PATTERNS.find(p => p.name.includes("Milaidy"));
-  const adapter = INTEGRATION_PATTERNS.find(p => p.name.includes("Adapter"));
-  const clawdbot = INTEGRATION_PATTERNS.find(p => p.name.includes("Clawdbot"));
-  
+  const milaidy = INTEGRATION_PATTERNS.find((p) => p.name.includes("Milaidy"));
+  const adapter = INTEGRATION_PATTERNS.find((p) => p.name.includes("Adapter"));
+  const clawdbot = INTEGRATION_PATTERNS.find((p) =>
+    p.name.includes("Clawdbot"),
+  );
+
   return `# OpenClaw & Milaidy Integration Instructions
 
 ## OpenClaw
@@ -337,13 +361,13 @@ ${clawdbot?.description}
 **Purpose:** ${OPENCLAW_RESEARCH_SETUP.purpose}
 
 **Requirements:**
-${OPENCLAW_RESEARCH_SETUP.requirements.map(r => `• ${r}`).join("\n")}
+${OPENCLAW_RESEARCH_SETUP.requirements.map((r) => `• ${r}`).join("\n")}
 
 **Steps:**
 ${OPENCLAW_RESEARCH_SETUP.steps.join("\n")}
 
 **Benefits:**
-${OPENCLAW_RESEARCH_SETUP.benefits.map(b => `• ${b}`).join("\n")}
+${OPENCLAW_RESEARCH_SETUP.benefits.map((b) => `• ${b}`).join("\n")}
 
 ---
 
@@ -376,31 +400,66 @@ export function getAdapterDocs(): string | null {
 export function suggestOpenClawUsage(context: string): string[] {
   const suggestions: string[] = [];
   const lower = context.toLowerCase();
-  
-  if (lower.includes("wallet") || lower.includes("evm") || lower.includes("solana") || lower.includes("otaku")) {
-    suggestions.push("Consider openclaw-adapter to expose Eliza wallet plugins as OpenClaw tools — same logic, two runtimes");
+
+  if (
+    lower.includes("wallet") ||
+    lower.includes("evm") ||
+    lower.includes("solana") ||
+    lower.includes("otaku")
+  ) {
+    suggestions.push(
+      "Consider openclaw-adapter to expose Eliza wallet plugins as OpenClaw tools — same logic, two runtimes",
+    );
   }
-  
-  if (lower.includes("knowledge") || lower.includes("research") || lower.includes("x ") || lower.includes("twitter")) {
-    suggestions.push("Set up Clawdbot: dedicated X account + curated follows + Birdy → knowledge pipeline (no X API cost)");
+
+  if (
+    lower.includes("knowledge") ||
+    lower.includes("research") ||
+    lower.includes("x ") ||
+    lower.includes("twitter")
+  ) {
+    suggestions.push(
+      "Set up Clawdbot: dedicated X account + curated follows + Birdy → knowledge pipeline (no X API cost)",
+    );
   }
-  
-  if (lower.includes("parallel") || lower.includes("deep dive") || lower.includes("research session")) {
-    suggestions.push("Use hybrid mode: VINCE for conversation + OpenClaw sub-agents for parallel research");
+
+  if (
+    lower.includes("parallel") ||
+    lower.includes("deep dive") ||
+    lower.includes("research session")
+  ) {
+    suggestions.push(
+      "Use hybrid mode: VINCE for conversation + OpenClaw sub-agents for parallel research",
+    );
   }
-  
-  if (lower.includes("standup") || lower.includes("build") || lower.includes("task")) {
-    suggestions.push("Connect standup build items to Milaidy Gateway via POST /api/standup-action");
+
+  if (
+    lower.includes("standup") ||
+    lower.includes("build") ||
+    lower.includes("task")
+  ) {
+    suggestions.push(
+      "Connect standup build items to Milaidy Gateway via POST /api/standup-action",
+    );
   }
-  
-  if (lower.includes("channel") || lower.includes("discord") || lower.includes("telegram") || lower.includes("whatsapp")) {
-    suggestions.push("OpenClaw excels at multi-channel: WhatsApp, Telegram, Discord, Slack, Signal, iMessage all supported");
+
+  if (
+    lower.includes("channel") ||
+    lower.includes("discord") ||
+    lower.includes("telegram") ||
+    lower.includes("whatsapp")
+  ) {
+    suggestions.push(
+      "OpenClaw excels at multi-channel: WhatsApp, Telegram, Discord, Slack, Signal, iMessage all supported",
+    );
   }
-  
+
   if (suggestions.length === 0) {
-    suggestions.push("OpenClaw is a powerful integration point — consider the adapter for tool sharing or Clawdbot for knowledge research");
+    suggestions.push(
+      "OpenClaw is a powerful integration point — consider the adapter for tool sharing or Clawdbot for knowledge research",
+    );
   }
-  
+
   return suggestions;
 }
 

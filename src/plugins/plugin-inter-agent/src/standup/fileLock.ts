@@ -14,7 +14,10 @@ const RETRY_DELAY_MS = 100;
  * Run fn with an exclusive lock on filepath. Lock file is filepath + ".lock".
  * Creates lock file with 'wx'; if EEXIST, checks staleness and retries.
  */
-export async function withLock<T>(filepath: string, fn: () => Promise<T>): Promise<T> {
+export async function withLock<T>(
+  filepath: string,
+  fn: () => Promise<T>,
+): Promise<T> {
   const lockPath = filepath + ".lock";
   const dir = path.dirname(filepath);
 
@@ -50,5 +53,7 @@ export async function withLock<T>(filepath: string, fn: () => Promise<T>): Promi
     }
   }
 
-  throw new Error(`[Standup] Could not acquire lock for ${filepath} after ${MAX_RETRIES} attempts`);
+  throw new Error(
+    `[Standup] Could not acquire lock for ${filepath} after ${MAX_RETRIES} attempts`,
+  );
 }

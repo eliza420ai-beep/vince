@@ -6,15 +6,30 @@ import {
   Memory,
   State,
 } from "@elizaos/core";
-import { getHealth, isGatewayConfigured } from "../services/gatewayClient.service";
+import {
+  getHealth,
+  isGatewayConfigured,
+} from "../services/gatewayClient.service";
 
 export const openclawGatewayStatusAction: Action = {
   name: "OPENCLAW_GATEWAY_STATUS",
-  similes: ["OPENCLAW_STATUS", "GATEWAY_STATUS", "GATEWAY_HEALTH", "OPENCLAW_HEALTH"],
-  description: "Check OpenClaw Gateway health/status. Returns data from OpenClaw Gateway health endpoint when OPENCLAW_GATEWAY_URL is set; otherwise explains that Gateway URL is optional for in-process research.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  similes: [
+    "OPENCLAW_STATUS",
+    "GATEWAY_STATUS",
+    "GATEWAY_HEALTH",
+    "OPENCLAW_HEALTH",
+  ],
+  description:
+    "Check OpenClaw Gateway health/status. Returns data from OpenClaw Gateway health endpoint when OPENCLAW_GATEWAY_URL is set; otherwise explains that Gateway URL is optional for in-process research.",
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /openclaw\s+(status|health|gateway)/i.test(text) ||
       /gateway\s+(status|health|running)/i.test(text) ||
@@ -33,7 +48,8 @@ export const openclawGatewayStatusAction: Action = {
       const msg =
         "Gateway URL is not set. Set OPENCLAW_GATEWAY_URL to check Gateway status. For in-process research you don't need a Gateway.";
       const text = "Quick answer—\n\n" + msg;
-      if (callback) await callback({ text, actions: ["OPENCLAW_GATEWAY_STATUS"] });
+      if (callback)
+        await callback({ text, actions: ["OPENCLAW_GATEWAY_STATUS"] });
       return { success: true, text };
     }
     const health = await getHealth();
@@ -41,12 +57,16 @@ export const openclawGatewayStatusAction: Action = {
       ? "Gateway: ok."
       : `Gateway: ${health.status} — ${health.message ?? "Is \`openclaw gateway\` running?"} Check that \`openclaw gateway\` is running and OPENCLAW_GATEWAY_URL is correct.`;
     const text = "Here's the gateway status—\n\n" + line;
-    if (callback) await callback({ text, actions: ["OPENCLAW_GATEWAY_STATUS"] });
+    if (callback)
+      await callback({ text, actions: ["OPENCLAW_GATEWAY_STATUS"] });
     return { success: true, text };
   },
   examples: [
     [
-      { name: "{{user}}", content: { text: "Is the OpenClaw gateway running?" } },
+      {
+        name: "{{user}}",
+        content: { text: "Is the OpenClaw gateway running?" },
+      },
       {
         name: "{{agent}}",
         content: {

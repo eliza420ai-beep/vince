@@ -67,7 +67,9 @@ export interface StandupData {
 // Service type definitions for proper typing
 interface CoinGlassService {
   getFunding?: (asset: string) => { rate: number; timestamp?: number } | null;
-  getOpenInterest?: (asset: string) => { total: number; change24h?: number } | null;
+  getOpenInterest?: (
+    asset: string,
+  ) => { total: number; change24h?: number } | null;
   getLongShortRatio?: (asset: string) => { ratio: number } | null;
   getFearGreed?: () => { value: number; classification: string } | null;
   getAllFunding?: () => Array<{ asset: string; rate: number }>;
@@ -83,14 +85,16 @@ interface MarketDataService {
     openInterest?: number;
     longShortRatio?: number;
   } | null>;
-  getAllContexts?: () => Promise<Array<{
-    asset: string;
-    price?: number;
-    change24h?: number;
-    funding?: number;
-    fundingRate?: number;
-    openInterest?: number;
-  }>>;
+  getAllContexts?: () => Promise<
+    Array<{
+      asset: string;
+      price?: number;
+      change24h?: number;
+      funding?: number;
+      fundingRate?: number;
+      openInterest?: number;
+    }>
+  >;
   getDVOL?: (asset: string) => Promise<number | null>;
 }
 
@@ -117,14 +121,22 @@ interface CoinGeckoService {
 /**
  * Get market data for core assets using VINCE's real services
  */
-export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarketData[]> {
+export async function getMarketData(
+  runtime: IAgentRuntime,
+): Promise<AssetMarketData[]> {
   const results: AssetMarketData[] = [];
 
   try {
     // Get VINCE services
-    const coinGlass = runtime.getService("VINCE_COINGLASS_SERVICE") as CoinGlassService | null;
-    const marketData = runtime.getService("VINCE_MARKET_DATA_SERVICE") as MarketDataService | null;
-    const coingecko = runtime.getService("VINCE_COINGECKO_SERVICE") as CoinGeckoService | null;
+    const coinGlass = runtime.getService(
+      "VINCE_COINGLASS_SERVICE",
+    ) as CoinGlassService | null;
+    const marketData = runtime.getService(
+      "VINCE_MARKET_DATA_SERVICE",
+    ) as MarketDataService | null;
+    const coingecko = runtime.getService(
+      "VINCE_COINGECKO_SERVICE",
+    ) as CoinGeckoService | null;
 
     for (const asset of CORE_ASSETS) {
       const data: AssetMarketData = {
@@ -151,7 +163,10 @@ export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarket
             data.longShortRatio = ctx.longShortRatio ?? null;
           }
         } catch (err) {
-          logger.debug({ err, asset }, "[StandupData] MarketData.getEnrichedContext failed");
+          logger.debug(
+            { err, asset },
+            "[StandupData] MarketData.getEnrichedContext failed",
+          );
         }
       }
 
@@ -164,7 +179,10 @@ export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarket
             data.change24h = priceData.change24h ?? null;
           }
         } catch (err) {
-          logger.debug({ err, asset }, "[StandupData] CoinGecko.getPrice failed");
+          logger.debug(
+            { err, asset },
+            "[StandupData] CoinGecko.getPrice failed",
+          );
         }
       }
 
@@ -184,7 +202,10 @@ export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarket
             }
           }
         } catch (err) {
-          logger.debug({ err, asset }, "[StandupData] CoinGlass.getFunding failed");
+          logger.debug(
+            { err, asset },
+            "[StandupData] CoinGlass.getFunding failed",
+          );
         }
       }
 
@@ -197,7 +218,10 @@ export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarket
             data.oiChange24h = oiData.change24h ?? null;
           }
         } catch (err) {
-          logger.debug({ err, asset }, "[StandupData] CoinGlass.getOpenInterest failed");
+          logger.debug(
+            { err, asset },
+            "[StandupData] CoinGlass.getOpenInterest failed",
+          );
         }
       }
 
@@ -209,7 +233,10 @@ export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarket
             data.longShortRatio = lsData.ratio;
           }
         } catch (err) {
-          logger.debug({ err, asset }, "[StandupData] CoinGlass.getLongShortRatio failed");
+          logger.debug(
+            { err, asset },
+            "[StandupData] CoinGlass.getLongShortRatio failed",
+          );
         }
       }
 
@@ -218,14 +245,19 @@ export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarket
         try {
           data.dvol = await marketData.getDVOL(asset);
         } catch (err) {
-          logger.debug({ err, asset }, "[StandupData] MarketData.getDVOL failed");
+          logger.debug(
+            { err, asset },
+            "[StandupData] MarketData.getDVOL failed",
+          );
         }
       }
 
       results.push(data);
     }
 
-    logger.info(`[StandupData] Fetched market data for ${results.length} assets`);
+    logger.info(
+      `[StandupData] Fetched market data for ${results.length} assets`,
+    );
   } catch (err) {
     logger.warn({ err }, "[StandupData] Failed to get market data");
   }
@@ -236,9 +268,13 @@ export async function getMarketData(runtime: IAgentRuntime): Promise<AssetMarket
 /**
  * Get paper bot stats from VINCE_TRADE_JOURNAL_SERVICE
  */
-export async function getPaperBotStats(runtime: IAgentRuntime): Promise<PaperBotStats | null> {
+export async function getPaperBotStats(
+  runtime: IAgentRuntime,
+): Promise<PaperBotStats | null> {
   try {
-    const tradeJournal = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as TradeJournalService | null;
+    const tradeJournal = runtime.getService(
+      "VINCE_TRADE_JOURNAL_SERVICE",
+    ) as TradeJournalService | null;
 
     if (!tradeJournal?.getStats) {
       logger.debug("[StandupData] Trade journal service not available");
@@ -253,7 +289,9 @@ export async function getPaperBotStats(runtime: IAgentRuntime): Promise<PaperBot
     todayStart.setHours(0, 0, 0, 0);
     const todayMs = todayStart.getTime();
 
-    const todayTrades = recentTrades.filter((t) => (t.exitTimestamp ?? 0) >= todayMs);
+    const todayTrades = recentTrades.filter(
+      (t) => (t.exitTimestamp ?? 0) >= todayMs,
+    );
     const todayPnL = todayTrades.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
 
     return {
@@ -279,9 +317,13 @@ export async function getPaperBotStats(runtime: IAgentRuntime): Promise<PaperBot
 /**
  * Get fear & greed index from VINCE_COINGLASS_SERVICE
  */
-export async function getFearGreed(runtime: IAgentRuntime): Promise<{ value: number; label: string } | null> {
+export async function getFearGreed(
+  runtime: IAgentRuntime,
+): Promise<{ value: number; label: string } | null> {
   try {
-    const coinGlass = runtime.getService("VINCE_COINGLASS_SERVICE") as CoinGlassService | null;
+    const coinGlass = runtime.getService(
+      "VINCE_COINGLASS_SERVICE",
+    ) as CoinGlassService | null;
 
     if (!coinGlass?.getFearGreed) {
       logger.debug("[StandupData] CoinGlass service not available");
@@ -306,7 +348,9 @@ export async function getFearGreed(runtime: IAgentRuntime): Promise<{ value: num
  * Get X/CT sentiment data (for ECHO)
  * TODO: Wire up to plugin-x-research when ECHO generates reports
  */
-export async function getSentimentData(runtime: IAgentRuntime): Promise<SentimentData[]> {
+export async function getSentimentData(
+  runtime: IAgentRuntime,
+): Promise<SentimentData[]> {
   // Placeholder - ECHO will use X_PULSE action data
   return [];
 }
@@ -314,7 +358,9 @@ export async function getSentimentData(runtime: IAgentRuntime): Promise<Sentimen
 /**
  * Get all standup data in one call
  */
-export async function getStandupData(runtime: IAgentRuntime): Promise<StandupData> {
+export async function getStandupData(
+  runtime: IAgentRuntime,
+): Promise<StandupData> {
   logger.info("[StandupData] Fetching all standup data...");
 
   const [markets, paperBot, fearGreed, sentiment] = await Promise.all([
@@ -333,7 +379,7 @@ export async function getStandupData(runtime: IAgentRuntime): Promise<StandupDat
   };
 
   logger.info(
-    `[StandupData] Complete: ${markets.length} assets, paper bot: ${paperBot ? "yes" : "no"}, fear/greed: ${fearGreed?.value ?? "n/a"}`
+    `[StandupData] Complete: ${markets.length} assets, paper bot: ${paperBot ? "yes" : "no"}, fear/greed: ${fearGreed?.value ?? "n/a"}`,
   );
 
   return data;
@@ -348,11 +394,25 @@ export function formatMarketTable(markets: AssetMarketData[]): string {
   }
 
   const rows = markets.map((m) => {
-    const price = m.price ? `$${m.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—";
-    const change = m.change24h !== null ? `${m.change24h > 0 ? "+" : ""}${m.change24h.toFixed(1)}%` : "—";
-    const funding = m.funding !== null ? `${(m.funding * 100).toFixed(3)}%` : "—";
-    const oi = m.oiChange24h !== null ? `${m.oiChange24h > 0 ? "+" : ""}${m.oiChange24h.toFixed(1)}%` : "—";
-    const signal = m.fundingSignal === "bullish" ? "🟢" : m.fundingSignal === "bearish" ? "🔴" : "🟡";
+    const price = m.price
+      ? `$${m.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+      : "—";
+    const change =
+      m.change24h !== null
+        ? `${m.change24h > 0 ? "+" : ""}${m.change24h.toFixed(1)}%`
+        : "—";
+    const funding =
+      m.funding !== null ? `${(m.funding * 100).toFixed(3)}%` : "—";
+    const oi =
+      m.oiChange24h !== null
+        ? `${m.oiChange24h > 0 ? "+" : ""}${m.oiChange24h.toFixed(1)}%`
+        : "—";
+    const signal =
+      m.fundingSignal === "bullish"
+        ? "🟢"
+        : m.fundingSignal === "bearish"
+          ? "🔴"
+          : "🟡";
     return `| ${m.asset} | ${price} | ${change} | ${funding} | ${oi} | ${signal} |`;
   });
 
@@ -371,14 +431,22 @@ export function formatPaperBotStats(stats: PaperBotStats | null): string {
 
   const winLoss = `${stats.wins}W/${stats.losses}L`;
   const winRate = `${(stats.winRate * 100).toFixed(0)}%`;
-  const todayPnL = stats.todayPnL !== 0 ? `${stats.todayPnL > 0 ? "+" : ""}$${stats.todayPnL.toFixed(0)}` : "$0";
+  const todayPnL =
+    stats.todayPnL !== 0
+      ? `${stats.todayPnL > 0 ? "+" : ""}$${stats.todayPnL.toFixed(0)}`
+      : "$0";
   const totalPnL = `${stats.totalPnL > 0 ? "+" : ""}$${stats.totalPnL.toFixed(0)}`;
 
   let recentStr = "";
   if (stats.recentTrades.length > 0) {
-    recentStr = "\n**Recent:**\n" + stats.recentTrades.map((t) => 
-      `- ${t.asset} ${t.direction}: ${t.pnl > 0 ? "+" : ""}$${t.pnl.toFixed(0)}`
-    ).join("\n");
+    recentStr =
+      "\n**Recent:**\n" +
+      stats.recentTrades
+        .map(
+          (t) =>
+            `- ${t.asset} ${t.direction}: ${t.pnl > 0 ? "+" : ""}$${t.pnl.toFixed(0)}`,
+        )
+        .join("\n");
   }
 
   return `**Performance:** ${winLoss} (${winRate})
@@ -389,16 +457,26 @@ export function formatPaperBotStats(stats: PaperBotStats | null): string {
  * Generate signal summary from market data
  */
 export function generateSignalSummary(markets: AssetMarketData[]): string {
-  const bullish = markets.filter((m) => m.fundingSignal === "bullish").map((m) => m.asset);
-  const bearish = markets.filter((m) => m.fundingSignal === "bearish").map((m) => m.asset);
-  const neutral = markets.filter((m) => m.fundingSignal === "neutral").map((m) => m.asset);
+  const bullish = markets
+    .filter((m) => m.fundingSignal === "bullish")
+    .map((m) => m.asset);
+  const bearish = markets
+    .filter((m) => m.fundingSignal === "bearish")
+    .map((m) => m.asset);
+  const neutral = markets
+    .filter((m) => m.fundingSignal === "neutral")
+    .map((m) => m.asset);
 
   const lines: string[] = [];
   if (bullish.length > 0) {
-    lines.push(`- 🟢 **Bullish**: ${bullish.join(", ")} (shorts crowded/high funding)`);
+    lines.push(
+      `- 🟢 **Bullish**: ${bullish.join(", ")} (shorts crowded/high funding)`,
+    );
   }
   if (bearish.length > 0) {
-    lines.push(`- 🔴 **Bearish**: ${bearish.join(", ")} (longs crowded/negative funding)`);
+    lines.push(
+      `- 🔴 **Bearish**: ${bearish.join(", ")} (longs crowded/negative funding)`,
+    );
   }
   if (neutral.length > 0) {
     lines.push(`- 🟡 **Neutral**: ${neutral.join(", ")}`);

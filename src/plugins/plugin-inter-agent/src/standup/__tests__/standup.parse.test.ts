@@ -56,8 +56,16 @@ describe("standup.parse", () => {
     it("parses valid JSON and normalizes action item types", async () => {
       const validJson = JSON.stringify({
         actionItems: [
-          { assigneeAgentName: "Sentinel", description: "Write a script", type: "build" },
-          { assigneeAgentName: "VINCE", description: "Remind me", type: "remind" },
+          {
+            assigneeAgentName: "Sentinel",
+            description: "Write a script",
+            type: "build",
+          },
+          {
+            assigneeAgentName: "VINCE",
+            description: "Remind me",
+            type: "remind",
+          },
         ],
         lessonsByAgentName: { VINCE: "Markets were volatile." },
         disagreements: [],
@@ -73,7 +81,9 @@ describe("standup.parse", () => {
         description: "Write a script",
         type: "build",
       });
-      expect(result.lessonsByAgentName).toEqual({ VINCE: "Markets were volatile." });
+      expect(result.lessonsByAgentName).toEqual({
+        VINCE: "Markets were volatile.",
+      });
       expect(result.suggestions).toEqual(["Add more crypto context"]);
     });
 
@@ -108,7 +118,11 @@ describe("standup.parse", () => {
     it("maps invalid action item type to remind", async () => {
       const json = JSON.stringify({
         actionItems: [
-          { assigneeAgentName: "Kelly", description: "Do something", type: "unknown_type" },
+          {
+            assigneeAgentName: "Kelly",
+            description: "Do something",
+            type: "unknown_type",
+          },
         ],
         lessonsByAgentName: {},
         disagreements: [],

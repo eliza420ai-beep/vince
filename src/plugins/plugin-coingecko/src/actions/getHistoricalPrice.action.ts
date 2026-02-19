@@ -8,7 +8,12 @@ import {
   logger,
 } from "@elizaos/core";
 import { nativeTokenIds } from "../services/coingecko.service";
-import { validateCoingeckoService, getCoingeckoService, formatMarketCap, parseDateToApiFormat } from "../utils/actionHelpers";
+import {
+  validateCoingeckoService,
+  getCoingeckoService,
+  formatMarketCap,
+  parseDateToApiFormat,
+} from "../utils/actionHelpers";
 
 export const getHistoricalPriceAction: Action = {
   name: "GET_HISTORICAL_PRICE",
@@ -19,29 +24,39 @@ export const getHistoricalPriceAction: Action = {
     "TOKEN_PRICE_HISTORY",
     "PRICE_AT_DATE",
   ],
-  description:
-    `Use this action when the user asks for a token's price on a specific date in the past. This action retrieves historical price data for any token (native or contract address) at a particular point in time. Returns the price, market cap, and trading volume for that date.`,
+  description: `Use this action when the user asks for a token's price on a specific date in the past. This action retrieves historical price data for any token (native or contract address) at a particular point in time. Returns the price, market cap, and trading volume for that date.`,
 
   parameters: {
     token: {
       type: "string",
-      description: `Token symbol or contract address. Native tokens that can be used by symbol: ${Object.keys(nativeTokenIds).join(', ').toUpperCase()}. For all other tokens, provide the contract address (e.g., '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'). Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.`,
+      description: `Token symbol or contract address. Native tokens that can be used by symbol: ${Object.keys(nativeTokenIds).join(", ").toUpperCase()}. For all other tokens, provide the contract address (e.g., '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'). Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.`,
       required: true,
     },
     date: {
       type: "string",
-      description: "Date for historical price. Accepts formats: 'dd-mm-yyyy' (e.g., '01-01-2024'), '2024-01-01', 'today', 'yesterday', '7 days ago', '2 weeks ago', '3 months ago', '1 year ago'.",
+      description:
+        "Date for historical price. Accepts formats: 'dd-mm-yyyy' (e.g., '01-01-2024'), '2024-01-01', 'today', 'yesterday', '7 days ago', '2 weeks ago', '3 months ago', '1 year ago'.",
       required: true,
     },
     chain: {
       type: "string",
-      description: "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Required for contract addresses, optional for native tokens. Use GET_TOKEN_METADATA first to determine the correct chain.",
+      description:
+        "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Required for contract addresses, optional for native tokens. Use GET_TOKEN_METADATA first to determine the correct chain.",
       required: false,
     },
   },
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateCoingeckoService(runtime, "GET_HISTORICAL_PRICE", state, message);
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
+    return validateCoingeckoService(
+      runtime,
+      "GET_HISTORICAL_PRICE",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -58,13 +73,22 @@ export const getHistoricalPriceAction: Action = {
       }
 
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Extract and validate token parameter (required)
       const tokenRaw: string | undefined = params?.token?.trim();
       if (!tokenRaw) {
-        const supportedNativeTokens = Object.keys(nativeTokenIds).join(', ').toUpperCase();
+        const supportedNativeTokens = Object.keys(nativeTokenIds)
+          .join(", ")
+          .toUpperCase();
         const errorMsg = `Missing required parameter 'token'. Please specify which token to fetch historical price for. Native tokens (${supportedNativeTokens}) can be used by symbol. For all other tokens, provide the contract address.`;
         logger.error(`[GET_HISTORICAL_PRICE] ${errorMsg}`);
         const errorResult: ActionResult = {
@@ -84,7 +108,8 @@ export const getHistoricalPriceAction: Action = {
       // Extract and validate date parameter (required)
       const dateRaw: string | undefined = params?.date?.trim();
       if (!dateRaw) {
-        const errorMsg = "Missing required parameter 'date'. Please specify the date for historical price (e.g., '01-01-2024', 'yesterday', '7 days ago').";
+        const errorMsg =
+          "Missing required parameter 'date'. Please specify the date for historical price (e.g., '01-01-2024', 'yesterday', '7 days ago').";
         logger.error(`[GET_HISTORICAL_PRICE] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
@@ -123,28 +148,34 @@ export const getHistoricalPriceAction: Action = {
       }
 
       // Extract optional chain parameter (default to base for contract addresses)
-      const chain: string = params?.chain?.trim()?.toLowerCase() || 'base';
+      const chain: string = params?.chain?.trim()?.toLowerCase() || "base";
 
-      logger.info(`[GET_HISTORICAL_PRICE] Fetching historical price for ${tokenRaw} on ${apiDate} (chain: ${chain})`);
+      logger.info(
+        `[GET_HISTORICAL_PRICE] Fetching historical price for ${tokenRaw} on ${apiDate} (chain: ${chain})`,
+      );
 
       // Store input parameters for return
       const inputParams = { token: tokenRaw, date: dateRaw, chain };
 
       // Fetch historical price data
-      const historicalData = await svc.getHistoricalPrice(tokenRaw, apiDate, chain);
+      const historicalData = await svc.getHistoricalPrice(
+        tokenRaw,
+        apiDate,
+        chain,
+      );
 
       // Format the response
-      const tokenDisplay = historicalData.token_name 
+      const tokenDisplay = historicalData.token_name
         ? `${historicalData.token_name} (${historicalData.token_symbol || tokenRaw})`
-        : (historicalData.token_symbol || tokenRaw);
+        : historicalData.token_symbol || tokenRaw;
 
       // Create a narrative summary for the agent to format
       const summary = `Historical price data for ${tokenDisplay} on ${apiDate}:
 - Token: ${tokenDisplay}
 - Date: ${apiDate}
-- Price: ${historicalData.price_usd ? `$${historicalData.price_usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : 'N/A'}
-- Market Cap: ${historicalData.market_cap_usd ? `$${formatMarketCap(historicalData.market_cap_usd)}` : 'N/A'}
-- 24h Volume: ${historicalData.total_volume_usd ? `$${formatMarketCap(historicalData.total_volume_usd)}` : 'N/A'}
+- Price: ${historicalData.price_usd ? `$${historicalData.price_usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : "N/A"}
+- Market Cap: ${historicalData.market_cap_usd ? `$${formatMarketCap(historicalData.market_cap_usd)}` : "N/A"}
+- 24h Volume: ${historicalData.total_volume_usd ? `$${formatMarketCap(historicalData.total_volume_usd)}` : "N/A"}
 - Chain: ${historicalData.chain}
 - CoinGecko ID: ${historicalData.coin_id}
 
@@ -173,20 +204,27 @@ This historical price data shows the token's value on the specified date. You ca
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_HISTORICAL_PRICE] Action failed: ${msg}`);
-      
+
       // Try to capture input params even in failure
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
       const failureInputParams = {
         token: params?.token,
         date: params?.date,
-        chain: params?.chain || 'base',
+        chain: params?.chain || "base",
       };
-      
+
       const errorText = `Failed to fetch historical price: ${msg}
 
 Please check the following:
-1. **Token identifier**: Native tokens (${Object.keys(nativeTokenIds).join(', ').toUpperCase()}) can be used by symbol. For all other tokens, you MUST provide the contract address.
+1. **Token identifier**: Native tokens (${Object.keys(nativeTokenIds).join(", ").toUpperCase()}) can be used by symbol. For all other tokens, you MUST provide the contract address.
 2. **Date format**: Use formats like 'dd-mm-yyyy', '2024-01-01', 'yesterday', '7 days ago', '2 weeks ago', '3 months ago', or '1 year ago'.
 3. **Chain parameter**: Provide the correct blockchain network for contract addresses:
    | Chain        | Parameter   |
@@ -202,14 +240,14 @@ Please check the following:
 Example: "What was the price of BTC on January 1st, 2024?"
 Example: "Get historical price for ETH 6 months ago"
 Example: "Show me the price of 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913 on base on 01-09-2024"`;
-      
+
       const errorResult: ActionResult = {
         text: errorText,
         success: false,
         error: msg,
         input: failureInputParams,
       } as ActionResult & { input: typeof failureInputParams };
-      
+
       if (callback) {
         await callback({
           text: errorResult.text,
@@ -224,7 +262,9 @@ Example: "Show me the price of 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913 on bas
     [
       {
         name: "{{user}}",
-        content: { text: "What was the price of Bitcoin on January 1st, 2024?" },
+        content: {
+          text: "What was the price of Bitcoin on January 1st, 2024?",
+        },
       },
       {
         name: "{{agent}}",
@@ -262,4 +302,3 @@ Example: "Show me the price of 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913 on bas
     ],
   ],
 };
-

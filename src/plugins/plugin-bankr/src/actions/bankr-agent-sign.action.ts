@@ -19,14 +19,20 @@ function getSignParams(state?: State): {
   const payload = params.payload;
   if (
     !signatureType ||
-    !["personal_sign", "eth_signTypedData_v4", "eth_signTransaction"].includes(signatureType)
+    !["personal_sign", "eth_signTypedData_v4", "eth_signTransaction"].includes(
+      signatureType,
+    )
   ) {
     return null;
   }
   if (payload === undefined || payload === null) return null;
-  if (typeof payload === "string") return { signatureType: signatureType as SignSignatureType, payload };
+  if (typeof payload === "string")
+    return { signatureType: signatureType as SignSignatureType, payload };
   if (typeof payload === "object" && !Array.isArray(payload)) {
-    return { signatureType: signatureType as SignSignatureType, payload: payload as Record<string, unknown> };
+    return {
+      signatureType: signatureType as SignSignatureType,
+      payload: payload as Record<string, unknown>,
+    };
   }
   return null;
 }
@@ -35,10 +41,17 @@ export const bankrAgentSignAction: Action = {
   name: "BANKR_AGENT_SIGN",
   description:
     "Sign a message or transaction using the Bankr custodial wallet (synchronous, no job polling). Use for personal_sign (hex message), eth_signTypedData_v4 (EIP-712 typed data e.g. permits, order signatures, cancel signatures), or eth_signTransaction (transaction object). Requires actionParams: signatureType, payload.",
-  similes: ["BANKR_SIGN", "BANKR_SIGN_MESSAGE", "BANKR_SIGN_TYPED_DATA", "BANKR_SIGN_TX"],
+  similes: [
+    "BANKR_SIGN",
+    "BANKR_SIGN_MESSAGE",
+    "BANKR_SIGN_TYPED_DATA",
+    "BANKR_SIGN_TX",
+  ],
 
   validate: async (runtime: IAgentRuntime, _message: Memory, state?: State) => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service?.isConfigured()) return false;
     return !!getSignParams(state);
   },
@@ -48,9 +61,11 @@ export const bankrAgentSignAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Agent service not available.";
       callback?.({ text: err });
@@ -71,7 +86,8 @@ export const bankrAgentSignAction: Action = {
         payload: signParams.payload,
       });
       if (!result.success || result.signature == null) {
-        const msg = result.error || result.message || "Sign returned no signature.";
+        const msg =
+          result.error || result.message || "Sign returned no signature.";
         callback?.({ text: msg, actions: ["BANKR_AGENT_SIGN"] });
         return { success: false, text: msg };
       }
@@ -81,19 +97,39 @@ export const bankrAgentSignAction: Action = {
         actions: ["BANKR_AGENT_SIGN"],
         source: message.content?.source,
       });
-      return { success: true, text: reply, data: { signature: result.signature } };
+      return {
+        success: true,
+        text: reply,
+        data: { signature: result.signature },
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_AGENT_SIGN] " + msg);
-      callback?.({ text: `Bankr sign failed: ${msg}`, actions: ["BANKR_AGENT_SIGN"] });
-      return { success: false, text: msg, error: err instanceof Error ? err : new Error(msg) };
+      callback?.({
+        text: `Bankr sign failed: ${msg}`,
+        actions: ["BANKR_AGENT_SIGN"],
+      });
+      return {
+        success: false,
+        text: msg,
+        error: err instanceof Error ? err : new Error(msg),
+      };
     }
   },
 
   examples: [
     [
-      { name: "user", content: { text: "Sign this EIP-712 cancel order data" } },
-      { name: "Otaku", content: { text: "Signed. Signature: `0x…`", actions: ["BANKR_AGENT_SIGN"] } },
+      {
+        name: "user",
+        content: { text: "Sign this EIP-712 cancel order data" },
+      },
+      {
+        name: "Otaku",
+        content: {
+          text: "Signed. Signature: `0x…`",
+          actions: ["BANKR_AGENT_SIGN"],
+        },
+      },
     ],
   ],
 };

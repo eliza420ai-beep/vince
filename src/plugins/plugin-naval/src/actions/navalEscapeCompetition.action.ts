@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "escape competition",
@@ -45,7 +49,10 @@ export const navalEscapeCompetitionAction: Action = {
   description:
     "Find 2-3 skill intersections: top 10% each, unique combo, demand. What would you call yourself (identity, not job title)?",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsEscapeCompetition(text);
   },
@@ -80,7 +87,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -88,14 +95,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Combine skills until you're the best in the world at that combination. Top 10% in each, unique combo, real demand. Name the identity, not the job title.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Escape competition. I'm good at: writing, crypto, community building, product." } },
-      { name: "{{agent}}", content: { text: "Intersection 1: Writing + Crypto + Product = technical PM who can ship and explain. Intersection 2: Crypto + Community + Writing = narrative lead for DAOs. Identity: 'Person who ships and explains crypto product for communities.'" } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Escape competition. I'm good at: writing, crypto, community building, product.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Intersection 1: Writing + Crypto + Product = technical PM who can ship and explain. Intersection 2: Crypto + Community + Writing = narrative lead for DAOs. Identity: 'Person who ships and explains crypto product for communities.'",
+        },
+      },
     ],
   ],
 };

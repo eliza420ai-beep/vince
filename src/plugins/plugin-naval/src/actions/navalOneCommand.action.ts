@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "one command",
@@ -49,11 +54,19 @@ Direct. Benefit-led: what they get is one read, then move.`;
 
 export const navalOneCommandAction: Action = {
   name: "NAVAL_ONE_COMMAND",
-  similes: ["ONE_COMMAND", "ALOHA_ONE_COMMAND", "FULL_PICTURE_ONE_ASK", "ONE_DIGEST"],
+  similes: [
+    "ONE_COMMAND",
+    "ALOHA_ONE_COMMAND",
+    "FULL_PICTURE_ONE_ASK",
+    "ONE_DIGEST",
+  ],
   description:
     "One command gives you the full picture: vibe, perps, options, trade today? One shift so they stop opening ten tabs.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsOneCommand(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "One command: run it once and get vibe, perps, options, and whether to trade. One read, then move. Rule: no ten tabs — one command at a set time, then close.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I open like six things every morning to see where the market is." } },
-      { name: "{{agent}}", content: { text: "That's six pulls. Shift: one command — call it ALOHA or morning brief — that gives you vibe, perps pulse, options posture, and 'trade today?' in one shot. Rule: run it once when you start; that's your picture. No refresh until the next run. You get one read, then you move." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I open like six things every morning to see where the market is.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "That's six pulls. Shift: one command — call it ALOHA or morning brief — that gives you vibe, perps pulse, options posture, and 'trade today?' in one shot. Rule: run it once when you start; that's your picture. No refresh until the next run. You get one read, then you move.",
+        },
+      },
     ],
   ],
 };

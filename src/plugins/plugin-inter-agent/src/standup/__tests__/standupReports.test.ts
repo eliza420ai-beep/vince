@@ -13,7 +13,10 @@ import {
   formatReportDate,
   getDayOfWeek,
 } from "../standupReports";
-import { getEssentialStandupQuestion, ESSENTIAL_STANDUP_QUESTION } from "../standup.constants";
+import {
+  getEssentialStandupQuestion,
+  ESSENTIAL_STANDUP_QUESTION,
+} from "../standup.constants";
 import type { Memory, UUID } from "@elizaos/core";
 
 describe("Standup Reports", () => {
@@ -46,7 +49,9 @@ describe("Standup Reports", () => {
   describe("REPORT_TEMPLATES", () => {
     it("has template for each agent", () => {
       for (const agent of Object.keys(AGENT_ROLES)) {
-        expect(REPORT_TEMPLATES[agent as keyof typeof REPORT_TEMPLATES]).toBeDefined();
+        expect(
+          REPORT_TEMPLATES[agent as keyof typeof REPORT_TEMPLATES],
+        ).toBeDefined();
       }
     });
 
@@ -67,7 +72,9 @@ describe("Standup Reports", () => {
       expect(REPORT_TEMPLATES.Eliza).toContain("Eliza");
       expect(REPORT_TEMPLATES.Eliza).toContain("Knowledge gaps spotted");
       expect(REPORT_TEMPLATES.Eliza).toContain("Essay idea");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Research to upload to knowledge");
+      expect(REPORT_TEMPLATES.Eliza).toContain(
+        "Research to upload to knowledge",
+      );
     });
 
     it("Oracle template uses LIVE DATA and priority markets (condition_id)", () => {
@@ -78,9 +85,9 @@ describe("Standup Reports", () => {
       expect(REPORT_TEMPLATES.Oracle).not.toContain("unreliable");
     });
 
-    it("Otaku template states who he is (Bankr, DeFi)", () => {
-      expect(REPORT_TEMPLATES.Otaku).toContain("Bankr");
-      expect(REPORT_TEMPLATES.Otaku).toContain("DeFi");
+    it("Otaku template focuses on wallet setup progress", () => {
+      expect(REPORT_TEMPLATES.Otaku).toContain("wallet");
+      expect(REPORT_TEMPLATES.Otaku).toContain("Status");
     });
 
     it("Sentinel template has what's next / what's pushed", () => {
@@ -193,7 +200,15 @@ describe("Standup Reports", () => {
   describe("getDayOfWeek", () => {
     it("returns a valid day name", () => {
       const day = getDayOfWeek();
-      const validDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const validDays = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
       expect(validDays).toContain(day);
     });
   });

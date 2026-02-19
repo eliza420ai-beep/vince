@@ -109,8 +109,10 @@ export function getOIChangeConfidenceAdjustment(
 ): number {
   if (direction === "neutral" || oiChange24h == null) return 0;
   // Rising OI + aligned price move = confirmation
-  if (oiChange24h > 3 && direction === "long" && priceChange24h > 0) return CONFIDENCE_BOOST;
-  if (oiChange24h > 3 && direction === "short" && priceChange24h < 0) return CONFIDENCE_BOOST;
+  if (oiChange24h > 3 && direction === "long" && priceChange24h > 0)
+    return CONFIDENCE_BOOST;
+  if (oiChange24h > 3 && direction === "short" && priceChange24h < 0)
+    return CONFIDENCE_BOOST;
   // Declining OI = positions unwinding, moves less likely to stick
   if (oiChange24h < -5) return -CONFIDENCE_BOOST;
   return 0;
@@ -125,7 +127,8 @@ export function getDailyOpenConfidenceAdjustment(
   currentPrice: number,
   dailyOpenPrice: number | null,
 ): number {
-  if (direction === "neutral" || dailyOpenPrice == null || dailyOpenPrice <= 0) return 0;
+  if (direction === "neutral" || dailyOpenPrice == null || dailyOpenPrice <= 0)
+    return 0;
   const aboveOpen = currentPrice > dailyOpenPrice;
   if (direction === "long" && aboveOpen) return 3;
   if (direction === "short" && !aboveOpen) return 3;
@@ -183,8 +186,16 @@ export function getAdjustedConfidence(
     c += getVolumeConfidenceAdjustment(volumeRatio);
   }
   if (marketCtx) {
-    c += getOIChangeConfidenceAdjustment(signal.direction, marketCtx.oiChange24h ?? null, marketCtx.priceChange24h ?? 0);
-    c += getDailyOpenConfidenceAdjustment(signal.direction, marketCtx.currentPrice ?? 0, marketCtx.dailyOpenPrice ?? null);
+    c += getOIChangeConfidenceAdjustment(
+      signal.direction,
+      marketCtx.oiChange24h ?? null,
+      marketCtx.priceChange24h ?? 0,
+    );
+    c += getDailyOpenConfidenceAdjustment(
+      signal.direction,
+      marketCtx.currentPrice ?? 0,
+      marketCtx.dailyOpenPrice ?? null,
+    );
     c += getRSIConfidenceAdjustment(signal.direction, marketCtx.rsi ?? null);
   }
   return Math.min(MAX_CONFIDENCE, Math.max(0, c));

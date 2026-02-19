@@ -6,7 +6,9 @@ import { describe, it, expect } from "bun:test";
 import { prioritizeActionItems } from "../standupPlanner";
 import type { ActionItem } from "../actionItemTracker";
 
-function item(overrides: Partial<ActionItem> & { what: string; owner: string }): ActionItem {
+function item(
+  overrides: Partial<ActionItem> & { what: string; owner: string },
+): ActionItem {
   const now = new Date().toISOString();
   return {
     id: `ai-${Math.random().toString(36).slice(2, 9)}`,
@@ -31,13 +33,30 @@ describe("standupPlanner", () => {
 
     it("assigns priority 1..N by urgency (now before today before this_week before backlog)", () => {
       const items: ActionItem[] = [
-        item({ what: "B", owner: "X", urgency: "today", createdAt: "2026-02-14T10:00:00Z" }),
-        item({ what: "A", owner: "X", urgency: "now", createdAt: "2026-02-14T09:00:00Z" }),
-        item({ what: "C", owner: "X", urgency: "backlog", createdAt: "2026-02-14T08:00:00Z" }),
+        item({
+          what: "B",
+          owner: "X",
+          urgency: "today",
+          createdAt: "2026-02-14T10:00:00Z",
+        }),
+        item({
+          what: "A",
+          owner: "X",
+          urgency: "now",
+          createdAt: "2026-02-14T09:00:00Z",
+        }),
+        item({
+          what: "C",
+          owner: "X",
+          urgency: "backlog",
+          createdAt: "2026-02-14T08:00:00Z",
+        }),
       ];
       const result = prioritizeActionItems(items);
       expect(result).toHaveLength(3);
-      expect(result.map((r) => ({ what: r.what, priority: r.priority }))).toEqual([
+      expect(
+        result.map((r) => ({ what: r.what, priority: r.priority })),
+      ).toEqual([
         { what: "A", priority: 1 },
         { what: "B", priority: 2 },
         { what: "C", priority: 3 },
@@ -46,8 +65,18 @@ describe("standupPlanner", () => {
 
     it("sorts by createdAt within same urgency", () => {
       const items: ActionItem[] = [
-        item({ what: "Second", owner: "X", urgency: "today", createdAt: "2026-02-14T11:00:00Z" }),
-        item({ what: "First", owner: "X", urgency: "today", createdAt: "2026-02-14T10:00:00Z" }),
+        item({
+          what: "Second",
+          owner: "X",
+          urgency: "today",
+          createdAt: "2026-02-14T11:00:00Z",
+        }),
+        item({
+          what: "First",
+          owner: "X",
+          urgency: "today",
+          createdAt: "2026-02-14T10:00:00Z",
+        }),
       ];
       const result = prioritizeActionItems(items);
       expect(result[0].what).toBe("First");

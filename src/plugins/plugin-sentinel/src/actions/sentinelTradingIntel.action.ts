@@ -64,7 +64,7 @@ const TRADING_INTEL_TRIGGERS = [
 
 function wantsTradingIntel(text: string): boolean {
   const lower = text.toLowerCase();
-  return TRADING_INTEL_TRIGGERS.some(t => lower.includes(t));
+  return TRADING_INTEL_TRIGGERS.some((t) => lower.includes(t));
 }
 
 export const sentinelTradingIntelAction: Action = {
@@ -79,7 +79,10 @@ export const sentinelTradingIntelAction: Action = {
   description:
     "Deep knowledge of VINCE's paper trading bot (20+ signal sources, feature store, ONNX ML) and Solus's options strategy (Hypersurface, strike ritual, EV framework). Can suggest improvements to both systems.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsTradingIntel(text);
   },
@@ -102,15 +105,18 @@ export const sentinelTradingIntelAction: Action = {
         const sources = getSignalSources();
         const freeSources = getFreeSources();
         const keyRequired = getKeyRequiredSources();
-        
+
         await callback({
           text: `📡 **Signal Aggregator (${sources.length} sources)**
 
 **Free Sources (${freeSources.length}):**
-${freeSources.slice(0, 8).map(s => `• **${s.name}** (${s.defaultWeight}x): ${s.thresholds}`).join("\n")}
+${freeSources
+  .slice(0, 8)
+  .map((s) => `• **${s.name}** (${s.defaultWeight}x): ${s.thresholds}`)
+  .join("\n")}
 
 **API Key Required (${keyRequired.length}):**
-${keyRequired.map(s => `• **${s.name}** (${s.keyEnv}): ${s.description}`).join("\n")}
+${keyRequired.map((s) => `• **${s.name}** (${s.keyEnv}): ${s.description}`).join("\n")}
 
 **How it works:**
 1. Each source contributes factors when thresholds are met
@@ -129,12 +135,15 @@ ${keyRequired.map(s => `• **${s.name}** (${s.keyEnv}): ${s.description}`).join
       // Feature store query
       if (lower.includes("feature store") || lower.includes("features")) {
         const categories = getFeatureCategories();
-        const totalFeatures = categories.reduce((sum, c) => sum + c.features.length, 0);
-        
+        const totalFeatures = categories.reduce(
+          (sum, c) => sum + c.features.length,
+          0,
+        );
+
         await callback({
           text: `📊 **Feature Store (${totalFeatures}+ features per decision)**
 
-${categories.map(c => `**${c.category}:** ${c.features.join(", ")}`).join("\n\n")}
+${categories.map((c) => `**${c.category}:** ${c.features.join(", ")}`).join("\n\n")}
 
 **Storage:**
 • JSONL: \`.elizadb/vince-paper-bot/features/\` (always)
@@ -153,14 +162,18 @@ Records no-trade evaluations with same features but \`avoided: { reason }\` — 
       }
 
       // ML/ONNX query
-      if (lower.includes("ml") || lower.includes("onnx") || lower.includes("training")) {
+      if (
+        lower.includes("ml") ||
+        lower.includes("onnx") ||
+        lower.includes("training")
+      ) {
         const models = getMLModels();
-        
+
         await callback({
           text: `🤖 **ML Pipeline (ONNX)**
 
 **Models:**
-${models.map(m => `• **${m.name}:** ${m.purpose}\n  Inputs: ${m.inputs.join(", ")}\n  Output: ${m.output}`).join("\n\n")}
+${models.map((m) => `• **${m.name}:** ${m.purpose}\n  Inputs: ${m.inputs.join(", ")}\n  Output: ${m.output}`).join("\n\n")}
 
 **Training Flow:**
 1. Collect 90+ closed trades (VINCE_PAPER_AGGRESSIVE=true speeds this up)
@@ -183,15 +196,19 @@ SUPABASE_SERVICE_ROLE_KEY=...  # Persist features
       }
 
       // Hypersurface/options query
-      if (lower.includes("hypersurface") || lower.includes("options strategy") || lower.includes("strike")) {
+      if (
+        lower.includes("hypersurface") ||
+        lower.includes("options strategy") ||
+        lower.includes("strike")
+      ) {
         const assets = getHypersurfaceAssets();
         const ritual = getStrikeRitualSteps();
-        
+
         await callback({
           text: `🎯 **Hypersurface Options (Solus's Lane)**
 
 **Assets (Friday 08:00 UTC expiry):**
-${assets.map(a => `• **${a.ticker}:** ${a.strategies.join(", ")}`).join("\n")}
+${assets.map((a) => `• **${a.ticker}:** ${a.strategies.join(", ")}`).join("\n")}
 
 **Strategies:**
 • **Covered Call:** Own asset → sell call → earn premium
@@ -199,7 +216,7 @@ ${assets.map(a => `• **${a.ticker}:** ${a.strategies.join(", ")}`).join("\n")}
 • **Wheel:** Calls → if assigned, puts → repeat
 
 **Strike Ritual:**
-${ritual.map(s => `${s.step}. ${s.actor}: ${s.action}`).join("\n")}
+${ritual.map((s) => `${s.step}. ${s.actor}: ${s.action}`).join("\n")}
 
 **Key Points:**
 • Early exercise possible ~24h before (Thursday night matters)
@@ -215,11 +232,11 @@ ${ritual.map(s => `${s.step}. ${s.actor}: ${s.action}`).join("\n")}
       // EV framework query
       if (lower.includes("ev framework") || lower.includes("expected value")) {
         const example: EVScenario[] = [
-          { name: "Bull", probability: 0.30, return_pct: 150 },
+          { name: "Bull", probability: 0.3, return_pct: 150 },
           { name: "Base", probability: 0.45, return_pct: 20 },
           { name: "Bear", probability: 0.25, return_pct: -60 },
         ];
-        
+
         await callback({
           text: `📈 **EV Framework (Solus)**
 
@@ -258,20 +275,26 @@ ${formatEV("BTC", 105000, example)}
         const paperImprovements = getPaperTradingImprovements();
         const solusImprovements = getSolusImprovements();
         const health = checkPaperTradingHealth();
-        
+
         let response = `🔧 **Trading System Improvements**\n\n`;
-        
+
         if (health.issues.length > 0) {
-          response += `**⚠️ Current Issues:**\n${health.issues.map(i => `• ${i}`).join("\n")}\n\n`;
+          response += `**⚠️ Current Issues:**\n${health.issues.map((i) => `• ${i}`).join("\n")}\n\n`;
         }
-        
-        response += `**Paper Trading Bot (VINCE):**\n${paperImprovements.slice(0, 5).map((i, n) => `${n + 1}. ${i}`).join("\n")}\n\n`;
-        response += `**Options Strategy (Solus):**\n${solusImprovements.slice(0, 5).map((i, n) => `${n + 1}. ${i}`).join("\n")}\n\n`;
-        
+
+        response += `**Paper Trading Bot (VINCE):**\n${paperImprovements
+          .slice(0, 5)
+          .map((i, n) => `${n + 1}. ${i}`)
+          .join("\n")}\n\n`;
+        response += `**Options Strategy (Solus):**\n${solusImprovements
+          .slice(0, 5)
+          .map((i, n) => `${n + 1}. ${i}`)
+          .join("\n")}\n\n`;
+
         if (health.suggestions.length > 0) {
-          response += `**Quick Wins:**\n${health.suggestions.map(s => `• ${s}`).join("\n")}`;
+          response += `**Quick Wins:**\n${health.suggestions.map((s) => `• ${s}`).join("\n")}`;
         }
-        
+
         const out1 = "Here's the trading intel—\n\n" + response;
         await callback({ text: out1 });
         return { success: true };
@@ -281,24 +304,27 @@ ${formatEV("BTC", 105000, example)}
       const paperOverview = getPaperTradingOverview();
       const solusOverview = getSolusOverview();
       const health = checkPaperTradingHealth();
-      
+
       let response = `📊 **Trading Intelligence Overview**\n\n`;
       response += `**VINCE (Perps on Hyperliquid):**\n`;
       response += `• ${getSignalSources().length} signal sources in aggregator\n`;
       response += `• 50+ features per decision in feature store\n`;
       response += `• ${getMLModels().length} ONNX models (signal quality, sizing, TP, SL)\n\n`;
-      
+
       response += `**Solus (Options on Hypersurface):**\n`;
       response += `• ${getHypersurfaceAssets().length} assets (HYPE, SOL, WBTC, ETH)\n`;
       response += `• Friday 08:00 UTC weekly expiry\n`;
       response += `• EV framework with three scenarios\n\n`;
-      
+
       if (health.issues.length > 0) {
-        response += `**⚠️ Issues:**\n${health.issues.slice(0, 3).map(i => `• ${i}`).join("\n")}\n\n`;
+        response += `**⚠️ Issues:**\n${health.issues
+          .slice(0, 3)
+          .map((i) => `• ${i}`)
+          .join("\n")}\n\n`;
       }
-      
+
       response += `---\n*Ask about: "signal sources", "feature store", "ml training", "hypersurface", "ev framework", "improve the algo"*`;
-      
+
       const out = "Here's the trading intel—\n\n" + response;
       await callback({ text: out });
       return { success: true };
@@ -307,13 +333,21 @@ ${formatEV("BTC", 105000, example)}
       await callback({
         text: "Failed to provide trading intelligence. Check SIGNAL_SOURCES.md and FEATURE-STORE.md for documentation.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Tell me about the signal sources in the paper trading bot" } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Tell me about the signal sources in the paper trading bot",
+        },
+      },
       {
         name: "{{agent}}",
         content: {

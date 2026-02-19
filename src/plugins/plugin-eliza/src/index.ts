@@ -69,7 +69,10 @@ import * as sourceQualityService from "./services/sourceQuality.service";
 import * as styleGuideService from "./services/styleGuide.service";
 import * as researchAgendaService from "./services/researchAgenda.service";
 import { substackContextProvider } from "./providers/substackContext.provider";
-import { getSubstackFeedUrl, fetchSubstackPosts } from "./services/substackFeed";
+import {
+  getSubstackFeedUrl,
+  fetchSubstackPosts,
+} from "./services/substackFeed";
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
@@ -132,7 +135,10 @@ export const elizaPlugin: Plugin = {
       type: "POST",
       handler: async (
         req: { body?: unknown; [k: string]: unknown },
-        res: { status: (n: number) => { json: (o: object) => void }; json: (o: object) => void },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
         runtime?: IAgentRuntime,
       ) => {
         const agentRuntime =
@@ -150,7 +156,10 @@ export const elizaPlugin: Plugin = {
         try {
           const body = (req.body ?? {}) as { type?: string; content?: string };
           const type = body.type === "youtube" ? "youtube" : "text";
-          const result = await handleUploadRequest(agentRuntime, { type, content: body.content ?? "" });
+          const result = await handleUploadRequest(agentRuntime, {
+            type,
+            content: body.content ?? "",
+          });
           if (!result.success) {
             res.status(400).json(result);
             return;
@@ -171,7 +180,10 @@ export const elizaPlugin: Plugin = {
       type: "GET",
       handler: async (
         _req: { body?: unknown; [k: string]: unknown },
-        res: { status: (n: number) => { json: (o: object) => void }; json: (o: object) => void },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
       ) => {
         try {
           const feedUrl = getSubstackFeedUrl();
@@ -179,7 +191,10 @@ export const elizaPlugin: Plugin = {
           res.status(200).json({ posts });
         } catch (err) {
           logger.warn(`[Eliza Plugin] Substack route error: ${err}`);
-          res.status(500).json({ posts: [], error: err instanceof Error ? err.message : String(err) });
+          res.status(500).json({
+            posts: [],
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       },
     },
@@ -224,7 +239,9 @@ export const elizaPlugin: Plugin = {
         `[Eliza Plugin] Voice profile loaded (${profile.analyzedFiles} files analyzed)`,
       );
     } catch (e) {
-      logger.debug("[Eliza Plugin] Voice profile will be generated on first use");
+      logger.debug(
+        "[Eliza Plugin] Voice profile will be generated on first use",
+      );
     }
 
     // Initial knowledge scan (non-blocking)
@@ -233,7 +250,9 @@ export const elizaPlugin: Plugin = {
         autoMonitorService.runMonitorScan();
         knowledgeGraphService.buildKnowledgeGraph();
         sourceQualityService.scanAndUpdateQuality();
-        logger.info("[Eliza Plugin] Initial knowledge intelligence scan complete");
+        logger.info(
+          "[Eliza Plugin] Initial knowledge intelligence scan complete",
+        );
       } catch (e) {
         logger.debug("[Eliza Plugin] Knowledge scan deferred");
       }

@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for Polymarket plugin context activation
@@ -7,11 +10,24 @@ import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin
 export const polymarketKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
     // Core market concepts
-    "market", "polymarket", "prediction", "bet", "odds", "forecast",
+    "market",
+    "polymarket",
+    "prediction",
+    "bet",
+    "odds",
+    "forecast",
     // Outcomes and events
-    "outcome", "event", "election", "sports", "crypto",
+    "outcome",
+    "event",
+    "election",
+    "sports",
+    "crypto",
     // Market operations
-    "positions", "portfolio", "balance", "trading", "trade history",
+    "positions",
+    "portfolio",
+    "balance",
+    "trading",
+    "trade history",
   ],
   regexPatterns: [
     /bet\s+on/i,
@@ -42,7 +58,10 @@ export const polymarketKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldPolymarketPluginBeInContext(state?: State, message?: Memory): boolean {
+export function shouldPolymarketPluginBeInContext(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, polymarketKeywordPatterns, message);
 }

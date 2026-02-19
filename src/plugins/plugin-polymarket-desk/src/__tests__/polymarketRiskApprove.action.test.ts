@@ -3,18 +3,25 @@ import { polymarketRiskApproveAction } from "../actions/polymarketRiskApprove.ac
 import type { IAgentRuntime, Memory, State } from "@elizaos/core";
 
 const SIGNAL_ID = "signal-uuid-123";
-const MARKET_ID = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab";
+const MARKET_ID =
+  "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab";
 
-function createMockRuntime(overrides: Partial<{
-  getConnection: () => Promise<unknown>;
-  getSetting: (key: string) => unknown;
-  composeState: (msg: Memory, list: string[] | null, flag: boolean) => Promise<State>;
-}> = {}): IAgentRuntime {
+function createMockRuntime(
+  overrides: Partial<{
+    getConnection: () => Promise<unknown>;
+    getSetting: (key: string) => unknown;
+    composeState: (
+      msg: Memory,
+      list: string[] | null,
+      flag: boolean,
+    ) => Promise<State>;
+  }> = {},
+): IAgentRuntime {
   return {
     getConnection: overrides.getConnection ?? (async () => null),
     getSetting: overrides.getSetting ?? (() => undefined),
     composeState: overrides.composeState
-      ? overrides.composeState as any
+      ? (overrides.composeState as any)
       : async () => ({ data: { actionParams: {} } }) as State,
     agentId: "risk-agent",
   } as unknown as IAgentRuntime;
@@ -39,7 +46,10 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
 
   it("validate returns false when getConnection is missing", async () => {
     const runtime = createMockRuntime({ getConnection: async () => null });
-    const valid = await polymarketRiskApproveAction.validate!(runtime, createMessage());
+    const valid = await polymarketRiskApproveAction.validate!(
+      runtime,
+      createMessage(),
+    );
     expect(valid).toBe(false);
   });
 
@@ -47,7 +57,10 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
     const runtime = createMockRuntime({
       getConnection: async () => ({}),
     });
-    const valid = await polymarketRiskApproveAction.validate!(runtime, createMessage());
+    const valid = await polymarketRiskApproveAction.validate!(
+      runtime,
+      createMessage(),
+    );
     expect(valid).toBe(false);
   });
 
@@ -55,7 +68,10 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
     const runtime = createMockRuntime({
       getConnection: async () => ({ query: async () => ({ rows: [] }) }),
     });
-    const valid = await polymarketRiskApproveAction.validate!(runtime, createMessage());
+    const valid = await polymarketRiskApproveAction.validate!(
+      runtime,
+      createMessage(),
+    );
     expect(valid).toBe(true);
   });
 
@@ -76,7 +92,8 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
     const runtime = createMockRuntime({
       getConnection: async () => ({
         query: async (sql: string, values?: unknown[]) => {
-          if (sql.includes("SELECT") && sql.includes("signals")) return { rows: [] };
+          if (sql.includes("SELECT") && sql.includes("signals"))
+            return { rows: [] };
           return { rows: [] };
         },
       }),
@@ -99,7 +116,11 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
       getConnection: async () => ({
         query: async (sql: string, values?: unknown[]) => {
           queries.push({ sql, values: values ?? [] });
-          if (sql.includes("SELECT") && sql.includes("signals") && values?.[0] === SIGNAL_ID)
+          if (
+            sql.includes("SELECT") &&
+            sql.includes("signals") &&
+            values?.[0] === SIGNAL_ID
+          )
             return {
               rows: [
                 {
@@ -114,7 +135,11 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
                 },
               ],
             };
-          if (sql.includes("SELECT") && sql.includes("signals") && (!values || values.length === 0))
+          if (
+            sql.includes("SELECT") &&
+            sql.includes("signals") &&
+            (!values || values.length === 0)
+          )
             return { rows: [] };
           return { rows: [] };
         },
@@ -142,7 +167,9 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
     expect(insertOrder!.values[2]).toBe(SIGNAL_ID);
     expect(insertOrder!.values[3]).toBe(MARKET_ID);
     expect(insertOrder!.values[4]).toBe("YES");
-    const updateSignal = queries.find((q) => q.sql.includes("UPDATE") && q.sql.includes("signals"));
+    const updateSignal = queries.find(
+      (q) => q.sql.includes("UPDATE") && q.sql.includes("signals"),
+    );
     expect(updateSignal).toBeDefined();
     expect(updateSignal!.values[0]).toBe(SIGNAL_ID);
   });
@@ -185,7 +212,8 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
     const runtime = createMockRuntime({
       getConnection: async () => ({
         query: async (sql: string) => {
-          if (sql.includes("SELECT") && sql.includes("signals")) return { rows: [] };
+          if (sql.includes("SELECT") && sql.includes("signals"))
+            return { rows: [] };
           return { rows: [] };
         },
       }),

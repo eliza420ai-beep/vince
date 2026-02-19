@@ -8,7 +8,10 @@ import * as fs from "node:fs/promises";
 import { verifyActionItem } from "../standupVerifier";
 import type { ActionItem } from "../actionItemTracker";
 
-const TEST_DIR = path.join(process.cwd(), "standup-verifier-test-" + Date.now());
+const TEST_DIR = path.join(
+  process.cwd(),
+  "standup-verifier-test-" + Date.now(),
+);
 
 function item(overrides: Partial<ActionItem> = {}): ActionItem {
   const now = new Date().toISOString();
@@ -50,7 +53,9 @@ describe("standupVerifier", () => {
 
     it("returns ok: true when result has only message (e.g. remind sent)", async () => {
       const runtime = {} as any;
-      const result = await verifyActionItem(runtime, item(), { message: "remind sent" });
+      const result = await verifyActionItem(runtime, item(), {
+        message: "remind sent",
+      });
       expect(result.ok).toBe(true);
     });
 
@@ -67,7 +72,9 @@ describe("standupVerifier", () => {
       const filepath = path.join(TEST_DIR, "empty.txt");
       await fs.writeFile(filepath, "", "utf-8");
       const runtime = {} as any;
-      const result = await verifyActionItem(runtime, item(), { path: filepath });
+      const result = await verifyActionItem(runtime, item(), {
+        path: filepath,
+      });
       expect(result.ok).toBe(false);
       expect(result.message).toContain("empty");
     });
@@ -76,7 +83,9 @@ describe("standupVerifier", () => {
       const filepath = path.join(TEST_DIR, "content.md");
       await fs.writeFile(filepath, "# Hello\n\nContent here.", "utf-8");
       const runtime = {} as any;
-      const result = await verifyActionItem(runtime, item(), { path: filepath });
+      const result = await verifyActionItem(runtime, item(), {
+        path: filepath,
+      });
       expect(result.ok).toBe(true);
     });
   });

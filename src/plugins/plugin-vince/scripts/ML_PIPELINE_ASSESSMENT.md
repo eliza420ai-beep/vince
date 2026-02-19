@@ -6,7 +6,7 @@ Honest evaluation of the training pipeline's strengths, limitations, and what wi
 
 - **Closed-loop architecture.** Paper trade → feature store → train → ONNX → inference → better trades → repeat. Most crypto bots never close this loop; they're static rule engines forever. VINCE retrains on its own outcomes and feeds improvements back into live decisions. That's the hard part, and it's built.
 - **Signal quality model is highest-leverage.** Filtering out low-quality signals before opening trades is where most PnL is won or lost. Platt calibration + suggested threshold flowing back into the aggregator is a clean feedback loop.
-- **Improvement report with decision drivers.** The "why did we open this losing trade?" section is genuinely useful for a human reviewing the bot. Most systems lose the "why" at trade time — recording `decisionDrivers` in the feature store means the model can learn which *reasoning patterns* lead to losses.
+- **Improvement report with decision drivers.** The "why did we open this losing trade?" section is genuinely useful for a human reviewing the bot. Most systems lose the "why" at trade time — recording `decisionDrivers` in the feature store means the model can learn which _reasoning patterns_ lead to losses.
 - **Code quality.** DRY feature prep, proper holdout evaluation (no leakage), walk-forward with purge gap, SHAP explainability, feature manifests, ONNX hashing — the engineering is solid.
 
 ## What I'm Skeptical About
@@ -19,7 +19,7 @@ XGBoost with 20+ features on 90 samples will overfit. Walk-forward validation wi
 
 ### Position sizing and TP/SL models are weakest
 
-Predicting optimal position size from pre-trade features is *really hard* — it's basically predicting magnitude of returns, which is noisier than direction. These models will likely converge to "just use 1x" for a long time.
+Predicting optimal position size from pre-trade features is _really hard_ — it's basically predicting magnitude of returns, which is noisier than direction. These models will likely converge to "just use 1x" for a long time.
 
 The SL quantile regression (95th percentile of adverse excursion) is more defensible — it's answering "how bad could this get?" which is more learnable from market conditions.
 
@@ -29,13 +29,14 @@ The SL quantile regression (95th percentile of adverse excursion) is more defens
 
 The generator produces records that are structurally correct but have no real market dynamics. Models trained on synthetic data will pass all smoke tests but learn nothing useful. The README is clear about this — but deploying synthetic-trained models risks false confidence.
 
-**Recommendation:** Use synthetic data *only* for pipeline testing. Never deploy synthetic-trained ONNX models to production. The `--real-only` flag exists for this reason.
+**Recommendation:** Use synthetic data _only_ for pipeline testing. Never deploy synthetic-trained ONNX models to production. The `--real-only` flag exists for this reason.
 
 ## Biggest Missing Piece: Backtest Harness
 
-You can train great models and still lose money if the end-to-end system (model → decision → execution → slippage → fees) doesn't compound. A backtest harness that replays historical trades with the new models and reports **Sharpe ratio, max drawdown, and net PnL** would tell you whether retrained models *actually* improve returns — not just ML metrics.
+You can train great models and still lose money if the end-to-end system (model → decision → execution → slippage → fees) doesn't compound. A backtest harness that replays historical trades with the new models and reports **Sharpe ratio, max drawdown, and net PnL** would tell you whether retrained models _actually_ improve returns — not just ML metrics.
 
 **Suggested implementation:**
+
 1. Load holdout trades from JSONL (last 20% by time)
 2. Run model predictions on holdout features
 3. Simulate: would we have taken this trade? At what size? With what TP/SL?

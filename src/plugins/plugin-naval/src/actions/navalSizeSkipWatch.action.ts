@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "size skip watch",
@@ -50,11 +55,19 @@ Direct. No hedging. Give them the move and the rule.`;
 
 export const navalSizeSkipWatchAction: Action = {
   name: "NAVAL_SIZE_SKIP_WATCH",
-  similes: ["SIZE_SKIP_WATCH", "SIZE_OR_SKIP", "EXECUTION_ARCHITECT", "ONE_CLEAR_MOVE"],
+  similes: [
+    "SIZE_SKIP_WATCH",
+    "SIZE_OR_SKIP",
+    "EXECUTION_ARCHITECT",
+    "ONE_CLEAR_MOVE",
+  ],
   description:
     "Decision framework: size the position, skip, or watch. One clear move and one rule so they never float in maybe.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSizeSkipWatch(text);
   },
@@ -91,7 +104,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -99,14 +112,25 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Size, skip, or watch. Every decision is one of the three. If you can't say which with a reason, skip. Set invalidation before you size. One move, one rule.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I'm not sure if I should add to this or sit out." } },
-      { name: "{{agent}}", content: { text: "You're in maybe. Pick one: size (you have edge and invalidation), skip (you don't), or watch (track until it's clear). Rule: if you can't say which with one line, skip. Move: either set size and invalidation now, or name it watch and set the condition that would make it size." } },
+      {
+        name: "{{user}}",
+        content: { text: "I'm not sure if I should add to this or sit out." },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're in maybe. Pick one: size (you have edge and invalidation), skip (you don't), or watch (track until it's clear). Rule: if you can't say which with one line, skip. Move: either set size and invalidation now, or name it watch and set the condition that would make it size.",
+        },
+      },
     ],
   ],
 };

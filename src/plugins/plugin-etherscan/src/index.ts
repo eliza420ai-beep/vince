@@ -14,6 +14,9 @@ export const etherscanPlugin: Plugin = {
 };
 
 export default etherscanPlugin;
-export { EtherscanService, checkTransactionConfirmationAction, shouldEtherscanPluginBeInContext };
+export {
+  EtherscanService,
+  checkTransactionConfirmationAction,
+  shouldEtherscanPluginBeInContext,
+};
 export * from "./utils/actionHelpers";
-

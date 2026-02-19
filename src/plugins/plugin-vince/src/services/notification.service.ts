@@ -94,7 +94,9 @@ export class VinceNotificationService extends Service {
       );
     }
     if (skippedNoHandler > 0) {
-      logger.debug(`[VinceNotification] Skipped ${skippedNoHandler} target(s) (no send handler for source — use a separate Discord app for VINCE)`);
+      logger.debug(
+        `[VinceNotification] Skipped ${skippedNoHandler} target(s) (no send handler for source — use a separate Discord app for VINCE)`,
+      );
     }
     if (failed.length > 0) {
       logger.warn(
@@ -104,15 +106,28 @@ export class VinceNotificationService extends Service {
     return sent;
   }
 
-  private async getPushTargets(options?: PushOptions): Promise<Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }>> {
-    const isVince = (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
+  private async getPushTargets(options?: PushOptions): Promise<
+    Array<{
+      source: string;
+      roomId?: UUID;
+      channelId?: string;
+      serverId?: string;
+    }>
+  > {
+    const isVince =
+      (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
     const vinceHasOwnDiscord =
       !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
       !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
-      (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+      (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() ||
+        process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !==
+          process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
     const defaultSources: readonly string[] =
-      isVince && !vinceHasOwnDiscord ? (["slack", "telegram"] as const) : PUSH_SOURCES;
-    const sources = (options?.sources as readonly string[] | undefined) ?? defaultSources;
+      isVince && !vinceHasOwnDiscord
+        ? (["slack", "telegram"] as const)
+        : PUSH_SOURCES;
+    const sources =
+      (options?.sources as readonly string[] | undefined) ?? defaultSources;
     const roomIdsFilter = options?.roomIds;
     const nameContains = options?.roomNameContains?.toLowerCase();
 
@@ -124,14 +139,29 @@ export class VinceNotificationService extends Service {
 
     const shouldIncludeSource = (src: string): boolean => {
       if (!sources.includes(src)) return false;
-      if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]) && !isVince) return false;
+      if (
+        PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]) &&
+        !isVince
+      )
+        return false;
       if (isVince && src === "discord") return vinceHasOwnDiscord;
-      if (isVince && src === "slack" && !process.env.SLACK_BOT_TOKEN?.trim()) return false;
-      if (isVince && src === "telegram" && !process.env.TELEGRAM_BOT_TOKEN?.trim()) return false;
+      if (isVince && src === "slack" && !process.env.SLACK_BOT_TOKEN?.trim())
+        return false;
+      if (
+        isVince &&
+        src === "telegram" &&
+        !process.env.TELEGRAM_BOT_TOKEN?.trim()
+      )
+        return false;
       return true;
     };
 
-    const targets: Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }> = [];
+    const targets: Array<{
+      source: string;
+      roomId?: UUID;
+      channelId?: string;
+      serverId?: string;
+    }> = [];
 
     try {
       const worlds = await this.runtime.getAllWorlds();
@@ -141,7 +171,12 @@ export class VinceNotificationService extends Service {
         for (const room of rooms) {
           const src = (room.source ?? "").toLowerCase();
           if (!shouldIncludeSource(src)) continue;
-          if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
+          if (
+            roomIdsFilter?.length &&
+            room.id &&
+            !roomIdsFilter.includes(room.id)
+          )
+            continue;
           if (!room.id) continue;
           if (!matchesRoomName(room)) continue;
 
@@ -160,7 +195,12 @@ export class VinceNotificationService extends Service {
         for (const room of fallbackRooms) {
           const src = (room.source ?? "").toLowerCase();
           if (!shouldIncludeSource(src)) continue;
-          if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
+          if (
+            roomIdsFilter?.length &&
+            room.id &&
+            !roomIdsFilter.includes(room.id)
+          )
+            continue;
           if (!matchesRoomName(room)) continue;
           targets.push({
             source: (room.source ?? "").toLowerCase(),

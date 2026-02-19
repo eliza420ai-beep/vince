@@ -67,7 +67,12 @@ The goal: tweets that make smart people want to follow ${X_HANDLE}.`;
 function detectFormat(text: string): TweetFormat {
   const lower = text.toLowerCase();
   if (lower.includes("thread")) return "thread";
-  if (lower.includes("batch") || lower.includes("ideas") || lower.includes("multiple") || lower.includes("several")) {
+  if (
+    lower.includes("batch") ||
+    lower.includes("ideas") ||
+    lower.includes("multiple") ||
+    lower.includes("several")
+  ) {
     return "batch";
   }
   return "single";
@@ -75,11 +80,14 @@ function detectFormat(text: string): TweetFormat {
 
 function extractTopic(text: string): string {
   const cleaned = text
-    .replace(/^(draft|write|create|generate|suggest)\s+(a\s+)?(tweet|thread|tweets?)\s+(about|on|for|covering)?\s*/i, "")
+    .replace(
+      /^(draft|write|create|generate|suggest)\s+(a\s+)?(tweet|thread|tweets?)\s+(about|on|for|covering)?\s*/i,
+      "",
+    )
     .replace(/^(tweet|thread)\s+(about|on)?\s*/i, "")
     .replace(/for\s+@\w+\s*/i, "")
     .trim();
-  
+
   return cleaned || "current market dynamics";
 }
 
@@ -97,7 +105,7 @@ function saveTweetDraft(draft: TweetDraft): string {
     .slice(0, 30);
   const filename = `tweet-${draft.format}-${slug}-${draft.timestamp}.md`;
   const filepath = path.join(DRAFTS_DIR, filename);
-  
+
   const content = `---
 format: ${draft.format}
 topic: "${draft.topic}"
@@ -108,7 +116,7 @@ status: draft
 
 ${draft.content}
 `;
-  
+
   fs.writeFileSync(filepath, content, "utf-8");
   return filepath;
 }
@@ -121,7 +129,9 @@ function formatTweetForDisplay(content: string, format: TweetFormat): string {
   if (format === "batch") {
     // Number the batch items
     const tweets = content.split(/\n{2,}/).filter((t) => t.trim());
-    return tweets.map((t, i) => `**Option ${i + 1}:**\n${t.trim()}`).join("\n\n---\n\n");
+    return tweets
+      .map((t, i) => `**Option ${i + 1}:**\n${t.trim()}`)
+      .join("\n\n---\n\n");
   }
   return content;
 }
@@ -160,11 +170,17 @@ Target: ${X_URL}`,
     if (message.entityId === runtime.agentId) return false;
 
     return (
-      (text.includes("tweet") && (text.includes("draft") || text.includes("write") || text.includes("suggest") || text.includes("create"))) ||
-      (text.includes("thread") && (text.includes("draft") || text.includes("write"))) ||
+      (text.includes("tweet") &&
+        (text.includes("draft") ||
+          text.includes("write") ||
+          text.includes("suggest") ||
+          text.includes("create"))) ||
+      (text.includes("thread") &&
+        (text.includes("draft") || text.includes("write"))) ||
       text.includes("tweet about") ||
       text.includes("tweet on") ||
-      (text.includes("x post") || text.includes("x.com")) && text.includes("draft")
+      ((text.includes("x post") || text.includes("x.com")) &&
+        text.includes("draft"))
     );
   },
 
@@ -176,7 +192,7 @@ Target: ${X_URL}`,
     callback?: HandlerCallback,
   ): Promise<void> => {
     const text = message.content?.text || "";
-    
+
     try {
       const topic = extractTopic(text);
       const format = detectFormat(text);
@@ -201,7 +217,7 @@ Each tweet must stand alone but build the narrative.
 First tweet is the hook. Last tweet is the call to action or key takeaway.
 Keep each under 280 characters.`;
           break;
-        
+
         case "batch":
           userPrompt = `Generate 5 different standalone tweet options about: ${topic}
 
@@ -213,7 +229,7 @@ Each tweet should:
 
 Separate each tweet with a blank line.`;
           break;
-        
+
         default: // single
           userPrompt = `Write one punchy tweet about: ${topic}
 
@@ -233,7 +249,10 @@ Requirements:
         system: TWEET_SYSTEM_PROMPT + "\n\n" + voiceAddition,
       } as any);
 
-      const content = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+      const content =
+        typeof response === "string"
+          ? response
+          : ((response as { text?: string })?.text ?? "");
 
       if (!content || content.length < 20) {
         if (callback) {
@@ -321,7 +340,9 @@ ${displayContent}
     [
       {
         name: "{{user}}",
-        content: { text: "suggest batch of tweets about lifestyle optimization" },
+        content: {
+          text: "suggest batch of tweets about lifestyle optimization",
+        },
       },
       {
         name: "{{agent}}",

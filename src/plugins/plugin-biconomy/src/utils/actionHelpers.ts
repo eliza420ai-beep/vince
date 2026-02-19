@@ -4,7 +4,14 @@
  * Shared utilities for Biconomy plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, type HandlerCallback, type ActionResult, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  type HandlerCallback,
+  type ActionResult,
+  logger,
+} from "@elizaos/core";
 import { BiconomyService } from "../services/biconomy.service";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
 import type { CdpNetwork } from "../../../plugin-cdp/types";
@@ -24,7 +31,7 @@ export function validateBiconomyService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   try {
     // Check plugin context first
@@ -33,7 +40,7 @@ export function validateBiconomyService(
     }
 
     const service = runtime.getService(
-      BiconomyService.serviceType
+      BiconomyService.serviceType,
     ) as BiconomyService;
 
     if (!service) {
@@ -42,7 +49,7 @@ export function validateBiconomyService(
     }
 
     const cdpService = runtime.getService(
-      CdpService.serviceType
+      CdpService.serviceType,
     ) as unknown as CdpService;
 
     if (!cdpService) {
@@ -54,7 +61,7 @@ export function validateBiconomyService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -67,10 +74,10 @@ export function validateBiconomyService(
  * @returns Biconomy service instance or null
  */
 export function getBiconomyService(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): BiconomyService | null {
   return runtime.getService(
-    BiconomyService.serviceType
+    BiconomyService.serviceType,
   ) as BiconomyService | null;
 }
 
@@ -83,12 +90,12 @@ export function getBiconomyService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }
@@ -126,15 +133,17 @@ export interface ValidatedViemClientsError {
   error: ActionResult;
 }
 
-export type ValidatedViemClientsResult = ValidatedViemClientsSuccess | ValidatedViemClientsError;
+export type ValidatedViemClientsResult =
+  | ValidatedViemClientsSuccess
+  | ValidatedViemClientsError;
 
 /**
  * Get viem clients and validate CDP account matches entity wallet address.
- * 
+ *
  * This function ensures the CDP account used for signing matches the wallet address
  * from entity metadata. If they don't match, signing would fail since CDP account
  * can only sign for its own address.
- * 
+ *
  * @param cdpService - CDP service instance
  * @param accountName - Account name for CDP lookup
  * @param network - CDP network
@@ -151,7 +160,7 @@ export async function getValidatedViemClients(
   wallet: EntityWalletResult,
   actionName: string,
   inputParams: Record<string, unknown>,
-  callback?: HandlerCallback
+  callback?: HandlerCallback,
 ): Promise<ValidatedViemClientsResult> {
   const viemClient = await cdpService.getViemClientsForAccount({
     accountName,
@@ -162,7 +171,7 @@ export async function getValidatedViemClients(
   // The CDP account lookup may return a different address if accountName doesn't correctly
   // map to the original CDP account (e.g., for users created before migration fix)
   const userAddress = wallet.walletAddress as `0x${string}`;
-  
+
   // Validate that CDP account matches entity wallet address
   // If they don't match, signing will fail since CDP account can only sign for its own address
   if (viemClient.address.toLowerCase() !== userAddress.toLowerCase()) {

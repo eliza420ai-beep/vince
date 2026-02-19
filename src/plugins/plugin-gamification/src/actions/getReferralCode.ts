@@ -1,20 +1,30 @@
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback, ActionResult } from '@elizaos/core';
-import { ReferralService } from '../services/ReferralService';
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+  ActionResult,
+} from "@elizaos/core";
+import { ReferralService } from "../services/ReferralService";
 
 function getReferralBaseUrl(runtime: IAgentRuntime): string {
   const base =
-    (runtime.getSetting('GAMIFICATION_REFERRAL_BASE_URL') as string) ||
+    (runtime.getSetting("GAMIFICATION_REFERRAL_BASE_URL") as string) ||
     process.env.GAMIFICATION_REFERRAL_BASE_URL ||
-    'https://otaku.so';
-  return base.replace(/\/$/, '');
+    "https://otaku.so";
+  return base.replace(/\/$/, "");
 }
 
 export const getReferralCodeAction: Action = {
-  name: 'GET_REFERRAL_CODE',
+  name: "GET_REFERRAL_CODE",
   description: "Your invite link and how it's doing.",
-  similes: ['REFERRAL_CODE', 'MY_REFERRAL', 'INVITE_LINK', 'SHARE_CODE'],
+  similes: ["REFERRAL_CODE", "MY_REFERRAL", "INVITE_LINK", "SHARE_CODE"],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     return true;
   },
 
@@ -23,12 +33,12 @@ export const getReferralCodeAction: Action = {
     message: Memory,
     state?: State,
     options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const referralService = runtime.getService('referral') as ReferralService;
+      const referralService = runtime.getService("referral") as ReferralService;
       if (!referralService) {
-        const errorText = 'Referral service unavailable.';
+        const errorText = "Referral service unavailable.";
         await callback?.({
           text: errorText,
         });
@@ -38,7 +48,9 @@ export const getReferralCodeAction: Action = {
         };
       }
 
-      const { code, stats } = await referralService.getOrCreateCode(message.entityId);
+      const { code, stats } = await referralService.getOrCreateCode(
+        message.entityId,
+      );
       const baseUrl = getReferralBaseUrl(runtime);
       const link = `${baseUrl}?ref=${code}`;
 
@@ -61,7 +73,7 @@ Signups: ${stats.totalReferrals} · Activated: ${stats.activatedReferrals} · Po
         data,
       };
     } catch (error) {
-      const errorText = 'Could not load referral.';
+      const errorText = "Could not load referral.";
       await callback?.({
         text: errorText,
       });
@@ -74,9 +86,14 @@ Signups: ${stats.totalReferrals} · Activated: ${stats.activatedReferrals} · Po
 
   examples: [
     [
-      { name: 'user', content: { text: 'My referral link' } },
-      { name: 'agent', content: { text: 'Here’s your invite link and stats.', actions: ['GET_REFERRAL_CODE'] } },
+      { name: "user", content: { text: "My referral link" } },
+      {
+        name: "agent",
+        content: {
+          text: "Here’s your invite link and stats.",
+          actions: ["GET_REFERRAL_CODE"],
+        },
+      },
     ],
   ],
 };
-

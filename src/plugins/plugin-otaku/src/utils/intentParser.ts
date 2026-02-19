@@ -22,7 +22,9 @@ export interface BridgeIntent {
   toChain: string;
 }
 
-function parseJsonFromResponse(response: string): Record<string, unknown> | null {
+function parseJsonFromResponse(
+  response: string,
+): Record<string, unknown> | null {
   const trimmed = response.trim();
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}") + 1;
@@ -40,7 +42,7 @@ function parseJsonFromResponse(response: string): Record<string, unknown> | null
  */
 export async function parseSwapIntentWithLLM(
   runtime: IAgentRuntime,
-  text: string
+  text: string,
 ): Promise<SwapIntent | null> {
   if (!runtime.useModel || text.length < 10) return null;
   try {
@@ -56,9 +58,15 @@ Example output: {"amount":"0.5","sellToken":"ETH","buyToken":"USDC","chain":"bas
       maxTokens: 150,
       temperature: 0.1,
     });
-    const out = typeof response === "string" ? response : String(response ?? "");
+    const out =
+      typeof response === "string" ? response : String(response ?? "");
     const obj = parseJsonFromResponse(out);
-    if (!obj || typeof obj.amount !== "string" || typeof obj.sellToken !== "string" || typeof obj.buyToken !== "string")
+    if (
+      !obj ||
+      typeof obj.amount !== "string" ||
+      typeof obj.sellToken !== "string" ||
+      typeof obj.buyToken !== "string"
+    )
       return null;
     return {
       amount: String(obj.amount),
@@ -77,7 +85,7 @@ Example output: {"amount":"0.5","sellToken":"ETH","buyToken":"USDC","chain":"bas
  */
 export async function parseBridgeIntentWithLLM(
   runtime: IAgentRuntime,
-  text: string
+  text: string,
 ): Promise<BridgeIntent | null> {
   if (!runtime.useModel || text.length < 10) return null;
   try {
@@ -93,9 +101,16 @@ Example: {"amount":"0.1","token":"ETH","fromChain":"base","toChain":"arbitrum"}`
       maxTokens: 150,
       temperature: 0.1,
     });
-    const out = typeof response === "string" ? response : String(response ?? "");
+    const out =
+      typeof response === "string" ? response : String(response ?? "");
     const obj = parseJsonFromResponse(out);
-    if (!obj || typeof obj.amount !== "string" || typeof obj.token !== "string" || typeof obj.fromChain !== "string" || typeof obj.toChain !== "string")
+    if (
+      !obj ||
+      typeof obj.amount !== "string" ||
+      typeof obj.token !== "string" ||
+      typeof obj.fromChain !== "string" ||
+      typeof obj.toChain !== "string"
+    )
       return null;
     return {
       amount: String(obj.amount),
@@ -120,7 +135,7 @@ export interface MorphoIntent {
 
 export async function parseMorphoIntentWithLLM(
   runtime: IAgentRuntime,
-  text: string
+  text: string,
 ): Promise<MorphoIntent | null> {
   if (!runtime.useModel || text.length < 8) return null;
   try {
@@ -128,9 +143,20 @@ export async function parseMorphoIntentWithLLM(
 Keys: intent ("supply" or "withdraw"), asset (uppercase, e.g. USDC, ETH), amount (string), vault (optional), chain (optional: base, ethereum).
 
 Message: "${text}"`;
-    const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt, maxTokens: 120, temperature: 0.1 });
-    const obj = parseJsonFromResponse(typeof response === "string" ? response : String(response ?? ""));
-    if (!obj || (obj.intent !== "supply" && obj.intent !== "withdraw") || typeof obj.asset !== "string" || typeof obj.amount !== "string")
+    const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+      prompt,
+      maxTokens: 120,
+      temperature: 0.1,
+    });
+    const obj = parseJsonFromResponse(
+      typeof response === "string" ? response : String(response ?? ""),
+    );
+    if (
+      !obj ||
+      (obj.intent !== "supply" && obj.intent !== "withdraw") ||
+      typeof obj.asset !== "string" ||
+      typeof obj.amount !== "string"
+    )
       return null;
     return {
       intent: obj.intent as "supply" | "withdraw",
@@ -157,7 +183,7 @@ export interface StopLossIntent {
 
 export async function parseStopLossIntentWithLLM(
   runtime: IAgentRuntime,
-  text: string
+  text: string,
 ): Promise<StopLossIntent | null> {
   if (!runtime.useModel || text.length < 8) return null;
   try {
@@ -165,18 +191,29 @@ export async function parseStopLossIntentWithLLM(
 Keys: token (uppercase), amount (string), stopLossPrice (optional string), takeProfitPrice (optional string), trailingPercent (optional number), chain (optional).
 
 Message: "${text}"`;
-    const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt, maxTokens: 120, temperature: 0.1 });
-    const obj = parseJsonFromResponse(typeof response === "string" ? response : String(response ?? ""));
-    if (!obj || typeof obj.token !== "string" || typeof obj.amount !== "string") return null;
+    const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+      prompt,
+      maxTokens: 120,
+      temperature: 0.1,
+    });
+    const obj = parseJsonFromResponse(
+      typeof response === "string" ? response : String(response ?? ""),
+    );
+    if (!obj || typeof obj.token !== "string" || typeof obj.amount !== "string")
+      return null;
     const out: StopLossIntent = {
       token: String(obj.token).toUpperCase(),
       amount: String(obj.amount),
     };
-    if (obj.stopLossPrice != null) out.stopLossPrice = String(obj.stopLossPrice);
-    if (obj.takeProfitPrice != null) out.takeProfitPrice = String(obj.takeProfitPrice);
-    if (typeof obj.trailingPercent === "number") out.trailingPercent = obj.trailingPercent;
+    if (obj.stopLossPrice != null)
+      out.stopLossPrice = String(obj.stopLossPrice);
+    if (obj.takeProfitPrice != null)
+      out.takeProfitPrice = String(obj.takeProfitPrice);
+    if (typeof obj.trailingPercent === "number")
+      out.trailingPercent = obj.trailingPercent;
     if (obj.chain) out.chain = String(obj.chain).toLowerCase();
-    if (out.stopLossPrice || out.takeProfitPrice || out.trailingPercent) return out;
+    if (out.stopLossPrice || out.takeProfitPrice || out.trailingPercent)
+      return out;
     return null;
   } catch (err) {
     logger.debug(`[Otaku] LLM stop-loss intent parse failed: ${err}`);
@@ -195,7 +232,7 @@ export interface ApproveIntent {
 
 export async function parseApproveIntentWithLLM(
   runtime: IAgentRuntime,
-  text: string
+  text: string,
 ): Promise<ApproveIntent | null> {
   if (!runtime.useModel || text.length < 6) return null;
   try {
@@ -203,9 +240,21 @@ export async function parseApproveIntentWithLLM(
 Keys: intent ("approve", "revoke", or "check"), token (uppercase), spender (optional protocol name or 0x address), amount (optional, use "unlimited" for max), chain (optional).
 
 Message: "${text}"`;
-    const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt, maxTokens: 120, temperature: 0.1 });
-    const obj = parseJsonFromResponse(typeof response === "string" ? response : String(response ?? ""));
-    if (!obj || (obj.intent !== "approve" && obj.intent !== "revoke" && obj.intent !== "check") || typeof obj.token !== "string")
+    const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+      prompt,
+      maxTokens: 120,
+      temperature: 0.1,
+    });
+    const obj = parseJsonFromResponse(
+      typeof response === "string" ? response : String(response ?? ""),
+    );
+    if (
+      !obj ||
+      (obj.intent !== "approve" &&
+        obj.intent !== "revoke" &&
+        obj.intent !== "check") ||
+      typeof obj.token !== "string"
+    )
       return null;
     return {
       intent: obj.intent as "approve" | "revoke" | "check",
@@ -231,7 +280,7 @@ export interface NftMintIntent {
 
 export async function parseNftMintIntentWithLLM(
   runtime: IAgentRuntime,
-  text: string
+  text: string,
 ): Promise<NftMintIntent | null> {
   if (!runtime.useModel || text.length < 6) return null;
   try {
@@ -239,10 +288,19 @@ export async function parseNftMintIntentWithLLM(
 Keys: collection (optional name e.g. zorb), quantity (number, default 1), chain (optional), isGenArt (boolean), artPrompt (optional string if gen art).
 
 Message: "${text}"`;
-    const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt, maxTokens: 120, temperature: 0.1 });
-    const obj = parseJsonFromResponse(typeof response === "string" ? response : String(response ?? ""));
+    const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+      prompt,
+      maxTokens: 120,
+      temperature: 0.1,
+    });
+    const obj = parseJsonFromResponse(
+      typeof response === "string" ? response : String(response ?? ""),
+    );
     if (!obj) return null;
-    const quantity = typeof obj.quantity === "number" ? obj.quantity : parseInt(String(obj.quantity ?? "1"), 10);
+    const quantity =
+      typeof obj.quantity === "number"
+        ? obj.quantity
+        : parseInt(String(obj.quantity ?? "1"), 10);
     if (Number.isNaN(quantity) || quantity < 1) return null;
     return {
       collection: obj.collection ? String(obj.collection) : undefined,

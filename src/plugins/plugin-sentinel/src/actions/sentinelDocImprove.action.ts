@@ -35,7 +35,10 @@ export const sentinelDocImproveAction: Action = {
   description:
     "Suggests improvements to repo .md (internal-docs, sentinel-docs, teammate) and consolidation of progress.txt files (plugin-vince, plugin-kelly, frontend). Uses PROGRESS-CONSOLIDATED and knowledge.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsDocImprove(text);
   },
@@ -64,7 +67,7 @@ Context:\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's a doc-improvement pass—\n\n" + text.trim();
       await callback({ text: out });
       return { success: true };
@@ -73,13 +76,19 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Doc improvements: 1) Run scripts/sync-sentinel-docs.sh to refresh knowledge/sentinel-docs and PROGRESS-CONSOLIDATED. 2) Update README/CLAUDE.md if Sentinel or new actions are missing. 3) Consolidate: keep plugin-vince, plugin-kelly, frontend progress.txt as sources; PROGRESS-CONSOLIDATED is the merged view—sync after edits. Refs: knowledge/sentinel-docs/README.md.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Improve our docs and consolidate progress." } },
+      {
+        name: "{{user}}",
+        content: { text: "Improve our docs and consolidate progress." },
+      },
       {
         name: "{{agent}}",
         content: {

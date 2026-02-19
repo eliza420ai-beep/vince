@@ -1,22 +1,36 @@
-import type { Provider, IAgentRuntime, Memory, State, ProviderResult } from '@elizaos/core';
-import { GamificationService } from '../services/GamificationService';
+import type {
+  Provider,
+  IAgentRuntime,
+  Memory,
+  State,
+  ProviderResult,
+} from "@elizaos/core";
+import { GamificationService } from "../services/GamificationService";
 
 export const pointsProvider: Provider = {
-  name: 'USER_POINTS',
+  name: "USER_POINTS",
   description: "User's points, level, streak for context.",
 
   dynamic: true,
-  get: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<ProviderResult> => {
+  get: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<ProviderResult> => {
     try {
-      const gamificationService = runtime.getService('gamification') as GamificationService;
+      const gamificationService = runtime.getService(
+        "gamification",
+      ) as GamificationService;
       if (!gamificationService) {
         return {
-          text: 'Ranking service unavailable.',
+          text: "Ranking service unavailable.",
           values: {},
         };
       }
 
-      const summary = await gamificationService.getUserSummary(message.entityId);
+      const summary = await gamificationService.getUserSummary(
+        message.entityId,
+      );
 
       return {
         text: `User has ${summary.allTimePoints.toLocaleString()} total points (Level: ${summary.levelName}, Streak: ${summary.streakDays} days)`,
@@ -37,10 +51,9 @@ export const pointsProvider: Provider = {
       };
     } catch (error) {
       return {
-        text: 'Could not load points.',
+        text: "Could not load points.",
         values: {},
       };
     }
   },
 };
-

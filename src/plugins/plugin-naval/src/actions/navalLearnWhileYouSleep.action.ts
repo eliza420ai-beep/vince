@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "learn while you sleep",
@@ -49,11 +54,19 @@ Direct. Benefit-led: what they get is compounding without constant attention.`;
 
 export const navalLearnWhileYouSleepAction: Action = {
   name: "NAVAL_LEARN_WHILE_YOU_SLEEP",
-  similes: ["LEARN_WHILE_YOU_SLEEP", "SELF_IMPROVING_SYSTEM", "ML_LOOP", "IMPROVE_WITHOUT_ME"],
+  similes: [
+    "LEARN_WHILE_YOU_SLEEP",
+    "SELF_IMPROVING_SYSTEM",
+    "ML_LOOP",
+    "IMPROVE_WITHOUT_ME",
+  ],
   description:
     "Systems that improve without you: store outcomes, retrain when ready, no redeploy to improve. One step so the system learns while you sleep.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsLearnWhileYouSleep(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Learn while you sleep: store every decision and outcome. Retrain when you have enough data. The system gets better without you redeploying. One rule: the pipeline updates the model when ready; you don't push by hand.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I want my trading setup to improve without me tweaking it every week." } },
-      { name: "{{agent}}", content: { text: "Right now you're the tuner. Step: store every trade — entry, exit, WHY, outcome — in a feature store. When you hit 90+ trades, run the training pipeline; new model loads without redeploy. Rule: we don't change weights manually; the improvement report does. The system learns while you sleep." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I want my trading setup to improve without me tweaking it every week.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Right now you're the tuner. Step: store every trade — entry, exit, WHY, outcome — in a feature store. When you hit 90+ trades, run the training pipeline; new model loads without redeploy. Rule: we don't change weights manually; the improvement report does. The system learns while you sleep.",
+        },
+      },
     ],
   ],
 };

@@ -111,7 +111,7 @@ No intro. Just 4 short lines. Context:\n${contextBlock}`;
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
   return typeof response === "string"
     ? response
-    : (response as { text?: string })?.text ?? String(response);
+    : ((response as { text?: string })?.text ?? String(response));
 }
 
 export async function registerSentinelDailyTask(

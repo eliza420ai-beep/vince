@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "build in public",
@@ -46,7 +50,10 @@ export const navalBuildInPublicAction: Action = {
   description:
     "Should you build publicly? Accountability if it fails, leverage from being public, worst outcome, OK with it? What to share weekly without being cringe.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsBuildInPublic(text);
   },
@@ -81,7 +88,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -89,14 +96,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "High accountability + high risk = high returns. Build in public if you're okay with the worst thing someone could say. Share weekly: progress, lessons, one real number.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Build in public? I'm building a small SaaS for indie devs." } },
-      { name: "{{agent}}", content: { text: "1. Accountable: reputation, time. 2. Leverage: early users, feedback, credibility. 3. Worst: 'another failed indie project.' 4. OK? If yes — share weekly: one metric (MRR, signups), one lesson, one build. No humble brag. Real numbers." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Build in public? I'm building a small SaaS for indie devs.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Accountable: reputation, time. 2. Leverage: early users, feedback, credibility. 3. Worst: 'another failed indie project.' 4. OK? If yes — share weekly: one metric (MRR, signups), one lesson, one build. No humble brag. Real numbers.",
+        },
+      },
     ],
   ],
 };

@@ -21,12 +21,15 @@ The setup feels like one of those weeks where selling premium beats trying to pi
 **TL;DR:** BTC consolidating with bearish sentiment extremes — sell premium, don't chase direction.
 
 ### Actions (max 3, each with @Owner)
+
 1. **BTC Covered Call** — @Solus — Sell $67,500 strike, Friday expiry, invalidation $65,000
 2. **Wallet Setup** — @Otaku — Complete EVM/Solana key configuration for DeFi execution
 3. **CT Sentiment Monitor** — @ECHO — Watch for contrarian signals above current bearish levels
 
 ### Risks
+
 Regulatory announcement or Fed policy shift could break range in either direction.
 
 ---
-*Ship it.*
+
+_Ship it._

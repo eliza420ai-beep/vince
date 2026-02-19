@@ -46,7 +46,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -58,7 +58,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -70,7 +70,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("invalid_slippage_type");
@@ -83,7 +83,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("slippage_must_be_positive");
@@ -96,7 +96,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("slippage_must_be_positive");
@@ -109,7 +109,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("slippage_exceeds_maximum");
@@ -124,7 +124,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -137,7 +137,7 @@ describe("Slippage Validation", () => {
         true,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -149,7 +149,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -162,7 +162,7 @@ describe("Slippage Validation", () => {
         true,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -174,7 +174,7 @@ describe("Slippage Validation", () => {
         true,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("slippage_exceeds_absolute_max");
@@ -187,7 +187,7 @@ describe("Slippage Validation", () => {
         true,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("slippage_exceeds_absolute_max");
@@ -202,7 +202,7 @@ describe("Slippage Validation", () => {
         "false" as any, // Simulating parameter extraction bug
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -215,7 +215,7 @@ describe("Slippage Validation", () => {
         "true" as any, // Simulating parameter extraction bug
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -228,7 +228,7 @@ describe("Slippage Validation", () => {
         1 as any, // Simulating parameter extraction bug
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -241,7 +241,7 @@ describe("Slippage Validation", () => {
         { value: true } as any, // Simulating parameter extraction bug
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -254,7 +254,7 @@ describe("Slippage Validation", () => {
         [true] as any, // Simulating parameter extraction bug
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -267,7 +267,7 @@ describe("Slippage Validation", () => {
         undefined as any,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -280,7 +280,7 @@ describe("Slippage Validation", () => {
         null as any,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -293,7 +293,7 @@ describe("Slippage Validation", () => {
         true,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -323,7 +323,7 @@ describe("Slippage Validation", () => {
         {},
         "TEST",
         mockCallback,
-        stateWithMessages
+        stateWithMessages,
       );
       expect(result.valid).toBe(true);
     });
@@ -351,7 +351,7 @@ describe("Slippage Validation", () => {
         {},
         "TEST",
         mockCallback,
-        stateWithMessages
+        stateWithMessages,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");
@@ -381,7 +381,7 @@ describe("Slippage Validation", () => {
         {},
         "TEST",
         mockCallback,
-        stateWithMessages
+        stateWithMessages,
       );
       expect(result.valid).toBe(true);
     });
@@ -395,7 +395,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -407,7 +407,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -419,7 +419,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(true);
     });
@@ -431,7 +431,7 @@ describe("Slippage Validation", () => {
         false,
         {},
         "TEST",
-        mockCallback
+        mockCallback,
       );
       expect(result.valid).toBe(false);
       expect(result.errorResult?.error).toBe("high_slippage_not_confirmed");

@@ -8,33 +8,37 @@
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-import { SUBSTACK_DIR, MARKETING_DIR, VOICE_CACHE_FILE as CACHE_FILE } from "../config/paths";
+import {
+  SUBSTACK_DIR,
+  MARKETING_DIR,
+  VOICE_CACHE_FILE as CACHE_FILE,
+} from "../config/paths";
 
 export interface VoiceProfile {
   // Overall characteristics
   tone: string[];
   vocabulary: string[];
   avoidedWords: string[];
-  
+
   // Structure patterns
   typicalOpenings: string[];
   typicalClosings: string[];
   transitionPhrases: string[];
-  
+
   // Style metrics
   avgSentenceLength: number;
   avgParagraphLength: number;
   bulletFrequency: number; // 0-1 scale
-  
+
   // Characteristic phrases
   signatures: string[];
-  
+
   // Content themes
   recurringThemes: string[];
-  
+
   // Generated summary for prompts
   voiceSummary: string;
-  
+
   // Metadata
   analyzedFiles: number;
   lastUpdated: number;
@@ -50,7 +54,9 @@ function ensureCacheDir(): void {
 function loadCachedProfile(): VoiceProfile | null {
   if (!fs.existsSync(CACHE_FILE)) return null;
   try {
-    const cached = JSON.parse(fs.readFileSync(CACHE_FILE, "utf-8")) as VoiceProfile;
+    const cached = JSON.parse(
+      fs.readFileSync(CACHE_FILE, "utf-8"),
+    ) as VoiceProfile;
     // Cache valid for 7 days
     if (Date.now() - cached.lastUpdated < 7 * 24 * 60 * 60 * 1000) {
       return cached;
@@ -70,7 +76,11 @@ function extractOpenings(content: string): string[] {
   const sections = content.split(/^##\s+/m);
   for (const section of sections.slice(0, 5)) {
     const firstSentence = section.trim().split(/[.!?]/)[0];
-    if (firstSentence && firstSentence.length > 20 && firstSentence.length < 200) {
+    if (
+      firstSentence &&
+      firstSentence.length > 20 &&
+      firstSentence.length < 200
+    ) {
       openings.push(firstSentence.trim());
     }
   }
@@ -83,7 +93,11 @@ function extractClosings(content: string): string[] {
   const lastParagraphs = paragraphs.slice(-3);
   for (const para of lastParagraphs) {
     const trimmed = para.trim();
-    if (trimmed.length > 30 && trimmed.length < 300 && !trimmed.startsWith("#")) {
+    if (
+      trimmed.length > 30 &&
+      trimmed.length < 300 &&
+      !trimmed.startsWith("#")
+    ) {
       closings.push(trimmed);
     }
   }
@@ -93,7 +107,7 @@ function extractClosings(content: string): string[] {
 function extractSignaturePhrases(content: string): string[] {
   // Look for phrases that appear to be distinctive/branded
   const signatures: string[] = [];
-  
+
   const patterns = [
     /trade well,? live well/gi,
     /edge and equilibrium/gi,
@@ -106,30 +120,42 @@ function extractSignaturePhrases(content: string): string[] {
     /not a jail/gi,
     /refuse to sell your time/gi,
   ];
-  
+
   for (const pattern of patterns) {
     const matches = content.match(pattern);
     if (matches) {
       signatures.push(...matches);
     }
   }
-  
+
   return [...new Set(signatures)];
 }
 
-function calculateMetrics(content: string): { avgSentence: number; avgParagraph: number; bulletFreq: number } {
+function calculateMetrics(content: string): {
+  avgSentence: number;
+  avgParagraph: number;
+  bulletFreq: number;
+} {
   const sentences = content.split(/[.!?]+/).filter((s) => s.trim().length > 10);
   const paragraphs = content.split(/\n\n+/).filter((p) => p.trim().length > 20);
   const bulletLines = (content.match(/^[-*•]\s+/gm) || []).length;
   const totalLines = content.split("\n").length;
-  
+
   return {
-    avgSentence: sentences.length > 0 
-      ? Math.round(sentences.reduce((a, s) => a + s.trim().split(/\s+/).length, 0) / sentences.length)
-      : 15,
-    avgParagraph: paragraphs.length > 0
-      ? Math.round(paragraphs.reduce((a, p) => a + p.trim().split(/\s+/).length, 0) / paragraphs.length)
-      : 50,
+    avgSentence:
+      sentences.length > 0
+        ? Math.round(
+            sentences.reduce((a, s) => a + s.trim().split(/\s+/).length, 0) /
+              sentences.length,
+          )
+        : 15,
+    avgParagraph:
+      paragraphs.length > 0
+        ? Math.round(
+            paragraphs.reduce((a, p) => a + p.trim().split(/\s+/).length, 0) /
+              paragraphs.length,
+          )
+        : 50,
     bulletFreq: totalLines > 0 ? bulletLines / totalLines : 0,
   };
 }
@@ -146,14 +172,14 @@ function extractThemes(content: string): string[] {
     "risk management": /risk|position size|stop loss|drawdown/gi,
     "airdrops & farming": /airdrop|farm|points|incentive/gi,
   };
-  
+
   for (const [theme, pattern] of Object.entries(themePatterns)) {
     const matches = content.match(pattern);
     if (matches && matches.length >= 3) {
       themes.push(theme);
     }
   }
-  
+
   return themes;
 }
 
@@ -173,7 +199,8 @@ export function analyzeVoice(): VoiceProfile {
   // Read substack essays
   if (fs.existsSync(SUBSTACK_DIR)) {
     const files = fs.readdirSync(SUBSTACK_DIR).filter((f) => f.endsWith(".md"));
-    for (const file of files.slice(0, 30)) { // Sample up to 30 essays
+    for (const file of files.slice(0, 30)) {
+      // Sample up to 30 essays
       try {
         const content = fs.readFileSync(path.join(SUBSTACK_DIR, file), "utf-8");
         allContent.push(content);
@@ -184,10 +211,15 @@ export function analyzeVoice(): VoiceProfile {
 
   // Read marketing content
   if (fs.existsSync(MARKETING_DIR)) {
-    const files = fs.readdirSync(MARKETING_DIR).filter((f) => f.endsWith(".md"));
+    const files = fs
+      .readdirSync(MARKETING_DIR)
+      .filter((f) => f.endsWith(".md"));
     for (const file of files.slice(0, 10)) {
       try {
-        const content = fs.readFileSync(path.join(MARKETING_DIR, file), "utf-8");
+        const content = fs.readFileSync(
+          path.join(MARKETING_DIR, file),
+          "utf-8",
+        );
         allContent.push(content);
         fileCount++;
       } catch {}
@@ -199,7 +231,9 @@ export function analyzeVoice(): VoiceProfile {
   // Extract patterns
   const allOpenings = allContent.flatMap(extractOpenings).slice(0, 10);
   const allClosings = allContent.flatMap(extractClosings).slice(0, 10);
-  const allSignatures = [...new Set(allContent.flatMap(extractSignaturePhrases))];
+  const allSignatures = [
+    ...new Set(allContent.flatMap(extractSignaturePhrases)),
+  ];
   const allThemes = [...new Set(allContent.flatMap(extractThemes))];
   const metrics = calculateMetrics(combined);
 
@@ -217,19 +251,31 @@ export function analyzeVoice(): VoiceProfile {
       "cite by name (HYPE wheel, Cheat Code, etc.)",
     ],
     avoidedWords: [
-      "delve", "landscape", "certainly", "great question",
-      "it's important to note", "at the end of the day",
-      "let me explain", "to be clear", "interestingly",
+      "delve",
+      "landscape",
+      "certainly",
+      "great question",
+      "it's important to note",
+      "at the end of the day",
+      "let me explain",
+      "to be clear",
+      "interestingly",
     ],
-    typicalOpenings: allOpenings.length > 0 ? allOpenings : [
-      "Most people get this wrong.",
-      "The consensus is [X]. Here's why that's incomplete.",
-      "There's a framework for this.",
-    ],
-    typicalClosings: allClosings.length > 0 ? allClosings : [
-      "The money is a byproduct. The real edge is the life you build.",
-      "That's the framework. Now go apply it.",
-    ],
+    typicalOpenings:
+      allOpenings.length > 0
+        ? allOpenings
+        : [
+            "Most people get this wrong.",
+            "The consensus is [X]. Here's why that's incomplete.",
+            "There's a framework for this.",
+          ],
+    typicalClosings:
+      allClosings.length > 0
+        ? allClosings
+        : [
+            "The money is a byproduct. The real edge is the life you build.",
+            "That's the framework. Now go apply it.",
+          ],
     transitionPhrases: [
       "Here's the thing:",
       "The framework:",
@@ -240,11 +286,10 @@ export function analyzeVoice(): VoiceProfile {
     avgSentenceLength: metrics.avgSentence,
     avgParagraphLength: metrics.avgParagraph,
     bulletFrequency: metrics.bulletFreq,
-    signatures: allSignatures.length > 0 ? allSignatures : [
-      "Trade well, live well",
-      "Edge and equilibrium",
-      "The Cheat Code",
-    ],
+    signatures:
+      allSignatures.length > 0
+        ? allSignatures
+        : ["Trade well, live well", "Edge and equilibrium", "The Cheat Code"],
     recurringThemes: allThemes,
     voiceSummary: generateVoiceSummary(metrics, allSignatures, allThemes),
     analyzedFiles: fileCount,
@@ -253,14 +298,14 @@ export function analyzeVoice(): VoiceProfile {
 
   saveProfile(profile);
   logger.info({ fileCount }, "[Voice] Voice profile generated");
-  
+
   return profile;
 }
 
 function generateVoiceSummary(
   metrics: { avgSentence: number; avgParagraph: number; bulletFreq: number },
   signatures: string[],
-  themes: string[]
+  themes: string[],
 ): string {
   return `IKIGAI STUDIO VOICE:
 - Confident, direct, expert-level. No 101 explanations.
@@ -283,7 +328,10 @@ SIGNATURE PHRASES YOU CAN USE:
 ${profile.signatures.map((s) => `- "${s}"`).join("\n")}
 
 TYPICAL OPENINGS THAT WORK:
-${profile.typicalOpenings.slice(0, 3).map((o) => `- "${o.slice(0, 80)}..."`).join("\n")}
+${profile.typicalOpenings
+  .slice(0, 3)
+  .map((o) => `- "${o.slice(0, 80)}..."`)
+  .join("\n")}
 `;
 }
 

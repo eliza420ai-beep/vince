@@ -10,11 +10,11 @@ Where paper-bot trade features (40+ per decision) are stored and how to use them
 
 Feature records from vince-paper-bot trades are used for ML training (e.g. 90+ for ONNX, 500+ for larger runs). They can be stored in up to three places:
 
-| Storage | When used | Purpose |
-|--------|------------|---------|
-| **Local JSONL** | Always | `.elizadb/vince-paper-bot/features/features_*.jsonl` – backup, offline, export |
-| **PGLite / Postgres** | When using ElizaOS DB | Table `plugin_vince.paper_bot_features` – same DB as agent (PGLite or Postgres) |
-| **Supabase** | Optional (when keys set) | Table `vince_paper_bot_features` – query 500+ in one place for ML |
+| Storage               | When used                | Purpose                                                                         |
+| --------------------- | ------------------------ | ------------------------------------------------------------------------------- |
+| **Local JSONL**       | Always                   | `.elizadb/vince-paper-bot/features/features_*.jsonl` – backup, offline, export  |
+| **PGLite / Postgres** | When using ElizaOS DB    | Table `plugin_vince.paper_bot_features` – same DB as agent (PGLite or Postgres) |
+| **Supabase**          | Optional (when keys set) | Table `vince_paper_bot_features` – query 500+ in one place for ML               |
 
 ## Current deployment state
 
@@ -55,10 +55,10 @@ In **Supabase Dashboard → SQL Editor**, run the bootstrap script:
 
 In **`.env`** (and for Cloud, the deploy script will pass these when set):
 
-| Variable | Required | Where to get it |
-|---------|----------|------------------|
-| `SUPABASE_SERVICE_ROLE_KEY` | **Yes** | Supabase Dashboard → **Settings → API** → `service_role` (secret). |
-| `SUPABASE_URL` | Optional | `https://YOUR_PROJECT_REF.supabase.co`. If you use Supabase Postgres (`POSTGRES_URL=...@db.XXX.supabase.co:5432/...`), the app derives this; set only if you use a different URL. |
+| Variable                    | Required | Where to get it                                                                                                                                                                   |
+| --------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Yes**  | Supabase Dashboard → **Settings → API** → `service_role` (secret).                                                                                                                |
+| `SUPABASE_URL`              | Optional | `https://YOUR_PROJECT_REF.supabase.co`. If you use Supabase Postgres (`POSTGRES_URL=...@db.XXX.supabase.co:5432/...`), the app derives this; set only if you use a different URL. |
 
 Example in `.env`:
 
@@ -125,15 +125,15 @@ When the paper bot **evaluates a signal but does not trade** (e.g. “SIGNAL EVA
 
 Ways to get to 90+ closed trades (and more avoided snapshots) faster:
 
-| Action | What it does | Trade-off |
-|--------|----------------|-----------|
-| **Run in aggressive mode** | `VINCE_PAPER_AGGRESSIVE=true`: base thresholds 40/35, 40x leverage, $280 TP, 2.5:1 R:R, no cooldown after loss. More trades per day → more outcomes for training. | Higher risk per trade; use when you explicitly want more data. |
-| **Focus one asset first** | `VINCE_PAPER_ASSETS=BTC`: all evaluation cycles on BTC (most signal sources). Gets you to 90+ closed trades on one asset faster. | Add ETH/SOL/HYPE later for diversity. |
-| **Record avoided more often** | Today: one avoided record per asset per 2 min. You can lower the interval (e.g. 1 min) in code (`AVOIDED_RECORD_INTERVAL_MS` in `vincePaperTrading.service.ts`) to capture more “no trade” snapshots on quiet/extreme days. | More JSONL rows; same feature shape. |
-| **Bootstrap with synthetic data** | Run `generate_synthetic_features.py --count 150` then `train_models.py` so the pipeline and ONNX load path are validated. Optionally mix synthetic + real (e.g. 50 real + 50 synthetic) to reach 90 until real data accumulates. | Models trained only on synthetic learn the generator, not the market; use for dev/testing, not production. |
-| **Optional: data-collection mode (future)** | A setting that temporarily lowers thresholds (e.g. min strength 55, min confidence 50) and/or bypasses ML report suggestions so more marginal signals become trades. Run for a fixed period (e.g. one week), then turn off and train. | More losing trades; all count as training data. Not implemented yet; would require a dedicated flag and possibly a cap (e.g. max N trades per day). |
-| **Shorter max position age (advanced)** | Positions are closed at 48h max (`MAX_POSITION_AGE_MS` in position manager). Reducing to e.g. 24h would force more closes per week and more outcome records. | More “max_age” exits; changes P&L profile. |
-| **Monitor progress** | Feature store exposes `getCompleteRecordCount()`; the training task logs “Skipping: N complete trades (need 90+)”. Check logs or add a periodic log: “Feature store: N closed, M avoided (last 24h)” to see how fast you’re collecting. | — |
+| Action                                      | What it does                                                                                                                                                                                                                            | Trade-off                                                                                                                                           |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Run in aggressive mode**                  | `VINCE_PAPER_AGGRESSIVE=true`: base thresholds 40/35, 40x leverage, $280 TP, 2.5:1 R:R, no cooldown after loss. More trades per day → more outcomes for training.                                                                       | Higher risk per trade; use when you explicitly want more data.                                                                                      |
+| **Focus one asset first**                   | `VINCE_PAPER_ASSETS=BTC`: all evaluation cycles on BTC (most signal sources). Gets you to 90+ closed trades on one asset faster.                                                                                                        | Add ETH/SOL/HYPE later for diversity.                                                                                                               |
+| **Record avoided more often**               | Today: one avoided record per asset per 2 min. You can lower the interval (e.g. 1 min) in code (`AVOIDED_RECORD_INTERVAL_MS` in `vincePaperTrading.service.ts`) to capture more “no trade” snapshots on quiet/extreme days.             | More JSONL rows; same feature shape.                                                                                                                |
+| **Bootstrap with synthetic data**           | Run `generate_synthetic_features.py --count 150` then `train_models.py` so the pipeline and ONNX load path are validated. Optionally mix synthetic + real (e.g. 50 real + 50 synthetic) to reach 90 until real data accumulates.        | Models trained only on synthetic learn the generator, not the market; use for dev/testing, not production.                                          |
+| **Optional: data-collection mode (future)** | A setting that temporarily lowers thresholds (e.g. min strength 55, min confidence 50) and/or bypasses ML report suggestions so more marginal signals become trades. Run for a fixed period (e.g. one week), then turn off and train.   | More losing trades; all count as training data. Not implemented yet; would require a dedicated flag and possibly a cap (e.g. max N trades per day). |
+| **Shorter max position age (advanced)**     | Positions are closed at 48h max (`MAX_POSITION_AGE_MS` in position manager). Reducing to e.g. 24h would force more closes per week and more outcome records.                                                                            | More “max_age” exits; changes P&L profile.                                                                                                          |
+| **Monitor progress**                        | Feature store exposes `getCompleteRecordCount()`; the training task logs “Skipping: N complete trades (need 90+)”. Check logs or add a periodic log: “Feature store: N closed, M avoided (last 24h)” to see how fast you’re collecting. | —                                                                                                                                                   |
 
 **Recommended for “I want more data soon”:** Use `VINCE_PAPER_AGGRESSIVE=true` and `VINCE_PAPER_ASSETS=BTC` (or `BTC,ETH`) until you have 90+ closed trades, then add assets and optionally turn aggressive off. Avoided records already accumulate in the background (rate-limited); no extra config needed. See also [Avoided decisions](#avoided-decisions-no-trade-evaluations) and [When training runs](#when-training-runs-90-trades) below; `.env.example` documents `VINCE_PAPER_AGGRESSIVE` and `VINCE_PAPER_ASSETS`.
 
@@ -189,11 +189,11 @@ Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env`. Run `supabase
 
 When you add or change a feature, update **all three** places so training and inference stay in sync:
 
-| Layer | Where | Rule |
-|-------|--------|------|
-| **Feature store** | `vinceFeatureStore.service.ts` — `FeatureRecord.market`, `.session`, `.signal`, `.regime`, `.news`, `.execution`, `.outcome`, `.labels`, `.avoided` | Nested keys (e.g. `market.priceChange24h`) are written to JSONL as-is. `.outcome.realizedPnl` is **net of fees**; `.outcome.feesUsd` optional. `.avoided` = no-trade evaluations (V4.30). |
-| **Flattened column (training)** | `train_models.py` — `load_features()` flattens each record | `record.section.key` → **`section_key`** (e.g. `market.priceChange24h` → `market_priceChange24h`). Lists/objects: `signal.sources` → derived `signal_source_count`, `signal_avg_sentiment`; `news.macroRiskEnvironment` → `news_macro_risk_on` / `news_macro_risk_off` (0/1); `regime.volatilityRegime` → `regime_volatility_high` (1 if high); `regime.marketRegime` → `regime_bullish`, `regime_bearish`. |
-| **Inference input** | `mlInference.service.ts` — `SignalQualityInput`, `getSignalQualityFeatureValue()` | Flattened column name (e.g. `market_priceChange24h`) is mapped to an input field (e.g. `priceChange24h`) and normalized. Order is defined by **`training_metadata.signal_quality_feature_names`** after each train; inference builds the vector from that list. |
+| Layer                           | Where                                                                                                                                               | Rule                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Feature store**               | `vinceFeatureStore.service.ts` — `FeatureRecord.market`, `.session`, `.signal`, `.regime`, `.news`, `.execution`, `.outcome`, `.labels`, `.avoided` | Nested keys (e.g. `market.priceChange24h`) are written to JSONL as-is. `.outcome.realizedPnl` is **net of fees**; `.outcome.feesUsd` optional. `.avoided` = no-trade evaluations (V4.30).                                                                                                                                                                                                                   |
+| **Flattened column (training)** | `train_models.py` — `load_features()` flattens each record                                                                                          | `record.section.key` → **`section_key`** (e.g. `market.priceChange24h` → `market_priceChange24h`). Lists/objects: `signal.sources` → derived `signal_source_count`, `signal_avg_sentiment`; `news.macroRiskEnvironment` → `news_macro_risk_on` / `news_macro_risk_off` (0/1); `regime.volatilityRegime` → `regime_volatility_high` (1 if high); `regime.marketRegime` → `regime_bullish`, `regime_bearish`. |
+| **Inference input**             | `mlInference.service.ts` — `SignalQualityInput`, `getSignalQualityFeatureValue()`                                                                   | Flattened column name (e.g. `market_priceChange24h`) is mapped to an input field (e.g. `priceChange24h`) and normalized. Order is defined by **`training_metadata.signal_quality_feature_names`** after each train; inference builds the vector from that list.                                                                                                                                             |
 
 **Flatten rules (train_models.py):**
 
@@ -220,7 +220,7 @@ After retraining, `training_metadata.signal_quality_feature_names` defines the e
 
 ## VinceBench (decision-quality benchmark)
 
-Feature-store JSONL is the primary input for **VinceBench**, a reproducible benchmark that scores *decision quality* (process, not PnL) via typed signatures across domains (signal quality, risk discipline, timing, regime, etc.). Run from repo root or plugin directory:
+Feature-store JSONL is the primary input for **VinceBench**, a reproducible benchmark that scores _decision quality_ (process, not PnL) via typed signatures across domains (signal quality, risk discipline, timing, regime, etc.). Run from repo root or plugin directory:
 
 - **Score all feature-store data:** `bun run src/plugins/plugin-vince/scripts/run-bench.ts` (or from plugin: `bun run run-bench`)
 - **Output to standup reports:** `bun run src/plugins/plugin-vince/scripts/run-bench.ts --output docs/standup/bench-reports`

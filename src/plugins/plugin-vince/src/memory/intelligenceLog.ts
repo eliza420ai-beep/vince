@@ -27,7 +27,12 @@ export function getMemoryDir(runtime?: IAgentRuntime): string {
       ? override
       : path.join(process.cwd(), override);
   }
-  return path.join(process.cwd(), ".elizadb", PERSISTENCE_DIR, CRYPTO_INTEL_DIR);
+  return path.join(
+    process.cwd(),
+    ".elizadb",
+    PERSISTENCE_DIR,
+    CRYPTO_INTEL_DIR,
+  );
 }
 
 /**

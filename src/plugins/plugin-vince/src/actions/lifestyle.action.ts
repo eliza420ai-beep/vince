@@ -56,17 +56,27 @@ function getParisTimeAndPastLunch(day: string): {
     hour12: false,
   });
   const hourParis = parseInt(
-    now.toLocaleString("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hour12: false }),
+    now.toLocaleString("en-GB", {
+      timeZone: "Europe/Paris",
+      hour: "2-digit",
+      hour12: false,
+    }),
     10,
   );
   const minParis = parseInt(
-    now.toLocaleString("en-GB", { timeZone: "Europe/Paris", minute: "2-digit" }),
+    now.toLocaleString("en-GB", {
+      timeZone: "Europe/Paris",
+      minute: "2-digit",
+    }),
     10,
   );
   const minutesSinceMidnight = hourParis * 60 + minParis;
   const isSunday = day.toLowerCase() === "sunday";
   const cutoff = isSunday ? 15 * 60 : 14 * 60 + 30;
-  return { currentTimeParis: timeParis, pastLunch: minutesSinceMidnight >= cutoff };
+  return {
+    currentTimeParis: timeParis,
+    pastLunch: minutesSinceMidnight >= cutoff,
+  };
 }
 
 export function buildLifestyleDataContext(
@@ -269,8 +279,14 @@ export const vinceLifestyleAction: Action = {
       text.includes("what should i do") ||
       text.includes("what to do today") ||
       text.includes("what to do this week") ||
-      (text.includes("today") && (text.includes("recommend") || text.includes("plan") || text.includes("vibe"))) ||
-      (text.includes("wine") && (text.includes("recommend") || text.includes("tasting") || text.includes("where"))) ||
+      (text.includes("today") &&
+        (text.includes("recommend") ||
+          text.includes("plan") ||
+          text.includes("vibe"))) ||
+      (text.includes("wine") &&
+        (text.includes("recommend") ||
+          text.includes("tasting") ||
+          text.includes("where"))) ||
       text.includes("pool day") ||
       text.includes("fitness") ||
       text.includes("workout") ||

@@ -13,7 +13,9 @@ export function extractRecommendationNames(text: string): string[] {
   const bold = text.match(/\*\*([^*]+)\*\*/g);
   const names = (bold ?? []).map((s) => s.replace(/\*\*/g, "").trim());
   const dash = text.match(/([A-Za-zÀ-ÿ0-9\s'-]+)\s*—/g);
-  const fromDash = (dash ?? []).map((s) => s.replace(/\s*—\s*$/, "").trim()).filter(Boolean);
+  const fromDash = (dash ?? [])
+    .map((s) => s.replace(/\s*—\s*$/, "").trim())
+    .filter(Boolean);
   const combined = [...new Set([...names, ...fromDash])];
   return combined.filter((n) => n.length > 2);
 }
@@ -50,7 +52,10 @@ export function loadPlacesAllowlist(): string[] {
 }
 
 /** True if every extracted name is on the allowlist (or allowlist is empty / guard disabled). */
-export function allNamesOnAllowlist(text: string, allowlist: string[]): boolean {
+export function allNamesOnAllowlist(
+  text: string,
+  allowlist: string[],
+): boolean {
   if (allowlist.length === 0) return true;
   const names = extractRecommendationNames(text);
   const lowerList = allowlist.map((a) => a.toLowerCase());

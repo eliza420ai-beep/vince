@@ -29,7 +29,10 @@ interface EdgeCheckParams {
 }
 
 type EdgeCheckInput = EdgeCheckParams;
-type EdgeCheckActionResult = ActionResult & { input?: EdgeCheckInput; signal_id?: string };
+type EdgeCheckActionResult = ActionResult & {
+  input?: EdgeCheckInput;
+  signal_id?: string;
+};
 
 function parseFloatOrZero(s: string | undefined): number {
   if (s == null || s === "") return 0;
@@ -51,11 +54,13 @@ export const polymarketEdgeCheckAction: Action = {
     },
     asset: {
       type: "string",
-      description: "Asset for Synth forecast (e.g. BTC, ETH, SOL). Default BTC.",
+      description:
+        "Asset for Synth forecast (e.g. BTC, ETH, SOL). Default BTC.",
     },
     edge_threshold_bps: {
       type: "number",
-      description: "Minimum edge in basis points to emit a signal. Default 200.",
+      description:
+        "Minimum edge in basis points to emit a signal. Default 200.",
     },
   },
 
@@ -72,8 +77,13 @@ export const polymarketEdgeCheckAction: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<EdgeCheckParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<EdgeCheckParams>;
       let conditionId = (params.condition_id ?? params.conditionId)?.trim();
       if (!conditionId && message?.content?.text) {
         const hexMatch = message.content.text.match(/0x[a-fA-F0-9]{64}/);
@@ -86,10 +96,15 @@ export const polymarketEdgeCheckAction: Action = {
       }
 
       const asset = (params.asset ?? "BTC").trim() || "BTC";
-      const thresholdBps = Math.max(0, params.edge_threshold_bps ?? DEFAULT_EDGE_THRESHOLD_BPS);
+      const thresholdBps = Math.max(
+        0,
+        params.edge_threshold_bps ?? DEFAULT_EDGE_THRESHOLD_BPS,
+      );
 
       const polymarketService = runtime.getService(POLYMARKET_SERVICE_TYPE) as {
-        getMarketPrices: (conditionId: string) => Promise<{ yes_price: string; no_price: string }>;
+        getMarketPrices: (
+          conditionId: string,
+        ) => Promise<{ yes_price: string; no_price: string }>;
       } | null;
       if (!polymarketService?.getMarketPrices) {
         const text = " Polymarket service not available.";
@@ -119,10 +134,20 @@ export const polymarketEdgeCheckAction: Action = {
 
       if (aboveThreshold) {
         try {
-          const conn = await (runtime as { getConnection?: () => Promise<unknown> }).getConnection?.();
-          if (conn && typeof (conn as { query: (s: string, v?: unknown[]) => Promise<unknown> }).query === "function") {
+          const conn = await (
+            runtime as { getConnection?: () => Promise<unknown> }
+          ).getConnection?.();
+          if (
+            conn &&
+            typeof (
+              conn as { query: (s: string, v?: unknown[]) => Promise<unknown> }
+            ).query === "function"
+          ) {
             const client = conn as {
-              query: (text: string, values?: unknown[]) => Promise<{ rows?: unknown[] }>;
+              query: (
+                text: string,
+                values?: unknown[],
+              ) => Promise<{ rows?: unknown[] }>;
             };
             await client.query(
               `INSERT INTO ${SIGNALS_TABLE} (id, created_at, source, market_id, side, suggested_size_usd, confidence, forecast_prob, market_price, edge_bps, status)
@@ -141,10 +166,14 @@ export const polymarketEdgeCheckAction: Action = {
                 "pending",
               ],
             );
-            logger.info(`[POLYMARKET_EDGE_CHECK] Signal emitted: ${signalId} edge_bps=${edgeBps} side=${side}`);
+            logger.info(
+              `[POLYMARKET_EDGE_CHECK] Signal emitted: ${signalId} edge_bps=${edgeBps} side=${side}`,
+            );
           }
         } catch (err) {
-          logger.warn(`[POLYMARKET_EDGE_CHECK] Failed to write signal (table may not exist): ${err}`);
+          logger.warn(
+            `[POLYMARKET_EDGE_CHECK] Failed to write signal (table may not exist): ${err}`,
+          );
         }
       }
 
@@ -159,7 +188,11 @@ export const polymarketEdgeCheckAction: Action = {
       const result: EdgeCheckActionResult = {
         text: summary,
         success: true,
-        input: { condition_id: conditionId, asset, edge_threshold_bps: thresholdBps },
+        input: {
+          condition_id: conditionId,
+          asset,
+          edge_threshold_bps: thresholdBps,
+        },
         signal_id: aboveThreshold ? signalId : undefined,
       };
       if (callback) await callback({ text: summary });

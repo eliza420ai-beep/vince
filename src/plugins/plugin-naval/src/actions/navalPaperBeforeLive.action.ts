@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "paper before live",
@@ -49,11 +54,19 @@ Direct. No hype. Give them the step and the rule.`;
 
 export const navalPaperBeforeLiveAction: Action = {
   name: "NAVAL_PAPER_BEFORE_LIVE",
-  similes: ["PAPER_BEFORE_LIVE", "PAPER_THEN_LIVE", "DONT_BET_THE_FARM", "PROVE_IT_PAPER"],
+  similes: [
+    "PAPER_BEFORE_LIVE",
+    "PAPER_THEN_LIVE",
+    "DONT_BET_THE_FARM",
+    "PROVE_IT_PAPER",
+  ],
   description:
     "Paper trade, learn, then optional real money. Don't bet the farm. One step and one rule for when to go live.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsPaperBeforeLive(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Paper before live. Run enough paper trades that you see WHY THIS TRADE and PnL. Set invalidation before every position. One rule: no live size until paper shows you're not betting the farm.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "When should I switch from paper to live? I've done 50 paper trades." } },
-      { name: "{{agent}}", content: { text: "50 is a start; 90+ gives the system enough to learn and you enough to see pattern. Step: review WHY THIS TRADE and net PnL. If you're not sizing so one bad run can't ruin you, stay paper. Rule: go live only when you have invalidation levels and position size that passes the ruin test." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "When should I switch from paper to live? I've done 50 paper trades.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "50 is a start; 90+ gives the system enough to learn and you enough to see pattern. Step: review WHY THIS TRADE and net PnL. If you're not sizing so one bad run can't ruin you, stay paper. Rule: go live only when you have invalidation levels and position size that passes the ruin test.",
+        },
+      },
     ],
   ],
 };

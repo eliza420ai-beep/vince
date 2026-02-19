@@ -5,6 +5,7 @@ Short reference for data-driven aggregator weights, Binance 451 handling, and th
 ## Improvement report → aggregator weights
 
 **What:** After each ML retrain, `training_metadata.json` includes `improvement_report` with:
+
 - `feature_importances.signal_quality` — mapped to aggregator **source names** (e.g. `regime_bearish` → MarketRegime, `signal_hasWhaleSignal` → BinanceTopTraders).
 - **`holdout_metrics`** — per-model AUC (signal quality), MAE/quantile loss (position sizing, SL) on a time-based holdout for drift/sizing checks.
 

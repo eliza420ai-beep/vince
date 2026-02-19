@@ -26,7 +26,10 @@ import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import type { Service } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { buildPulseResponse } from "./routes/dashboardPulse";
-import { buildLeaderboardsResponse, buildDebugXSentimentResponse } from "./routes/dashboardLeaderboards";
+import {
+  buildLeaderboardsResponse,
+  buildDebugXSentimentResponse,
+} from "./routes/dashboardLeaderboards";
 import { buildPaperResponse } from "./routes/dashboardPaper";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
@@ -402,7 +405,11 @@ export const vincePlugin: Plugin = {
       path: "/vince/usage",
       type: "GET",
       handler: async (
-        req: { params?: Record<string, string>; query?: Record<string, string>; [k: string]: unknown },
+        req: {
+          params?: Record<string, string>;
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
         res: {
           status: (n: number) => { json: (o: object) => void };
           json: (o: object) => void;
@@ -469,32 +476,57 @@ export const vincePlugin: Plugin = {
       path: "/vince/knowledge-quality-checklist",
       type: "GET",
       handler: async (
-        req: { params?: Record<string, string>; query?: Record<string, string>; [k: string]: unknown },
+        req: {
+          params?: Record<string, string>;
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
         res: {
-          status: (n: number) => { json: (o: object) => void; setHeader: (k: string, v: string) => unknown; send: (s: string) => void };
+          status: (n: number) => {
+            json: (o: object) => void;
+            setHeader: (k: string, v: string) => unknown;
+            send: (s: string) => void;
+          };
           json: (o: object) => void;
         },
       ) => {
         try {
           const fs = await import("fs");
           const pathMod = await import("path");
-          const outPath = pathMod.join(process.cwd(), "knowledge", "internal-docs", "KNOWLEDGE-QUALITY-CHECKLIST.md");
+          const outPath = pathMod.join(
+            process.cwd(),
+            "knowledge",
+            "internal-docs",
+            "KNOWLEDGE-QUALITY-CHECKLIST.md",
+          );
           if (!fs.existsSync(outPath)) {
-            res.status(404).json({ error: "KNOWLEDGE-QUALITY-CHECKLIST.md not found" });
+            res
+              .status(404)
+              .json({ error: "KNOWLEDGE-QUALITY-CHECKLIST.md not found" });
             return;
           }
           const content = fs.readFileSync(outPath, "utf8");
           const raw = (req.query as Record<string, string>)?.["raw"] === "1";
           if (raw) {
-            const r = res as { setHeader?: (k: string, v: string) => void; send?: (s: string) => void };
+            const r = res as {
+              setHeader?: (k: string, v: string) => void;
+              send?: (s: string) => void;
+            };
             r.setHeader?.("Content-Type", "text/markdown; charset=utf-8");
             r.send?.(content);
             return;
           }
-          res.json({ content, path: "knowledge/internal-docs/KNOWLEDGE-QUALITY-CHECKLIST.md" });
+          res.json({
+            content,
+            path: "knowledge/internal-docs/KNOWLEDGE-QUALITY-CHECKLIST.md",
+          });
         } catch (err) {
-          logger.warn(`[VINCE] Knowledge quality checklist route error: ${err}`);
-          res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+          logger.warn(
+            `[VINCE] Knowledge quality checklist route error: ${err}`,
+          );
+          res
+            .status(500)
+            .json({ error: err instanceof Error ? err.message : String(err) });
         }
       },
     },
@@ -512,7 +544,11 @@ export const vincePlugin: Plugin = {
         try {
           const fs = await import("fs");
           const path = await import("path");
-          const outPath = path.join(process.cwd(), "data", "knowledge-quality-results.json");
+          const outPath = path.join(
+            process.cwd(),
+            "data",
+            "knowledge-quality-results.json",
+          );
           if (!fs.existsSync(outPath)) {
             res.status(404).json({
               error: "No knowledge quality results yet",
@@ -522,7 +558,11 @@ export const vincePlugin: Plugin = {
           }
           const raw = fs.readFileSync(outPath, "utf8");
           const data = JSON.parse(raw);
-          const historyPath = path.join(process.cwd(), "data", "knowledge-quality-history.json");
+          const historyPath = path.join(
+            process.cwd(),
+            "data",
+            "knowledge-quality-history.json",
+          );
           if (fs.existsSync(historyPath)) {
             try {
               const historyRaw = fs.readFileSync(historyPath, "utf8");
@@ -600,7 +640,11 @@ export const vincePlugin: Plugin = {
     // Do NOT replace with a deferred handler — it causes VinceNotificationService to blast all rooms.
     // The standup push calls the Discord service directly instead (see pushStandupSummaryToChannels).
     if (typeof runtime.registerSendHandler === "function") {
-      const noOpDiscordHandler = async (_r: IAgentRuntime, _t: TargetInfo, _c: Content) => {};
+      const noOpDiscordHandler = async (
+        _r: IAgentRuntime,
+        _t: TargetInfo,
+        _c: Content,
+      ) => {};
       for (const key of ["discord", "Discord", "DISCORD"]) {
         runtime.registerSendHandler(key, noOpDiscordHandler);
       }
@@ -1024,13 +1068,26 @@ export const vincePlugin: Plugin = {
     // Optional: stagger second Discord bot so both can connect in same process (see DISCORD.md).
     // When both Eliza and VINCE have Discord enabled, delaying VINCE init gives the first bot time to connect before the second starts.
     if (isVinceAgent(runtime)) {
-      const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+      const elizaHasDiscord = !!(
+        process.env.ELIZA_DISCORD_API_TOKEN?.trim() ||
+        process.env.DISCORD_API_TOKEN?.trim()
+      );
       const vinceHasDiscord =
         !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
         !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim();
-      const delayMs = parseInt(process.env.DELAY_SECOND_DISCORD_MS ?? "3000", 10);
-      if (elizaHasDiscord && vinceHasDiscord && !Number.isNaN(delayMs) && delayMs > 0) {
-        logger.info(`[DISCORD] Staggering second bot: waiting ${delayMs}ms so both can connect (set DELAY_SECOND_DISCORD_MS=0 to disable).`);
+      const delayMs = parseInt(
+        process.env.DELAY_SECOND_DISCORD_MS ?? "3000",
+        10,
+      );
+      if (
+        elizaHasDiscord &&
+        vinceHasDiscord &&
+        !Number.isNaN(delayMs) &&
+        delayMs > 0
+      ) {
+        logger.info(
+          `[DISCORD] Staggering second bot: waiting ${delayMs}ms so both can connect (set DELAY_SECOND_DISCORD_MS=0 to disable).`,
+        );
         await new Promise((r) => setTimeout(r, delayMs));
       }
     }
@@ -1042,9 +1099,13 @@ export const vincePluginNoX: Plugin = {
   ...vincePlugin,
   name: "plugin-vince-no-x",
   description:
-    vincePlugin.description + " No X API or Binance WS (Solus). For X/CT research use Echo; VINCE uses X only as sentiment data for the paper bot when enabled.",
+    vincePlugin.description +
+    " No X API or Binance WS (Solus). For X/CT research use Echo; VINCE uses X only as sentiment data for the paper bot when enabled.",
   services: (vincePlugin.services as (typeof Service)[]).filter(
-    (s) => s !== VinceXResearchService && s !== VinceXSentimentService && s !== VinceBinanceLiquidationService,
+    (s) =>
+      s !== VinceXResearchService &&
+      s !== VinceXSentimentService &&
+      s !== VinceBinanceLiquidationService,
   ),
   actions: vincePlugin.actions!.filter((a) => a.name !== "VINCE_X_RESEARCH"),
 };
@@ -1186,4 +1247,7 @@ export type {
   Signature,
   HiaNScenario,
 } from "./bench/types";
-export type { ImprovementSuggestion, CurrentParams } from "./bench/improvementLoop";
+export type {
+  ImprovementSuggestion,
+  CurrentParams,
+} from "./bench/improvementLoop";

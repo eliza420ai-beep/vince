@@ -213,7 +213,9 @@ export const vinceNewsAction: Action = {
       const riskEvents = newsService.getCriticalRiskEvents();
       const topNews = newsService.getTopHeadlines(12);
       const allHeadlines = newsService.getAllHeadlines();
-      const alsoInFeed = allHeadlines.slice(12, 12 + 40).map((n) => ({ title: n.title }));
+      const alsoInFeed = allHeadlines
+        .slice(12, 12 + 40)
+        .map((n) => ({ title: n.title }));
       const stats = newsService.getDebugStats();
 
       const assetSentiments: NewsDataContext["assetSentiments"] = [];

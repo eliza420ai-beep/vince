@@ -72,8 +72,10 @@ function parseBridgeRequest(text: string): BridgeRequest | null {
     if (match) {
       if (match.length === 5) {
         // Full bridge with from/to
-        const fromChain = CHAIN_ALIASES[match[3].toLowerCase()] || match[3].toLowerCase();
-        const toChain = CHAIN_ALIASES[match[4].toLowerCase()] || match[4].toLowerCase();
+        const fromChain =
+          CHAIN_ALIASES[match[3].toLowerCase()] || match[3].toLowerCase();
+        const toChain =
+          CHAIN_ALIASES[match[4].toLowerCase()] || match[4].toLowerCase();
         return {
           amount: match[1],
           token: match[2].toUpperCase(),
@@ -82,7 +84,8 @@ function parseBridgeRequest(text: string): BridgeRequest | null {
         };
       } else if (match.length === 4) {
         // Just "to chain", assume from base
-        const toChain = CHAIN_ALIASES[match[3].toLowerCase()] || match[3].toLowerCase();
+        const toChain =
+          CHAIN_ALIASES[match[3].toLowerCase()] || match[3].toLowerCase();
         return {
           amount: match[1],
           token: match[2].toUpperCase(),
@@ -115,14 +118,17 @@ export const otakuBridgeAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Bridge Quote:**\n- Send: 0.1 ETH on Base\n- Receive: ~0.0995 ETH on Arbitrum\n- Fee: ~$0.50\n- Time: ~2 minutes\n\nType \"confirm\" to proceed.",
+          text: '**Bridge Quote:**\n- Send: 0.1 ETH on Base\n- Receive: ~0.0995 ETH on Arbitrum\n- Fee: ~$0.50\n- Time: ~2 minutes\n\nType "confirm" to proceed.',
           actions: ["OTAKU_BRIDGE"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     if (isConfirmation(text)) {
@@ -132,14 +138,18 @@ export const otakuBridgeAction: Action = {
     const hasBridgeIntent =
       text.includes("bridge") ||
       text.includes("cross-chain") ||
-      (text.includes("send") && (text.includes("to") || text.includes("from"))) ||
+      (text.includes("send") &&
+        (text.includes("to") || text.includes("from"))) ||
       (text.includes("move") && text.includes("to")) ||
-      (text.includes("transfer") && (text.includes("to") || text.includes("from")));
+      (text.includes("transfer") &&
+        (text.includes("to") || text.includes("from")));
 
     if (!hasBridgeIntent) return false;
 
     const relayService = runtime.getService("relay") as RelayService | null;
-    const bankrService = runtime.getService("bankr_agent") as BankrAgentService | null;
+    const bankrService = runtime.getService(
+      "bankr_agent",
+    ) as BankrAgentService | null;
 
     return !!(relayService || bankrService?.isConfigured?.());
   },
@@ -149,7 +159,7 @@ export const otakuBridgeAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
@@ -168,15 +178,24 @@ export const otakuBridgeAction: Action = {
     }
     if (!request) {
       await callback?.({
-        text: "I couldn't parse the bridge details. Please specify:\n- Amount and token (e.g., 0.1 ETH)\n- Source chain (e.g., from Base)\n- Destination chain (e.g., to Arbitrum)\n\nExample: \"bridge 0.1 ETH from Base to Arbitrum\"",
+        text: 'I couldn\'t parse the bridge details. Please specify:\n- Amount and token (e.g., 0.1 ETH)\n- Source chain (e.g., from Base)\n- Destination chain (e.g., to Arbitrum)\n\nExample: "bridge 0.1 ETH from Base to Arbitrum"',
       });
-      return { success: false, error: new Error("Could not parse bridge request") };
+      return {
+        success: false,
+        error: new Error("Could not parse bridge request"),
+      };
     }
 
     const relayService = runtime.getService("relay") as RelayService | null;
-    const bankrService = runtime.getService("bankr_agent") as BankrAgentService | null;
+    const bankrService = runtime.getService(
+      "bankr_agent",
+    ) as BankrAgentService | null;
 
-    const pendingBridge = await getPending<BridgeRequest>(runtime, message, "bridge");
+    const pendingBridge = await getPending<BridgeRequest>(
+      runtime,
+      message,
+      "bridge",
+    );
 
     if (isConfirmation(text) && pendingBridge) {
       await clearPending(runtime, message, "bridge");
@@ -193,12 +212,16 @@ export const otakuBridgeAction: Action = {
             await callback?.({
               text: "Here's the bridge status—\n\n" + bridgeOut,
             });
-            await appendNotificationEvent(runtime, {
-              action: "bridge_completed",
-              title: "Bridge completed",
-              subtitle: `${pendingBridge.amount} ${pendingBridge.token} from ${pendingBridge.fromChain} to ${pendingBridge.toChain}`,
-              metadata: { txHash: result.txHash },
-            }, message.entityId);
+            await appendNotificationEvent(
+              runtime,
+              {
+                action: "bridge_completed",
+                title: "Bridge completed",
+                subtitle: `${pendingBridge.amount} ${pendingBridge.token} from ${pendingBridge.fromChain} to ${pendingBridge.toChain}`,
+                metadata: { txHash: result.txHash },
+              },
+              message.entityId,
+            );
             return { success: true };
           }
         } catch (err) {
@@ -222,31 +245,44 @@ export const otakuBridgeAction: Action = {
             await callback?.({
               text: "Here's the bridge status—\n\n" + bridgeOut,
             });
-            await appendNotificationEvent(runtime, {
-              action: "bridge_completed",
-              title: "Bridge completed",
-              subtitle: `${pendingBridge.amount} ${pendingBridge.token} from ${pendingBridge.fromChain} to ${pendingBridge.toChain}`,
-              metadata: { txHash },
-            }, message.entityId);
+            await appendNotificationEvent(
+              runtime,
+              {
+                action: "bridge_completed",
+                title: "Bridge completed",
+                subtitle: `${pendingBridge.amount} ${pendingBridge.token} from ${pendingBridge.fromChain} to ${pendingBridge.toChain}`,
+                metadata: { txHash },
+              },
+              message.entityId,
+            );
             return { success: true };
           } else {
             await callback?.({
               text: `❌ Bridge failed: ${result.error || "Unknown error"}`,
             });
-            return { success: false, error: new Error(result.error ?? "Bridge failed") };
+            return {
+              success: false,
+              error: new Error(result.error ?? "Bridge failed"),
+            };
           }
         } catch (err) {
           await callback?.({
             text: `❌ Bridge failed: ${err instanceof Error ? err.message : String(err)}`,
           });
-          return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
+          return {
+            success: false,
+            error: err instanceof Error ? err : new Error(String(err)),
+          };
         }
       }
 
       await callback?.({
         text: "❌ No bridge service available. Check Relay or BANKR configuration.",
       });
-      return { success: false, error: new Error("No bridge service available") };
+      return {
+        success: false,
+        error: new Error("No bridge service available"),
+      };
     }
 
     // Get quote
@@ -271,7 +307,9 @@ export const otakuBridgeAction: Action = {
     }
 
     // Format confirmation message
-    const receiveAmount = quote?.receiveAmount || `~${(parseFloat(request.amount) * 0.995).toFixed(4)}`;
+    const receiveAmount =
+      quote?.receiveAmount ||
+      `~${(parseFloat(request.amount) * 0.995).toFixed(4)}`;
     const fee = quote?.feeUsd || "~$0.50-2.00";
     const time = quote?.estimatedTime || "2-5 minutes";
 
@@ -289,7 +327,9 @@ export const otakuBridgeAction: Action = {
 
     await callback?.({ text: confirmation });
     await setPending(runtime, message, "bridge", request);
-    logger.info(`[OTAKU_BRIDGE] Pending bridge stored: ${JSON.stringify(request)}`);
+    logger.info(
+      `[OTAKU_BRIDGE] Pending bridge stored: ${JSON.stringify(request)}`,
+    );
 
     return { success: true };
   },

@@ -64,9 +64,15 @@ function parseArgs(): {
 async function main(): Promise<void> {
   const opts = parseArgs();
 
-  const dataDir = opts.dataDir ?? path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
+  const dataDir =
+    opts.dataDir ??
+    path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
   const pluginRoot = path.join(import.meta.dir, "..");
-  const defaultConfig = path.join(pluginRoot, "bench-dataset", "domains-vince.yaml");
+  const defaultConfig = path.join(
+    pluginRoot,
+    "bench-dataset",
+    "domains-vince.yaml",
+  );
   const configPath = opts.configPath ?? defaultConfig;
 
   const report = runReplay({

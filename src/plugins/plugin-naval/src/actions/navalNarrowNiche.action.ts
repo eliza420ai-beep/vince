@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "narrow niche",
@@ -45,7 +49,10 @@ export const navalNarrowNicheAction: Action = {
   description:
     "Narrow positioning until you're the obvious choice. Who has the exact problem? Specific outcome? I'm the only person who [X] for [Y]. Why too narrow is good.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsNarrowNiche(text);
   },
@@ -80,7 +87,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -88,14 +95,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Narrow until you're the obvious choice for that specific problem. 'I'm the only person who [X] for [Y].' Too narrow is good — less competition, clearer message.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Narrow niche. I'm a growth consultant for tech startups." } },
-      { name: "{{agent}}", content: { text: "1. Exact problem: Series A B2B SaaS that need to fix activation in first 90 days. 2. Outcome: 20% activation lift in one quarter. 3. Others don't: you do the first 100 users yourself. 'I'm the only person who does hands-on activation for Series A B2B SaaS.' Narrow = they know exactly when to call you." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Narrow niche. I'm a growth consultant for tech startups.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Exact problem: Series A B2B SaaS that need to fix activation in first 90 days. 2. Outcome: 20% activation lift in one quarter. 3. Others don't: you do the first 100 users yourself. 'I'm the only person who does hands-on activation for Series A B2B SaaS.' Narrow = they know exactly when to call you.",
+        },
+      },
     ],
   ],
 };

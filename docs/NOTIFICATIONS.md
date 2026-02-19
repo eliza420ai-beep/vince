@@ -8,25 +8,25 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 
 ### Option A: Purpose-based (recommended)
 
-| Channel Name | Purpose | What gets pushed |
-|--------------|---------|------------------|
-| `#daily` or `#vince-daily-reports` | Scheduled daily report | ALOHA + OPTIONS + PERPS + HIP-3 summary (once/day at **08:00 UTC** — morning) |
-| `#vince-alerts` | High-signal events | Alerts (watchlist, wallet, token), paper trade open/close |
-| `#vince-upload-youtube` | Curated YouTube → knowledge | You paste YouTube links; VINCE ingests (transcript + summary). No need to watch — save to knowledge instead. |
+| Channel Name                       | Purpose                     | What gets pushed                                                                                             |
+| ---------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `#daily` or `#vince-daily-reports` | Scheduled daily report      | ALOHA + OPTIONS + PERPS + HIP-3 summary (once/day at **08:00 UTC** — morning)                                |
+| `#vince-alerts`                    | High-signal events          | Alerts (watchlist, wallet, token), paper trade open/close                                                    |
+| `#vince-upload-youtube`            | Curated YouTube → knowledge | You paste YouTube links; VINCE ingests (transcript + summary). No need to watch — save to knowledge instead. |
 
 ### Option B: Single channel
 
-| Channel Name | Purpose |
-|--------------|---------|
-| `#vince` | All notifications (daily report, alerts, trades) |
+| Channel Name | Purpose                                          |
+| ------------ | ------------------------------------------------ |
+| `#vince`     | All notifications (daily report, alerts, trades) |
 
 ### Option C: By asset class
 
-| Channel Name | Purpose |
-|--------------|---------|
+| Channel Name           | Purpose                        |
+| ---------------------- | ------------------------------ |
 | `#vince-daily-reports` | Daily report (crypto + TradFi) |
-| `#vince-trading` | Paper trades only |
-| `#vince-alerts` | Alerts only |
+| `#vince-trading`       | Paper trades only              |
+| `#vince-alerts`        | Alerts only                    |
 
 ---
 
@@ -57,7 +57,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 4. In `.env` set:
    - `VINCE_DISCORD_APPLICATION_ID=<your VINCE app’s application id>`
    - `VINCE_DISCORD_API_TOKEN=<your VINCE app’s bot token>`
-   If you also run Eliza with Discord, use a different app for VINCE (different `VINCE_DISCORD_APPLICATION_ID` from `ELIZA_DISCORD_APPLICATION_ID`), or VINCE will not get a send handler and you’ll see "Send handler not found".
+     If you also run Eliza with Discord, use a different app for VINCE (different `VINCE_DISCORD_APPLICATION_ID` from `ELIZA_DISCORD_APPLICATION_ID`), or VINCE will not get a send handler and you’ll see "Send handler not found".
 
 ### Slack
 
@@ -76,24 +76,24 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 
 ## Configuration
 
-| Env var | Default | Description |
-|---------|---------|-------------|
-| `VINCE_DAILY_REPORT_ENABLED` | `true` | Set to `false` to disable scheduled daily report |
-| `VINCE_DAILY_REPORT_HOUR` | `8` | Hour (UTC) to run the daily report (morning) |
-| `VINCE_LIFESTYLE_DAILY_ENABLED` | `true` | Set to `false` to disable scheduled lifestyle briefing (or when using Kelly for lifestyle channel) |
-| `VINCE_LIFESTYLE_HOUR` | `8` | Hour (UTC) to run the lifestyle briefing |
-| `KELLY_LIFESTYLE_DAILY_ENABLED` | `true` | Set to `false` to disable Kelly's scheduled concierge briefing. Runs only when the Kelly agent is run (plugin-kelly loaded). |
-| `KELLY_LIFESTYLE_HOUR` | `8` | Hour (UTC) for Kelly's daily briefing. Channels whose name contains "kelly" or "lifestyle" receive the push. |
-| `VINCE_NEWS_DAILY_ENABLED` | `true` | Set to `false` to disable scheduled news briefing |
-| `VINCE_NEWS_HOUR` | `7` | Hour (UTC) to run the news briefing |
-| `VINCE_NEWS_PUSH_REQUIRE_FRESH` | `true` | When `true`, skip push if Mando's publish date can't be inferred or is stale. Mando doesn't update every day. Set `false` to push anyway. |
-| `SENTINEL_WEEKLY_ENABLED` | `true` | Set to `false` to disable Sentinel weekly suggestions. Channels whose name contains "sentinel" or "ops" receive the push. |
-| `SENTINEL_DAILY_ENABLED` | `false` | Set to `true` to enable Sentinel daily digest (ONNX, clawdbot, ART, task brief) to sentinel/ops channels. |
-| `SENTINEL_DAILY_HOUR_UTC` | `8` | Hour (UTC) for daily digest reference. |
-| `STANDUP_ENABLED` | — | Set to `true` to enable 2×/day agent standups. Coordinator (default Kelly) pushes summary to channels with "daily-standup" or "standup" in the name. See [MULTI_AGENT.md](MULTI_AGENT.md#standups-autonomous-agent-meetings). |
-| `STANDUP_COORDINATOR_AGENT` | `Kelly` | Agent that runs the standup task and pushes to #daily-standup. |
-| `STANDUP_VINCE_USE_REPORT` | — | Set to `true` to use VINCE's Report of the Day (standup-length) as his shared daily insights section, reducing duplicate fetches and giving the meeting one cohesive narrative. See [MULTI_AGENT.md](MULTI_AGENT.md#standup-shared-daily-insights-and-north-star). |
-| `STANDUP_INSIGHTS_CAP_VINCE` | `1200` | Max characters for VINCE's section in shared insights. Use `3500` when `STANDUP_VINCE_USE_REPORT=true` to avoid truncating the standup report. |
+| Env var                         | Default | Description                                                                                                                                                                                                                                                        |
+| ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VINCE_DAILY_REPORT_ENABLED`    | `true`  | Set to `false` to disable scheduled daily report                                                                                                                                                                                                                   |
+| `VINCE_DAILY_REPORT_HOUR`       | `8`     | Hour (UTC) to run the daily report (morning)                                                                                                                                                                                                                       |
+| `VINCE_LIFESTYLE_DAILY_ENABLED` | `true`  | Set to `false` to disable scheduled lifestyle briefing (or when using Kelly for lifestyle channel)                                                                                                                                                                 |
+| `VINCE_LIFESTYLE_HOUR`          | `8`     | Hour (UTC) to run the lifestyle briefing                                                                                                                                                                                                                           |
+| `KELLY_LIFESTYLE_DAILY_ENABLED` | `true`  | Set to `false` to disable Kelly's scheduled concierge briefing. Runs only when the Kelly agent is run (plugin-kelly loaded).                                                                                                                                       |
+| `KELLY_LIFESTYLE_HOUR`          | `8`     | Hour (UTC) for Kelly's daily briefing. Channels whose name contains "kelly" or "lifestyle" receive the push.                                                                                                                                                       |
+| `VINCE_NEWS_DAILY_ENABLED`      | `true`  | Set to `false` to disable scheduled news briefing                                                                                                                                                                                                                  |
+| `VINCE_NEWS_HOUR`               | `7`     | Hour (UTC) to run the news briefing                                                                                                                                                                                                                                |
+| `VINCE_NEWS_PUSH_REQUIRE_FRESH` | `true`  | When `true`, skip push if Mando's publish date can't be inferred or is stale. Mando doesn't update every day. Set `false` to push anyway.                                                                                                                          |
+| `SENTINEL_WEEKLY_ENABLED`       | `true`  | Set to `false` to disable Sentinel weekly suggestions. Channels whose name contains "sentinel" or "ops" receive the push.                                                                                                                                          |
+| `SENTINEL_DAILY_ENABLED`        | `false` | Set to `true` to enable Sentinel daily digest (ONNX, clawdbot, ART, task brief) to sentinel/ops channels.                                                                                                                                                          |
+| `SENTINEL_DAILY_HOUR_UTC`       | `8`     | Hour (UTC) for daily digest reference.                                                                                                                                                                                                                             |
+| `STANDUP_ENABLED`               | —       | Set to `true` to enable 2×/day agent standups. Coordinator (default Kelly) pushes summary to channels with "daily-standup" or "standup" in the name. See [MULTI_AGENT.md](MULTI_AGENT.md#standups-autonomous-agent-meetings).                                      |
+| `STANDUP_COORDINATOR_AGENT`     | `Kelly` | Agent that runs the standup task and pushes to #daily-standup.                                                                                                                                                                                                     |
+| `STANDUP_VINCE_USE_REPORT`      | —       | Set to `true` to use VINCE's Report of the Day (standup-length) as his shared daily insights section, reducing duplicate fetches and giving the meeting one cohesive narrative. See [MULTI_AGENT.md](MULTI_AGENT.md#standup-shared-daily-insights-and-north-star). |
+| `STANDUP_INSIGHTS_CAP_VINCE`    | `1200`  | Max characters for VINCE's section in shared insights. Use `3500` when `STANDUP_VINCE_USE_REPORT=true` to avoid truncating the standup report.                                                                                                                     |
 
 ---
 

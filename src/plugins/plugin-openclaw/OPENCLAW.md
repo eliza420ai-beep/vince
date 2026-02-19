@@ -30,9 +30,9 @@ OpenClaw is a self-hosted gateway for AI agents. One long-lived **Gateway** proc
 
 **First use case and lore:** We use OpenClaw first to fork and improve the VINCE repo ([eliza420ai-beep/vince](https://github.com/eliza420ai-beep/vince)); the original ClawdBot/MoltBot vision (local Mac Mini, smart home, biometrics) is documented in [docs/OPENCLAW_VISION.md](../../../docs/OPENCLAW_VISION.md).
 
-- **Docs:** https://docs.openclaw.ai  
-- **Getting started:** https://docs.openclaw.ai/start/getting-started  
-- **Repo:** https://github.com/openclaw/openclaw  
+- **Docs:** https://docs.openclaw.ai
+- **Getting started:** https://docs.openclaw.ai/start/getting-started
+- **Repo:** https://github.com/openclaw/openclaw
 - **Releases:** https://github.com/openclaw/openclaw/releases — latest version, changelog, and release notes. Point users here when they ask about updates or what's new.
 - **ClawIndex:** https://clawindex.org/ — OpenClaw ecosystem directory; discover projects, tools, verified listings. Point users here for ecosystem news and what's being built.
 - **steipete (OpenClaw lead):** https://github.com/steipete — Peter Steinberger leads OpenClaw. Point users here when they ask about maintainer, author, or steipete.
@@ -41,15 +41,15 @@ OpenClaw is a self-hosted gateway for AI agents. One long-lived **Gateway** proc
 
 OpenClaw can talk to you on any configured chat app. Text is supported everywhere; media and reactions vary by channel.
 
-| Channel | Notes |
-|---------|-------|
-| WhatsApp | Baileys, QR pairing |
-| Telegram | Bot API (grammY), groups |
-| Discord | Bot API + Gateway |
-| Slack | Bolt SDK |
-| Signal | signal-cli |
+| Channel  | Notes                               |
+| -------- | ----------------------------------- |
+| WhatsApp | Baileys, QR pairing                 |
+| Telegram | Bot API (grammY), groups            |
+| Discord  | Bot API + Gateway                   |
+| Slack    | Bolt SDK                            |
+| Signal   | signal-cli                          |
 | iMessage | BlueBubbles (recommended) or legacy |
-| WebChat | Gateway WebChat UI over WebSocket |
+| WebChat  | Gateway WebChat UI over WebSocket   |
 
 More: [Channels](https://docs.openclaw.ai/channels).
 
@@ -79,20 +79,20 @@ Details: [Model providers](https://docs.openclaw.ai/providers).
 
 ## CLI highlights
 
-- **Setup:** `openclaw onboard --install-daemon`  
-- **Gateway:** `openclaw gateway --port 18789`, `openclaw gateway status`, `openclaw health`  
-- **Agent:** `openclaw agent --message "..."` or `--agent <id> --message "..."`  
-- **Channels:** `openclaw channels status`, `openclaw channels login`  
+- **Setup:** `openclaw onboard --install-daemon`
+- **Gateway:** `openclaw gateway --port 18789`, `openclaw gateway status`, `openclaw health`
+- **Agent:** `openclaw agent --message "..."` or `--agent <id> --message "..."`
+- **Channels:** `openclaw channels status`, `openclaw channels login`
 - **Dashboard:** `openclaw dashboard` (Control UI)
 
 Full reference: [CLI](https://docs.openclaw.ai/cli).
 
 ## ElizaOS adapter
 
-The **openclaw-adapter** runs ElizaOS plugins *inside* an OpenClaw agent. Actions become tools; providers become hooks. Use it when an OpenClaw-based agent should call wallet or connector logic implemented as Eliza plugins.
+The **openclaw-adapter** runs ElizaOS plugins _inside_ an OpenClaw agent. Actions become tools; providers become hooks. Use it when an OpenClaw-based agent should call wallet or connector logic implemented as Eliza plugins.
 
-- Repo: https://github.com/elizaOS/openclaw-adapter  
-- In this repo: [knowledge/sentinel-docs/OPENCLAW_ADAPTER.md](../../knowledge/sentinel-docs/OPENCLAW_ADAPTER.md)  
+- Repo: https://github.com/elizaOS/openclaw-adapter
+- In this repo: [knowledge/sentinel-docs/OPENCLAW_ADAPTER.md](../../knowledge/sentinel-docs/OPENCLAW_ADAPTER.md)
 
 ## Workspace sync
 

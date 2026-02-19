@@ -104,7 +104,10 @@ describe("KELLY_DAILY_BRIEFING Action", () => {
         createMockRuntime() as any,
       );
       const curated = {
-        restaurants: ["Maison Devaux | Rion-des-Landes", "Auberge du Lavoir | Garrosse"],
+        restaurants: [
+          "Maison Devaux | Rion-des-Landes",
+          "Auberge du Lavoir | Garrosse",
+        ],
         hotels: ["Relais de la Poste | Magescq"],
         fitnessNote: "Pool Apr-Nov",
         rawSection: "Wed: Maison Devaux; Auberge du Lavoir",
@@ -114,7 +117,8 @@ describe("KELLY_DAILY_BRIEFING Action", () => {
           name === "KELLY_LIFESTYLE_SERVICE" ? lifestyleService : null,
         useModel: async (_opts: { prompt?: string }) => {
           const p = (_opts?.prompt ?? "").toString();
-          if (p.includes("DINING") && p.includes("curated")) return "Today: lunch at Maison Devaux (curated, open Wed).";
+          if (p.includes("DINING") && p.includes("curated"))
+            return "Today: lunch at Maison Devaux (curated, open Wed).";
           return "Wednesday—midweek escape. Consider Relais de la Poste.";
         },
       });
@@ -164,7 +168,13 @@ describe("KELLY_DAILY_BRIEFING Action", () => {
       });
       const message = createMockMessage("what should I do today");
       const callback = createMockCallback();
-      await kellyDailyBriefingAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyDailyBriefingAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       expect(callback.calls[0].actions).toEqual(["KELLY_DAILY_BRIEFING"]);
     });

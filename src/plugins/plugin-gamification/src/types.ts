@@ -2,8 +2,8 @@
  * TypeScript interfaces for gamification system
  */
 
-import type { UUID } from '@elizaos/core';
-import { GamificationEventType } from './constants';
+import type { UUID } from "@elizaos/core";
+import { GamificationEventType } from "./constants";
 
 /**
  * Input for recording a gamification event
@@ -73,7 +73,7 @@ export interface ReferralCode {
   userId: UUID;
   code: string;
   referrerId: UUID | null;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   createdAt: Date;
 }
 
@@ -98,4 +98,3 @@ export interface Campaign {
   endAt: Date;
   active: boolean;
 }
-

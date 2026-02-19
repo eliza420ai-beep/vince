@@ -15,7 +15,10 @@ import {
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
-import { validatePolymarketService, getPolymarketService } from "../utils/actionHelpers";
+import {
+  validatePolymarketService,
+  getPolymarketService,
+} from "../utils/actionHelpers";
 
 type GetSpreadsInput = Record<string, never>;
 
@@ -38,7 +41,12 @@ export const getSpreadsAction: Action = {
   parameters: {},
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_SPREADS", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_SPREADS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -46,7 +54,7 @@ export const getSpreadsAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_SPREADS] Fetching spreads");
@@ -130,15 +138,17 @@ export const getSpreadsAction: Action = {
           })),
           total_markets: spreadsData.length,
           avg_spread_percentage: (
-            spreadsData.reduce((sum, s) => sum + parseFloat(s.spread_percentage), 0) /
-            spreadsData.length
+            spreadsData.reduce(
+              (sum, s) => sum + parseFloat(s.spread_percentage),
+              0,
+            ) / spreadsData.length
           ).toFixed(2),
         },
         input: inputParams,
       };
 
       logger.info(
-        `[GET_POLYMARKET_SPREADS] Successfully fetched spreads for ${spreadsData.length} markets`
+        `[GET_POLYMARKET_SPREADS] Successfully fetched spreads for ${spreadsData.length} markets`,
       );
       return result;
     } catch (error) {

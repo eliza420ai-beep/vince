@@ -60,7 +60,10 @@ export const otakuPositionsAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     // Must contain positions/portfolio/orders intent
@@ -71,7 +74,8 @@ export const otakuPositionsAction: Action = {
       text.includes("holdings") ||
       (text.includes("my") && text.includes("order")) ||
       (text.includes("active") && text.includes("order")) ||
-      (text.includes("show") && (text.includes("order") || text.includes("wallet")));
+      (text.includes("show") &&
+        (text.includes("order") || text.includes("wallet")));
 
     if (!hasIntent) return false;
 
@@ -89,7 +93,7 @@ export const otakuPositionsAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const otakuSvc = runtime.getService("otaku") as OtakuService;
 
@@ -97,7 +101,10 @@ export const otakuPositionsAction: Action = {
       await callback?.({
         text: "Otaku service not available. Please check configuration.",
       });
-      return { success: false, error: new Error("Otaku service not available") };
+      return {
+        success: false,
+        error: new Error("Otaku service not available"),
+      };
     }
 
     await callback?.({
@@ -112,7 +119,9 @@ export const otakuPositionsAction: Action = {
       if (result.positions.length > 0) {
         positionLines.push("**Portfolio:**");
         for (const pos of result.positions) {
-          const usdStr = pos.usdValue ? ` (~$${parseFloat(pos.usdValue).toLocaleString()})` : "";
+          const usdStr = pos.usdValue
+            ? ` (~$${parseFloat(pos.usdValue).toLocaleString()})`
+            : "";
           positionLines.push(`- ${pos.balance} ${pos.token}${usdStr}`);
         }
       } else {
@@ -125,15 +134,22 @@ export const otakuPositionsAction: Action = {
         orderLines.push("\n**Active Orders:**");
         for (const order of result.orders) {
           const typeLabel = order.type.toUpperCase();
-          const statusLabel = order.status === "active" ? "⏳" : order.status === "filled" ? "✅" : "❌";
+          const statusLabel =
+            order.status === "active"
+              ? "⏳"
+              : order.status === "filled"
+                ? "✅"
+                : "❌";
           const priceStr = order.price ? ` at ${order.price}` : "";
-          const fillStr = order.fillPercent ? ` (${order.fillPercent}% filled)` : "";
+          const fillStr = order.fillPercent
+            ? ` (${order.fillPercent}% filled)`
+            : "";
 
           orderLines.push(
-            `${statusLabel} **${typeLabel}** #${order.orderId.slice(0, 8)}...`
+            `${statusLabel} **${typeLabel}** #${order.orderId.slice(0, 8)}...`,
           );
           orderLines.push(
-            `   ${order.amount} ${order.sellToken} → ${order.buyToken}${priceStr}${fillStr}`
+            `   ${order.amount} ${order.sellToken} → ${order.buyToken}${priceStr}${fillStr}`,
           );
         }
       } else {
@@ -145,7 +161,9 @@ export const otakuPositionsAction: Action = {
         ? `\n**Total Value:** ~$${parseFloat(result.totalUsdValue).toLocaleString()}`
         : "";
 
-      const out = "Here are your positions—\n\n" + [...positionLines, ...orderLines, totalLine].join("\n");
+      const out =
+        "Here are your positions—\n\n" +
+        [...positionLines, ...orderLines, totalLine].join("\n");
       await callback?.({
         text: out,
       });
@@ -157,7 +175,10 @@ export const otakuPositionsAction: Action = {
       await callback?.({
         text: `Failed to fetch positions: ${msg}`,
       });
-      return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
+      return {
+        success: false,
+        error: err instanceof Error ? err : new Error(String(err)),
+      };
     }
   },
 };

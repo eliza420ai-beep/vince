@@ -10,7 +10,11 @@ import type { ActionItem } from "./actionItemTracker";
 
 function getLearningsPath(): string {
   const envDir = process.env.STANDUP_DELIVERABLES_DIR?.trim();
-  const dir = envDir ? (path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir)) : path.join(process.cwd(), "docs/standup");
+  const dir = envDir
+    ? path.isAbsolute(envDir)
+      ? envDir
+      : path.join(process.cwd(), envDir)
+    : path.join(process.cwd(), "docs/standup");
   return path.join(dir, "standup-learnings.md");
 }
 
@@ -30,7 +34,9 @@ export async function appendLearning(
   const status = item.status;
   const line1 = `- **${date}** [${status}] @${owner}: ${what}`;
   const line2 = `  - Outcome: ${outcome.slice(0, 200).replace(/\n/g, " ")}`;
-  const line3 = learning ? `  - Learning: ${learning.slice(0, 300).replace(/\n/g, " ")}` : "";
+  const line3 = learning
+    ? `  - Learning: ${learning.slice(0, 300).replace(/\n/g, " ")}`
+    : "";
   const block = [line1, line2, line3].filter(Boolean).join("\n") + "\n";
 
   try {
@@ -39,7 +45,11 @@ export async function appendLearning(
     try {
       await fs.access(filepath);
     } catch {
-      await fs.writeFile(filepath, `# Standup learnings\n\n*Append-only log of action item outcomes and learnings.*\n\n`, "utf-8");
+      await fs.writeFile(
+        filepath,
+        `# Standup learnings\n\n*Append-only log of action item outcomes and learnings.*\n\n`,
+        "utf-8",
+      );
     }
     await fs.appendFile(filepath, block, "utf-8");
     logger.debug(`[Standup] Appended learning for ${item.id}`);

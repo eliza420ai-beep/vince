@@ -19,11 +19,11 @@ export interface GenArtResult {
  */
 export async function getArtUri(
   runtime: IAgentRuntime,
-  prompt: string
+  prompt: string,
 ): Promise<GenArtResult | null> {
-  const imageService = runtime.getService("image_generation") as
-    | { generateImage?(prompt: string): Promise<string> }
-    | null;
+  const imageService = runtime.getService("image_generation") as {
+    generateImage?(prompt: string): Promise<string>;
+  } | null;
 
   if (imageService?.generateImage) {
     try {
@@ -35,7 +35,10 @@ export async function getArtUri(
   }
 
   const executeAction = (runtime as any).executeAction as
-    | ((name: string, opts: { agent: string; question: string }) => Promise<{ imageUri?: string; image?: string; url?: string }>)
+    | ((
+        name: string,
+        opts: { agent: string; question: string },
+      ) => Promise<{ imageUri?: string; image?: string; url?: string }>)
     | undefined;
 
   if (executeAction) {
@@ -47,7 +50,9 @@ export async function getArtUri(
       const uri =
         sentinelResponse?.imageUri ??
         sentinelResponse?.url ??
-        (typeof sentinelResponse?.image === "string" ? sentinelResponse.image : null);
+        (typeof sentinelResponse?.image === "string"
+          ? sentinelResponse.image
+          : null);
       if (uri) return { uri, prompt };
     } catch (err) {
       logger.debug(`[Otaku] ASK_AGENT for art failed: ${err}`);
@@ -74,12 +79,19 @@ export async function ensureIpfsUri(uri: string): Promise<string> {
       const base64 = uri.replace(/^data:image\/\w+;base64,/, "");
       const blob = Buffer.from(base64, "base64");
       const form = new FormData();
-      form.append("file", new Blob([blob], { type: "image/png" }), "gen-art.png");
-      const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${pinataKey}` },
-        body: form,
-      });
+      form.append(
+        "file",
+        new Blob([blob], { type: "image/png" }),
+        "gen-art.png",
+      );
+      const res = await fetch(
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${pinataKey}` },
+          body: form,
+        },
+      );
       if (res.ok) {
         const data = await res.json();
         const cid = data.IpfsHash ?? data.cid;
@@ -97,7 +109,11 @@ export async function ensureIpfsUri(uri: string): Promise<string> {
  * Build minimal ERC-721/1155 metadata JSON for tokenURI (for off-chain metadata).
  * Caller can upload this to IPFS and pass ipfs://Qm.../metadata.json as tokenURI.
  */
-export function buildTokenMetadata(artUri: string, name: string, description: string): string {
+export function buildTokenMetadata(
+  artUri: string,
+  name: string,
+  description: string,
+): string {
   return JSON.stringify({
     name,
     description,

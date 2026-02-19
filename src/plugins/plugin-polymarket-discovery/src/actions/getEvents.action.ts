@@ -64,7 +64,12 @@ export const getEventsAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_EVENTS", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_EVENTS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -72,20 +77,24 @@ export const getEventsAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_EVENTS] Fetching events");
 
       // Extract parameters
-      const params = await extractActionParams<GetEventsParams>(runtime, message);
+      const params = await extractActionParams<GetEventsParams>(
+        runtime,
+        message,
+      );
 
       // Parse parameters
       let active: boolean | undefined;
       if (params.active !== undefined) {
-        active = typeof params.active === "string"
-          ? params.active.toLowerCase() === "true"
-          : Boolean(params.active);
+        active =
+          typeof params.active === "string"
+            ? params.active.toLowerCase() === "true"
+            : Boolean(params.active);
       }
 
       const tag = params.tag;
@@ -93,7 +102,9 @@ export const getEventsAction: Action = {
       let limit = 20; // default
       if (params.limit) {
         const parsedLimit =
-          typeof params.limit === "string" ? parseInt(params.limit, 10) : params.limit;
+          typeof params.limit === "string"
+            ? parseInt(params.limit, 10)
+            : params.limit;
         if (!isNaN(parsedLimit) && parsedLimit > 0) {
           limit = Math.min(parsedLimit, 50); // cap at 50
         }
@@ -124,7 +135,9 @@ export const getEventsAction: Action = {
       }
 
       // Fetch events
-      logger.info(`[GET_POLYMARKET_EVENTS] Fetching events with filters: ${JSON.stringify(inputParams)}`);
+      logger.info(
+        `[GET_POLYMARKET_EVENTS] Fetching events with filters: ${JSON.stringify(inputParams)}`,
+      );
       const events = await service.getEvents(inputParams);
 
       if (events.length === 0) {
@@ -146,9 +159,10 @@ export const getEventsAction: Action = {
 
         if (event.description) {
           // Truncate description if too long
-          const desc = event.description.length > 150
-            ? event.description.substring(0, 150) + "..."
-            : event.description;
+          const desc =
+            event.description.length > 150
+              ? event.description.substring(0, 150) + "..."
+              : event.description;
           text += `   ${desc}\n`;
         }
 
@@ -157,7 +171,7 @@ export const getEventsAction: Action = {
         }
 
         if (event.tags && event.tags.length > 0) {
-          text += `   Tags: ${event.tags.map(t => t.label).join(", ")}\n`;
+          text += `   Tags: ${event.tags.map((t) => t.label).join(", ")}\n`;
         }
 
         if (event.slug) {
@@ -167,7 +181,8 @@ export const getEventsAction: Action = {
         text += "\n";
       });
 
-      text += "_Want to see markets for an event? Ask for that event by name or slug._";
+      text +=
+        "_Want to see markets for an event? Ask for that event by name or slug._";
 
       const result: GetEventsActionResult = {
         text,
@@ -187,7 +202,9 @@ export const getEventsAction: Action = {
         input: inputParams,
       };
 
-      logger.info(`[GET_POLYMARKET_EVENTS] Successfully fetched ${events.length} events`);
+      logger.info(
+        `[GET_POLYMARKET_EVENTS] Successfully fetched ${events.length} events`,
+      );
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);

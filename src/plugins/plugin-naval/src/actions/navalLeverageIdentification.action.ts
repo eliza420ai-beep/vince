@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "leverage identification",
@@ -45,7 +49,10 @@ export const navalLeverageIdentificationAction: Action = {
   description:
     "Analyze which leverage (code, media, labor, capital) you have, how to acquire in 6 months, which matches your specific knowledge. Rank by easiest to scale.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsLeverage(text);
   },
@@ -80,7 +87,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -88,14 +95,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Leverage: code, media, labor, capital. Code and media scale with zero marginal cost. Rank them by what you can actually get in 6 months and what fits your specific knowledge.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Which leverage do I have? I'm a writer with a small audience, no code, some savings." } },
-      { name: "{{agent}}", content: { text: "Media: yes — you have audience. Scale: write one thing that compounds (course, book). Code: no — acquire by shipping one tool in 6 months. Labor: no. Capital: some — use to buy time. Rank: media first, then code, then capital, then labor." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Which leverage do I have? I'm a writer with a small audience, no code, some savings.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Media: yes — you have audience. Scale: write one thing that compounds (course, book). Code: no — acquire by shipping one tool in 6 months. Labor: no. Capital: some — use to buy time. Rank: media first, then code, then capital, then labor.",
+        },
+      },
     ],
   ],
 };

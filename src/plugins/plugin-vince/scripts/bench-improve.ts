@@ -22,7 +22,8 @@ function parseArgs(): { iterations: number; budget: number } {
   let iterations = 1;
   let budget = 5;
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--iterations" && args[i + 1]) iterations = parseInt(args[++i], 10);
+    if (args[i] === "--iterations" && args[i + 1])
+      iterations = parseInt(args[++i], 10);
     if (args[i] === "--budget" && args[i + 1]) budget = parseInt(args[++i], 10);
   }
   return { iterations, budget };
@@ -38,7 +39,11 @@ function appendImprovement(
   journalPath: string,
   reportId: string,
   finalScore: number,
-  suggestion: { reasoning: string; parameterChanges: Record<string, unknown>; missingSignaturesToTarget?: string[] },
+  suggestion: {
+    reasoning: string;
+    parameterChanges: Record<string, unknown>;
+    missingSignaturesToTarget?: string[];
+  },
 ): void {
   const dir = path.dirname(journalPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -55,7 +60,11 @@ function appendImprovement(
     JSON.stringify(suggestion.parameterChanges, null, 2),
     "```",
     ...(suggestion.missingSignaturesToTarget?.length
-      ? ["", "**Signatures to target:** " + suggestion.missingSignaturesToTarget.join(", ")]
+      ? [
+          "",
+          "**Signatures to target:** " +
+            suggestion.missingSignaturesToTarget.join(", "),
+        ]
       : []),
     "",
   ].join("\n");
@@ -66,9 +75,18 @@ function appendImprovement(
 async function main(): Promise<void> {
   const { iterations } = parseArgs();
 
-  const dataDir = path.join(process.cwd(), ".elizadb", PERSISTENCE_DIR, "features");
+  const dataDir = path.join(
+    process.cwd(),
+    ".elizadb",
+    PERSISTENCE_DIR,
+    "features",
+  );
   const pluginRoot = path.join(import.meta.dir, "..");
-  const configPath = path.join(pluginRoot, "bench-dataset", "domains-vince.yaml");
+  const configPath = path.join(
+    pluginRoot,
+    "bench-dataset",
+    "domains-vince.yaml",
+  );
 
   const journalPath = getJournalPath();
 
@@ -80,10 +98,15 @@ async function main(): Promise<void> {
       completeOnly: false,
       limit: 500,
     });
-    console.log(`FINAL_SCORE: ${report.scoring.finalScore.toFixed(2)} (scenarios: ${report.scenarioCount})`);
+    console.log(
+      `FINAL_SCORE: ${report.scoring.finalScore.toFixed(2)} (scenarios: ${report.scenarioCount})`,
+    );
 
     const currentParams = {};
-    const suggestion = await generateImprovementSuggestions(report, currentParams);
+    const suggestion = await generateImprovementSuggestions(
+      report,
+      currentParams,
+    );
     if (suggestion) {
       appendImprovement(journalPath, report.runId, report.scoring.finalScore, {
         reasoning: suggestion.reasoning,

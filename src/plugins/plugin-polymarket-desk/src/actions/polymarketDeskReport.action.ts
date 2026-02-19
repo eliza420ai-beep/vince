@@ -23,7 +23,10 @@ export const polymarketDeskReportAction: Action = {
   similes: ["POLYMARKET_TCA", "POLYMARKET_PERFORMANCE_REPORT", "DESK_REPORT"],
   examples: [
     [
-      { name: "{{user}}", content: { text: "How did the Polymarket desk do today?" } },
+      {
+        name: "{{user}}",
+        content: { text: "How did the Polymarket desk do today?" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -34,7 +37,10 @@ export const polymarketDeskReportAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
       text.includes("desk report") ||
@@ -58,14 +64,24 @@ export const polymarketDeskReportAction: Action = {
     };
 
     try {
-      const conn = await (runtime as { getConnection?: () => Promise<unknown> }).getConnection?.();
-      if (!conn || typeof (conn as { query: (s: string, v?: unknown[]) => Promise<unknown> }).query !== "function") {
+      const conn = await (
+        runtime as { getConnection?: () => Promise<unknown> }
+      ).getConnection?.();
+      if (
+        !conn ||
+        typeof (
+          conn as { query: (s: string, v?: unknown[]) => Promise<unknown> }
+        ).query !== "function"
+      ) {
         await out("Database connection not available; cannot read trade log.");
         return;
       }
 
       const client = conn as {
-        query: (text: string, values?: unknown[]) => Promise<{ rows: unknown[] }>;
+        query: (
+          text: string,
+          values?: unknown[],
+        ) => Promise<{ rows: unknown[] }>;
       };
 
       const limit = Math.min(Number(options?.limit) || 50, 200);
@@ -97,8 +113,14 @@ export const polymarketDeskReportAction: Action = {
         slippage_bps: number | null;
         created_at: string;
       }>;
-      const orderCounts = (ordersRes.rows || []) as Array<{ status: string; cnt: string }>;
-      const approvedSignals = parseInt(String((signalsRes.rows?.[0] as { cnt: string })?.cnt ?? "0"), 10);
+      const orderCounts = (ordersRes.rows || []) as Array<{
+        status: string;
+        cnt: string;
+      }>;
+      const approvedSignals = parseInt(
+        String((signalsRes.rows?.[0] as { cnt: string })?.cnt ?? "0"),
+        10,
+      );
 
       const filled = orderCounts.find((r) => r.status === "filled");
       const pending = orderCounts.find((r) => r.status === "pending");
@@ -115,7 +137,8 @@ export const polymarketDeskReportAction: Action = {
         const withSlippage = trades.filter((t) => t.slippage_bps != null);
         if (withSlippage.length > 0) {
           avgSlippageBps =
-            withSlippage.reduce((a, t) => a + Number(t.slippage_bps), 0) / withSlippage.length;
+            withSlippage.reduce((a, t) => a + Number(t.slippage_bps), 0) /
+            withSlippage.length;
         }
         totalSizeUsd = trades.reduce((a, t) => a + Number(t.size_usd), 0);
       }
@@ -126,14 +149,18 @@ export const polymarketDeskReportAction: Action = {
         ` Orders: ${filledCount} filled, ${pendingCount} pending, ${rejectedCount} rejected. Fill rate ${fillRate.toFixed(0)}%.`,
       ];
       if (avgSlippageBps != null) {
-        lines.push(` TCA (avg slippage): ${avgSlippageBps >= 0 ? "+" : ""}${avgSlippageBps.toFixed(0)} bps.`);
+        lines.push(
+          ` TCA (avg slippage): ${avgSlippageBps >= 0 ? "+" : ""}${avgSlippageBps.toFixed(0)} bps.`,
+        );
       }
       if (approvedSignals > 0) {
         lines.push(` Signals approved (in period): ${approvedSignals}.`);
       }
       const summary = lines.join("\n");
       await out(summary);
-      logger.info(`[POLYMARKET_DESK_REPORT] ${trades.length} trades, fill rate ${fillRate.toFixed(0)}%`);
+      logger.info(
+        `[POLYMARKET_DESK_REPORT] ${trades.length} trades, fill rate ${fillRate.toFixed(0)}%`,
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(`[POLYMARKET_DESK_REPORT] ${msg}`);

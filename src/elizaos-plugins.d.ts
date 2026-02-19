@@ -22,3 +22,8 @@ declare module "@elizaos/plugin-8004" {
   export const erc8004Plugin: Plugin;
   export default erc8004Plugin;
 }
+
+declare module "@elizaos/plugin-x402" {
+  export function createX402Middleware(options: { runtime: unknown }): unknown;
+  export function createPaywallMiddleware(options: unknown): unknown;
+}

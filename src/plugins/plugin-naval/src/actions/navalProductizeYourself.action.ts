@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "productize myself",
@@ -48,7 +52,10 @@ export const navalProductizeYourselfAction: Action = {
   description:
     "12-month roadmap to productize yourself: build (1-3), sell (4-6), scale (7-9), outcome (10-12). Specific knowledge + leverage.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsProductize(text);
   },
@@ -83,7 +90,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -91,14 +98,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Learn to sell, learn to build. If you can do both, you're unstoppable. Roadmap: 1-3 build, 4-6 sell it, 7-9 scale, 10-12 outcome. Tie to your specific knowledge and leverage.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Productize myself. Building: code + design. Selling: weak, can write." } },
-      { name: "{{agent}}", content: { text: "Months 1-3: Ship one product (design + code). Months 4-6: Write about it, one piece per week. Months 7-9: Automate or template the offer. Months 10-12: First paid cohort or product. Focus: your combo is the product." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Productize myself. Building: code + design. Selling: weak, can write.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Months 1-3: Ship one product (design + code). Months 4-6: Write about it, one piece per week. Months 7-9: Automate or template the offer. Months 10-12: First paid cohort or product. Focus: your combo is the product.",
+        },
+      },
     ],
   ],
 };

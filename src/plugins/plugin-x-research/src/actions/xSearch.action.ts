@@ -15,14 +15,14 @@ import {
   type HandlerCallback,
   ModelType,
   logger,
-} from '@elizaos/core';
-import { getXSearchService } from '../services/xSearch.service';
-import { initXClientFromEnv } from '../services/xClient.service';
-import { formatCostFooter } from '../constants/cost';
-import { setLastResearch } from '../store/lastResearchStore';
-import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
-import { getFriendlyXErrorMessage } from '../utils/xErrorMessages';
-import type { XTweet } from '../types/tweet.types';
+} from "@elizaos/core";
+import { getXSearchService } from "../services/xSearch.service";
+import { initXClientFromEnv } from "../services/xClient.service";
+import { formatCostFooter } from "../constants/cost";
+import { setLastResearch } from "../store/lastResearchStore";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+import { getFriendlyXErrorMessage } from "../utils/xErrorMessages";
+import type { XTweet } from "../types/tweet.types";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100; // X API allows 100 per page
@@ -32,8 +32,11 @@ const QUALITY_MIN_LIKES = 10;
 const SNIPPET_LEN = 120;
 
 function formatTweetForContext(t: XTweet): string {
-  const author = t.author?.username ?? 'unknown';
-  const snippet = t.text.length > SNIPPET_LEN ? t.text.slice(0, SNIPPET_LEN) + '…' : t.text.replace(/\n/g, ' ');
+  const author = t.author?.username ?? "unknown";
+  const snippet =
+    t.text.length > SNIPPET_LEN
+      ? t.text.slice(0, SNIPPET_LEN) + "…"
+      : t.text.replace(/\n/g, " ");
   const likes = t.metrics?.likeCount ?? 0;
   return `@${author}: ${snippet} (${likes} likes)`;
 }
@@ -41,7 +44,7 @@ function formatTweetForContext(t: XTweet): string {
 async function generateNarrative(
   runtime: IAgentRuntime,
   query: string,
-  dataContext: string
+  dataContext: string,
 ): Promise<string | null> {
   const prompt = `You are summarizing X (Twitter) search results for: "${query}". Below are the posts (author, snippet, likes). Turn them into one short narrative.
 
@@ -65,57 +68,65 @@ Write the narrative only (no "Here's the summary" wrapper — start with the nar
     const text = String(response).trim();
     return text.length > 0 ? text : null;
   } catch (error) {
-    logger.warn({ err: error }, '[X_SEARCH] LLM narrative failed');
+    logger.warn({ err: error }, "[X_SEARCH] LLM narrative failed");
     return null;
   }
 }
 
 export const xSearchAction: Action = {
-  name: 'X_SEARCH',
+  name: "X_SEARCH",
   description:
     'Search X/Twitter for an arbitrary query. Use when asked to "search X for …", "what are people saying about …", "find tweets about …". Supports optional from:user and quality filter.',
 
-  similes: ['SEARCH_X', 'SEARCH_TWITTER', 'FIND_TWEETS', 'WHAT_ARE_PEOPLE_SAYING'],
+  similes: [
+    "SEARCH_X",
+    "SEARCH_TWITTER",
+    "FIND_TWEETS",
+    "WHAT_ARE_PEOPLE_SAYING",
+  ],
 
   examples: [
     [
       {
-        name: '{{user1}}',
-        content: { text: 'Search X for BNKR' },
+        name: "{{user1}}",
+        content: { text: "Search X for BNKR" },
       },
       {
-        name: '{{agentName}}',
+        name: "{{agentName}}",
         content: {
           text: "**X Search: BNKR**\n\n• @user1: BNKR looking strong… (42 likes)\n• @user2: Accumulating here… (28 likes)\n\n_Based on 10 posts from the last 24h_",
-          action: 'X_SEARCH',
+          action: "X_SEARCH",
         },
       },
     ],
     [
       {
-        name: '{{user1}}',
-        content: { text: 'What are people saying about Opus 4.6?' },
+        name: "{{user1}}",
+        content: { text: "What are people saying about Opus 4.6?" },
       },
       {
-        name: '{{agentName}}',
+        name: "{{agentName}}",
         content: {
           text: "**X Search: Opus 4.6**\n\n• @dev: Just tried the new model… (120 likes)\n\n_Based on 10 posts from the last 24h_",
-          action: 'X_SEARCH',
+          action: "X_SEARCH",
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
-    const text = (message.content?.text ?? '').toLowerCase();
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
+    const text = (message.content?.text ?? "").toLowerCase();
     const triggers = [
-      'search x for',
-      'search twitter for',
-      'what are people saying about',
-      'find tweets about',
-      'search for',
-      'x search',
-      'twitter search',
+      "search x for",
+      "search twitter for",
+      "what are people saying about",
+      "find tweets about",
+      "search for",
+      "x search",
+      "twitter search",
     ];
     return triggers.some((t) => text.includes(t));
   },
@@ -125,31 +136,34 @@ export const xSearchAction: Action = {
     message: Memory,
     state: State,
     _options: Record<string, unknown>,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void | ActionResult> => {
     try {
       initXClientFromEnv(runtime);
 
-      const text = (message.content?.text ?? '').trim();
+      const text = (message.content?.text ?? "").trim();
       const quick = /quick|fast|brief/i.test(text);
       const quality = /quality|curated|min.*likes/i.test(text);
 
       const query = extractQuery(text);
       if (!query) {
         callback({
-          text: "I need a search query. Example: \"Search X for BNKR\" or \"What are people saying about ETH?\"",
-          action: 'X_SEARCH',
+          text: 'I need a search query. Example: "Search X for BNKR" or "What are people saying about ETH?"',
+          action: "X_SEARCH",
         });
         return { success: true };
       }
 
       const fromUser = extractFromUser(text);
-      const envMax = process.env.X_SEARCH_MAX_RESULTS
-        ? parseInt(process.env.X_SEARCH_MAX_RESULTS, 10)
-        : undefined;
-      const defaultMax = Number.isFinite(envMax) && envMax > 0
-        ? Math.min(envMax, MAX_LIMIT)
-        : DEFAULT_MAX_RESULTS;
+      const envMaxRaw = process.env.X_SEARCH_MAX_RESULTS?.trim();
+      const envMax =
+        envMaxRaw != null && envMaxRaw !== ""
+          ? parseInt(envMaxRaw, 10)
+          : undefined;
+      const defaultMax =
+        typeof envMax === "number" && Number.isFinite(envMax) && envMax > 0
+          ? Math.min(envMax, MAX_LIMIT)
+          : DEFAULT_MAX_RESULTS;
       const maxResults = quick ? QUICK_MAX_RESULTS : defaultMax;
       const cacheTtlMs = quick ? 60 * 60 * 1000 : 15 * 60 * 1000;
 
@@ -157,33 +171,36 @@ export const xSearchAction: Action = {
       const tweets = await searchService.searchQuery({
         query,
         from: fromUser,
-        sortOrder: 'relevancy',
+        sortOrder: "relevancy",
         maxResults,
         minLikes: quality ? QUALITY_MIN_LIKES : 0,
         hoursBack: 24,
         cacheTtlMs,
       });
 
-      const limit = quick ? Math.min(5, tweets.length) : Math.min(DEFAULT_LIMIT, tweets.length);
+      const limit = quick
+        ? Math.min(5, tweets.length)
+        : Math.min(DEFAULT_LIMIT, tweets.length);
       const toShow = tweets.slice(0, limit);
 
       let response = `**X Search:** ${query}`;
       if (fromUser) response += ` (from @${fromUser})`;
-      response += '\n\n';
+      response += "\n\n";
 
       if (toShow.length === 0) {
-        response += 'No matching posts in the last 24h. Try a broader query or remove the from: filter.';
+        response +=
+          "No matching posts in the last 24h. Try a broader query or remove the from: filter.";
       } else {
-        const dataContext = tweets.map(formatTweetForContext).join('\n');
+        const dataContext = tweets.map(formatTweetForContext).join("\n");
         const narrative = await generateNarrative(runtime, query, dataContext);
 
         if (narrative) {
           response += narrative;
         } else {
           for (const t of toShow) {
-            const author = t.author?.username ?? 'unknown';
-            const snippet = t.text.slice(0, SNIPPET_LEN).replace(/\n/g, ' ');
-            const more = t.text.length > SNIPPET_LEN ? '…' : '';
+            const author = t.author?.username ?? "unknown";
+            const snippet = t.text.slice(0, SNIPPET_LEN).replace(/\n/g, " ");
+            const more = t.text.length > SNIPPET_LEN ? "…" : "";
             const likes = t.metrics?.likeCount ?? 0;
             response += `• **@${author}:** ${snippet}${more} (${likes} likes)\n`;
           }
@@ -192,24 +209,27 @@ export const xSearchAction: Action = {
 
       response += `\n_Based on ${tweets.length} posts from the last 24h_`;
 
-      if (process.env.X_RESEARCH_SHOW_COST === 'true') {
+      if (process.env.X_RESEARCH_SHOW_COST === "true") {
         response += `\n\n${formatCostFooter(tweets.length)}`;
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
       callback({
         text: response,
-        action: 'X_SEARCH',
+        action: "X_SEARCH",
       });
       return { success: true };
     } catch (error) {
-      logger.warn({ err: error }, '[X_SEARCH] X API error');
+      logger.warn({ err: error }, "[X_SEARCH] X API error");
       const friendly = getFriendlyXErrorMessage(error);
       callback({
         text: `**X Search**\n\n⚠️ ${friendly}`,
-        action: 'X_SEARCH',
+        action: "X_SEARCH",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 };

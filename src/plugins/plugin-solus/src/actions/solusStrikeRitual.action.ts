@@ -33,7 +33,10 @@ export const solusStrikeRitualAction: Action = {
   description:
     "Walks through the Friday strike ritual: get VINCE options view, pick asset (BTC/ETH/SOL/HYPE), choose covered calls vs secured puts, strike width, invalidation. Output: short checklist + one clear next step.",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     if (!isSolus(runtime)) return false;
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsStrikeRitual(text);
@@ -67,7 +70,7 @@ Reply with the checklist and one next step only.`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's the strike ritual—\n\n" + text.trim();
       await callback({ text: out, actions: ["SOLUS_STRIKE_RITUAL"] });
       return { success: true };
@@ -76,7 +79,10 @@ Reply with the checklist and one next step only.`;
       await callback({
         text: "Strike ritual: (1) Say 'options' to VINCE and paste his view here. (2) Pick asset — BTC, ETH, SOL, HYPE. (3) CC or CSP. (4) Strike width and invalidation. Paste VINCE's output and I'll give you the call.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

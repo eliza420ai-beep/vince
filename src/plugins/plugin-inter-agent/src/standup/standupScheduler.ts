@@ -21,16 +21,18 @@ export function getNextStandupTime(schedule: string = DEFAULT_SCHEDULE): Date {
   // Simple parser for "0 H * * *" format (minute hour * * *)
   const parts = schedule.split(" ");
   if (parts.length !== 5) {
-    logger.warn(`[StandupScheduler] Invalid schedule "${schedule}", using default`);
+    logger.warn(
+      `[StandupScheduler] Invalid schedule "${schedule}", using default`,
+    );
     return getNextStandupTime(DEFAULT_SCHEDULE);
   }
 
   const [minute, hour] = parts.map((p) => parseInt(p, 10));
   const now = new Date();
   const next = new Date(now);
-  
+
   next.setUTCHours(hour, minute, 0, 0);
-  
+
   // If we've passed today's time, schedule for tomorrow
   if (next <= now) {
     next.setUTCDate(next.getUTCDate() + 1);
@@ -67,12 +69,15 @@ export function getStandupConfig(runtime: IAgentRuntime): {
   timezone: string;
   nextRun: Date;
 } {
-  const enabled = runtime.getSetting("STANDUP_AUTO_START") === "true" ||
+  const enabled =
+    runtime.getSetting("STANDUP_AUTO_START") === "true" ||
     process.env.STANDUP_AUTO_START === "true";
-  const schedule = (runtime.getSetting("STANDUP_SCHEDULE") as string) ||
+  const schedule =
+    (runtime.getSetting("STANDUP_SCHEDULE") as string) ||
     process.env.STANDUP_SCHEDULE ||
     DEFAULT_SCHEDULE;
-  const timezone = (runtime.getSetting("STANDUP_TIMEZONE") as string) ||
+  const timezone =
+    (runtime.getSetting("STANDUP_TIMEZONE") as string) ||
     process.env.STANDUP_TIMEZONE ||
     "UTC";
 
@@ -98,7 +103,15 @@ export function formatSchedule(schedule: string): string {
  */
 export function buildAutoStandupKickoff(): string {
   const date = new Date().toISOString().slice(0, 10);
-  const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+  const day = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ][new Date().getDay()];
 
   return `## 🎯 Automated Trading Standup — ${date} (${day})
 

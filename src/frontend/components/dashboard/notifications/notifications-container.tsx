@@ -16,13 +16,8 @@ export default function NotificationsContainer({
   agentId,
   mode = "degen",
 }: NotificationsContainerProps) {
-  const {
-    items,
-    unreadCount,
-    markAllRead,
-    isLoading,
-    refetch,
-  } = useWalletNotifications(userId, agentId);
+  const { items, unreadCount, markAllRead, isLoading, refetch } =
+    useWalletNotifications(userId, agentId);
 
   useEffect(() => {
     if (!agentId || !socketManager.isConnected()) return;

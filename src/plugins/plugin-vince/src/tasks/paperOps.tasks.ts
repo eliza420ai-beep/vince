@@ -24,7 +24,9 @@ export async function registerPaperOpsTask(
     process.env.VINCE_PAPER_OPS_ENABLED !== "false" &&
     process.env.VINCE_PAPER_OPS_ENABLED !== "0";
   if (!enabled) {
-    logger.debug("[VincePaperOps] Task disabled (VINCE_PAPER_OPS_ENABLED=false)");
+    logger.debug(
+      "[VincePaperOps] Task disabled (VINCE_PAPER_OPS_ENABLED=false)",
+    );
     return;
   }
 
@@ -37,9 +39,12 @@ export async function registerPaperOpsTask(
     name: "VINCE_PAPER_OPS",
     validate: async () => true,
     execute: async (rt) => {
-      const positionManager = rt.getService("VINCE_POSITION_MANAGER_SERVICE") as
-        | { getOpenPositions(): unknown[]; getPortfolio(): { totalValue: number } }
-        | null;
+      const positionManager = rt.getService(
+        "VINCE_POSITION_MANAGER_SERVICE",
+      ) as {
+        getOpenPositions(): unknown[];
+        getPortfolio(): { totalValue: number };
+      } | null;
       if (!positionManager) {
         logger.debug("[VincePaperOps] Position manager not available, skip");
         return;
@@ -59,7 +64,9 @@ export async function registerPaperOpsTask(
         try {
           const raw = fs.readFileSync(positionsPath, "utf-8");
           const data = JSON.parse(raw) as { positions?: unknown[] };
-          const onDisk = Array.isArray(data.positions) ? data.positions.length : 0;
+          const onDisk = Array.isArray(data.positions)
+            ? data.positions.length
+            : 0;
           const inMemory = openPositions.length;
           if (onDisk !== inMemory) {
             consistencyNote = `mismatch: disk=${onDisk} inMemory=${inMemory}`;
@@ -86,14 +93,12 @@ export async function registerPaperOpsTask(
       logger.debug(`[VincePaperOps] Wrote ${summaryPath}`);
 
       // Optional: one-line push to ops/sentinel channels
-      const notif = rt.getService("VINCE_NOTIFICATION_SERVICE") as
-        | {
-            push?: (
-              text: string,
-              opts?: { roomNameContains?: string },
-            ) => Promise<number>;
-          }
-        | null;
+      const notif = rt.getService("VINCE_NOTIFICATION_SERVICE") as {
+        push?: (
+          text: string,
+          opts?: { roomNameContains?: string },
+        ) => Promise<number>;
+      } | null;
       if (notif?.push) {
         const oneLine = `[Paper Ops] ${openPositions.length} open · $${portfolio.totalValue.toFixed(0)} · ${consistencyNote}`;
         const sent = await notif.push(oneLine, {

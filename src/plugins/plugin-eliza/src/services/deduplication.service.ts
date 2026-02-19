@@ -47,7 +47,12 @@ export interface DedupeState {
   lastScan: string;
   fingerprints: ContentFingerprint[];
   duplicateGroups: DuplicateGroup[];
-  archived: Array<{ original: string; archived: string; date: string; reason: string }>;
+  archived: Array<{
+    original: string;
+    archived: string;
+    date: string;
+    reason: string;
+  }>;
   stats: {
     totalFiles: number;
     exactDupes: number;
@@ -69,12 +74,15 @@ function hashContent(content: string): string {
  * Simplified implementation - in production use proper simhash library
  */
 function simhash(content: string): string {
-  const words = content.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const words = content
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
   const wordSet = new Set(words);
-  
+
   // Create a simple feature hash
   const features: number[] = new Array(64).fill(0);
-  
+
   for (const word of wordSet) {
     const wordHash = crypto.createHash("md5").update(word).digest();
     for (let i = 0; i < 64; i++) {
@@ -82,9 +90,9 @@ function simhash(content: string): string {
       features[i] += bit ? 1 : -1;
     }
   }
-  
+
   // Convert to binary string
-  return features.map(f => f > 0 ? "1" : "0").join("");
+  return features.map((f) => (f > 0 ? "1" : "0")).join("");
 }
 
 /**
@@ -104,7 +112,7 @@ function hammingDistance(hash1: string, hash2: string): number {
 function jaccardSimilarity(keywords1: string[], keywords2: string[]): number {
   const set1 = new Set(keywords1);
   const set2 = new Set(keywords2);
-  const intersection = new Set([...set1].filter(k => set2.has(k)));
+  const intersection = new Set([...set1].filter((k) => set2.has(k)));
   const union = new Set([...set1, ...set2]);
   return union.size > 0 ? intersection.size / union.size : 0;
 }
@@ -113,17 +121,18 @@ function jaccardSimilarity(keywords1: string[], keywords2: string[]): number {
  * Extract keywords from content
  */
 function extractKeywords(content: string): string[] {
-  const words = content.toLowerCase()
+  const words = content
+    .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
-    .filter(w => w.length > 3);
-  
+    .filter((w) => w.length > 3);
+
   // Count word frequencies
   const freq = new Map<string, number>();
   for (const word of words) {
     freq.set(word, (freq.get(word) || 0) + 1);
   }
-  
+
   // Return top keywords
   return Array.from(freq.entries())
     .sort((a, b) => b[1] - a[1])
@@ -139,8 +148,8 @@ function fingerprintFile(filePath: string): ContentFingerprint | null {
     const content = fs.readFileSync(filePath, "utf-8");
     const stat = fs.statSync(filePath);
     const relPath = path.relative(KNOWLEDGE_ROOT, filePath);
-    const lines = content.split("\n").filter(l => l.trim());
-    
+    const lines = content.split("\n").filter((l) => l.trim());
+
     return {
       id: relPath,
       hash: hashContent(content),
@@ -162,27 +171,27 @@ function fingerprintFile(filePath: string): ContentFingerprint | null {
 function findDuplicates(fingerprints: ContentFingerprint[]): DuplicateGroup[] {
   const groups: DuplicateGroup[] = [];
   const processed = new Set<string>();
-  
+
   for (let i = 0; i < fingerprints.length; i++) {
     if (processed.has(fingerprints[i].id)) continue;
-    
+
     const exactMatches: string[] = [fingerprints[i].id];
     const nearMatches: string[] = [];
     const semanticMatches: string[] = [];
-    
+
     for (let j = i + 1; j < fingerprints.length; j++) {
       if (processed.has(fingerprints[j].id)) continue;
-      
+
       const fp1 = fingerprints[i];
       const fp2 = fingerprints[j];
-      
+
       // Check exact duplicate
       if (fp1.hash === fp2.hash) {
         exactMatches.push(fp2.id);
         processed.add(fp2.id);
         continue;
       }
-      
+
       // Check near duplicate (simhash distance < 10)
       const distance = hammingDistance(fp1.simhash, fp2.simhash);
       if (distance < 10) {
@@ -190,7 +199,7 @@ function findDuplicates(fingerprints: ContentFingerprint[]): DuplicateGroup[] {
         processed.add(fp2.id);
         continue;
       }
-      
+
       // Check semantic duplicate (high keyword overlap)
       const similarity = jaccardSimilarity(fp1.keywords, fp2.keywords);
       if (similarity > 0.6) {
@@ -198,7 +207,7 @@ function findDuplicates(fingerprints: ContentFingerprint[]): DuplicateGroup[] {
         // Don't mark as processed - might match other semantic groups
       }
     }
-    
+
     // Create groups
     if (exactMatches.length > 1) {
       groups.push({
@@ -209,7 +218,7 @@ function findDuplicates(fingerprints: ContentFingerprint[]): DuplicateGroup[] {
         reason: "Identical content - keep newest, archive others",
       });
     }
-    
+
     if (nearMatches.length > 0) {
       groups.push({
         type: "near",
@@ -219,7 +228,7 @@ function findDuplicates(fingerprints: ContentFingerprint[]): DuplicateGroup[] {
         reason: "Nearly identical content - review and merge",
       });
     }
-    
+
     if (semanticMatches.length > 0) {
       groups.push({
         type: "semantic",
@@ -229,10 +238,10 @@ function findDuplicates(fingerprints: ContentFingerprint[]): DuplicateGroup[] {
         reason: "Similar topics - may benefit from consolidation",
       });
     }
-    
+
     processed.add(fingerprints[i].id);
   }
-  
+
   return groups;
 }
 
@@ -241,17 +250,23 @@ function findDuplicates(fingerprints: ContentFingerprint[]): DuplicateGroup[] {
  */
 export function runDedupeScan(): DedupeState {
   const fingerprints: ContentFingerprint[] = [];
-  
+
   if (!fs.existsSync(KNOWLEDGE_ROOT)) {
     return {
       lastScan: new Date().toISOString(),
       fingerprints: [],
       duplicateGroups: [],
       archived: [],
-      stats: { totalFiles: 0, exactDupes: 0, nearDupes: 0, semanticDupes: 0, bytesRecoverable: 0 },
+      stats: {
+        totalFiles: 0,
+        exactDupes: 0,
+        nearDupes: 0,
+        semanticDupes: 0,
+        bytesRecoverable: 0,
+      },
     };
   }
-  
+
   // Scan all markdown files
   function scanDir(dir: string) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -265,19 +280,19 @@ export function runDedupeScan(): DedupeState {
       }
     }
   }
-  
+
   scanDir(KNOWLEDGE_ROOT);
-  
+
   // Find duplicates
   const duplicateGroups = findDuplicates(fingerprints);
-  
+
   // Calculate stats
   let bytesRecoverable = 0;
   for (const group of duplicateGroups) {
     if (group.type === "exact" && group.files.length > 1) {
       // Can recover all but one file
       for (let i = 1; i < group.files.length; i++) {
-        const fp = fingerprints.find(f => f.id === group.files[i]);
+        const fp = fingerprints.find((f) => f.id === group.files[i]);
         if (fp) {
           try {
             const stat = fs.statSync(path.join(KNOWLEDGE_ROOT, fp.id));
@@ -289,7 +304,7 @@ export function runDedupeScan(): DedupeState {
       }
     }
   }
-  
+
   const state: DedupeState = {
     lastScan: new Date().toISOString(),
     fingerprints,
@@ -297,22 +312,30 @@ export function runDedupeScan(): DedupeState {
     archived: loadArchivedList(),
     stats: {
       totalFiles: fingerprints.length,
-      exactDupes: duplicateGroups.filter(g => g.type === "exact").reduce((sum, g) => sum + g.files.length - 1, 0),
-      nearDupes: duplicateGroups.filter(g => g.type === "near").reduce((sum, g) => sum + g.files.length - 1, 0),
-      semanticDupes: duplicateGroups.filter(g => g.type === "semantic").reduce((sum, g) => sum + g.files.length - 1, 0),
+      exactDupes: duplicateGroups
+        .filter((g) => g.type === "exact")
+        .reduce((sum, g) => sum + g.files.length - 1, 0),
+      nearDupes: duplicateGroups
+        .filter((g) => g.type === "near")
+        .reduce((sum, g) => sum + g.files.length - 1, 0),
+      semanticDupes: duplicateGroups
+        .filter((g) => g.type === "semantic")
+        .reduce((sum, g) => sum + g.files.length - 1, 0),
       bytesRecoverable,
     },
   };
-  
+
   // Save state
   const cacheDir = path.dirname(DEDUPE_STATE_PATH);
   if (!fs.existsSync(cacheDir)) {
     fs.mkdirSync(cacheDir, { recursive: true });
   }
   fs.writeFileSync(DEDUPE_STATE_PATH, JSON.stringify(state, null, 2));
-  
-  logger.info(`[Deduplication] Scan complete: ${fingerprints.length} files, ${duplicateGroups.length} duplicate groups`);
-  
+
+  logger.info(
+    `[Deduplication] Scan complete: ${fingerprints.length} files, ${duplicateGroups.length} duplicate groups`,
+  );
+
   return state;
 }
 
@@ -322,7 +345,9 @@ export function runDedupeScan(): DedupeState {
 function loadArchivedList(): DedupeState["archived"] {
   try {
     if (fs.existsSync(DEDUPE_STATE_PATH)) {
-      const state = JSON.parse(fs.readFileSync(DEDUPE_STATE_PATH, "utf-8")) as DedupeState;
+      const state = JSON.parse(
+        fs.readFileSync(DEDUPE_STATE_PATH, "utf-8"),
+      ) as DedupeState;
       return state.archived || [];
     }
   } catch (e) {
@@ -334,27 +359,30 @@ function loadArchivedList(): DedupeState["archived"] {
 /**
  * Archive a duplicate file
  */
-export function archiveFile(filePath: string, reason: string): { success: boolean; archivePath?: string; error?: string } {
+export function archiveFile(
+  filePath: string,
+  reason: string,
+): { success: boolean; archivePath?: string; error?: string } {
   const fullPath = path.join(KNOWLEDGE_ROOT, filePath);
-  
+
   if (!fs.existsSync(fullPath)) {
     return { success: false, error: "File not found" };
   }
-  
+
   // Create archive directory
   if (!fs.existsSync(ARCHIVE_DIR)) {
     fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
   }
-  
+
   // Generate archive path
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const archiveName = `${timestamp}_${path.basename(filePath)}`;
   const archivePath = path.join(ARCHIVE_DIR, archiveName);
-  
+
   try {
     // Move file to archive
     fs.renameSync(fullPath, archivePath);
-    
+
     // Update state
     const state = loadDedupeState();
     state.archived.push({
@@ -364,9 +392,9 @@ export function archiveFile(filePath: string, reason: string): { success: boolea
       reason,
     });
     fs.writeFileSync(DEDUPE_STATE_PATH, JSON.stringify(state, null, 2));
-    
+
     logger.info(`[Deduplication] Archived ${filePath} → ${archiveName}`);
-    
+
     return { success: true, archivePath: `.archive/${archiveName}` };
   } catch (e) {
     return { success: false, error: String(e) };
@@ -379,12 +407,14 @@ export function archiveFile(filePath: string, reason: string): { success: boolea
 export function loadDedupeState(): DedupeState {
   try {
     if (fs.existsSync(DEDUPE_STATE_PATH)) {
-      return JSON.parse(fs.readFileSync(DEDUPE_STATE_PATH, "utf-8")) as DedupeState;
+      return JSON.parse(
+        fs.readFileSync(DEDUPE_STATE_PATH, "utf-8"),
+      ) as DedupeState;
     }
   } catch (e) {
     logger.debug("[Deduplication] No existing state, will scan");
   }
-  
+
   return runDedupeScan();
 }
 
@@ -394,8 +424,10 @@ export function loadDedupeState(): DedupeState {
 export function getDuplicateGroups(maxAge = 3600000): DuplicateGroup[] {
   try {
     if (fs.existsSync(DEDUPE_STATE_PATH)) {
-      const state = JSON.parse(fs.readFileSync(DEDUPE_STATE_PATH, "utf-8")) as DedupeState;
-      
+      const state = JSON.parse(
+        fs.readFileSync(DEDUPE_STATE_PATH, "utf-8"),
+      ) as DedupeState;
+
       if (Date.now() - new Date(state.lastScan).getTime() < maxAge) {
         return state.duplicateGroups;
       }
@@ -403,7 +435,7 @@ export function getDuplicateGroups(maxAge = 3600000): DuplicateGroup[] {
   } catch (e) {
     // Ignore
   }
-  
+
   return runDedupeScan().duplicateGroups;
 }
 

@@ -78,7 +78,13 @@ describe("KELLY_ITINERARY Action", () => {
       });
       const message = createMockMessage("plan me 2 days in Bordeaux");
       const callback = createMockCallback();
-      await kellyItineraryAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyItineraryAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       const text = callback.calls[0]?.text ?? "";
       expect(text).toMatch(/Day\s*1|day\s*1/);
       expect(text).toMatch(/Day\s*2|day\s*2/);

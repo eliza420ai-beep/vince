@@ -15,6 +15,7 @@
     "src/index.ts",
     "src/plugin.ts",
     "src/character.ts",
+    "src/elizaos-plugins.d.ts",
     "src/frontend/**/*.ts",
     "src/frontend/**/*.tsx"
   ],
@@ -26,6 +27,7 @@
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "src/__tests__/**/*",
-    "src/**/cypress/**/*"
+    "src/**/cypress/**/*",
+    "src/frontend/scripts/**/*"
   ]
 }

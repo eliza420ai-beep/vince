@@ -6,13 +6,13 @@ Design doc for the Polymarket trading desk: agent roles, tool ownership, and sch
 
 ## 1. Agent matrix (who has which tools, who has wallet)
 
-| Role | Agent | Wallet | Primary plugin(s) | Actions / capabilities |
-|------|--------|--------|--------------------|-------------------------|
-| **Analyst / Edge** | Oracle | No | plugin-polymarket-discovery, plugin-synth (new) | GET_* Polymarket (markets, price, orderbook); poll Synth forecasts; compare → structured signal when edge above threshold |
-| **Risk** | Polymarket Risk (new agent) | No | plugin-polymarket-discovery (read), plugin-polymarket-desk (new) | Read positions/PnL (GET_POLYMARKET_POSITIONS, GET_POLYMARKET_BALANCE, trade history); read risk limits & bankroll; Kelly sizing; write sized orders to approval queue |
-| **Executor** | Otaku | Yes | plugin-otaku, plugin-polymarket-execution (new) | POLYMARKET_PLACE_ORDER, POLYMARKET_CONFIRM_FILL; read approved orders; write trade log on fill |
-| **Performance** | Polymarket Performance (new agent) | No | plugin-polymarket-desk | Read trade log & positions; TCA (arrival vs fill), fill rates, realized vs theoretical edge; write calibration/strategy notes to knowledge |
-| **Orchestrator** | Kelly (optional) | No | plugin-inter-agent | ASK_AGENT to trigger Analyst/Risk/Performance; morning brief, EOD P&L, weekly review; schedule coordination |
+| Role               | Agent                              | Wallet | Primary plugin(s)                                                | Actions / capabilities                                                                                                                                                |
+| ------------------ | ---------------------------------- | ------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Analyst / Edge** | Oracle                             | No     | plugin-polymarket-discovery, plugin-synth (new)                  | GET\_\* Polymarket (markets, price, orderbook); poll Synth forecasts; compare → structured signal when edge above threshold                                           |
+| **Risk**           | Polymarket Risk (new agent)        | No     | plugin-polymarket-discovery (read), plugin-polymarket-desk (new) | Read positions/PnL (GET_POLYMARKET_POSITIONS, GET_POLYMARKET_BALANCE, trade history); read risk limits & bankroll; Kelly sizing; write sized orders to approval queue |
+| **Executor**       | Otaku                              | Yes    | plugin-otaku, plugin-polymarket-execution (new)                  | POLYMARKET_PLACE_ORDER, POLYMARKET_CONFIRM_FILL; read approved orders; write trade log on fill                                                                        |
+| **Performance**    | Polymarket Performance (new agent) | No     | plugin-polymarket-desk                                           | Read trade log & positions; TCA (arrival vs fill), fill rates, realized vs theoretical edge; write calibration/strategy notes to knowledge                            |
+| **Orchestrator**   | Kelly (optional)                   | No     | plugin-inter-agent                                               | ASK_AGENT to trigger Analyst/Risk/Performance; morning brief, EOD P&L, weekly review; schedule coordination                                                           |
 
 **Wallet rule:** Only Otaku (Executor) holds credentials that can send orders to Polymarket CLOB. All other agents are read-only for execution or write only to shared state (signals, approvals, logs).
 
@@ -36,19 +36,19 @@ Performance agent ← trade log + positions (read) ←────────�
 
 Produced by the Analyst (Oracle) when edge is above threshold. Stored so Risk can poll or be notified.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique signal id |
-| `created_at` | number (ms) | When the signal was created |
-| `source` | string | e.g. `"synth"`, `"oracle_edge"` |
-| `market_id` | string | Polymarket condition_id or token_id (outcome) |
-| `side` | `"YES"` \| `"NO"` | Outcome to buy |
-| `suggested_size_usd` | number | Suggested notional (optional; Risk may override with Kelly) |
-| `confidence` | number | 0–1 or edge score |
-| `forecast_prob` | number | External forecast probability (e.g. Synth) |
-| `market_price` | number | Polymarket price at signal time (0–1) |
-| `edge_bps` | number | Edge in basis points (e.g. (forecast_prob - market_price) * 10000) |
-| `status` | string | `"pending"` → `"approved"` \| `"rejected"` \| `"expired"` (set by Risk) |
+| Field                | Type              | Description                                                             |
+| -------------------- | ----------------- | ----------------------------------------------------------------------- |
+| `id`                 | UUID              | Unique signal id                                                        |
+| `created_at`         | number (ms)       | When the signal was created                                             |
+| `source`             | string            | e.g. `"synth"`, `"oracle_edge"`                                         |
+| `market_id`          | string            | Polymarket condition_id or token_id (outcome)                           |
+| `side`               | `"YES"` \| `"NO"` | Outcome to buy                                                          |
+| `suggested_size_usd` | number            | Suggested notional (optional; Risk may override with Kelly)             |
+| `confidence`         | number            | 0–1 or edge score                                                       |
+| `forecast_prob`      | number            | External forecast probability (e.g. Synth)                              |
+| `market_price`       | number            | Polymarket price at signal time (0–1)                                   |
+| `edge_bps`           | number            | Edge in basis points (e.g. (forecast_prob - market_price) \* 10000)     |
+| `status`             | string            | `"pending"` → `"approved"` \| `"rejected"` \| `"expired"` (set by Risk) |
 
 **Storage:** DB table `plugin_polymarket_desk.signals` (PGLite/Postgres) so Risk and Performance can query. Optional: also write a short summary to a knowledge file for audit (e.g. `knowledge/polymarket-desk/signals_latest.md` updated on each signal).
 
@@ -58,19 +58,19 @@ Produced by the Analyst (Oracle) when edge is above threshold. Stored so Risk ca
 
 Produced by Risk after approving a signal and applying sizing. Only Executor reads and consumes these.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique order id |
-| `created_at` | number (ms) | When the order was created |
-| `signal_id` | UUID | Reference to the signal that generated this order |
-| `market_id` | string | condition_id or token_id for the outcome |
-| `side` | `"YES"` \| `"NO"` | Outcome to buy |
-| `size_usd` | number | Notional in USD (after Kelly or config sizing) |
-| `max_price` | number | Max price 0–1 (optional; limit) |
-| `slippage_bps` | number | Allowed slippage in bps (optional) |
-| `status` | string | `"pending"` → `"sent"` \| `"filled"` \| `"rejected"` \| `"cancelled"` |
-| `filled_at` | number \| null | When Executor recorded fill (ms) |
-| `fill_price` | number \| null | Actual fill price 0–1 |
+| Field          | Type              | Description                                                           |
+| -------------- | ----------------- | --------------------------------------------------------------------- |
+| `id`           | UUID              | Unique order id                                                       |
+| `created_at`   | number (ms)       | When the order was created                                            |
+| `signal_id`    | UUID              | Reference to the signal that generated this order                     |
+| `market_id`    | string            | condition_id or token_id for the outcome                              |
+| `side`         | `"YES"` \| `"NO"` | Outcome to buy                                                        |
+| `size_usd`     | number            | Notional in USD (after Kelly or config sizing)                        |
+| `max_price`    | number            | Max price 0–1 (optional; limit)                                       |
+| `slippage_bps` | number            | Allowed slippage in bps (optional)                                    |
+| `status`       | string            | `"pending"` → `"sent"` \| `"filled"` \| `"rejected"` \| `"cancelled"` |
+| `filled_at`    | number \| null    | When Executor recorded fill (ms)                                      |
+| `fill_price`   | number \| null    | Actual fill price 0–1                                                 |
 
 **Storage:** DB table `plugin_polymarket_desk.sized_orders`. Executor polls for `status = 'pending'` or is triggered (e.g. ASK_AGENT with order id). Only Otaku (Executor) plugin has actions that update `status` and write to trade log.
 
@@ -80,20 +80,20 @@ Produced by Risk after approving a signal and applying sizing. Only Executor rea
 
 One row per filled order. Written by Executor; read by Performance for TCA and reports.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique trade id |
-| `created_at` | number (ms) | When the fill was recorded |
-| `sized_order_id` | UUID | Reference to the sized order |
-| `signal_id` | UUID | Reference to the original signal |
-| `market_id` | string | condition_id / token_id |
-| `side` | `"YES"` \| `"NO"` | Outcome bought |
-| `size_usd` | number | Notional |
-| `arrival_price` | number | Price at signal time (0–1) |
-| `fill_price` | number | Actual fill price (0–1) |
-| `slippage_bps` | number | (fill_price - arrival_price) * 10000 (or similar) |
-| `clob_order_id` | string | CLOB order id (if returned by API) |
-| `wallet` | string | Wallet that placed (e.g. proxy address; optional for privacy) |
+| Field            | Type              | Description                                                   |
+| ---------------- | ----------------- | ------------------------------------------------------------- |
+| `id`             | UUID              | Unique trade id                                               |
+| `created_at`     | number (ms)       | When the fill was recorded                                    |
+| `sized_order_id` | UUID              | Reference to the sized order                                  |
+| `signal_id`      | UUID              | Reference to the original signal                              |
+| `market_id`      | string            | condition_id / token_id                                       |
+| `side`           | `"YES"` \| `"NO"` | Outcome bought                                                |
+| `size_usd`       | number            | Notional                                                      |
+| `arrival_price`  | number            | Price at signal time (0–1)                                    |
+| `fill_price`     | number            | Actual fill price (0–1)                                       |
+| `slippage_bps`   | number            | (fill_price - arrival_price) \* 10000 (or similar)            |
+| `clob_order_id`  | string            | CLOB order id (if returned by API)                            |
+| `wallet`         | string            | Wallet that placed (e.g. proxy address; optional for privacy) |
 
 **Storage:** DB table `plugin_polymarket_desk.trade_log`. Same DB as ElizaOS (PGLite or Postgres). Optional: periodic export to JSONL under `.elizadb/polymarket-desk/trades_*.jsonl` for backup and ML (e.g. realized edge over time). Performance agent reads this table (and optionally signals/sized_orders) to compute TCA, fill rates, and realized vs theoretical edge.
 
@@ -101,13 +101,13 @@ One row per filled order. Written by Executor; read by Performance for TCA and r
 
 ## 6. Where each artifact lives
 
-| Artifact | Primary storage | Optional / backup |
-|----------|------------------|--------------------|
-| **Signals** | `plugin_polymarket_desk.signals` (DB) | knowledge/polymarket-desk/signals_latest.md (audit) |
-| **Sized orders** | `plugin_polymarket_desk.sized_orders` (DB) | — |
-| **Trade log** | `plugin_polymarket_desk.trade_log` (DB) | `.elizadb/polymarket-desk/trades_*.jsonl` |
-| **Risk limits / bankroll** | knowledge/polymarket-desk/risk_limits.md or DB table `plugin_polymarket_desk.risk_config` | — |
-| **Calibration / strategy notes** | knowledge/polymarket-desk/ (Performance agent writes) | — |
+| Artifact                         | Primary storage                                                                           | Optional / backup                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **Signals**                      | `plugin_polymarket_desk.signals` (DB)                                                     | knowledge/polymarket-desk/signals_latest.md (audit) |
+| **Sized orders**                 | `plugin_polymarket_desk.sized_orders` (DB)                                                | —                                                   |
+| **Trade log**                    | `plugin_polymarket_desk.trade_log` (DB)                                                   | `.elizadb/polymarket-desk/trades_*.jsonl`           |
+| **Risk limits / bankroll**       | knowledge/polymarket-desk/risk_limits.md or DB table `plugin_polymarket_desk.risk_config` | —                                                   |
+| **Calibration / strategy notes** | knowledge/polymarket-desk/ (Performance agent writes)                                     | —                                                   |
 
 DB tables live in the same database as ElizaOS (PGLite when no `POSTGRES_URL`, else Postgres). A new plugin `plugin-polymarket-desk` (or similar) registers the schema so migrations create `plugin_polymarket_desk.signals`, `plugin_polymarket_desk.sized_orders`, `plugin_polymarket_desk.trade_log`, and optionally `plugin_polymarket_desk.risk_config`.
 
@@ -126,12 +126,12 @@ This doc assumes **pull** for initial implementation.
 
 Each role can post to its own channel for a timestamped audit trail. Configure one Discord app per agent (or use a single app and route by channel).
 
-| Channel (suggested)     | Agent                | Env vars (optional) |
-|-------------------------|----------------------|----------------------|
-| `#polymarket-signals`   | Oracle (Analyst)     | `ORACLE_DISCORD_*`   |
-| `#polymarket-risk`      | Polymarket Risk      | `POLYMARKET_RISK_DISCORD_*` |
-| `#polymarket-executions`| Otaku (Executor)     | `OTAKU_DISCORD_*`    |
-| `#polymarket-strategy`  | Polymarket Performance| `POLYMARKET_PERF_DISCORD_*` |
+| Channel (suggested)      | Agent                  | Env vars (optional)         |
+| ------------------------ | ---------------------- | --------------------------- |
+| `#polymarket-signals`    | Oracle (Analyst)       | `ORACLE_DISCORD_*`          |
+| `#polymarket-risk`       | Polymarket Risk        | `POLYMARKET_RISK_DISCORD_*` |
+| `#polymarket-executions` | Otaku (Executor)       | `OTAKU_DISCORD_*`           |
+| `#polymarket-strategy`   | Polymarket Performance | `POLYMARKET_PERF_DISCORD_*` |
 
 Create these channels in your Discord server and invite the corresponding bot to each. The pipeline runs inside ElizaOS; Discord is audit trail only.
 
@@ -141,12 +141,12 @@ Create these channels in your Discord server and invite the corresponding bot to
 
 ### Recurring tasks
 
-| Task | Agent | Interval | Env |
-|------|--------|----------|-----|
-| POLYMARKET_ANALYST_HOURLY | Oracle | 1 hour | POLYMARKET_DESK_DEFAULT_CONDITION_ID (required for analyst run) |
-| POLYMARKET_RISK_15M | Polymarket Risk | 15 min | — |
-| POLYMARKET_PERF_4H | Polymarket Performance | 4 hours | — |
-| POLYMARKET_EXECUTE_POLL | Otaku | 2 min | — |
+| Task                      | Agent                  | Interval | Env                                                             |
+| ------------------------- | ---------------------- | -------- | --------------------------------------------------------------- |
+| POLYMARKET_ANALYST_HOURLY | Oracle                 | 1 hour   | POLYMARKET_DESK_DEFAULT_CONDITION_ID (required for analyst run) |
+| POLYMARKET_RISK_15M       | Polymarket Risk        | 15 min   | —                                                               |
+| POLYMARKET_PERF_4H        | Polymarket Performance | 4 hours  | —                                                               |
+| POLYMARKET_EXECUTE_POLL   | Otaku                  | 2 min    | —                                                               |
 
 Set `POLYMARKET_DESK_SCHEDULE_ENABLED=false` to disable all desk recurring tasks.
 
@@ -191,11 +191,11 @@ Standard ($49/mo) only has “API access to 100 calls one time,” which is not 
 
 ### Summary (if you’re a VC, send help)
 
-| Item | Purpose |
-|------|--------|
+| Item                    | Purpose                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Synth Pro @ $199/mo** | Polymarket Predictions + 5,000 API calls/month so the Analyst can run `getSynthForecast` and POLYMARKET_EDGE_CHECK on real data. |
-| **Env** | `SYNTH_API_KEY`, optional `SYNTH_API_URL` (see .env.example). |
-| **Fallback** | If key is missing or API fails, we use a deterministic mock so the pipeline still runs; no live edge from Synth. |
+| **Env**                 | `SYNTH_API_KEY`, optional `SYNTH_API_URL` (see .env.example).                                                                    |
+| **Fallback**            | If key is missing or API fails, we use a deterministic mock so the pipeline still runs; no live edge from Synth.                 |
 
 ---
 

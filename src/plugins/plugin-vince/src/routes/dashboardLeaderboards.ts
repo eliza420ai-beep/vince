@@ -26,7 +26,10 @@ async function safe<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
     return await Promise.race([
       fn(),
       new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error(`${label} timeout`)), SECTION_TIMEOUT_MS),
+        setTimeout(
+          () => reject(new Error(`${label} timeout`)),
+          SECTION_TIMEOUT_MS,
+        ),
       ),
     ]);
   } catch (e) {
@@ -156,7 +159,12 @@ export interface NewsLeaderboardSection {
     newestUpdatedAt?: number | null;
   };
   /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
-  listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
+  listSentiment?: {
+    sentiment: string;
+    confidence: number;
+    hasHighRiskEvent: boolean;
+    updatedAt?: number;
+  };
 }
 
 export interface DigitalArtCollectionRow {
@@ -203,7 +211,12 @@ export interface MoreLeaderboardSection {
     ethTldr: string | null;
   } | null;
   crossVenue: {
-    assets: { coin: string; hlFunding?: number; cexFunding?: number; arb?: string }[];
+    assets: {
+      coin: string;
+      hlFunding?: number;
+      cexFunding?: number;
+      arb?: string;
+    }[];
     arbOpportunities: string[];
   } | null;
   oiCap: string[] | null;
@@ -211,10 +224,20 @@ export interface MoreLeaderboardSection {
     total: number;
     unread: number;
     highPriority: number;
-    items: { type: string; title: string; message: string; timestamp: number }[];
+    items: {
+      type: string;
+      title: string;
+      message: string;
+      timestamp: number;
+    }[];
   } | null;
   watchlist: {
-    tokens: { symbol: string; chain?: string; priority?: string; targetMcap?: number }[];
+    tokens: {
+      symbol: string;
+      chain?: string;
+      priority?: string;
+      targetMcap?: number;
+    }[];
   } | null;
   regime: { btc?: string; eth?: string } | null;
   binanceIntel: {
@@ -240,7 +263,13 @@ export interface MoreLeaderboardSection {
     eth: { flows: string; whales: string; tldr: string } | null;
   } | null;
   nansenSmartMoney: {
-    tokens: { symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }[];
+    tokens: {
+      symbol: string;
+      chain: string;
+      netFlow: number;
+      buyVolume: number;
+      priceChange24h: number;
+    }[];
     creditRemaining: number | null;
   } | null;
   volumeInsights: {
@@ -270,12 +299,18 @@ export interface LeaderboardsResponse {
 // Build sections from services
 // ---------------------------------------------------------------------------
 
-async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3LeaderboardSection | null> {
-  const hip3 = runtime.getService("VINCE_HIP3_SERVICE") as VinceHIP3Service | null;
+async function buildHIP3Section(
+  runtime: IAgentRuntime,
+): Promise<HIP3LeaderboardSection | null> {
+  const hip3 = runtime.getService(
+    "VINCE_HIP3_SERVICE",
+  ) as VinceHIP3Service | null;
   if (!hip3) return null;
 
-  const pulse = await safe("HIP3", (): Promise<HIP3Pulse | null> =>
-    (hip3 as VinceHIP3Service).getHIP3Pulse?.() ?? Promise.resolve(null),
+  const pulse = await safe(
+    "HIP3",
+    (): Promise<HIP3Pulse | null> =>
+      (hip3 as VinceHIP3Service).getHIP3Pulse?.() ?? Promise.resolve(null),
   );
   if (!pulse) return null;
 
@@ -295,13 +330,17 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
     volumeFormatted: formatVol(a.volume24h),
   }));
 
-  const volumeLeaders: LeaderboardRow[] = (pulse.leaders?.volumeLeaders ?? []).slice(0, 5).map((l: { symbol: string; price?: number; volume: number }, i: number) => ({
-    rank: i + 1,
-    symbol: l.symbol,
-    price: l.price,
-    volume: l.volume,
-    volumeFormatted: formatVol(l.volume),
-  }));
+  const volumeLeaders: LeaderboardRow[] = (pulse.leaders?.volumeLeaders ?? [])
+    .slice(0, 5)
+    .map(
+      (l: { symbol: string; price?: number; volume: number }, i: number) => ({
+        rank: i + 1,
+        symbol: l.symbol,
+        price: l.price,
+        volume: l.volume,
+        volumeFormatted: formatVol(l.volume),
+      }),
+    );
 
   const sectorNames: Record<string, string> = {
     commodities: "Commodities",
@@ -316,9 +355,15 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
     { key: "ai_tech", avg: pulse.sectorStats?.aiPlays?.avgChange ?? 0 },
   ].sort((a, b) => b.avg - a.avg);
   const hottestSector = sectorNames[sectorAvgs[0]?.key ?? ""] ?? "—";
-  const coldestSector = sectorNames[sectorAvgs[sectorAvgs.length - 1]?.key ?? ""] ?? "—";
+  const coldestSector =
+    sectorNames[sectorAvgs[sectorAvgs.length - 1]?.key ?? ""] ?? "—";
 
-  const toRow = (a: { symbol: string; price: number; change24h: number; volume24h: number }): LeaderboardRow => ({
+  const toRow = (a: {
+    symbol: string;
+    price: number;
+    change24h: number;
+    volume24h: number;
+  }): LeaderboardRow => ({
     symbol: a.symbol,
     price: a.price,
     change24h: a.change24h,
@@ -334,11 +379,12 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
       ? `${pulse.summary.overallBias.toUpperCase()} · ${hottestSector} +${sectorAvgs[0]?.avg?.toFixed(1) ?? "0"}%`
       : "TradFi assets on Hyperliquid",
     bias: pulse.summary?.overallBias ?? "mixed",
-    rotation: pulse.summary?.tradFiVsCrypto === "tradfi_outperforming"
-      ? "TradFi > Crypto"
-      : pulse.summary?.tradFiVsCrypto === "crypto_outperforming"
-        ? "Crypto > TradFi"
-        : "Neutral",
+    rotation:
+      pulse.summary?.tradFiVsCrypto === "tradfi_outperforming"
+        ? "TradFi > Crypto"
+        : pulse.summary?.tradFiVsCrypto === "crypto_outperforming"
+          ? "Crypto > TradFi"
+          : "Neutral",
     hottestSector,
     coldestSector,
     categories: {
@@ -350,7 +396,9 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
   };
 }
 
-async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLeaderboardSection | null> {
+async function buildHLCryptoSection(
+  runtime: IAgentRuntime,
+): Promise<HLCryptoLeaderboardSection | null> {
   // Always use our fallback for leaderboards so we get the full asset list (allTickers, OI leaders, crowded).
   // The primary service (external plugin or fallback) may not return assets; using fallback here guarantees full data.
   const fallback = new HyperliquidFallbackService();
@@ -367,14 +415,16 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
     volumeFormatted: formatVol(m.volume24h),
   }));
 
-  const volumeLeaders: LeaderboardRow[] = p.volumeLeaders.slice(0, 5).map((l, i) => ({
-    rank: i + 1,
-    symbol: l.symbol,
-    price: l.price,
-    volume: l.volume24h,
-    volumeFormatted: formatVol(l.volume24h),
-    extra: `OI: ${formatVol(l.openInterest)} · Fund: ${(l.funding8h * 100).toFixed(4)}%`,
-  }));
+  const volumeLeaders: LeaderboardRow[] = p.volumeLeaders
+    .slice(0, 5)
+    .map((l, i) => ({
+      rank: i + 1,
+      symbol: l.symbol,
+      price: l.price,
+      volume: l.volume24h,
+      volumeFormatted: formatVol(l.volume24h),
+      extra: `OI: ${formatVol(l.openInterest)} · Fund: ${(l.funding8h * 100).toFixed(4)}%`,
+    }));
 
   const minVolumeUsd = 500_000;
   const sortedByVolume = [...(p.assets ?? [])]
@@ -390,19 +440,25 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
     extra: `Fund: ${(a.funding8h * 100).toFixed(4)}% · OI: ${formatVol(a.openInterest)}`,
   }));
 
-  const sortedByOi = [...(p.assets ?? [])].sort((a, b) => b.openInterest - a.openInterest);
-  const openInterestLeaders: LeaderboardRow[] = sortedByOi.slice(0, 10).map((a, i) => ({
-    rank: i + 1,
-    symbol: a.symbol,
-    price: a.price,
-    change24h: a.change24h,
-    volume: a.volume24h,
-    volumeFormatted: formatVol(a.volume24h),
-    extra: `Fund: ${(a.funding8h * 100).toFixed(4)}% · OI: ${formatVol(a.openInterest)}`,
-  }));
+  const sortedByOi = [...(p.assets ?? [])].sort(
+    (a, b) => b.openInterest - a.openInterest,
+  );
+  const openInterestLeaders: LeaderboardRow[] = sortedByOi
+    .slice(0, 10)
+    .map((a, i) => ({
+      rank: i + 1,
+      symbol: a.symbol,
+      price: a.price,
+      change24h: a.change24h,
+      volume: a.volume24h,
+      volumeFormatted: formatVol(a.volume24h),
+      extra: `Fund: ${(a.funding8h * 100).toFixed(4)}% · OI: ${formatVol(a.openInterest)}`,
+    }));
 
   const crowdedLongs: LeaderboardRow[] = (p.assets ?? [])
-    .filter((a) => a.crowdingLevel === "extreme_long" || a.crowdingLevel === "long")
+    .filter(
+      (a) => a.crowdingLevel === "extreme_long" || a.crowdingLevel === "long",
+    )
     .map((a, i) => ({
       rank: i + 1,
       symbol: a.symbol,
@@ -414,7 +470,9 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
     }));
 
   const crowdedShorts: LeaderboardRow[] = (p.assets ?? [])
-    .filter((a) => a.crowdingLevel === "extreme_short" || a.crowdingLevel === "short")
+    .filter(
+      (a) => a.crowdingLevel === "extreme_short" || a.crowdingLevel === "short",
+    )
     .map((a, i) => ({
       rank: i + 1,
       symbol: a.symbol,
@@ -440,8 +498,12 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
   };
 }
 
-async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboardSection | null> {
-  const dexscreener = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
+async function buildMemesSection(
+  runtime: IAgentRuntime,
+): Promise<MemesLeaderboardSection | null> {
+  const dexscreener = runtime.getService(
+    "VINCE_DEXSCREENER_SERVICE",
+  ) as VinceDexScreenerService | null;
   if (!dexscreener) return null;
 
   const solanaSection = await safe("Memes Solana", async () => {
@@ -473,7 +535,10 @@ async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboa
       change24h: t.priceChange24h,
       volume: t.volume24h,
       volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
-      extra: t.volumeLiquidityRatio != null ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x` : undefined,
+      extra:
+        t.volumeLiquidityRatio != null
+          ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x`
+          : undefined,
       verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
       volumeLiquidityRatio: t.volumeLiquidityRatio,
       marketCap: t.marketCap,
@@ -493,26 +558,37 @@ async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboa
 
   if (!solanaSection) return null;
 
-  const news = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+  const news = runtime.getService(
+    "VINCE_NEWS_SENTIMENT_SERVICE",
+  ) as VinceNewsSentimentService | null;
   const leftcurve =
     news != null
       ? await safe("Memes leftcurve", async () => {
           const items = (news as any).getNewsByCategory?.("leftcurve") ?? [];
-          return items.slice(0, 10).map((n: { title: string; url?: string }) => ({
-            text: n.title,
-            ...(n.url && { url: n.url }),
-          }));
+          return items
+            .slice(0, 10)
+            .map((n: { title: string; url?: string }) => ({
+              text: n.title,
+              ...(n.url && { url: n.url }),
+            }));
         })
       : null;
 
   if (leftcurve && Array.isArray(leftcurve) && leftcurve.length > 0) {
-    solanaSection.leftcurve = { title: "Left Curve (MandoMinutes)", headlines: leftcurve };
+    solanaSection.leftcurve = {
+      title: "Left Curve (MandoMinutes)",
+      headlines: leftcurve,
+    };
   }
   return solanaSection;
 }
 
-async function buildMemesBaseSection(runtime: IAgentRuntime): Promise<MemesLeaderboardSection | null> {
-  const dexscreener = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
+async function buildMemesBaseSection(
+  runtime: IAgentRuntime,
+): Promise<MemesLeaderboardSection | null> {
+  const dexscreener = runtime.getService(
+    "VINCE_DEXSCREENER_SERVICE",
+  ) as VinceDexScreenerService | null;
   if (!dexscreener) return null;
 
   const baseSection = await safe("Memes BASE", async () => {
@@ -544,7 +620,10 @@ async function buildMemesBaseSection(runtime: IAgentRuntime): Promise<MemesLeade
       change24h: t.priceChange24h,
       volume: t.volume24h,
       volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
-      extra: t.volumeLiquidityRatio != null ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x` : undefined,
+      extra:
+        t.volumeLiquidityRatio != null
+          ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x`
+          : undefined,
       verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
       volumeLiquidityRatio: t.volumeLiquidityRatio,
       marketCap: t.marketCap,
@@ -566,7 +645,16 @@ async function buildMemesBaseSection(runtime: IAgentRuntime): Promise<MemesLeade
 }
 
 function toMeteoraPoolRow(
-  p: { address?: string; name?: string; tokenA?: string; tokenB?: string; tvl: number; apy?: number; binWidth?: number; volume24h?: number },
+  p: {
+    address?: string;
+    name?: string;
+    tokenA?: string;
+    tokenB?: string;
+    tvl: number;
+    apy?: number;
+    binWidth?: number;
+    volume24h?: number;
+  },
   id?: string,
 ): MeteoraPoolRow {
   return {
@@ -580,18 +668,26 @@ function toMeteoraPoolRow(
   };
 }
 
-async function buildMeteoraSection(runtime: IAgentRuntime): Promise<MeteoraLeaderboardSection | null> {
-  const meteora = runtime.getService("VINCE_METEORA_SERVICE") as VinceMeteoraService | null;
+async function buildMeteoraSection(
+  runtime: IAgentRuntime,
+): Promise<MeteoraLeaderboardSection | null> {
+  const meteora = runtime.getService(
+    "VINCE_METEORA_SERVICE",
+  ) as VinceMeteoraService | null;
   if (!meteora) return null;
 
-  const pools = await safe("Meteora", () => Promise.resolve(meteora.getTopPools(10)));
+  const pools = await safe("Meteora", () =>
+    Promise.resolve(meteora.getTopPools(10)),
+  );
   const memePoolsRaw = await safe("Meteora memePools", () =>
     Promise.resolve(meteora.getMemePoolOpportunities?.() ?? []),
   );
   const allByApy = await safe("Meteora allByApy", () =>
     Promise.resolve(meteora.getAllPoolsRankedByApy?.(25) ?? []),
   );
-  const tldr = await safe("Meteora TLDR", () => Promise.resolve(meteora.getTLDR()));
+  const tldr = await safe("Meteora TLDR", () =>
+    Promise.resolve(meteora.getTLDR()),
+  );
 
   if (!pools || pools.length === 0) return null;
 
@@ -606,7 +702,8 @@ async function buildMeteoraSection(runtime: IAgentRuntime): Promise<MeteoraLeade
   if (allByApy && allByApy.length > 0) {
     result.allPoolsByApy = allByApy.map((p) => ({
       ...toMeteoraPoolRow(p, p.address),
-      category: p.category === "meme" ? "Meme LP opportunities" : "Top pools by TVL",
+      category:
+        p.category === "meme" ? "Meme LP opportunities" : "Top pools by TVL",
     }));
   }
   return result;
@@ -615,8 +712,12 @@ async function buildMeteoraSection(runtime: IAgentRuntime): Promise<MeteoraLeade
 /** Same key as news service – raw Mando cache so we return the full list the terminal shows */
 const MANDO_RAW_CACHE_KEY = "mando_minutes:latest:v9";
 
-async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboardSection | null> {
-  const news = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+async function buildNewsSection(
+  runtime: IAgentRuntime,
+): Promise<NewsLeaderboardSection | null> {
+  const news = runtime.getService(
+    "VINCE_NEWS_SENTIMENT_SERVICE",
+  ) as VinceNewsSentimentService | null;
   if (!news) return null;
 
   const tldr = await safe("News TLDR", () => Promise.resolve(news.getTLDR()));
@@ -624,11 +725,21 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
 
   // Prefer raw Mando cache so we return ALL headlines (same 36 the terminal shows), even if newsCache was built with old logic
   const rawCache = await safe("News raw cache", () =>
-    runtime.getCache<{ articles: Array<{ title: string; url?: string }> }>(MANDO_RAW_CACHE_KEY),
+    runtime.getCache<{ articles: Array<{ title: string; url?: string }> }>(
+      MANDO_RAW_CACHE_KEY,
+    ),
   );
   let headlines: { text: string; sentiment?: string; url?: string }[];
   if (rawCache?.articles?.length) {
-    const allHeadlinesRaw = (await Promise.resolve((news as unknown as { getAllHeadlines?: () => Promise<Array<{ title: string; sentiment?: string }>> }).getAllHeadlines?.() ?? [])) as Array<{ title: string; sentiment?: string }>;
+    const allHeadlinesRaw = (await Promise.resolve(
+      (
+        news as unknown as {
+          getAllHeadlines?: () => Promise<
+            Array<{ title: string; sentiment?: string }>
+          >;
+        }
+      ).getAllHeadlines?.() ?? [],
+    )) as Array<{ title: string; sentiment?: string }>;
     const byTitle = new Map<string, string | undefined>(
       allHeadlinesRaw.map((n) => [n.title, n.sentiment]),
     );
@@ -641,14 +752,18 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
     const allHeadlines = await safe("News headlines", () =>
       Promise.resolve((news as any).getAllHeadlines?.() ?? []),
     );
-    headlines = (allHeadlines ?? []).map((a: { title: string; sentiment?: string; url?: string }) => ({
-      text: a.title,
-      sentiment: a.sentiment,
-      ...(a.url && { url: a.url }),
-    }));
+    headlines = (allHeadlines ?? []).map(
+      (a: { title: string; sentiment?: string; url?: string }) => ({
+        text: a.title,
+        sentiment: a.sentiment,
+        ...(a.url && { url: a.url }),
+      }),
+    );
   }
 
-  const xSentimentService = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null;
+  const xSentimentService = runtime.getService(
+    "VINCE_X_SENTIMENT_SERVICE",
+  ) as VinceXSentimentService | null;
   let xSentiment:
     | {
         assets: XSentimentAssetRow[];
@@ -657,7 +772,14 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
         oneLiner?: string;
       }
     | undefined;
-  let listSentiment: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number } | undefined;
+  let listSentiment:
+    | {
+        sentiment: string;
+        confidence: number;
+        hasHighRiskEvent: boolean;
+        updatedAt?: number;
+      }
+    | undefined;
   if (xSentimentService?.isConfigured?.()) {
     const assets: XSentimentAssetRow[] = CORE_ASSETS.map((asset) => {
       const s = xSentimentService.getTradingSentiment(asset);
@@ -672,7 +794,9 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
     const now = Date.now();
     const rateLimitedUntilMs = xSentimentService.getRateLimitedUntilMs();
 
-    const withData = assets.filter((a) => a.confidence > 0 || (a.updatedAt != null && a.updatedAt !== 0));
+    const withData = assets.filter(
+      (a) => a.confidence > 0 || (a.updatedAt != null && a.updatedAt !== 0),
+    );
     let overall: "bullish" | "bearish" | "neutral" | "mixed" = "neutral";
     let oneLiner: string | undefined;
     if (withData.length > 0) {
@@ -685,22 +809,36 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
       else overall = "mixed";
 
       const cap = overall.charAt(0).toUpperCase() + overall.slice(1);
-      const positive = withData.filter((a) => a.sentiment === "bullish").map((a) => a.asset);
-      const negative = withData.filter((a) => a.sentiment === "bearish").map((a) => a.asset);
-      if (overall === "bullish" && positive.length > 0) oneLiner = `${cap} · ${positive.join("/")} positive`;
-      else if (overall === "bearish" && negative.length > 0) oneLiner = `${cap} · ${negative.join("/")} negative`;
-      else if (overall === "mixed") oneLiner = `${cap} · ${[...new Set(positive.concat(negative))].join("/")} mixed`;
+      const positive = withData
+        .filter((a) => a.sentiment === "bullish")
+        .map((a) => a.asset);
+      const negative = withData
+        .filter((a) => a.sentiment === "bearish")
+        .map((a) => a.asset);
+      if (overall === "bullish" && positive.length > 0)
+        oneLiner = `${cap} · ${positive.join("/")} positive`;
+      else if (overall === "bearish" && negative.length > 0)
+        oneLiner = `${cap} · ${negative.join("/")} negative`;
+      else if (overall === "mixed")
+        oneLiner = `${cap} · ${[...new Set(positive.concat(negative))].join("/")} mixed`;
       else oneLiner = `${cap} · per-asset sentiment below`;
     }
 
-    const updatedAts = assets.map((a) => a.updatedAt).filter((t): t is number => t != null && t !== 0);
-    const oldestUpdatedAt = updatedAts.length > 0 ? Math.min(...updatedAts) : null;
-    const newestUpdatedAt = updatedAts.length > 0 ? Math.max(...updatedAts) : null;
+    const updatedAts = assets
+      .map((a) => a.updatedAt)
+      .filter((t): t is number => t != null && t !== 0);
+    const oldestUpdatedAt =
+      updatedAts.length > 0 ? Math.min(...updatedAts) : null;
+    const newestUpdatedAt =
+      updatedAts.length > 0 ? Math.max(...updatedAts) : null;
     xSentiment = {
       assets,
       ...(rateLimitedUntilMs > now && { rateLimitedUntil: rateLimitedUntilMs }),
       ...(withData.length > 0 && { overall, oneLiner }),
-      ...(oldestUpdatedAt != null && { oldestUpdatedAt, newestUpdatedAt: newestUpdatedAt ?? oldestUpdatedAt }),
+      ...(oldestUpdatedAt != null && {
+        oldestUpdatedAt,
+        newestUpdatedAt: newestUpdatedAt ?? oldestUpdatedAt,
+      }),
     };
     try {
       const listS = await xSentimentService.getListSentiment();
@@ -742,7 +880,9 @@ export interface DebugXSentimentResponse {
 export async function buildDebugXSentimentResponse(
   runtime: IAgentRuntime,
 ): Promise<DebugXSentimentResponse> {
-  const xSentimentService = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null;
+  const xSentimentService = runtime.getService(
+    "VINCE_X_SENTIMENT_SERVICE",
+  ) as VinceXSentimentService | null;
   if (!xSentimentService?.isConfigured?.()) {
     return { assets: [], rateLimitedUntil: null };
   }
@@ -764,7 +904,9 @@ export async function buildDebugXSentimentResponse(
   };
 }
 
-async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalArtLeaderboardSection | null> {
+async function buildDigitalArtSection(
+  runtime: IAgentRuntime,
+): Promise<DigitalArtLeaderboardSection | null> {
   const nftFloor = runtime.getService("VINCE_NFT_FLOOR_SERVICE") as {
     refreshData?: () => Promise<void>;
     getAllFloors?: () => Array<{
@@ -792,15 +934,22 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
   } | null;
   if (!nftFloor?.getAllFloors) return null;
 
-  await safe("Digital Art refresh", () => Promise.resolve(nftFloor.refreshData?.() ?? Promise.resolve()));
-  const floors = await safe("Digital Art floors", () => Promise.resolve(nftFloor.getAllFloors?.() ?? []));
-  const tldr = await safe("Digital Art TLDR", () => Promise.resolve(nftFloor.getTLDR?.() ?? "NFT floor data"));
+  await safe("Digital Art refresh", () =>
+    Promise.resolve(nftFloor.refreshData?.() ?? Promise.resolve()),
+  );
+  const floors = await safe("Digital Art floors", () =>
+    Promise.resolve(nftFloor.getAllFloors?.() ?? []),
+  );
+  const tldr = await safe("Digital Art TLDR", () =>
+    Promise.resolve(nftFloor.getTLDR?.() ?? "NFT floor data"),
+  );
 
   if (!floors || floors.length === 0) {
     return {
       title: "Digital Art",
       collections: [],
-      oneLiner: tldr ?? "NFT: No data yet — set OPENSEA_API_KEY for floor prices.",
+      oneLiner:
+        tldr ?? "NFT: No data yet — set OPENSEA_API_KEY for floor prices.",
     };
   }
 
@@ -820,7 +969,9 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
     .map((c) => {
       const to2nd = c.gaps?.to2nd ?? 0;
       const gapPctTo2nd =
-        c.floorPrice > 0 && to2nd > 0 ? (to2nd / c.floorPrice) * 100 : undefined;
+        c.floorPrice > 0 && to2nd > 0
+          ? (to2nd / c.floorPrice) * 100
+          : undefined;
       return {
         name: c.name,
         slug: c.slug,
@@ -875,7 +1026,9 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
     .map((c) => {
       const to2nd = c.gaps?.to2nd ?? 0;
       const gapPctTo2nd =
-        c.floorPrice > 0 && to2nd > 0 ? (to2nd / c.floorPrice) * 100 : undefined;
+        c.floorPrice > 0 && to2nd > 0
+          ? (to2nd / c.floorPrice) * 100
+          : undefined;
       return {
         name: c.name,
         slug: c.slug,
@@ -904,39 +1057,61 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
     title: "Digital Art",
     collections,
     volumeLeaders,
-    oneLiner: tldr ?? "Curated NFT collections — floor prices and thin-floor opportunities.",
+    oneLiner:
+      tldr ??
+      "Curated NFT collections — floor prices and thin-floor opportunities.",
     criteriaNote,
   };
 }
 
-async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboardSection> {
+async function buildMoreSection(
+  runtime: IAgentRuntime,
+): Promise<MoreLeaderboardSection> {
   const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
     getFearGreed?: () => { value: number; classification: string } | null;
     getAllFunding?: () => { asset: string; rate: number }[];
     getAllLongShortRatios?: () => { asset: string; ratio: number }[];
-    getOpenInterest?: (asset: string) => { asset: string; value: number; change24h: number | null } | null;
+    getOpenInterest?: (
+      asset: string,
+    ) => { asset: string; value: number; change24h: number | null } | null;
   } | null;
   const binance = runtime.getService("VINCE_BINANCE_SERVICE") as {
-    getFearGreed?: () => Promise<{ value: number; classification: string } | null>;
+    getFearGreed?: () => Promise<{
+      value: number;
+      classification: string;
+    } | null>;
     getIntelligence?: (asset: string) => Promise<{
       topTraderPositions?: { longShortRatio?: number } | null;
       takerVolume?: { buySellRatio?: number } | null;
       fundingTrend?: { isExtreme?: boolean; extremeDirection?: string } | null;
-      crossExchangeFunding?: { spread?: number; bestLong?: string; bestShort?: string } | null;
+      crossExchangeFunding?: {
+        spread?: number;
+        bestLong?: string;
+        bestShort?: string;
+      } | null;
     }>;
   } | null;
   const deribit = runtime.getService("VINCE_DERIBIT_SERVICE") as {
     getDVOL?: (c: "BTC" | "ETH") => Promise<number | null>;
-    getOptionsContext?: (c: "BTC" | "ETH") => Promise<{ ivSurface?: { skewInterpretation?: string } }>;
+    getOptionsContext?: (
+      c: "BTC" | "ETH",
+    ) => Promise<{ ivSurface?: { skewInterpretation?: string } }>;
     getTLDR?: (ctx: unknown) => string;
   } | null;
   const hl = getOrCreateHyperliquidService(runtime);
   const alert = runtime.getService("VINCE_ALERT_SERVICE") as {
-    getAlerts?: (opts?: { limit?: number }) => { type: string; title: string; message: string; timestamp: number }[];
+    getAlerts?: (opts?: {
+      limit?: number;
+    }) => { type: string; title: string; message: string; timestamp: number }[];
     getSummary?: () => { total: number; unread: number; highPriority: number };
   } | null;
   const watchlist = runtime.getService("VINCE_WATCHLIST_SERVICE") as {
-    getWatchedTokens?: () => { symbol: string; chain?: string; priority?: string; entryTarget?: number }[];
+    getWatchedTokens?: () => {
+      symbol: string;
+      chain?: string;
+      priority?: string;
+      entryTarget?: number;
+    }[];
   } | null;
   const regimeSvc = runtime.getService("VINCE_MARKET_REGIME_SERVICE") as {
     getRegime?: (asset: string) => Promise<{ regime: string }>;
@@ -949,32 +1124,102 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
     getTLDR?: (ctx: unknown) => string;
   } | null;
   const nansen = runtime.getService("VINCE_NANSEN_SERVICE") as {
-    getHotMemeTokens?: () => Promise<{ symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }[]>;
+    getHotMemeTokens?: () => Promise<
+      {
+        symbol: string;
+        chain: string;
+        netFlow: number;
+        buyVolume: number;
+        priceChange24h: number;
+      }[]
+    >;
     getCreditUsage?: () => { remaining: number };
   } | null;
 
-  const [fearGreedData, btcDvol, ethDvol, btcCtx, ethCtx, crossVenueData, oiCapData, binanceIntelData, coinglassExtData, sanbaseBtcData, sanbaseEthData, nansenData, volumeData] = await Promise.all([
+  const [
+    fearGreedData,
+    btcDvol,
+    ethDvol,
+    btcCtx,
+    ethCtx,
+    crossVenueData,
+    oiCapData,
+    binanceIntelData,
+    coinglassExtData,
+    sanbaseBtcData,
+    sanbaseEthData,
+    nansenData,
+    volumeData,
+  ] = await Promise.all([
     safe("FearGreed", async () => {
       const cg = coinglass?.getFearGreed?.() ?? null;
       if (cg) return cg;
       const alt = await binance?.getFearGreed?.();
-      return alt ? { value: alt.value, classification: alt.classification.replace(/\s+/g, "_").toLowerCase() } : null;
+      return alt
+        ? {
+            value: alt.value,
+            classification: alt.classification
+              .replace(/\s+/g, "_")
+              .toLowerCase(),
+          }
+        : null;
     }),
-    safe("Deribit DVOL BTC", () => (deribit?.getDVOL?.("BTC") ?? Promise.resolve(null))),
-    safe("Deribit DVOL ETH", () => (deribit?.getDVOL?.("ETH") ?? Promise.resolve(null))),
-    safe("Deribit BTC ctx", () => (deribit?.getOptionsContext?.("BTC") ?? Promise.resolve(null))),
-    safe("Deribit ETH ctx", () => (deribit?.getOptionsContext?.("ETH") ?? Promise.resolve(null))),
-    safe("CrossVenue", () => (hl?.getCrossVenueFunding?.() ?? Promise.resolve(null))),
-    safe("OI Cap", () => (hl?.getPerpsAtOpenInterestCap?.() ?? Promise.resolve(null))),
-    safe("Binance Intel", () => (binance?.getIntelligence?.("BTC") ?? Promise.resolve(null))),
+    safe(
+      "Deribit DVOL BTC",
+      () => deribit?.getDVOL?.("BTC") ?? Promise.resolve(null),
+    ),
+    safe(
+      "Deribit DVOL ETH",
+      () => deribit?.getDVOL?.("ETH") ?? Promise.resolve(null),
+    ),
+    safe(
+      "Deribit BTC ctx",
+      () => deribit?.getOptionsContext?.("BTC") ?? Promise.resolve(null),
+    ),
+    safe(
+      "Deribit ETH ctx",
+      () => deribit?.getOptionsContext?.("ETH") ?? Promise.resolve(null),
+    ),
+    safe(
+      "CrossVenue",
+      () => hl?.getCrossVenueFunding?.() ?? Promise.resolve(null),
+    ),
+    safe(
+      "OI Cap",
+      () => hl?.getPerpsAtOpenInterestCap?.() ?? Promise.resolve(null),
+    ),
+    safe(
+      "Binance Intel",
+      () => binance?.getIntelligence?.("BTC") ?? Promise.resolve(null),
+    ),
     safe("CoinGlass Extended", () =>
       Promise.resolve({
-        funding: (coinglass?.getAllFunding?.() ?? []).slice(0, 10).map((f: { asset: string; rate: number }) => ({ asset: f.asset, rate: f.rate })),
-        longShort: (coinglass?.getAllLongShortRatios?.() ?? []).slice(0, 10).map((ls: { asset: string; ratio: number }) => ({ asset: ls.asset, ratio: ls.ratio })),
+        funding: (coinglass?.getAllFunding?.() ?? [])
+          .slice(0, 10)
+          .map((f: { asset: string; rate: number }) => ({
+            asset: f.asset,
+            rate: f.rate,
+          })),
+        longShort: (coinglass?.getAllLongShortRatios?.() ?? [])
+          .slice(0, 10)
+          .map((ls: { asset: string; ratio: number }) => ({
+            asset: ls.asset,
+            ratio: ls.ratio,
+          })),
         openInterest: ["BTC", "ETH", "SOL"]
           .map((a) => coinglass?.getOpenInterest?.(a))
           .filter(Boolean)
-          .map((oi: { asset: string; value: number; change24h: number | null }) => ({ asset: (oi as any).asset, value: (oi as any).value, change24h: (oi as any).change24h })),
+          .map(
+            (oi: {
+              asset: string;
+              value: number;
+              change24h: number | null;
+            }) => ({
+              asset: (oi as any).asset,
+              value: (oi as any).value,
+              change24h: (oi as any).change24h,
+            }),
+          ),
       }),
     ),
     safe("Sanbase BTC", async () => {
@@ -983,7 +1228,9 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
       return {
         flows: ctx.exchangeFlows?.sentiment ?? "—",
         whales: ctx.whaleActivity?.sentiment ?? "—",
-        tldr: (sanbase as { getTLDR?: (c: unknown) => string }).getTLDR?.(ctx) ?? "—",
+        tldr:
+          (sanbase as { getTLDR?: (c: unknown) => string }).getTLDR?.(ctx) ??
+          "—",
       };
     }),
     safe("Sanbase ETH", async () => {
@@ -992,27 +1239,41 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
       return {
         flows: ctx.exchangeFlows?.sentiment ?? "—",
         whales: ctx.whaleActivity?.sentiment ?? "—",
-        tldr: (sanbase as { getTLDR?: (c: unknown) => string }).getTLDR?.(ctx) ?? "—",
+        tldr:
+          (sanbase as { getTLDR?: (c: unknown) => string }).getTLDR?.(ctx) ??
+          "—",
       };
     }),
     safe("Nansen Smart Money", async () => {
-      const tokens = await nansen?.getHotMemeTokens?.() ?? [];
+      const tokens = (await nansen?.getHotMemeTokens?.()) ?? [];
       const credits = nansen?.getCreditUsage?.();
       return { tokens, creditRemaining: credits?.remaining ?? null };
     }),
     safe("VolumeInsights", async () => {
       const md = runtime.getService("VINCE_MARKET_DATA_SERVICE") as {
-        getEnrichedContext?: (asset: string) => Promise<{ volumeRatio?: number; volume24h?: number } | null>;
+        getEnrichedContext?: (
+          asset: string,
+        ) => Promise<{ volumeRatio?: number; volume24h?: number } | null>;
       } | null;
       if (!md?.getEnrichedContext) return null;
       const volAssets = ["BTC", "ETH", "SOL", "HYPE"];
       const results = await Promise.all(
         volAssets.map(async (asset) => {
           const ctx = await md.getEnrichedContext!(asset).catch(() => null);
-          return ctx ? { asset, volumeRatio: ctx.volumeRatio ?? null, volume24h: ctx.volume24h ?? null } : null;
+          return ctx
+            ? {
+                asset,
+                volumeRatio: ctx.volumeRatio ?? null,
+                volume24h: ctx.volume24h ?? null,
+              }
+            : null;
         }),
       );
-      return results.filter(Boolean) as Array<{ asset: string; volumeRatio: number | null; volume24h: number | null }>;
+      return results.filter(Boolean) as Array<{
+        asset: string;
+        volumeRatio: number | null;
+        volume24h: number | null;
+      }>;
     }),
   ]);
 
@@ -1026,28 +1287,48 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
       : null;
 
   const btcTldr =
-    btcCtx && deribit && typeof (deribit as { getTLDR?: (ctx: unknown) => string }).getTLDR === "function"
+    btcCtx &&
+    deribit &&
+    typeof (deribit as { getTLDR?: (ctx: unknown) => string }).getTLDR ===
+      "function"
       ? (deribit as { getTLDR: (ctx: unknown) => string }).getTLDR(btcCtx)
       : null;
   const ethTldr =
-    ethCtx && deribit && typeof (deribit as { getTLDR?: (ctx: unknown) => string }).getTLDR === "function"
+    ethCtx &&
+    deribit &&
+    typeof (deribit as { getTLDR?: (ctx: unknown) => string }).getTLDR ===
+      "function"
       ? (deribit as { getTLDR: (ctx: unknown) => string }).getTLDR(ethCtx)
       : null;
 
   const options =
     btcDvol != null || ethDvol != null || btcTldr != null || ethTldr != null
-      ? { btcDvol: btcDvol ?? null, ethDvol: ethDvol ?? null, btcTldr: btcTldr ?? null, ethTldr: ethTldr ?? null }
+      ? {
+          btcDvol: btcDvol ?? null,
+          ethDvol: ethDvol ?? null,
+          btcTldr: btcTldr ?? null,
+          ethTldr: ethTldr ?? null,
+        }
       : null;
 
   const crossVenue =
     crossVenueData != null
       ? {
-          assets: crossVenueData.assets.slice(0, 10).map((a: { coin: string; hlFunding?: number; cexFunding?: number; arbitrageDirection?: string | null }) => ({
-            coin: a.coin,
-            hlFunding: a.hlFunding,
-            cexFunding: a.cexFunding,
-            arb: a.arbitrageDirection ?? undefined,
-          })),
+          assets: crossVenueData.assets
+            .slice(0, 10)
+            .map(
+              (a: {
+                coin: string;
+                hlFunding?: number;
+                cexFunding?: number;
+                arbitrageDirection?: string | null;
+              }) => ({
+                coin: a.coin,
+                hlFunding: a.hlFunding,
+                cexFunding: a.cexFunding,
+                arb: a.arbitrageDirection ?? undefined,
+              }),
+            ),
           arbOpportunities: crossVenueData.arbitrageOpportunities ?? [],
         }
       : null;
@@ -1099,11 +1380,14 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
 
   const binanceIntel = binanceIntelData
     ? {
-        topTraderRatio: binanceIntelData.topTraderPositions?.longShortRatio ?? null,
+        topTraderRatio:
+          binanceIntelData.topTraderPositions?.longShortRatio ?? null,
         takerBuySellRatio: binanceIntelData.takerVolume?.buySellRatio ?? null,
         fundingExtreme: binanceIntelData.fundingTrend?.isExtreme ?? false,
-        fundingDirection: binanceIntelData.fundingTrend?.extremeDirection ?? null,
-        crossExchangeSpread: binanceIntelData.crossExchangeFunding?.spread ?? null,
+        fundingDirection:
+          binanceIntelData.fundingTrend?.extremeDirection ?? null,
+        crossExchangeSpread:
+          binanceIntelData.crossExchangeFunding?.spread ?? null,
         bestLong: binanceIntelData.crossExchangeFunding?.bestLong ?? null,
         bestShort: binanceIntelData.crossExchangeFunding?.bestShort ?? null,
       }
@@ -1114,61 +1398,92 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
         funding: coinglassExtData.funding ?? [],
         longShort: coinglassExtData.longShort ?? [],
         openInterest: (coinglassExtData.openInterest ?? []).filter(
-          (oi: { asset?: string; value?: number; change24h?: number | null }) => oi && oi.asset,
+          (oi: { asset?: string; value?: number; change24h?: number | null }) =>
+            oi && oi.asset,
         ),
       }
     : null;
 
   const deribitSkew =
-    (btcCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation ||
-    (ethCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation
+    (btcCtx as { ivSurface?: { skewInterpretation?: string } } | null)
+      ?.ivSurface?.skewInterpretation ||
+    (ethCtx as { ivSurface?: { skewInterpretation?: string } } | null)
+      ?.ivSurface?.skewInterpretation
       ? {
           btc:
-            (btcCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation != null
-              ? { skewInterpretation: (btcCtx as any).ivSurface.skewInterpretation }
+            (btcCtx as { ivSurface?: { skewInterpretation?: string } } | null)
+              ?.ivSurface?.skewInterpretation != null
+              ? {
+                  skewInterpretation: (btcCtx as any).ivSurface
+                    .skewInterpretation,
+                }
               : null,
           eth:
-            (ethCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation != null
-              ? { skewInterpretation: (ethCtx as any).ivSurface.skewInterpretation }
+            (ethCtx as { ivSurface?: { skewInterpretation?: string } } | null)
+              ?.ivSurface?.skewInterpretation != null
+              ? {
+                  skewInterpretation: (ethCtx as any).ivSurface
+                    .skewInterpretation,
+                }
               : null,
         }
       : null;
 
-  const sanbaseOnChain = sanbaseBtcData || sanbaseEthData ? { btc: sanbaseBtcData ?? null, eth: sanbaseEthData ?? null } : null;
+  const sanbaseOnChain =
+    sanbaseBtcData || sanbaseEthData
+      ? { btc: sanbaseBtcData ?? null, eth: sanbaseEthData ?? null }
+      : null;
 
   const nansenSmartMoney = nansenData
     ? {
-        tokens: (nansenData.tokens ?? []).slice(0, 10).map((t: { symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }) => ({
-          symbol: t.symbol,
-          chain: t.chain,
-          netFlow: t.netFlow,
-          buyVolume: t.buyVolume,
-          priceChange24h: t.priceChange24h,
-        })),
+        tokens: (nansenData.tokens ?? [])
+          .slice(0, 10)
+          .map(
+            (t: {
+              symbol: string;
+              chain: string;
+              netFlow: number;
+              buyVolume: number;
+              priceChange24h: number;
+            }) => ({
+              symbol: t.symbol,
+              chain: t.chain,
+              netFlow: t.netFlow,
+              buyVolume: t.buyVolume,
+              priceChange24h: t.priceChange24h,
+            }),
+          ),
         creditRemaining: nansenData.creditRemaining,
       }
     : null;
 
-  const volumeInsights = Array.isArray(volumeData) && volumeData.length > 0
-    ? {
-        assets: volumeData.map((v: { asset: string; volumeRatio: number | null; volume24h: number | null }) => {
-          let interpretation = "normal";
-          if (v.volumeRatio != null) {
-            if (v.volumeRatio >= 2.0) interpretation = "spike";
-            else if (v.volumeRatio >= 1.5) interpretation = "elevated";
-            else if (v.volumeRatio < 0.5) interpretation = "dead_session";
-            else if (v.volumeRatio < 0.8) interpretation = "low";
-          }
-          return {
-            asset: v.asset,
-            volumeRatio: v.volumeRatio,
-            volume24h: v.volume24h,
-            volume24hFormatted: v.volume24h ? formatVol(v.volume24h) : null,
-            interpretation,
-          };
-        }),
-      }
-    : null;
+  const volumeInsights =
+    Array.isArray(volumeData) && volumeData.length > 0
+      ? {
+          assets: volumeData.map(
+            (v: {
+              asset: string;
+              volumeRatio: number | null;
+              volume24h: number | null;
+            }) => {
+              let interpretation = "normal";
+              if (v.volumeRatio != null) {
+                if (v.volumeRatio >= 2.0) interpretation = "spike";
+                else if (v.volumeRatio >= 1.5) interpretation = "elevated";
+                else if (v.volumeRatio < 0.5) interpretation = "dead_session";
+                else if (v.volumeRatio < 0.8) interpretation = "low";
+              }
+              return {
+                asset: v.asset,
+                volumeRatio: v.volumeRatio,
+                volume24h: v.volume24h,
+                volume24hFormatted: v.volume24h ? formatVol(v.volume24h) : null,
+                interpretation,
+              };
+            },
+          ),
+        }
+      : null;
 
   return {
     fearGreed,
@@ -1195,16 +1510,17 @@ export async function buildLeaderboardsResponse(
 ): Promise<LeaderboardsResponse> {
   const now = Date.now();
 
-  const [hip3, hlCrypto, memes, memesBase, meteora, news, digitalArt, more] = await Promise.all([
-    buildHIP3Section(runtime),
-    buildHLCryptoSection(runtime),
-    buildMemesSection(runtime),
-    buildMemesBaseSection(runtime),
-    buildMeteoraSection(runtime),
-    buildNewsSection(runtime),
-    buildDigitalArtSection(runtime),
-    buildMoreSection(runtime),
-  ]);
+  const [hip3, hlCrypto, memes, memesBase, meteora, news, digitalArt, more] =
+    await Promise.all([
+      buildHIP3Section(runtime),
+      buildHLCryptoSection(runtime),
+      buildMemesSection(runtime),
+      buildMemesBaseSection(runtime),
+      buildMeteoraSection(runtime),
+      buildNewsSection(runtime),
+      buildDigitalArtSection(runtime),
+      buildMoreSection(runtime),
+    ]);
 
   return {
     updatedAt: now,

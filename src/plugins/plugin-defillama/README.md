@@ -4,14 +4,14 @@ DeFiLlama integration for ElizaOS: protocol discovery, TVL lookups, yield opport
 
 ## Actions
 
-| Action | Description |
-|--------|-------------|
-| **GET_PROTOCOL_TVL** | Current TVL and change metrics by protocol name or symbol (e.g. Aave, Curve, Morpho). |
-| **GET_PROTOCOL_SLUG** | Resolve protocol name/symbol to DefiLlama slug(s) and basic info; use before TVL history if slug is unknown. |
-| **GET_PROTOCOL_TVL_HISTORY** | Historical TVL for a protocol (optional chain, days, compact mode). |
-| **GET_CHAIN_TVL_HISTORY** | Historical TVL for a chain (optional filter e.g. staking). |
-| **GET_YIELD_RATES** | APY/yield by protocol, token, and/or chain (optional minApy, stablecoinOnly, limit). |
-| **GET_YIELD_HISTORY** | Historical APY for a specific pool (protocol + token, optional chain). |
+| Action                       | Description                                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **GET_PROTOCOL_TVL**         | Current TVL and change metrics by protocol name or symbol (e.g. Aave, Curve, Morpho).                        |
+| **GET_PROTOCOL_SLUG**        | Resolve protocol name/symbol to DefiLlama slug(s) and basic info; use before TVL history if slug is unknown. |
+| **GET_PROTOCOL_TVL_HISTORY** | Historical TVL for a protocol (optional chain, days, compact mode).                                          |
+| **GET_CHAIN_TVL_HISTORY**    | Historical TVL for a chain (optional filter e.g. staking).                                                   |
+| **GET_YIELD_RATES**          | APY/yield by protocol, token, and/or chain (optional minApy, stablecoinOnly, limit).                         |
+| **GET_YIELD_HISTORY**        | Historical APY for a specific pool (protocol + token, optional chain).                                       |
 
 ## When to use (Otaku)
 

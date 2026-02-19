@@ -239,16 +239,11 @@ export class BullBearAnalyzer {
         "VINCE_NANSEN_SERVICE",
       ) as VinceNansenService | null;
       const nansenPair = assetToNansenChainAndAddress(asset);
-      if (
-        nansenService &&
-        nansenService.isConfigured() &&
-        nansenPair
-      ) {
-        const accumulation =
-          await nansenService.isSmartMoneyAccumulating(
-            nansenPair.chain,
-            nansenPair.tokenAddress,
-          );
+      if (nansenService && nansenService.isConfigured() && nansenPair) {
+        const accumulation = await nansenService.isSmartMoneyAccumulating(
+          nansenPair.chain,
+          nansenPair.tokenAddress,
+        );
 
         if (accumulation) {
           snapshot.smartMoneyNetFlow = accumulation.netFlow;

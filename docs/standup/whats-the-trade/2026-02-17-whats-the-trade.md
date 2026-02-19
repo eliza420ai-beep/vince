@@ -14,9 +14,10 @@ Let me check what CT is saying today to identify a tradeable narrative.
 </invoke>
 </function_calls>
 <function_result>
+
 ## X PULSE REPORT
 
-**Query
+\*\*Query
 
 ---
 
@@ -32,9 +33,10 @@ But the setup is there. Defense spending narrative + AI applications + governmen
 
 PLTR · perp · LONG
 100 shares @ $133.02 · risk $665
-$133   lose if <$126   gain if >$140
+$133 lose if <$126 gain if >$140
 +EV above 5% · dies if Fed dovish pivot
 Alt: NVDA $185 long (more obvious, higher beta)
 
 ---
+
 _Expressions, not advice. Do your own research._

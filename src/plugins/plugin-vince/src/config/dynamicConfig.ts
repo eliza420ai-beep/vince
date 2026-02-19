@@ -29,7 +29,11 @@ export type TradingMode = "conservative" | "balanced" | "aggressive";
 
 const MODE_PRESETS: Record<
   TradingMode,
-  { minStrengthDelta: number; minConfidenceDelta: number; riskMultiplier: number }
+  {
+    minStrengthDelta: number;
+    minConfidenceDelta: number;
+    riskMultiplier: number;
+  }
 > = {
   conservative: {
     minStrengthDelta: 10,
@@ -56,7 +60,9 @@ export function getTradingMode(runtime?: IAgentRuntime | null): TradingMode {
   const raw =
     (runtime?.getSetting?.("VINCE_TRADING_MODE") as string) ??
     process.env.VINCE_TRADING_MODE;
-  const v = String(raw ?? "").trim().toLowerCase();
+  const v = String(raw ?? "")
+    .trim()
+    .toLowerCase();
   if (v === "conservative" || v === "aggressive") return v;
   return "balanced";
 }
@@ -81,8 +87,14 @@ export function getEffectiveThresholds(
 
   return {
     ...base,
-    minStrength: Math.max(30, Math.min(90, base.minStrength + preset.minStrengthDelta)),
-    minConfidence: Math.max(30, Math.min(90, base.minConfidence + preset.minConfidenceDelta)),
+    minStrength: Math.max(
+      30,
+      Math.min(90, base.minStrength + preset.minStrengthDelta),
+    ),
+    minConfidence: Math.max(
+      30,
+      Math.min(90, base.minConfidence + preset.minConfidenceDelta),
+    ),
   };
 }
 

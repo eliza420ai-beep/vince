@@ -17,7 +17,10 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
-import { OtakuService, type LimitOrderRequest } from "../services/otaku.service";
+import {
+  OtakuService,
+  type LimitOrderRequest,
+} from "../services/otaku.service";
 
 /**
  * Parse limit order request from text
@@ -45,7 +48,9 @@ function parseLimitOrderRequest(text: string): LimitOrderRequest | null {
       return {
         amount: match[1],
         sellToken: isBuy ? "USDC" : match[2].toUpperCase(),
-        buyToken: isBuy ? match[2].toUpperCase() : match[4]?.toUpperCase() ?? "USDC",
+        buyToken: isBuy
+          ? match[2].toUpperCase()
+          : (match[4]?.toUpperCase() ?? "USDC"),
         limitPrice: match[3],
       };
     }
@@ -58,7 +63,9 @@ function parseLimitOrderRequest(text: string): LimitOrderRequest | null {
  * Extract chain from text
  */
 function extractChain(text: string): string | undefined {
-  const match = text.match(/on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic)/i);
+  const match = text.match(
+    /on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic)/i,
+  );
   if (!match) return undefined;
 
   const chainMap: Record<string, string> = {
@@ -78,7 +85,9 @@ function extractChain(text: string): string | undefined {
  * Extract expiration hours from text
  */
 function extractExpiration(text: string): number | undefined {
-  const match = text.match(/(?:expires?\s+in|valid\s+for|for)\s+(\d+)\s*(hours?|h|days?|d)/i);
+  const match = text.match(
+    /(?:expires?\s+in|valid\s+for|for)\s+(\d+)\s*(hours?|h|days?|d)/i,
+  );
   if (!match) return undefined;
 
   const value = parseInt(match[1]);
@@ -110,7 +119,7 @@ export const otakuLimitOrderAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Limit Order Summary:**\n- Buy: ETH\n- Price: $3000\n- Chain: base\n- Expires: 24 hours\n\nOrder will execute when ETH reaches $3000.\n\nType \"confirm\" to place order.",
+          text: '**Limit Order Summary:**\n- Buy: ETH\n- Price: $3000\n- Chain: base\n- Expires: 24 hours\n\nOrder will execute when ETH reaches $3000.\n\nType "confirm" to place order.',
           actions: ["OTAKU_LIMIT_ORDER"],
         },
       },
@@ -123,21 +132,28 @@ export const otakuLimitOrderAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Limit Order Summary:**\n- Sell: 0.5 ETH\n- Buy: USDC\n- Limit Price: $4000\n- Chain: base\n- Expires: 24 hours\n\nOrder will execute when price reaches $4000.\n\nType \"confirm\" to place order.",
+          text: '**Limit Order Summary:**\n- Sell: 0.5 ETH\n- Buy: USDC\n- Limit Price: $4000\n- Chain: base\n- Expires: 24 hours\n\nOrder will execute when price reaches $4000.\n\nType "confirm" to place order.',
           actions: ["OTAKU_LIMIT_ORDER"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     // Must contain limit order intent
     const hasLimitIntent =
       text.includes("limit") ||
-      (text.includes("buy") && (text.includes(" at ") || text.includes("drops"))) ||
-      (text.includes("sell") && (text.includes(" at ") || text.includes("hits") || text.includes("reaches")));
+      (text.includes("buy") &&
+        (text.includes(" at ") || text.includes("drops"))) ||
+      (text.includes("sell") &&
+        (text.includes(" at ") ||
+          text.includes("hits") ||
+          text.includes("reaches")));
 
     if (!hasLimitIntent) return false;
 
@@ -155,7 +171,7 @@ export const otakuLimitOrderAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const otakuSvc = runtime.getService("otaku") as OtakuService;
@@ -164,16 +180,22 @@ export const otakuLimitOrderAction: Action = {
       await callback?.({
         text: "Otaku service not available. Please check configuration.",
       });
-      return { success: false, error: new Error("Otaku service not available") };
+      return {
+        success: false,
+        error: new Error("Otaku service not available"),
+      };
     }
 
     // Parse limit order request
     const request = parseLimitOrderRequest(text);
     if (!request) {
       await callback?.({
-        text: "I couldn't parse the limit order details. Please specify:\n- Action (buy/sell)\n- Amount\n- Token\n- Price\n\nExamples:\n- \"Buy 100 USDC worth of ETH at $3000\"\n- \"Sell 0.5 ETH at $4000\"\n- \"Set limit order: sell 1 ETH for USDC at $3500\"",
+        text: 'I couldn\'t parse the limit order details. Please specify:\n- Action (buy/sell)\n- Amount\n- Token\n- Price\n\nExamples:\n- "Buy 100 USDC worth of ETH at $3000"\n- "Sell 0.5 ETH at $4000"\n- "Set limit order: sell 1 ETH for USDC at $3500"',
       });
-      return { success: false, error: new Error("Could not parse limit order") };
+      return {
+        success: false,
+        error: new Error("Could not parse limit order"),
+      };
     }
 
     // Add chain and expiration if specified
@@ -189,7 +211,9 @@ export const otakuLimitOrderAction: Action = {
       text.toLowerCase() === "proceed";
 
     // Check state for pending order
-    const pendingOrder = state?.pendingLimitOrder as LimitOrderRequest | undefined;
+    const pendingOrder = state?.pendingLimitOrder as
+      | LimitOrderRequest
+      | undefined;
 
     if (isConfirmation && pendingOrder) {
       // Execute the order
@@ -209,7 +233,10 @@ export const otakuLimitOrderAction: Action = {
         await callback?.({
           text: `❌ Order creation failed: ${result.error}`,
         });
-        return { success: false, error: new Error(result.error ?? "Order creation failed") };
+        return {
+          success: false,
+          error: new Error(result.error ?? "Order creation failed"),
+        };
       }
     }
 
@@ -219,7 +246,9 @@ export const otakuLimitOrderAction: Action = {
       text: confirmation,
     });
 
-    logger.info(`[OTAKU_LIMIT_ORDER] Pending order: ${JSON.stringify(request)}`);
+    logger.info(
+      `[OTAKU_LIMIT_ORDER] Pending order: ${JSON.stringify(request)}`,
+    );
 
     return { success: true };
   },

@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for optional CDP plugin context activation.
@@ -9,19 +12,40 @@ import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin
 export const cdpKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
     // Wallet operations
-    "wallet", "balance", "address",
+    "wallet",
+    "balance",
+    "address",
     // Transfers
-    "send", "transfer", "pay",
+    "send",
+    "transfer",
+    "pay",
     // Swaps
-    "swap", "trade", "exchange", "buy", "sell",
+    "swap",
+    "trade",
+    "exchange",
+    "buy",
+    "sell",
     // Tokens
-    "token", "eth", "usdc", "dai", "weth", "usdt",
+    "token",
+    "eth",
+    "usdc",
+    "dai",
+    "weth",
+    "usdt",
     // NFTs
-    "nft", "erc721", "erc1155",
+    "nft",
+    "erc721",
+    "erc1155",
     // Transaction management
-    "transaction", "tx", "explorer", "confirm", "confirmation",
+    "transaction",
+    "tx",
+    "explorer",
+    "confirm",
+    "confirmation",
     // ENS
-    "ens", "resolve", ".eth",
+    "ens",
+    "resolve",
+    ".eth",
   ],
   regexPatterns: [
     /send.*(?:eth|usdc|dai|token)/i,
@@ -50,7 +74,10 @@ export const cdpKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldCdpPluginBeInContext(state?: State, message?: Memory): boolean {
+export function shouldCdpPluginBeInContext(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, cdpKeywordPatterns, message);
 }

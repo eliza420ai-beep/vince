@@ -14,9 +14,13 @@ import { type Project, logger } from "@elizaos/core";
       /AI SDK Warning System.*turn off warning logging/i.test(s) ||
       /\[PLUGIN:SQL\].*Database operation failed, retrying/i.test(s) ||
       /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*No ownership data found/i.test(s) ||
-      /\[PLUGIN:BOOTSTRAP:PROVIDER:SETTINGS\].*No settings state found/i.test(s) ||
+      /\[PLUGIN:BOOTSTRAP:PROVIDER:SETTINGS\].*No settings state found/i.test(
+        s,
+      ) ||
       /\[CORE:UTILS\].*No entity found for message/i.test(s) ||
-      /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*User has no name or username, skipping/i.test(s)
+      /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*User has no name or username, skipping/i.test(
+        s,
+      )
     );
   };
   for (const stream of ["stderr", "stdout"] as const) {
@@ -37,8 +41,6 @@ import { kellyAgent } from "./agents/kelly.ts";
 import { sentinelAgent } from "./agents/sentinel.ts";
 import { echoAgent } from "./agents/echo.ts";
 import { oracleAgent } from "./agents/oracle.ts";
-import { polymarketRiskAgent } from "./agents/polymarketRisk.ts";
-import { polymarketPerformanceAgent } from "./agents/polymarketPerformance.ts";
 import { navalAgent } from "./agents/naval.ts";
 import { clawtermAgent } from "./agents/clawterm.ts";
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
@@ -53,12 +55,17 @@ function addIfDiscordEnabled(
   hasToken: boolean,
   appId: string | undefined,
 ): void {
-  if (hasToken && appId?.trim()) discordAppIds.push({ agent, appId: appId.trim() });
+  if (hasToken && appId?.trim())
+    discordAppIds.push({ agent, appId: appId.trim() });
 }
 addIfDiscordEnabled(
   "Eliza",
-  !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.ELIZA_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  !!(
+    process.env.ELIZA_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.ELIZA_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "VINCE",
@@ -67,59 +74,74 @@ addIfDiscordEnabled(
 );
 addIfDiscordEnabled(
   "Solus",
-  !!(process.env.SOLUS_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.SOLUS_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  !!(
+    process.env.SOLUS_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.SOLUS_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Otaku",
-  !!(process.env.OTAKU_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.OTAKU_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  !!(
+    process.env.OTAKU_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.OTAKU_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Kelly",
-  !!(process.env.KELLY_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.KELLY_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  !!(
+    process.env.KELLY_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.KELLY_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Sentinel",
-  !!(process.env.SENTINEL_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.SENTINEL_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  !!(
+    process.env.SENTINEL_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.SENTINEL_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "ECHO",
-  !!(process.env.ECHO_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
+  !!(
+    process.env.ECHO_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
   process.env.ECHO_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Oracle",
-  !!(process.env.ORACLE_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.ORACLE_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
-);
-addIfDiscordEnabled(
-  "Polymarket Risk",
   !!(
-    process.env.POLYMARKET_RISK_DISCORD_API_TOKEN?.trim() ||
+    process.env.ORACLE_DISCORD_API_TOKEN?.trim() ||
     process.env.DISCORD_API_TOKEN?.trim()
   ),
-  process.env.POLYMARKET_RISK_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
-);
-addIfDiscordEnabled(
-  "Polymarket Performance",
-  !!(
-    process.env.POLYMARKET_PERF_DISCORD_API_TOKEN?.trim() ||
-    process.env.DISCORD_API_TOKEN?.trim()
-  ),
-  process.env.POLYMARKET_PERF_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  process.env.ORACLE_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Naval",
-  !!(process.env.NAVAL_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.NAVAL_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  !!(
+    process.env.NAVAL_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.NAVAL_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Clawterm",
-  !!(process.env.CLAWTERM_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
-  process.env.CLAWTERM_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+  !!(
+    process.env.CLAWTERM_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.CLAWTERM_DISCORD_APPLICATION_ID ??
+    process.env.DISCORD_APPLICATION_ID,
 );
 
 const byAppId = new Map<string, string[]>();
@@ -133,63 +155,97 @@ for (const [appId, agents] of byAppId) {
     logger.error(
       `[DISCORD] Multiple agents share the same Discord Application ID (${appId}): ${agents.join(", ")}. ` +
         `Each agent must use a different Discord app. Create separate apps at https://discord.com/developers/applications and set ` +
-        `${agents.map((a) => a.toUpperCase().replace(/[^A-Z]/g, "") + "_DISCORD_APPLICATION_ID").join(", ")}. See DISCORD.md.`
+        `${agents.map((a) => a.toUpperCase().replace(/[^A-Z]/g, "") + "_DISCORD_APPLICATION_ID").join(", ")}. See DISCORD.md.`,
     );
   }
 }
 if (discordAppIds.length >= 2 && byAppId.size === discordAppIds.length) {
-  logger.info(`[DISCORD] Option C: ${discordAppIds.length} agents each have their own Discord app — all can run in the same server.`);
+  logger.info(
+    `[DISCORD] Option C: ${discordAppIds.length} agents each have their own Discord app — all can run in the same server.`,
+  );
 }
 
 const project: Project = {
   agents: [
     {
       ...vinceAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(vinceAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(vinceAgent.plugins ?? []),
+      ],
     },
     {
       ...elizaAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(elizaAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(elizaAgent.plugins ?? []),
+      ],
     },
     {
       ...solusAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(solusAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(solusAgent.plugins ?? []),
+      ],
     },
     {
       ...otakuAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(otakuAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(otakuAgent.plugins ?? []),
+      ],
     },
     {
       ...kellyAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(kellyAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(kellyAgent.plugins ?? []),
+      ],
     },
     {
       ...sentinelAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(sentinelAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(sentinelAgent.plugins ?? []),
+      ],
     },
     {
       ...echoAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(echoAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(echoAgent.plugins ?? []),
+      ],
     },
     {
       ...oracleAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(oracleAgent.plugins ?? [])],
-    },
-    {
-      ...polymarketRiskAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(polymarketRiskAgent.plugins ?? [])],
-    },
-    {
-      ...polymarketPerformanceAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(polymarketPerformanceAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(oracleAgent.plugins ?? []),
+      ],
     },
     {
       ...navalAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(navalAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(navalAgent.plugins ?? []),
+      ],
     },
     {
       ...clawtermAgent,
-      plugins: [logFilterPlugin, interAgentPlugin, ...(clawtermAgent.plugins ?? [])],
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(clawtermAgent.plugins ?? []),
+      ],
     },
   ],
 };
@@ -202,8 +258,6 @@ export { kellyAgent } from "./agents/kelly.ts";
 export { sentinelAgent } from "./agents/sentinel.ts";
 export { echoAgent } from "./agents/echo.ts";
 export { oracleAgent } from "./agents/oracle.ts";
-export { polymarketRiskAgent } from "./agents/polymarketRisk.ts";
-export { polymarketPerformanceAgent } from "./agents/polymarketPerformance.ts";
 export { navalAgent } from "./agents/naval.ts";
 export { clawtermAgent } from "./agents/clawterm.ts";
 export { character } from "./agents/eliza.ts";

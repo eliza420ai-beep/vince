@@ -110,7 +110,13 @@ describe("KELLY_SURF_FORECAST Action", () => {
       });
       const message = createMockMessage("surf forecast");
       const callback = createMockCallback();
-      await kellySurfForecastAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellySurfForecastAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       const text = callback.calls[0]?.text ?? "";
       expect(text.toLowerCase()).toMatch(/indoor|yoga|experienced|powerful/);
     });

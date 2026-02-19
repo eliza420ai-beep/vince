@@ -39,7 +39,8 @@ export interface AppendNotificationEventInput {
 
 function memoryToEvent(m: Memory): NotificationEvent | null {
   const c = m.content as Record<string, unknown> | undefined;
-  if (!c || typeof c.title !== "string" || typeof c.action !== "string") return null;
+  if (!c || typeof c.title !== "string" || typeof c.action !== "string")
+    return null;
   return {
     id: (c.id as string) ?? m.id,
     action: c.action as string,
@@ -103,15 +104,13 @@ export async function appendNotificationEvent(
     }
   }
 
-  const messageBus = runtime.getService("message-bus-service") as
-    | {
-        io?: {
-          to: (room: string) => { emit: (ev: string, payload: object) => void };
-          emit?: (ev: string, payload: object) => void;
-        };
-        emit?: (ev: string, payload: object) => void;
-      }
-    | null;
+  const messageBus = runtime.getService("message-bus-service") as {
+    io?: {
+      to: (room: string) => { emit: (ev: string, payload: object) => void };
+      emit?: (ev: string, payload: object) => void;
+    };
+    emit?: (ev: string, payload: object) => void;
+  } | null;
   const payload = { agentId: runtime.agentId };
   if (messageBus?.io) {
     const room = `notifications:${runtime.agentId}`;
@@ -141,7 +140,9 @@ export async function getNotificationEvents(
   if (userId) {
     filtered = memories.filter((m) => m.entityId === userId);
   }
-  const list = filtered.map(memoryToEvent).filter(Boolean) as NotificationEvent[];
+  const list = filtered
+    .map(memoryToEvent)
+    .filter(Boolean) as NotificationEvent[];
   list.sort((a, b) => b.time - a.time);
   return list.slice(0, MAX_EVENTS);
 }

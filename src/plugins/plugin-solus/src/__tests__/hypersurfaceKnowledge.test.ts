@@ -7,7 +7,13 @@ import { describe, it, expect } from "vitest";
 import { hypersurfaceContextProvider } from "../providers/hypersurfaceContext.provider";
 import { solusPositionAssessAction } from "../actions/solusPositionAssess.action";
 import { solusHypersurfaceExplainAction } from "../actions/solusHypersurfaceExplain.action";
-import type { IAgentRuntime, Memory, State, HandlerCallback, UUID } from "@elizaos/core";
+import type {
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+  UUID,
+} from "@elizaos/core";
 import { v4 as uuidv4 } from "uuid";
 
 // Canonical Hypersurface mechanics (single source of truth for this test)
@@ -80,7 +86,10 @@ function createSolusRuntime(overrides?: {
   } as unknown as IAgentRuntime;
 }
 
-function textContainsAll(text: string, phrases: readonly string[]): { ok: boolean; missing: string[] } {
+function textContainsAll(
+  text: string,
+  phrases: readonly string[],
+): { ok: boolean; missing: string[] } {
   const lower = text.toLowerCase();
   const missing = phrases.filter((p) => !lower.includes(p.toLowerCase()));
   return { ok: missing.length === 0, missing };
@@ -93,9 +102,12 @@ describe("Hypersurface mechanics — full understanding", () => {
         createSolusRuntime() as IAgentRuntime,
         createMessage(""),
       );
-      const text = (result?.text ?? "") + " " + JSON.stringify(result?.values ?? {});
+      const text =
+        (result?.text ?? "") + " " + JSON.stringify(result?.values ?? {});
       expect(textContainsAll(text, HYPERSURFACE_FACTS.platform).ok).toBe(true);
-      expect(textContainsAll(text, HYPERSURFACE_FACTS.executionOnly).ok).toBe(true);
+      expect(textContainsAll(text, HYPERSURFACE_FACTS.executionOnly).ok).toBe(
+        true,
+      );
     });
 
     it("returned text contains all four assets", async () => {
@@ -127,7 +139,9 @@ describe("Hypersurface mechanics — full understanding", () => {
       const text = (result?.text ?? "").toLowerCase();
       const hasEarlyExercise =
         text.includes("thursday") &&
-        (text.includes("24h") || text.includes("24 h") || text.includes("early exercise"));
+        (text.includes("24h") ||
+          text.includes("24 h") ||
+          text.includes("early exercise"));
       expect(hasEarlyExercise).toBe(true);
     });
 
@@ -242,10 +256,16 @@ describe("Hypersurface mechanics — full understanding", () => {
       const reply = calls[0].text.toLowerCase();
 
       // Proof we understand CSP outcome
-      expect(reply).toMatch(/above.*strike|strike.*above|expire worthless|keep.*premium/);
-      expect(reply).toMatch(/below.*strike|assigned|buy at strike|cost basis|premium.*reduc/);
+      expect(reply).toMatch(
+        /above.*strike|strike.*above|expire worthless|keep.*premium/,
+      );
+      expect(reply).toMatch(
+        /below.*strike|assigned|buy at strike|cost basis|premium.*reduc/,
+      );
       expect(reply).toMatch(/70|3800|150|notional|premium|collateral/);
-      expect(reply).toMatch(/friday|08:00|expiry|invalidation|hold|roll|adjust|strike/);
+      expect(reply).toMatch(
+        /friday|08:00|expiry|invalidation|hold|roll|adjust|strike/,
+      );
 
       // Prompt passed to model must include user position details
       expect(capturedPrompt).toMatch(/70|70k|70K|secured put/);
@@ -298,7 +318,9 @@ describe("Hypersurface mechanics — full understanding", () => {
       );
 
       expect(composed).toBe(true);
-      expect(calls[0].text.toLowerCase()).toMatch(/friday|08:00|covered call|secured put|wheel|premium|cost basis|vince/);
+      expect(calls[0].text.toLowerCase()).toMatch(
+        /friday|08:00|covered call|secured put|wheel|premium|cost basis|vince/,
+      );
     });
   });
 });

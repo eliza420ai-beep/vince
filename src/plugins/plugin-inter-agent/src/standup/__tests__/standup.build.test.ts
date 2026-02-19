@@ -15,7 +15,10 @@ import {
 } from "../standup.build";
 import type { StandupActionItem } from "../standup.parse";
 
-const TEST_DELIVERABLES_DIR = path.join(os.tmpdir(), "standup-deliverables-build-test-" + Date.now());
+const TEST_DELIVERABLES_DIR = path.join(
+  os.tmpdir(),
+  "standup-deliverables-build-test-" + Date.now(),
+);
 
 describe("standup.build", () => {
   beforeEach(() => {
@@ -51,7 +54,11 @@ describe("standup.build", () => {
   describe("executeBuildActionItem", () => {
     it("returns null when description is empty", async () => {
       const runtime = {} as unknown as IAgentRuntime;
-      const item: StandupActionItem = { assigneeAgentName: "Sentinel", description: "   ", type: "build" };
+      const item: StandupActionItem = {
+        assigneeAgentName: "Sentinel",
+        description: "   ",
+        type: "build",
+      };
       const result = await executeBuildActionItem(runtime, item);
       expect(result).toBeNull();
     });
@@ -59,7 +66,7 @@ describe("standup.build", () => {
     it("routes north-star type to executeNorthStarDeliverable", async () => {
       const runtime = {
         useModel: mock(() =>
-          Promise.resolve("# PRD\n\n## Goal\nTest PRD content for Cursor.")
+          Promise.resolve("# PRD\n\n## Goal\nTest PRD content for Cursor."),
         ),
       } as unknown as IAgentRuntime;
       const item: StandupActionItem = {
@@ -90,7 +97,10 @@ describe("standup.build", () => {
         assigneeAgentName: "Sentinel",
         description: "Something",
       };
-      const resultNoType = await executeNorthStarDeliverable(runtime, itemNoType);
+      const resultNoType = await executeNorthStarDeliverable(
+        runtime,
+        itemNoType,
+      );
       expect(resultNoType).toBeNull();
     });
 

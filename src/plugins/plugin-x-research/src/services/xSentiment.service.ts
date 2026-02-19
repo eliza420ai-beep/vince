@@ -1,6 +1,6 @@
 /**
  * X Sentiment Service
- * 
+ *
  * Trading-focused sentiment analysis:
  * - Keyword-based scoring with weights
  * - Account tier weighting (whales count more)
@@ -8,26 +8,29 @@
  * - Temporal trends
  */
 
-import type { XTweet, AccountTier } from '../types/tweet.types';
+import type { XTweet, AccountTier } from "../types/tweet.types";
 import type {
   SentimentResult,
   TopicSentiment,
   SentimentDirection,
   SENTIMENT_TIERS,
-} from '../types/sentiment.types';
-import { KEYWORD_MAP, ALL_KEYWORDS } from '../constants/sentimentKeywords';
-import { getAccountTier, getAccountReliability } from '../constants/qualityAccounts';
-import { ALL_TOPICS, TOPIC_BY_ID } from '../constants/topics';
+} from "../types/sentiment.types";
+import { KEYWORD_MAP, ALL_KEYWORDS } from "../constants/sentimentKeywords";
+import {
+  getAccountTier,
+  getAccountReliability,
+} from "../constants/qualityAccounts";
+import { ALL_TOPICS, TOPIC_BY_ID } from "../constants/topics";
 
 export interface SentimentOptions {
-  topics?: string[];               // Filter to specific topics
-  weightByTier?: boolean;          // Weight by account tier (default: true)
-  detectContrarian?: boolean;      // Flag extreme sentiment (default: true)
+  topics?: string[]; // Filter to specific topics
+  weightByTier?: boolean; // Weight by account tier (default: true)
+  detectContrarian?: boolean; // Flag extreme sentiment (default: true)
 }
 
 interface TweetSentimentScore {
   tweet: XTweet;
-  score: number;                   // -100 to +100
+  score: number; // -100 to +100
   matchedKeywords: string[];
   tier: AccountTier;
   tierWeight: number;
@@ -40,9 +43,12 @@ export class XSentimentService {
   /**
    * Analyze sentiment from a batch of tweets
    */
-  analyzeSentiment(tweets: XTweet[], options: SentimentOptions = {}): SentimentResult {
+  analyzeSentiment(
+    tweets: XTweet[],
+    options: SentimentOptions = {},
+  ): SentimentResult {
     const {
-      topics = ALL_TOPICS.map(t => t.id),
+      topics = ALL_TOPICS.map((t) => t.id),
       weightByTier = true,
       detectContrarian = true,
     } = options;
@@ -52,31 +58,34 @@ export class XSentimentService {
     }
 
     // Score each tweet
-    const scores = tweets.map(tweet => this.scoreTweet(tweet, weightByTier));
+    const scores = tweets.map((tweet) => this.scoreTweet(tweet, weightByTier));
 
     // Aggregate by topic
     const byTopic: Record<string, TopicSentiment> = {};
-    
+
     for (const topicId of topics) {
       const topic = TOPIC_BY_ID[topicId];
       if (!topic) continue;
 
       // Filter tweets relevant to this topic
-      const topicTweets = scores.filter(s => 
-        this.isRelevantToTopic(s.tweet, topic)
+      const topicTweets = scores.filter((s) =>
+        this.isRelevantToTopic(s.tweet, topic),
       );
 
       if (topicTweets.length > 0) {
-        byTopic[topicId] = this.calculateTopicSentiment(topicId, topicTweets, detectContrarian);
+        byTopic[topicId] = this.calculateTopicSentiment(
+          topicId,
+          topicTweets,
+          detectContrarian,
+        );
       }
     }
 
     // Calculate overall sentiment
-    const allScores = scores.map(s => s.score * s.tierWeight);
+    const allScores = scores.map((s) => s.score * s.tierWeight);
     const totalWeight = scores.reduce((sum, s) => sum + s.tierWeight, 0);
-    const overallScore = totalWeight > 0 
-      ? allScores.reduce((a, b) => a + b, 0) / totalWeight 
-      : 0;
+    const overallScore =
+      totalWeight > 0 ? allScores.reduce((a, b) => a + b, 0) / totalWeight : 0;
 
     const overallSentiment = this.scoreToDirection(overallScore);
     const overallConfidence = this.calculateConfidence(scores);
@@ -92,7 +101,12 @@ export class XSentimentService {
     }
 
     // Generate summary
-    const summary = this.generateSummary(overallSentiment, overallScore, byTopic, warnings);
+    const summary = this.generateSummary(
+      overallSentiment,
+      overallScore,
+      byTopic,
+      warnings,
+    );
 
     return {
       overallSentiment,
@@ -114,8 +128,8 @@ export class XSentimentService {
     if (!topic) return null;
 
     const scores = tweets
-      .filter(t => this.isRelevantToTopic(t, topic))
-      .map(t => this.scoreTweet(t, true));
+      .filter((t) => this.isRelevantToTopic(t, topic))
+      .map((t) => this.scoreTweet(t, true));
 
     if (scores.length === 0) return null;
 
@@ -126,7 +140,10 @@ export class XSentimentService {
   // Internal: Scoring
   // ─────────────────────────────────────────────────────────────
 
-  private scoreTweet(tweet: XTweet, weightByTier: boolean): TweetSentimentScore {
+  private scoreTweet(
+    tweet: XTweet,
+    weightByTier: boolean,
+  ): TweetSentimentScore {
     const text = tweet.text.toLowerCase();
     const matchedKeywords: string[] = [];
     let rawScore = 0;
@@ -143,7 +160,7 @@ export class XSentimentService {
     const normalizedScore = Math.max(-100, Math.min(100, rawScore));
 
     // Get account tier
-    const username = tweet.author?.username ?? '';
+    const username = tweet.author?.username ?? "";
     const tier = getAccountTier(username);
     const tierWeight = weightByTier ? this.getTierWeight(tier) : 1;
 
@@ -158,44 +175,55 @@ export class XSentimentService {
 
   private getTierWeight(tier: AccountTier): number {
     switch (tier) {
-      case 'whale': return 3.0;
-      case 'alpha': return 2.5;
-      case 'quality': return 2.0;
-      case 'verified': return 1.5;
-      default: return 1.0;
+      case "whale":
+        return 3.0;
+      case "alpha":
+        return 2.5;
+      case "quality":
+        return 2.0;
+      case "verified":
+        return 1.5;
+      default:
+        return 1.0;
     }
   }
 
   private calculateTopicSentiment(
     topicId: string,
     scores: TweetSentimentScore[],
-    detectContrarian: boolean
+    detectContrarian: boolean,
   ): TopicSentiment {
     // Weighted average
     const totalWeight = scores.reduce((sum, s) => sum + s.tierWeight, 0);
-    const weightedSum = scores.reduce((sum, s) => sum + (s.score * s.tierWeight), 0);
+    const weightedSum = scores.reduce(
+      (sum, s) => sum + s.score * s.tierWeight,
+      0,
+    );
     const weightedScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
 
     // Unweighted for comparison
-    const rawScore = scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
+    const rawScore =
+      scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
 
     // Breakdown
-    const bullishCount = scores.filter(s => s.score > 20).length;
-    const bearishCount = scores.filter(s => s.score < -20).length;
+    const bullishCount = scores.filter((s) => s.score > 20).length;
+    const bearishCount = scores.filter((s) => s.score < -20).length;
     const neutralCount = scores.length - bullishCount - bearishCount;
 
     // Whale alignment (how aligned are whale/alpha accounts)
-    const qualityScores = scores.filter(s => 
-      s.tier === 'whale' || s.tier === 'alpha'
+    const qualityScores = scores.filter(
+      (s) => s.tier === "whale" || s.tier === "alpha",
     );
-    const whaleAlignment = qualityScores.length > 0
-      ? qualityScores.reduce((sum, s) => sum + s.score, 0) / qualityScores.length
-      : 0;
+    const whaleAlignment =
+      qualityScores.length > 0
+        ? qualityScores.reduce((sum, s) => sum + s.score, 0) /
+          qualityScores.length
+        : 0;
 
     // Contrarian detection
     let isContrarian = false;
     let contrarianNote: string | undefined;
-    
+
     if (detectContrarian) {
       if (weightedScore > 70) {
         isContrarian = true;
@@ -219,7 +247,7 @@ export class XSentimentService {
       },
       weightedScore: Math.round(weightedScore),
       whaleAlignment: Math.round(whaleAlignment),
-      trend: 'stable', // TODO: implement temporal tracking
+      trend: "stable", // TODO: implement temporal tracking
       change24h: 0,
       isContrarian,
       contrarianNote,
@@ -227,42 +255,46 @@ export class XSentimentService {
   }
 
   private scoreToDirection(score: number): SentimentDirection {
-    if (score > 20) return 'bullish';
-    if (score < -20) return 'bearish';
-    if (Math.abs(score) < 10) return 'neutral';
-    return 'mixed';
+    if (score > 20) return "bullish";
+    if (score < -20) return "bearish";
+    if (Math.abs(score) < 10) return "neutral";
+    return "mixed";
   }
 
   private calculateConfidence(scores: TweetSentimentScore[]): number {
     if (scores.length === 0) return 0;
-    
+
     // Confidence based on:
     // 1. Sample size (more tweets = more confident)
     // 2. Agreement (less variance = more confident)
     // 3. Quality accounts (more quality = more confident)
 
     const sampleFactor = Math.min(scores.length / 50, 1) * 40; // Up to 40 points for sample size
-    
-    const avgScore = scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
-    const variance = scores.reduce((sum, s) => sum + Math.pow(s.score - avgScore, 2), 0) / scores.length;
-    const agreementFactor = Math.max(0, 30 - (variance / 100)); // Up to 30 points for agreement
 
-    const qualityCount = scores.filter(s => 
-      s.tier !== 'standard'
-    ).length;
+    const avgScore =
+      scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
+    const variance =
+      scores.reduce((sum, s) => sum + Math.pow(s.score - avgScore, 2), 0) /
+      scores.length;
+    const agreementFactor = Math.max(0, 30 - variance / 100); // Up to 30 points for agreement
+
+    const qualityCount = scores.filter((s) => s.tier !== "standard").length;
     const qualityFactor = Math.min(qualityCount / 10, 1) * 30; // Up to 30 points for quality
 
     return Math.round(sampleFactor + agreementFactor + qualityFactor);
   }
 
-  private isRelevantToTopic(tweet: XTweet, topic: { searchTerms: string[]; hashtags: string[]; cashtags?: string[] }): boolean {
+  private isRelevantToTopic(
+    tweet: XTweet,
+    topic: { searchTerms: string[]; hashtags: string[]; cashtags?: string[] },
+  ): boolean {
     const text = tweet.text.toLowerCase();
-    
+
     // Check search terms
     for (const term of topic.searchTerms) {
       if (text.includes(term.toLowerCase())) return true;
     }
-    
+
     // Check hashtags
     if (tweet.entities?.hashtags) {
       for (const ht of tweet.entities.hashtags) {
@@ -284,17 +316,19 @@ export class XSentimentService {
     overall: SentimentDirection,
     score: number,
     byTopic: Record<string, TopicSentiment>,
-    warnings: string[]
+    warnings: string[],
   ): string {
     const emoji = this.getDirectionEmoji(overall);
     const scorePct = Math.round(score);
-    
-    let summary = `${emoji} Overall: ${overall} (${scorePct > 0 ? '+' : ''}${scorePct})`;
+
+    let summary = `${emoji} Overall: ${overall} (${scorePct > 0 ? "+" : ""}${scorePct})`;
 
     // Add top topic sentiments
     const topicEntries = Object.entries(byTopic)
       .filter(([_, s]) => s.breakdown.totalAnalyzed >= 5)
-      .sort((a, b) => Math.abs(b[1].weightedScore) - Math.abs(a[1].weightedScore))
+      .sort(
+        (a, b) => Math.abs(b[1].weightedScore) - Math.abs(a[1].weightedScore),
+      )
       .slice(0, 3);
 
     if (topicEntries.length > 0) {
@@ -303,7 +337,7 @@ export class XSentimentService {
         const emoji = this.getDirectionEmoji(s.direction);
         return `${name} ${emoji}`;
       });
-      summary += ` | ${topicSummaries.join(', ')}`;
+      summary += ` | ${topicSummaries.join(", ")}`;
     }
 
     return summary;
@@ -311,20 +345,24 @@ export class XSentimentService {
 
   private getDirectionEmoji(direction: SentimentDirection): string {
     switch (direction) {
-      case 'bullish': return '📈';
-      case 'bearish': return '📉';
-      case 'neutral': return '😐';
-      case 'mixed': return '🔀';
+      case "bullish":
+        return "📈";
+      case "bearish":
+        return "📉";
+      case "neutral":
+        return "😐";
+      case "mixed":
+        return "🔀";
     }
   }
 
   private emptyResult(): SentimentResult {
     return {
-      overallSentiment: 'neutral',
+      overallSentiment: "neutral",
       overallConfidence: 0,
       overallScore: 0,
       byTopic: {},
-      summary: 'No data available',
+      summary: "No data available",
       warnings: [],
       timestamp: Date.now(),
       sampleSize: 0,

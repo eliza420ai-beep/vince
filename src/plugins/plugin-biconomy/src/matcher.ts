@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for Biconomy plugin context activation
@@ -7,21 +10,42 @@ import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin
 export const biconomyKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
     // Bridge operations
-    "bridge", "cross-chain", "relay",
+    "bridge",
+    "cross-chain",
+    "relay",
     // Swap operations
-    "swap", "exchange", "trade",
+    "swap",
+    "exchange",
+    "trade",
     // Slippage control
     "slippage",
     // Plugin-specific
-    "biconomy", "mee", "fusion",
+    "biconomy",
+    "mee",
+    "fusion",
     // Tokens
-    "usdc", "eth", "weth", "usdt", "dai", "wbtc", "link",
+    "usdc",
+    "eth",
+    "weth",
+    "usdt",
+    "dai",
+    "wbtc",
+    "link",
     // Chains
-    "base", "ethereum", "arbitrum", "bsc",
+    "base",
+    "ethereum",
+    "arbitrum",
+    "bsc",
     // Transaction types
-    "transfer", "send",
+    "transfer",
+    "send",
     // Withdrawals
-    "withdraw", "withdrawal", "cash out", "cashout", "pull funds", "pay out",
+    "withdraw",
+    "withdrawal",
+    "cash out",
+    "cashout",
+    "pull funds",
+    "pay out",
   ],
   regexPatterns: [
     /bridge.*to/i,
@@ -51,7 +75,10 @@ export const biconomyKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldBiconomyPluginBeInContext(state?: State, message?: Memory): boolean {
+export function shouldBiconomyPluginBeInContext(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, biconomyKeywordPatterns, message);
 }

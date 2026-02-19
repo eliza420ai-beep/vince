@@ -40,7 +40,10 @@ export const solusHypersurfaceExplainAction: Action = {
   description:
     "Explains Hypersurface mechanics: expiry, covered calls, CSP, wheel, early exercise. Points to VINCE for live IV/data.",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     if (!isSolus(runtime)) return false;
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsExplain(text);
@@ -74,7 +77,7 @@ Reply with the explanation only.`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's how Hypersurface works—\n\n" + text.trim();
       await callback({ text: out, actions: ["SOLUS_HYPERSURFACE_EXPLAIN"] });
       return { success: true };
@@ -83,7 +86,10 @@ Reply with the explanation only.`;
       await callback({
         text: "Hypersurface: weekly options, Friday 08:00 UTC. Covered calls = own asset, sell call, premium; above strike you're assigned. Secured puts = hold stablecoins, sell put, premium; below strike you're assigned (premium cuts cost basis). Wheel: CC → assigned → CSP → assigned → repeat. For live IV and strikes, say 'options' to VINCE and paste here.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

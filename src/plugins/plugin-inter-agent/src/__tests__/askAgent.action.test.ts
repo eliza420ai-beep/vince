@@ -132,7 +132,7 @@ describe("askAgentAction", () => {
         msg,
         state,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: false });
@@ -159,7 +159,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: true });
@@ -172,21 +172,29 @@ describe("askAgentAction", () => {
     it("async onResponse with text yields **X says:** reply", async () => {
       const targetAgentId = "vince-id";
       let capturedOpts: { onResponse?: (c: unknown) => void } = {};
-      const handleMessage = vi.fn().mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
-        capturedOpts = (opts as typeof capturedOpts) ?? {};
-        queueMicrotask(() => {
-          const onResponse = (capturedOpts as { onResponse?: (c: unknown) => void }).onResponse;
-          if (onResponse) onResponse({ text: "Vince reply" });
+      const handleMessage = vi
+        .fn()
+        .mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
+          capturedOpts = (opts as typeof capturedOpts) ?? {};
+          queueMicrotask(() => {
+            const onResponse = (
+              capturedOpts as { onResponse?: (c: unknown) => void }
+            ).onResponse;
+            if (onResponse) onResponse({ text: "Vince reply" });
+          });
+          return Promise.resolve();
         });
-        return Promise.resolve();
-      });
       const runtime = createMockRuntime({
         character: { name: "Kelly" },
         elizaOS: {
           handleMessage,
           getAgentByName: (name: string) =>
-            name.toLowerCase() === "vince" ? { agentId: targetAgentId } : undefined,
-          getAgents: () => [{ agentId: targetAgentId, character: { name: "Vince" } }],
+            name.toLowerCase() === "vince"
+              ? { agentId: targetAgentId }
+              : undefined,
+          getAgents: () => [
+            { agentId: targetAgentId, character: { name: "Vince" } },
+          ],
         },
       });
       const msg = createMessage("Ask Vince about Bitcoin");
@@ -197,7 +205,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: true });
@@ -208,29 +216,39 @@ describe("askAgentAction", () => {
     it("multi-step: onResponse first empty then with text yields **X says:** reply (no empty reply)", async () => {
       const targetAgentId = "vince-id";
       let capturedOpts: { onResponse?: (c: unknown) => void } = {};
-      const handleMessage = vi.fn().mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
-        capturedOpts = (opts as typeof capturedOpts) ?? {};
-        queueMicrotask(() => {
-          const onResponse = (capturedOpts as { onResponse?: (c: unknown) => void }).onResponse;
-          if (onResponse) {
-            onResponse({ text: "" });
-          }
+      const handleMessage = vi
+        .fn()
+        .mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
+          capturedOpts = (opts as typeof capturedOpts) ?? {};
+          queueMicrotask(() => {
+            const onResponse = (
+              capturedOpts as { onResponse?: (c: unknown) => void }
+            ).onResponse;
+            if (onResponse) {
+              onResponse({ text: "" });
+            }
+          });
+          queueMicrotask(() => {
+            const onResponse = (
+              capturedOpts as { onResponse?: (c: unknown) => void }
+            ).onResponse;
+            if (onResponse) {
+              onResponse({ text: "Vince reply after multi-step" });
+            }
+          });
+          return Promise.resolve();
         });
-        queueMicrotask(() => {
-          const onResponse = (capturedOpts as { onResponse?: (c: unknown) => void }).onResponse;
-          if (onResponse) {
-            onResponse({ text: "Vince reply after multi-step" });
-          }
-        });
-        return Promise.resolve();
-      });
       const runtime = createMockRuntime({
         character: { name: "Kelly" },
         elizaOS: {
           handleMessage,
           getAgentByName: (name: string) =>
-            name.toLowerCase() === "vince" ? { agentId: targetAgentId } : undefined,
-          getAgents: () => [{ agentId: targetAgentId, character: { name: "Vince" } }],
+            name.toLowerCase() === "vince"
+              ? { agentId: targetAgentId }
+              : undefined,
+          getAgents: () => [
+            { agentId: targetAgentId, character: { name: "Vince" } },
+          ],
         },
       });
       const msg = createMessage("Ask Vince about Bitcoin");
@@ -241,31 +259,41 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: true });
       expect(calls.length).toBeGreaterThanOrEqual(1);
-      expect(calls[0].text).toBe("**Vince says:** Vince reply after multi-step");
+      expect(calls[0].text).toBe(
+        "**Vince says:** Vince reply after multi-step",
+      );
     });
 
     it("async onError causes fall through to next path", async () => {
       const targetAgentId = "vince-id";
-      const handleMessage = vi.fn().mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
-        const o = opts as { onError?: (err: Error) => void };
-        queueMicrotask(() => o?.onError?.(new Error("async error")));
-        return Promise.resolve();
-      });
+      const handleMessage = vi
+        .fn()
+        .mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
+          const o = opts as { onError?: (err: Error) => void };
+          queueMicrotask(() => o?.onError?.(new Error("async error")));
+          return Promise.resolve();
+        });
       const runtime = createMockRuntime({
         character: { name: "Kelly" },
         elizaOS: {
           handleMessage,
           getAgentByName: () => ({ agentId: targetAgentId }),
-          getAgents: () => [{ agentId: targetAgentId, character: { name: "Vince" } }],
+          getAgents: () => [
+            { agentId: targetAgentId, character: { name: "Vince" } },
+          ],
         },
       });
-      globalThis.fetch = vi.fn()
-        .mockResolvedValueOnce({ ok: true, json: async () => ({ jobId: "j1" }) })
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ jobId: "j1" }),
+        })
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -281,7 +309,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       // After onError we try sync (no opts so mock resolves), then job API. We mock job to complete.
@@ -293,21 +321,24 @@ describe("askAgentAction", () => {
 
     it("sync fallback returns reply when async rejects", async () => {
       const targetAgentId = "vince-id";
-      const handleMessage = vi.fn()
+      const handleMessage = vi
+        .fn()
         .mockImplementationOnce(() => Promise.reject(new Error("async failed")))
         .mockImplementationOnce(() =>
           Promise.resolve({
             processing: {
               responseContent: { text: "Sync reply" },
             },
-          })
+          }),
         );
       const runtime = createMockRuntime({
         character: { name: "Kelly" },
         elizaOS: {
           handleMessage,
           getAgentByName: () => ({ agentId: targetAgentId }),
-          getAgents: () => [{ agentId: targetAgentId, character: { name: "Vince" } }],
+          getAgents: () => [
+            { agentId: targetAgentId, character: { name: "Vince" } },
+          ],
         },
       });
       const msg = createMessage("Ask Vince about Bitcoin");
@@ -318,7 +349,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: true });
@@ -327,15 +358,18 @@ describe("askAgentAction", () => {
 
     it("direct messageService fallback returns reply when async and sync did not", async () => {
       const targetAgentId = "vince-id";
-      const handleMessage = vi.fn()
+      const handleMessage = vi
+        .fn()
         .mockImplementationOnce(() => Promise.reject(new Error("async failed")))
         .mockImplementationOnce(() => Promise.resolve(null));
-      const directHandleMessage = vi.fn().mockImplementation(
-        (_runtime: unknown, _msg: unknown, cb: (c: unknown) => void) => {
-          queueMicrotask(() => cb({ text: "Direct reply" }));
-          return Promise.resolve();
-        }
-      );
+      const directHandleMessage = vi
+        .fn()
+        .mockImplementation(
+          (_runtime: unknown, _msg: unknown, cb: (c: unknown) => void) => {
+            queueMicrotask(() => cb({ text: "Direct reply" }));
+            return Promise.resolve();
+          },
+        );
       const runtime = createMockRuntime({
         character: { name: "Kelly" },
         elizaOS: {
@@ -345,7 +379,9 @@ describe("askAgentAction", () => {
               messageService: { handleMessage: directHandleMessage },
             }) as unknown,
           getAgentByName: () => ({ agentId: targetAgentId }),
-          getAgents: () => [{ agentId: targetAgentId, character: { name: "Vince" } }],
+          getAgents: () => [
+            { agentId: targetAgentId, character: { name: "Vince" } },
+          ],
         },
       });
       const msg = createMessage("Ask Vince about Bitcoin");
@@ -356,7 +392,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: true });
@@ -366,8 +402,12 @@ describe("askAgentAction", () => {
 
   describe("handler - job API path", () => {
     it("no elizaOS: create 200 + poll completed yields **X says:** content", async () => {
-      const runtime = createMockRuntime({ character: { name: "Kelly" }, elizaOS: undefined });
-      const mockFetch = vi.fn()
+      const runtime = createMockRuntime({
+        character: { name: "Kelly" },
+        elizaOS: undefined,
+      });
+      const mockFetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -394,7 +434,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: true });
@@ -403,7 +443,8 @@ describe("askAgentAction", () => {
 
     it("job create 200 + poll timeout yields didn't respond in time", async () => {
       const runtime = createMockRuntime({ elizaOS: undefined });
-      const mockFetch = vi.fn()
+      const mockFetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -427,7 +468,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: false });
@@ -436,7 +477,8 @@ describe("askAgentAction", () => {
 
     it("job create 200 + poll failed yields error message", async () => {
       const runtime = createMockRuntime({ elizaOS: undefined });
-      const mockFetch = vi.fn()
+      const mockFetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -460,7 +502,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: false });
@@ -469,7 +511,8 @@ describe("askAgentAction", () => {
 
     it("job create 503 yields couldn't be reached (server 503)", async () => {
       const runtime = createMockRuntime({ elizaOS: undefined });
-      const mockFetch = vi.fn()
+      const mockFetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -490,7 +533,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: false });
@@ -500,7 +543,8 @@ describe("askAgentAction", () => {
 
     it("job create 200 but no jobId yields didn't return a job id", async () => {
       const runtime = createMockRuntime({ elizaOS: undefined });
-      const mockFetch = vi.fn()
+      const mockFetch = vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
@@ -520,7 +564,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: false });
@@ -540,7 +584,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: false });
@@ -567,7 +611,7 @@ describe("askAgentAction", () => {
         msg,
         {} as State,
         undefined,
-        callback
+        callback,
       );
 
       expect(result).toEqual({ success: false });

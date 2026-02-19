@@ -46,8 +46,13 @@ function getJsonlFiles(inputPath: string): string[] {
   if (stat.isFile()) {
     return inputPath.endsWith(".jsonl") ? [inputPath] : [];
   }
-  return fs.readdirSync(inputPath)
-    .filter((f) => f.endsWith(".jsonl") && (f.startsWith("features_") || f === "combined.jsonl"))
+  return fs
+    .readdirSync(inputPath)
+    .filter(
+      (f) =>
+        f.endsWith(".jsonl") &&
+        (f.startsWith("features_") || f === "combined.jsonl"),
+    )
     .map((f) => path.join(inputPath, f));
 }
 
@@ -85,7 +90,8 @@ function backfillFile(
       const signatures = normalize(record);
       const score = scoreSingleDecision(signatures, config);
       if (!record.labels) record.labels = {} as FeatureRecord["labels"];
-      (record.labels as { benchScore?: number }).benchScore = Math.round(score * 100) / 100;
+      (record.labels as { benchScore?: number }).benchScore =
+        Math.round(score * 100) / 100;
       outLines.push(JSON.stringify(record));
       updated++;
     } catch (e) {
@@ -94,13 +100,19 @@ function backfillFile(
     }
   }
 
-  fs.writeFileSync(outputPath, outLines.join("\n") + (outLines.length ? "\n" : ""), "utf-8");
+  fs.writeFileSync(
+    outputPath,
+    outLines.join("\n") + (outLines.length ? "\n" : ""),
+    "utf-8",
+  );
   return { updated, skipped, errors };
 }
 
 function main(): void {
   const { input, output, configPath } = parseArgs();
-  const resolvedInput = path.isAbsolute(input) ? input : path.join(process.cwd(), input);
+  const resolvedInput = path.isAbsolute(input)
+    ? input
+    : path.join(process.cwd(), input);
 
   const files = getJsonlFiles(resolvedInput);
   if (files.length === 0) {
@@ -113,25 +125,47 @@ function main(): void {
   let totalErrors = 0;
 
   for (const filePath of files) {
-    const isSingleFile = files.length === 1 && fs.statSync(resolvedInput).isFile();
+    const isSingleFile =
+      files.length === 1 && fs.statSync(resolvedInput).isFile();
     let outPath: string;
     if (isSingleFile && output) {
-      outPath = path.isAbsolute(output) ? output : path.join(process.cwd(), output);
+      outPath = path.isAbsolute(output)
+        ? output
+        : path.join(process.cwd(), output);
     } else {
       fs.copyFileSync(filePath, filePath + ".bak");
       outPath = filePath;
     }
 
-    const { updated, skipped, errors } = backfillFile(filePath, outPath, configPath);
+    const { updated, skipped, errors } = backfillFile(
+      filePath,
+      outPath,
+      configPath,
+    );
     totalUpdated += updated;
     totalSkipped += skipped;
     totalErrors += errors;
     if (updated > 0 || errors > 0) {
-      console.log(path.basename(filePath), "updated:", updated, "skipped:", skipped, "errors:", errors);
+      console.log(
+        path.basename(filePath),
+        "updated:",
+        updated,
+        "skipped:",
+        skipped,
+        "errors:",
+        errors,
+      );
     }
   }
 
-  console.log("Done. Total updated:", totalUpdated, "skipped:", totalSkipped, "errors:", totalErrors);
+  console.log(
+    "Done. Total updated:",
+    totalUpdated,
+    "skipped:",
+    totalSkipped,
+    "errors:",
+    totalErrors,
+  );
 }
 
 main();

@@ -62,14 +62,18 @@ export const otakuBalanceAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     // Must contain balance-related intent
     const hasBalanceIntent =
       text.includes("balance") ||
       text.includes("how much") ||
-      (text.includes("what") && (text.includes("have") || text.includes("hold"))) ||
+      (text.includes("what") &&
+        (text.includes("have") || text.includes("hold"))) ||
       text.includes("my wallet") ||
       text.includes("portfolio");
 
@@ -85,7 +89,7 @@ export const otakuBalanceAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
@@ -120,7 +124,9 @@ export const otakuBalanceAction: Action = {
       }
     }
 
-    const bankrService = runtime.getService("bankr_agent") as BankrAgentService | null;
+    const bankrService = runtime.getService(
+      "bankr_agent",
+    ) as BankrAgentService | null;
 
     if (bankrService?.isConfigured?.() && balances.length === 0) {
       try {
@@ -167,7 +173,10 @@ export const otakuBalanceAction: Action = {
     }
 
     // Calculate total
-    const totalUsd = displayBalances.reduce((sum, b) => sum + (b.usdValue || 0), 0);
+    const totalUsd = displayBalances.reduce(
+      (sum, b) => sum + (b.usdValue || 0),
+      0,
+    );
 
     // Format response
     if (specificToken && displayBalances.length === 1) {
@@ -181,7 +190,9 @@ export const otakuBalanceAction: Action = {
       const lines = ["**Wallet Balances:**"];
 
       if (walletAddress) {
-        lines.push(`*${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}*`);
+        lines.push(
+          `*${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}*`,
+        );
         lines.push("");
       }
 

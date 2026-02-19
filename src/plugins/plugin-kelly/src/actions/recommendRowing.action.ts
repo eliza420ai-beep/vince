@@ -73,8 +73,7 @@ export const kellyRecommendRowingAction: Action = {
       ) as KellyLifestyleService | null;
 
       const season = service?.getCurrentSeason() ?? "pool";
-      const contextBlock =
-        typeof state.text === "string" ? state.text : "";
+      const contextBlock = typeof state.text === "string" ? state.text : "";
       const knowledgeSnippet = contextBlock.slice(0, 6000);
 
       const weatherHome = state.values?.weatherHome as
@@ -143,7 +142,10 @@ Output only the text, no XML. Voice: avoid jargon and filler. ${getVoiceAvoidPro
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Rowing workout for surf fitness" } },
+      {
+        name: "{{user}}",
+        content: { text: "Rowing workout for surf fitness" },
+      },
       {
         name: "{{agent}}",
         content: {

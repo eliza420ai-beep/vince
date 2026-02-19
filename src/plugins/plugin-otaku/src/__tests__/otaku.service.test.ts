@@ -76,7 +76,7 @@ describe("OtakuService", () => {
       expect(result.success).toBe(true);
       expect(result.txHash).toBe("0xtx123");
       expect(mockBankrAgent.submitPrompt).toHaveBeenCalledWith(
-        "swap 1 ETH to USDC on base"
+        "swap 1 ETH to USDC on base",
       );
     });
 
@@ -130,7 +130,7 @@ describe("OtakuService", () => {
 
       expect(result.success).toBe(true);
       expect(mockBankrAgent.submitPrompt).toHaveBeenCalledWith(
-        expect.stringContaining("limit order")
+        expect.stringContaining("limit order"),
       );
     });
   });
@@ -154,7 +154,7 @@ describe("OtakuService", () => {
 
       expect(result.success).toBe(true);
       expect(mockBankrAgent.submitPrompt).toHaveBeenCalledWith(
-        expect.stringContaining("DCA")
+        expect.stringContaining("DCA"),
       );
     });
   });

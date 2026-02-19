@@ -21,4 +21,10 @@ export { quoteRoute } from "./paidQuote";
 export { yieldsRoute } from "./paidYields";
 export { historyRoute } from "./paidHistory";
 export { portfolioRoute } from "./paidPortfolio";
-export { healthRoute, gasRoute, configRoute, alertsRoute, notificationsRoute } from "./freeRoutes";
+export {
+  healthRoute,
+  gasRoute,
+  configRoute,
+  alertsRoute,
+  notificationsRoute,
+} from "./freeRoutes";

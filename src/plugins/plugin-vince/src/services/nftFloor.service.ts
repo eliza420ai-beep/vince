@@ -94,23 +94,98 @@ const CURATED_COLLECTIONS: CuratedCollection[] = [
     priority: 21,
   },
   // Extended curated (gen art, blue chip, photography)
-  { slug: "winds-of-yawanawa", name: "Winds of Yawanawa", category: "art", priority: 22 },
-  { slug: "ackcolorstudy", name: "Ack Color Study", category: "generative", priority: 23 },
-  { slug: "vera-molnar-themes-and-variations", name: "Vera Molnar Themes and Variations", category: "generative", priority: 24 },
+  {
+    slug: "winds-of-yawanawa",
+    name: "Winds of Yawanawa",
+    category: "art",
+    priority: 22,
+  },
+  {
+    slug: "ackcolorstudy",
+    name: "Ack Color Study",
+    category: "generative",
+    priority: 23,
+  },
+  {
+    slug: "vera-molnar-themes-and-variations",
+    name: "Vera Molnar Themes and Variations",
+    category: "generative",
+    priority: 24,
+  },
   { slug: "brokenkeys", name: "Broken Keys", category: "art", priority: 25 },
-  { slug: "aligndraw", name: "Align Draw", category: "generative", priority: 26 },
+  {
+    slug: "aligndraw",
+    name: "Align Draw",
+    category: "generative",
+    priority: 26,
+  },
   { slug: "qql", name: "QQL", category: "blue_chip", priority: 27 },
-  { slug: "machine-hallucinations-coral-generative-ai-data-pa", name: "Machine Hallucinations Coral", category: "generative", priority: 28 },
-  { slug: "pursuit-by-per-kristian-stoveland", name: "Pursuit", category: "generative", priority: 29 },
-  { slug: "100-sunsets-by-zach-lieberman", name: "100 Sunsets", category: "generative", priority: 30 },
-  { slug: "strands-of-solitude", name: "Strands of Solitude", category: "generative", priority: 31 },
-  { slug: "opepen-edition", name: "Opepen Edition", category: "pfp", priority: 32 },
-  { slug: "sam-spratt-masks-of-luci", name: "Masks of Luci", category: "art", priority: 33 },
-  { slug: "pink-such-a-useless-color-by-simon-raion", name: "Pink Such a Useless Color", category: "art", priority: 34 },
-  { slug: "sketchbook-a-by-william-mapan-1", name: "Sketchbook A", category: "generative", priority: 35 },
-  { slug: "the-vault-of-wonders-chapter-1-the-abyssal-unseen", name: "The Vault of Wonders Ch.1", category: "art", priority: 36 },
-  { slug: "skulptuur-by-piter-pasma", name: "Skulptuur", category: "generative", priority: 37 },
-  { slug: "dataland-biomelumina", name: "Dataland Biomelumina", category: "generative", priority: 38 },
+  {
+    slug: "machine-hallucinations-coral-generative-ai-data-pa",
+    name: "Machine Hallucinations Coral",
+    category: "generative",
+    priority: 28,
+  },
+  {
+    slug: "pursuit-by-per-kristian-stoveland",
+    name: "Pursuit",
+    category: "generative",
+    priority: 29,
+  },
+  {
+    slug: "100-sunsets-by-zach-lieberman",
+    name: "100 Sunsets",
+    category: "generative",
+    priority: 30,
+  },
+  {
+    slug: "strands-of-solitude",
+    name: "Strands of Solitude",
+    category: "generative",
+    priority: 31,
+  },
+  {
+    slug: "opepen-edition",
+    name: "Opepen Edition",
+    category: "pfp",
+    priority: 32,
+  },
+  {
+    slug: "sam-spratt-masks-of-luci",
+    name: "Masks of Luci",
+    category: "art",
+    priority: 33,
+  },
+  {
+    slug: "pink-such-a-useless-color-by-simon-raion",
+    name: "Pink Such a Useless Color",
+    category: "art",
+    priority: 34,
+  },
+  {
+    slug: "sketchbook-a-by-william-mapan-1",
+    name: "Sketchbook A",
+    category: "generative",
+    priority: 35,
+  },
+  {
+    slug: "the-vault-of-wonders-chapter-1-the-abyssal-unseen",
+    name: "The Vault of Wonders Ch.1",
+    category: "art",
+    priority: 36,
+  },
+  {
+    slug: "skulptuur-by-piter-pasma",
+    name: "Skulptuur",
+    category: "generative",
+    priority: 37,
+  },
+  {
+    slug: "dataland-biomelumina",
+    name: "Dataland Biomelumina",
+    category: "generative",
+    priority: 38,
+  },
 ];
 
 export class VinceNFTFloorService extends Service {
@@ -517,7 +592,8 @@ export class VinceNFTFloorService extends Service {
       const volume7d = c.totalVolume ?? c.volume24h ?? 0;
       if (volume7d < MIN_VOLUME_7D_ETH) return false;
       // Exclude when we have no real gap data (e.g. CryptoPunks API returns empty listings)
-      const hasRealGapData = (c.gaps?.to2nd ?? 0) > 0 || (c.nftsNearFloor ?? 0) > 0;
+      const hasRealGapData =
+        (c.gaps?.to2nd ?? 0) > 0 || (c.nftsNearFloor ?? 0) > 0;
       return hasRealGapData;
     });
   }

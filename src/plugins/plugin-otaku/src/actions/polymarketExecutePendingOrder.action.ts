@@ -37,10 +37,17 @@ export const polymarketExecutePendingOrderAction: Action = {
   name: "POLYMARKET_EXECUTE_PENDING_ORDER",
   description:
     "Execute the next pending Polymarket sized order (from Risk). Use when the user asks to run or place a Polymarket desk order, or to execute pending Polymarket orders.",
-  similes: ["POLYMARKET_PLACE_ORDER", "EXECUTE_POLYMARKET_ORDER", "RUN_POLYMARKET_DESK_ORDER"],
+  similes: [
+    "POLYMARKET_PLACE_ORDER",
+    "EXECUTE_POLYMARKET_ORDER",
+    "RUN_POLYMARKET_DESK_ORDER",
+  ],
   examples: [
     [
-      { name: "{{user}}", content: { text: "Execute the pending Polymarket order" } },
+      {
+        name: "{{user}}",
+        content: { text: "Execute the pending Polymarket order" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -51,10 +58,14 @@ export const polymarketExecutePendingOrderAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
-      text.includes("execute") && (text.includes("polymarket") || text.includes("desk order")) ||
+      (text.includes("execute") &&
+        (text.includes("polymarket") || text.includes("desk order"))) ||
       text.includes("place polymarket") ||
       text.includes("run pending polymarket")
     );
@@ -72,14 +83,26 @@ export const polymarketExecutePendingOrderAction: Action = {
     };
 
     try {
-      const conn = await (runtime as { getConnection?: () => Promise<unknown> }).getConnection?.();
-      if (!conn || typeof (conn as { query: (s: string, v?: unknown[]) => Promise<unknown> }).query !== "function") {
-        await out("Database connection not available; cannot read sized orders.");
+      const conn = await (
+        runtime as { getConnection?: () => Promise<unknown> }
+      ).getConnection?.();
+      if (
+        !conn ||
+        typeof (
+          conn as { query: (s: string, v?: unknown[]) => Promise<unknown> }
+        ).query !== "function"
+      ) {
+        await out(
+          "Database connection not available; cannot read sized orders.",
+        );
         return;
       }
 
       const client = conn as {
-        query: (text: string, values?: unknown[]) => Promise<{ rows: unknown[] }>;
+        query: (
+          text: string,
+          values?: unknown[],
+        ) => Promise<{ rows: unknown[] }>;
       };
 
       const orderId = options?.sized_order_id?.trim();
@@ -106,18 +129,31 @@ export const polymarketExecutePendingOrderAction: Action = {
 
       // Resolve condition_id → token_id if needed (market_id may be condition_id)
       let tokenId = order.market_id;
-      const polymarketService = runtime.getService(POLYMARKET_DISCOVERY_SERVICE) as {
-        getMarketDetail?: (conditionId: string) => Promise<{ tokens?: Array<{ token_id: string; outcome?: string }> }>;
+      const polymarketService = runtime.getService(
+        POLYMARKET_DISCOVERY_SERVICE,
+      ) as {
+        getMarketDetail?: (conditionId: string) => Promise<{
+          tokens?: Array<{ token_id: string; outcome?: string }>;
+        }>;
       } | null;
 
-      if (polymarketService?.getMarketDetail && (order.market_id.startsWith("0x") || order.market_id.length < 80)) {
+      if (
+        polymarketService?.getMarketDetail &&
+        (order.market_id.startsWith("0x") || order.market_id.length < 80)
+      ) {
         try {
-          const market = await polymarketService.getMarketDetail(order.market_id);
+          const market = await polymarketService.getMarketDetail(
+            order.market_id,
+          );
           const outcome = order.side.toUpperCase() === "YES" ? "Yes" : "No";
-          const token = market.tokens?.find((t) => t.outcome?.toLowerCase() === outcome.toLowerCase());
+          const token = market.tokens?.find(
+            (t) => t.outcome?.toLowerCase() === outcome.toLowerCase(),
+          );
           if (token?.token_id) tokenId = token.token_id;
         } catch (e) {
-          logger.warn(`[POLYMARKET_EXECUTE] Could not resolve condition_id to token_id: ${e}`);
+          logger.warn(
+            `[POLYMARKET_EXECUTE] Could not resolve condition_id to token_id: ${e}`,
+          );
         }
       }
 
@@ -129,17 +165,22 @@ export const polymarketExecutePendingOrderAction: Action = {
           [order.signal_id],
         );
         const row = sig.rows[0] as { market_price?: number } | undefined;
-        if (row && row.market_price != null) arrivalPrice = parseFloatOrZero(row.market_price);
+        if (row && row.market_price != null)
+          arrivalPrice = parseFloatOrZero(row.market_price);
       } catch {
         // ignore
       }
 
-      const privateKey = runtime.getSetting("POLYMARKET_PRIVATE_KEY") ?? runtime.getSetting("EVM_PRIVATE_KEY");
+      const privateKey =
+        runtime.getSetting("POLYMARKET_PRIVATE_KEY") ??
+        runtime.getSetting("EVM_PRIVATE_KEY");
       const apiKey = runtime.getSetting("POLYMARKET_CLOB_API_KEY");
       const apiSecret = runtime.getSetting("POLYMARKET_CLOB_SECRET");
       const apiPassphrase = runtime.getSetting("POLYMARKET_CLOB_PASSPHRASE");
       const funder = runtime.getSetting("POLYMARKET_FUNDER_ADDRESS");
-      const clobHost = (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) || "https://clob.polymarket.com";
+      const clobHost =
+        (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) ||
+        "https://clob.polymarket.com";
 
       if (!privateKey || !apiKey || !apiSecret || !apiPassphrase || !funder) {
         await client.query(
@@ -156,7 +197,8 @@ export const polymarketExecutePendingOrderAction: Action = {
       let clobOrderId: string | null = null;
 
       try {
-        const { ClobClient, Side, OrderType } = await import("@polymarket/clob-client");
+        const { ClobClient, Side, OrderType } =
+          await import("@polymarket/clob-client");
         // ClobClient uses ethers v5 Wallet from @ethersproject/wallet (its dependency)
         const { Wallet } = await import("@ethersproject/wallet");
         const signer = new Wallet(privateKey as string);
@@ -165,14 +207,29 @@ export const polymarketExecutePendingOrderAction: Action = {
           secret: String(apiSecret),
           passphrase: String(apiPassphrase),
         };
-        const clobClient = new ClobClient(clobHost, 137, signer, creds, 2, funder as string);
+        const clobClient = new ClobClient(
+          clobHost,
+          137,
+          signer,
+          creds,
+          2,
+          funder as string,
+        );
 
         const side = order.side.toUpperCase() === "YES" ? Side.BUY : Side.SELL;
         const amount = parseFloatOrZero(order.size_usd);
-        const price = order.max_price != null ? parseFloatOrZero(order.max_price) : 0.5;
+        const price =
+          order.max_price != null ? parseFloatOrZero(order.max_price) : 0.5;
 
         const resp = await clobClient.createAndPostMarketOrder(
-          { side, tokenID: tokenId, amount, feeRateBps: 0, nonce: Date.now(), price },
+          {
+            side,
+            tokenID: tokenId,
+            amount,
+            feeRateBps: 0,
+            nonce: Date.now(),
+            price,
+          },
           undefined,
           OrderType.FOK,
         );
@@ -180,14 +237,20 @@ export const polymarketExecutePendingOrderAction: Action = {
         if (result.orderID) clobOrderId = result.orderID;
         if (result.avgPrice != null) fillPrice = result.avgPrice;
         if (result.errorMsg) {
-          await client.query(`UPDATE ${SIZED_ORDERS_TABLE} SET status = 'rejected' WHERE id = $1`, [order.id]);
+          await client.query(
+            `UPDATE ${SIZED_ORDERS_TABLE} SET status = 'rejected' WHERE id = $1`,
+            [order.id],
+          );
           await out(`Order rejected by CLOB: ${result.errorMsg}`);
           return;
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error(`[POLYMARKET_EXECUTE] CLOB error: ${msg}`);
-        await client.query(`UPDATE ${SIZED_ORDERS_TABLE} SET status = 'rejected' WHERE id = $1`, [order.id]);
+        await client.query(
+          `UPDATE ${SIZED_ORDERS_TABLE} SET status = 'rejected' WHERE id = $1`,
+          [order.id],
+        );
         await out(`Execution failed: ${msg}. Order marked rejected.`);
         return;
       }
@@ -196,7 +259,8 @@ export const polymarketExecutePendingOrderAction: Action = {
       const filledAt = new Date(now).toISOString();
       const slippageBps = Math.round((fillPrice - arrivalPrice) * 10000);
       const tradeId = crypto.randomUUID();
-      const walletAddr = typeof funder === "string" ? funder.slice(0, 10) + "…" : "";
+      const walletAddr =
+        typeof funder === "string" ? funder.slice(0, 10) + "…" : "";
 
       await client.query(
         `UPDATE ${SIZED_ORDERS_TABLE} SET status = 'filled', filled_at = $1, fill_price = $2 WHERE id = $3`,
@@ -226,7 +290,9 @@ export const polymarketExecutePendingOrderAction: Action = {
         ` Order \`${order.id.slice(0, 8)}…\`: ${order.side} $${order.size_usd} @ ${(fillPrice * 100).toFixed(1)}%.\n` +
         ` Fill recorded (slippage ${slippageBps > 0 ? "+" : ""}${slippageBps} bps).`;
       await out(summary);
-      logger.info(`[POLYMARKET_EXECUTE] Filled order ${order.id} trade_log ${tradeId}`);
+      logger.info(
+        `[POLYMARKET_EXECUTE] Filled order ${order.id} trade_log ${tradeId}`,
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(`[POLYMARKET_EXECUTE_PENDING_ORDER] ${msg}`);

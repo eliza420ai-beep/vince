@@ -112,15 +112,15 @@ Ways to improve signal quality using the **same** Binance Futures public APIs (n
 
 ## Summary (priority)
 
-| Priority | Change | Status |
-|----------|--------|--------|
-| High | Funding extreme = percentile (more history) | Done (limit=30, top/bottom 10%). |
-| High | Use Binance L/S in aggregator | Done (BinanceLongShort, ratio >1.4 / <0.72). See IMPROVEMENT_WEIGHTS_AND_TUNING.md for tunables. |
-| Medium | More history (limit=5) + smoothing for top trader / taker | Done (avg of last 3; validation clamp). |
-| Medium | Multi-period (5m + 1h) for confirmation | Not yet (would double calls). |
-| Low | OI trend as weak signal or ML feature | Done (BinanceOIFlush when OI falling <-5%). |
-| Env-dependent | Base URL / proxy for 451 | Done (VINCE_BINANCE_BASE_URL). |
-| Low | Validation and clamping | Done (longPosition, buySellRatio, L/S, funding ±0.5%). |
+| Priority      | Change                                                    | Status                                                                                           |
+| ------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| High          | Funding extreme = percentile (more history)               | Done (limit=30, top/bottom 10%).                                                                 |
+| High          | Use Binance L/S in aggregator                             | Done (BinanceLongShort, ratio >1.4 / <0.72). See IMPROVEMENT_WEIGHTS_AND_TUNING.md for tunables. |
+| Medium        | More history (limit=5) + smoothing for top trader / taker | Done (avg of last 3; validation clamp).                                                          |
+| Medium        | Multi-period (5m + 1h) for confirmation                   | Not yet (would double calls).                                                                    |
+| Low           | OI trend as weak signal or ML feature                     | Done (BinanceOIFlush when OI falling <-5%).                                                      |
+| Env-dependent | Base URL / proxy for 451                                  | Done (VINCE_BINANCE_BASE_URL).                                                                   |
+| Low           | Validation and clamping                                   | Done (longPosition, buySellRatio, L/S, funding ±0.5%).                                           |
 
 All of the above use only **free, public** Binance Futures data endpoints; no API key required.
 

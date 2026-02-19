@@ -34,7 +34,11 @@ function parseTargets(text: string): RebalanceTargets | null {
     const pct = parseInt(m[1], 10);
     const token = m[2].toUpperCase();
     const key =
-      token === "STABLES" || token === "STABLE" ? "USDC" : token === "ALTS" ? "OTHER" : token;
+      token === "STABLES" || token === "STABLE"
+        ? "USDC"
+        : token === "ALTS"
+          ? "OTHER"
+          : token;
     targets[key] = pct;
   }
   if (Object.keys(targets).length === 0) return null;
@@ -46,7 +50,12 @@ function parseTargets(text: string): RebalanceTargets | null {
 function parseIntervalDays(text: string): number {
   const lower = text.toLowerCase();
   if (lower.includes("daily") || lower.includes("every day")) return 1;
-  if (lower.includes("weekly") || lower.includes("every week") || lower.includes("week")) return 7;
+  if (
+    lower.includes("weekly") ||
+    lower.includes("every week") ||
+    lower.includes("week")
+  )
+    return 7;
   if (lower.includes("biweekly") || lower.includes("two week")) return 14;
   const match = text.match(/(\d+)\s*day/);
   if (match) return Math.max(1, parseInt(match[1], 10));
@@ -57,7 +66,12 @@ export const otakuSetRebalanceAction: Action = {
   name: "OTAKU_SET_REBALANCE",
   description:
     "Set portfolio rebalance rules and schedule (e.g. 60% stables 30% ETH 10% alts, weekly). Otaku will report drift on schedule; no auto-execution.",
-  similes: ["SET_REBALANCE", "PORTFOLIO_RULES", "AUTO_REBALANCE", "REBALANCE_RULES"],
+  similes: [
+    "SET_REBALANCE",
+    "PORTFOLIO_RULES",
+    "AUTO_REBALANCE",
+    "REBALANCE_RULES",
+  ],
   examples: [
     [
       {
@@ -74,13 +88,17 @@ export const otakuSetRebalanceAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
       text.includes("rebalance") ||
       (text.includes("portfolio") && text.includes("rule")) ||
       (text.includes("auto") && text.includes("rebalance")) ||
-      (/\d+\s*%\s*\w+/.test(text) && (text.includes("stables") || text.includes("eth")))
+      (/\d+\s*%\s*\w+/.test(text) &&
+        (text.includes("stables") || text.includes("eth")))
     );
   },
 
@@ -89,12 +107,14 @@ export const otakuSetRebalanceAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const roomId = message.roomId;
     if (!roomId) {
-      await callback?.({ text: "I need a room context to set rebalance rules." });
+      await callback?.({
+        text: "I need a room context to set rebalance rules.",
+      });
       return { success: false, error: new Error("Missing roomId") };
     }
 
@@ -114,7 +134,9 @@ export const otakuSetRebalanceAction: Action = {
     const cacheKey = getRebalanceRulesCacheKey(roomId);
     await runtime.setCache(cacheKey, { targets, intervalDays });
 
-    const existingTasks = await runtime.getTasksByName(OTAKU_REBALANCE_TASK_NAME);
+    const existingTasks = await runtime.getTasksByName(
+      OTAKU_REBALANCE_TASK_NAME,
+    );
     const roomTask = existingTasks.find((t) => t.roomId === roomId);
     if (roomTask?.id) {
       await runtime.updateTask(roomTask.id, {
@@ -123,7 +145,9 @@ export const otakuSetRebalanceAction: Action = {
     } else {
       await runtime.createTask({
         name: OTAKU_REBALANCE_TASK_NAME,
-        description: `Rebalance check every ${intervalDays} day(s): ${Object.entries(targets)
+        description: `Rebalance check every ${intervalDays} day(s): ${Object.entries(
+          targets,
+        )
           .map(([t, p]) => `${t} ${p}%`)
           .join(", ")}`,
         roomId,
@@ -145,7 +169,9 @@ export const otakuSetRebalanceAction: Action = {
         .join(", ") +
       `. I’ll check drift every ${intervalDays} day(s) and report; I won’t execute swaps unless you confirm.`;
     await callback?.({ text: line });
-    logger.info(`[OTAKU_SET_REBALANCE] Rules set for room ${roomId}: ${JSON.stringify(targets)}`);
+    logger.info(
+      `[OTAKU_SET_REBALANCE] Rules set for room ${roomId}: ${JSON.stringify(targets)}`,
+    );
     return { success: true };
   },
 };

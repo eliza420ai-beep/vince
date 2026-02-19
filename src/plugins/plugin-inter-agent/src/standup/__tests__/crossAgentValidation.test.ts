@@ -26,8 +26,22 @@ describe("crossAgentValidation", () => {
 
     it("detects divergence when bullish and bearish both present", () => {
       const signals: AgentSignal[] = [
-        { agent: "VINCE", asset: "BTC", direction: "bullish", confidence: "high", reasoning: "", source: "" },
-        { agent: "ECHO", asset: "BTC", direction: "bearish", confidence: "medium", reasoning: "", source: "" },
+        {
+          agent: "VINCE",
+          asset: "BTC",
+          direction: "bullish",
+          confidence: "high",
+          reasoning: "",
+          source: "",
+        },
+        {
+          agent: "ECHO",
+          asset: "BTC",
+          direction: "bearish",
+          confidence: "medium",
+          reasoning: "",
+          source: "",
+        },
       ];
       const result = validateSignals(signals, "BTC");
       expect(result.consensus).toBe("divergent");
@@ -39,8 +53,22 @@ describe("crossAgentValidation", () => {
 
     it("high confidence when two or more agree bullish", () => {
       const signals: AgentSignal[] = [
-        { agent: "VINCE", asset: "SOL", direction: "bullish", confidence: "high", reasoning: "", source: "" },
-        { agent: "ECHO", asset: "SOL", direction: "bullish", confidence: "medium", reasoning: "", source: "" },
+        {
+          agent: "VINCE",
+          asset: "SOL",
+          direction: "bullish",
+          confidence: "high",
+          reasoning: "",
+          source: "",
+        },
+        {
+          agent: "ECHO",
+          asset: "SOL",
+          direction: "bullish",
+          confidence: "medium",
+          reasoning: "",
+          source: "",
+        },
       ];
       const result = validateSignals(signals, "SOL");
       expect(result.consensus).toBe("bullish");
@@ -49,8 +77,22 @@ describe("crossAgentValidation", () => {
 
     it("high confidence when two or more agree bearish", () => {
       const signals: AgentSignal[] = [
-        { agent: "VINCE", asset: "HYPE", direction: "bearish", confidence: "high", reasoning: "", source: "" },
-        { agent: "Oracle", asset: "HYPE", direction: "bearish", confidence: "medium", reasoning: "", source: "" },
+        {
+          agent: "VINCE",
+          asset: "HYPE",
+          direction: "bearish",
+          confidence: "high",
+          reasoning: "",
+          source: "",
+        },
+        {
+          agent: "Oracle",
+          asset: "HYPE",
+          direction: "bearish",
+          confidence: "medium",
+          reasoning: "",
+          source: "",
+        },
       ];
       const result = validateSignals(signals, "HYPE");
       expect(result.consensus).toBe("bearish");
@@ -59,7 +101,14 @@ describe("crossAgentValidation", () => {
 
     it("filters by asset (case-insensitive)", () => {
       const signals: AgentSignal[] = [
-        { agent: "VINCE", asset: "btc", direction: "bullish", confidence: "high", reasoning: "", source: "" },
+        {
+          agent: "VINCE",
+          asset: "btc",
+          direction: "bullish",
+          confidence: "high",
+          reasoning: "",
+          source: "",
+        },
       ];
       const result = validateSignals(signals, "BTC");
       expect(result.signals).toHaveLength(1);
@@ -122,8 +171,20 @@ describe("crossAgentValidation", () => {
   describe("getConfidenceAdjustment", () => {
     it("returns adjustments only for divergent results", () => {
       const results: ValidationResult[] = [
-        { asset: "BTC", signals: [], consensus: "divergent", confidence: "low", recommendation: "" },
-        { asset: "SOL", signals: [], consensus: "bullish", confidence: "high", recommendation: "" },
+        {
+          asset: "BTC",
+          signals: [],
+          consensus: "divergent",
+          confidence: "low",
+          recommendation: "",
+        },
+        {
+          asset: "SOL",
+          signals: [],
+          consensus: "bullish",
+          confidence: "high",
+          recommendation: "",
+        },
       ];
       const adjustments = getConfidenceAdjustment(results);
       expect(adjustments).toHaveLength(1);
@@ -135,8 +196,22 @@ describe("crossAgentValidation", () => {
   describe("buildValidationContext", () => {
     it("includes divergence section when divergent signals exist", () => {
       const signals: AgentSignal[] = [
-        { agent: "VINCE", asset: "BTC", direction: "bullish", confidence: "high", reasoning: "", source: "" },
-        { agent: "ECHO", asset: "BTC", direction: "bearish", confidence: "medium", reasoning: "", source: "" },
+        {
+          agent: "VINCE",
+          asset: "BTC",
+          direction: "bullish",
+          confidence: "high",
+          reasoning: "",
+          source: "",
+        },
+        {
+          agent: "ECHO",
+          asset: "BTC",
+          direction: "bearish",
+          confidence: "medium",
+          reasoning: "",
+          source: "",
+        },
       ];
       const context = buildValidationContext(signals);
       expect(context).toContain("Divergences Detected");
@@ -145,8 +220,22 @@ describe("crossAgentValidation", () => {
 
     it("includes aligned section when high-confidence aligned", () => {
       const signals: AgentSignal[] = [
-        { agent: "VINCE", asset: "SOL", direction: "bullish", confidence: "high", reasoning: "", source: "" },
-        { agent: "ECHO", asset: "SOL", direction: "bullish", confidence: "high", reasoning: "", source: "" },
+        {
+          agent: "VINCE",
+          asset: "SOL",
+          direction: "bullish",
+          confidence: "high",
+          reasoning: "",
+          source: "",
+        },
+        {
+          agent: "ECHO",
+          asset: "SOL",
+          direction: "bullish",
+          confidence: "high",
+          reasoning: "",
+          source: "",
+        },
       ];
       const context = buildValidationContext(signals);
       expect(context).toContain("High Confidence");

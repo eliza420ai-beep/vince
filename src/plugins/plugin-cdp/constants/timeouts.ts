@@ -16,7 +16,8 @@ export const BRIDGE_CONFIRMATION_TIMEOUT = 120_000;
 export const BRIDGE_POLL_INTERVAL = 2000;
 
 /** Maximum bridge polling attempts (60 × 2s = 2 minutes) */
-export const BRIDGE_MAX_POLL_ATTEMPTS = BRIDGE_CONFIRMATION_TIMEOUT / BRIDGE_POLL_INTERVAL;
+export const BRIDGE_MAX_POLL_ATTEMPTS =
+  BRIDGE_CONFIRMATION_TIMEOUT / BRIDGE_POLL_INTERVAL;
 
 /**
  * Wait for transaction confirmation and verify it succeeded
@@ -30,22 +31,25 @@ export async function waitForTxConfirmation(
   publicClient: PublicClient,
   hash: `0x${string}`,
   operationType: string = "transaction",
-  timeout: number = TX_CONFIRMATION_TIMEOUT
+  timeout: number = TX_CONFIRMATION_TIMEOUT,
 ): Promise<void> {
-  logger.info(`[Transaction Confirmation] Waiting for ${operationType} confirmation...`);
-  
-  const receipt = await publicClient.waitForTransactionReceipt({ 
+  logger.info(
+    `[Transaction Confirmation] Waiting for ${operationType} confirmation...`,
+  );
+
+  const receipt = await publicClient.waitForTransactionReceipt({
     hash,
     timeout,
   });
-  
-  if (receipt.status !== 'success') {
+
+  if (receipt.status !== "success") {
     throw new Error(
       `${operationType.charAt(0).toUpperCase() + operationType.slice(1)} transaction reverted on-chain. ` +
-      `The ${operationType} failed - likely due to insufficient balance, slippage, or price impact.`
+        `The ${operationType} failed - likely due to insufficient balance, slippage, or price impact.`,
     );
   }
-  
-  logger.info(`[Transaction Confirmation] ${operationType} confirmed successfully in block ${receipt.blockNumber}`);
-}
 
+  logger.info(
+    `[Transaction Confirmation] ${operationType} confirmed successfully in block ${receipt.blockNumber}`,
+  );
+}

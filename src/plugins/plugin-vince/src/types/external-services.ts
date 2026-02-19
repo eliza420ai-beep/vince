@@ -114,7 +114,12 @@ export interface IHyperliquidCryptoAsset {
 /** Full crypto pulse: all perp assets + leaders + TLDR. */
 export interface IHyperliquidCryptoPulse {
   assets: IHyperliquidCryptoAsset[];
-  topMovers: { symbol: string; price?: number; change24h: number; volume24h: number }[];
+  topMovers: {
+    symbol: string;
+    price?: number;
+    change24h: number;
+    volume24h: number;
+  }[];
   volumeLeaders: {
     symbol: string;
     price?: number;
@@ -272,11 +277,7 @@ export interface IOpenSeaService {
 // Service key: "VINCE_NANSEN_SERVICE"
 // ==========================================
 
-export type NansenChain =
-  | "ethereum"
-  | "solana"
-  | "base"
-  | "arbitrum";
+export type NansenChain = "ethereum" | "solana" | "base" | "arbitrum";
 
 export interface INansenSmartMoneyToken {
   tokenAddress: string;

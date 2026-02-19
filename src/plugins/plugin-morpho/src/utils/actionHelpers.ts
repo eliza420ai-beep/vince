@@ -4,7 +4,12 @@
  * Shared utilities for Morpho plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
 import { MorphoService } from "../services";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
 import { shouldMorphoPluginBeInContext } from "../../matcher";
@@ -22,7 +27,7 @@ export function validateMorphoService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   try {
     // Check plugin context first
@@ -31,7 +36,7 @@ export function validateMorphoService(
     }
 
     const morphoService = runtime.getService(
-      MorphoService.serviceType
+      MorphoService.serviceType,
     ) as MorphoService;
 
     if (!morphoService) {
@@ -39,9 +44,7 @@ export function validateMorphoService(
       return false;
     }
 
-    const cdpService = runtime.getService(
-      CdpService.serviceType
-    ) as CdpService;
+    const cdpService = runtime.getService(CdpService.serviceType) as CdpService;
 
     if (!cdpService) {
       logger.warn(`[${actionName}] CDP service not available`);
@@ -52,7 +55,7 @@ export function validateMorphoService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -64,12 +67,8 @@ export function validateMorphoService(
  * @param runtime - Agent runtime
  * @returns Morpho service instance or null
  */
-export function getMorphoService(
-  runtime: IAgentRuntime
-): MorphoService | null {
-  return runtime.getService(
-    MorphoService.serviceType
-  ) as MorphoService | null;
+export function getMorphoService(runtime: IAgentRuntime): MorphoService | null {
+  return runtime.getService(MorphoService.serviceType) as MorphoService | null;
 }
 
 /**
@@ -81,12 +80,12 @@ export function getMorphoService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }

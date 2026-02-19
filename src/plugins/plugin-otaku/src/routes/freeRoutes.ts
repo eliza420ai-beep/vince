@@ -29,7 +29,8 @@ async function handleHealth(
   res: RouteResponse,
   runtime: IAgentRuntime,
 ): Promise<void> {
-  const services: Record<string, { available: boolean; configured?: boolean }> = {};
+  const services: Record<string, { available: boolean; configured?: boolean }> =
+    {};
 
   // Check Otaku service
   const otakuSvc = runtime.getService("otaku");
@@ -136,7 +137,9 @@ async function handleNotifications(
   res: RouteResponse,
   runtime: IAgentRuntime,
 ): Promise<void> {
-  const userId = (req.query?.userId ?? req.query?.entityId) as string | undefined;
+  const userId = (req.query?.userId ?? req.query?.entityId) as
+    | string
+    | undefined;
   const events = await getNotificationEvents(runtime, userId);
   res.status(200).json(events);
 }
@@ -216,7 +219,7 @@ async function handleGas(
       // Etherscan gas oracle (free tier)
       const ethRes = await fetch(
         "https://api.etherscan.io/api?module=gastracker&action=gasoracle",
-        { signal: AbortSignal.timeout(5000) }
+        { signal: AbortSignal.timeout(5000) },
       );
       if (ethRes.ok) {
         const data = await ethRes.json();

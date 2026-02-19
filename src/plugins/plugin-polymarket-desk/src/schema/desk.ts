@@ -4,13 +4,7 @@
  * Schema: plugin_polymarket_desk (signals, sized_orders, trade_log, risk_config).
  */
 
-import {
-  pgSchema,
-  text,
-  timestamp,
-  real,
-  integer,
-} from "drizzle-orm/pg-core";
+import { pgSchema, text, timestamp, real, integer } from "drizzle-orm/pg-core";
 
 export const pluginPolymarketDeskSchema = pgSchema("plugin_polymarket_desk");
 

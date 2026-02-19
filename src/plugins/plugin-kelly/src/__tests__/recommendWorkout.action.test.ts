@@ -17,25 +17,37 @@ describe("KELLY_RECOMMEND_WORKOUT Action", () => {
     it("returns true for recommend a workout", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("recommend a workout");
-      const result = await kellyRecommendWorkoutAction.validate(runtime, message);
+      const result = await kellyRecommendWorkoutAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(true);
     });
     it("returns true for today workout", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("today's workout");
-      const result = await kellyRecommendWorkoutAction.validate(runtime, message);
+      const result = await kellyRecommendWorkoutAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(true);
     });
     it("returns true for workout of the day", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("workout of the day");
-      const result = await kellyRecommendWorkoutAction.validate(runtime, message);
+      const result = await kellyRecommendWorkoutAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(true);
     });
     it("returns false for unrelated message", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("recommend a hotel");
-      const result = await kellyRecommendWorkoutAction.validate(runtime, message);
+      const result = await kellyRecommendWorkoutAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(false);
     });
   });
@@ -53,13 +65,24 @@ describe("KELLY_RECOMMEND_WORKOUT Action", () => {
         }),
       } as unknown as KellyLifestyleService;
       const runtime = createMockRuntime({
-        getService: (n: string) => (n === "KELLY_LIFESTYLE_SERVICE" ? mockService : null),
-        composeState: async () => ({ values: {}, data: {}, text: "Pool season." }),
+        getService: (n: string) =>
+          n === "KELLY_LIFESTYLE_SERVICE" ? mockService : null,
+        composeState: async () => ({
+          values: {},
+          data: {},
+          text: "Pool season.",
+        }),
         useModel: async () => "Today: 1000m pool, then 10 min surfer yoga.",
       });
       const message = createMockMessage("recommend a workout");
       const callback = createMockCallback();
-      await kellyRecommendWorkoutAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendWorkoutAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       expect(callback.calls[0]?.text).toBeDefined();
     });
@@ -68,12 +91,19 @@ describe("KELLY_RECOMMEND_WORKOUT Action", () => {
       const mockServicePool = {
         getCurrentSeason: () => "pool",
         getWellnessTipOfTheDay: () => "Stretch.",
-        getDailyBriefing: () => ({ day: "wednesday", date: "2025-06-04", suggestions: [], specialNotes: [] }),
+        getDailyBriefing: () => ({
+          day: "wednesday",
+          date: "2025-06-04",
+          suggestions: [],
+          specialNotes: [],
+        }),
       } as unknown as KellyLifestyleService;
       const runtimePool = createMockRuntime({
-        getService: (n: string) => (n === "KELLY_LIFESTYLE_SERVICE" ? mockServicePool : null),
+        getService: (n: string) =>
+          n === "KELLY_LIFESTYLE_SERVICE" ? mockServicePool : null,
         composeState: async () => ({ values: {}, data: {}, text: "Pool." }),
-        useModel: async () => "1000m in the backyard pool. Then 10 min surfer yoga.",
+        useModel: async () =>
+          "1000m in the backyard pool. Then 10 min surfer yoga.",
       });
       const callbackPool = createMockCallback();
       await kellyRecommendWorkoutAction.handler(
@@ -83,18 +113,31 @@ describe("KELLY_RECOMMEND_WORKOUT Action", () => {
         {},
         callbackPool,
       );
-      expect(callbackPool.calls[0]?.text?.toLowerCase()).toMatch(/pool|swim|yoga/);
+      expect(callbackPool.calls[0]?.text?.toLowerCase()).toMatch(
+        /pool|swim|yoga/,
+      );
 
       const mockServiceGym = {
         getCurrentSeason: () => "gym",
         getWellnessTipOfTheDay: () => "Stretch.",
-        getDailyBriefing: () => ({ day: "wednesday", date: "2025-02-05", suggestions: [], specialNotes: [] }),
+        getDailyBriefing: () => ({
+          day: "wednesday",
+          date: "2025-02-05",
+          suggestions: [],
+          specialNotes: [],
+        }),
         getPalacePoolStatusLine: () => "Palais reopens Feb 12.",
       } as unknown as KellyLifestyleService;
       const runtimeGym = createMockRuntime({
-        getService: (n: string) => (n === "KELLY_LIFESTYLE_SERVICE" ? mockServiceGym : null),
-        composeState: async () => ({ values: {}, data: {}, text: "Gym season." }),
-        useModel: async () => "Gym or indoor pool at Palais. Surfer yoga 15 min.",
+        getService: (n: string) =>
+          n === "KELLY_LIFESTYLE_SERVICE" ? mockServiceGym : null,
+        composeState: async () => ({
+          values: {},
+          data: {},
+          text: "Gym season.",
+        }),
+        useModel: async () =>
+          "Gym or indoor pool at Palais. Surfer yoga 15 min.",
       });
       const callbackGym = createMockCallback();
       await kellyRecommendWorkoutAction.handler(
@@ -104,7 +147,9 @@ describe("KELLY_RECOMMEND_WORKOUT Action", () => {
         {},
         callbackGym,
       );
-      expect(callbackGym.calls[0]?.text?.toLowerCase()).toMatch(/gym|yoga|pool|indoor|palais/);
+      expect(callbackGym.calls[0]?.text?.toLowerCase()).toMatch(
+        /gym|yoga|pool|indoor|palais/,
+      );
     });
   });
 });

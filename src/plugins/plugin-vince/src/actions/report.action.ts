@@ -28,9 +28,7 @@ import type { VinceNewsSentimentService } from "../services/newsSentiment.servic
 // Build combined data context from 5 sources
 // ==========================================
 
-async function buildReportDataContext(
-  runtime: IAgentRuntime,
-): Promise<string> {
+async function buildReportDataContext(runtime: IAgentRuntime): Promise<string> {
   const lines: string[] = [];
   const now = new Date();
   const date = now.toLocaleDateString("en-US", {
@@ -71,7 +69,9 @@ async function buildReportDataContext(
     if (btc?.snapshot) {
       const s = btc.snapshot;
       if (s.fearGreedValue != null)
-        lines.push(`Fear/Greed: ${s.fearGreedValue} (${s.fearGreedLabel ?? "—"})`);
+        lines.push(
+          `Fear/Greed: ${s.fearGreedValue} (${s.fearGreedLabel ?? "—"})`,
+        );
       if (s.fundingRate != null)
         lines.push(`BTC Funding: ${(s.fundingRate * 100).toFixed(4)}%`);
       if (s.longShortRatio != null)
@@ -114,9 +114,10 @@ async function buildReportDataContext(
               const p = ctx.bestCashSecuredPuts[0];
               const otm =
                 ctx.spotPrice > 0
-                  ? (((ctx.spotPrice - p.strike) / ctx.spotPrice) * 100).toFixed(
-                      1,
-                    )
+                  ? (
+                      ((ctx.spotPrice - p.strike) / ctx.spotPrice) *
+                      100
+                    ).toFixed(1)
                   : "—";
               lines.push(
                 `  Best put: $${p.strike.toLocaleString()} (${otm}% OTM) @ ${p.yield7Day?.toFixed(2) ?? "—"}%/week`,
@@ -126,9 +127,10 @@ async function buildReportDataContext(
               const c = ctx.bestCoveredCalls[0];
               const otm =
                 ctx.spotPrice > 0
-                  ? (((c.strike - ctx.spotPrice) / ctx.spotPrice) * 100).toFixed(
-                      1,
-                    )
+                  ? (
+                      ((c.strike - ctx.spotPrice) / ctx.spotPrice) *
+                      100
+                    ).toFixed(1)
                   : "—";
               lines.push(
                 `  Best call: $${c.strike.toLocaleString()} (${otm}% OTM) @ ${c.yield7Day?.toFixed(2) ?? "—"}%/week`,
@@ -181,7 +183,11 @@ async function buildReportDataContext(
         for (const f of allFunding) {
           const pct = (f.rate * 100).toFixed(4);
           const bias =
-            f.rate > 0.0001 ? "longs paying" : f.rate < -0.0001 ? "shorts paying" : "neutral";
+            f.rate > 0.0001
+              ? "longs paying"
+              : f.rate < -0.0001
+                ? "shorts paying"
+                : "neutral";
           lines.push(`Funding ${f.asset}: ${pct}% (${bias})`);
         }
       } catch {
@@ -221,7 +227,11 @@ async function buildReportDataContext(
         };
         sectorStats?: {
           hottestSector?: string;
-          commodities?: { avgChange: number; totalVolume: number; totalOI: number };
+          commodities?: {
+            avgChange: number;
+            totalVolume: number;
+            totalOI: number;
+          };
           stocks?: { avgChange: number; totalVolume: number; totalOI: number };
         };
         fundingExtremes?: {
@@ -236,7 +246,9 @@ async function buildReportDataContext(
       if (pulse?.summary) {
         lines.push("=== HIP-3 (TradFi) ===");
         lines.push(`Bias: ${pulse.summary.overallBias ?? "—"}`);
-        lines.push(`Rotation: ${pulse.summary.tradFiVsCrypto?.replace(/_/g, " ") ?? "—"}`);
+        lines.push(
+          `Rotation: ${pulse.summary.tradFiVsCrypto?.replace(/_/g, " ") ?? "—"}`,
+        );
         if (pulse.summary.goldVsBtc) {
           const g = pulse.summary.goldVsBtc;
           lines.push(
@@ -262,7 +274,9 @@ async function buildReportDataContext(
             `Stocks avg: ${pulse.sectorStats.stocks.avgChange >= 0 ? "+" : ""}${pulse.sectorStats.stocks.avgChange.toFixed(2)}%`,
           );
         if (pulse.fundingExtremes?.crowdedLongs?.length)
-          lines.push(`Crowded longs: ${pulse.fundingExtremes.crowdedLongs.join(", ")}`);
+          lines.push(
+            `Crowded longs: ${pulse.fundingExtremes.crowdedLongs.join(", ")}`,
+          );
         lines.push("");
       }
     }
@@ -391,15 +405,24 @@ STYLE: Punchy, numbers-first, no fluff. No "Interestingly" or AI-slop. Same voic
  * Uses the same data as the full report but a shorter narrative (400-600 words) + signals JSON.
  * Used when STANDUP_VINCE_USE_REPORT=true to reduce duplicate fetches during standup prep.
  */
-export async function generateStandupReport(runtime: IAgentRuntime): Promise<string> {
+export async function generateStandupReport(
+  runtime: IAgentRuntime,
+): Promise<string> {
   const dataContext = await buildReportDataContext(runtime);
   const date = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
     day: "numeric",
   });
-  const narrative = await generateReportNarrativeForStandup(runtime, dataContext, date);
-  return narrative || "*(Standup report generation failed; use default VINCE fetchers.)*";
+  const narrative = await generateReportNarrativeForStandup(
+    runtime,
+    dataContext,
+    date,
+  );
+  return (
+    narrative ||
+    "*(Standup report generation failed; use default VINCE fetchers.)*"
+  );
 }
 
 // ==========================================
@@ -462,7 +485,8 @@ export const vinceReportAction: Action = {
 
       const sources: string[] = [];
       if (runtime.getService("VINCE_DERIBIT_SERVICE")) sources.push("Deribit");
-      if (runtime.getService("VINCE_COINGLASS_SERVICE")) sources.push("CoinGlass");
+      if (runtime.getService("VINCE_COINGLASS_SERVICE"))
+        sources.push("CoinGlass");
       if (runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE"))
         sources.push("Signal Aggregator");
       if (runtime.getService("VINCE_TOP_TRADERS_SERVICE"))

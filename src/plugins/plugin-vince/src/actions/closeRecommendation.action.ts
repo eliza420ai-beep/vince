@@ -18,9 +18,14 @@ import {
 } from "../memory/recommendations";
 import { appendTrackRecordEntry } from "../memory/trackRecord";
 import type { VinceMarketDataService } from "../services/marketData.service";
-import type { RecommendationEntry, ScenarioPlayedOut } from "../types/cryptoIntelMemory";
+import type {
+  RecommendationEntry,
+  ScenarioPlayedOut,
+} from "../types/cryptoIntelMemory";
 
-function parseCloseCommand(text: string): { ticker: string; scenario?: ScenarioPlayedOut } | null {
+function parseCloseCommand(
+  text: string,
+): { ticker: string; scenario?: ScenarioPlayedOut } | null {
   const lower = text.toLowerCase().trim();
   const match = lower.match(
     /(?:close\s+recommendation|mark\s+.*?\s+as\s+closed|close\s+rec)\s+\$?(\w+)(?:\s+(bull|base|bear))?/i,
@@ -34,9 +39,13 @@ function parseCloseCommand(text: string): { ticker: string; scenario?: ScenarioP
 export const closeRecommendationAction: Action = {
   name: "CLOSE_RECOMMENDATION",
   similes: ["CLOSE_REC", "MARK_RECOMMENDATION_CLOSED"],
-  description: "Close an open crypto intel recommendation by ticker and optionally record scenario (bull/base/bear)",
+  description:
+    "Close an open crypto intel recommendation by ticker and optionally record scenario (bull/base/bear)",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.trim() || "";
     return parseCloseCommand(text) !== null;
   },
@@ -60,9 +69,7 @@ export const closeRecommendationAction: Action = {
 
     const memoryDir = getMemoryDir(runtime);
     const openRecs = await getOpenRecommendations(memoryDir);
-    const rec = openRecs.find(
-      (r) => r.ticker.toUpperCase() === parsed.ticker,
-    );
+    const rec = openRecs.find((r) => r.ticker.toUpperCase() === parsed.ticker);
     if (!rec) {
       await callback({
         text: `No open recommendation found for ${parsed.ticker}. Check spelling or list open recommendations.`,

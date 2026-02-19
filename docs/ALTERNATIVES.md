@@ -8,11 +8,11 @@ How we relate to Honcho, OpenClaw, and Eliza + Pi.
 
 We evaluated [Honcho](https://docs.honcho.dev) and **do not use it.**
 
-| Honcho | VINCE / ElizaOS |
-|:---|:---|
-| Peers + Sessions | Entities, rooms, participants |
-| Representations (reasoning over messages) | Evaluators (facts, reflection) + memory |
-| Managed or self-hosted memory service | DB adapter (Postgres/PGLite) + Supabase feature store |
+| Honcho                                    | VINCE / ElizaOS                                       |
+| :---------------------------------------- | :---------------------------------------------------- |
+| Peers + Sessions                          | Entities, rooms, participants                         |
+| Representations (reasoning over messages) | Evaluators (facts, reflection) + memory               |
+| Managed or self-hosted memory service     | DB adapter (Postgres/PGLite) + Supabase feature store |
 
 Eliza gives us memories, embeddings, evaluators, entities. The paper bot uses the **feature store** (Supabase); that's the right place for trading state. Adding Honcho would duplicate what we have without filling a clear gap.
 
@@ -26,10 +26,10 @@ Eliza gives us memories, embeddings, evaluators, entities. The paper bot uses th
 
 **Our first use case for OpenClaw** has been to fork this repo and improve what we've built. When we called it **ClawdBot** (later **MoltBot**), we meant the local piece that bridges ElizaOS and analog reality (smart home, biometrics, playlists); OpenClaw is the product that evolved from that vision. Full story: [OPENCLAW_VISION.md](OPENCLAW_VISION.md).
 
-| OpenClaw / Pi | ElizaOS |
-|:---|:---|
+| OpenClaw / Pi                                 | ElizaOS                          |
+| :-------------------------------------------- | :------------------------------- |
 | Memory, connectors (APIs, chats), personality | Very similar—different packaging |
-| Pi: CLI everything | MCP + plugin tool-calling |
+| Pi: CLI everything                            | MCP + plugin tool-calling        |
 
 **The big difference:** ElizaOS is heavy on **MCP and tool calling from plugins**. Pi leans into "CLI everything"—simpler, less ceremony. Both are valid.
 

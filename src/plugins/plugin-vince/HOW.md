@@ -34,17 +34,17 @@ This is the **hands-on development guide** for plugin-vince: workflows, adding a
 
 ## Where Things Live (Quick Map)
 
-| I want to… | Look here |
-|------------|-----------|
-| Add a user-facing command | `src/actions/*.action.ts` → register in `src/index.ts` |
-| Add a data source or bot component | `src/services/*.service.ts` → register in `src/index.ts` |
-| Change what context the LLM sees | `src/providers/vinceContext.provider.ts`, `trenchKnowledge.provider.ts` |
-| Change trading behavior (one knob) | `VINCE_TRADING_MODE=conservative\|balanced\|aggressive` (env or runtime setting); see [Mode controller](#mode-controller) |
-| Change signal weights or thresholds | `src/constants/paperTradingDefaults.ts`, `src/config/dynamicConfig.ts` |
-| See which signal sources contributed | [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md); logs: `[VinceSignalAggregator]` |
-| Inspect paper bot / ML state | `.elizadb/vince-paper-bot/` (see [Data Persistence Paths](#data-persistence-paths) below) |
-| Train ONNX models from features | `scripts/train_models.py`, [scripts/README.md](scripts/README.md); produces holdout metrics, supports `--recency-decay`, `--balance-assets`, `--tune-hyperparams`; 8 tests in `test_train_models.py` |
-| Understand cost/profitability mandate | [TREASURY.md](../../TREASURY.md), [FEATURE-STORE.md](../../FEATURE-STORE.md) (project root) |
+| I want to…                            | Look here                                                                                                                                                                                            |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add a user-facing command             | `src/actions/*.action.ts` → register in `src/index.ts`                                                                                                                                               |
+| Add a data source or bot component    | `src/services/*.service.ts` → register in `src/index.ts`                                                                                                                                             |
+| Change what context the LLM sees      | `src/providers/vinceContext.provider.ts`, `trenchKnowledge.provider.ts`                                                                                                                              |
+| Change trading behavior (one knob)    | `VINCE_TRADING_MODE=conservative\|balanced\|aggressive` (env or runtime setting); see [Mode controller](#mode-controller)                                                                            |
+| Change signal weights or thresholds   | `src/constants/paperTradingDefaults.ts`, `src/config/dynamicConfig.ts`                                                                                                                               |
+| See which signal sources contributed  | [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md); logs: `[VinceSignalAggregator]`                                                                                                                            |
+| Inspect paper bot / ML state          | `.elizadb/vince-paper-bot/` (see [Data Persistence Paths](#data-persistence-paths) below)                                                                                                            |
+| Train ONNX models from features       | `scripts/train_models.py`, [scripts/README.md](scripts/README.md); produces holdout metrics, supports `--recency-decay`, `--balance-assets`, `--tune-hyperparams`; 8 tests in `test_train_models.py` |
+| Understand cost/profitability mandate | [TREASURY.md](../../TREASURY.md), [FEATURE-STORE.md](../../FEATURE-STORE.md) (project root)                                                                                                          |
 
 ---
 

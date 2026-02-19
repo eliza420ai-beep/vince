@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "equity vs salary",
@@ -44,11 +48,18 @@ Reference nav.al "Take Accountability to Earn Equity" and "Pick a Business Model
 
 export const navalStartupEquityOwnershipAction: Action = {
   name: "NAVAL_STARTUP_EQUITY_OWNERSHIP",
-  similes: ["EQUITY_VS_SALARY", "RAISE_VS_BOOTSTRAP", "TAKE_ACCOUNTABILITY_EARN_EQUITY"],
+  similes: [
+    "EQUITY_VS_SALARY",
+    "RAISE_VS_BOOTSTRAP",
+    "TAKE_ACCOUNTABILITY_EARN_EQUITY",
+  ],
   description:
     "Equity vs salary, when to raise vs bootstrap, ownership mindset. Take accountability to earn equity. One concrete recommendation.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsEquityOwnership(text);
   },
@@ -83,7 +94,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -91,14 +102,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Take accountability to earn equity — ownership follows responsibility. Equity vs salary: early and you believe in the outcome, lean equity. Raise vs bootstrap: raise when you need leverage (scale, distribution) that cash can buy; bootstrap when you want control and a long-term game without investor pressure.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Equity vs salary: offer from seed startup, below-market salary but 0.5% equity. I'm 28, can afford the cut." } },
-      { name: "{{agent}}", content: { text: "You're optimizing for ownership at a stage where 0.5% could matter if they win. Take accountability to earn equity means: if you're going to own the outcome (e.g. lead a critical area), push for a bit more equity or a clear path. One recommendation: take the deal if you believe in the team and product, but get clarity on vesting and what 'earn more' looks like if you deliver." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Equity vs salary: offer from seed startup, below-market salary but 0.5% equity. I'm 28, can afford the cut.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're optimizing for ownership at a stage where 0.5% could matter if they win. Take accountability to earn equity means: if you're going to own the outcome (e.g. lead a critical area), push for a bit more equity or a clear path. One recommendation: take the deal if you believe in the team and product, but get clarity on vesting and what 'earn more' looks like if you deliver.",
+        },
+      },
     ],
   ],
 };

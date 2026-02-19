@@ -22,13 +22,18 @@ describe("PolymarketService", () => {
   it("getMarketsByPreferredTags returns deduplicated, volume-sorted list respecting totalLimit", async () => {
     const tagId = "1";
     globalThis.fetch = async (input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : (input as Request).url;
       if (url.includes(GAMMA_TAGS_PATH)) {
         return new Response(
           JSON.stringify([
             { id: tagId, label: "Bitcoin", slug: "bitcoin" },
             { id: "2", label: "Ethereum", slug: "ethereum" },
-          ])
+          ]),
         );
       }
       if (url.includes(GAMMA_EVENTS_PATH)) {
@@ -70,7 +75,8 @@ describe("PolymarketService", () => {
     const mockRuntime = {
       getSetting: (key: string) => {
         if (key === "POLYMARKET_GAMMA_API_URL") return DEFAULT_GAMMA_API_URL;
-        if (key === "POLYMARKET_CLOB_API_URL") return "https://clob.polymarket.com";
+        if (key === "POLYMARKET_CLOB_API_URL")
+          return "https://clob.polymarket.com";
         return undefined;
       },
       agentId: "test-agent",
@@ -97,9 +103,16 @@ describe("PolymarketService", () => {
 
   it("getMarketsByPreferredTags respects totalLimit", async () => {
     globalThis.fetch = async (input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : (input as Request).url;
       if (url.includes(GAMMA_TAGS_PATH)) {
-        return new Response(JSON.stringify([{ id: "1", label: "Bitcoin", slug: "bitcoin" }]));
+        return new Response(
+          JSON.stringify([{ id: "1", label: "Bitcoin", slug: "bitcoin" }]),
+        );
       }
       if (url.includes(GAMMA_EVENTS_PATH)) {
         const markets = Array.from({ length: 10 }, (_, i) => ({
@@ -141,13 +154,18 @@ describe("PolymarketService", () => {
     const tagIdEconomy = "20";
     let requestedTagIds: string[] = [];
     globalThis.fetch = async (input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : (input as Request).url;
       if (url.includes(GAMMA_TAGS_PATH)) {
         return new Response(
           JSON.stringify([
             { id: tagIdFed, label: "Fed Rates", slug: "fed_rates" },
             { id: tagIdEconomy, label: "Economy", slug: "economy" },
-          ])
+          ]),
         );
       }
       if (url.includes(GAMMA_EVENTS_PATH)) {
@@ -177,7 +195,8 @@ describe("PolymarketService", () => {
     const mockRuntime = {
       getSetting: (key: string) => {
         if (key === "POLYMARKET_GAMMA_API_URL") return DEFAULT_GAMMA_API_URL;
-        if (key === "POLYMARKET_CLOB_API_URL") return "https://clob.polymarket.com";
+        if (key === "POLYMARKET_CLOB_API_URL")
+          return "https://clob.polymarket.com";
         return undefined;
       },
       agentId: "test-agent",
@@ -199,10 +218,17 @@ describe("PolymarketService", () => {
   it("getEventsByTag resolves pre-market when Gamma has slug pre_market", async () => {
     const tagId = "30";
     globalThis.fetch = async (input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : (input as Request).url;
       if (url.includes(GAMMA_TAGS_PATH)) {
         return new Response(
-          JSON.stringify([{ id: tagId, label: "Pre-market", slug: "pre_market" }])
+          JSON.stringify([
+            { id: tagId, label: "Pre-market", slug: "pre_market" },
+          ]),
         );
       }
       if (url.includes(GAMMA_EVENTS_PATH)) {
@@ -230,7 +256,8 @@ describe("PolymarketService", () => {
     const mockRuntime = {
       getSetting: (key: string) => {
         if (key === "POLYMARKET_GAMMA_API_URL") return DEFAULT_GAMMA_API_URL;
-        if (key === "POLYMARKET_CLOB_API_URL") return "https://clob.polymarket.com";
+        if (key === "POLYMARKET_CLOB_API_URL")
+          return "https://clob.polymarket.com";
         return undefined;
       },
       agentId: "test-agent",
@@ -249,7 +276,12 @@ describe("PolymarketService", () => {
     const yesTokenId = "tid-yes";
     const noTokenId = "tid-no";
     globalThis.fetch = async (input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : (input as Request).url;
       if (url.includes(GAMMA_MARKETS_PATH) && url.includes("limit=500")) {
         const markets = [
           {
@@ -371,7 +403,12 @@ describe("PolymarketService", () => {
     const yesTokenId = "tid-yes-empty";
     const noTokenId = "tid-no-empty";
     globalThis.fetch = async (input: RequestInfo | URL) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : (input as Request).url;
       if (url.includes(GAMMA_MARKETS_PATH) && url.includes("limit=500")) {
         const markets = [
           {

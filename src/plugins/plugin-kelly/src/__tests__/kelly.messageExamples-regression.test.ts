@@ -9,8 +9,14 @@ import * as fs from "fs";
 import { findBannedJargon, FILLER_PHRASES } from "../constants/voice";
 
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
-const ASK_AGENT_FIXTURE = path.join(FIXTURES_DIR, "kelly-ask-agent-examples.json");
-const REPLY_SAMPLES_FIXTURE = path.join(FIXTURES_DIR, "kelly-reply-samples.json");
+const ASK_AGENT_FIXTURE = path.join(
+  FIXTURES_DIR,
+  "kelly-ask-agent-examples.json",
+);
+const REPLY_SAMPLES_FIXTURE = path.join(
+  FIXTURES_DIR,
+  "kelly-reply-samples.json",
+);
 
 function assertNoBannedJargon(text: string): void {
   const found = findBannedJargon(text);
@@ -52,22 +58,30 @@ describe("Kelly messageExamples regression", () => {
   });
 
   it("reply samples fixture: each Kelly reply has no banned jargon", () => {
-    const examples = JSON.parse(fs.readFileSync(REPLY_SAMPLES_FIXTURE, "utf-8"));
+    const examples = JSON.parse(
+      fs.readFileSync(REPLY_SAMPLES_FIXTURE, "utf-8"),
+    );
     for (const ex of examples) {
       assertNoBannedJargon(ex.kellyText ?? "");
     }
   });
 
   it("reply samples fixture: each Kelly reply has no filler phrases", () => {
-    const examples = JSON.parse(fs.readFileSync(REPLY_SAMPLES_FIXTURE, "utf-8"));
+    const examples = JSON.parse(
+      fs.readFileSync(REPLY_SAMPLES_FIXTURE, "utf-8"),
+    );
     for (const ex of examples) {
       assertNoFillerPhrases(ex.kellyText ?? "");
     }
   });
 
   it("reply samples: recommendation examples have at least one concrete pick (bold or —)", () => {
-    const examples = JSON.parse(fs.readFileSync(REPLY_SAMPLES_FIXTURE, "utf-8"));
-    const recommendationExamples = examples.filter((ex: any) => ex.isRecommendation === true);
+    const examples = JSON.parse(
+      fs.readFileSync(REPLY_SAMPLES_FIXTURE, "utf-8"),
+    );
+    const recommendationExamples = examples.filter(
+      (ex: any) => ex.isRecommendation === true,
+    );
     for (const ex of recommendationExamples) {
       expect(
         hasConcreteRecommendation(ex.kellyText ?? ""),

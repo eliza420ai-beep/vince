@@ -13,7 +13,11 @@
 
 import type { IAgentRuntime, RouteRequest, RouteResponse } from "@elizaos/core";
 import { logger } from "@elizaos/core";
-import type { CdpService, MorphoService, BankrOrdersService } from "../types/services";
+import type {
+  CdpService,
+  MorphoService,
+  BankrOrdersService,
+} from "../types/services";
 
 type RouteHandler = (
   req: RouteRequest,
@@ -164,7 +168,7 @@ async function handlePortfolio(
         }));
         portfolio.summary.breakdown.tokens = portfolio.tokens.reduce(
           (sum, t) => sum + t.usdValue,
-          0
+          0,
         );
       } catch (err) {
         logger.debug(`[Otaku] Token balance fetch failed: ${err}`);
@@ -185,7 +189,7 @@ async function handlePortfolio(
         }));
         portfolio.summary.breakdown.nfts = portfolio.nfts.reduce(
           (sum, n) => sum + (n.floorPrice || 0),
-          0
+          0,
         );
       } catch (err) {
         logger.debug(`[Otaku] NFT fetch failed: ${err}`);
@@ -196,7 +200,9 @@ async function handlePortfolio(
 
     if (morphoService?.getUserPositions) {
       try {
-        const positions = await morphoService.getUserPositions(portfolio.wallet);
+        const positions = await morphoService.getUserPositions(
+          portfolio.wallet,
+        );
         for (const p of positions || []) {
           portfolio.defi.push({
             protocol: "Morpho",
@@ -218,17 +224,25 @@ async function handlePortfolio(
     try {
       const llamaRes = await fetch(
         `https://api.llama.fi/account/${portfolio.wallet}`,
-        { signal: AbortSignal.timeout(10000) }
+        { signal: AbortSignal.timeout(10000) },
       );
       if (llamaRes.ok) {
         const data = await llamaRes.json();
         if (data.positions) {
           for (const p of data.positions.slice(0, 20)) {
             // Avoid duplicates from Morpho
-            if (!portfolio.defi.some((d) => d.protocol === p.protocol && d.asset === p.token)) {
+            if (
+              !portfolio.defi.some(
+                (d) => d.protocol === p.protocol && d.asset === p.token,
+              )
+            ) {
               portfolio.defi.push({
                 protocol: p.protocol,
-                type: (p.type || "supply") as "supply" | "borrow" | "stake" | "lp",
+                type: (p.type || "supply") as
+                  | "supply"
+                  | "borrow"
+                  | "stake"
+                  | "lp",
                 asset: p.token ?? "",
                 amount: p.balance ?? "",
                 usdValue: p.balanceUsd ?? 0,
@@ -245,10 +259,12 @@ async function handlePortfolio(
 
     portfolio.summary.breakdown.defi = portfolio.defi.reduce(
       (sum, d) => sum + d.usdValue,
-      0
+      0,
     );
 
-    const bankrOrders = runtime.getService("bankr_orders") as BankrOrdersService | null;
+    const bankrOrders = runtime.getService(
+      "bankr_orders",
+    ) as BankrOrdersService | null;
 
     if (bankrOrders?.getActiveOrders) {
       try {

@@ -32,7 +32,9 @@ describe("KELLY_RECOMMEND_ENTERTAINMENT", () => {
   });
 
   it("validates on 'music for the taycan'", async () => {
-    const msg = createMockMessage("Music for the Taycan — something like Bonobo");
+    const msg = createMockMessage(
+      "Music for the Taycan — something like Bonobo",
+    );
     const result = await kellyRecommendEntertainmentAction.validate!(
       createMockRuntimeWithComposeState(),
       msg,
@@ -85,7 +87,9 @@ describe("KELLY_RECOMMEND_ENTERTAINMENT", () => {
     });
     runtime.useModel = async () =>
       "**Pick:** Tycho — Dive — same downtempo warmth as Bonobo, layered and cinematic. Perfect for the Taycan on a coast drive. **Alternative:** Bicep — Isles — more energy, still textured.";
-    const msg = createMockMessage("Music for the Taycan — something like Bonobo");
+    const msg = createMockMessage(
+      "Music for the Taycan — something like Bonobo",
+    );
     const cb = createMockCallback();
 
     await kellyRecommendEntertainmentAction.handler(

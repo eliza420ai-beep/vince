@@ -3,18 +3,18 @@
  */
 
 export enum GamificationEventType {
-  ACCOUNT_CREATION = 'ACCOUNT_CREATION',
-  DAILY_LOGIN_STREAK = 'DAILY_LOGIN_STREAK',
-  MEANINGFUL_CHAT = 'MEANINGFUL_CHAT',
-  SWAP_COMPLETED = 'SWAP_COMPLETED',
-  BRIDGE_COMPLETED = 'BRIDGE_COMPLETED',
-  TRANSFER_COMPLETED = 'TRANSFER_COMPLETED',
-  DAILY_QUEST = 'DAILY_QUEST',
-  REFERRAL_SIGNUP = 'REFERRAL_SIGNUP',
-  REFERRAL_ACTIVATION = 'REFERRAL_ACTIVATION',
-  REFERRED_WELCOME = 'REFERRED_WELCOME',
-  FIRST_CHAIN_BONUS = 'FIRST_CHAIN_BONUS',
-  AGENT_ACTION = 'AGENT_ACTION',
+  ACCOUNT_CREATION = "ACCOUNT_CREATION",
+  DAILY_LOGIN_STREAK = "DAILY_LOGIN_STREAK",
+  MEANINGFUL_CHAT = "MEANINGFUL_CHAT",
+  SWAP_COMPLETED = "SWAP_COMPLETED",
+  BRIDGE_COMPLETED = "BRIDGE_COMPLETED",
+  TRANSFER_COMPLETED = "TRANSFER_COMPLETED",
+  DAILY_QUEST = "DAILY_QUEST",
+  REFERRAL_SIGNUP = "REFERRAL_SIGNUP",
+  REFERRAL_ACTIVATION = "REFERRAL_ACTIVATION",
+  REFERRED_WELCOME = "REFERRED_WELCOME",
+  FIRST_CHAIN_BONUS = "FIRST_CHAIN_BONUS",
+  AGENT_ACTION = "AGENT_ACTION",
 }
 
 /**
@@ -65,10 +65,10 @@ export const VOLUME_MULTIPLIERS = {
  * Level thresholds (Rebels progression: Scout → Operator → Architect → Sovereign)
  */
 export const LEVEL_THRESHOLDS = [
-  { level: 0, name: 'Scout', minPoints: 0, maxPoints: 999 },
-  { level: 1, name: 'Operator', minPoints: 1000, maxPoints: 4999 },
-  { level: 2, name: 'Architect', minPoints: 5000, maxPoints: 19999 },
-  { level: 3, name: 'Sovereign', minPoints: 20000, maxPoints: Infinity },
+  { level: 0, name: "Scout", minPoints: 0, maxPoints: 999 },
+  { level: 1, name: "Operator", minPoints: 1000, maxPoints: 4999 },
+  { level: 2, name: "Architect", minPoints: 5000, maxPoints: 19999 },
+  { level: 3, name: "Sovereign", minPoints: 20000, maxPoints: Infinity },
 ];
 
 /**
@@ -95,9 +95,9 @@ export const MIN_CHAT_LENGTH = 25;
  * Messages < 25 chars earn 0 points
  */
 export const MESSAGE_LENGTH_TIERS = [
-  { minLength: 25, maxLength: 74, points: 2 },    // Basic engagement
-  { minLength: 75, maxLength: 99, points: 3 },    // Medium engagement
-  { minLength: 100, maxLength: 199, points: 4 },  // Good engagement
+  { minLength: 25, maxLength: 74, points: 2 }, // Basic engagement
+  { minLength: 75, maxLength: 99, points: 3 }, // Medium engagement
+  { minLength: 100, maxLength: 199, points: 4 }, // Good engagement
   { minLength: 200, maxLength: Infinity, points: 5 }, // Meaningful conversation
 ];
 
@@ -110,4 +110,3 @@ export const DAILY_QUEST_UNIQUE_ACTIONS_REQUIRED = 3;
  * Referral activation window (days)
  */
 export const REFERRAL_ACTIVATION_WINDOW_DAYS = 7;
-

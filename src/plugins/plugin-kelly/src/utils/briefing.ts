@@ -57,7 +57,11 @@ export function getParisTimeAndPastLunch(day: string): {
     hour12: false,
   });
   const hourParis = parseInt(
-    now.toLocaleString("en-GB", { timeZone: PARIS_TZ, hour: "2-digit", hour12: false }),
+    now.toLocaleString("en-GB", {
+      timeZone: PARIS_TZ,
+      hour: "2-digit",
+      hour12: false,
+    }),
     10,
   );
   const minParis = parseInt(
@@ -67,7 +71,10 @@ export function getParisTimeAndPastLunch(day: string): {
   const minutesSinceMidnight = hourParis * 60 + minParis;
   const isSunday = day.toLowerCase() === "sunday";
   const cutoff = isSunday ? 15 * 60 : 14 * 60 + 30;
-  return { currentTimeParis: timeParis, pastLunch: minutesSinceMidnight >= cutoff };
+  return {
+    currentTimeParis: timeParis,
+    pastLunch: minutesSinceMidnight >= cutoff,
+  };
 }
 
 /**
@@ -245,9 +252,7 @@ Write the briefing:`;
     const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
     return String(response).trim();
   } catch (error) {
-    logger.error(
-      `[Kelly briefing] Failed to generate briefing: ${error}`,
-    );
+    logger.error(`[Kelly briefing] Failed to generate briefing: ${error}`);
     return "Lifestyle data's glitching. Check knowledge/the-good-life for recommendations.";
   }
 }

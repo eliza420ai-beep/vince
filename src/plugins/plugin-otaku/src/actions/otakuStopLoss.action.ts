@@ -74,10 +74,16 @@ function parseStopLossRequest(text: string): StopLossRequest | null {
   }
 
   // Alternative patterns
-  if (!result.stopLossPrice && !result.takeProfitPrice && !result.trailingPercent) {
+  if (
+    !result.stopLossPrice &&
+    !result.takeProfitPrice &&
+    !result.trailingPercent
+  ) {
     // "stop at $1800" or "tp at $2200"
     const stopMatch = text.match(/(?:stop|sl)\s+(?:at\s+)?[\$]?(\d+\.?\d*)/i);
-    const tpAltMatch = text.match(/(?:tp|target)\s+(?:at\s+)?[\$]?(\d+\.?\d*)/i);
+    const tpAltMatch = text.match(
+      /(?:tp|target)\s+(?:at\s+)?[\$]?(\d+\.?\d*)/i,
+    );
 
     if (stopMatch) result.stopLossPrice = stopMatch[1];
     if (tpAltMatch) result.takeProfitPrice = tpAltMatch[1];
@@ -88,7 +94,11 @@ function parseStopLossRequest(text: string): StopLossRequest | null {
   if (chainMatch) result.chain = chainMatch[1].toLowerCase();
 
   // Require at least one target
-  if (!result.stopLossPrice && !result.takeProfitPrice && !result.trailingPercent) {
+  if (
+    !result.stopLossPrice &&
+    !result.takeProfitPrice &&
+    !result.trailingPercent
+  ) {
     return null;
   }
 
@@ -111,12 +121,14 @@ export const otakuStopLossAction: Action = {
     [
       {
         name: "{{user}}",
-        content: { text: "Set stop-loss at $1800 and take-profit at $2200 for 1 ETH" },
+        content: {
+          text: "Set stop-loss at $1800 and take-profit at $2200 for 1 ETH",
+        },
       },
       {
         name: "{{agent}}",
         content: {
-          text: "**Stop-Loss/Take-Profit Order:**\n- Token: 1 ETH\n- Stop-Loss: $1,800 (↓10%)\n- Take-Profit: $2,200 (↑10%)\n\nType \"confirm\" to place orders.",
+          text: '**Stop-Loss/Take-Profit Order:**\n- Token: 1 ETH\n- Stop-Loss: $1,800 (↓10%)\n- Take-Profit: $2,200 (↑10%)\n\nType "confirm" to place orders.',
           actions: ["OTAKU_STOP_LOSS"],
         },
       },
@@ -129,14 +141,17 @@ export const otakuStopLossAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Trailing Stop Order:**\n- Token: ETH\n- Trail: 5% below highest price\n\nType \"confirm\" to activate.",
+          text: '**Trailing Stop Order:**\n- Token: ETH\n- Trail: 5% below highest price\n\nType "confirm" to activate.',
           actions: ["OTAKU_STOP_LOSS"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     if (isConfirmation(text)) {
@@ -164,7 +179,7 @@ export const otakuStopLossAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
@@ -191,17 +206,26 @@ export const otakuStopLossAction: Action = {
           "- Take-profit price (e.g., take-profit at $2200)",
           "- Or trailing stop (e.g., trailing 5%)",
           "",
-          "Example: \"Set stop-loss at $1800 and take-profit at $2200 for 1 ETH\"",
+          'Example: "Set stop-loss at $1800 and take-profit at $2200 for 1 ETH"',
         ].join("\n"),
       });
-      return { success: false, error: new Error("Could not parse stop-loss request") };
+      return {
+        success: false,
+        error: new Error("Could not parse stop-loss request"),
+      };
     }
 
-    const pendingOrder = await getPending<StopLossRequest>(runtime, message, "stopLoss");
+    const pendingOrder = await getPending<StopLossRequest>(
+      runtime,
+      message,
+      "stopLoss",
+    );
 
     if (isConfirmation(text) && pendingOrder) {
       await clearPending(runtime, message, "stopLoss");
-      const bankr = runtime.getService("bankr_agent") as BankrAgentService | null;
+      const bankr = runtime.getService(
+        "bankr_agent",
+      ) as BankrAgentService | null;
       if (!bankr?.submitPrompt || !bankr?.pollJobUntilComplete) {
         await callback?.({ text: "BANKR service not available for orders." });
         return { success: false, error: new Error("BANKR not available") };
@@ -211,19 +235,19 @@ export const otakuStopLossAction: Action = {
 
       if (pendingOrder.stopLossPrice) {
         prompts.push(
-          `stop-loss order: sell ${pendingOrder.amount} ${pendingOrder.token} if price drops to $${pendingOrder.stopLossPrice}`
+          `stop-loss order: sell ${pendingOrder.amount} ${pendingOrder.token} if price drops to $${pendingOrder.stopLossPrice}`,
         );
       }
 
       if (pendingOrder.takeProfitPrice) {
         prompts.push(
-          `take-profit order: sell ${pendingOrder.amount} ${pendingOrder.token} when price reaches $${pendingOrder.takeProfitPrice}`
+          `take-profit order: sell ${pendingOrder.amount} ${pendingOrder.token} when price reaches $${pendingOrder.takeProfitPrice}`,
         );
       }
 
       if (pendingOrder.trailingPercent) {
         prompts.push(
-          `trailing stop ${pendingOrder.trailingPercent}% for ${pendingOrder.amount} ${pendingOrder.token}`
+          `trailing stop ${pendingOrder.trailingPercent}% for ${pendingOrder.amount} ${pendingOrder.token}`,
         );
       }
 
@@ -246,7 +270,9 @@ export const otakuStopLossAction: Action = {
             results.push(`❌ ${result.error || "Failed"}`);
           }
         } catch (err) {
-          results.push(`❌ ${err instanceof Error ? err.message : String(err)}`);
+          results.push(
+            `❌ ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
 
@@ -256,11 +282,15 @@ export const otakuStopLossAction: Action = {
       });
       const successCount = results.filter((r) => r.startsWith("✅")).length;
       if (successCount > 0) {
-        await appendNotificationEvent(runtime, {
-          action: "stop_loss_created",
-          title: "Stop-loss order(s) created",
-          subtitle: `${pendingOrder.amount} ${pendingOrder.token} · ${successCount} order(s) placed`,
-        }, message.entityId);
+        await appendNotificationEvent(
+          runtime,
+          {
+            action: "stop_loss_created",
+            title: "Stop-loss order(s) created",
+            subtitle: `${pendingOrder.amount} ${pendingOrder.token} · ${successCount} order(s) placed`,
+          },
+          message.entityId,
+        );
       }
       return { success: true };
     }
@@ -288,7 +318,9 @@ export const otakuStopLossAction: Action = {
       const pctChange = currentPrice
         ? (((slPrice - currentPrice) / currentPrice) * 100).toFixed(1)
         : "?";
-      lines.push(`🔴 **Stop-Loss:** $${slPrice.toLocaleString()} (${pctChange}%)`);
+      lines.push(
+        `🔴 **Stop-Loss:** $${slPrice.toLocaleString()} (${pctChange}%)`,
+      );
     }
 
     if (request.takeProfitPrice) {
@@ -296,11 +328,15 @@ export const otakuStopLossAction: Action = {
       const pctChange = currentPrice
         ? (((tpPrice - currentPrice) / currentPrice) * 100).toFixed(1)
         : "?";
-      lines.push(`🟢 **Take-Profit:** $${tpPrice.toLocaleString()} (+${pctChange}%)`);
+      lines.push(
+        `🟢 **Take-Profit:** $${tpPrice.toLocaleString()} (+${pctChange}%)`,
+      );
     }
 
     if (request.trailingPercent) {
-      lines.push(`📈 **Trailing Stop:** ${request.trailingPercent}% below peak`);
+      lines.push(
+        `📈 **Trailing Stop:** ${request.trailingPercent}% below peak`,
+      );
     }
 
     lines.push("");

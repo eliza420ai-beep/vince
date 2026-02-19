@@ -1,6 +1,6 @@
 /**
  * X Client Service
- * 
+ *
  * Core API client handling:
  * - Authentication (Bearer token)
  * - Rate limiting with exponential backoff
@@ -15,22 +15,22 @@ import {
   DEFAULT_TWEET_FIELDS,
   DEFAULT_USER_FIELDS,
   DEFAULT_EXPANSIONS,
-} from '../constants/endpoints';
+} from "../constants/endpoints";
 import {
   normalizeSearchResponse,
   normalizeCountsResponse,
   normalizeTweetResponse,
   normalizeTweetArrayResponse,
   normalizeUserResponse,
-} from '../utils/normalize';
+} from "../utils/normalize";
 import type {
   XTweet,
   XUser,
   XSearchResponse,
   XCountsResponse,
-} from '../types/tweet.types';
-import type { XNewsResponse } from '../types/news.types';
-import type { XTrendsResponse } from '../types/trends.types';
+} from "../types/tweet.types";
+import type { XNewsResponse } from "../types/news.types";
+import type { XTrendsResponse } from "../types/trends.types";
 
 export interface XClientConfig {
   bearerToken: string;
@@ -64,7 +64,7 @@ export class XClientService {
   private maxRequestsPerMinute: number;
   private cacheEnabled: boolean;
   private cacheTtlMs: number;
-  
+
   private cache: Map<string, CacheEntry<unknown>> = new Map();
   private rateLimits: Map<string, RateLimitState> = new Map();
   private requestQueue: Array<() => Promise<void>> = [];
@@ -80,31 +80,37 @@ export class XClientService {
   /**
    * Search tweets. Uses full-archive when X_RESEARCH_FULL_ARCHIVE=true (Pro/Enterprise).
    */
-  async searchRecent(query: string, options: SearchOptions = {}): Promise<XSearchResponse> {
+  async searchRecent(
+    query: string,
+    options: SearchOptions = {},
+  ): Promise<XSearchResponse> {
     const params = new URLSearchParams({
       query,
-      'tweet.fields': options.tweetFields ?? DEFAULT_TWEET_FIELDS,
-      'user.fields': options.userFields ?? DEFAULT_USER_FIELDS,
+      "tweet.fields": options.tweetFields ?? DEFAULT_TWEET_FIELDS,
+      "user.fields": options.userFields ?? DEFAULT_USER_FIELDS,
       expansions: options.expansions ?? DEFAULT_EXPANSIONS,
       max_results: String(options.maxResults ?? 100),
     });
 
-    if (options.sinceId) params.set('since_id', options.sinceId);
-    if (options.untilId) params.set('until_id', options.untilId);
-    if (options.startTime) params.set('start_time', options.startTime);
-    if (options.endTime) params.set('end_time', options.endTime);
-    if (options.nextToken) params.set('next_token', options.nextToken);
-    if (options.sortOrder) params.set('sort_order', options.sortOrder);
+    if (options.sinceId) params.set("since_id", options.sinceId);
+    if (options.untilId) params.set("until_id", options.untilId);
+    if (options.startTime) params.set("start_time", options.startTime);
+    if (options.endTime) params.set("end_time", options.endTime);
+    if (options.nextToken) params.set("next_token", options.nextToken);
+    if (options.sortOrder) params.set("sort_order", options.sortOrder);
 
-    const useFullArchive = process.env.X_RESEARCH_FULL_ARCHIVE === 'true';
-    const searchPath = useFullArchive ? ENDPOINTS.SEARCH_FULL_ARCHIVE : ENDPOINTS.SEARCH_RECENT;
-    const cacheKey = useFullArchive && options.nextToken
-      ? undefined
-      : `search:${searchPath}:${query}:${options.maxResults}:${options.nextToken ?? ''}`;
+    const useFullArchive = process.env.X_RESEARCH_FULL_ARCHIVE === "true";
+    const searchPath = useFullArchive
+      ? ENDPOINTS.SEARCH_FULL_ARCHIVE
+      : ENDPOINTS.SEARCH_RECENT;
+    const cacheKey =
+      useFullArchive && options.nextToken
+        ? undefined
+        : `search:${searchPath}:${query}:${options.maxResults}:${options.nextToken ?? ""}`;
 
     const raw = await this.get<Record<string, unknown>>(
       `${searchPath}?${params.toString()}`,
-      { cacheKey, cacheTtlMs: options.cacheTtlMs }
+      { cacheKey, cacheTtlMs: options.cacheTtlMs },
     );
     return normalizeSearchResponse(raw);
   }
@@ -112,18 +118,21 @@ export class XClientService {
   /**
    * Get tweet counts by time bucket (volume analysis)
    */
-  async getCounts(query: string, options: CountsOptions = {}): Promise<XCountsResponse> {
+  async getCounts(
+    query: string,
+    options: CountsOptions = {},
+  ): Promise<XCountsResponse> {
     const params = new URLSearchParams({
       query,
-      granularity: options.granularity ?? 'hour',
+      granularity: options.granularity ?? "hour",
     });
 
-    if (options.startTime) params.set('start_time', options.startTime);
-    if (options.endTime) params.set('end_time', options.endTime);
+    if (options.startTime) params.set("start_time", options.startTime);
+    if (options.endTime) params.set("end_time", options.endTime);
 
     const raw = await this.get<Record<string, unknown>>(
       `${ENDPOINTS.SEARCH_COUNTS}?${params.toString()}`,
-      { cacheKey: `counts:${query}:${options.granularity}` }
+      { cacheKey: `counts:${query}:${options.granularity}` },
     );
     return normalizeCountsResponse(raw);
   }
@@ -132,16 +141,16 @@ export class XClientService {
    * Get single tweet by ID
    */
   async getTweet(tweetId: string): Promise<XTweet | null> {
-    const endpoint = ENDPOINTS.TWEET.replace(':id', tweetId);
+    const endpoint = ENDPOINTS.TWEET.replace(":id", tweetId);
     const params = new URLSearchParams({
-      'tweet.fields': DEFAULT_TWEET_FIELDS,
-      'user.fields': DEFAULT_USER_FIELDS,
+      "tweet.fields": DEFAULT_TWEET_FIELDS,
+      "user.fields": DEFAULT_USER_FIELDS,
       expansions: DEFAULT_EXPANSIONS,
     });
 
     const raw = await this.get<{ data?: Record<string, unknown> }>(
       `${endpoint}?${params.toString()}`,
-      { cacheKey: `tweet:${tweetId}` }
+      { cacheKey: `tweet:${tweetId}` },
     );
     const response = normalizeTweetResponse(raw);
     return response.data ?? null;
@@ -153,19 +162,19 @@ export class XClientService {
   async getTweets(tweetIds: string[]): Promise<XTweet[]> {
     if (tweetIds.length === 0) return [];
     if (tweetIds.length > 100) {
-      throw new Error('Max 100 tweets per request');
+      throw new Error("Max 100 tweets per request");
     }
 
     const params = new URLSearchParams({
-      ids: tweetIds.join(','),
-      'tweet.fields': DEFAULT_TWEET_FIELDS,
-      'user.fields': DEFAULT_USER_FIELDS,
+      ids: tweetIds.join(","),
+      "tweet.fields": DEFAULT_TWEET_FIELDS,
+      "user.fields": DEFAULT_USER_FIELDS,
       expansions: DEFAULT_EXPANSIONS,
     });
 
     const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${ENDPOINTS.TWEETS}?${params.toString()}`,
-      { skipCache: true } // Don't cache bulk lookups
+      { skipCache: true }, // Don't cache bulk lookups
     );
     const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
@@ -175,14 +184,14 @@ export class XClientService {
    * Get user by username
    */
   async getUserByUsername(username: string): Promise<XUser | null> {
-    const endpoint = ENDPOINTS.USER_BY_USERNAME.replace(':username', username);
+    const endpoint = ENDPOINTS.USER_BY_USERNAME.replace(":username", username);
     const params = new URLSearchParams({
-      'user.fields': DEFAULT_USER_FIELDS,
+      "user.fields": DEFAULT_USER_FIELDS,
     });
 
     const raw = await this.get<{ data?: Record<string, unknown> }>(
       `${endpoint}?${params.toString()}`,
-      { cacheKey: `user:${username}` }
+      { cacheKey: `user:${username}` },
     );
     const response = normalizeUserResponse(raw);
     return response.data ?? null;
@@ -191,26 +200,29 @@ export class XClientService {
   /**
    * Get user's recent tweets
    */
-  async getUserTweets(userId: string, options: UserTweetsOptions = {}): Promise<XTweet[]> {
-    const endpoint = ENDPOINTS.USER_TWEETS.replace(':id', userId);
+  async getUserTweets(
+    userId: string,
+    options: UserTweetsOptions = {},
+  ): Promise<XTweet[]> {
+    const endpoint = ENDPOINTS.USER_TWEETS.replace(":id", userId);
     const params = new URLSearchParams({
-      'tweet.fields': DEFAULT_TWEET_FIELDS,
-      'user.fields': DEFAULT_USER_FIELDS,
+      "tweet.fields": DEFAULT_TWEET_FIELDS,
+      "user.fields": DEFAULT_USER_FIELDS,
       expansions: DEFAULT_EXPANSIONS,
       max_results: String(options.maxResults ?? 10),
     });
 
     const excludeParts = [
-      options.excludeReplies && 'replies',
-      options.excludeRetweets && 'retweets',
+      options.excludeReplies && "replies",
+      options.excludeRetweets && "retweets",
     ].filter(Boolean) as string[];
     if (excludeParts.length > 0) {
-      params.set('exclude', excludeParts.join(','));
+      params.set("exclude", excludeParts.join(","));
     }
 
     const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
-      { cacheKey: `user_tweets:${userId}:${options.maxResults}` }
+      { cacheKey: `user_tweets:${userId}:${options.maxResults}` },
     );
     const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
@@ -219,21 +231,27 @@ export class XClientService {
   /**
    * Get recent mentions of a user (tweets that mention them)
    */
-  async getUserMentions(userId: string, options: UserTweetsOptions = {}): Promise<XTweet[]> {
-    const endpoint = ENDPOINTS.USER_MENTIONS.replace(':id', userId);
+  async getUserMentions(
+    userId: string,
+    options: UserTweetsOptions = {},
+  ): Promise<XTweet[]> {
+    const endpoint = ENDPOINTS.USER_MENTIONS.replace(":id", userId);
     const params = new URLSearchParams({
-      'tweet.fields': DEFAULT_TWEET_FIELDS,
-      'user.fields': DEFAULT_USER_FIELDS,
+      "tweet.fields": DEFAULT_TWEET_FIELDS,
+      "user.fields": DEFAULT_USER_FIELDS,
       expansions: DEFAULT_EXPANSIONS,
       max_results: String(options.maxResults ?? 50),
     });
 
-    if (options.startTime) params.set('start_time', options.startTime);
-    if (options.nextToken) params.set('pagination_token', options.nextToken);
+    if (options.startTime) params.set("start_time", options.startTime);
+    if (options.nextToken) params.set("pagination_token", options.nextToken);
 
     const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
-      { cacheKey: `user_mentions:${userId}:${options.maxResults}`, cacheTtlMs: 15 * 60 * 1000 }
+      {
+        cacheKey: `user_mentions:${userId}:${options.maxResults}`,
+        cacheTtlMs: 15 * 60 * 1000,
+      },
     );
     const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
@@ -242,20 +260,23 @@ export class XClientService {
   /**
    * Get list tweets (primary quality source!)
    */
-  async getListTweets(listId: string, options: ListTweetsOptions = {}): Promise<XTweet[]> {
-    const endpoint = ENDPOINTS.LIST_TWEETS.replace(':id', listId);
+  async getListTweets(
+    listId: string,
+    options: ListTweetsOptions = {},
+  ): Promise<XTweet[]> {
+    const endpoint = ENDPOINTS.LIST_TWEETS.replace(":id", listId);
     const params = new URLSearchParams({
-      'tweet.fields': DEFAULT_TWEET_FIELDS,
-      'user.fields': DEFAULT_USER_FIELDS,
+      "tweet.fields": DEFAULT_TWEET_FIELDS,
+      "user.fields": DEFAULT_USER_FIELDS,
       expansions: DEFAULT_EXPANSIONS,
       max_results: String(options.maxResults ?? 100),
     });
 
-    if (options.nextToken) params.set('pagination_token', options.nextToken);
+    if (options.nextToken) params.set("pagination_token", options.nextToken);
 
     const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
-      { cacheKey: `list:${listId}:${options.maxResults}` }
+      { cacheKey: `list:${listId}:${options.maxResults}` },
     );
     const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
@@ -266,16 +287,15 @@ export class XClientService {
    */
   async getTrends(): Promise<XTrendsResponse> {
     try {
-      return await this.get<XTrendsResponse>(
-        ENDPOINTS.PERSONALIZED_TRENDS,
-        { cacheKey: 'trends' }
-      );
+      return await this.get<XTrendsResponse>(ENDPOINTS.PERSONALIZED_TRENDS, {
+        cacheKey: "trends",
+      });
     } catch (err) {
       const e = err as XClientError;
       if (e.status === 401 || e.status === 403) {
         throw new Error(
-          'Personalized Trends may require OAuth 2.0 user context; app-only Bearer token might not be sufficient. ' +
-            (e.message ?? '')
+          "Personalized Trends may require OAuth 2.0 user context; app-only Bearer token might not be sufficient. " +
+            (e.message ?? ""),
         ) as XClientError;
       }
       throw err;
@@ -285,21 +305,25 @@ export class XClientService {
   /**
    * Search news. Not available on all X API tiers; verify endpoint access for your project.
    */
-  async searchNews(query: string, options: NewsSearchOptions = {}): Promise<XNewsResponse> {
+  async searchNews(
+    query: string,
+    options: NewsSearchOptions = {},
+  ): Promise<XNewsResponse> {
     const params = new URLSearchParams({ query });
-    if (options.maxResults) params.set('max_results', String(options.maxResults));
+    if (options.maxResults)
+      params.set("max_results", String(options.maxResults));
 
     try {
       return await this.get<XNewsResponse>(
         `${ENDPOINTS.NEWS_SEARCH}?${params.toString()}`,
-        { cacheKey: `news:${query}` }
+        { cacheKey: `news:${query}` },
       );
     } catch (err) {
       const e = err as XClientError;
       if (e.status === 401 || e.status === 403 || e.status === 404) {
         throw new Error(
-          'News API may not be available for this project or tier. Check your X API access. ' +
-            (e.message ?? '')
+          "News API may not be available for this project or tier. Check your X API access. " +
+            (e.message ?? ""),
         ) as XClientError;
       }
       throw err;
@@ -324,10 +348,10 @@ export class XClientService {
 
     const url = `${X_API_BASE}${path}`;
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Authorization: `Bearer ${this.bearerToken}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -337,12 +361,19 @@ export class XClientService {
     if (!response.ok) {
       const error = await this.handleError(response);
       if (response.status === 429 && !retried && error.rateLimitReset) {
-        const waitMs = Math.max(1000, error.rateLimitReset * 1000 - Date.now() + 1000);
+        const waitMs = Math.max(
+          1000,
+          error.rateLimitReset * 1000 - Date.now() + 1000,
+        );
         try {
-          const { logger } = await import('@elizaos/core');
-          logger?.info?.(`[xClient] Rate limited, waiting ${Math.ceil(waitMs / 1000)}s before retry`);
+          const { logger } = await import("@elizaos/core");
+          logger?.info?.(
+            `[xClient] Rate limited, waiting ${Math.ceil(waitMs / 1000)}s before retry`,
+          );
         } catch {
-          console.log(`[xClient] Rate limited, waiting ${Math.ceil(waitMs / 1000)}s before retry`);
+          console.log(
+            `[xClient] Rate limited, waiting ${Math.ceil(waitMs / 1000)}s before retry`,
+          );
         }
         await new Promise((r) => setTimeout(r, waitMs));
         return this.get<T>(path, { ...options, retried: true });
@@ -350,7 +381,7 @@ export class XClientService {
       throw error;
     }
 
-    const data = await response.json() as T;
+    const data = (await response.json()) as T;
 
     // Cache the result (per-request TTL when provided)
     if (cacheKey && this.cacheEnabled) {
@@ -385,22 +416,26 @@ export class XClientService {
     if (!state) return;
 
     if (state.remaining <= 1 && Date.now() < state.reset * 1000) {
-      const waitMs = (state.reset * 1000) - Date.now() + 1000;
+      const waitMs = state.reset * 1000 - Date.now() + 1000;
       try {
-        const { logger } = await import('@elizaos/core');
-        logger?.info?.(`[xClient] Rate limit hit, waiting ${Math.ceil(waitMs / 1000)}s`);
+        const { logger } = await import("@elizaos/core");
+        logger?.info?.(
+          `[xClient] Rate limit hit, waiting ${Math.ceil(waitMs / 1000)}s`,
+        );
       } catch {
-        console.log(`[xClient] Rate limit hit, waiting ${Math.ceil(waitMs / 1000)}s`);
+        console.log(
+          `[xClient] Rate limit hit, waiting ${Math.ceil(waitMs / 1000)}s`,
+        );
       }
-      await new Promise(resolve => setTimeout(resolve, waitMs));
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
   }
 
   private updateRateLimitState(path: string, response: Response): void {
     const endpoint = this.getEndpointGroup(path);
-    const remaining = response.headers.get('x-rate-limit-remaining');
-    const reset = response.headers.get('x-rate-limit-reset');
-    const limit = response.headers.get('x-rate-limit-limit');
+    const remaining = response.headers.get("x-rate-limit-remaining");
+    const reset = response.headers.get("x-rate-limit-reset");
+    const limit = response.headers.get("x-rate-limit-limit");
 
     if (remaining && reset) {
       this.rateLimits.set(endpoint, {
@@ -413,12 +448,12 @@ export class XClientService {
 
   private getEndpointGroup(path: string): string {
     // Group endpoints for rate limiting
-    if (path.includes('/tweets/search')) return 'search';
-    if (path.includes('/tweets/counts')) return 'counts';
-    if (path.includes('/users')) return 'users';
-    if (path.includes('/lists')) return 'lists';
-    if (path.includes('/news')) return 'news';
-    return 'default';
+    if (path.includes("/tweets/search")) return "search";
+    if (path.includes("/tweets/counts")) return "counts";
+    if (path.includes("/users")) return "users";
+    if (path.includes("/lists")) return "lists";
+    if (path.includes("/news")) return "news";
+    return "default";
   }
 
   private async handleError(response: Response): Promise<XClientError> {
@@ -431,17 +466,19 @@ export class XClientService {
 
     let message = body.detail ?? body.title ?? `HTTP ${response.status}`;
     if (response.status === 401) {
-      message = 'X API authentication failed. Check that your Bearer token is valid and has the required permissions.';
+      message =
+        "X API authentication failed. Check that your Bearer token is valid and has the required permissions.";
     } else if (response.status === 403) {
-      message = 'Access denied. Check your token and project access level for this endpoint.';
+      message =
+        "Access denied. Check your token and project access level for this endpoint.";
     }
 
     const error = new Error(message) as XClientError;
     error.status = response.status;
 
     if (response.status === 429) {
-      error.code = 'RATE_LIMITED';
-      const reset = response.headers.get('x-rate-limit-reset');
+      error.code = "RATE_LIMITED";
+      const reset = response.headers.get("x-rate-limit-reset");
       if (reset) error.rateLimitReset = parseInt(reset, 10);
     }
 
@@ -477,7 +514,7 @@ interface SearchOptions {
   startTime?: string;
   endTime?: string;
   nextToken?: string;
-  sortOrder?: 'recency' | 'relevancy';
+  sortOrder?: "recency" | "relevancy";
   tweetFields?: string;
   userFields?: string;
   expansions?: string;
@@ -486,7 +523,7 @@ interface SearchOptions {
 }
 
 interface CountsOptions {
-  granularity?: 'minute' | 'hour' | 'day';
+  granularity?: "minute" | "hour" | "day";
   startTime?: string;
   endTime?: string;
 }
@@ -534,10 +571,12 @@ export function getXClient(config?: XClientConfig): XClientService {
       return getXClient({ bearerToken: lastInitializedToken });
     }
     if (clientsByToken.size === 0) {
-      throw new Error('XClientService not initialized. Call initXClientFromEnv(runtime) first.');
+      throw new Error(
+        "XClientService not initialized. Call initXClientFromEnv(runtime) first.",
+      );
     }
     const client = clientsByToken.values().next().value;
-    if (!client) throw new Error('XClientService not initialized.');
+    if (!client) throw new Error("XClientService not initialized.");
     return client;
   }
   if (!clientsByToken.has(config.bearerToken)) {
@@ -552,8 +591,8 @@ export function getXClient(config?: XClientConfig): XClientService {
  */
 function getBearerTokenForAgent(agentName?: string): string {
   const name = agentName?.toLowerCase();
-  const isEliza = name === 'eliza';
-  const isEcho = name === 'echo';
+  const isEliza = name === "eliza";
+  const isEcho = name === "echo";
   let token: string | undefined;
   if (isEliza && process.env.ELIZA_X_BEARER_TOKEN?.trim()) {
     token = process.env.ELIZA_X_BEARER_TOKEN.trim();
@@ -565,10 +604,10 @@ function getBearerTokenForAgent(agentName?: string): string {
   if (!token) {
     throw new Error(
       isEliza
-        ? 'X API token required. Set ELIZA_X_BEARER_TOKEN or X_BEARER_TOKEN.'
+        ? "X API token required. Set ELIZA_X_BEARER_TOKEN or X_BEARER_TOKEN."
         : isEcho
-          ? 'X API token required. Set ECHO_X_BEARER_TOKEN or X_BEARER_TOKEN.'
-          : 'X_BEARER_TOKEN environment variable is required'
+          ? "X API token required. Set ECHO_X_BEARER_TOKEN or X_BEARER_TOKEN."
+          : "X_BEARER_TOKEN environment variable is required",
     );
   }
   return token;
@@ -578,7 +617,9 @@ function getBearerTokenForAgent(agentName?: string): string {
  * Initialize the X client from environment. Pass runtime so Eliza uses ELIZA_X_BEARER_TOKEN and ECHO uses ECHO_X_BEARER_TOKEN when set (avoids rate limits).
  * Sets the "current" token so getXClient() with no config returns this client for the rest of the request.
  */
-export function initXClientFromEnv(runtime?: { character?: { name?: string } }): XClientService {
+export function initXClientFromEnv(runtime?: {
+  character?: { name?: string };
+}): XClientService {
   const agentName = runtime?.character?.name;
   const bearerToken = getBearerTokenForAgent(agentName);
   lastInitializedToken = bearerToken;

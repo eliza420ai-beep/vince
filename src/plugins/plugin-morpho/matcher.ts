@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for Morpho plugin context activation
@@ -7,13 +10,29 @@ import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin
 export const morphoKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
     // Lending operations
-    "lend", "borrow", "supply", "withdraw", "morpho", "lending", "collateral",
+    "lend",
+    "borrow",
+    "supply",
+    "withdraw",
+    "morpho",
+    "lending",
+    "collateral",
     // APY and rates
-    "apy", "rate", "deposit", "loan", "interest", "yield",
+    "apy",
+    "rate",
+    "deposit",
+    "loan",
+    "interest",
+    "yield",
     // Market operations
-    "market", "vault", "pool",
+    "market",
+    "vault",
+    "pool",
     // Position management
-    "position", "exposure", "ltv", "liquidation",
+    "position",
+    "exposure",
+    "ltv",
+    "liquidation",
   ],
   regexPatterns: [
     /lend.*to/i,
@@ -44,7 +63,10 @@ export const morphoKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldMorphoPluginBeInContext(state?: State, message?: Memory): boolean {
+export function shouldMorphoPluginBeInContext(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, morphoKeywordPatterns, message);
 }

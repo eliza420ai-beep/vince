@@ -48,17 +48,20 @@ export const getTokenInfoAction: Action = {
   parameters: {
     conditionId: {
       type: "string",
-      description: "Market condition ID (hex string, 0x...). Required unless tokenId is provided.",
+      description:
+        "Market condition ID (hex string, 0x...). Required unless tokenId is provided.",
       required: false,
     },
     tokenId: {
       type: "string",
-      description: "Token ID for the market (alternative to conditionId; conditionId is preferred).",
+      description:
+        "Token ID for the market (alternative to conditionId; conditionId is preferred).",
       required: false,
     },
     walletAddress: {
       type: "string",
-      description: "Wallet address to include this market's position and orders (optional).",
+      description:
+        "Wallet address to include this market's position and orders (optional).",
       required: false,
     },
   },
@@ -67,17 +70,19 @@ export const getTokenInfoAction: Action = {
     try {
       if (!shouldPolymarketPluginBeInContext(state, message)) return false;
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
       if (!service) {
-        logger.warn("[GET_POLYMARKET_TOKEN_INFO] Polymarket service not available");
+        logger.warn(
+          "[GET_POLYMARKET_TOKEN_INFO] Polymarket service not available",
+        );
         return false;
       }
       return true;
     } catch (error) {
       logger.error(
         "[GET_POLYMARKET_TOKEN_INFO] Error validating:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -88,31 +93,62 @@ export const getTokenInfoAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      let params = (composedState?.data?.actionParams ?? {}) as Partial<GetTokenInfoParams>;
-      let conditionId = (params.conditionId ?? params.condition_id ?? params.tokenId)?.trim();
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      let params = (composedState?.data?.actionParams ??
+        {}) as Partial<GetTokenInfoParams>;
+      let conditionId = (
+        params.conditionId ??
+        params.condition_id ??
+        params.tokenId
+      )?.trim();
       let walletAddress = params.walletAddress?.trim();
-      if (!conditionId || (params as Record<string, unknown>).walletAddress === undefined) {
-        const extracted = await extractPolymarketParams(runtime, message, _state, { useLlm: true });
-        if (!conditionId) conditionId = (extracted.conditionId ?? extracted.condition_id ?? extracted.tokenId)?.trim();
-        if (walletAddress === undefined || walletAddress === "") walletAddress = extracted.walletAddress?.trim();
+      if (
+        !conditionId ||
+        (params as Record<string, unknown>).walletAddress === undefined
+      ) {
+        const extracted = await extractPolymarketParams(
+          runtime,
+          message,
+          _state,
+          { useLlm: true },
+        );
+        if (!conditionId)
+          conditionId = (
+            extracted.conditionId ??
+            extracted.condition_id ??
+            extracted.tokenId
+          )?.trim();
+        if (walletAddress === undefined || walletAddress === "")
+          walletAddress = extracted.walletAddress?.trim();
       }
 
       if (!conditionId) {
         const errorMsg = "conditionId or tokenId is required";
         callback?.({ text: ` ${errorMsg}.` });
-        return { text: ` ${errorMsg}.`, success: false, error: "missing_condition_id" } as ActionResult;
+        return {
+          text: ` ${errorMsg}.`,
+          success: false,
+          error: "missing_condition_id",
+        } as ActionResult;
       }
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
       if (!service) {
         callback?.({ text: " Polymarket service not available." });
-        return { text: " Polymarket service not available.", success: false, error: "service_unavailable" } as ActionResult;
+        return {
+          text: " Polymarket service not available.",
+          success: false,
+          error: "service_unavailable",
+        } as ActionResult;
       }
 
       callback?.({ text: " Fetching full market info and prices..." });
@@ -120,14 +156,18 @@ export const getTokenInfoAction: Action = {
       const [market, prices, priceHistory] = await Promise.all([
         service.getMarketDetail(conditionId),
         service.getMarketPrices(conditionId),
-        service.getMarketPriceHistory(conditionId, "YES", "1d").catch(() => null as MarketPriceHistory | null),
+        service
+          .getMarketPriceHistory(conditionId, "YES", "1d")
+          .catch(() => null as MarketPriceHistory | null),
       ]);
 
       let positionsForMarket: Position[] = [];
       if (walletAddress) {
         try {
           const allPositions = await service.getUserPositions(walletAddress);
-          positionsForMarket = allPositions.filter((p) => p.conditionId === conditionId);
+          positionsForMarket = allPositions.filter(
+            (p) => p.conditionId === conditionId,
+          );
         } catch {
           positionsForMarket = [];
         }
@@ -184,10 +224,14 @@ export const getTokenInfoAction: Action = {
             ? {
                 data_points_count: priceHistory.data_points?.length ?? 0,
                 start_price: priceHistory.data_points?.[0]?.price,
-                end_price: priceHistory.data_points?.[priceHistory.data_points.length - 1]?.price,
+                end_price:
+                  priceHistory.data_points?.[
+                    priceHistory.data_points.length - 1
+                  ]?.price,
               }
             : null,
-          user_positions: positionsForMarket.length > 0 ? positionsForMarket : undefined,
+          user_positions:
+            positionsForMarket.length > 0 ? positionsForMarket : undefined,
         },
         input: { conditionId, walletAddress: walletAddress ?? undefined },
       };
@@ -206,8 +250,17 @@ export const getTokenInfoAction: Action = {
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "tell me everything about the Bitcoin 100k market" } },
-      { name: "{{agent}}", content: { text: " Fetching full market info...", action: "GET_POLYMARKET_TOKEN_INFO" } },
+      {
+        name: "{{user}}",
+        content: { text: "tell me everything about the Bitcoin 100k market" },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: " Fetching full market info...",
+          action: "GET_POLYMARKET_TOKEN_INFO",
+        },
+      },
     ],
   ],
 };

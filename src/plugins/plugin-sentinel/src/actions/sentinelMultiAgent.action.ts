@@ -57,7 +57,7 @@ const MULTI_AGENT_TRIGGERS = [
 
 function wantsMultiAgent(text: string): boolean {
   const lower = text.toLowerCase();
-  return MULTI_AGENT_TRIGGERS.some(t => lower.includes(t));
+  return MULTI_AGENT_TRIGGERS.some((t) => lower.includes(t));
 }
 
 export const sentinelMultiAgentAction: Action = {
@@ -72,7 +72,10 @@ export const sentinelMultiAgentAction: Action = {
   description:
     "Deep knowledge of the VINCE multi-agent architecture: ASK_AGENT, standups, Option C Discord, deliverables, A2A policy, feedback flow, and the north star feeling.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsMultiAgent(text);
   },
@@ -93,12 +96,14 @@ export const sentinelMultiAgentAction: Action = {
       // Specific queries
       if (lower.includes("a2a policy") || lower.includes("allowedtargets")) {
         // Extract agent name if mentioned
-        const agentMatch = userText.match(/(?:for|about)\s+(vince|kelly|solus|eliza|otaku|sentinel)/i);
+        const agentMatch = userText.match(
+          /(?:for|about)\s+(vince|kelly|solus|eliza|otaku|sentinel)/i,
+        );
         const agentName = agentMatch?.[1] || "Kelly";
-        
+
         const template = getA2APolicyTemplate(agentName);
         const roles = getAgentRoles();
-        
+
         await callback({
           text: `🔗 **A2A Policy (Agent-to-Agent)**
 
@@ -110,7 +115,7 @@ ${template}
 \`\`\`
 
 **All Agent A2A Relationships:**
-${roles.map(r => `• **${r.name}** can ask: ${r.canAsk.join(", ")}`).join("\n")}
+${roles.map((r) => `• **${r.name}** can ask: ${r.canAsk.join(", ")}`).join("\n")}
 
 **Key Points:**
 • Configure \`settings.interAgent.allowedTargets\` per character
@@ -122,9 +127,14 @@ ${roles.map(r => `• **${r.name}** can ask: ${r.canAsk.join(", ")}`).join("\n")
         return { success: true };
       }
 
-      if (lower.includes("standup") && (lower.includes("config") || lower.includes("setup") || lower.includes("how"))) {
+      if (
+        lower.includes("standup") &&
+        (lower.includes("config") ||
+          lower.includes("setup") ||
+          lower.includes("how"))
+      ) {
         const config = getStandupConfigTemplate();
-        
+
         await callback({
           text: `📅 **Standup Configuration**
 
@@ -135,15 +145,19 @@ ${config}
         return { success: true };
       }
 
-      if (lower.includes("dream team") || lower.includes("agent roles") || lower.includes("who does what")) {
+      if (
+        lower.includes("dream team") ||
+        lower.includes("agent roles") ||
+        lower.includes("who does what")
+      ) {
         const roles = getAgentRoles();
-        
+
         await callback({
           text: `👥 **The Dream Team (One Team, One Dream)**
 
 | Agent | Role | Lane |
 |-------|------|------|
-${roles.map(r => `| **${r.name}** | ${r.role} | ${r.lane} |`).join("\n")}
+${roles.map((r) => `| **${r.name}** | ${r.role} | ${r.lane} |`).join("\n")}
 
 **Startup Analogy:**
 • **Eliza** = CEO (strategy, knowledge, content)
@@ -158,9 +172,12 @@ ${roles.map(r => `| **${r.name}** | ${r.role} | ${r.lane} |`).join("\n")}
         return { success: true };
       }
 
-      if (lower.includes("deliverable") || lower.includes("north star deliverable")) {
+      if (
+        lower.includes("deliverable") ||
+        lower.includes("north star deliverable")
+      ) {
         const deliverables = getDeliverableTypes();
-        
+
         await callback({
           text: `📦 **North Star Deliverables**
 
@@ -168,7 +185,7 @@ These define **success** for the standup and content pipeline:
 
 | Type | Owner | Output |
 |------|-------|--------|
-${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).join("\n")}
+${deliverables.map((d) => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).join("\n")}
 
 **How they're produced:**
 • Standup parses action items by type (essay, tweets, prd, etc.)
@@ -206,7 +223,10 @@ ${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).j
         return { success: true };
       }
 
-      if (lower.includes("feedback flow") || lower.includes("testing feedback")) {
+      if (
+        lower.includes("feedback flow") ||
+        lower.includes("testing feedback")
+      ) {
         await callback({
           text: `🔄 **Feedback Flow (Planned)**
 
@@ -227,7 +247,10 @@ ${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).j
         return { success: true };
       }
 
-      if (lower.includes("dev worker") || lower.includes("milaidy") && lower.includes("implement")) {
+      if (
+        lower.includes("dev worker") ||
+        (lower.includes("milaidy") && lower.includes("implement"))
+      ) {
         await callback({
           text: `🤖 **Dev Worker Strategy**
 
@@ -259,14 +282,14 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
       const overview = getArchitectureOverview();
       const healthIssues = checkArchitectureHealth();
       const suggestions = getMultiAgentSuggestions(userText);
-      
+
       let response = `🏗️ **Multi-Agent Architecture**\n\n`;
       response += `**North Star:** *${getNorthStarFeeling().slice(0, 150)}...*\n\n`;
-      
+
       // Quick summary
       const roles = getAgentRoles();
-      response += `**Dream Team:** ${roles.map(r => r.name).join(", ")}\n\n`;
-      
+      response += `**Dream Team:** ${roles.map((r) => r.name).join(", ")}\n\n`;
+
       // Architecture concepts
       const concepts = getArchitectureConcepts();
       response += `**Key Concepts:**\n`;
@@ -274,7 +297,7 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
         response += `• **${c.name}:** ${c.description.slice(0, 60)}...\n`;
       }
       response += `\n`;
-      
+
       // Health check
       if (healthIssues.length > 0) {
         response += `**⚠️ Configuration Issues:**\n`;
@@ -283,7 +306,7 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
         }
         response += `\n`;
       }
-      
+
       // Suggestions
       if (suggestions.length > 0) {
         response += `**💡 Suggestions:**\n`;
@@ -291,9 +314,9 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
           response += `• ${s}\n`;
         }
       }
-      
+
       response += `\n---\n*Ask about specific topics: "a2a policy", "standup config", "dream team", "option c discord", "feedback flow", "dev worker"*`;
-      
+
       const out = "Here's the multi-agent picture—\n\n" + response;
       await callback({ text: out });
       return { success: true };
@@ -302,13 +325,19 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
       await callback({
         text: "Failed to provide multi-agent guidance. Check MULTI_AGENT.md for the full architecture vision.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Tell me about the multi-agent architecture" } },
+      {
+        name: "{{user}}",
+        content: { text: "Tell me about the multi-agent architecture" },
+      },
       {
         name: "{{agent}}",
         content: {

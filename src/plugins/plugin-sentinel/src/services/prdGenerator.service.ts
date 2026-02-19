@@ -62,7 +62,8 @@ const ARCHITECTURE_RULES = [
 
 // Project context we always include
 const PROJECT_CONTEXT = {
-  northStar: "Push, not pull. 24/7 market research. Self-improving paper trading bot. One team, one dream.",
+  northStar:
+    "Push, not pull. 24/7 market research. Self-improving paper trading bot. One team, one dream.",
   techStack: "ElizaOS + TypeScript + Bun + Supabase + ONNX",
   agents: [
     { name: "Eliza", lane: "Knowledge, research, content (CEO)" },
@@ -95,23 +96,28 @@ function generatePRDId(): string {
 function getProjectContext(): string {
   try {
     const state = scanProject();
-    
+
     const activePlugins = state.plugins
       .sort((a, b) => b.actionCount - a.actionCount)
       .slice(0, 5)
-      .map(p => `• ${p.name}: ${p.actionCount} actions, ${p.serviceCount} services`)
+      .map(
+        (p) =>
+          `• ${p.name}: ${p.actionCount} actions, ${p.serviceCount} services`,
+      )
       .join("\n");
-    
-    const inProgressWork = state.inProgress
-      .slice(0, 3)
-      .map(i => `• ${i.title}`)
-      .join("\n") || "None tracked";
-    
-    const blockers = state.criticalBlockers
-      .slice(0, 3)
-      .map(b => `• ${b}`)
-      .join("\n") || "None identified";
-    
+
+    const inProgressWork =
+      state.inProgress
+        .slice(0, 3)
+        .map((i) => `• ${i.title}`)
+        .join("\n") || "None tracked";
+
+    const blockers =
+      state.criticalBlockers
+        .slice(0, 3)
+        .map((b) => `• ${b}`)
+        .join("\n") || "None identified";
+
     return `**Active Plugins:**
 ${activePlugins}
 
@@ -136,7 +142,7 @@ function generateNorthStarSection(input: PRDInput): PRDSection {
 This PRD advances the mission by: **${input.description.slice(0, 100)}...**
 
 **Agent Lanes (never overlap):**
-${PROJECT_CONTEXT.agents.map(a => `• **${a.name}:** ${a.lane}`).join("\n")}`,
+${PROJECT_CONTEXT.agents.map((a) => `• **${a.name}:** ${a.lane}`).join("\n")}`,
   };
 }
 
@@ -145,7 +151,7 @@ ${PROJECT_CONTEXT.agents.map(a => `• **${a.name}:** ${a.lane}`).join("\n")}`,
  */
 function generateGoalSection(input: PRDInput): PRDSection {
   const plugin = input.plugin ? `\n**Target Plugin:** \`${input.plugin}\`` : "";
-  
+
   return {
     heading: "📋 Goal & Scope",
     content: `**Title:** ${input.title}
@@ -166,7 +172,7 @@ ${input.description}
  */
 function generateUserStorySection(input: PRDInput): PRDSection {
   const requestedBy = input.requestedBy || "the team";
-  
+
   return {
     heading: "👤 User Story",
     content: `**As** ${requestedBy}
@@ -174,7 +180,7 @@ function generateUserStorySection(input: PRDInput): PRDSection {
 **So that** I can ${input.description.split(".")[0].toLowerCase()}
 
 **Primary Actor:** Developer / Claude Code
-**Secondary Actors:** Agents (${PROJECT_CONTEXT.agents.map(a => a.name).join(", ")})`,
+**Secondary Actors:** Agents (${PROJECT_CONTEXT.agents.map((a) => a.name).join(", ")})`,
   };
 }
 
@@ -206,10 +212,10 @@ function generateSuccessCriteriaSection(input: PRDInput): PRDSection {
  */
 function generateTechnicalSpecSection(input: PRDInput): PRDSection {
   const plugin = input.plugin || "plugin-vince";
-  const deps = input.dependencies?.length 
-    ? `\n**Dependencies:**\n${input.dependencies.map(d => `• ${d}`).join("\n")}`
+  const deps = input.dependencies?.length
+    ? `\n**Dependencies:**\n${input.dependencies.map((d) => `• ${d}`).join("\n")}`
     : "";
-  
+
   return {
     heading: "🔧 Technical Specification",
     content: `**Tech Stack:** ${PROJECT_CONTEXT.techStack}
@@ -230,7 +236,7 @@ ${getProjectContext()}`,
  */
 function generateImplementationGuideSection(input: PRDInput): PRDSection {
   const plugin = input.plugin || "plugin-vince";
-  
+
   return {
     heading: "🛠 Implementation Guide (for Claude Code)",
     content: `**Step-by-step:**
@@ -268,7 +274,7 @@ function generateImplementationGuideSection(input: PRDInput): PRDSection {
  */
 function generateTestingSection(input: PRDInput): PRDSection {
   const plugin = input.plugin || "plugin-vince";
-  
+
   return {
     heading: "🧪 Testing & Validation",
     content: `**Unit Tests:**
@@ -319,10 +325,10 @@ function generateOutOfScopeSection(input: PRDInput): PRDSection {
  */
 export function generatePRD(input: PRDInput): PRD {
   logger.info(`[PRDGenerator] Creating PRD: ${input.title}`);
-  
+
   const id = generatePRDId();
   const now = new Date().toISOString();
-  
+
   const sections: PRDSection[] = [
     generateNorthStarSection(input),
     generateGoalSection(input),
@@ -333,7 +339,7 @@ export function generatePRD(input: PRDInput): PRD {
     generateTestingSection(input),
     generateOutOfScopeSection(input),
   ];
-  
+
   // Build markdown
   const markdown = `# ${input.title}
 
@@ -345,13 +351,13 @@ export function generatePRD(input: PRDInput): PRD {
 
 ---
 
-${sections.map(s => `## ${s.heading}\n\n${s.content}`).join("\n\n---\n\n")}
+${sections.map((s) => `## ${s.heading}\n\n${s.content}`).join("\n\n---\n\n")}
 
 ---
 
 *Generated by Sentinel PRD Generator. Keep the architecture as good as it gets.*
 `;
-  
+
   return {
     id,
     title: input.title,
@@ -369,27 +375,34 @@ ${sections.map(s => `## ${s.heading}\n\n${s.content}`).join("\n\n---\n\n")}
  */
 export function savePRD(prd: PRD): string {
   const date = new Date().toISOString().slice(0, 10);
-  const slug = prd.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 50);
+  const slug = prd.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 50);
   const filename = `${date}-prd-${slug}.md`;
   const filepath = path.join(PRD_OUTPUT_DIR, filename);
-  
+
   // Ensure directory exists
   if (!fs.existsSync(PRD_OUTPUT_DIR)) {
     fs.mkdirSync(PRD_OUTPUT_DIR, { recursive: true });
   }
-  
+
   fs.writeFileSync(filepath, prd.markdown);
   logger.info(`[PRDGenerator] Saved PRD to ${filepath}`);
-  
+
   return filepath;
 }
 
 /**
  * Generate a quick task brief (shorter than full PRD)
  */
-export function generateTaskBrief(title: string, description: string, plugin?: string): string {
+export function generateTaskBrief(
+  title: string,
+  description: string,
+  plugin?: string,
+): string {
   const pluginTarget = plugin || "plugin-vince";
-  
+
   return `**Task:** ${title}
 
 **Description:** ${description}
@@ -414,14 +427,19 @@ export function generateTaskBrief(title: string, description: string, plugin?: s
 /**
  * List existing PRDs
  */
-export function listPRDs(): Array<{ filename: string; path: string; created: Date }> {
+export function listPRDs(): Array<{
+  filename: string;
+  path: string;
+  created: Date;
+}> {
   if (!fs.existsSync(PRD_OUTPUT_DIR)) {
     return [];
   }
-  
-  return fs.readdirSync(PRD_OUTPUT_DIR)
-    .filter(f => f.endsWith(".md") && f.includes("-prd-"))
-    .map(filename => {
+
+  return fs
+    .readdirSync(PRD_OUTPUT_DIR)
+    .filter((f) => f.endsWith(".md") && f.includes("-prd-"))
+    .map((filename) => {
       const filepath = path.join(PRD_OUTPUT_DIR, filename);
       const stat = fs.statSync(filepath);
       return { filename, path: filepath, created: stat.mtime };
@@ -434,23 +452,25 @@ export function listPRDs(): Array<{ filename: string; path: string; created: Dat
  */
 export function generatePRDFromRequest(request: string): PRD {
   // Parse the request to extract key info
-  const titleMatch = request.match(/(?:build|create|add|implement|make)\s+(?:a\s+)?(.+?)(?:\s+(?:that|which|for|to|in))/i);
+  const titleMatch = request.match(
+    /(?:build|create|add|implement|make)\s+(?:a\s+)?(.+?)(?:\s+(?:that|which|for|to|in))/i,
+  );
   const title = titleMatch?.[1]?.trim() || request.slice(0, 50);
-  
+
   const pluginMatch = request.match(/(?:in|for)\s+(plugin-[a-z-]+)/i);
   const plugin = pluginMatch?.[1];
-  
+
   // Determine priority from keywords
   let priority: PRDInput["priority"] = "P1";
   if (/urgent|critical|asap|blocker/i.test(request)) priority = "P0";
   if (/nice to have|later|low priority/i.test(request)) priority = "P2";
-  
+
   // Determine effort from keywords
   let effort: PRDInput["estimatedEffort"] = "M";
   if (/small|quick|minor|simple/i.test(request)) effort = "S";
   if (/large|major|complex|rewrite/i.test(request)) effort = "L";
   if (/huge|massive|epic/i.test(request)) effort = "XL";
-  
+
   return generatePRD({
     title: title.charAt(0).toUpperCase() + title.slice(1),
     description: request,

@@ -103,15 +103,37 @@ describe("WTT → Paper Bot: wttRubricToSignal", () => {
   });
 
   it("handles all rubric string values without throwing", () => {
-    const alignments = ["direct", "pure_play", "exposed", "partial", "tangential"] as const;
+    const alignments = [
+      "direct",
+      "pure_play",
+      "exposed",
+      "partial",
+      "tangential",
+    ] as const;
     const edges = ["undiscovered", "emerging", "consensus", "crowded"] as const;
-    const payoffs = ["max_asymmetry", "high", "moderate", "linear", "capped"] as const;
-    const timings = ["very_forgiving", "forgiving", "punishing", "very_punishing"] as const;
+    const payoffs = [
+      "max_asymmetry",
+      "high",
+      "moderate",
+      "linear",
+      "capped",
+    ] as const;
+    const timings = [
+      "very_forgiving",
+      "forgiving",
+      "punishing",
+      "very_punishing",
+    ] as const;
     for (const a of alignments) {
       for (const e of edges) {
         for (const p of payoffs) {
           for (const t of timings) {
-            const out = wttRubricToSignal({ alignment: a, edge: e, payoffShape: p, timingForgiveness: t });
+            const out = wttRubricToSignal({
+              alignment: a,
+              edge: e,
+              payoffShape: p,
+              timingForgiveness: t,
+            });
             expect(typeof out.strength).toBe("number");
             expect(typeof out.confidence).toBe("number");
           }
@@ -185,18 +207,30 @@ describe("WTT → Paper Bot: isWttEnabled", () => {
   });
 
   it("returns true when vince_paper_wtt_enabled is true (boolean)", () => {
-    const runtime = createMockRuntime({ settings: { vince_paper_wtt_enabled: true } });
+    const runtime = createMockRuntime({
+      settings: { vince_paper_wtt_enabled: true },
+    });
     expect(isWttEnabled(runtime)).toBe(true);
   });
 
   it("returns true when vince_paper_wtt_enabled is the string 'true'", () => {
-    const runtime = createMockRuntime({ settings: { vince_paper_wtt_enabled: "true" } });
+    const runtime = createMockRuntime({
+      settings: { vince_paper_wtt_enabled: "true" },
+    });
     expect(isWttEnabled(runtime)).toBe(true);
   });
 
   it("returns false when vince_paper_wtt_enabled is false or other", () => {
-    expect(isWttEnabled(createMockRuntime({ settings: { vince_paper_wtt_enabled: false } }))).toBe(false);
-    expect(isWttEnabled(createMockRuntime({ settings: { vince_paper_wtt_enabled: "false" } }))).toBe(false);
+    expect(
+      isWttEnabled(
+        createMockRuntime({ settings: { vince_paper_wtt_enabled: false } }),
+      ),
+    ).toBe(false);
+    expect(
+      isWttEnabled(
+        createMockRuntime({ settings: { vince_paper_wtt_enabled: "false" } }),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -219,8 +253,12 @@ describe("WTT → Paper Bot: parseWttInvalidateCondition", () => {
 
   it("parses 65k as 65000, 1.5M as 1.5e6", () => {
     expect(parseWttInvalidateCondition("BTC", 60_000, "BTC < 65k")).toBe(true);
-    expect(parseWttInvalidateCondition("BTC", 1_400_000, "BTC < 1.5M")).toBe(true);
-    expect(parseWttInvalidateCondition("BTC", 1_600_000, "BTC < 1.5M")).toBe(false);
+    expect(parseWttInvalidateCondition("BTC", 1_400_000, "BTC < 1.5M")).toBe(
+      true,
+    );
+    expect(parseWttInvalidateCondition("BTC", 1_600_000, "BTC < 1.5M")).toBe(
+      false,
+    );
   });
 
   it("above $X / below $X (no ticker)", () => {
@@ -233,7 +271,9 @@ describe("WTT → Paper Bot: parseWttInvalidateCondition", () => {
   it("returns false when condition does not match asset or pattern", () => {
     expect(parseWttInvalidateCondition("ETH", 64_000, "BTC < 65k")).toBe(false);
     expect(parseWttInvalidateCondition("BTC", 64_000, "ETH < 65k")).toBe(false);
-    expect(parseWttInvalidateCondition("BTC", 64_000, "dies if sentiment flips")).toBe(false);
+    expect(
+      parseWttInvalidateCondition("BTC", 64_000, "dies if sentiment flips"),
+    ).toBe(false);
   });
 
   it("is case-insensitive for asset and condition", () => {
@@ -349,22 +389,19 @@ describe("WTT → Paper Bot: Feature store wtt block and invalidateHit", () => {
     });
     expect(recordId).toBeTruthy();
     const posId = "test-position-nvda";
-    await store.recordExecution(
-      recordId,
-      {
-        id: posId,
-        asset: "NVDA",
-        direction: "long",
-        status: "open",
-        entryPrice: 850,
-        sizeUsd: 1000,
-        leverage: 2,
-        stopLossPrice: 800,
-        takeProfitPrices: [900, 950],
-        openAt: Date.now(),
-        signal: {} as any,
-      } as any,
-    );
+    await store.recordExecution(recordId, {
+      id: posId,
+      asset: "NVDA",
+      direction: "long",
+      status: "open",
+      entryPrice: 850,
+      sizeUsd: 1000,
+      leverage: 2,
+      stopLossPrice: 800,
+      takeProfitPrices: [900, 950],
+      openAt: Date.now(),
+      signal: {} as any,
+    } as any);
     await store.recordOutcome(posId, {
       exitPrice: 750,
       realizedPnl: -100,
@@ -403,22 +440,19 @@ describe("WTT → Paper Bot: Feature store wtt block and invalidateHit", () => {
       },
     });
     const posId = "test-position-sol";
-    await store.recordExecution(
-      recordId,
-      {
-        id: posId,
-        asset: "SOL",
-        direction: "short",
-        status: "open",
-        entryPrice: 180,
-        sizeUsd: 500,
-        leverage: 1,
-        stopLossPrice: 200,
-        takeProfitPrices: [160],
-        openAt: Date.now(),
-        signal: {} as any,
-      } as any,
-    );
+    await store.recordExecution(recordId, {
+      id: posId,
+      asset: "SOL",
+      direction: "short",
+      status: "open",
+      entryPrice: 180,
+      sizeUsd: 500,
+      leverage: 1,
+      stopLossPrice: 200,
+      takeProfitPrices: [160],
+      openAt: Date.now(),
+      signal: {} as any,
+    } as any);
     await store.recordOutcome(posId, {
       exitPrice: 170,
       realizedPnl: 50,
@@ -428,7 +462,12 @@ describe("WTT → Paper Bot: Feature store wtt block and invalidateHit", () => {
       holdingPeriodMs: 120_000,
     });
     const records = store.getRecentRecords(10);
-    const solRecord = records.find((r) => r.asset === "SOL" && r.outcome && r.wtt?.invalidateCondition === "SOL > 200");
+    const solRecord = records.find(
+      (r) =>
+        r.asset === "SOL" &&
+        r.outcome &&
+        r.wtt?.invalidateCondition === "SOL > 200",
+    );
     expect(solRecord?.wtt?.invalidateHit).toBe(false);
   });
 });

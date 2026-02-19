@@ -357,7 +357,9 @@ export const WTT_UNIVERSE_TICKERS = [...CORE_ASSETS, ...HIP3_ASSETS] as const;
 export type WttUniverseAsset = (typeof WTT_UNIVERSE_TICKERS)[number];
 
 /** Comma-separated label for prompt injection (e.g. "BTC, ETH, SOL, HYPE, GOLD, ..."). */
-export const WTT_UNIVERSE_LABEL = (WTT_UNIVERSE_TICKERS as readonly string[]).join(", ");
+export const WTT_UNIVERSE_LABEL = (
+  WTT_UNIVERSE_TICKERS as readonly string[]
+).join(", ");
 
 /** WTT ticker aliases -> paper bot asset (e.g. GOOG -> GOOGL) */
 const WTT_TICKER_ALIASES: Record<string, string> = {
@@ -373,5 +375,7 @@ export function normalizeWttTicker(ticker: string): string | null {
   const upper = ticker.trim().toUpperCase();
   if (!upper) return null;
   const resolved = WTT_TICKER_ALIASES[upper] ?? upper;
-  return (ALL_TRACKED_ASSETS as readonly string[]).includes(resolved) ? resolved : null;
+  return (ALL_TRACKED_ASSETS as readonly string[]).includes(resolved)
+    ? resolved
+    : null;
 }

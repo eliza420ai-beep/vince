@@ -12,12 +12,23 @@ import {
   openclawWorkspaceSyncAction,
 } from "../index";
 import { openclawContextProvider } from "../providers/openclawContext.provider";
-import { createMockRuntime, createMockMessage, createMockState } from "./test-utils";
+import {
+  createMockRuntime,
+  createMockMessage,
+  createMockState,
+} from "./test-utils";
 
 const runtime = createMockRuntime();
 
-async function getActionText(action: { handler: (r: any, m: any, s: any, o: any, cb?: any) => Promise<any> }): Promise<string> {
-  const result = await action.handler(runtime, createMockMessage("x"), createMockState(), undefined);
+async function getActionText(action: {
+  handler: (r: any, m: any, s: any, o: any, cb?: any) => Promise<any>;
+}): Promise<string> {
+  const result = await action.handler(
+    runtime,
+    createMockMessage("x"),
+    createMockState(),
+    undefined,
+  );
   return result.text ?? "";
 }
 
@@ -47,7 +58,9 @@ describe("content-quality", () => {
     expect(text).toContain("2027");
     expect(text).toContain("superhuman");
     expect(text).toContain("research agents");
-    expect(text.includes("OpenClaw") || text.includes("openclaw-agents")).toBe(true);
+    expect(text.includes("OpenClaw") || text.includes("openclaw-agents")).toBe(
+      true,
+    );
   });
 
   it("HIP-3 contains NVDA, GOOGL, OPENAI, ANTHROPIC, vntl, xyz, Hyperliquid", async () => {
@@ -80,7 +93,11 @@ describe("content-quality", () => {
 
   it("at least one action or provider text points to releases, clawindex, steipete", async () => {
     const setupText = await getActionText(openclawSetupGuideAction);
-    const providerResult = await openclawContextProvider.get(runtime, createMockMessage("openclaw"), createMockState());
+    const providerResult = await openclawContextProvider.get(
+      runtime,
+      createMockMessage("openclaw"),
+      createMockState(),
+    );
     const providerText = providerResult.text ?? "";
     const combined = setupText + " " + providerText;
     expect(combined).toContain("github.com/openclaw/openclaw/releases");

@@ -94,7 +94,10 @@ function labelFromCode(code: number): string {
 /** Re-export from safety for local use. */
 const isRainOrStorm = (code: number): boolean => isRainOrStormCode(code);
 
-async function fetchCurrent(lat: number, lon: number): Promise<{
+async function fetchCurrent(
+  lat: number,
+  lon: number,
+): Promise<{
   weather_code: number;
   temperature_2m: number;
   precipitation: number;
@@ -196,24 +199,38 @@ export const weatherProvider: Provider = {
       const cond = labelFromCode(bdx.weather_code);
       const temp = Math.round(bdx.temperature_2m);
       parts.push(`Bordeaux: ${cond}, ${temp}°C`);
-      values.weatherBordeaux = { condition: cond, temp: temp, code: bdx.weather_code };
+      values.weatherBordeaux = {
+        condition: cond,
+        temp: temp,
+        code: bdx.weather_code,
+      };
     }
     if (biarritz) {
       const cond = labelFromCode(biarritz.weather_code);
       const temp = Math.round(biarritz.temperature_2m);
       parts.push(`Biarritz: ${cond}, ${temp}°C`);
-      values.weatherBiarritz = { condition: cond, temp: temp, code: biarritz.weather_code };
+      values.weatherBiarritz = {
+        condition: cond,
+        temp: temp,
+        code: biarritz.weather_code,
+      };
     }
     if (home) {
       const cond = labelFromCode(home.weather_code);
       const temp = Math.round(home.temperature_2m);
       parts.push(`Local: ${cond}, ${temp}°C`);
-      values.weatherHome = { condition: cond, temp: temp, code: home.weather_code };
+      values.weatherHome = {
+        condition: cond,
+        temp: temp,
+        code: home.weather_code,
+      };
     }
 
-    const allCodes = [bdx?.weather_code, biarritz?.weather_code, home?.weather_code].filter(
-      (c): c is number => c !== undefined && c !== null,
-    );
+    const allCodes = [
+      bdx?.weather_code,
+      biarritz?.weather_code,
+      home?.weather_code,
+    ].filter((c): c is number => c !== undefined && c !== null);
     const rainOrStorm = allCodes.some(isRainOrStorm);
     const snow = allCodes.some(isSnowCode);
     const fog = allCodes.some(isFogCode);

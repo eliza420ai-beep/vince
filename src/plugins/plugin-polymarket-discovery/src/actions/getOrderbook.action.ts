@@ -15,7 +15,11 @@ import {
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
-import { extractActionParams, validatePolymarketService, getPolymarketService } from "../utils/actionHelpers";
+import {
+  extractActionParams,
+  validatePolymarketService,
+  getPolymarketService,
+} from "../utils/actionHelpers";
 
 interface GetOrderbookParams {
   tokenId?: string;
@@ -45,18 +49,25 @@ export const getOrderbookAction: Action = {
   parameters: {
     token_id: {
       type: "string",
-      description: "The ERC1155 token ID for YES or NO outcome. This is a large numeric string (e.g., '15974786252393396629980467963784550802583781222733347534844974829144359265969'). Get this from SEARCH_POLYMARKETS or GET_POLYMARKET_DETAIL. This is different from condition_id!",
+      description:
+        "The ERC1155 token ID for YES or NO outcome. This is a large numeric string (e.g., '15974786252393396629980467963784550802583781222733347534844974829144359265969'). Get this from SEARCH_POLYMARKETS or GET_POLYMARKET_DETAIL. This is different from condition_id!",
       required: true,
     },
     side: {
       type: "string",
-      description: "Optional: Filter to BUY or SELL side only. BUY shows buyers, SELL shows sellers.",
+      description:
+        "Optional: Filter to BUY or SELL side only. BUY shows buyers, SELL shows sellers.",
       required: false,
     },
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_ORDERBOOK", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_ORDERBOOK",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -64,13 +75,16 @@ export const getOrderbookAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_ORDERBOOK] Getting orderbook");
 
       // Extract parameters
-      const params = await extractActionParams<GetOrderbookParams>(runtime, message);
+      const params = await extractActionParams<GetOrderbookParams>(
+        runtime,
+        message,
+      );
 
       // Normalize token_id (support both snake_case and camelCase)
       const tokenId = (params.token_id || params.tokenId)?.trim();
@@ -97,9 +111,10 @@ export const getOrderbookAction: Action = {
       // 2. Hex strings starting with 0x
       const isDecimalFormat = /^\d+$/.test(tokenId) && tokenId.length >= 10;
       const isHexFormat = /^0x[a-fA-F0-9]+$/.test(tokenId);
-      
+
       if (!isDecimalFormat && !isHexFormat) {
-        const errorMsg = "Invalid token ID format (expected large numeric or hex 0x...)";
+        const errorMsg =
+          "Invalid token ID format (expected large numeric or hex 0x...)";
         logger.error(`[GET_POLYMARKET_ORDERBOOK] ${errorMsg}`);
         const errorResult: GetOrderbookActionResult = {
           text: ` ${errorMsg}. Please provide a valid token ID from market detail or search.`,
@@ -153,7 +168,9 @@ export const getOrderbookAction: Action = {
       }
 
       // Fetch orderbook
-      logger.info(`[GET_POLYMARKET_ORDERBOOK] Fetching orderbook for ${tokenId}${side ? ` (${side} side)` : ""}`);
+      logger.info(
+        `[GET_POLYMARKET_ORDERBOOK] Fetching orderbook for ${tokenId}${side ? ` (${side} side)` : ""}`,
+      );
       const orderbook = await service.getOrderbook(tokenId, side);
 
       // Format response (no token_id in user-facing text; kept in result.data)
@@ -209,7 +226,7 @@ export const getOrderbookAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_ORDERBOOK] Successfully fetched orderbook - ${orderbook.bids.length} bids, ${orderbook.asks.length} asks`
+        `[GET_POLYMARKET_ORDERBOOK] Successfully fetched orderbook - ${orderbook.bids.length} bids, ${orderbook.asks.length} asks`,
       );
       return result;
     } catch (error) {
@@ -239,7 +256,8 @@ export const getOrderbookAction: Action = {
         content: {
           text: " Checking orderbook depth...",
           action: "GET_POLYMARKET_ORDERBOOK",
-          token_id: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          token_id:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
         },
       },
     ],
@@ -253,7 +271,8 @@ export const getOrderbookAction: Action = {
         content: {
           text: " Fetching bid side orderbook...",
           action: "GET_POLYMARKET_ORDERBOOK",
-          token_id: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          token_id:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
           side: "BUY",
         },
       },

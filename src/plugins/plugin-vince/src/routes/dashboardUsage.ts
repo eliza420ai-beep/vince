@@ -61,7 +61,10 @@ export async function buildUsageResponse(
     return {
       byDay: [],
       totalTokens: 0,
-      period: { from: new Date(from).toISOString(), to: new Date(to).toISOString() },
+      period: {
+        from: new Date(from).toISOString(),
+        to: new Date(to).toISOString(),
+      },
       estimatedCostUsd: 0,
     };
   }
@@ -88,7 +91,9 @@ export async function buildUsageResponse(
     const ts = endTime ?? startTime ?? 0;
     if (ts < from || ts > to) continue;
 
-    const usage = body.usage as { total_tokens?: number; totalTokens?: number } | undefined;
+    const usage = body.usage as
+      | { total_tokens?: number; totalTokens?: number }
+      | undefined;
     const estimatedTokens =
       (body.estimatedTokens as number | undefined) ??
       (body.estimated_tokens as number | undefined);
@@ -111,17 +116,20 @@ export async function buildUsageResponse(
   const totalRuns = byDay.reduce((s, d) => s + d.runs, 0);
   const tokensFromLogs = totalTokens;
   const tokensEffective =
-    tokensFromLogs > 0
-      ? tokensFromLogs
-      : totalRuns > 0
-        ? totalRuns * 500
-        : 0;
+    tokensFromLogs > 0 ? tokensFromLogs : totalRuns > 0 ? totalRuns * 500 : 0;
   const estimatedFromRuns = tokensFromLogs === 0 && totalRuns > 0;
 
   const costPer1k = runtime.getSetting("VINCE_USAGE_COST_PER_1K_TOKENS");
   const costPer1kNum =
-    typeof costPer1k === "string" ? parseFloat(costPer1k) : typeof costPer1k === "number" ? costPer1k : NaN;
-  const usedCostPer1k = Number.isFinite(costPer1kNum) && costPer1kNum >= 0 ? costPer1kNum : DEFAULT_COST_PER_1K_TOKENS;
+    typeof costPer1k === "string"
+      ? parseFloat(costPer1k)
+      : typeof costPer1k === "number"
+        ? costPer1k
+        : NaN;
+  const usedCostPer1k =
+    Number.isFinite(costPer1kNum) && costPer1kNum >= 0
+      ? costPer1kNum
+      : DEFAULT_COST_PER_1K_TOKENS;
   const estimatedCostUsd = (tokensEffective / 1000) * usedCostPer1k;
   const usedDefaultCost = !(Number.isFinite(costPer1kNum) && costPer1kNum >= 0);
 
@@ -132,7 +140,10 @@ export async function buildUsageResponse(
   return {
     byDay: byDayWithTokens,
     totalTokens: tokensEffective,
-    period: { from: new Date(from).toISOString(), to: new Date(to).toISOString() },
+    period: {
+      from: new Date(from).toISOString(),
+      to: new Date(to).toISOString(),
+    },
     estimatedCostUsd,
     /** True when cost was computed using default average; false when VINCE_USAGE_COST_PER_1K_TOKENS was set */
     estimatedCostFromDefault: usedDefaultCost,

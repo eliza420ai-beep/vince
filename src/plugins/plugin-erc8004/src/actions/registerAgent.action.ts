@@ -43,7 +43,10 @@ export const erc8004RegisterAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
       text.includes("register") &&
@@ -59,7 +62,7 @@ export const erc8004RegisterAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const erc8004 = runtime.getService("erc8004") as unknown as ERC8004Service;
 
@@ -67,7 +70,10 @@ export const erc8004RegisterAction: Action = {
       await callback?.({
         text: "ERC-8004 service not available. Check plugin configuration.",
       });
-      return { success: false, error: new Error("ERC-8004 service not available") };
+      return {
+        success: false,
+        error: new Error("ERC-8004 service not available"),
+      };
     }
 
     if (!erc8004.canWrite()) {
@@ -93,7 +99,9 @@ export const erc8004RegisterAction: Action = {
     ];
 
     // Add wallet endpoint if available
-    const cdp = runtime.getService("cdp") as { getWalletAddress?: () => Promise<string> } | null;
+    const cdp = runtime.getService("cdp") as {
+      getWalletAddress?: () => Promise<string>;
+    } | null;
     if (cdp?.getWalletAddress) {
       try {
         const address = await cdp.getWalletAddress();
@@ -134,7 +142,10 @@ export const erc8004RegisterAction: Action = {
       await callback?.({
         text: `❌ Registration failed: ${result.error}`,
       });
-      return { success: false, error: new Error(result.error ?? "Registration failed") };
+      return {
+        success: false,
+        error: new Error(result.error ?? "Registration failed"),
+      };
     }
   },
 };

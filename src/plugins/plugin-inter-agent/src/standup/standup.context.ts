@@ -6,12 +6,17 @@
 import { type IAgentRuntime, logger } from "@elizaos/core";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { getStandupDiscordMentionId, SHARED_INSIGHTS_SENTINEL, STANDUP_REPORT_ORDER } from "./standup.constants";
+import {
+  getStandupDiscordMentionId,
+  SHARED_INSIGHTS_SENTINEL,
+  STANDUP_REPORT_ORDER,
+} from "./standup.constants";
 import { AGENT_ROLES } from "./standupReports";
 import { formatPredictionScoreboard } from "./predictionTracker";
 
 const execAsync = promisify(exec);
-const STANDUP_REPO_ROOT = typeof process !== "undefined" && process.cwd ? process.cwd() : ".";
+const STANDUP_REPO_ROOT =
+  typeof process !== "undefined" && process.cwd ? process.cwd() : ".";
 const GIT_TIMEOUT_MS = 5000;
 
 /** Curated Naval quotes (external advisor / inspiration). Rotates daily by day-of-year. */
@@ -52,7 +57,9 @@ const NAVAL_QUOTES = [
 export function getDailyNavalQuote(): string {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 0);
-  const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  const dayOfYear = Math.floor(
+    (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24),
+  );
   return NAVAL_QUOTES[dayOfYear % NAVAL_QUOTES.length];
 }
 
@@ -68,7 +75,8 @@ export async function getRecentCodeContext(maxLines = 20): Promise<string> {
       timeout: GIT_TIMEOUT_MS,
     });
     const lines = (stdout || "").trim().split("\n").filter(Boolean);
-    if (lines.length === 0) return "Recent code: (no commits or not a git repo).";
+    if (lines.length === 0)
+      return "Recent code: (no commits or not a git repo).";
     return "Recent code (git log --oneline):\n" + lines.join("\n");
   } catch (err) {
     logger.debug({ err }, "[Standup] getRecentCodeContext failed");
@@ -81,7 +89,9 @@ export async function getRecentCodeContext(maxLines = 20): Promise<string> {
  * Crypto context is supplied by VINCE data in the standup (market snapshot, signals, etc.);
  * this is a sentinel so callers know to use that data rather than a separate summary here.
  */
-export async function getCryptoContext(_runtime: IAgentRuntime): Promise<string> {
+export async function getCryptoContext(
+  _runtime: IAgentRuntime,
+): Promise<string> {
   return "(Crypto context: see VINCE data in standup.)";
 }
 
@@ -105,11 +115,16 @@ export function buildKickoffWithRoles(): string {
   const date = new Date().toISOString().slice(0, 10);
   const day = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const vinceMentionId = getStandupDiscordMentionId("vince");
-  const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, market data — go.";
+  const call = vinceMentionId
+    ? `<@${vinceMentionId}> go.`
+    : "@VINCE, market data — go.";
   const roleLines: string[] = [];
   for (const name of STANDUP_REPORT_ORDER) {
     const role = AGENT_ROLES[name as keyof typeof AGENT_ROLES];
-    if (role && !("isStandupFacilitator" in role && role.isStandupFacilitator)) {
+    if (
+      role &&
+      !("isStandupFacilitator" in role && role.isStandupFacilitator)
+    ) {
       roleLines.push(`- **${name}**: ${role.focus}`);
     }
   }
@@ -130,7 +145,9 @@ ${call}`;
  * Kickoff when shared daily insights were pre-written. Prepends prediction scoreboard and shared content.
  * Synthesis-first: link, fact-check, brainstorm — then Day Report.
  */
-export async function buildKickoffWithSharedInsights(sharedContent: string): Promise<string> {
+export async function buildKickoffWithSharedInsights(
+  sharedContent: string,
+): Promise<string> {
   const date = new Date().toISOString().slice(0, 10);
   const vinceMentionId = getStandupDiscordMentionId("vince");
   const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, go.";
@@ -158,7 +175,9 @@ export async function buildKickoffWithSharedInsights(sharedContent: string): Pro
 /**
  * Build full standup kickoff text: date, crypto context, recent code, and instructions.
  */
-export async function buildStandupKickoffText(runtime: IAgentRuntime): Promise<string> {
+export async function buildStandupKickoffText(
+  runtime: IAgentRuntime,
+): Promise<string> {
   const date = new Date().toISOString().slice(0, 10);
   const crypto = await getCryptoContext(runtime);
   const code = await getRecentCodeContext(15);

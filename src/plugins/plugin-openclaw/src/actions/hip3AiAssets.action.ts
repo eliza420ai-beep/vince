@@ -55,12 +55,20 @@ export const openclawHip3AiAssetsAction: Action = {
   similes: ["OPENCLAW_HIP3_AI_ASSETS", "HIP3_AI", "HIP3_AI_ASSETS"],
   description:
     "Return HIP-3 AI-related assets on Hyperliquid from plugin-vince targetAssets (NVDA, GOOGL, META, OPENAI, ANTHROPIC, SNDK, AMD, MAG7, SEMIS, etc.). Use when the user asks about hip3 ai, hyperliquid ai assets, ai perps on Hyperliquid, NVDA/GOOGL/META/OPENAI/ANTHROPIC/SNDK perps.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /hip3\s*ai|hyperliquid\s*ai|ai\s*perps|ai\s*assets/i.test(text) ||
-      /\b(nvda|googl|meta|openai|anthropic|sndk|sandisk|amd|mag7|semis|infotech|robot|spacex)\b/i.test(text)
+      /\b(nvda|googl|meta|openai|anthropic|sndk|sandisk|amd|mag7|semis|infotech|robot|spacex)\b/i.test(
+        text,
+      )
     );
   },
   handler: async (
@@ -72,17 +80,33 @@ export const openclawHip3AiAssetsAction: Action = {
   ): Promise<ActionResult> => {
     const intro = "Here are the HIP-3 AI assets on Hyperliquid—";
     const out = intro + "\n\n" + HIP3_AI_ASSETS_MD;
-    if (callback) await callback({ text: out, actions: ["OPENCLAW_HIP3_AI_ASSETS"] });
+    if (callback)
+      await callback({ text: out, actions: ["OPENCLAW_HIP3_AI_ASSETS"] });
     return { success: true, text: out };
   },
   examples: [
     [
-      { name: "{{user}}", content: { text: "HIP-3 AI assets on Hyperliquid?" } },
-      { name: "{{agent}}", content: { text: HIP3_AI_ASSETS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_HIP3_AI_ASSETS"] } },
+      {
+        name: "{{user}}",
+        content: { text: "HIP-3 AI assets on Hyperliquid?" },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: HIP3_AI_ASSETS_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_HIP3_AI_ASSETS"],
+        },
+      },
     ],
     [
       { name: "{{user}}", content: { text: "Can I trade OPENAI perps?" } },
-      { name: "{{agent}}", content: { text: "Yes. OPENAI is on vntl dex as vntl:OPENAI. Full list: ...", actions: ["OPENCLAW_HIP3_AI_ASSETS"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Yes. OPENAI is on vntl dex as vntl:OPENAI. Full list: ...",
+          actions: ["OPENCLAW_HIP3_AI_ASSETS"],
+        },
+      },
     ],
   ],
 };

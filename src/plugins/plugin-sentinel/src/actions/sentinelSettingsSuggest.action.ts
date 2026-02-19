@@ -33,7 +33,10 @@ export const sentinelSettingsSuggestAction: Action = {
   description:
     "Suggests settings by domain: env, channel naming, feature-store/Supabase, ONNX, Claude Code controller.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSettings(text);
   },
@@ -58,7 +61,7 @@ Context:\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here are suggested settings—\n\n" + text.trim();
       await callback({ text: out });
       return { success: true };
@@ -67,13 +70,19 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Settings: 1) Env: SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL for ML. 2) Channels: daily, news, research, sentinel, ops. 3) Feature-store: dual-write to Supabase vince_paper_bot_features. 4) ONNX: 90+ rows then train_models.py. 5) Claude Code: paste task briefs with architecture rules. Refs: FEATURE-STORE.md, DEPLOY.md.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Best settings for Discord and Supabase?" } },
+      {
+        name: "{{user}}",
+        content: { text: "Best settings for Discord and Supabase?" },
+      },
       {
         name: "{{agent}}",
         content: {

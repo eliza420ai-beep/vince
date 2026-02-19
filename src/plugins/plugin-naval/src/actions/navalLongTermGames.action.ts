@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "long term games",
@@ -47,7 +51,10 @@ export const navalLongTermGamesAction: Action = {
   description:
     "Evaluate an opportunity: long-term game with long-term people? Specific knowledge or generic? What compounds in 5 years? Pass/fail + why.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsLongTerm(text);
   },
@@ -82,7 +89,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -90,14 +97,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Long-term games with long-term people. If the same players won't be here in 10 years, or it only builds generic skills, it doesn't pass.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Is this a long-term game? Joining a seed-stage crypto startup, 5 people, strong technical founder." } },
-      { name: "{{agent}}", content: { text: "1. Long-term people: maybe — seed stage is high turnover. 2. Specific knowledge: yes if you own a domain. 3. Compounds: network, judgment in crypto. 4. Tail risk: equity could be worth a lot. Pass with caution — get clear ownership and role." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Is this a long-term game? Joining a seed-stage crypto startup, 5 people, strong technical founder.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Long-term people: maybe — seed stage is high turnover. 2. Specific knowledge: yes if you own a domain. 3. Compounds: network, judgment in crypto. 4. Tail risk: equity could be worth a lot. Pass with caution — get clear ownership and role.",
+        },
+      },
     ],
   ],
 };

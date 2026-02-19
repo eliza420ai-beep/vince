@@ -21,15 +21,15 @@ Enable **live perpetual futures execution on Hyperliquid** using the same signal
 
 ## 3. What We Learn From EVClaw (Applied)
 
-| EVClaw concept | VINCE today | Live HL target |
-|----------------|-------------|----------------|
-| Producer / executor split | Done (contract + single path) | Keep: signals → gate (optional) → **one** live executor only |
-| Protection layers 1–5 | 1–2 in paper (symbol, duplicate/flip) | Add 3–5 for live: post-fill state check, exchange verification, SL/TP validation |
-| Chase-limit execution | Paper: simulated fill | Live: limit ±2 ticks, poll ~5s, reprice, timeout ~300s; CHASE_LIMIT vs LIMIT by conviction |
-| Deterministic ops | Paper ops task 15m | Same 15m reconcile; plus HL position/order reconciliation |
-| Mode controller | Done (conservative/balanced/aggressive) | Same mode drives live size/limits |
-| DB / file as source of truth | positions.json, portfolio, feature store | Live: HL as source of truth; local mirror for reconcile |
-| Dedicated agent/prompt for gates | Optional entry gate (single agent) | Optional: dedicated “vince-live-gate” context so cron never mixes with manual |
+| EVClaw concept                   | VINCE today                              | Live HL target                                                                             |
+| -------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Producer / executor split        | Done (contract + single path)            | Keep: signals → gate (optional) → **one** live executor only                               |
+| Protection layers 1–5            | 1–2 in paper (symbol, duplicate/flip)    | Add 3–5 for live: post-fill state check, exchange verification, SL/TP validation           |
+| Chase-limit execution            | Paper: simulated fill                    | Live: limit ±2 ticks, poll ~5s, reprice, timeout ~300s; CHASE_LIMIT vs LIMIT by conviction |
+| Deterministic ops                | Paper ops task 15m                       | Same 15m reconcile; plus HL position/order reconciliation                                  |
+| Mode controller                  | Done (conservative/balanced/aggressive)  | Same mode drives live size/limits                                                          |
+| DB / file as source of truth     | positions.json, portfolio, feature store | Live: HL as source of truth; local mirror for reconcile                                    |
+| Dedicated agent/prompt for gates | Optional entry gate (single agent)       | Optional: dedicated “vince-live-gate” context so cron never mixes with manual              |
 
 ---
 
@@ -106,13 +106,13 @@ flowchart LR
 
 ## 7. Risks and Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| Key compromise | Delegated agent key only; never main wallet key; keys in env/secrets, not code |
-| Phantom positions / desync | Layer 4: post-execution exchange verification; reconcile task compares HL vs local |
-| Over-trading | Mode controller + existing risk limits; optional entry gate; cap size per trade and per day |
-| Chase-limit never fills | Timeout + cancel or market fallback; configurable; log and alert on timeout |
-| Cron runs manual commands | CRON_CONTEXT in contract; scheduled jobs never call manual “execute” paths; only deterministic reconcile and report |
+| Risk                       | Mitigation                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Key compromise             | Delegated agent key only; never main wallet key; keys in env/secrets, not code                                      |
+| Phantom positions / desync | Layer 4: post-execution exchange verification; reconcile task compares HL vs local                                  |
+| Over-trading               | Mode controller + existing risk limits; optional entry gate; cap size per trade and per day                         |
+| Chase-limit never fills    | Timeout + cancel or market fallback; configurable; log and alert on timeout                                         |
+| Cron runs manual commands  | CRON_CONTEXT in contract; scheduled jobs never call manual “execute” paths; only deterministic reconcile and report |
 
 ---
 

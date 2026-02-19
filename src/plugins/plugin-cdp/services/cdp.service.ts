@@ -35,7 +35,8 @@ interface WalletInfo {
 
 export class CdpService extends Service {
   static serviceType = "CDP_SERVICE";
-  capabilityDescription = "Provides authenticated access to Coinbase CDP via Transaction Manager";
+  capabilityDescription =
+    "Provides authenticated access to Coinbase CDP via Transaction Manager";
 
   private transactionManager: CdpTransactionManager;
 
@@ -58,7 +59,9 @@ export class CdpService extends Service {
    * Get or create wallet for account
    * Delegates to transaction manager
    */
-  async getOrCreateWallet(accountName: string): Promise<{ address: string; accountName: string }> {
+  async getOrCreateWallet(
+    accountName: string,
+  ): Promise<{ address: string; accountName: string }> {
     return this.transactionManager.getOrCreateWallet(accountName);
   }
 
@@ -78,7 +81,7 @@ export class CdpService extends Service {
   /**
    * Get Viem wallet and public clients for a CDP account on a specific network
    * Delegates to transaction manager
-   * 
+   *
    * @param options.accountName - CDP account name
    * @param options.network - Network (defaults to 'base')
    * @returns Object containing address, walletClient, publicClient, and cdpAccount
@@ -117,13 +120,24 @@ export class CdpService extends Service {
    * @param accountName User's account identifier
    * @param chain Optional specific chain to fetch (if not provided, fetches all chains)
    */
-  async getWalletInfoCached(accountName: string, chain?: string, address?: string): Promise<WalletInfo> {
-    logger.info(`[CDP Service] Getting wallet info for ${accountName}${chain ? ` (chain: ${chain})` : ' (all chains)'}${address ? ` (address: ${address.substring(0, 10)}...)` : ''}`);
+  async getWalletInfoCached(
+    accountName: string,
+    chain?: string,
+    address?: string,
+  ): Promise<WalletInfo> {
+    logger.info(
+      `[CDP Service] Getting wallet info for ${accountName}${chain ? ` (chain: ${chain})` : " (all chains)"}${address ? ` (address: ${address.substring(0, 10)}...)` : ""}`,
+    );
 
     // Use manager's cache (5-minute TTL)
     // Pass address if available to avoid CDP account lookup
     const [tokensResult, nftsResult] = await Promise.all([
-      this.transactionManager.getTokenBalances(accountName, chain, false, address), // use cache, pass address
+      this.transactionManager.getTokenBalances(
+        accountName,
+        chain,
+        false,
+        address,
+      ), // use cache, pass address
       this.transactionManager.getNFTs(accountName, chain, false, address), // use cache, pass address
     ]);
 
@@ -139,21 +153,32 @@ export class CdpService extends Service {
    * Fetch fresh wallet information, bypassing cache
    * Use this when you need the most up-to-date wallet state (e.g., before transfers)
    * Delegates to transaction manager with forceSync=true
-   * 
+   *
    * SECURITY: Use this before executing percentage-based transfers to prevent
    * TOCTOU (Time-of-Check to Time-of-Use) race conditions with stale balance data.
-   * 
+   *
    * @param accountName User's account identifier
    * @param chain Optional specific chain to fetch (if not provided, fetches all chains)
    * @param address Optional wallet address to avoid CDP account lookup
    */
-  async fetchWalletInfo(accountName: string, chain?: string, address?: string): Promise<WalletInfo> {
-    logger.info(`[CDP Service] Force fetching wallet info for ${accountName}${chain ? ` on chain: ${chain}` : ' (all chains)'}${address ? ` (address: ${address.substring(0, 10)}...)` : ''}`);
+  async fetchWalletInfo(
+    accountName: string,
+    chain?: string,
+    address?: string,
+  ): Promise<WalletInfo> {
+    logger.info(
+      `[CDP Service] Force fetching wallet info for ${accountName}${chain ? ` on chain: ${chain}` : " (all chains)"}${address ? ` (address: ${address.substring(0, 10)}...)` : ""}`,
+    );
 
     // Force sync - bypass manager's cache (forceSync = true)
     // Pass address if available to avoid CDP account lookup
     const [tokensResult, nftsResult] = await Promise.all([
-      this.transactionManager.getTokenBalances(accountName, chain, true, address), // forceSync = true
+      this.transactionManager.getTokenBalances(
+        accountName,
+        chain,
+        true,
+        address,
+      ), // forceSync = true
       this.transactionManager.getNFTs(accountName, chain, true, address), // forceSync = true
     ]);
 
@@ -178,7 +203,9 @@ export class CdpService extends Service {
   }): Promise<{ transactionHash: string; from: string }> {
     const { accountName, network, to, token, amount } = params;
 
-    logger.info(`[CDP Service] Transferring ${amount.toString()} ${token} to ${to} on ${network} for ${accountName}`);
+    logger.info(
+      `[CDP Service] Transferring ${amount.toString()} ${token} to ${to} on ${network} for ${accountName}`,
+    );
 
     const result = await this.transactionManager.sendToken({
       userId: accountName,
@@ -197,12 +224,12 @@ export class CdpService extends Service {
   /**
    * Execute token swap with automatic fallback to multiple swap providers
    * Delegates to transaction manager
-   * 
+   *
    * Fallback chain (handled by manager):
    * 1. CDP SDK (for supported networks) with Permit2 approval handling
    * 2. 0x API v2 (if configured)
    * 3. Uniswap V3 (direct protocol interaction)
-   * 
+   *
    * Reference: https://docs.cdp.coinbase.com/trade-api/quickstart#3-execute-a-swap
    */
   async swap(params: {
@@ -213,9 +240,18 @@ export class CdpService extends Service {
     fromAmount: bigint;
     slippageBps?: number;
   }): Promise<{ transactionHash: string }> {
-    const { accountName, network, fromToken, toToken, fromAmount, slippageBps = 100 } = params;
+    const {
+      accountName,
+      network,
+      fromToken,
+      toToken,
+      fromAmount,
+      slippageBps = 100,
+    } = params;
 
-    logger.info(`[CDP Service] Executing swap: ${fromAmount.toString()} ${fromToken} to ${toToken} on ${network} for ${accountName}`);
+    logger.info(
+      `[CDP Service] Executing swap: ${fromAmount.toString()} ${fromToken} to ${toToken} on ${network} for ${accountName}`,
+    );
 
     const result = await this.transactionManager.swap({
       userId: accountName,
@@ -248,7 +284,9 @@ export class CdpService extends Service {
   }> {
     const { accountName, network, fromToken, toToken, fromAmount } = params;
 
-    logger.info(`[CDP Service] Getting swap price: ${fromAmount.toString()} ${fromToken} to ${toToken} on ${network} for ${accountName}`);
+    logger.info(
+      `[CDP Service] Getting swap price: ${fromAmount.toString()} ${fromToken} to ${toToken} on ${network} for ${accountName}`,
+    );
 
     const result = await this.transactionManager.getSwapPrice({
       userId: accountName,
@@ -278,7 +316,9 @@ export class CdpService extends Service {
   }): Promise<{ transactionHash: string; from: string }> {
     const { accountName, network, to, contractAddress, tokenId } = params;
 
-    logger.info(`[CDP Service] Transferring NFT ${contractAddress}:${tokenId} to ${to} on ${network} for ${accountName}`);
+    logger.info(
+      `[CDP Service] Transferring NFT ${contractAddress}:${tokenId} to ${to} on ${network} for ${accountName}`,
+    );
 
     const result = await this.transactionManager.sendNFT({
       userId: accountName,
@@ -311,7 +351,9 @@ export class CdpService extends Service {
   }): Promise<bigint> {
     const { accountName, network, tokenAddress, walletAddress } = params;
 
-    logger.info(`[CDP Service] Getting on-chain balance for token ${tokenAddress} on ${network} for ${accountName}`);
+    logger.info(
+      `[CDP Service] Getting on-chain balance for token ${tokenAddress} on ${network} for ${accountName}`,
+    );
 
     return this.transactionManager.getOnChainTokenBalance({
       userId: accountName,

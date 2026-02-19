@@ -4,7 +4,12 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { dcaOrderAction } from "../actions/dcaOrder.action";
-import type { IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 
 // Mock trading engine service
 const mockTradingEngine = {
@@ -13,21 +18,23 @@ const mockTradingEngine = {
 };
 
 // Mock runtime
-const createMockRuntime = (): IAgentRuntime => ({
-  getService: vi.fn((name: string) => {
-    if (name === "bankr_trading_engine") return mockTradingEngine;
-    return null;
-  }),
-  getSetting: vi.fn(),
-} as unknown as IAgentRuntime);
+const createMockRuntime = (): IAgentRuntime =>
+  ({
+    getService: vi.fn((name: string) => {
+      if (name === "bankr_trading_engine") return mockTradingEngine;
+      return null;
+    }),
+    getSetting: vi.fn(),
+  }) as unknown as IAgentRuntime;
 
 // Mock memory
-const createMockMemory = (text: string): Memory => ({
-  content: { text },
-  userId: "test-user",
-  roomId: "test-room",
-  agentId: "test-agent",
-} as Memory);
+const createMockMemory = (text: string): Memory =>
+  ({
+    content: { text },
+    userId: "test-user",
+    roomId: "test-room",
+    agentId: "test-agent",
+  }) as Memory;
 
 describe("OTAKU_DCA Action", () => {
   beforeEach(() => {
@@ -37,7 +44,7 @@ describe("OTAKU_DCA Action", () => {
   describe("validate", () => {
     it("should validate DCA intent", async () => {
       const runtime = createMockRuntime();
-      
+
       const validMessages = [
         "DCA $1000 into ETH over 7 days",
         "dollar cost average $500 into WBTC",
@@ -54,7 +61,7 @@ describe("OTAKU_DCA Action", () => {
 
     it("should reject non-DCA messages", async () => {
       const runtime = createMockRuntime();
-      
+
       const invalidMessages = [
         "buy 1 ETH",
         "swap 100 USDC for ETH",
@@ -73,7 +80,7 @@ describe("OTAKU_DCA Action", () => {
       mockTradingEngine.isConfigured.mockReturnValue(false);
       const runtime = createMockRuntime();
       const memory = createMockMemory("DCA $1000 into ETH");
-      
+
       const result = await dcaOrderAction.validate(runtime, memory);
       expect(result).toBe(false);
     });
@@ -85,7 +92,13 @@ describe("OTAKU_DCA Action", () => {
       const memory = createMockMemory("DCA $1000 into ETH over 7 days");
       const callback = vi.fn();
 
-      await dcaOrderAction.handler(runtime, memory, undefined, undefined, callback);
+      await dcaOrderAction.handler(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(callback).toHaveBeenCalled();
       const response = callback.mock.calls[0][0].text;
@@ -100,7 +113,13 @@ describe("OTAKU_DCA Action", () => {
       const memory = createMockMemory("DCA $500 into WBTC, 10 buys");
       const callback = vi.fn();
 
-      await dcaOrderAction.handler(runtime, memory, undefined, undefined, callback);
+      await dcaOrderAction.handler(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       const response = callback.mock.calls[0][0].text;
       expect(response).toContain("10 buys");
@@ -112,7 +131,13 @@ describe("OTAKU_DCA Action", () => {
       const memory = createMockMemory("DCA $1000 into ETH every 4 hours");
       const callback = vi.fn();
 
-      await dcaOrderAction.handler(runtime, memory, undefined, undefined, callback);
+      await dcaOrderAction.handler(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       const response = callback.mock.calls[0][0].text;
       expect(response).toContain("4");
@@ -121,10 +146,18 @@ describe("OTAKU_DCA Action", () => {
 
     it("should reject unknown tokens", async () => {
       const runtime = createMockRuntime();
-      const memory = createMockMemory("DCA $1000 into UNKNOWNTOKEN over 7 days");
+      const memory = createMockMemory(
+        "DCA $1000 into UNKNOWNTOKEN over 7 days",
+      );
       const callback = vi.fn();
 
-      await dcaOrderAction.handler(runtime, memory, undefined, undefined, callback);
+      await dcaOrderAction.handler(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       const response = callback.mock.calls[0][0].text;
       expect(response).toContain("couldn't parse");
@@ -136,7 +169,7 @@ describe("OTAKU_DCA Action", () => {
       const runtime = createMockRuntime();
       const memory = createMockMemory("confirm");
       const callback = vi.fn();
-      
+
       // Simulate pending DCA in state
       const state: State = {
         pendingDCA: {
@@ -165,7 +198,8 @@ describe("OTAKU_DCA Action", () => {
         intervalMinutes: 1440,
       });
 
-      const response = callback.mock.calls[callback.mock.calls.length - 1][0].text;
+      const response =
+        callback.mock.calls[callback.mock.calls.length - 1][0].text;
       expect(response).toContain("DCA Order Created");
       expect(response).toContain("test-order-123");
     });
@@ -174,7 +208,7 @@ describe("OTAKU_DCA Action", () => {
       const runtime = createMockRuntime();
       const memory = createMockMemory("confirm");
       const callback = vi.fn();
-      
+
       const state: State = {
         pendingDCA: {
           totalAmount: "1000",
@@ -185,11 +219,14 @@ describe("OTAKU_DCA Action", () => {
         },
       } as unknown as State;
 
-      mockTradingEngine.createDCAOrder.mockRejectedValue(new Error("Insufficient balance"));
+      mockTradingEngine.createDCAOrder.mockRejectedValue(
+        new Error("Insufficient balance"),
+      );
 
       await dcaOrderAction.handler(runtime, memory, state, undefined, callback);
 
-      const response = callback.mock.calls[callback.mock.calls.length - 1][0].text;
+      const response =
+        callback.mock.calls[callback.mock.calls.length - 1][0].text;
       expect(response).toContain("Failed");
       expect(response).toContain("Insufficient balance");
     });

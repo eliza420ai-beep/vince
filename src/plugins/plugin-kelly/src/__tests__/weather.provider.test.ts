@@ -53,15 +53,22 @@ describe("WEATHER Provider", () => {
     const result = await weatherProvider.get(runtime, message);
 
     expect(result?.values).toBeDefined();
-    expect((result?.values as Record<string, unknown>)?.weatherBordeaux).toBeDefined();
-    expect((result?.values as Record<string, unknown>)?.weatherBiarritz).toBeDefined();
-    expect((result?.values as Record<string, unknown>)?.weatherHome).toBeDefined();
+    expect(
+      (result?.values as Record<string, unknown>)?.weatherBordeaux,
+    ).toBeDefined();
+    expect(
+      (result?.values as Record<string, unknown>)?.weatherBiarritz,
+    ).toBeDefined();
+    expect(
+      (result?.values as Record<string, unknown>)?.weatherHome,
+    ).toBeDefined();
     expect(result?.text).toBeDefined();
   });
 
   it("includes surfBiarritz when marine API returns data", async () => {
     globalThis.fetch = async (url: string) => {
-      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      if ((url as string).includes("marine-api"))
+        return Response.json(marinePayload);
       return Response.json(openMeteoCurrent(0));
     };
 
@@ -69,15 +76,19 @@ describe("WEATHER Provider", () => {
     const message = createMockMessage("surf forecast");
     const result = await weatherProvider.get(runtime, message);
 
-    expect((result?.values as Record<string, unknown>)?.surfBiarritz).toBeDefined();
-    const surf = (result?.values as Record<string, unknown>)?.surfBiarritz as Record<string, unknown>;
+    expect(
+      (result?.values as Record<string, unknown>)?.surfBiarritz,
+    ).toBeDefined();
+    const surf = (result?.values as Record<string, unknown>)
+      ?.surfBiarritz as Record<string, unknown>;
     expect(surf?.waveHeight).toBeDefined();
     expect(surf?.seaTemp).toBeDefined();
   });
 
   it("includes rain/indoor caution in text when weather code is rain", async () => {
     globalThis.fetch = async (url: string) => {
-      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      if ((url as string).includes("marine-api"))
+        return Response.json(marinePayload);
       return Response.json(openMeteoCurrent(61));
     };
 
@@ -86,12 +97,15 @@ describe("WEATHER Provider", () => {
     const result = await weatherProvider.get(runtime, message);
 
     const text = result?.text ?? "";
-    expect(text.toLowerCase()).toMatch(/indoor|rain|do not recommend|beach|surf/);
+    expect(text.toLowerCase()).toMatch(
+      /indoor|rain|do not recommend|beach|surf/,
+    );
   });
 
   it("storm (code 95+) yields do not recommend or indoor in text", async () => {
     globalThis.fetch = async (url: string) => {
-      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      if ((url as string).includes("marine-api"))
+        return Response.json(marinePayload);
       return Response.json(openMeteoCurrent(95));
     };
 
@@ -105,7 +119,8 @@ describe("WEATHER Provider", () => {
 
   it("snow (code 71–77) yields snow safety line, not rain line", async () => {
     globalThis.fetch = async (url: string) => {
-      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      if ((url as string).includes("marine-api"))
+        return Response.json(marinePayload);
       return Response.json(openMeteoCurrent(73)); // moderate snow
     };
 
@@ -116,12 +131,15 @@ describe("WEATHER Provider", () => {
     const text = (result?.text ?? "").toLowerCase();
     expect(text).toMatch(/snow|indoor/);
     // Should NOT contain rain safety line
-    expect(text).not.toMatch(/do not recommend beach walks, surf, outdoor swimming/i);
+    expect(text).not.toMatch(
+      /do not recommend beach walks, surf, outdoor swimming/i,
+    );
   });
 
   it("fog (code 45/48) yields fog safety line", async () => {
     globalThis.fetch = async (url: string) => {
-      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      if ((url as string).includes("marine-api"))
+        return Response.json(marinePayload);
       return Response.json(openMeteoCurrent(45)); // fog
     };
 

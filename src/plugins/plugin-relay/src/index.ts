@@ -1,6 +1,10 @@
 import type { Plugin } from "@elizaos/core";
 import { RelayService } from "./services/relay.service";
-import { relayQuoteAction, relayBridgeAction, relayStatusAction } from "./actions";
+import {
+  relayQuoteAction,
+  relayBridgeAction,
+  relayStatusAction,
+} from "./actions";
 
 export const relayPlugin: Plugin = {
   name: "relay",

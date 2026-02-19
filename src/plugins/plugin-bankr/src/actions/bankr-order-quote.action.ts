@@ -22,13 +22,19 @@ function parseOrderParams(state?: State): Partial<{
 }> {
   const params = (state?.data?.actionParams || {}) as Record<string, unknown>;
   const maker = typeof params.maker === "string" ? params.maker : undefined;
-  const orderType = typeof params.orderType === "string" ? params.orderType : undefined;
+  const orderType =
+    typeof params.orderType === "string" ? params.orderType : undefined;
   const chainId = typeof params.chainId === "number" ? params.chainId : 8453;
-  const sellToken = typeof params.sellToken === "string" ? params.sellToken : undefined;
-  const buyToken = typeof params.buyToken === "string" ? params.buyToken : undefined;
-  const sellAmount = typeof params.sellAmount === "string" ? params.sellAmount : undefined;
-  const triggerPrice = typeof params.triggerPrice === "string" ? params.triggerPrice : undefined;
-  const slippageBps = typeof params.slippageBps === "number" ? params.slippageBps : 100;
+  const sellToken =
+    typeof params.sellToken === "string" ? params.sellToken : undefined;
+  const buyToken =
+    typeof params.buyToken === "string" ? params.buyToken : undefined;
+  const sellAmount =
+    typeof params.sellAmount === "string" ? params.sellAmount : undefined;
+  const triggerPrice =
+    typeof params.triggerPrice === "string" ? params.triggerPrice : undefined;
+  const slippageBps =
+    typeof params.slippageBps === "number" ? params.slippageBps : 100;
   const expirationDate =
     typeof params.expirationDate === "number"
       ? params.expirationDate
@@ -53,7 +59,9 @@ export const bankrOrderQuoteAction: Action = {
   similes: ["BANKR_QUOTE", "BANKR_LIMIT_QUOTE", "BANKR_ORDER_QUOTE"],
 
   validate: async (runtime: IAgentRuntime) => {
-    const service = runtime.getService<BankrOrdersService>(BankrOrdersService.serviceType);
+    const service = runtime.getService<BankrOrdersService>(
+      BankrOrdersService.serviceType,
+    );
     return !!service?.isConfigured();
   },
 
@@ -62,9 +70,11 @@ export const bankrOrderQuoteAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    const service = runtime.getService<BankrOrdersService>(BankrOrdersService.serviceType);
+    const service = runtime.getService<BankrOrdersService>(
+      BankrOrdersService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Orders service not available.";
       callback?.({ text: err });
@@ -72,7 +82,13 @@ export const bankrOrderQuoteAction: Action = {
     }
 
     const p = parseOrderParams(state);
-    if (!p.maker || !p.orderType || !p.sellToken || !p.buyToken || !p.sellAmount) {
+    if (
+      !p.maker ||
+      !p.orderType ||
+      !p.sellToken ||
+      !p.buyToken ||
+      !p.sellAmount
+    ) {
       const err =
         "Missing required quote params: maker, orderType, sellToken, buyToken, sellAmount. For limit/stop set triggerPrice in config.";
       callback?.({ text: err });
@@ -96,7 +112,8 @@ export const bankrOrderQuoteAction: Action = {
         buyToken: p.buyToken,
         sellAmount: p.sellAmount,
         slippageBps: p.slippageBps ?? 100,
-        expirationDate: p.expirationDate ?? Math.floor(Date.now() / 1000) + 3600,
+        expirationDate:
+          p.expirationDate ?? Math.floor(Date.now() / 1000) + 3600,
       });
 
       const hasApproval = quote.actions?.some((a) => a.type === "approval");
@@ -107,19 +124,39 @@ export const bankrOrderQuoteAction: Action = {
         actions: ["BANKR_ORDER_QUOTE"],
         source: message.content?.source,
       });
-      return { success: true, text: reply, data: { quoteId: quote.quoteId, quote } };
+      return {
+        success: true,
+        text: reply,
+        data: { quoteId: quote.quoteId, quote },
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_ORDER_QUOTE] " + msg);
-      callback?.({ text: `Quote failed: ${msg}`, actions: ["BANKR_ORDER_QUOTE"] });
-      return { success: false, text: msg, error: err instanceof Error ? err : new Error(msg) };
+      callback?.({
+        text: `Quote failed: ${msg}`,
+        actions: ["BANKR_ORDER_QUOTE"],
+      });
+      return {
+        success: false,
+        text: msg,
+        error: err instanceof Error ? err : new Error(msg),
+      };
     }
   },
 
   examples: [
     [
-      { name: "user", content: { text: "Get a limit-buy quote for 100 USDC → WETH on Base" } },
-      { name: "Otaku", content: { text: "Quote created. Sign and submit with quoteId.", actions: ["BANKR_ORDER_QUOTE"] } },
+      {
+        name: "user",
+        content: { text: "Get a limit-buy quote for 100 USDC → WETH on Base" },
+      },
+      {
+        name: "Otaku",
+        content: {
+          text: "Quote created. Sign and submit with quoteId.",
+          actions: ["BANKR_ORDER_QUOTE"],
+        },
+      },
     ],
   ],
 };

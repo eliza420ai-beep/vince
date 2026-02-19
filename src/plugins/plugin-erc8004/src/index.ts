@@ -28,11 +28,9 @@ import { erc8004RegisterAction, erc8004ReputationAction } from "./actions";
 
 export const erc8004Plugin: Plugin = {
   name: "erc8004",
-  description: "ERC-8004 Trustless Agents - on-chain identity, reputation, and validation",
-  actions: [
-    erc8004RegisterAction,
-    erc8004ReputationAction,
-  ],
+  description:
+    "ERC-8004 Trustless Agents - on-chain identity, reputation, and validation",
+  actions: [erc8004RegisterAction, erc8004ReputationAction],
   services: [ERC8004Service as any],
   providers: [],
   evaluators: [],

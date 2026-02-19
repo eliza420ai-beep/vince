@@ -31,6 +31,8 @@ describe("plugin-polymarket-desk: plugin export", () => {
       registerTaskWorker: () => {},
       createTask: async () => "id",
     } as any;
-    await expect(pluginPolymarketDesk.init!({}, runtime)).resolves.toBeUndefined();
+    await expect(
+      pluginPolymarketDesk.init!({}, runtime),
+    ).resolves.toBeUndefined();
   });
 });

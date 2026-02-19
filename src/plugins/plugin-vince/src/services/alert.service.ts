@@ -308,8 +308,10 @@ export class VinceAlertService extends Service {
     try {
       // Get AI memes in sweet spot range
       const aiMemes =
-        (dexScreenerService as { scanAIMemes?: () => Promise<MemeToken[]> })
-          .scanAIMemes?.() ?? Promise.resolve(dexScreenerService.getTrendingTokens(15));
+        (
+          dexScreenerService as { scanAIMemes?: () => Promise<MemeToken[]> }
+        ).scanAIMemes?.() ??
+        Promise.resolve(dexScreenerService.getTrendingTokens(15));
 
       for (const token of await aiMemes) {
         const tokenId = `${token.chain}-${token.address || token.symbol}`;

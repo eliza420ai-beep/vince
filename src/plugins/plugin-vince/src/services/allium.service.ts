@@ -145,7 +145,10 @@ export class VinceAlliumService extends Service {
 
   // ─── Hyperliquid (no rate limits via Allium) ────────────────────────
 
-  async getHyperliquidInfo<T>(type: string, params?: Record<string, unknown>): Promise<T> {
+  async getHyperliquidInfo<T>(
+    type: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
     const cacheKey = `hl:${type}:${JSON.stringify(params ?? {})}`;
     const cached = this.getCached<T>(cacheKey);
     if (cached) return cached;
@@ -168,9 +171,7 @@ export class VinceAlliumService extends Service {
     return this.getHyperliquidInfo<string[]>("perpsAtOpenInterestCap");
   }
 
-  async getHyperliquidUserState(
-    userAddress: string,
-  ): Promise<{
+  async getHyperliquidUserState(userAddress: string): Promise<{
     marginSummary: { accountValue: string; totalNtlPos: string };
     assetPositions: Array<{
       position: {
@@ -199,7 +200,9 @@ export class VinceAlliumService extends Service {
         if (oiCapPerps?.length > 0) {
           lines.push(`**HL perps at OI cap:** ${oiCapPerps.join(", ")}`);
         }
-      } catch { /* non-fatal */ }
+      } catch {
+        /* non-fatal */
+      }
 
       // Hyperliquid meta (number of listed perps)
       try {
@@ -207,7 +210,9 @@ export class VinceAlliumService extends Service {
         if (meta?.universe?.length) {
           lines.push(`**HL listed perps:** ${meta.universe.length}`);
         }
-      } catch { /* non-fatal */ }
+      } catch {
+        /* non-fatal */
+      }
 
       return lines.length > 0
         ? `**Allium on-chain:**\n${lines.join("\n")}`

@@ -21,12 +21,15 @@ The real story might be what's not happening. No major breakouts, no panic selli
 **TL;DR:** BTC neutral with bullish sentiment extremes — sell premium, don't chase.
 
 ### Actions (max 3, each with @Owner)
+
 1. **BTC Covered Call** — @Solus — Sell $68,500 strike, Friday expiry, invalidation $67,000
 2. **CT Sentiment Monitor** — @ECHO — Watch for sentiment reversal signals above +30
 3. **Wallet Configuration** — @Otaku — Complete EVM/Solana key setup for DeFi execution
 
 ### Risks
+
 Regulatory announcement could break range in either direction.
 
 ---
-*Ship it.*
+
+_Ship it._

@@ -81,7 +81,13 @@ describe("KELLY_RECOMMEND_WINE Action", () => {
       });
       const message = createMockMessage("recommend a wine");
       const callback = createMockCallback();
-      await kellyRecommendWineAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendWineAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       const text = callback.calls[0]?.text ?? "";
       expect(text).toMatch(/\*\*[^*]+\*\*|Château|Domaine/);
     });

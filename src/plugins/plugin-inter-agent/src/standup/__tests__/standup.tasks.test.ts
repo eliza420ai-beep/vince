@@ -16,15 +16,20 @@ function createMockAgentRuntime(agentId: string, name: string) {
   };
 }
 
-function createMockRuntimeWithElizaOS(agentsInWrongOrder: { agentId: string; character: { name: string } }[]) {
+function createMockRuntimeWithElizaOS(
+  agentsInWrongOrder: { agentId: string; character: { name: string } }[],
+) {
   const agentRuntimes = new Map(
-    agentsInWrongOrder.map((a) => [a.agentId, createMockAgentRuntime(a.agentId, a.character.name)])
+    agentsInWrongOrder.map((a) => [
+      a.agentId,
+      createMockAgentRuntime(a.agentId, a.character.name),
+    ]),
   );
   const getAgent = (agentId: string) => agentRuntimes.get(agentId) ?? null;
   const handleMessage = async (
     _agentId: string,
     _msg: unknown,
-    opts?: { onResponse?: (content: unknown) => void }
+    opts?: { onResponse?: (content: unknown) => void },
   ) => {
     opts?.onResponse?.({ text: "reply" });
   };
@@ -69,7 +74,7 @@ describe("standup.tasks", () => {
         runtime,
         roomId,
         facilitatorEntityId,
-        kickoffText
+        kickoffText,
       );
 
       const replyNames = replies.map((r) => r.agentName);

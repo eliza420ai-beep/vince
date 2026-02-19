@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "touch grass",
@@ -50,11 +55,19 @@ Direct. Benefit-led: what they get is sustainability and better judgment.`;
 
 export const navalTouchGrassAction: Action = {
   name: "NAVAL_TOUCH_GRASS",
-  similes: ["TOUCH_GRASS", "LIVE_WELL_NOT_CONSUMED", "STEP_AWAY", "BALANCE_TRADING"],
+  similes: [
+    "TOUCH_GRASS",
+    "LIVE_WELL_NOT_CONSUMED",
+    "STEP_AWAY",
+    "BALANCE_TRADING",
+  ],
   description:
     "Live well so you don't burn out. One rule for when to step away and one ritual that isn't another screen.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsTouchGrass(text);
   },
@@ -91,7 +104,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -99,14 +112,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Touch grass: the game never ends. Set one rule — when you step away (time, or after one digest). One ritual that isn't a screen: move, eat well, wine, read. You get sustainability and better judgment.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I'm glued to charts. How do I touch grass without feeling I'm missing out?" } },
-      { name: "{{agent}}", content: { text: "You're not missing out; you're preserving edge. Rule: one ALOHA in the morning, then close the tab until the next push. No chart refresh in between. Ritual: after you read it, do one thing that isn't a screen — walk, meal, call. The push will still be there. You get focus when on, peace when off." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I'm glued to charts. How do I touch grass without feeling I'm missing out?",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're not missing out; you're preserving edge. Rule: one ALOHA in the morning, then close the tab until the next push. No chart refresh in between. Ritual: after you read it, do one thing that isn't a screen — walk, meal, call. The push will still be there. You get focus when on, peace when off.",
+        },
+      },
     ],
   ],
 };

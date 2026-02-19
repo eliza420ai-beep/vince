@@ -312,18 +312,32 @@ let isPatched = false;
 const patchedRuntimeLoggers = new WeakSet<object>();
 
 /** Patch a runtime's logger so "Send handler not found (handlerSource=discord)" and other noise are suppressed. */
-function patchRuntimeLogger(agentLogger: { error: (...a: any[]) => void; warn?: (...a: any[]) => void }): void {
+function patchRuntimeLogger(agentLogger: {
+  error: (...a: any[]) => void;
+  warn?: (...a: any[]) => void;
+}): void {
   const origError = agentLogger.error.bind(agentLogger);
   agentLogger.error = function (message: any, ...args: any[]) {
     const fullMessage = buildFullMessage(message, args);
-    if (shouldSuppressError(fullMessage) || isSendHandlerNotFoundError(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
+    if (
+      shouldSuppressError(fullMessage) ||
+      isSendHandlerNotFoundError(fullMessage) ||
+      shouldSuppressOpenSeaNoise(fullMessage)
+    )
+      return;
     origError(message, ...args);
   };
-  if (typeof agentLogger.warn === 'function') {
+  if (typeof agentLogger.warn === "function") {
     const origWarn = agentLogger.warn.bind(agentLogger);
     agentLogger.warn = function (message: any, ...args: any[]) {
       const fullMessage = buildFullMessage(message, args);
-      if (shouldSuppressError(fullMessage) || shouldSuppressDeribitNoise(fullMessage) || shouldSuppressMissingApiKeyWarning(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
+      if (
+        shouldSuppressError(fullMessage) ||
+        shouldSuppressDeribitNoise(fullMessage) ||
+        shouldSuppressMissingApiKeyWarning(fullMessage) ||
+        shouldSuppressOpenSeaNoise(fullMessage)
+      )
+        return;
       origWarn(message, ...args);
     };
   }
@@ -361,7 +375,10 @@ export const logFilterPlugin: Plugin = {
         const fullMessage = buildFullMessage(message, args);
         if (!shouldSuppress(fullMessage)) originalInfo(message, ...args);
         else if (process.env.LOG_LEVEL === "debug")
-          originalDebug("[LogFilter] Suppressed:", fullMessage.substring(0, 150) + "...");
+          originalDebug(
+            "[LogFilter] Suppressed:",
+            fullMessage.substring(0, 150) + "...",
+          );
       } as typeof coreLogger.info;
 
       coreLogger.debug = function (message: any, ...args: any[]) {
@@ -394,7 +411,9 @@ export const logFilterPlugin: Plugin = {
 
       const originalConsoleWarn = console.warn;
       console.warn = function (...args: unknown[]) {
-        const msg = args.map((a) => (typeof a === "string" ? a : String(a))).join(" ");
+        const msg = args
+          .map((a) => (typeof a === "string" ? a : String(a)))
+          .join(" ");
         if (shouldSuppressConsoleWarn(msg)) return;
         originalConsoleWarn.apply(console, args);
       };

@@ -9,13 +9,19 @@ import { createMockMessage, createMockState } from "./test-utils";
 describe("shouldOpenclawPluginBeInContext", () => {
   it("returns true when state is undefined (fallback)", () => {
     expect(shouldOpenclawPluginBeInContext(undefined, undefined)).toBe(true);
-    expect(shouldOpenclawPluginBeInContext(undefined, createMockMessage("anything"))).toBe(true);
+    expect(
+      shouldOpenclawPluginBeInContext(undefined, createMockMessage("anything")),
+    ).toBe(true);
   });
 
   it("returns false when state has no relevant context and message is unrelated", () => {
     const state = createMockState({
       recentMessagesData: [
-        { id: "1", content: { text: "What is the weather today" }, createdAt: 0 } as any,
+        {
+          id: "1",
+          content: { text: "What is the weather today" },
+          createdAt: 0,
+        } as any,
       ],
     });
     const message = createMockMessage("Tell me a joke");
@@ -73,7 +79,11 @@ describe("shouldOpenclawPluginBeInContext", () => {
   it("returns true when recentMessagesData contains openclaw", () => {
     const state = createMockState({
       recentMessagesData: [
-        { id: "1", content: { text: "I want to set up openclaw" }, createdAt: 0 } as any,
+        {
+          id: "1",
+          content: { text: "I want to set up openclaw" },
+          createdAt: 0,
+        } as any,
       ],
     });
     expect(shouldOpenclawPluginBeInContext(state, undefined)).toBe(true);

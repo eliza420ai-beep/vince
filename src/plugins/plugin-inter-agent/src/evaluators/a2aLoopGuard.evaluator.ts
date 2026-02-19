@@ -27,7 +27,7 @@ import {
 async function getRoomName(
   runtime: IAgentRuntime,
   roomId: string,
-  memory: Memory
+  memory: Memory,
 ): Promise<string> {
   const room = await runtime.getRoom(roomId as any);
   const meta = room?.metadata as Record<string, unknown> | undefined;
@@ -35,7 +35,9 @@ async function getRoomName(
     room?.name ??
     (typeof meta?.channelName === "string" ? meta.channelName : undefined) ??
     (typeof meta?.name === "string" ? meta.name : undefined) ??
-    (typeof memory.content?.channelName === "string" ? memory.content.channelName : undefined) ??
+    (typeof memory.content?.channelName === "string"
+      ? memory.content.channelName
+      : undefined) ??
     ""
   ).trim();
 }
@@ -44,7 +46,7 @@ async function getRoomName(
 async function isStandupRoom(
   runtime: IAgentRuntime,
   roomId: string,
-  memory: Memory
+  memory: Memory,
 ): Promise<boolean> {
   const roomName = await getRoomName(runtime, roomId, memory);
   const channelNames =
@@ -56,7 +58,8 @@ async function isStandupRoom(
     .map((s: string) => s.trim().toLowerCase())
     .filter(Boolean);
   return (
-    roomName.length > 0 && parts.some((part: string) => roomName.toLowerCase().includes(part))
+    roomName.length > 0 &&
+    parts.some((part: string) => roomName.toLowerCase().includes(part))
   );
 }
 
@@ -64,7 +67,7 @@ async function isStandupRoom(
 async function isKnowledgeRoom(
   runtime: IAgentRuntime,
   roomId: string,
-  memory: Memory
+  memory: Memory,
 ): Promise<boolean> {
   const roomName = await getRoomName(runtime, roomId, memory);
   const channelNames =
@@ -76,12 +79,23 @@ async function isKnowledgeRoom(
     .map((s: string) => s.trim().toLowerCase())
     .filter(Boolean);
   return (
-    roomName.length > 0 && parts.some((part: string) => roomName.toLowerCase().includes(part))
+    roomName.length > 0 &&
+    parts.some((part: string) => roomName.toLowerCase().includes(part))
   );
 }
 
 /** Known agent names for A2A detection */
-const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm"];
+const KNOWN_AGENTS = [
+  "vince",
+  "eliza",
+  "kelly",
+  "solus",
+  "otaku",
+  "sentinel",
+  "echo",
+  "oracle",
+  "clawterm",
+];
 
 /** Check if a message is from a known agent (case-insensitive) */
 function isFromKnownAgent(memory: Memory): boolean {
@@ -98,7 +112,9 @@ function isFromKnownAgent(memory: Memory): boolean {
   }
 
   // Check metadata for bot flag (Discord sets this)
-  const metadata = memory.content?.metadata as Record<string, unknown> | undefined;
+  const metadata = memory.content?.metadata as
+    | Record<string, unknown>
+    | undefined;
   if (metadata?.isBot === true || metadata?.fromBot === true) {
     return true;
   }
@@ -108,7 +124,9 @@ function isFromKnownAgent(memory: Memory): boolean {
 
 /** Check if this message is a reply to our own message */
 function isReplyToSelf(memory: Memory, agentId: string): boolean {
-  const metadata = memory.content?.metadata as Record<string, unknown> | undefined;
+  const metadata = memory.content?.metadata as
+    | Record<string, unknown>
+    | undefined;
   const replyTo = metadata?.replyTo as Record<string, unknown> | undefined;
 
   if (!replyTo) return false;
@@ -134,7 +152,7 @@ function countRecentResponsesToSender(
   recentMessages: Memory[],
   agentId: string,
   senderEntityId: string,
-  lookback: number
+  lookback: number,
 ): number {
   let count = 0;
   const relevantMessages = recentMessages.slice(-lookback);
@@ -142,11 +160,15 @@ function countRecentResponsesToSender(
   for (let i = 0; i < relevantMessages.length; i++) {
     const msg = relevantMessages[i];
     const isOurMessage = msg.agentId === agentId || msg.entityId === agentId;
-    
+
     if (isOurMessage) {
       // Check if the previous message was from the sender we're tracking
       const prevMsg = relevantMessages[i - 1];
-      if (prevMsg && (prevMsg.entityId === senderEntityId || prevMsg.agentId === senderEntityId)) {
+      if (
+        prevMsg &&
+        (prevMsg.entityId === senderEntityId ||
+          prevMsg.agentId === senderEntityId)
+      ) {
         count++;
       }
     }
@@ -162,14 +184,17 @@ export const a2aLoopGuardEvaluator: Evaluator = {
   similes: ["loop guard", "a2a guard", "bot loop prevention"],
   alwaysRun: true,
 
-  validate: async (runtime: IAgentRuntime, memory: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    memory: Memory,
+  ): Promise<boolean> => {
     // Only run for messages from other agents/bots
     return isFromKnownAgent(memory);
   },
 
   handler: (async (
     runtime: IAgentRuntime,
-    memory: Memory
+    memory: Memory,
   ): Promise<{ shouldRespond: boolean; reason: string }> => {
     const enabled = process.env.A2A_ENABLED !== "false";
     if (!enabled) {
@@ -178,7 +203,10 @@ export const a2aLoopGuardEvaluator: Evaluator = {
 
     // Knowledge channel: no exchange limit — UPLOAD and knowledge expansion always allowed
     if (await isKnowledgeRoom(runtime, memory.roomId, memory)) {
-      return { shouldRespond: true, reason: "Knowledge channel — no exchange limit" };
+      return {
+        shouldRespond: true,
+        reason: "Knowledge channel — no exchange limit",
+      };
     }
 
     const inStandup = await isStandupRoom(runtime, memory.roomId, memory);
@@ -192,7 +220,7 @@ export const a2aLoopGuardEvaluator: Evaluator = {
     // Check 1: Is this a reply to our own message? (ping-pong prevention)
     if (isReplyToSelf(memory, agentId)) {
       logger.info(
-        `[A2A_LOOP_GUARD] ${agentName}: Skipping reply to own message (ping-pong prevention)`
+        `[A2A_LOOP_GUARD] ${agentName}: Skipping reply to own message (ping-pong prevention)`,
       );
       return {
         shouldRespond: false,
@@ -212,12 +240,12 @@ export const a2aLoopGuardEvaluator: Evaluator = {
         recentMessages,
         agentId,
         senderEntityId,
-        lookback
+        lookback,
       );
 
       if (responseCount >= maxExchanges) {
         logger.info(
-          `[A2A_LOOP_GUARD] ${agentName}: Max exchanges (${maxExchanges}) reached with sender, stopping`
+          `[A2A_LOOP_GUARD] ${agentName}: Max exchanges (${maxExchanges}) reached with sender, stopping`,
         );
         return {
           shouldRespond: false,
@@ -226,7 +254,7 @@ export const a2aLoopGuardEvaluator: Evaluator = {
       }
 
       logger.debug(
-        `[A2A_LOOP_GUARD] ${agentName}: ${responseCount}/${maxExchanges} exchanges with sender, allowing response`
+        `[A2A_LOOP_GUARD] ${agentName}: ${responseCount}/${maxExchanges} exchanges with sender, allowing response`,
       );
     } catch (err) {
       logger.warn({ err }, "[A2A_LOOP_GUARD] Failed to check message history");

@@ -25,7 +25,11 @@ export function registerOtakuRebalanceTaskWorker(runtime: IAgentRuntime): void {
   runtime.registerTaskWorker({
     name: OTAKU_REBALANCE_TASK_NAME,
     validate: async () => true,
-    execute: async (rt: IAgentRuntime, _options: Record<string, unknown>, task: Task) => {
+    execute: async (
+      rt: IAgentRuntime,
+      _options: Record<string, unknown>,
+      task: Task,
+    ) => {
       const roomId = task.roomId;
       if (!roomId) return;
 
@@ -49,8 +53,10 @@ export function registerOtakuRebalanceTaskWorker(runtime: IAgentRuntime): void {
         const totalUsd = positions.reduce(
           (sum, p) =>
             sum +
-            (typeof p.usdValue === "string" ? parseFloat(p.usdValue) : p.usdValue ?? 0),
-          0
+            (typeof p.usdValue === "string"
+              ? parseFloat(p.usdValue)
+              : (p.usdValue ?? 0)),
+          0,
         );
         if (totalUsd <= 0) {
           await rt.createMemory(
@@ -64,14 +70,17 @@ export function registerOtakuRebalanceTaskWorker(runtime: IAgentRuntime): void {
               createdAt: Date.now(),
             },
             "facts",
-            true
+            true,
           );
           return;
         }
 
         const current: Record<string, number> = {};
         for (const p of positions) {
-          const v = typeof p.usdValue === "string" ? parseFloat(p.usdValue) : p.usdValue ?? 0;
+          const v =
+            typeof p.usdValue === "string"
+              ? parseFloat(p.usdValue)
+              : (p.usdValue ?? 0);
           const token = (p.token ?? "other").toUpperCase();
           current[token] = (current[token] ?? 0) + v;
         }
@@ -86,7 +95,7 @@ export function registerOtakuRebalanceTaskWorker(runtime: IAgentRuntime): void {
           const drift = currentVal - targetPct;
           if (Math.abs(drift) >= 5) {
             driftLines.push(
-              `${token}: current ${currentVal.toFixed(0)}% vs target ${targetPct}% (drift ${drift > 0 ? "+" : ""}${drift.toFixed(0)}%)`
+              `${token}: current ${currentVal.toFixed(0)}% vs target ${targetPct}% (drift ${drift > 0 ? "+" : ""}${drift.toFixed(0)}%)`,
             );
           }
         }
@@ -105,7 +114,7 @@ export function registerOtakuRebalanceTaskWorker(runtime: IAgentRuntime): void {
             createdAt: Date.now(),
           },
           "facts",
-          true
+          true,
         );
         logger.info(`[OtakuRebalance] Stored drift fact for room ${roomId}`);
       } catch (err) {

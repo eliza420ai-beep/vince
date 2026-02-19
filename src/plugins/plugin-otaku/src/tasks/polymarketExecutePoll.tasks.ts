@@ -20,7 +20,9 @@ function syntheticMessage(text: string, runtime: IAgentRuntime): Memory {
   };
 }
 
-export function registerPolymarketExecutePollTask(runtime: IAgentRuntime): void {
+export function registerPolymarketExecutePollTask(
+  runtime: IAgentRuntime,
+): void {
   runtime.registerTaskWorker({
     name: "POLYMARKET_EXECUTE_POLL",
     execute: async (rt, _options, task) => {
@@ -39,17 +41,24 @@ export function registerPolymarketExecutePollTask(runtime: IAgentRuntime): void 
     },
   });
 
-  runtime
-    .createTask({
-      name: "POLYMARKET_EXECUTE_POLL",
-      description: "Poll and execute next pending Polymarket sized order",
-      tags: ["polymarket", "desk", "executor"],
-      metadata: { updateInterval: POLL_INTERVAL_MS, updatedAt: Date.now() },
-    })
-    .then(() =>
-      logger.info(
-        "[Otaku] Registered POLYMARKET_EXECUTE_POLL (2m). Set POLYMARKET_DESK_SCHEDULE_ENABLED=false to disable.",
-      ),
-    )
-    .catch((e) => logger.warn("[Otaku] createTask POLYMARKET_EXECUTE_POLL:", e));
+  const taskWorldId = runtime.agentId ?? ZERO_UUID;
+  setImmediate(() => {
+    runtime
+      .createTask({
+        name: "POLYMARKET_EXECUTE_POLL",
+        description: "Poll and execute next pending Polymarket sized order",
+        roomId: taskWorldId,
+        worldId: taskWorldId,
+        tags: ["polymarket", "desk", "executor"],
+        metadata: { updateInterval: POLL_INTERVAL_MS, updatedAt: Date.now() },
+      })
+      .then(() =>
+        logger.info(
+          "[Otaku] Registered POLYMARKET_EXECUTE_POLL (2m). Set POLYMARKET_DESK_SCHEDULE_ENABLED=false to disable.",
+        ),
+      )
+      .catch((e) =>
+        logger.warn("[Otaku] createTask POLYMARKET_EXECUTE_POLL:", e),
+      );
+  });
 }

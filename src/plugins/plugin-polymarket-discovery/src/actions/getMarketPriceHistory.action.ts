@@ -62,9 +62,11 @@ function daysToInterval(days: number): string {
  * Compute summary statistics from price history data
  * This allows us to return useful info without storing thousands of data points
  */
-function computeStatistics(historyData: MarketPriceHistory): PriceHistoryStatistics {
+function computeStatistics(
+  historyData: MarketPriceHistory,
+): PriceHistoryStatistics {
   const dataPoints = historyData.data_points;
-  
+
   if (dataPoints.length === 0) {
     return {
       data_points_count: 0,
@@ -82,16 +84,17 @@ function computeStatistics(historyData: MarketPriceHistory): PriceHistoryStatist
     };
   }
 
-  const prices = dataPoints.map(p => p.price);
+  const prices = dataPoints.map((p) => p.price);
   const startPrice = prices[0];
   const endPrice = prices[prices.length - 1];
   const highPrice = Math.max(...prices);
   const lowPrice = Math.min(...prices);
   const avgPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
-  
+
   const priceChange = endPrice - startPrice;
-  const priceChangePercent = startPrice > 0 ? (priceChange / startPrice) * 100 : 0;
-  
+  const priceChangePercent =
+    startPrice > 0 ? (priceChange / startPrice) * 100 : 0;
+
   // Determine trend (threshold of 1% to be considered movement)
   let trend: "up" | "down" | "stable" = "stable";
   if (priceChangePercent > 1) trend = "up";
@@ -163,12 +166,12 @@ export const getMarketPriceHistoryAction: Action = {
       }
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
         logger.warn(
-          "[GET_POLYMARKET_PRICE_HISTORY] Polymarket service not available"
+          "[GET_POLYMARKET_PRICE_HISTORY] Polymarket service not available",
         );
         return false;
       }
@@ -177,7 +180,7 @@ export const getMarketPriceHistoryAction: Action = {
     } catch (error) {
       logger.error(
         "[GET_POLYMARKET_PRICE_HISTORY] Error validating action:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -188,20 +191,21 @@ export const getMarketPriceHistoryAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      logger.info("[GET_POLYMARKET_PRICE_HISTORY] Getting market price history");
+      logger.info(
+        "[GET_POLYMARKET_PRICE_HISTORY] Getting market price history",
+      );
 
       // Read parameters from state
       const composedState = await runtime.composeState(
         message,
         ["ACTION_STATE"],
-        true
+        true,
       );
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<
-        GetMarketPriceHistoryParams
-      >;
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<GetMarketPriceHistoryParams>;
 
       // Extract and validate condition ID (required)
       const conditionId = (params.conditionId || params.marketId)?.trim();
@@ -224,10 +228,12 @@ export const getMarketPriceHistoryAction: Action = {
       // Validate condition ID format (should be hex string starting with 0x)
       // Accept any valid hex ID with length between 40-70 chars to handle various API formats
       const isValidHex = /^0x[a-fA-F0-9]+$/.test(conditionId);
-      const isValidLength = conditionId.length >= 40 && conditionId.length <= 70;
+      const isValidLength =
+        conditionId.length >= 40 && conditionId.length <= 70;
 
       if (!isValidHex || !isValidLength) {
-        const errorMsg = "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
+        const errorMsg =
+          "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
         logger.error(`[GET_POLYMARKET_PRICE_HISTORY] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: `${errorMsg}. Please provide a valid market condition ID.`,
@@ -291,7 +297,7 @@ export const getMarketPriceHistoryAction: Action = {
 
       // Get service
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -314,26 +320,31 @@ export const getMarketPriceHistoryAction: Action = {
 
       // Fetch price history
       logger.info(
-        `[GET_POLYMARKET_PRICE_HISTORY] Fetching history for ${conditionId}, outcome: ${outcome}, interval: ${interval}`
+        `[GET_POLYMARKET_PRICE_HISTORY] Fetching history for ${conditionId}, outcome: ${outcome}, interval: ${interval}`,
       );
       const historyData = await service.getMarketPriceHistory(
         conditionId,
         outcome,
-        interval
+        interval,
       );
 
       const roomId = message?.roomId ?? "";
       if (roomId) {
-        service.recordActivity(roomId, "price_history", { conditionId, outcome, interval });
+        service.recordActivity(roomId, "price_history", {
+          conditionId,
+          outcome,
+          interval,
+        });
       }
 
       // Compute statistics from the data (this is what we'll store/return, NOT the full array)
       const statistics = computeStatistics(historyData);
 
       // Calculate price change for display
-      const priceChange = historyData.data_points.length > 0
-        ? formatPriceChange(statistics.start_price, statistics.end_price)
-        : null;
+      const priceChange =
+        historyData.data_points.length > 0
+          ? formatPriceChange(statistics.start_price, statistics.end_price)
+          : null;
 
       // Create summary object (WITHOUT the large data_points array)
       // This is what gets stored in the database
@@ -349,13 +360,24 @@ export const getMarketPriceHistoryAction: Action = {
 
       // Format concise text for agent context
       // Keep it minimal - agent doesn't need verbose formatting
-      const trendArrow = statistics.trend === "up" ? "↑" : statistics.trend === "down" ? "↓" : "→";
+      const trendArrow =
+        statistics.trend === "up"
+          ? "↑"
+          : statistics.trend === "down"
+            ? "↓"
+            : "→";
       const changeSign = statistics.price_change_percent >= 0 ? "+" : "";
-      
+
       // Format dates for context
-      const startDate = new Date(statistics.start_timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      const endDate = new Date(statistics.end_timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      
+      const startDate = new Date(statistics.start_timestamp).toLocaleDateString(
+        "en-US",
+        { month: "short", day: "numeric", year: "numeric" },
+      );
+      const endDate = new Date(statistics.end_timestamp).toLocaleDateString(
+        "en-US",
+        { month: "short", day: "numeric", year: "numeric" },
+      );
+
       const text = `Price History: ${historyData.market_question || "this market"} (${outcome})
 Period: ${startDate} → ${endDate} (${interval})
 Start: ${(statistics.start_price * 100).toFixed(1)}% | Current: ${(statistics.end_price * 100).toFixed(1)}% | Change: ${changeSign}${statistics.price_change_percent.toFixed(1)}% ${trendArrow}
@@ -381,7 +403,7 @@ Range: ${(statistics.low_price * 100).toFixed(1)}%-${(statistics.high_price * 10
       }
 
       logger.info(
-        `[GET_POLYMARKET_PRICE_HISTORY] Successfully fetched price history - ${statistics.data_points_count} data points analyzed, current: $${statistics.end_price?.toFixed(4) || "N/A"}, trend: ${statistics.trend}`
+        `[GET_POLYMARKET_PRICE_HISTORY] Successfully fetched price history - ${statistics.data_points_count} data points analyzed, current: $${statistics.end_price?.toFixed(4) || "N/A"}, trend: ${statistics.trend}`,
       );
       return result;
     } catch (error) {
@@ -392,15 +414,16 @@ Range: ${(statistics.low_price * 100).toFixed(1)}%-${(statistics.high_price * 10
       const composedState = await runtime.composeState(
         message,
         ["ACTION_STATE"],
-        true
+        true,
       );
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<
-        GetMarketPriceHistoryParams
-      >;
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<GetMarketPriceHistoryParams>;
       const failureInputParams = {
         conditionId: params.conditionId || params.marketId || "",
         outcome: (params.outcome?.toUpperCase() || "YES") as "YES" | "NO",
-        interval: params.interval || (params.days ? daysToInterval(params.days) : "max"),
+        interval:
+          params.interval ||
+          (params.days ? daysToInterval(params.days) : "max"),
       };
 
       const errorText = `Failed to fetch market price history: ${errorMsg}

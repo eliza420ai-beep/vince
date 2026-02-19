@@ -33,7 +33,10 @@ export const sentinelSecurityChecklistAction: Action = {
   description:
     "Returns a short security checklist (env, secrets, who can do what) and points to SECURITY-HYGIENE in knowledge for the full list.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSecurityChecklist(text);
   },
@@ -59,9 +62,10 @@ Context:\n${contextBlock}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,
       });
-      const text = (typeof response === "string"
-        ? response
-        : (response as { text?: string })?.text ?? String(response)
+      const text = (
+        typeof response === "string"
+          ? response
+          : ((response as { text?: string })?.text ?? String(response))
       ).trim();
       const body = text.endsWith("full list.")
         ? text
@@ -74,7 +78,10 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Security checklist couldn't be generated. Check knowledge/sentinel-docs/SECURITY-HYGIENE.md for env, secrets, and who can do what.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

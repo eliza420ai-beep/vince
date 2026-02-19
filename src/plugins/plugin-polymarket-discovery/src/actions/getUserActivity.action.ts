@@ -32,7 +32,9 @@ type GetUserActivityInput = {
   walletAddress?: string;
 };
 
-type GetUserActivityActionResult = ActionResult & { input: GetUserActivityInput };
+type GetUserActivityActionResult = ActionResult & {
+  input: GetUserActivityInput;
+};
 
 export const getUserActivityAction: Action = {
   name: "GET_POLYMARKET_USER_ACTIVITY",
@@ -56,7 +58,12 @@ export const getUserActivityAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_USER_ACTIVITY", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_USER_ACTIVITY",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -64,13 +71,16 @@ export const getUserActivityAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_USER_ACTIVITY] Getting user activity");
 
       // Read parameters from state
-      const params = await extractActionParams<GetUserActivityParams>(runtime, message);
+      const params = await extractActionParams<GetUserActivityParams>(
+        runtime,
+        message,
+      );
 
       // Extract wallet address
       const walletAddress = params.walletAddress?.trim();
@@ -130,7 +140,9 @@ export const getUserActivityAction: Action = {
       }
 
       // Fetch user activity
-      logger.info(`[GET_POLYMARKET_USER_ACTIVITY] Fetching activity for ${walletAddress}`);
+      logger.info(
+        `[GET_POLYMARKET_USER_ACTIVITY] Fetching activity for ${walletAddress}`,
+      );
       const activity = await service.getUserActivity(walletAddress);
 
       if (activity.length === 0) {
@@ -209,7 +221,7 @@ export const getUserActivityAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_USER_ACTIVITY] Successfully fetched ${activity.length} activity entries`
+        `[GET_POLYMARKET_USER_ACTIVITY] Successfully fetched ${activity.length} activity entries`,
       );
       return result;
     } catch (error) {

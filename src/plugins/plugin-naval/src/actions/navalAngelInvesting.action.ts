@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "angel invest naval",
@@ -46,7 +50,10 @@ export const navalAngelInvestingAction: Action = {
   description:
     "Should they angel invest? How to think about early-stage bets: founder, thesis, check size, avoid ruin. Framework only.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsAngelInvesting(text);
   },
@@ -81,7 +88,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -89,14 +96,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Angel investing: bet on long-term people and ideas you understand. Size checks so no single loss is ruin. If you don't have capital you can lose or 7–10 year patience, build wealth first. See Naval's 'How to Angel Invest' on nav.al.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Should I angel invest? I have some savings, 10 years in tech, no investing experience." } },
-      { name: "{{agent}}", content: { text: "Fit: you have domain and potentially access. Principle: only invest what you can afford to lose; one check shouldn't be ruin. One takeaway: start with small checks (e.g. 1–2% of investable) in founders you'd back with your time. Learn the game before scaling. Naval: long-term people, avoid ruin on any single bet." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Should I angel invest? I have some savings, 10 years in tech, no investing experience.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Fit: you have domain and potentially access. Principle: only invest what you can afford to lose; one check shouldn't be ruin. One takeaway: start with small checks (e.g. 1–2% of investable) in founders you'd back with your time. Learn the game before scaling. Naval: long-term people, avoid ruin on any single bet.",
+        },
+      },
     ],
   ],
 };

@@ -44,12 +44,22 @@ OpenClaw + openclaw-agents = research agents, today.`;
 
 export const openclawAiResearchAgentsAction: Action = {
   name: "OPENCLAW_AI_RESEARCH_AGENTS",
-  similes: ["OPENCLAW_AI_RESEARCH_AGENTS", "AI_RESEARCH_AGENTS", "RESEARCH_AGENT_GUIDE"],
+  similes: [
+    "OPENCLAW_AI_RESEARCH_AGENTS",
+    "AI_RESEARCH_AGENTS",
+    "RESEARCH_AGENT_GUIDE",
+  ],
   description:
     "Explain research agents from ai-2027.com and OpenClaw docs (AI 2027 framing, Gateway + openclaw-agents orchestrator). Use when the user asks about research agent, AI agent, coding agent, automate research.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /research\s*agent/i.test(text) ||
       /(?:ai|coding)\s*agent/i.test(text) ||
@@ -66,17 +76,33 @@ export const openclawAiResearchAgentsAction: Action = {
   ): Promise<ActionResult> => {
     const intro = "Here's how OpenClaw fits with AI research agents—";
     const out = intro + "\n\n" + AI_RESEARCH_AGENTS_MD;
-    if (callback) await callback({ text: out, actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] });
+    if (callback)
+      await callback({ text: out, actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] });
     return { success: true, text: out };
   },
   examples: [
     [
       { name: "{{user}}", content: { text: "What are research agents?" } },
-      { name: "{{agent}}", content: { text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...",
+          actions: ["OPENCLAW_AI_RESEARCH_AGENTS"],
+        },
+      },
     ],
     [
-      { name: "{{user}}", content: { text: "How does OpenClaw relate to AI agents?" } },
-      { name: "{{agent}}", content: { text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] } },
+      {
+        name: "{{user}}",
+        content: { text: "How does OpenClaw relate to AI agents?" },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...",
+          actions: ["OPENCLAW_AI_RESEARCH_AGENTS"],
+        },
+      },
     ],
   ],
 };

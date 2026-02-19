@@ -1,14 +1,20 @@
 /**
  * Bankr Provider
- * 
+ *
  * Exposes BANKR state to other agents (e.g., VINCE ALOHA can include positions).
  * Read-only access to wallets, positions, and orders.
  */
 
-import { type Provider, type IAgentRuntime, type Memory, type State } from '@elizaos/core';
-import { BankrAgentService } from '../services/bankr-agent.service';
-import { BankrOrdersService } from '../services/bankr-orders.service';
-import type { UserInfoResponse, ExternalOrder } from '../types';
+import {
+  type Provider,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
+import { BankrAgentService } from "../services/bankr-agent.service";
+import { BankrOrdersService } from "../services/bankr-orders.service";
+import type { UserInfoResponse, ExternalOrder } from "../types";
 
 export interface BankrProviderData {
   isConfigured: boolean;
@@ -22,14 +28,18 @@ export interface BankrProviderData {
 /**
  * Get BANKR account info (wallets, club status)
  */
-async function getAccountInfo(runtime: IAgentRuntime): Promise<UserInfoResponse | null> {
-  const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+async function getAccountInfo(
+  runtime: IAgentRuntime,
+): Promise<UserInfoResponse | null> {
+  const service = runtime.getService<BankrAgentService>(
+    BankrAgentService.serviceType,
+  );
   if (!service?.isConfigured()) return null;
-  
+
   try {
     return await service.getAccountInfo();
   } catch (error) {
-    console.error('[BankrProvider] Error getting account info:', error);
+    logger.error({ err: error }, "[BankrProvider] Error getting account info");
     return null;
   }
 }
@@ -38,28 +48,33 @@ async function getAccountInfo(runtime: IAgentRuntime): Promise<UserInfoResponse 
  * Get open orders for all wallets
  */
 async function getOpenOrders(
-  runtime: IAgentRuntime, 
-  wallets: Array<{ chain: string; address: string }>
+  runtime: IAgentRuntime,
+  wallets: Array<{ chain: string; address: string }>,
 ): Promise<ExternalOrder[]> {
-  const ordersService = runtime.getService<BankrOrdersService>(BankrOrdersService.serviceType);
+  const ordersService = runtime.getService<BankrOrdersService>(
+    BankrOrdersService.serviceType,
+  );
   if (!ordersService?.isConfigured()) return [];
 
   const allOrders: ExternalOrder[] = [];
 
   for (const wallet of wallets) {
-    if (wallet.chain !== 'evm') continue; // External Orders API is EVM only
-    
+    if (wallet.chain !== "evm") continue; // External Orders API is EVM only
+
     try {
       const result = await ordersService.listOrders({
         maker: wallet.address,
-        status: 'active',
+        status: "active",
       });
-      
+
       if (result.orders) {
         allOrders.push(...result.orders);
       }
     } catch (error) {
-      console.error(`[BankrProvider] Error getting orders for ${wallet.address}:`, error);
+      logger.error(
+        { err: error, address: wallet.address },
+        "[BankrProvider] Error getting orders",
+      );
     }
   }
 
@@ -68,43 +83,42 @@ async function getOpenOrders(
 
 /**
  * BANKR Provider
- * 
+ *
  * Provides BANKR state for context injection into other agents.
  */
 export const bankrProvider: Provider = {
-  name: 'BANKR_PROVIDER',
-  description: 'Provides BANKR wallet, positions, and order state for cross-agent context',
+  name: "BANKR_PROVIDER",
+  description:
+    "Provides BANKR wallet, positions, and order state for cross-agent context",
 
-  get: async (
-    runtime: IAgentRuntime,
-    _message: Memory,
-    _state?: State
-  ) => {
-    const agentService = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
-    
+  get: async (runtime: IAgentRuntime, _message: Memory, _state?: State) => {
+    const agentService = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
+
     if (!agentService?.isConfigured()) {
-      return { text: 'BANKR: Not configured (BANKR_API_KEY not set)' };
+      return { text: "BANKR: Not configured (BANKR_API_KEY not set)" };
     }
 
     try {
       // Get account info
       const accountInfo = await getAccountInfo(runtime);
       if (!accountInfo) {
-        return { text: 'BANKR: Could not fetch account info' };
+        return { text: "BANKR: Could not fetch account info" };
       }
 
       const wallets = accountInfo.wallets ?? [];
-      const evmWallets = wallets.filter(w => w.chain === 'evm');
+      const evmWallets = wallets.filter((w) => w.chain === "evm");
 
       // Get open orders for EVM wallets
       const openOrders = await getOpenOrders(runtime, wallets);
 
       // Build context string
       let context = `**BANKR Status**\n`;
-      
+
       // Wallets
       context += `Wallets: ${wallets.length} (${evmWallets.length} EVM, ${wallets.length - evmWallets.length} Solana)\n`;
-      
+
       // Club status
       if (accountInfo.bankrClub?.active) {
         context += `Bankr Club: Active (${accountInfo.bankrClub.subscriptionType})\n`;
@@ -112,7 +126,7 @@ export const bankrProvider: Provider = {
 
       // Leaderboard
       if (accountInfo.leaderboard) {
-        context += `Leaderboard: Rank #${accountInfo.leaderboard.rank ?? '?'} (Score: ${accountInfo.leaderboard.score})\n`;
+        context += `Leaderboard: Rank #${accountInfo.leaderboard.rank ?? "?"} (Score: ${accountInfo.leaderboard.score})\n`;
       }
 
       // Open orders
@@ -130,8 +144,8 @@ export const bankrProvider: Provider = {
 
       return { text: context };
     } catch (error) {
-      console.error('[BankrProvider] Error:', error);
-      return { text: 'BANKR: Error fetching state' };
+      logger.error({ err: error }, "[BankrProvider] Error");
+      return { text: "BANKR: Error fetching state" };
     }
   },
 };
@@ -139,9 +153,13 @@ export const bankrProvider: Provider = {
 /**
  * Get structured BANKR data (for programmatic use)
  */
-export async function getBankrData(runtime: IAgentRuntime): Promise<BankrProviderData> {
-  const agentService = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
-  
+export async function getBankrData(
+  runtime: IAgentRuntime,
+): Promise<BankrProviderData> {
+  const agentService = runtime.getService<BankrAgentService>(
+    BankrAgentService.serviceType,
+  );
+
   if (!agentService?.isConfigured()) {
     return {
       isConfigured: false,
@@ -156,14 +174,14 @@ export async function getBankrData(runtime: IAgentRuntime): Promise<BankrProvide
 
     return {
       isConfigured: true,
-      wallets: wallets.map(w => ({ chain: w.chain, address: w.address })),
+      wallets: wallets.map((w) => ({ chain: w.chain, address: w.address })),
       bankrClub: accountInfo?.bankrClub,
       openOrders,
       orderCount: openOrders.length,
       lastUpdated: Date.now(),
     };
   } catch (error) {
-    console.error('[getBankrData] Error:', error);
+    logger.error({ err: error }, "[getBankrData] Error");
     return {
       isConfigured: true,
       lastUpdated: Date.now(),

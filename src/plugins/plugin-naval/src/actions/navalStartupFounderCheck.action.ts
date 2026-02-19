@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "should I start a startup",
@@ -49,7 +53,10 @@ export const navalStartupFounderCheckAction: Action = {
   description:
     "Should I start? Idea validation through Naval: specific knowledge, leverage, long-term games. Verdict: start, refine, or don't — and why.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsFounderCheck(text);
   },
@@ -84,7 +91,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -92,14 +99,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Should you start? Check: specific knowledge (only you?), leverage (code/media/labor/capital), long-term game with long-term people. If two of those are weak, refine or wait. If you can't take real accountability, don't start for status.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Founder check naval: B2B tool for dev teams, I'm a solo dev with 10 years backend, no co-founder yet." } },
-      { name: "{{agent}}", content: { text: "1. Specific knowledge: yes — you have the domain. 2. Leverage: code + could add media (content). 3. Long-term: B2B can compound with same accounts. 4. Verdict: start, but get one design or distribution ally so you're not only building. Ship a tiny slice and see who cares." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Founder check naval: B2B tool for dev teams, I'm a solo dev with 10 years backend, no co-founder yet.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Specific knowledge: yes — you have the domain. 2. Leverage: code + could add media (content). 3. Long-term: B2B can compound with same accounts. 4. Verdict: start, but get one design or distribution ally so you're not only building. Ship a tiny slice and see who cares.",
+        },
+      },
     ],
   ],
 };

@@ -75,7 +75,13 @@ describe("Voice and quality", () => {
         "**Wednesday** midweek. Lunch at **Maison Devaux** (curated, open today). Pool season—good for a swim. Alternative: Auberge du Lavoir.";
       const message = createMockMessage("what should I do today");
       const callback = createMockCallback();
-      await kellyDailyBriefingAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyDailyBriefingAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -93,7 +99,13 @@ describe("Voice and quality", () => {
       r.useModel = async () => realisticResponse;
       const message = createMockMessage("where to eat in Landes");
       const callback = createMockCallback();
-      await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendPlaceAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -108,7 +120,13 @@ describe("Voice and quality", () => {
         "**Château Olivier** blanc — Pessac-Léognan. Citrus, mineral. Serve 8–10 °C. Alternative: Domaine de Chevalier blanc.";
       const message = createMockMessage("recommend a wine for seafood");
       const callback = createMockCallback();
-      await kellyRecommendWineAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendWineAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -120,7 +138,12 @@ describe("Voice and quality", () => {
       const r = runtime as any;
       r.composeState = async () => ({
         values: {
-          surfBiarritz: { waveHeight: 1.2, wavePeriod: 8, waveDirection: "SW", seaTemp: 15.5 },
+          surfBiarritz: {
+            waveHeight: 1.2,
+            wavePeriod: 8,
+            waveDirection: "SW",
+            seaTemp: 15.5,
+          },
           weatherBiarritz: { condition: "clear", temp: 16, code: 0 },
         },
         data: {},
@@ -128,7 +151,13 @@ describe("Voice and quality", () => {
       });
       const message = createMockMessage("surf forecast Biarritz");
       const callback = createMockCallback();
-      await kellySurfForecastAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellySurfForecastAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -143,7 +172,13 @@ describe("Voice and quality", () => {
         "Day 1 — **Hôtel du Palais**. Lunch **Le Relais de la Poste**. Day 2 — Lunch **Maison Devaux**. Both from the-good-life.";
       const message = createMockMessage("plan me 2 days in Bordeaux");
       const callback = createMockCallback();
-      await kellyItineraryAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyItineraryAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -157,7 +192,13 @@ describe("Voice and quality", () => {
         "Pool season—**1000m in the backyard**. Warm up 100 easy, then build. Alternative: 15 min surfer yoga for hips and shoulders.";
       const message = createMockMessage("recommend a workout");
       const callback = createMockCallback();
-      await kellyRecommendWorkoutAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendWorkoutAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -171,7 +212,13 @@ describe("Voice and quality", () => {
         "1. Lunch **Maison Devaux** Wed. 2. **Relais de la Poste** midweek stay. 3. Pool or swim daily. 4. Wine: Margaux. 5. Day trip Saint-Émilion.";
       const message = createMockMessage("week ahead");
       const callback = createMockCallback();
-      await kellyWeekAheadAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyWeekAheadAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -186,7 +233,13 @@ describe("Voice and quality", () => {
         "For your daily 1000m: warm up 100–200 easy, then build. In winter use indoor pools (Palais reopens Feb 12, Caudalie Feb 5). Add swimmer yoga for shoulders.";
       const message = createMockMessage("tips for my daily 1000m");
       const callback = createMockCallback();
-      await kellySwimmingTipsAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellySwimmingTipsAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -205,7 +258,13 @@ describe("Voice and quality", () => {
         "**Best pick:** Château Margaux tasting — structure, red fruit. **Alternative:** Caudalie spa day.";
       const message = createMockMessage("wine tasting experience");
       const callback = createMockCallback();
-      await kellyRecommendExperienceAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendExperienceAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
@@ -229,7 +288,12 @@ describe("Voice and quality", () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = async () =>
         Response.json({
-          current: { weather_code: 0, temperature_2m: 14, precipitation: 0, wind_speed_10m: 5 },
+          current: {
+            weather_code: 0,
+            temperature_2m: 14,
+            precipitation: 0,
+            wind_speed_10m: 5,
+          },
         }) as any;
       try {
         const runtime = createMockRuntimeWithService();

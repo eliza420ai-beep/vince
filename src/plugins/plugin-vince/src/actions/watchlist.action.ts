@@ -345,8 +345,12 @@ export const vinceWatchlistAction: Action = {
             const narrativeResp = await runtime.useModel(ModelType.TEXT_SMALL, {
               prompt: `You are VINCE. The user asked for their watchlist. In one short flowing sentence (no bullets), set the scene: they have ${summary}. Be direct and human. ${NO_AI_SLOP}\nOne sentence only:`,
             });
-            const narrativeText = typeof narrativeResp === "string" ? narrativeResp : (narrativeResp as { text?: string })?.text ?? "";
-            if (narrativeText?.trim()) narrativeLead = narrativeText.trim() + "\n\n";
+            const narrativeText =
+              typeof narrativeResp === "string"
+                ? narrativeResp
+                : ((narrativeResp as { text?: string })?.text ?? "");
+            if (narrativeText?.trim())
+              narrativeLead = narrativeText.trim() + "\n\n";
           } catch {
             // fallback: no narrative
           }

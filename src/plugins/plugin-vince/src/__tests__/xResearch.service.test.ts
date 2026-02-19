@@ -18,7 +18,14 @@ const mockTweet: XTweet = {
   name: "U",
   created_at: new Date().toISOString(),
   conversation_id: "123",
-  metrics: { likes: 0, retweets: 0, replies: 0, quotes: 0, impressions: 0, bookmarks: 0 },
+  metrics: {
+    likes: 0,
+    retweets: 0,
+    replies: 0,
+    quotes: 0,
+    impressions: 0,
+    bookmarks: 0,
+  },
   urls: [],
   mentions: [],
   hashtags: [],
@@ -53,7 +60,14 @@ describe("VinceXResearchService", () => {
             author_id: "u1",
             created_at: new Date().toISOString(),
             conversation_id: "123",
-            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            public_metrics: {
+              like_count: 0,
+              retweet_count: 0,
+              reply_count: 0,
+              quote_count: 0,
+              impression_count: 0,
+              bookmark_count: 0,
+            },
             entities: { urls: [], mentions: [], hashtags: [] },
           },
         ],
@@ -92,8 +106,12 @@ describe("VinceXResearchService", () => {
       const runtime = createMockRuntimeWithCache();
       const service = new VinceXResearchService(runtime);
       (service as any).getToken = () => "fake-token";
-      const searchSpy = vi.spyOn(service, "search").mockResolvedValue([mockTweet]);
-      const getTweetSpy = vi.spyOn(service, "getTweet").mockResolvedValue(mockTweet);
+      const searchSpy = vi
+        .spyOn(service, "search")
+        .mockResolvedValue([mockTweet]);
+      const getTweetSpy = vi
+        .spyOn(service, "getTweet")
+        .mockResolvedValue(mockTweet);
 
       const threadId = "1234567890";
       const tweets = await service.thread(threadId, { pages: 2 });
@@ -121,11 +139,20 @@ describe("VinceXResearchService", () => {
             author_id: "u1",
             created_at: new Date().toISOString(),
             conversation_id: "t1",
-            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            public_metrics: {
+              like_count: 0,
+              retweet_count: 0,
+              reply_count: 0,
+              quote_count: 0,
+              impression_count: 0,
+              bookmark_count: 0,
+            },
             entities: { urls: [], mentions: [], hashtags: [] },
           },
         ],
-        includes: { users: [{ id: "u1", username: "someuser", name: "Some User" }] },
+        includes: {
+          users: [{ id: "u1", username: "someuser", name: "Some User" }],
+        },
       });
       const mockClient = {
         users: {
@@ -149,7 +176,11 @@ describe("VinceXResearchService", () => {
       expect(getPosts).toHaveBeenCalledTimes(1);
       expect(runtime.setCache).toHaveBeenCalledWith(
         expect.stringContaining("profile:"),
-        expect.objectContaining({ user: result1.user, tweets: result1.tweets, ts: expect.any(Number) }),
+        expect.objectContaining({
+          user: result1.user,
+          tweets: result1.tweets,
+          ts: expect.any(Number),
+        }),
       );
     });
 
@@ -157,7 +188,14 @@ describe("VinceXResearchService", () => {
       const runtime = createMockRuntimeWithCache();
       const pinnedId = "pinned123";
       const getByUsernames = vi.fn().mockResolvedValue({
-        data: [{ id: "u1", username: "dev", name: "Dev User", pinned_tweet_id: pinnedId }],
+        data: [
+          {
+            id: "u1",
+            username: "dev",
+            name: "Dev User",
+            pinned_tweet_id: pinnedId,
+          },
+        ],
         includes: {
           tweets: [
             {
@@ -166,7 +204,14 @@ describe("VinceXResearchService", () => {
               author_id: "u1",
               created_at: new Date().toISOString(),
               conversation_id: pinnedId,
-              public_metrics: { like_count: 1, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+              public_metrics: {
+                like_count: 1,
+                retweet_count: 0,
+                reply_count: 0,
+                quote_count: 0,
+                impression_count: 0,
+                bookmark_count: 0,
+              },
               entities: { urls: [], mentions: [], hashtags: [] },
             },
           ],
@@ -180,7 +225,14 @@ describe("VinceXResearchService", () => {
             author_id: "u1",
             created_at: new Date().toISOString(),
             conversation_id: "t2",
-            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            public_metrics: {
+              like_count: 0,
+              retweet_count: 0,
+              reply_count: 0,
+              quote_count: 0,
+              impression_count: 0,
+              bookmark_count: 0,
+            },
             entities: { urls: [], mentions: [], hashtags: [] },
           },
         ],
@@ -217,7 +269,14 @@ describe("VinceXResearchService", () => {
             author_id: "u1",
             created_at: new Date().toISOString(),
             conversation_id: "1",
-            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            public_metrics: {
+              like_count: 0,
+              retweet_count: 0,
+              reply_count: 0,
+              quote_count: 0,
+              impression_count: 0,
+              bookmark_count: 0,
+            },
             entities: { urls: [], mentions: [], hashtags: [] },
           },
         ],
@@ -232,7 +291,14 @@ describe("VinceXResearchService", () => {
             author_id: "u1",
             created_at: new Date().toISOString(),
             conversation_id: "2",
-            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            public_metrics: {
+              like_count: 0,
+              retweet_count: 0,
+              reply_count: 0,
+              quote_count: 0,
+              impression_count: 0,
+              bookmark_count: 0,
+            },
             entities: { urls: [], mentions: [], hashtags: [] },
           },
         ],
@@ -248,8 +314,11 @@ describe("VinceXResearchService", () => {
       (service as any).getToken = () => "fake-token";
       (service as any).getClient = vi.fn().mockResolvedValue(mockClient);
 
-      const pages: { tweets: XTweet[]; nextToken?: string; done: boolean }[] = [];
-      for await (const page of service.searchPaginated("test", { maxPages: 3 })) {
+      const pages: { tweets: XTweet[]; nextToken?: string; done: boolean }[] =
+        [];
+      for await (const page of service.searchPaginated("test", {
+        maxPages: 3,
+      })) {
         pages.push(page);
       }
 

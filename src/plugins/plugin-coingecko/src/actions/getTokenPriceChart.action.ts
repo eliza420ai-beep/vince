@@ -8,7 +8,11 @@ import {
   logger,
 } from "@elizaos/core";
 import { nativeTokenIds } from "../services/coingecko.service";
-import { validateCoingeckoService, getCoingeckoService, formatMarketCap } from "../utils/actionHelpers";
+import {
+  validateCoingeckoService,
+  getCoingeckoService,
+  formatMarketCap,
+} from "../utils/actionHelpers";
 
 export const getTokenPriceChartAction: Action = {
   name: "GET_TOKEN_PRICE_CHART",
@@ -19,29 +23,39 @@ export const getTokenPriceChartAction: Action = {
     "PRICE_GRAPH",
     "TOKEN_PERFORMANCE",
   ],
-  description:
-    `Use this action when the user asks to see a price chart, graph, or price history for a token. When called successfully, this action automatically provides the token chart visualization in the chat with historical price data points, current price, and price change statistics.`,
+  description: `Use this action when the user asks to see a price chart, graph, or price history for a token. When called successfully, this action automatically provides the token chart visualization in the chat with historical price data points, current price, and price change statistics.`,
 
   parameters: {
     token: {
       type: "string",
-      description: `Token symbol or contract address. Native tokens that can be used by symbol: ${Object.keys(nativeTokenIds).join(', ').toUpperCase()}. For all other tokens, provide the contract address (e.g., '0x1bc0c42215582d5a085795f4badbac3ff36d1bcb'). Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.`,
+      description: `Token symbol or contract address. Native tokens that can be used by symbol: ${Object.keys(nativeTokenIds).join(", ").toUpperCase()}. For all other tokens, provide the contract address (e.g., '0x1bc0c42215582d5a085795f4badbac3ff36d1bcb'). Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.`,
       required: true,
     },
     timeframe: {
       type: "string",
-      description: "Time period for the chart. Options: '1h', '24h', '7d', '30d', '90d', '1y'. Defaults to '24h'.",
+      description:
+        "Time period for the chart. Options: '1h', '24h', '7d', '30d', '90d', '1y'. Defaults to '24h'.",
       required: false,
     },
     chain: {
       type: "string",
-      description: "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.",
+      description:
+        "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.",
       required: true,
     },
   },
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateCoingeckoService(runtime, "GET_TOKEN_PRICE_CHART", state, message);
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
+    return validateCoingeckoService(
+      runtime,
+      "GET_TOKEN_PRICE_CHART",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -58,13 +72,22 @@ export const getTokenPriceChartAction: Action = {
       }
 
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Extract and validate token parameter (required)
       const tokenRaw: string | undefined = params?.token?.trim();
       if (!tokenRaw) {
-        const supportedNativeTokens = Object.keys(nativeTokenIds).join(', ').toUpperCase();
+        const supportedNativeTokens = Object.keys(nativeTokenIds)
+          .join(", ")
+          .toUpperCase();
         const errorMsg = `Missing required parameter 'token'. Please specify which token to fetch price chart for. Native tokens (${supportedNativeTokens}) can be used by symbol. For all other tokens, provide the contract address. Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.`;
         logger.error(`[GET_TOKEN_PRICE_CHART] ${errorMsg}`);
         const errorResult: ActionResult = {
@@ -84,7 +107,8 @@ export const getTokenPriceChartAction: Action = {
       // Extract and validate chain parameter (required)
       const chain: string | undefined = params?.chain?.trim()?.toLowerCase();
       if (!chain) {
-        const errorMsg = "Missing required parameter 'chain'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'arbitrum'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.";
+        const errorMsg =
+          "Missing required parameter 'chain'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'arbitrum'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.";
         logger.error(`[GET_TOKEN_PRICE_CHART] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
@@ -101,10 +125,10 @@ export const getTokenPriceChartAction: Action = {
       }
 
       // Extract optional timeframe parameter
-      const timeframe = (params?.timeframe?.trim() || '24h').toLowerCase();
-      const validTimeframes = ['1h', '24h', '7d', '30d', '90d', '1y'];
+      const timeframe = (params?.timeframe?.trim() || "24h").toLowerCase();
+      const validTimeframes = ["1h", "24h", "7d", "30d", "90d", "1y"];
       if (!validTimeframes.includes(timeframe)) {
-        const errorMsg = `Invalid timeframe '${timeframe}'. Valid options: ${validTimeframes.join(', ')}`;
+        const errorMsg = `Invalid timeframe '${timeframe}'. Valid options: ${validTimeframes.join(", ")}`;
         logger.error(`[GET_TOKEN_PRICE_CHART] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
@@ -120,19 +144,26 @@ export const getTokenPriceChartAction: Action = {
         return errorResult;
       }
 
-      logger.info(`[GET_TOKEN_PRICE_CHART] Fetching price chart for ${tokenRaw}, timeframe: ${timeframe}, chain: ${chain}`);
+      logger.info(
+        `[GET_TOKEN_PRICE_CHART] Fetching price chart for ${tokenRaw}, timeframe: ${timeframe}, chain: ${chain}`,
+      );
 
       // Store input parameters for return
       const inputParams = { token: tokenRaw, timeframe, chain };
 
       // Fetch price chart data
-      const chartData = await svc.getTokenPriceChart(tokenRaw, timeframe, chain);
+      const chartData = await svc.getTokenPriceChart(
+        tokenRaw,
+        timeframe,
+        chain,
+      );
 
       // Calculate price change
       let priceChange: { value: number; percentage: number } | null = null;
       if (chartData.data_points.length > 0) {
         const firstPrice = chartData.data_points[0].price;
-        const lastPrice = chartData.data_points[chartData.data_points.length - 1].price;
+        const lastPrice =
+          chartData.data_points[chartData.data_points.length - 1].price;
         const change = lastPrice - firstPrice;
         const changePercent = (change / firstPrice) * 100;
         priceChange = { value: change, percentage: changePercent };
@@ -140,9 +171,15 @@ export const getTokenPriceChartAction: Action = {
 
       // Calculate market cap change
       let marketCapChange: { value: number; percentage: number } | null = null;
-      if (chartData.market_cap_data_points && chartData.market_cap_data_points.length > 0) {
+      if (
+        chartData.market_cap_data_points &&
+        chartData.market_cap_data_points.length > 0
+      ) {
         const firstMC = chartData.market_cap_data_points[0].marketCap;
-        const lastMC = chartData.market_cap_data_points[chartData.market_cap_data_points.length - 1].marketCap;
+        const lastMC =
+          chartData.market_cap_data_points[
+            chartData.market_cap_data_points.length - 1
+          ].marketCap;
         const change = lastMC - firstMC;
         const changePercent = (change / firstMC) * 100;
         marketCapChange = { value: change, percentage: changePercent };
@@ -150,10 +187,10 @@ export const getTokenPriceChartAction: Action = {
 
       // Create a narrative summary for the agent to format
       const summary = `Price chart data for ${chartData.token_symbol || tokenRaw} over ${timeframe}:
-- Current Price: $${chartData.current_price?.toFixed(6) || 'N/A'}
-- Price Change: ${priceChange ? `${priceChange.value >= 0 ? '+' : ''}$${priceChange.value.toFixed(6)} (${priceChange.percentage >= 0 ? '+' : ''}${priceChange.percentage.toFixed(2)}%)` : 'N/A'}
-- Current Market Cap: ${chartData.current_market_cap ? `$${formatMarketCap(chartData.current_market_cap)}` : 'N/A'}
-- Market Cap Change: ${marketCapChange ? `${marketCapChange.value >= 0 ? '+' : ''}$${formatMarketCap(Math.abs(marketCapChange.value))} (${marketCapChange.percentage >= 0 ? '+' : ''}${marketCapChange.percentage.toFixed(2)}%)` : 'N/A'}
+- Current Price: $${chartData.current_price?.toFixed(6) || "N/A"}
+- Price Change: ${priceChange ? `${priceChange.value >= 0 ? "+" : ""}$${priceChange.value.toFixed(6)} (${priceChange.percentage >= 0 ? "+" : ""}${priceChange.percentage.toFixed(2)}%)` : "N/A"}
+- Current Market Cap: ${chartData.current_market_cap ? `$${formatMarketCap(chartData.current_market_cap)}` : "N/A"}
+- Market Cap Change: ${marketCapChange ? `${marketCapChange.value >= 0 ? "+" : ""}$${formatMarketCap(Math.abs(marketCapChange.value))} (${marketCapChange.percentage >= 0 ? "+" : ""}${marketCapChange.percentage.toFixed(2)}%)` : "N/A"}
 - Data Points: ${chartData.data_points.length} price points
 - Timeframe: ${chartData.timeframe}
 
@@ -192,20 +229,27 @@ Please analyze this price chart data and provide insights about the token's pric
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_TOKEN_PRICE_CHART] Action failed: ${msg}`);
-      
+
       // Try to capture input params even in failure
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
       const failureInputParams = {
         token: params?.token,
-        timeframe: params?.timeframe || '24h',
+        timeframe: params?.timeframe || "24h",
         chain: params?.chain,
       };
-      
+
       const errorText = `Failed to fetch token price chart: ${msg}
 
 Please check the following:
-1. **Token identifier**: Native tokens (${Object.keys(nativeTokenIds).join(', ').toUpperCase()}) can be used by symbol. For all other tokens, you MUST provide the contract address. Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.
+1. **Token identifier**: Native tokens (${Object.keys(nativeTokenIds).join(", ").toUpperCase()}) can be used by symbol. For all other tokens, you MUST provide the contract address. Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.
 2. **Chain parameter** (REQUIRED): Provide the correct blockchain network:
    | Chain        | Parameter   |
    | ------------ | ----------- |
@@ -219,14 +263,14 @@ Please check the following:
 
 Example: "Show me the price chart for BTC on ethereum over the last 7 days"
 Example: "Get the chart for 0x1bc0c42215582d5a085795f4badbac3ff36d1bcb on base for 30 days"`;
-      
+
       const errorResult: ActionResult = {
         text: errorText,
         success: false,
         error: msg,
         input: failureInputParams,
       } as ActionResult & { input: typeof failureInputParams };
-      
+
       if (callback) {
         await callback({
           text: errorResult.text,
@@ -266,4 +310,3 @@ Example: "Get the chart for 0x1bc0c42215582d5a085795f4badbac3ff36d1bcb on base f
     ],
   ],
 };
-

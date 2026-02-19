@@ -15,11 +15,11 @@ VINCE does not implement this endpoint; it only calls it. If Milaidy (or any com
 
 ## Env vars
 
-| Variable | Purpose |
-|----------|---------|
-| `MILAIDY_GATEWAY_URL` | Base URL of Milaidy Gateway (e.g. `http://localhost:18789`). When set, build items are POSTed here first. |
-| `STANDUP_DELIVERABLES_DIR` | Directory for fallback-generated files (default: `./docs/standup`). Relative paths are resolved from process cwd. |
-| `STANDUP_BUILD_FALLBACK_TO_VINCE` | When `false`, disable in-VINCE code gen; build items only go to Milaidy. Default: `true`. |
+| Variable                          | Purpose                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `MILAIDY_GATEWAY_URL`             | Base URL of Milaidy Gateway (e.g. `http://localhost:18789`). When set, build items are POSTed here first.         |
+| `STANDUP_DELIVERABLES_DIR`        | Directory for fallback-generated files (default: `./docs/standup`). Relative paths are resolved from process cwd. |
+| `STANDUP_BUILD_FALLBACK_TO_VINCE` | When `false`, disable in-VINCE code gen; build items only go to Milaidy. Default: `true`.                         |
 
 ## Fallback: in-VINCE code generation
 
@@ -34,8 +34,8 @@ When Milaidy is not used or returns an error:
 
 `manifest.md` in the deliverables directory is a markdown table:
 
-| Date | Assignee | Description | File |
-|------|----------|-------------|------|
+| Date       | Assignee | Description              | File                                           |
+| ---------- | -------- | ------------------------ | ---------------------------------------------- |
 | 2026-02-10 | Sentinel | add a small script to... | `2026-02-10-sentinel-add-a-small-script-to.ts` |
 
 ## Agent suggestions

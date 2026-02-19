@@ -23,7 +23,10 @@ import * as path from "node:path";
 import { type IAgentRuntime, logger, ModelType } from "@elizaos/core";
 import { PolymarketService } from "../../../plugin-polymarket-discovery/src/services/polymarket.service";
 import { getRecentCodeContext } from "./standup.context";
-import { getStandupTrackedAssets, getStandupSnippetLen } from "./standup.constants";
+import {
+  getStandupTrackedAssets,
+  getStandupSnippetLen,
+} from "./standup.constants";
 import { loadDayReport, loadSharedDailyInsights } from "./dayReportPersistence";
 
 /** Extract key events from VINCE's shared insights text for dynamic ECHO/Clawterm queries (e.g. "SOL funding flipped", "BTC +5%"). */
@@ -35,20 +38,28 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
   for (const asset of assets) {
     const assetLower = asset.toLowerCase();
     if (lower.includes(`${assetLower}`)) {
-      const fundingMatch = vinceText.match(new RegExp(`${asset}[^|]*F:(-?[\\d.]+)%`, "i"));
+      const fundingMatch = vinceText.match(
+        new RegExp(`${asset}[^|]*F:(-?[\\d.]+)%`, "i"),
+      );
       if (fundingMatch) {
         const rate = parseFloat(fundingMatch[1]);
         if (rate < -0.01) hints.push(`${asset} funding negative`);
         else if (rate > 0.02) hints.push(`${asset} funding high`);
       }
-      const changeMatch = vinceText.match(new RegExp(`${asset}[^|]*([+-][\\d.]+)%`, "i"));
+      const changeMatch = vinceText.match(
+        new RegExp(`${asset}[^|]*([+-][\\d.]+)%`, "i"),
+      );
       if (changeMatch) {
         const pct = parseFloat(changeMatch[1]);
-        if (Math.abs(pct) >= 5) hints.push(`${asset} ${pct >= 0 ? "+" : ""}${pct}% 24h`);
+        if (Math.abs(pct) >= 5)
+          hints.push(`${asset} ${pct >= 0 ? "+" : ""}${pct}% 24h`);
       }
     }
   }
-  if (lower.includes("volume") && (lower.includes("spike") || lower.includes("2x") || lower.includes("3x"))) {
+  if (
+    lower.includes("volume") &&
+    (lower.includes("spike") || lower.includes("2x") || lower.includes("3x"))
+  ) {
     hints.push("volume spike");
   }
   return [...new Set(hints)].slice(0, 5);
@@ -61,55 +72,89 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
 async function fetchEnrichedContext(runtime: IAgentRuntime): Promise<string> {
   const marketData = runtime.getService("VINCE_MARKET_DATA_SERVICE") as {
     getEnrichedContext?: (asset: string) => Promise<{
-      currentPrice?: number; priceChange24h?: number; fundingRate?: number;
-      longShortRatio?: number; marketRegime?: string; volumeRatio?: number;
+      currentPrice?: number;
+      priceChange24h?: number;
+      fundingRate?: number;
+      longShortRatio?: number;
+      marketRegime?: string;
+      volumeRatio?: number;
       volume24h?: number;
     } | null>;
   } | null;
   if (!marketData?.getEnrichedContext) return "";
   const assets = getStandupTrackedAssets();
-  const results = await Promise.all(assets.map(async (asset) => {
-    const ctx = await marketData.getEnrichedContext!(asset).catch(() => null);
-    if (!ctx) return `| ${asset} | N/A | — | — |`;
-    const price = ctx.currentPrice ? `$${ctx.currentPrice.toLocaleString()}` : "N/A";
-    const change = ctx.priceChange24h != null ? `${ctx.priceChange24h >= 0 ? "+" : ""}${ctx.priceChange24h.toFixed(1)}%` : "";
-    const funding = ctx.fundingRate != null ? `F:${(ctx.fundingRate * 100).toFixed(3)}%` : "";
-    const ls = ctx.longShortRatio != null ? `L/S:${ctx.longShortRatio.toFixed(2)}` : "";
-    const vol = ctx.volumeRatio != null ? `Vol:${ctx.volumeRatio.toFixed(1)}x` : "";
-    const regime = ctx.marketRegime ?? "";
-    return `| ${asset} | ${price} ${change} | ${funding} ${ls} ${vol} | ${regime} |`;
-  }));
+  const results = await Promise.all(
+    assets.map(async (asset) => {
+      const ctx = await marketData.getEnrichedContext!(asset).catch(() => null);
+      if (!ctx) return `| ${asset} | N/A | — | — |`;
+      const price = ctx.currentPrice
+        ? `$${ctx.currentPrice.toLocaleString()}`
+        : "N/A";
+      const change =
+        ctx.priceChange24h != null
+          ? `${ctx.priceChange24h >= 0 ? "+" : ""}${ctx.priceChange24h.toFixed(1)}%`
+          : "";
+      const funding =
+        ctx.fundingRate != null
+          ? `F:${(ctx.fundingRate * 100).toFixed(3)}%`
+          : "";
+      const ls =
+        ctx.longShortRatio != null
+          ? `L/S:${ctx.longShortRatio.toFixed(2)}`
+          : "";
+      const vol =
+        ctx.volumeRatio != null ? `Vol:${ctx.volumeRatio.toFixed(1)}x` : "";
+      const regime = ctx.marketRegime ?? "";
+      return `| ${asset} | ${price} ${change} | ${funding} ${ls} ${vol} | ${regime} |`;
+    }),
+  );
   return `| Asset | Price | Funding/LS | Regime |\n|-------|-------|-----------|--------|\n${results.join("\n")}`;
 }
 
 async function fetchFearGreed(runtime: IAgentRuntime): Promise<string> {
   const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
-    getFearGreed?: () => Promise<{ value: number; classification: string } | null>;
+    getFearGreed?: () => Promise<{
+      value: number;
+      classification: string;
+    } | null>;
   } | null;
-  const fg = await coinglass?.getFearGreed?.().catch(() => null) ?? null;
-  return fg ? `**Fear & Greed:** ${fg.value} (${fg.classification?.replace(/_/g, " ")})` : "";
+  const fg = (await coinglass?.getFearGreed?.().catch(() => null)) ?? null;
+  return fg
+    ? `**Fear & Greed:** ${fg.value} (${fg.classification?.replace(/_/g, " ")})`
+    : "";
 }
 
 async function fetchHIP3Pulse(runtime: IAgentRuntime): Promise<string> {
   const hip3 = runtime.getService("VINCE_HIP3_SERVICE") as {
     getHIP3Pulse?: () => Promise<{ tldr: string } | null>;
   } | null;
-  const data = await hip3?.getHIP3Pulse?.().catch(() => null) ?? null;
+  const data = (await hip3?.getHIP3Pulse?.().catch(() => null)) ?? null;
   return data?.tldr ? `**HIP-3:** ${data.tldr}` : "";
 }
 
 async function fetchSignalAggregator(runtime: IAgentRuntime): Promise<string> {
   const sigAgg = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as {
-    aggregateSignals?: (asset: string) => Promise<{ direction?: string; confidence?: number; sources?: number } | null>;
+    aggregateSignals?: (asset: string) => Promise<{
+      direction?: string;
+      confidence?: number;
+      sources?: number;
+    } | null>;
   } | null;
-  const btcSignal = await sigAgg?.aggregateSignals?.("BTC").catch(() => null) ?? null;
-  return btcSignal?.direction ? `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${btcSignal.sources ?? 0} sources)` : "";
+  const btcSignal =
+    (await sigAgg?.aggregateSignals?.("BTC").catch(() => null)) ?? null;
+  return btcSignal?.direction
+    ? `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${btcSignal.sources ?? 0} sources)`
+    : "";
 }
 
 async function fetchDeribitDVOL(runtime: IAgentRuntime): Promise<string> {
   const deribit = runtime.getService("VINCE_DERIBIT_SERVICE") as {
     getDVOL?: (currency: string) => Promise<{ dvol: number } | null>;
-    getBestCoveredCalls?: (currency: string) => Promise<Array<{ strike: number; premium: number; expiry: string }> | null>;
+    getBestCoveredCalls?: (currency: string) => Promise<Array<{
+      strike: number;
+      premium: number;
+      expiry: string;
+    }> | null>;
   } | null;
   const [dvol, bestCalls] = await Promise.all([
     deribit?.getDVOL?.("BTC").catch(() => null) ?? null,
@@ -126,18 +171,30 @@ async function fetchDeribitDVOL(runtime: IAgentRuntime): Promise<string> {
 
 async function fetchBinanceTopTraders(runtime: IAgentRuntime): Promise<string> {
   const binance = runtime.getService("VINCE_BINANCE_SERVICE") as {
-    getTopTraderPositions?: (asset: string) => Promise<{ longPercent: number; shortPercent: number } | null>;
+    getTopTraderPositions?: (
+      asset: string,
+    ) => Promise<{ longPercent: number; shortPercent: number } | null>;
   } | null;
-  const topTraders = await binance?.getTopTraderPositions?.("BTC").catch(() => null) ?? null;
-  return topTraders ? `**Top traders (BTC):** ${topTraders.longPercent?.toFixed(0)}% long / ${topTraders.shortPercent?.toFixed(0)}% short` : "";
+  const topTraders =
+    (await binance?.getTopTraderPositions?.("BTC").catch(() => null)) ?? null;
+  return topTraders
+    ? `**Top traders (BTC):** ${topTraders.longPercent?.toFixed(0)}% long / ${topTraders.shortPercent?.toFixed(0)}% short`
+    : "";
 }
 
 async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
-    getStats?: () => Promise<{ wins: number; losses: number; pnl: number } | null>;
+    getStats?: () => Promise<{
+      wins: number;
+      losses: number;
+      pnl: number;
+    } | null>;
   } | null;
   const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
-    getStatus?: () => Promise<{ openPositions?: number; pendingEntries?: number } | null>;
+    getStatus?: () => Promise<{
+      openPositions?: number;
+      pendingEntries?: number;
+    } | null>;
   } | null;
   const [stats, botStatus] = await Promise.all([
     paperBot?.getStats?.().catch(() => null) ?? null,
@@ -146,22 +203,32 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   let line = stats
     ? `**Paper bot:** ${stats.wins}W/${stats.losses}L (${stats.pnl >= 0 ? "+" : ""}$${stats.pnl.toFixed(0)})`
     : "**Paper bot:** No data";
-  if (botStatus) line += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;
+  if (botStatus)
+    line += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;
   return line;
 }
 
 async function fetchGoalTracker(runtime: IAgentRuntime): Promise<string> {
   const goals = runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as {
-    getDailyProgress?: () => Promise<{ pnlToday?: number; target?: number; pctComplete?: number } | null>;
+    getDailyProgress?: () => Promise<{
+      pnlToday?: number;
+      target?: number;
+      pctComplete?: number;
+    } | null>;
   } | null;
-  const goalData = await goals?.getDailyProgress?.().catch(() => null) ?? null;
-  return goalData?.target ? `**Daily goal:** $${goalData.pnlToday?.toFixed(0) ?? 0}/$${goalData.target} (${goalData.pctComplete?.toFixed(0) ?? 0}%)` : "";
+  const goalData =
+    (await goals?.getDailyProgress?.().catch(() => null)) ?? null;
+  return goalData?.target
+    ? `**Daily goal:** $${goalData.pnlToday?.toFixed(0) ?? 0}/$${goalData.target} (${goalData.pctComplete?.toFixed(0) ?? 0}%)`
+    : "";
 }
 
 async function fetchMandoMinutes(runtime: IAgentRuntime): Promise<string> {
   const newsSvc = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as {
     refreshData?: (force?: boolean) => Promise<void>;
-    getTopHeadlines?: (limit: number) => Array<{ title: string; sentiment: string; impact: string }>;
+    getTopHeadlines?: (
+      limit: number,
+    ) => Array<{ title: string; sentiment: string; impact: string }>;
     getVibeCheck?: () => string;
     getTLDR?: () => string;
     getOverallSentiment?: () => { sentiment: string; confidence: number };
@@ -173,15 +240,24 @@ async function fetchMandoMinutes(runtime: IAgentRuntime): Promise<string> {
   const sentiment = newsSvc.getOverallSentiment?.();
   const headlines = newsSvc.getTopHeadlines?.(5) ?? [];
   const headlineLines = headlines.map((h) => {
-    const dot = h.sentiment === "bullish" ? "🟢" : h.sentiment === "bearish" ? "🔴" : "⚪";
+    const dot =
+      h.sentiment === "bullish"
+        ? "🟢"
+        : h.sentiment === "bearish"
+          ? "🔴"
+          : "⚪";
     return `${dot} ${h.title.slice(0, 80)}`;
   });
   return [
     vibeCheck ? `**MandoMinutes:** ${vibeCheck}` : "",
-    sentiment ? `News sentiment: ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)` : "",
+    sentiment
+      ? `News sentiment: ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)`
+      : "",
     tldr ? `TLDR: ${tldr}` : "",
     headlineLines.length > 0 ? `Headlines:\n${headlineLines.join("\n")}` : "",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function fetchAlliumOnChain(runtime: IAgentRuntime): Promise<string> {
@@ -194,7 +270,9 @@ async function fetchAlliumOnChain(runtime: IAgentRuntime): Promise<string> {
 }
 
 async function fetchLiquidations(runtime: IAgentRuntime): Promise<string> {
-  const binanceLiq = runtime.getService("VINCE_BINANCE_LIQUIDATION_SERVICE") as {
+  const binanceLiq = runtime.getService(
+    "VINCE_BINANCE_LIQUIDATION_SERVICE",
+  ) as {
     getLiquidationPressure?: (symbol?: string) => {
       direction: string;
       intensity: number;
@@ -205,14 +283,25 @@ async function fetchLiquidations(runtime: IAgentRuntime): Promise<string> {
     };
   } | null;
   const pressure = binanceLiq?.getLiquidationPressure?.();
-  if (!pressure || (pressure.longLiqsCount === 0 && pressure.shortLiqsCount === 0)) return "";
-  const dir = pressure.direction === "long_liquidations" ? "Longs" : pressure.direction === "short_liquidations" ? "Shorts" : "Mixed";
+  if (
+    !pressure ||
+    (pressure.longLiqsCount === 0 && pressure.shortLiqsCount === 0)
+  )
+    return "";
+  const dir =
+    pressure.direction === "long_liquidations"
+      ? "Longs"
+      : pressure.direction === "short_liquidations"
+        ? "Shorts"
+        : "Mixed";
   return `**Liquidations (5m):** ${dir} | ${pressure.longLiqsCount} long ($${(pressure.longLiqsValue / 1000).toFixed(0)}k) / ${pressure.shortLiqsCount} short ($${(pressure.shortLiqsValue / 1000).toFixed(0)}k) | intensity ${pressure.intensity}%`;
 }
 
 async function fetchOIDelta(runtime: IAgentRuntime): Promise<string> {
   const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
-    getOpenInterest?: (asset: string) => { value: number; change24h: number | null } | null;
+    getOpenInterest?: (
+      asset: string,
+    ) => { value: number; change24h: number | null } | null;
   } | null;
   if (!coinglass?.getOpenInterest) return "";
   const assets = getStandupTrackedAssets();
@@ -220,8 +309,16 @@ async function fetchOIDelta(runtime: IAgentRuntime): Promise<string> {
   for (const asset of assets.slice(0, 3)) {
     const oi = coinglass.getOpenInterest(asset);
     if (!oi) continue;
-    const valueStr = oi.value >= 1e9 ? `$${(oi.value / 1e9).toFixed(1)}B` : oi.value >= 1e6 ? `$${(oi.value / 1e6).toFixed(0)}M` : `$${(oi.value / 1e3).toFixed(0)}k`;
-    const changeStr = oi.change24h != null ? `${oi.change24h >= 0 ? "+" : ""}${oi.change24h.toFixed(1)}%` : "—";
+    const valueStr =
+      oi.value >= 1e9
+        ? `$${(oi.value / 1e9).toFixed(1)}B`
+        : oi.value >= 1e6
+          ? `$${(oi.value / 1e6).toFixed(0)}M`
+          : `$${(oi.value / 1e3).toFixed(0)}k`;
+    const changeStr =
+      oi.change24h != null
+        ? `${oi.change24h >= 0 ? "+" : ""}${oi.change24h.toFixed(1)}%`
+        : "—";
     parts.push(`${asset} ${valueStr} (${changeStr})`);
   }
   return parts.length > 0 ? `**OI (24h Δ):** ${parts.join(" | ")}` : "";
@@ -229,9 +326,14 @@ async function fetchOIDelta(runtime: IAgentRuntime): Promise<string> {
 
 async function fetchRegime(runtime: IAgentRuntime): Promise<string> {
   const regimeSvc = runtime.getService("VINCE_MARKET_REGIME_SERVICE") as {
-    getRegime?: (asset: string) => Promise<{ regime: string; adx: number | null; positionSizeMultiplier: number } | null>;
+    getRegime?: (asset: string) => Promise<{
+      regime: string;
+      adx: number | null;
+      positionSizeMultiplier: number;
+    } | null>;
   } | null;
-  const regime = await regimeSvc?.getRegime?.("BTC").catch(() => null) ?? null;
+  const regime =
+    (await regimeSvc?.getRegime?.("BTC").catch(() => null)) ?? null;
   if (!regime) return "";
   const adxStr = regime.adx != null ? ` ADX ${regime.adx}` : "";
   return `**Regime (BTC):** ${regime.regime}${adxStr} | size ${regime.positionSizeMultiplier}x`;
@@ -239,9 +341,19 @@ async function fetchRegime(runtime: IAgentRuntime): Promise<string> {
 
 export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
   const blockLabels = [
-    "EnrichedContext", "FearGreed", "HIP3", "SignalAgg",
-    "Deribit", "Binance", "PaperBot", "Goals", "MandoMinutes", "Allium",
-    "Liquidations", "OIDelta", "Regime",
+    "EnrichedContext",
+    "FearGreed",
+    "HIP3",
+    "SignalAgg",
+    "Deribit",
+    "Binance",
+    "PaperBot",
+    "Goals",
+    "MandoMinutes",
+    "Allium",
+    "Liquidations",
+    "OIDelta",
+    "Regime",
   ];
   const results = await Promise.allSettled([
     fetchEnrichedContext(runtime),
@@ -264,7 +376,10 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     if (r.status === "fulfilled" && r.value) {
       lines.push(r.value);
     } else if (r.status === "rejected") {
-      logger.warn({ err: r.reason, source: blockLabels[i] }, "[STANDUP_DATA] VINCE block failed");
+      logger.warn(
+        { err: r.reason, source: blockLabels[i] },
+        "[STANDUP_DATA] VINCE block failed",
+      );
     }
   });
 
@@ -274,20 +389,30 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
   try {
     const briefDir = path.join(process.cwd(), "knowledge", "research-daily");
     if (fs.existsSync(briefDir)) {
-      const briefs = fs.readdirSync(briefDir)
+      const briefs = fs
+        .readdirSync(briefDir)
         .filter((f) => f.endsWith(".md") && f !== "README.md")
         .sort()
         .reverse();
       if (briefs.length > 0) {
-        const latest = fs.readFileSync(path.join(briefDir, briefs[0]), "utf-8").trim();
+        const latest = fs
+          .readFileSync(path.join(briefDir, briefs[0]), "utf-8")
+          .trim();
         const stripped = latest.replace(/^---[\s\S]*?---\s*/, "");
-        const capped = stripped.length > 1100 ? stripped.slice(0, 1100) + "..." : stripped;
-        logger.info({ file: briefs[0] }, "[STANDUP_DATA] VINCE using daily brief fallback");
+        const capped =
+          stripped.length > 1100 ? stripped.slice(0, 1100) + "..." : stripped;
+        logger.info(
+          { file: briefs[0] },
+          "[STANDUP_DATA] VINCE using daily brief fallback",
+        );
         return `*(Live services unavailable -- using latest daily brief: ${briefs[0]})*\n\n${capped}`;
       }
     }
   } catch (briefErr) {
-    logger.debug({ err: briefErr }, "[STANDUP_DATA] VINCE daily brief fallback failed");
+    logger.debug(
+      { err: briefErr },
+      "[STANDUP_DATA] VINCE daily brief fallback failed",
+    );
   }
 
   return "*(Live data unavailable)*";
@@ -306,16 +431,46 @@ function sanitizeXQuery(q: string): string {
 }
 
 async function runXQueries(
-  svc: { searchQuery: (opts: { query: string; maxResults?: number; hoursBack?: number; cacheTtlMs?: number }) => Promise<Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>> },
+  svc: {
+    searchQuery: (opts: {
+      query: string;
+      maxResults?: number;
+      hoursBack?: number;
+      cacheTtlMs?: number;
+    }) => Promise<
+      Array<{
+        id?: string;
+        text: string;
+        author?: { username?: string };
+        metrics?: { likeCount?: number };
+      }>
+    >;
+  },
   queries: string[],
   opts: { hoursBack: number; cacheTtlMs: number },
-): Promise<Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>> {
-  const allTweets: Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }> = [];
+): Promise<
+  Array<{
+    id?: string;
+    text: string;
+    author?: { username?: string };
+    metrics?: { likeCount?: number };
+  }>
+> {
+  const allTweets: Array<{
+    id?: string;
+    text: string;
+    author?: { username?: string };
+    metrics?: { likeCount?: number };
+  }> = [];
   const seen = new Set<string>();
   for (const query of queries) {
     const sanitized = sanitizeXQuery(query);
     if (!sanitized) continue;
-    const tweets = await svc.searchQuery({ ...opts, query: sanitized, maxResults: 5 });
+    const tweets = await svc.searchQuery({
+      ...opts,
+      query: sanitized,
+      maxResults: 5,
+    });
     for (const t of tweets ?? []) {
       const key = (t as { id?: string }).id ?? t.text?.slice(0, 50) ?? "";
       if (key && !seen.has(key)) {
@@ -334,16 +489,31 @@ export async function fetchEchoData(
   try {
     const xSearchMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xSearch.service.js"
-    ).catch(() => import("../../../plugin-x-research/src/services/xSearch.service"));
+    ).catch(
+      () => import("../../../plugin-x-research/src/services/xSearch.service"),
+    );
     const xClientMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xClient.service.js"
-    ).catch(() => import("../../../plugin-x-research/src/services/xClient.service"));
+    ).catch(
+      () => import("../../../plugin-x-research/src/services/xClient.service"),
+    );
 
-    const initXClientFromEnv = xClientMod.initXClientFromEnv as (r: IAgentRuntime) => void;
+    const initXClientFromEnv = xClientMod.initXClientFromEnv as (
+      r: IAgentRuntime,
+    ) => void;
     const getXSearchService = xSearchMod.getXSearchService as () => {
       searchQuery: (opts: {
-        query: string; maxResults?: number; hoursBack?: number; cacheTtlMs?: number;
-      }) => Promise<Array<{ text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>>;
+        query: string;
+        maxResults?: number;
+        hoursBack?: number;
+        cacheTtlMs?: number;
+      }) => Promise<
+        Array<{
+          text: string;
+          author?: { username?: string };
+          metrics?: { likeCount?: number };
+        }>
+      >;
     };
 
     initXClientFromEnv(runtime);
@@ -371,7 +541,12 @@ export async function fetchEchoData(
     }
     const uniqueQueries = [...new Set(queries)].slice(0, 3);
 
-    let allTweets: Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>;
+    let allTweets: Array<{
+      id?: string;
+      text: string;
+      author?: { username?: string };
+      metrics?: { likeCount?: number };
+    }>;
     try {
       allTweets = await runXQueries(svc, uniqueQueries, opts);
     } catch (firstErr) {
@@ -390,16 +565,19 @@ export async function fetchEchoData(
       }
     }
 
-    if (!allTweets.length) return "**CT sentiment:** No X data (check X_BEARER_TOKEN).";
+    if (!allTweets.length)
+      return "**CT sentiment:** No X data (check X_BEARER_TOKEN).";
 
     const tweetLines = allTweets.slice(0, 10).map((t) => {
       const handle = t.author?.username ?? "anon";
       const len = getStandupSnippetLen();
-      const snippet = t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
+      const snippet =
+        t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
       return `@${handle}: ${snippet} (${t.metrics?.likeCount ?? 0} likes)`;
     });
 
-    const queryNote = uniqueQueries.length > 1 ? ` [queries: ${uniqueQueries.join(", ")}]` : "";
+    const queryNote =
+      uniqueQueries.length > 1 ? ` [queries: ${uniqueQueries.join(", ")}]` : "";
     let sentimentBlock = `**CT sentiment (${allTweets.length} posts, last 24h)${queryNote}:**\n${tweetLines.join("\n")}`;
 
     // Append X content suggestions via LLM
@@ -411,7 +589,8 @@ export async function fetchEchoData(
           temperature: 0.6,
         });
         const text = String(suggestion ?? "").trim();
-        if (text && text.length > 15) sentimentBlock += `\n\n**X content ideas:** ${text}`;
+        if (text && text.length > 15)
+          sentimentBlock += `\n\n**X content ideas:** ${text}`;
       } catch {
         // non-fatal; content ideas are a bonus
       }
@@ -419,7 +598,10 @@ export async function fetchEchoData(
 
     return sentimentBlock;
   } catch (err) {
-    logger.warn({ err, lastQuery: "init or format" }, "[STANDUP_DATA] fetchEchoData: X unavailable");
+    logger.warn(
+      { err, lastQuery: "init or format" },
+      "[STANDUP_DATA] fetchEchoData: X unavailable",
+    );
     return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
   }
 }
@@ -445,13 +627,16 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
 
     const rows: string[] = [];
     for (const m of markets) {
-      const cid = m.conditionId ?? (m as { condition_id?: string }).condition_id ?? "—";
+      const cid =
+        m.conditionId ?? (m as { condition_id?: string }).condition_id ?? "—";
       const prices = service.getPricesFromMarketPayload(m);
       const yesPct =
         prices?.yes_price != null
           ? `${(parseFloat(prices.yes_price) * 100).toFixed(0)}%`
           : "—";
-      const question = (m.question ?? "").slice(0, 50) + (m.question && m.question.length > 50 ? "…" : "");
+      const question =
+        (m.question ?? "").slice(0, 50) +
+        (m.question && m.question.length > 50 ? "…" : "");
       rows.push(`| ${question} | ${yesPct} | \`${cid}\` |`);
     }
 
@@ -474,16 +659,24 @@ Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
 
 function readWeeklyOptionsContext(): string {
   try {
-    const filePath = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup", "weekly-options-context.md");
-    if (fs.existsSync(filePath)) return fs.readFileSync(filePath, "utf-8").trim();
-  } catch { /* non-fatal */ }
+    const filePath = path.join(
+      process.cwd(),
+      process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
+      "weekly-options-context.md",
+    );
+    if (fs.existsSync(filePath))
+      return fs.readFileSync(filePath, "utf-8").trim();
+  } catch {
+    /* non-fatal */
+  }
   return "";
 }
 
 export async function fetchSolusData(_runtime: IAgentRuntime): Promise<string> {
-  const lastWeek = process.env.SOLUS_LAST_WEEK_STRATEGY?.trim()
-    || readWeeklyOptionsContext()
-    || "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create docs/standup/weekly-options-context.md (or STANDUP_DELIVERABLES_DIR).";
+  const lastWeek =
+    process.env.SOLUS_LAST_WEEK_STRATEGY?.trim() ||
+    readWeeklyOptionsContext() ||
+    "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create docs/standup/weekly-options-context.md (or STANDUP_DELIVERABLES_DIR).";
 
   return `**Last week's strategy:** ${lastWeek}
 
@@ -501,7 +694,9 @@ If uncertain (like last week), say so and explain why with data.`;
 // Sentinel: real git log + PRD scan + ProjectRadar + macro news (Tavily)
 // ═══════════════════════════════════════════════════════════════════════
 
-export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string> {
+export async function fetchSentinelData(
+  runtime: IAgentRuntime,
+): Promise<string> {
   const sections: string[] = [];
 
   // 1. Real git log
@@ -514,25 +709,47 @@ export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string>
 
   // 2. PRD scan
   try {
-    const prdDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup", "prds");
+    const prdDir = path.join(
+      process.cwd(),
+      process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
+      "prds",
+    );
     if (fs.existsSync(prdDir)) {
-      const files = fs.readdirSync(prdDir).filter((f) => f.endsWith(".md")).sort().reverse().slice(0, 3);
-      if (files.length > 0) sections.push(`**Recent PRDs:** ${files.join(", ")}`);
+      const files = fs
+        .readdirSync(prdDir)
+        .filter((f) => f.endsWith(".md"))
+        .sort()
+        .reverse()
+        .slice(0, 3);
+      if (files.length > 0)
+        sections.push(`**Recent PRDs:** ${files.join(", ")}`);
     }
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 
   // 3. ProjectRadar (if Sentinel has the service)
   const radar = runtime.getService("PROJECT_RADAR_SERVICE") as {
-    getProjectHealth?: () => Promise<{ status?: string; blockers?: string[] } | null>;
+    getProjectHealth?: () => Promise<{
+      status?: string;
+      blockers?: string[];
+    } | null>;
     getOpenTODOs?: () => Promise<string[] | null>;
   } | null;
   if (radar) {
     try {
-      const health = await radar.getProjectHealth?.().catch(() => null) ?? null;
-      const todos = await radar.getOpenTODOs?.().catch(() => null) ?? null;
-      if (health?.status) sections.push(`**Project:** ${health.status}${health.blockers?.length ? ` | Blockers: ${health.blockers.slice(0, 2).join(", ")}` : ""}`);
-      if (todos?.length) sections.push(`**TODOs:** ${todos.slice(0, 3).join("; ")}`);
-    } catch { /* non-fatal */ }
+      const health =
+        (await radar.getProjectHealth?.().catch(() => null)) ?? null;
+      const todos = (await radar.getOpenTODOs?.().catch(() => null)) ?? null;
+      if (health?.status)
+        sections.push(
+          `**Project:** ${health.status}${health.blockers?.length ? ` | Blockers: ${health.blockers.slice(0, 2).join(", ")}` : ""}`,
+        );
+      if (todos?.length)
+        sections.push(`**TODOs:** ${todos.slice(0, 3).join("; ")}`);
+    } catch {
+      /* non-fatal */
+    }
   }
 
   // 4. Macro news via Tavily
@@ -540,14 +757,29 @@ export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string>
     const tavilyMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/utils/tavilySearch.js"
     ).catch(() => import("../../../plugin-x-research/src/utils/tavilySearch"));
-    const tavilySearch = tavilyMod.tavilySearch as (query: string, r?: IAgentRuntime, maxResults?: number) => Promise<string[]>;
-    const snippets = await tavilySearch("crypto regulation Fed interest rates macro news today", runtime, 3);
-    if (snippets?.length > 0) sections.push(`**Macro news:**\n${snippets.join("\n")}`);
-  } catch { /* Tavily not available */ }
+    const tavilySearch = tavilyMod.tavilySearch as (
+      query: string,
+      r?: IAgentRuntime,
+      maxResults?: number,
+    ) => Promise<string[]>;
+    const snippets = await tavilySearch(
+      "crypto regulation Fed interest rates macro news today",
+      runtime,
+      3,
+    );
+    if (snippets?.length > 0)
+      sections.push(`**Macro news:**\n${snippets.join("\n")}`);
+  } catch {
+    /* Tavily not available */
+  }
 
-  sections.push("**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.");
+  sections.push(
+    "**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.",
+  );
 
-  sections.push("**Your job:** What shipped, what's next, one architecture item, the dev task above, **proactively suggest 1–2 tech focus areas** for the team (what to build, fix, or prioritize — name the plugin, file, or feature), and flag any macro news that affects our trades.");
+  sections.push(
+    "**Your job:** What shipped, what's next, one architecture item, the dev task above, **proactively suggest 1–2 tech focus areas** for the team (what to build, fix, or prioritize — name the plugin, file, or feature), and flag any macro news that affects our trades.",
+  );
   return sections.join("\n\n");
 }
 
@@ -563,20 +795,32 @@ async function buildDeltaReport(): Promise<string> {
   const todayInsights = await loadSharedDailyInsights(); // today
   const lines: string[] = [];
   if (yesterdayReport) {
-    const solusMatch = yesterdayReport.match(/\*\*Solus'?s call:?\*\*\s*\[?([^\]]*)\]?\s*[—\-]\s*([^\n*]+)/i);
+    const solusMatch = yesterdayReport.match(
+      /\*\*Solus'?s call:?\*\*\s*\[?([^\]]*)\]?\s*[—\-]\s*([^\n*]+)/i,
+    );
     if (solusMatch) {
-      lines.push(`**Yesterday:** Solus's call: ${solusMatch[1].trim()} — ${solusMatch[2].trim().slice(0, 120)}`);
+      lines.push(
+        `**Yesterday:** Solus's call: ${solusMatch[1].trim()} — ${solusMatch[2].trim().slice(0, 120)}`,
+      );
     }
     const tldrMatch = yesterdayReport.match(/\*\*TL;DR:?\*\*\s*([^\n#]+)/);
-    if (tldrMatch) lines.push(`**Yesterday TL;DR:** ${tldrMatch[1].trim().slice(0, 100)}`);
+    if (tldrMatch)
+      lines.push(`**Yesterday TL;DR:** ${tldrMatch[1].trim().slice(0, 100)}`);
   } else {
-    lines.push("**Yesterday:** No day report found (first run or missing file).");
+    lines.push(
+      "**Yesterday:** No day report found (first run or missing file).",
+    );
   }
   if (todayInsights) {
     const vinceBlock = todayInsights.match(/## VINCE[\s\S]*?(?=## |$)/i);
     if (vinceBlock) {
-      const firstTable = vinceBlock[0].match(/\|[^\n]+\|\n\|[^\n]+\|\n([\s\S]*?)(?=\n\n|\n\*\*|$)/);
-      if (firstTable) lines.push(`**Today (from shared insights):** ${firstTable[1].replace(/\n/g, " ").slice(0, 200)}`);
+      const firstTable = vinceBlock[0].match(
+        /\|[^\n]+\|\n\|[^\n]+\|\n([\s\S]*?)(?=\n\n|\n\*\*|$)/,
+      );
+      if (firstTable)
+        lines.push(
+          `**Today (from shared insights):** ${firstTable[1].replace(/\n/g, " ").slice(0, 200)}`,
+        );
       else lines.push("**Today:** Shared insights available (see full doc).");
     } else {
       lines.push("**Today:** Shared insights available.");
@@ -584,7 +828,9 @@ async function buildDeltaReport(): Promise<string> {
   } else {
     lines.push("**Today:** Shared insights not yet built.");
   }
-  lines.push("**Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.");
+  lines.push(
+    "**Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.",
+  );
   return lines.join("\n\n");
 }
 
@@ -594,16 +840,30 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     const delta = await buildDeltaReport();
     sections.push(delta);
   } catch (e) {
-    logger.warn({ err: e }, "[STANDUP_DATA] fetchElizaData: delta build failed");
-    sections.push("**Delta:** Could not load yesterday vs today; report from memory only.");
+    logger.warn(
+      { err: e },
+      "[STANDUP_DATA] fetchElizaData: delta build failed",
+    );
+    sections.push(
+      "**Delta:** Could not load yesterday vs today; report from memory only.",
+    );
   }
   try {
-    const facts = await runtime.getMemories({ tableName: "facts", count: 8, unique: true });
+    const facts = await runtime.getMemories({
+      tableName: "facts",
+      count: 8,
+      unique: true,
+    });
     const factLines = facts
       .filter((f) => f.content?.text)
       .slice(0, 5)
-      .map((f) => `- ${String(f.content.text).slice(0, getStandupSnippetLen())}`);
-    if (factLines.length > 0) sections.push(`**Recent facts in memory (${factLines.length}):**\n${factLines.join("\n")}`);
+      .map(
+        (f) => `- ${String(f.content.text).slice(0, getStandupSnippetLen())}`,
+      );
+    if (factLines.length > 0)
+      sections.push(
+        `**Recent facts in memory (${factLines.length}):**\n${factLines.join("\n")}`,
+      );
     else sections.push("**Recent facts:** None stored yet.");
   } catch {
     sections.push("**Facts:** Query failed.");
@@ -620,7 +880,9 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
       });
       const text = String(suggestion ?? "").trim();
       if (text && text.length > 20) {
-        const hasLabels = text.includes("**Substack idea:**") || text.includes("**Knowledge to expand:**");
+        const hasLabels =
+          text.includes("**Substack idea:**") ||
+          text.includes("**Knowledge to expand:**");
         if (hasLabels) {
           sections.push(text);
         } else {
@@ -630,12 +892,20 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
         }
       }
     } catch {
-      sections.push("**Substack idea:** [LLM unavailable -- suggest based on yesterday's delta]");
-      sections.push("**Knowledge to expand:** [LLM unavailable -- review knowledge/INDEX.md for stale categories]");
+      sections.push(
+        "**Substack idea:** [LLM unavailable -- suggest based on yesterday's delta]",
+      );
+      sections.push(
+        "**Knowledge to expand:** [LLM unavailable -- review knowledge/INDEX.md for stale categories]",
+      );
     }
   } else {
-    sections.push("**Substack idea:** Review yesterday's delta for a timely Ikigai Studio topic.");
-    sections.push("**Knowledge to expand:** Check knowledge/FRESHNESS.md for stale categories to update.");
+    sections.push(
+      "**Substack idea:** Review yesterday's delta for a timely Ikigai Studio topic.",
+    );
+    sections.push(
+      "**Knowledge to expand:** Check knowledge/FRESHNESS.md for stale categories to update.",
+    );
   }
 
   return sections.join("\n\n");
@@ -673,22 +943,49 @@ export async function fetchClawtermData(
   try {
     const xSearchMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xSearch.service.js"
-    ).catch(() => import("../../../plugin-x-research/src/services/xSearch.service"));
+    ).catch(
+      () => import("../../../plugin-x-research/src/services/xSearch.service"),
+    );
     const xClientMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xClient.service.js"
-    ).catch(() => import("../../../plugin-x-research/src/services/xClient.service"));
+    ).catch(
+      () => import("../../../plugin-x-research/src/services/xClient.service"),
+    );
     const tavilyMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/utils/tavilySearch.js"
     ).catch(() => import("../../../plugin-x-research/src/utils/tavilySearch"));
 
-    const getXSearchService = xSearchMod.getXSearchService as () => { searchQuery: (opts: { query: string; maxResults?: number; hoursBack?: number; cacheTtlMs?: number }) => Promise<Array<{ id: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>> };
-    const initXClientFromEnv = xClientMod.initXClientFromEnv as (r: IAgentRuntime) => void;
-    const tavilySearch = tavilyMod.tavilySearch as (query: string, r?: IAgentRuntime, maxResults?: number) => Promise<string[]>;
+    const getXSearchService = xSearchMod.getXSearchService as () => {
+      searchQuery: (opts: {
+        query: string;
+        maxResults?: number;
+        hoursBack?: number;
+        cacheTtlMs?: number;
+      }) => Promise<
+        Array<{
+          id: string;
+          text: string;
+          author?: { username?: string };
+          metrics?: { likeCount?: number };
+        }>
+      >;
+    };
+    const initXClientFromEnv = xClientMod.initXClientFromEnv as (
+      r: IAgentRuntime,
+    ) => void;
+    const tavilySearch = tavilyMod.tavilySearch as (
+      query: string,
+      r?: IAgentRuntime,
+      maxResults?: number,
+    ) => Promise<string[]>;
 
     initXClientFromEnv(runtime);
     const searchService = getXSearchService();
 
-    const cacheOpts = { hoursBack: CLAWTERM_HOURS_BACK, cacheTtlMs: 60 * 60 * 1000 };
+    const cacheOpts = {
+      hoursBack: CLAWTERM_HOURS_BACK,
+      cacheTtlMs: 60 * 60 * 1000,
+    };
     const queries: string[] = [
       "OpenClaw skills trending",
       "OpenClaw setup tips tutorial",
@@ -701,17 +998,26 @@ export async function fetchClawtermData(
       }
     }
     const tweetPromises = queries.slice(0, 3).map((q) =>
-      searchService.searchQuery({ ...cacheOpts, query: q, maxResults: CLAWTERM_X_MAX }),
+      searchService.searchQuery({
+        ...cacheOpts,
+        query: q,
+        maxResults: CLAWTERM_X_MAX,
+      }),
     );
     const results = await Promise.all(tweetPromises);
     const combined = results.flat();
     const byId = new Map(combined.map((t) => [t.id, t]));
     const deduped = Array.from(byId.values()).slice(0, 15);
 
-    const formatOne = (t: { text: string; author?: { username?: string }; metrics?: { likeCount?: number } }) => {
+    const formatOne = (t: {
+      text: string;
+      author?: { username?: string };
+      metrics?: { likeCount?: number };
+    }) => {
       const handle = t.author?.username ?? "unknown";
       const snippetLen = getStandupSnippetLen();
-      const snippet = t.text.length > snippetLen ? t.text.slice(0, snippetLen) + "…" : t.text;
+      const snippet =
+        t.text.length > snippetLen ? t.text.slice(0, snippetLen) + "…" : t.text;
       const likes = t.metrics?.likeCount ?? 0;
       return `@${handle}: ${snippet} (${likes} likes)`;
     };
@@ -721,9 +1027,12 @@ export async function fetchClawtermData(
         ? deduped.map(formatOne).join("\n")
         : "No recent X posts about OpenClaw in the last 24h.";
 
-    const webSnippets = await tavilySearch("OpenClaw skills setup tutorial news", runtime, 3);
-    const rawWebBlock =
-      webSnippets.length > 0 ? webSnippets.join("\n") : "";
+    const webSnippets = await tavilySearch(
+      "OpenClaw skills setup tutorial news",
+      runtime,
+      3,
+    );
+    const rawWebBlock = webSnippets.length > 0 ? webSnippets.join("\n") : "";
 
     const rawData = `=== X (OpenClaw) ===\n${rawXBlock}${rawWebBlock ? `\n\n=== Web ===\n${rawWebBlock}` : ""}`;
 
@@ -737,13 +1046,19 @@ export async function fetchClawtermData(
         const text = String(summary ?? "").trim();
         if (text && text.length > 30) return text;
       } catch (err) {
-        logger.debug({ err }, "[STANDUP_DATA] Clawterm LLM summary failed, using raw");
+        logger.debug(
+          { err },
+          "[STANDUP_DATA] Clawterm LLM summary failed, using raw",
+        );
       }
     }
 
     return rawData;
   } catch (err) {
-    logger.warn({ err }, "[STANDUP_DATA] fetchClawtermData: X/Tavily unavailable, using fallback");
+    logger.warn(
+      { err },
+      "[STANDUP_DATA] fetchClawtermData: X/Tavily unavailable, using fallback",
+    );
     return "OpenClaw data: run CLAWTERM_DAY_REPORT in chat for full report; here report gateway status and one take from knowledge.";
   }
 }
@@ -763,13 +1078,15 @@ export async function fetchAgentData(
     case "vince": {
       if (process.env.STANDUP_VINCE_USE_REPORT === "true") {
         try {
-          const { generateStandupReport } = await import(
-            "../../../plugin-vince/src/actions/report.action"
-          );
+          const { generateStandupReport } =
+            await import("../../../plugin-vince/src/actions/report.action");
           const report = await generateStandupReport(runtime);
           if (report?.trim()) return report.trim();
         } catch (err) {
-          logger.warn({ err }, "[STANDUP_DATA] VINCE report-for-standup failed, falling back to fetchVinceData");
+          logger.warn(
+            { err },
+            "[STANDUP_DATA] VINCE report-for-standup failed, falling back to fetchVinceData",
+          );
         }
       }
       return fetchVinceData(runtime);

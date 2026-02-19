@@ -16,7 +16,9 @@ export const bankrUserInfoAction: Action = {
   similes: ["BANKR_WHOAMI", "BANKR_ACCOUNT", "BANKR_PROFILE", "BANKR_WALLETS"],
 
   validate: async (runtime: IAgentRuntime) => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     return !!service?.isConfigured();
   },
 
@@ -25,9 +27,11 @@ export const bankrUserInfoAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Agent service not available.";
       callback?.({ text: err });
@@ -41,7 +45,7 @@ export const bankrUserInfoAction: Action = {
       if (info.wallets?.length) {
         parts.push(
           "**Wallets:** " +
-            info.wallets.map((w) => `${w.chain}: \`${w.address}\``).join(", ")
+            info.wallets.map((w) => `${w.chain}: \`${w.address}\``).join(", "),
         );
       }
       if (info.socialAccounts?.length) {
@@ -49,13 +53,13 @@ export const bankrUserInfoAction: Action = {
           "**Socials:** " +
             info.socialAccounts
               .map((s) => `${s.platform}${s.username ? ` @${s.username}` : ""}`)
-              .join(", ")
+              .join(", "),
         );
       }
       if (info.bankrClub) {
         const club = info.bankrClub;
         parts.push(
-          `**Bankr Club:** ${club.active ? "Active" : "Inactive"}${club.subscriptionType ? ` (${club.subscriptionType})` : ""}`
+          `**Bankr Club:** ${club.active ? "Active" : "Inactive"}${club.subscriptionType ? ` (${club.subscriptionType})` : ""}`,
         );
       }
       if (info.refCode) {
@@ -63,11 +67,13 @@ export const bankrUserInfoAction: Action = {
       }
       if (info.leaderboard) {
         parts.push(
-          `**Score:** ${info.leaderboard.score}${info.leaderboard.rank != null ? `, rank ${info.leaderboard.rank}` : ""}`
+          `**Score:** ${info.leaderboard.score}${info.leaderboard.rank != null ? `, rank ${info.leaderboard.rank}` : ""}`,
         );
       }
 
-      const reply = parts.length ? parts.join("\n") : "No profile data returned.";
+      const reply = parts.length
+        ? parts.join("\n")
+        : "No profile data returned.";
       callback?.({
         text: reply,
         actions: ["BANKR_USER_INFO"],
@@ -77,19 +83,38 @@ export const bankrUserInfoAction: Action = {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_USER_INFO] " + msg);
-      callback?.({ text: `Bankr user info failed: ${msg}`, actions: ["BANKR_USER_INFO"] });
-      return { success: false, text: msg, error: err instanceof Error ? err : new Error(msg) };
+      callback?.({
+        text: `Bankr user info failed: ${msg}`,
+        actions: ["BANKR_USER_INFO"],
+      });
+      return {
+        success: false,
+        text: msg,
+        error: err instanceof Error ? err : new Error(msg),
+      };
     }
   },
 
   examples: [
     [
       { name: "user", content: { text: "What wallets do I have on Bankr?" } },
-      { name: "Otaku", content: { text: "Wallets: evm: `0x…`, …", actions: ["BANKR_USER_INFO"] } },
+      {
+        name: "Otaku",
+        content: {
+          text: "Wallets: evm: `0x…`, …",
+          actions: ["BANKR_USER_INFO"],
+        },
+      },
     ],
     [
       { name: "user", content: { text: "Am I in Bankr Club?" } },
-      { name: "Otaku", content: { text: "Bankr Club: Active (monthly)", actions: ["BANKR_USER_INFO"] } },
+      {
+        name: "Otaku",
+        content: {
+          text: "Bankr Club: Active (monthly)",
+          actions: ["BANKR_USER_INFO"],
+        },
+      },
     ],
   ],
 };

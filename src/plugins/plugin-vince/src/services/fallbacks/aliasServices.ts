@@ -38,17 +38,24 @@ export class DeribitServiceAlias extends Service implements IDeribitService {
     // Fallback is stateless; no cleanup required
   }
 
-  getVolatilityIndex(asset: "BTC" | "ETH"): Promise<IDeribitVolatilityIndex | null> {
+  getVolatilityIndex(
+    asset: "BTC" | "ETH",
+  ): Promise<IDeribitVolatilityIndex | null> {
     return this.fallback.getVolatilityIndex(asset);
   }
 
-  getComprehensiveData(currency: "BTC" | "ETH" | "SOL"): Promise<IDeribitComprehensiveData | null> {
+  getComprehensiveData(
+    currency: "BTC" | "ETH" | "SOL",
+  ): Promise<IDeribitComprehensiveData | null> {
     return this.fallback.getComprehensiveData(currency);
   }
 }
 
 /** Registers as HYPERLIQUID_SERVICE; returns a Service that delegates to the built-in fallback. */
-export class HyperliquidServiceAlias extends Service implements IHyperliquidService {
+export class HyperliquidServiceAlias
+  extends Service
+  implements IHyperliquidService
+{
   static serviceType = "HYPERLIQUID_SERVICE";
   capabilityDescription =
     "Hyperliquid funding/pulse (fallback when plugin-hyperliquid not loaded)";
@@ -79,16 +86,29 @@ export class HyperliquidServiceAlias extends Service implements IHyperliquidServ
     return this.fallback.getMarkPrice?.(symbol) ?? Promise.resolve(null);
   }
 
-  getMarkPriceAndChange(symbol: string): Promise<{ price: number; change24h: number; volume24h?: number } | null> {
-    return this.fallback.getMarkPriceAndChange?.(symbol) ?? Promise.resolve(null);
+  getMarkPriceAndChange(
+    symbol: string,
+  ): Promise<{ price: number; change24h: number; volume24h?: number } | null> {
+    return (
+      this.fallback.getMarkPriceAndChange?.(symbol) ?? Promise.resolve(null)
+    );
   }
 
   isRateLimited(): boolean {
     return this.fallback.isRateLimited?.() ?? false;
   }
 
-  getRateLimitStatus(): { isLimited: boolean; backoffUntil: number; circuitOpen?: boolean } {
-    return this.fallback.getRateLimitStatus?.() ?? { isLimited: false, backoffUntil: 0 };
+  getRateLimitStatus(): {
+    isLimited: boolean;
+    backoffUntil: number;
+    circuitOpen?: boolean;
+  } {
+    return (
+      this.fallback.getRateLimitStatus?.() ?? {
+        isLimited: false,
+        backoffUntil: 0,
+      }
+    );
   }
 
   getPerpsAtOpenInterestCap(): Promise<string[] | null> {
@@ -98,16 +118,33 @@ export class HyperliquidServiceAlias extends Service implements IHyperliquidServ
   getFundingRegime(
     coin: string,
     currentFunding8h: number,
-    lookbackSamples?: number
-  ): Promise<{ percentile: number; isExtremeLong: boolean; isExtremeShort: boolean } | null> {
-    return this.fallback.getFundingRegime?.(coin, currentFunding8h, lookbackSamples) ?? Promise.resolve(null);
+    lookbackSamples?: number,
+  ): Promise<{
+    percentile: number;
+    isExtremeLong: boolean;
+    isExtremeShort: boolean;
+  } | null> {
+    return (
+      this.fallback.getFundingRegime?.(
+        coin,
+        currentFunding8h,
+        lookbackSamples,
+      ) ?? Promise.resolve(null)
+    );
   }
 
   clearCache(): void {
     this.fallback.clearCache?.();
   }
 
-  testConnection(): Promise<{ success: boolean; message: string; data?: unknown }> {
-    return this.fallback.testConnection?.() ?? Promise.resolve({ success: false, message: "Not implemented" });
+  testConnection(): Promise<{
+    success: boolean;
+    message: string;
+    data?: unknown;
+  }> {
+    return (
+      this.fallback.testConnection?.() ??
+      Promise.resolve({ success: false, message: "Not implemented" })
+    );
   }
 }

@@ -7,7 +7,10 @@ import {
   State,
   logger,
 } from "@elizaos/core";
-import { validateCoingeckoService, getCoingeckoService } from "../utils/actionHelpers";
+import {
+  validateCoingeckoService,
+  getCoingeckoService,
+} from "../utils/actionHelpers";
 
 export const getTrendingSearchAction: Action = {
   name: "GET_TRENDING_SEARCH",
@@ -24,8 +27,17 @@ export const getTrendingSearchAction: Action = {
   // No parameters needed for this action
   parameters: {},
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateCoingeckoService(runtime, "GET_TRENDING_SEARCH", state, message);
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
+    return validateCoingeckoService(
+      runtime,
+      "GET_TRENDING_SEARCH",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -67,7 +79,7 @@ export const getTrendingSearchAction: Action = {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_TRENDING_SEARCH] Action failed: ${msg}`);
-      
+
       const errorText = `Failed to fetch trending searches: ${msg}
 
 This action fetches overall trending data from CoinGecko including:
@@ -76,14 +88,14 @@ This action fetches overall trending data from CoinGecko including:
 - Trending categories by market cap
 
 No parameters are required for this action.`;
-      
+
       const errorResult: ActionResult = {
         text: errorText,
         success: false,
         error: msg,
         input: {},
       } as ActionResult & { input: {} };
-      
+
       if (callback) {
         await callback({
           text: errorResult.text,
@@ -123,4 +135,3 @@ No parameters are required for this action.`;
     ],
   ],
 };
-

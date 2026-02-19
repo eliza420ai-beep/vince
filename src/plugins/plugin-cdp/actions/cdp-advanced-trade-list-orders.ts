@@ -2,7 +2,14 @@
  * COINBASE_LIST_ORDERS - List open orders on Coinbase Advanced Trade (CEX).
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback, ActionResult } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+  ActionResult,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import {
   getAdvancedTradeConfig,
@@ -37,7 +44,7 @@ export const cdpAdvancedTradeListOrders: Action = {
     _message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     const config = getAdvancedTradeConfig();
     if (!config) {
@@ -46,12 +53,17 @@ export const cdpAdvancedTradeListOrders: Action = {
       return { success: false, text };
     }
     try {
-      const path = "/api/v3/brokerage/orders/historical/batch?order_status=OPEN&limit=25";
-      const data = await advancedTradeRequest<ListOrdersResponse>("GET", path, config);
+      const path =
+        "/api/v3/brokerage/orders/historical/batch?order_status=OPEN&limit=25";
+      const data = await advancedTradeRequest<ListOrdersResponse>(
+        "GET",
+        path,
+        config,
+      );
       const orders = data?.orders ?? [];
       const lines = orders.map(
         (o) =>
-          `- ${o.side} ${o.product_id ?? "?"} (${o.status ?? "?"}) — id: ${o.order_id ?? "?"}`
+          `- ${o.side} ${o.product_id ?? "?"} (${o.status ?? "?"}) — id: ${o.order_id ?? "?"}`,
       );
       const text =
         lines.length > 0
@@ -69,7 +81,13 @@ export const cdpAdvancedTradeListOrders: Action = {
   examples: [
     [
       { name: "user", content: { text: "Show my open orders on Coinbase" } },
-      { name: "Otaku", content: { text: "Fetching your Coinbase orders…", actions: ["COINBASE_LIST_ORDERS"] } },
+      {
+        name: "Otaku",
+        content: {
+          text: "Fetching your Coinbase orders…",
+          actions: ["COINBASE_LIST_ORDERS"],
+        },
+      },
     ],
   ],
 };

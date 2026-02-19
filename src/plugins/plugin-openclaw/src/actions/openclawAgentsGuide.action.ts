@@ -58,12 +58,23 @@ See \`openclaw-agents/HOW-TO-RUN.md\` and \`openclaw-agents/ARCHITECTURE.md\` fo
 
 export const openclawAgentsGuideAction: Action = {
   name: "OPENCLAW_AGENTS_GUIDE",
-  similes: ["OPENCLAW_AGENTS", "ORCHESTRATOR_GUIDE", "8_PILLARS", "BRAIN_MUSCLES_BONES"],
+  similes: [
+    "OPENCLAW_AGENTS",
+    "ORCHESTRATOR_GUIDE",
+    "8_PILLARS",
+    "BRAIN_MUSCLES_BONES",
+  ],
   description:
     "Return openclaw-agents guide from ARCHITECTURE.md and HOW-TO-RUN.md (orchestrator, 8-pillar flows Brain→Nerves). Use when the user asks about openclaw agents, orchestrator, brain muscles bones, 8 pillars.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /openclaw\s+agents/i.test(text) ||
       /orchestrator/i.test(text) ||
@@ -80,17 +91,30 @@ export const openclawAgentsGuideAction: Action = {
   ): Promise<ActionResult> => {
     const intro = "Here's how OpenClaw agents and the orchestrator work—";
     const out = intro + "\n\n" + OPENCLAW_AGENTS_GUIDE_MD;
-    if (callback) await callback({ text: out, actions: ["OPENCLAW_AGENTS_GUIDE"] });
+    if (callback)
+      await callback({ text: out, actions: ["OPENCLAW_AGENTS_GUIDE"] });
     return { success: true, text: out };
   },
   examples: [
     [
       { name: "{{user}}", content: { text: "Tell me about openclaw agents" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...", actions: ["OPENCLAW_AGENTS_GUIDE"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_AGENTS_GUIDE"],
+        },
+      },
     ],
     [
       { name: "{{user}}", content: { text: "How do I run the orchestrator?" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...", actions: ["OPENCLAW_AGENTS_GUIDE"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_AGENTS_GUIDE"],
+        },
+      },
     ],
   ],
 };

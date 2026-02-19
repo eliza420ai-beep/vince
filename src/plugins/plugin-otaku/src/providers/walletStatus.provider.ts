@@ -12,7 +12,11 @@ import {
   type State,
   logger,
 } from "@elizaos/core";
-import type { CdpService, BankrAgentService, BankrOrdersService } from "../types/services";
+import type {
+  CdpService,
+  BankrAgentService,
+  BankrOrdersService,
+} from "../types/services";
 
 interface WalletBalance {
   token: string;
@@ -42,13 +46,10 @@ interface WalletContext {
 
 export const walletStatusProvider: Provider = {
   name: "OTAKU_WALLET_STATUS",
-  description: "Provides Otaku wallet balances, active orders, and DeFi positions",
+  description:
+    "Provides Otaku wallet balances, active orders, and DeFi positions",
 
-  get: async (
-    runtime: IAgentRuntime,
-    message: Memory,
-    state?: State
-  ) => {
+  get: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     const context: WalletContext = {
       balances: [],
       activeOrders: [],
@@ -78,7 +79,7 @@ export const walletStatusProvider: Provider = {
 
           context.totalUsdValue = context.balances.reduce(
             (sum, b) => sum + (b.usdValue || 0),
-            0
+            0,
           );
           context.hasBalance = context.totalUsdValue > 0;
         }
@@ -87,8 +88,12 @@ export const walletStatusProvider: Provider = {
       }
     }
 
-    const bankrOrders = runtime.getService("bankr_orders") as BankrOrdersService | null;
-    const bankrAgent = runtime.getService("bankr_agent") as BankrAgentService | null;
+    const bankrOrders = runtime.getService(
+      "bankr_orders",
+    ) as BankrOrdersService | null;
+    const bankrAgent = runtime.getService(
+      "bankr_agent",
+    ) as BankrAgentService | null;
 
     if (bankrAgent?.isConfigured?.()) {
       context.hasBankr = true;
@@ -111,12 +116,12 @@ export const walletStatusProvider: Provider = {
     }
 
     // Format context string
-    const lines: string[] = [
-      "## Otaku Wallet Status",
-    ];
+    const lines: string[] = ["## Otaku Wallet Status"];
 
     if (context.address) {
-      lines.push(`**Address:** ${context.address.slice(0, 10)}...${context.address.slice(-8)}`);
+      lines.push(
+        `**Address:** ${context.address.slice(0, 10)}...${context.address.slice(-8)}`,
+      );
     }
 
     if (context.balances.length > 0) {
@@ -144,7 +149,9 @@ export const walletStatusProvider: Provider = {
     }
 
     lines.push("");
-    lines.push(`**Services:** CDP: ${context.hasCdp ? "✅" : "❌"} | BANKR: ${context.hasBankr ? "✅" : "❌"}`);
+    lines.push(
+      `**Services:** CDP: ${context.hasCdp ? "✅" : "❌"} | BANKR: ${context.hasBankr ? "✅" : "❌"}`,
+    );
 
     return { text: lines.join("\n") };
   },

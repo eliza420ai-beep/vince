@@ -48,8 +48,10 @@ function detectRequestedDay(messageText: string): DayName | null {
   if (!lower) return null;
 
   // Simple approach: find any day name in the text when combined with a meal/recommendation keyword
-  const dayPattern = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
-  const contextPattern = /\b(on|for|tomorrow|lunch|dinner|recommendations?|picks?|open|place to eat|where to eat|eat|recommend|restaurant)\b/i;
+  const dayPattern =
+    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+  const contextPattern =
+    /\b(on|for|tomorrow|lunch|dinner|recommendations?|picks?|open|place to eat|where to eat|eat|recommend|restaurant)\b/i;
 
   if (!contextPattern.test(lower)) return null;
 
@@ -85,16 +87,14 @@ export const kellyContextProvider: Provider = {
 
     const messageText = (message.content?.text ?? "") || "";
     const requestedDayLower = detectRequestedDay(messageText);
-    const requestedDayCap =
-      requestedDayLower
-        ? requestedDayLower.charAt(0).toUpperCase() + requestedDayLower.slice(1)
-        : null;
+    const requestedDayCap = requestedDayLower
+      ? requestedDayLower.charAt(0).toUpperCase() + requestedDayLower.slice(1)
+      : null;
 
     if (service) {
       const wellnessTip = service.getWellnessTipOfTheDay?.() ?? "";
       const briefing = service.getDailyBriefing();
-      const day =
-        briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1);
+      const day = briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1);
       const season = service.getCurrentSeason();
 
       values.kellyWellnessTip = wellnessTip;
@@ -102,7 +102,8 @@ export const kellyContextProvider: Provider = {
       values.kellySeason = season;
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
 
-      const { currentTimeParis: nowParis, pastLunch } = getParisTimeAndPastLunch(day);
+      const { currentTimeParis: nowParis, pastLunch } =
+        getParisTimeAndPastLunch(day);
 
       values.kellyCurrentTimeParis = nowParis;
       values.kellyPastLunch = pastLunch;
@@ -163,20 +164,23 @@ export const kellyContextProvider: Provider = {
       values.kellySeason = "pool";
       values.kellyWellnessTip = "";
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
-      const { currentTimeParis: fallbackTimeParis } = getParisTimeAndPastLunch(fallbackDay);
+      const { currentTimeParis: fallbackTimeParis } =
+        getParisTimeAndPastLunch(fallbackDay);
       values.kellyCurrentTimeParis = fallbackTimeParis;
       textParts.push(`Day: ${values.kellyDay}`);
       textParts.push(
         `**Current time (Europe/Paris):** ${fallbackTimeParis}. Do not suggest lunch if it's past 14:30 (or 15:00 on Sunday).`,
       );
-      if (requestedDayCap) textParts.push(`**User asked for ${requestedDayCap}.**`);
+      if (requestedDayCap)
+        textParts.push(`**User asked for ${requestedDayCap}.**`);
       textParts.push("Season: pool");
     }
 
     textParts.push(
       "**Location context:** We are based in the Landes (between Bordeaux and Biarritz). Default for dining and hotels: within 2h drive from home — Landes (Hossegor, Magescq), Basque coast (Biarritz and up to ~1h south, e.g. Akelarre), Saint-Émilion, Arcachon. Do not default to Bordeaux city unless the user asks for Bordeaux.",
     );
-    values.kellyLocationContext = "Landes (Hossegor, Magescq), Basque coast, Saint-Émilion, Arcachon — within 2h of home";
+    values.kellyLocationContext =
+      "Landes (Hossegor, Magescq), Basque coast, Saint-Émilion, Arcachon — within 2h of home";
     textParts.push(
       "**Yoga:** Daily vinyasa (wife); surfer yoga pre/post surf; swimmer yoga pre/post pool in pool season. Use yoga-practice, daily-yoga-surfers-vinyasa, and yoga-vinyasa-surfers-swimmers for vinyasa, surfer, and swimmer recommendations.",
     );
@@ -202,15 +206,29 @@ export const kellyContextProvider: Provider = {
         }
 
         const preferCuisine = facts
-          .map((m) => (m.content as Record<string, unknown>)?.preferredCuisine as string | undefined)
+          .map(
+            (m) =>
+              (m.content as Record<string, unknown>)?.preferredCuisine as
+                | string
+                | undefined,
+          )
           .filter(Boolean);
         const preferVibe = facts
-          .map((m) => (m.content as Record<string, unknown>)?.preferredVibe as string | undefined)
+          .map(
+            (m) =>
+              (m.content as Record<string, unknown>)?.preferredVibe as
+                | string
+                | undefined,
+          )
           .filter(Boolean);
         if (preferCuisine.length > 0 || preferVibe.length > 0) {
           const youPrefer: string[] = [];
-          if (preferCuisine.length > 0) youPrefer.push(`cuisine: ${preferCuisine[preferCuisine.length - 1]}`);
-          if (preferVibe.length > 0) youPrefer.push(`vibe: ${preferVibe[preferVibe.length - 1]}`);
+          if (preferCuisine.length > 0)
+            youPrefer.push(
+              `cuisine: ${preferCuisine[preferCuisine.length - 1]}`,
+            );
+          if (preferVibe.length > 0)
+            youPrefer.push(`vibe: ${preferVibe[preferVibe.length - 1]}`);
           textParts.push(`You prefer: ${youPrefer.join("; ")}.`);
           values.kellyStructuredPreferences = youPrefer.join("; ");
         }
@@ -218,19 +236,25 @@ export const kellyContextProvider: Provider = {
         const lastLovedHint = facts
           .map((m) => (m.content?.text ?? "").trim())
           .filter(Boolean)
-          .find(
-            (t) =>
-              /loved|we'll go back|perfect|hit the mark|exactly what we wanted/i.test(t),
+          .find((t) =>
+            /loved|we'll go back|perfect|hit the mark|exactly what we wanted/i.test(
+              t,
+            ),
           );
         if (lastLovedHint) {
-          const short = lastLovedHint.length > 120 ? lastLovedHint.slice(0, 117) + "…" : lastLovedHint;
+          const short =
+            lastLovedHint.length > 120
+              ? lastLovedHint.slice(0, 117) + "…"
+              : lastLovedHint;
           values.kellyLastLoved = short;
           textParts.push(`Last time you loved: ${short}`);
         }
 
-        const lastRecommend = await runtime.getCache<{ type: string; query: string; pick: string }>(
-          `kelly:lastRecommend:${message.roomId}`,
-        );
+        const lastRecommend = await runtime.getCache<{
+          type: string;
+          query: string;
+          pick: string;
+        }>(`kelly:lastRecommend:${message.roomId}`);
         if (lastRecommend?.pick) {
           const line =
             lastRecommend.type === "wine"

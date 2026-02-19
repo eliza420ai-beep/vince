@@ -3,7 +3,13 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { sentinelCostStatusAction } from "../actions/sentinelCostStatus.action";
-import type { IAgentRuntime, Memory, HandlerCallback, Content, UUID } from "@elizaos/core";
+import type {
+  IAgentRuntime,
+  Memory,
+  HandlerCallback,
+  Content,
+  UUID,
+} from "@elizaos/core";
 import { v4 as uuidv4 } from "uuid";
 
 function createMessage(text: string): Memory {
@@ -23,7 +29,9 @@ function createMockRuntime(overrides?: {
 }): IAgentRuntime {
   const composeState =
     overrides?.composeState ??
-    (async () => ({ text: "TREASURY.md cost breakdown. Leaderboard → Usage tab. Burn rate." }));
+    (async () => ({
+      text: "TREASURY.md cost breakdown. Leaderboard → Usage tab. Burn rate.",
+    }));
   const useModel =
     overrides?.useModel ??
     (async () =>
@@ -71,7 +79,9 @@ describe("sentinelCostStatusAction", () => {
   describe("handler", () => {
     it("callback response mentions TREASURY or Usage", async () => {
       const runtime = createMockRuntime({
-        composeState: async () => ({ text: "TREASURY.md. Usage tab. Burn rate." }),
+        composeState: async () => ({
+          text: "TREASURY.md. Usage tab. Burn rate.",
+        }),
         useModel: async () =>
           "Leaderboard → Usage for tokens. TREASURY cost breakdown. Watch burn rate.",
       });
@@ -81,7 +91,13 @@ describe("sentinelCostStatusAction", () => {
         calls.push(content);
       };
 
-      await sentinelCostStatusAction.handler!(runtime, msg, {} as any, undefined, callback);
+      await sentinelCostStatusAction.handler!(
+        runtime,
+        msg,
+        {} as any,
+        undefined,
+        callback,
+      );
 
       expect(calls.length).toBeGreaterThanOrEqual(1);
       const text = (calls[0]?.text ?? "").toLowerCase();

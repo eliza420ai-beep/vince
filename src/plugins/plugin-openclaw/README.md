@@ -15,6 +15,7 @@ OpenClaw is a **self-hosted gateway** that connects chat apps (WhatsApp, Telegra
 ## What this plugin does
 
 - **Data integrity** — All responses sourced from actions; no hallucination.
+
 1. **AI 2027** — Scenario summary (superhuman AI, AGI timelines, OpenBrain, Agent progression, alignment, takeoff).
 2. **Research agents** — AI 2027 framing + how OpenClaw + openclaw-agents enable them.
 3. **Setup guide** — Ask for "OpenClaw setup" or "OpenClaw setup guide" for step-by-step install.
@@ -40,10 +41,10 @@ See [Onboarding overview](https://docs.openclaw.ai/start/onboarding-overview) an
 
 ## Environment
 
-| Variable | Description |
-|----------|-------------|
-| `OPENCLAW_GATEWAY_URL` | Gateway base URL (e.g. `http://127.0.0.1:18789`). When set, gateway status and health are available. |
-| `OPENCLAW_GATEWAY_TOKEN` | Optional. Auth token if your Gateway uses `gateway.auth.token`. |
+| Variable                 | Description                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_GATEWAY_URL`   | Gateway base URL (e.g. `http://127.0.0.1:18789`). When set, gateway status and health are available. |
+| `OPENCLAW_GATEWAY_TOKEN` | Optional. Auth token if your Gateway uses `gateway.auth.token`.                                      |
 
 ## Security
 
@@ -64,17 +65,17 @@ See also [OPENCLAW.md](OPENCLAW.md) in this directory for a longer reference.
 
 ## Actions
 
-| Action | Description |
-|--------|-------------|
-| OPENCLAW_AI_2027 | AI 2027 scenario summary (AGI timelines, OpenBrain, alignment, takeoff) |
-| OPENCLAW_AI_RESEARCH_AGENTS | Research agents (AI 2027 framing), how OpenClaw enables them |
-| OPENCLAW_SETUP_GUIDE | Step-by-step install and configuration |
-| OPENCLAW_SECURITY_GUIDE | Security: prompt injection, ACIP/PromptGuard/SkillGuard, MEMORY.md, EF dAI guide |
-| OPENCLAW_GATEWAY_STATUS | Gateway health and status (when URL set) |
-| OPENCLAW_AGENTS_GUIDE | Orchestrator, 8 pillars, HOW-TO-RUN |
-| OPENCLAW_TIPS | Fresh Mac setup, tips |
-| OPENCLAW_USE_CASES | Research agents (AI 2027 style), fork VINCE, bio-digital hub |
-| OPENCLAW_WORKSPACE_SYNC | Sync workspace files |
+| Action                      | Description                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| OPENCLAW_AI_2027            | AI 2027 scenario summary (AGI timelines, OpenBrain, alignment, takeoff)          |
+| OPENCLAW_AI_RESEARCH_AGENTS | Research agents (AI 2027 framing), how OpenClaw enables them                     |
+| OPENCLAW_SETUP_GUIDE        | Step-by-step install and configuration                                           |
+| OPENCLAW_SECURITY_GUIDE     | Security: prompt injection, ACIP/PromptGuard/SkillGuard, MEMORY.md, EF dAI guide |
+| OPENCLAW_GATEWAY_STATUS     | Gateway health and status (when URL set)                                         |
+| OPENCLAW_AGENTS_GUIDE       | Orchestrator, 8 pillars, HOW-TO-RUN                                              |
+| OPENCLAW_TIPS               | Fresh Mac setup, tips                                                            |
+| OPENCLAW_USE_CASES          | Research agents (AI 2027 style), fork VINCE, bio-digital hub                     |
+| OPENCLAW_WORKSPACE_SYNC     | Sync workspace files                                                             |
 
 ## Files
 

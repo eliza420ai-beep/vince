@@ -1,6 +1,6 @@
 /**
  * X Account Action
- * 
+ *
  * Analyze a Twitter/X account.
  * "Tell me about @crediblecrypto"
  */
@@ -12,13 +12,13 @@ import {
   type State,
   type HandlerCallback,
   ModelType,
-} from '@elizaos/core';
-import { getXAccountsService } from '../services/xAccounts.service';
-import { initXClientFromEnv } from '../services/xClient.service';
-import { TOPIC_BY_ID } from '../constants/topics';
-import { formatCostFooterCombined } from '../constants/cost';
-import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
-import type { AccountAnalysis } from '../types/analysis.types';
+} from "@elizaos/core";
+import { getXAccountsService } from "../services/xAccounts.service";
+import { initXClientFromEnv } from "../services/xClient.service";
+import { TOPIC_BY_ID } from "../constants/topics";
+import { formatCostFooterCombined } from "../constants/cost";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+import type { AccountAnalysis } from "../types/analysis.types";
 
 function buildAccountDataContext(
   analysis: AccountAnalysis,
@@ -31,16 +31,20 @@ function buildAccountDataContext(
     `Followers: ${analysis.metrics.followers}, avg likes: ${analysis.metrics.avgLikes}, engagement: ${analysis.metrics.engagementRate}%`,
   );
   if (analysis.topicFocus.length > 0) {
-    lines.push(`Focus: ${analysis.topicFocus.join(', ')}`);
+    lines.push(`Focus: ${analysis.topicFocus.join(", ")}`);
   }
-  lines.push(`Bias: ${analysis.sentimentBias}, reliability: ${analysis.reliability}/100`);
+  lines.push(
+    `Bias: ${analysis.sentimentBias}, reliability: ${analysis.reliability}/100`,
+  );
   if (recentTakes.length > 0) {
-    lines.push('Recent takes:');
+    lines.push("Recent takes:");
     for (const t of recentTakes.slice(0, 5)) {
-      lines.push(`- ${t.text.slice(0, 120).replace(/\n/g, ' ')}${t.text.length > 120 ? '...' : ''}`);
+      lines.push(
+        `- ${t.text.slice(0, 120).replace(/\n/g, " ")}${t.text.length > 120 ? "..." : ""}`,
+      );
     }
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 async function generateAccountNarrative(
@@ -63,51 +67,54 @@ Write 2–3 short paragraphs:`;
 }
 
 export const xAccountAction: Action = {
-  name: 'X_ACCOUNT',
-  description: 'Analyze a Twitter/X account - their influence tier, recent takes, topic focus, and sentiment bias.',
-  
-  similes: [
-    'ANALYZE_ACCOUNT',
-    'WHO_IS',
-    'ACCOUNT_INFO',
-  ],
+  name: "X_ACCOUNT",
+  description:
+    "Analyze a Twitter/X account - their influence tier, recent takes, topic focus, and sentiment bias.",
+
+  similes: ["ANALYZE_ACCOUNT", "WHO_IS", "ACCOUNT_INFO"],
 
   examples: [
     [
       {
-        name: '{{user1}}',
+        name: "{{user1}}",
         content: { text: "Who is @crediblecrypto?" },
       },
       {
-        name: '{{agentName}}',
+        name: "{{agentName}}",
         content: {
           text: "👤 **@crediblecrypto**\n\n**Tier:** 🐋 Whale\n**Reason:** 285K followers, market-moving influence\n\n**Stats:**\n• Followers: 285K\n• Avg Likes: 1.2k\n• Engagement: 0.42%\n\n**Focus:** BTC, trading, macro\n**Bias:** Bullish (historically)\n**Reliability:** 80/100\n\n**Recent Takes:**\n• Supply shock thesis for BTC\n• ETF flows analysis\n• Caution on altseason timing",
-          action: 'X_ACCOUNT',
+          action: "X_ACCOUNT",
         },
       },
     ],
     [
       {
-        name: '{{user1}}',
+        name: "{{user1}}",
         content: { text: "Tell me about @DegenSpartan on X" },
       },
       {
-        name: '{{agentName}}',
+        name: "{{agentName}}",
         content: {
-          text: "👤 **@DegenSpartan**\n\n**Tier:** 🎯 Alpha\n**Reason:** High engagement (890 avg likes), quality insights\n\n**Stats:**\n• Followers: 142K\n• Avg Likes: 890\n• Engagement: 0.63%\n\n**Focus:** DeFi, trading, memes\n**Bias:** Neutral (balanced takes)\n**Reliability:** 75/100\n\n**Recent Takes:**\n• Points meta critique\n• DeFi yield compression\n• \"Mid-curve trap\" warning",
-          action: 'X_ACCOUNT',
+          text: '👤 **@DegenSpartan**\n\n**Tier:** 🎯 Alpha\n**Reason:** High engagement (890 avg likes), quality insights\n\n**Stats:**\n• Followers: 142K\n• Avg Likes: 890\n• Engagement: 0.63%\n\n**Focus:** DeFi, trading, memes\n**Bias:** Neutral (balanced takes)\n**Reliability:** 75/100\n\n**Recent Takes:**\n• Points meta critique\n• DeFi yield compression\n• "Mid-curve trap" warning',
+          action: "X_ACCOUNT",
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
-    const text = message.content?.text ?? '';
-    
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
+    const text = message.content?.text ?? "";
+
     // Check for @username pattern or account-related question (including "what did @user say about X")
     const hasUsername = /@\w+/.test(text);
-    const hasAccountQuery = /who is|tell me about|analyze|account|profile|what did|say about/i.test(text);
-    
+    const hasAccountQuery =
+      /who is|tell me about|analyze|account|profile|what did|say about/i.test(
+        text,
+      );
+
     return hasUsername && hasAccountQuery;
   },
 
@@ -116,20 +123,20 @@ export const xAccountAction: Action = {
     message: Memory,
     state: State,
     _options: Record<string, unknown>,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       initXClientFromEnv(runtime);
 
-      const messageText = message.content?.text ?? '';
-      
+      const messageText = message.content?.text ?? "";
+
       // Extract username
       const usernameMatch = messageText.match(/@(\w+)/);
-      
+
       if (!usernameMatch) {
         callback({
           text: "I need a username to analyze. Example: `Who is @crediblecrypto?`",
-          action: 'X_ACCOUNT',
+          action: "X_ACCOUNT",
         });
         return;
       }
@@ -143,22 +150,27 @@ export const xAccountAction: Action = {
       if (!analysis) {
         callback({
           text: `Couldn't find or analyze @${username}. The account might not exist or be protected.`,
-          action: 'X_ACCOUNT',
+          action: "X_ACCOUNT",
         });
         return;
       }
 
       // Get recent takes (fetch more if we'll filter by topic)
       const aboutTopic = detectAboutTopic(messageText);
-      const recentTweets = await accountsService.getRecentTakes(username, aboutTopic ? 20 : 5);
+      const recentTweets = await accountsService.getRecentTakes(
+        username,
+        aboutTopic ? 20 : 5,
+      );
 
       // Optionally filter to tweets about a topic ("what did @user say about BTC")
       let takesToShow = recentTweets;
-      let aboutLabel = '';
+      let aboutLabel = "";
       if (aboutTopic) {
         const keywords = getTopicKeywords(aboutTopic);
         takesToShow = recentTweets.filter((t) =>
-          keywords.some((kw) => t.text.toLowerCase().includes(kw.toLowerCase()))
+          keywords.some((kw) =>
+            t.text.toLowerCase().includes(kw.toLowerCase()),
+          ),
         );
         aboutLabel = ` (about ${aboutTopic.toUpperCase()})`;
       }
@@ -173,34 +185,37 @@ export const xAccountAction: Action = {
       structuredResponse += `• Avg Likes: ${formatNumber(analysis.metrics.avgLikes)}\n`;
       structuredResponse += `• Engagement: ${analysis.metrics.engagementRate}%\n\n`;
       if (analysis.topicFocus.length > 0) {
-        structuredResponse += `**Focus:** ${analysis.topicFocus.join(', ')}\n`;
+        structuredResponse += `**Focus:** ${analysis.topicFocus.join(", ")}\n`;
       }
       structuredResponse += `**Bias:** ${capitalize(analysis.sentimentBias)}\n`;
       structuredResponse += `**Reliability:** ${analysis.reliability}/100\n`;
       if (takesToShow.length > 0) {
         structuredResponse += `\n**Recent Takes${aboutLabel}:**\n`;
         for (const tweet of takesToShow.slice(0, 5)) {
-          const shortText = tweet.text.slice(0, 80).replace(/\n/g, ' ');
-          structuredResponse += `• ${shortText}${tweet.text.length > 80 ? '...' : ''}\n`;
+          const shortText = tweet.text.slice(0, 80).replace(/\n/g, " ");
+          structuredResponse += `• ${shortText}${tweet.text.length > 80 ? "..." : ""}\n`;
         }
       } else if (aboutTopic) {
         structuredResponse += `\nNo recent tweets from @${analysis.username} about ${aboutTopic.toUpperCase()}.`;
       } else if (recentTweets.length > 0) {
         structuredResponse += `\n**Recent Takes:**\n`;
         for (const tweet of recentTweets.slice(0, 3)) {
-          const shortText = tweet.text.slice(0, 60).replace(/\n/g, ' ');
-          structuredResponse += `• ${shortText}${tweet.text.length > 60 ? '...' : ''}\n`;
+          const shortText = tweet.text.slice(0, 60).replace(/\n/g, " ");
+          structuredResponse += `• ${shortText}${tweet.text.length > 60 ? "..." : ""}\n`;
         }
       }
       const similar = await accountsService.findSimilarAccounts(username);
       if (similar.length > 0) {
-        structuredResponse += `\n**Similar:** ${similar.slice(0, 3).map(s => `@${s}`).join(', ')}`;
+        structuredResponse += `\n**Similar:** ${similar
+          .slice(0, 3)
+          .map((s) => `@${s}`)
+          .join(", ")}`;
       }
 
       const costFooter =
-        process.env.X_RESEARCH_SHOW_COST === 'true'
+        process.env.X_RESEARCH_SHOW_COST === "true"
           ? `\n\n${formatCostFooterCombined({ userLookups: 1, postReads: 20 + (aboutTopic ? 20 : 5) })}`
-          : '';
+          : "";
 
       let text: string;
       try {
@@ -213,14 +228,15 @@ export const xAccountAction: Action = {
 
       callback({
         text,
-        action: 'X_ACCOUNT',
+        action: "X_ACCOUNT",
       });
     } catch (error) {
-      console.error('[X_ACCOUNT] Error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error("[X_ACCOUNT] Error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       callback({
         text: `👤 **Account Analysis**\n\n❌ Error: ${errorMessage}`,
-        action: 'X_ACCOUNT',
+        action: "X_ACCOUNT",
       });
     }
   },
@@ -228,11 +244,16 @@ export const xAccountAction: Action = {
 
 function getTierEmoji(tier: string): string {
   switch (tier) {
-    case 'whale': return '🐋';
-    case 'alpha': return '🎯';
-    case 'quality': return '✨';
-    case 'verified': return '✓';
-    default: return '👤';
+    case "whale":
+      return "🐋";
+    case "alpha":
+      return "🎯";
+    case "quality":
+      return "✨";
+    case "verified":
+      return "✓";
+    default:
+      return "👤";
   }
 }
 
@@ -254,7 +275,7 @@ function detectAboutTopic(text: string): string | null {
   const topic = TOPIC_BY_ID[word];
   if (topic) return topic.id;
   const bySearchTerm = Object.values(TOPIC_BY_ID).find(
-    (t) => t.searchTerms.some((s) => s.toLowerCase() === word) || t.id === word
+    (t) => t.searchTerms.some((s) => s.toLowerCase() === word) || t.id === word,
   );
   return bySearchTerm?.id ?? null;
 }

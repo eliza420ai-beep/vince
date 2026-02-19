@@ -90,7 +90,7 @@ describe("UPLOAD action", () => {
   it("validate: returns true for 'upload: something' (50+ chars)", async () => {
     const message = mockMessage(
       "upload: Bitcoin halving cycle typically creates a supply shock 12-18 months after the event.",
-      "user-1"
+      "user-1",
     );
     expect(await uploadAction.validate!(runtime, message)).toBe(true);
   });
@@ -98,7 +98,7 @@ describe("UPLOAD action", () => {
   it("validate: returns true for 'save this: article text' (50+ chars)", async () => {
     const message = mockMessage(
       "save this: Some research content here with enough length to pass the minimum.",
-      "user-1"
+      "user-1",
     );
     expect(await uploadAction.validate!(runtime, message)).toBe(true);
   });
@@ -142,7 +142,9 @@ describe("ADD_MICHELIN_RESTAURANT action", () => {
   it("validate: returns false when message has no Michelin link", async () => {
     const runtime = mockRuntime();
     const message = mockMessage("Check out this restaurant in Paris", "user-1");
-    expect(await addMichelinRestaurantAction.validate!(runtime, message)).toBe(false);
+    expect(await addMichelinRestaurantAction.validate!(runtime, message)).toBe(
+      false,
+    );
   });
 
   it("validate: returns true when message has guide.michelin.com and room is knowledge", async () => {
@@ -151,10 +153,15 @@ describe("ADD_MICHELIN_RESTAURANT action", () => {
       getRoom: async () => ({ name: "knowledge", id: "room-1" }),
     } as unknown as IAgentRuntime;
     const message = {
-      ...mockMessage("https://guide.michelin.com/fr/nouvelle-aquitaine/bordeaux/restaurant/foo", "user-1"),
+      ...mockMessage(
+        "https://guide.michelin.com/fr/nouvelle-aquitaine/bordeaux/restaurant/foo",
+        "user-1",
+      ),
       roomId: "room-1",
     } as Memory;
-    expect(await addMichelinRestaurantAction.validate!(runtime, message)).toBe(true);
+    expect(await addMichelinRestaurantAction.validate!(runtime, message)).toBe(
+      true,
+    );
   });
 });
 

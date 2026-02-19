@@ -17,19 +17,19 @@ Hypersurface expertise for Solus: mechanics, strike ritual, position assessment,
 
 ### Providers
 
-| Name | Purpose |
-|------|--------|
-| `SOLUS_HYPERSURFACE_CONTEXT` | Injects Hypersurface mechanics into state (position -5). No API calls; fixed text. |
+| Name                             | Purpose                                                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `SOLUS_HYPERSURFACE_CONTEXT`     | Injects Hypersurface mechanics into state (position -5). No API calls; fixed text.                         |
 | `SOLUS_HYPERSURFACE_SPOT_PRICES` | Real-time USD spot for BTC, ETH, SOL, HYPE from CoinGecko (via plugin-coingecko). Position -4. Cached 60s. |
 
 ### Actions
 
-| Action | Triggers (examples) | Purpose |
-|--------|----------------------|--------|
-| `SOLUS_STRIKE_RITUAL` | "strike ritual", "Friday ritual", "walk me through strike" | Step-by-step Friday process: get VINCE options view, pick asset, CC vs CSP, strike width, invalidation. |
-| `SOLUS_HYPERSURFACE_EXPLAIN` | "how does Hypersurface work", "explain secured puts", "what's the wheel" | Explain mechanics in plain language; point to VINCE for live data. |
-| `SOLUS_POSITION_ASSESS` | "assess my position", "we bought $70K secured puts", "review my Hypersurface position" | Interpret position, state invalidation and hold/roll/adjust; ask for details if missing. |
-| `SOLUS_OPTIMAL_STRIKE` | "optimal strike", "what strike for BTC", "best strike this week", "size or skip", "what's your call", "bull or bear this week", "weekly view", "weekly view for btc/eth/sol/hype" | Strike call (asset, OTM %, size/skip, invalidation) when context has data; else ask for VINCE options output. Prompts use spot prices from context and frame the call weekly. |
+| Action                       | Triggers (examples)                                                                                                                                                               | Purpose                                                                                                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SOLUS_STRIKE_RITUAL`        | "strike ritual", "Friday ritual", "walk me through strike"                                                                                                                        | Step-by-step Friday process: get VINCE options view, pick asset, CC vs CSP, strike width, invalidation.                                                                       |
+| `SOLUS_HYPERSURFACE_EXPLAIN` | "how does Hypersurface work", "explain secured puts", "what's the wheel"                                                                                                          | Explain mechanics in plain language; point to VINCE for live data.                                                                                                            |
+| `SOLUS_POSITION_ASSESS`      | "assess my position", "we bought $70K secured puts", "review my Hypersurface position"                                                                                            | Interpret position, state invalidation and hold/roll/adjust; ask for details if missing.                                                                                      |
+| `SOLUS_OPTIMAL_STRIKE`       | "optimal strike", "what strike for BTC", "best strike this week", "size or skip", "what's your call", "bull or bear this week", "weekly view", "weekly view for btc/eth/sol/hype" | Strike call (asset, OTM %, size/skip, invalidation) when context has data; else ask for VINCE options output. Prompts use spot prices from context and frame the call weekly. |
 
 All actions validate that the runtime character name is `Solus` so the plugin is safe if ever attached to another agent.
 

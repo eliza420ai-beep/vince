@@ -51,7 +51,15 @@ export interface BuildFlowData {
   args?: unknown[];
   to: string;
   chainId: number;
-  value?: string | { type: string; targetAddress?: string; tokenAddress?: string; chainId?: number; constraints?: { gte?: string } }; // Native token value in wei or runtime balance
+  value?:
+    | string
+    | {
+        type: string;
+        targetAddress?: string;
+        tokenAddress?: string;
+        chainId?: number;
+        constraints?: { gte?: string };
+      }; // Native token value in wei or runtime balance
   data?: string; // Calldata (use "0x" for direct native transfers)
   gasLimit?: string;
   upperBoundTimestamp?: number;

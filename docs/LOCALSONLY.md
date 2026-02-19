@@ -12,20 +12,20 @@ The setup has two parts: the **EXO Inference Cluster** (compute and storage) and
 
 ### EXO Inference Cluster
 
-| Component | Role | Specs |
-|-----------|------|--------|
-| **DGX SPARK** | Prefill | 128GB memory, ~100 TFLOPs |
-| **MAC STUDIO** | Decode | 512GB memory, 819 GB/s bandwidth |
-| **MACBOOK PRO** | Decode | 128GB memory, 400 GB/s bandwidth |
-| **NAS** | Model storage | Network-attached; shared model store |
-| **10GbE Switch** | Network | Connects all nodes (Mac Studio 10GbE; MacBook Pro WiFi/10GbE) |
+| Component        | Role          | Specs                                                         |
+| ---------------- | ------------- | ------------------------------------------------------------- |
+| **DGX SPARK**    | Prefill       | 128GB memory, ~100 TFLOPs                                     |
+| **MAC STUDIO**   | Decode        | 512GB memory, 819 GB/s bandwidth                              |
+| **MACBOOK PRO**  | Decode        | 128GB memory, 400 GB/s bandwidth                              |
+| **NAS**          | Model storage | Network-attached; shared model store                          |
+| **10GbE Switch** | Network       | Connects all nodes (Mac Studio 10GbE; MacBook Pro WiFi/10GbE) |
 
 **Cluster totals:** 768GB memory, ~140 TFLOPs, ~1.5 TB/s bandwidth.
 
 ### Orchestrator
 
-| Component | Role | Specs |
-|-----------|------|--------|
+| Component       | Role         | Specs                                                     |
+| --------------- | ------------ | --------------------------------------------------------- |
 | **Mac Mini M4** | Orchestrator | 16GB RAM, ~5W; runs OpenCLAW; connects to cluster via API |
 
 ### Data flow
@@ -81,13 +81,13 @@ Run **VINCE** (unified data intel, paper bot, options/perps/memes), **Kelly** (l
 
 ## WHY this setup
 
-| Dimension | Rationale |
-|-----------|-----------|
-| **Performance & control** | Predictable latency, no rate limits; you tune models and batch sizes locally. |
-| **Operational cost** | After CapEx, marginal cost is power and cooling; at high sustained volume this can undercut cloud API spend—compare at your usage. |
-| **Privacy & security** | Data and models stay on-prem; no egress to third-party inference APIs. |
-| **Specialized roles** | Prefill on DGX Spark and decode on Apple Silicon matches common LLM serving patterns and uses each machine’s strengths. |
-| **Low-power orchestration** | Mac Mini M4 (~5W) as the control plane keeps idle and management cost low. |
+| Dimension                   | Rationale                                                                                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Performance & control**   | Predictable latency, no rate limits; you tune models and batch sizes locally.                                                      |
+| **Operational cost**        | After CapEx, marginal cost is power and cooling; at high sustained volume this can undercut cloud API spend—compare at your usage. |
+| **Privacy & security**      | Data and models stay on-prem; no egress to third-party inference APIs.                                                             |
+| **Specialized roles**       | Prefill on DGX Spark and decode on Apple Silicon matches common LLM serving patterns and uses each machine’s strengths.            |
+| **Low-power orchestration** | Mac Mini M4 (~5W) as the control plane keeps idle and management cost low.                                                         |
 
 **When it makes sense:** High sustained inference volume, compliance or privacy requirements, or a preference for upfront CapEx over recurring API bills. **When cloud may still win:** Very spiky or low volume, or when you want zero infra to operate.
 
@@ -97,13 +97,13 @@ Run **VINCE** (unified data intel, paper bot, options/perps/memes), **Kelly** (l
 
 ### CapEx (one-time)
 
-| Component | Role | Order of magnitude / notes |
-|-----------|------|----------------------------|
-| DGX Spark | Prefill | TBD — check current NVIDIA pricing |
-| Mac Studio | Decode | TBD — high-memory config |
-| MacBook Pro | Decode | TBD — high-memory config |
-| NAS | Model storage | TBD — capacity and speed to suit model set |
-| 10GbE switch + cabling/NICs | Network | TBD — switch + NICs per machine |
+| Component                   | Role          | Order of magnitude / notes                 |
+| --------------------------- | ------------- | ------------------------------------------ |
+| DGX Spark                   | Prefill       | TBD — check current NVIDIA pricing         |
+| Mac Studio                  | Decode        | TBD — high-memory config                   |
+| MacBook Pro                 | Decode        | TBD — high-memory config                   |
+| NAS                         | Model storage | TBD — capacity and speed to suit model set |
+| 10GbE switch + cabling/NICs | Network       | TBD — switch + NICs per machine            |
 
 **Note:** Total upfront is significant compared to $0 for API-only; the tradeoff is lower marginal cost at scale.
 
@@ -122,11 +122,11 @@ Run **VINCE** (unified data intel, paper bot, options/perps/memes), **Kelly** (l
 
 Your recent usage is on the order of **~1.9B tokens/month** (e.g. Jan 25–Feb 25 window), with an equivalent cost of **~$932/month** (Claude 4.5 Opus high-thinking + Auto; “Included” in Ultra here, but we use it as the cost to beat). That’s **~$11.2k/year** if paid as inference.
 
-| Item | Tokens | Cost (equiv.) |
-|------|--------|----------------|
-| claude-4.5-opus-high-thinking | 531.9M | $501 |
-| Auto | 1.4B | $431 |
-| **Total** | **~1.9B** | **~$932/mo** |
+| Item                          | Tokens    | Cost (equiv.) |
+| ----------------------------- | --------- | ------------- |
+| claude-4.5-opus-high-thinking | 531.9M    | $501          |
+| Auto                          | 1.4B      | $431          |
+| **Total**                     | **~1.9B** | **~$932/mo**  |
 
 To model the EXO cluster against that:
 
@@ -146,15 +146,15 @@ At any volume (e.g. X tokens/month or Y requests/day), compare estimated cloud i
 
 Many “local vs API” analyses understate the benefit of local (e.g. M3 Ultra Mac Studio) by making one or more of these mistakes. Correcting them can shift monthly savings into the **$150–$3k+** range depending on volume and provider.
 
-| Mistake | What’s wrong | Correction |
-|--------|---------------|------------|
-| **1. $/tok from single-request TPS** | Cost per token is often computed from single-request throughput. LLM inference can be **batched**; you move along a pareto frontier of throughput vs single-request latency. The right point depends on SLOs and workload, not “min throughput.” | Use throughput-appropriate batching. Savings vs naive single-request math can be **2×–20×** (e.g. $156–$1,560/mo at $1.50/M, or $312–$3,120/mo at $3/M official API). |
-| **2. Device obsolete in 12 months** | Treating Mac Studio (or similar) as worthless after a year. | Macs retain value well; resale typically depreciates **~15%/year**, and the machine is useful for far more than AI (dev, media, etc.). |
-| **3. Cherry-picked / cheap API provider** | Basing comparison on a discount provider (e.g. OpenRouter) with e.g. 98.4% uptime (~11.5 h/month down). | Compare to **official** API pricing (e.g. Kimi K2.5 at **$3/M output** tokens) for a fair like-for-like. |
-| **4. Ignoring input tokens and context** | Only counting output token cost. Official APIs charge for **input** too (e.g. $0.60/M input; $0.10/M cache hit). Your context is unique—providers can’t scale it like shared weights, so they charge. | Large context (e.g. 200K-token codebase) = **$0.12** per full load, **$0.02** per cached query. Tool-augmented flows (Claude Code, OpenCode, etc.) add many requests; input + cache cost adds up fast. Local keeps context hot at no per-request cost. |
-| **5. Only comparing cost** | Framing local vs API as purely $/token. | Other reasons to run local (often **more important**): **privacy**, **compliance**, **sovereignty** (your weights, your brain), **uptime guarantees**, **air gapping**, **no internet**. Latency can favor cloud unless you need one of these (e.g. air gap). |
+| Mistake                                   | What’s wrong                                                                                                                                                                                                                                     | Correction                                                                                                                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. $/tok from single-request TPS**      | Cost per token is often computed from single-request throughput. LLM inference can be **batched**; you move along a pareto frontier of throughput vs single-request latency. The right point depends on SLOs and workload, not “min throughput.” | Use throughput-appropriate batching. Savings vs naive single-request math can be **2×–20×** (e.g. $156–$1,560/mo at $1.50/M, or $312–$3,120/mo at $3/M official API).                                                                                         |
+| **2. Device obsolete in 12 months**       | Treating Mac Studio (or similar) as worthless after a year.                                                                                                                                                                                      | Macs retain value well; resale typically depreciates **~15%/year**, and the machine is useful for far more than AI (dev, media, etc.).                                                                                                                        |
+| **3. Cherry-picked / cheap API provider** | Basing comparison on a discount provider (e.g. OpenRouter) with e.g. 98.4% uptime (~11.5 h/month down).                                                                                                                                          | Compare to **official** API pricing (e.g. Kimi K2.5 at **$3/M output** tokens) for a fair like-for-like.                                                                                                                                                      |
+| **4. Ignoring input tokens and context**  | Only counting output token cost. Official APIs charge for **input** too (e.g. $0.60/M input; $0.10/M cache hit). Your context is unique—providers can’t scale it like shared weights, so they charge.                                            | Large context (e.g. 200K-token codebase) = **$0.12** per full load, **$0.02** per cached query. Tool-augmented flows (Claude Code, OpenCode, etc.) add many requests; input + cache cost adds up fast. Local keeps context hot at no per-request cost.        |
+| **5. Only comparing cost**                | Framing local vs API as purely $/token.                                                                                                                                                                                                          | Other reasons to run local (often **more important**): **privacy**, **compliance**, **sovereignty** (your weights, your brain), **uptime guarantees**, **air gapping**, **no internet**. Latency can favor cloud unless you need one of these (e.g. air gap). |
 
-*Context: critique of analyses that called $20k/mo API spend “aggressive” but then lowballed local savings; open benchmarks/evals for 1,000+ local setups are in the works.*
+_Context: critique of analyses that called $20k/mo API spend “aggressive” but then lowballed local savings; open benchmarks/evals for 1,000+ local setups are in the works._
 
 ---
 
@@ -177,28 +177,28 @@ The goal: **blind inference.** The Mac does the work, returns the result, and ha
 
 - **Why crypto fails at full speed:** Additive masking breaks on nonlinear ops (RMSNorm, softmax, etc.). At noise levels that defeat an attacker, the model output collapses. Per-layer cryptographic correction gives exact output and privacy but needs a round-trip per layer—at internet latency that’s a small fraction of a token per second. Two-party secure compute works on a LAN but hits the same sequential-layer wall over the internet. The bottleneck is architectural: transformers have dozens of sequential layers; any protocol that needs communication at each layer multiplies latency by layer count. Speed of light sets the limit.
 
-- **What works on macOS:** Don’t hide the data from the model; hide the *process* from the operator. **System Integrity Protection (SIP):** root cannot read hardened process memory; the kernel denies it. **Secure Enclave:** keys never leave the chip; you can’t export them. **Hardened Runtime + Code Signing:** the Enclave can restrict key access to a specific signed binary. So: to decrypt user data the daemon needs the Enclave key; the Enclave only gives it to the unmodified binary; the binary checks SIP at startup and refuses to run if SIP is off; SIP can’t be toggled without a reboot (observable). Modify the binary → different code signing hash → Enclave refuses. Disable SIP and reboot → daemon sees SIP off and refuses work. Every attack path terminates. The operator cannot simultaneously have a binary that gets the key and a system where they can read memory. Inference then runs at full native speed inside a process the machine’s owner cannot inspect.
+- **What works on macOS:** Don’t hide the data from the model; hide the _process_ from the operator. **System Integrity Protection (SIP):** root cannot read hardened process memory; the kernel denies it. **Secure Enclave:** keys never leave the chip; you can’t export them. **Hardened Runtime + Code Signing:** the Enclave can restrict key access to a specific signed binary. So: to decrypt user data the daemon needs the Enclave key; the Enclave only gives it to the unmodified binary; the binary checks SIP at startup and refuses to run if SIP is off; SIP can’t be toggled without a reboot (observable). Modify the binary → different code signing hash → Enclave refuses. Disable SIP and reboot → daemon sees SIP off and refuses work. Every attack path terminates. The operator cannot simultaneously have a binary that gets the key and a system where they can read memory. Inference then runs at full native speed inside a process the machine’s owner cannot inspect.
 
-- **The one missing piece:** When a node registers, it sends its Secure Enclave public key so the network can encrypt data for it. A malicious operator could register a *software* key pair, decrypt everything, and break the chain. The network needs to verify that the key came from a real Secure Enclave. On **iOS**, **App Attest** (DeviceCheck) does exactly that: attestation that a key was created in a genuine Secure Enclave, chained to Apple’s root. On **macOS**, same Silicon, same Secure Enclave, same SDK—the API exists and compiles. It just returns false. One boolean. That’s the distance between “decentralized private inference is a research problem” and “decentralized private inference works on hardware people already own.”
+- **The one missing piece:** When a node registers, it sends its Secure Enclave public key so the network can encrypt data for it. A malicious operator could register a _software_ key pair, decrypt everything, and break the chain. The network needs to verify that the key came from a real Secure Enclave. On **iOS**, **App Attest** (DeviceCheck) does exactly that: attestation that a key was created in a genuine Secure Enclave, chained to Apple’s root. On **macOS**, same Silicon, same Secure Enclave, same SDK—the API exists and compiles. It just returns false. One boolean. That’s the distance between “decentralized private inference is a research problem” and “decentralized private inference works on hardware people already own.”
 
 **Why it matters beyond one network:** App Attest on macOS would unlock hardware-attested private compute on consumer devices—medical AI at a clinic without the clinic seeing prompts, legal doc analysis without the firm reading the docs, financial modeling on sensitive data on idle trading-floor machines. Today that requires datacenter confidential computing (e.g. H100 TEE); retail doesn’t have it. Apple already runs a similar architecture (Private Cloud Compute for Apple Intelligence). Enabling App Attest on macOS would extend that model to the hundreds of millions of Macs already in the world.
 
-*Summary: idle Mac Minis could form a private inference network at full speed; the blocker is proving the key is in a real Enclave. We predicted the Mac Mini wave and the idle-compute opportunity; the privacy wall and the one-API gap are the next thing to track.*
+_Summary: idle Mac Minis could form a private inference network at full speed; the blocker is proving the key is in a real Enclave. We predicted the Mac Mini wave and the idle-compute opportunity; the privacy wall and the one-API gap are the next thing to track._
 
 ---
 
 ## Links
 
-| What | URL / doc |
-|------|-----------|
-| **exo** | [github.com/exo-explore/exo](https://github.com/exo-explore/exo) — run frontier AI locally, cluster devices, MLX, RDMA over Thunderbolt; dashboard at `localhost:52415` |
-| exo API | [docs/api.md](https://github.com/exo-explore/exo/blob/main/docs/api.md), [src/exo/master/api.py](https://github.com/exo-explore/exo/tree/main/src/exo/master) |
-| OpenCLAW | (Add orchestrator / OpenCLAW repo link when available) |
-| TREASURY | [TREASURY.md](TREASURY.md) — cost coverage, profitability |
-| README | [README.md](../README.md) — project overview |
-| CLAUDE | [CLAUDE.md](../CLAUDE.md) — dev guide |
-| Agents | [src/agents/](../src/agents/) — VINCE, Kelly, Solus, Otaku, Eliza |
+| What     | URL / doc                                                                                                                                                               |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **exo**  | [github.com/exo-explore/exo](https://github.com/exo-explore/exo) — run frontier AI locally, cluster devices, MLX, RDMA over Thunderbolt; dashboard at `localhost:52415` |
+| exo API  | [docs/api.md](https://github.com/exo-explore/exo/blob/main/docs/api.md), [src/exo/master/api.py](https://github.com/exo-explore/exo/tree/main/src/exo/master)           |
+| OpenCLAW | (Add orchestrator / OpenCLAW repo link when available)                                                                                                                  |
+| TREASURY | [TREASURY.md](TREASURY.md) — cost coverage, profitability                                                                                                               |
+| README   | [README.md](../README.md) — project overview                                                                                                                            |
+| CLAUDE   | [CLAUDE.md](../CLAUDE.md) — dev guide                                                                                                                                   |
+| Agents   | [src/agents/](../src/agents/) — VINCE, Kelly, Solus, Otaku, Eliza                                                                                                       |
 
 ---
 
-*Last updated: 2026-02-18. Added “Idle Mac Minis and the privacy wall”: predicted trend, why crypto fails at full speed, macOS SIP/Secure Enclave path to blind inference, App Attest gap on macOS.*
+_Last updated: 2026-02-18. Added “Idle Mac Minis and the privacy wall”: predicted trend, why crypto fails at full speed, macOS SIP/Secure Enclave path to blind inference, App Attest gap on macOS._

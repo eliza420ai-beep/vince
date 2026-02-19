@@ -11,7 +11,10 @@ import { MorphoService } from "../services";
 import type { UserVaultPosition } from "../types";
 import { getEntityWallet } from "../../../../utils/entity";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
-import { validateMorphoService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateMorphoService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 import BigNumber from "bignumber.js";
 
 interface VaultPositionsParams {
@@ -36,7 +39,7 @@ function formatVaultPositionData(vaults: UserVaultPosition[]) {
   return vaults.map((v) => {
     const decimals = Number(v.vault?.asset?.decimals ?? 18);
     const assetsFormatted = normalizeUnitsFromApi(v.assets, decimals);
-    
+
     return {
       vault: {
         name: v.vault?.name,
@@ -89,7 +92,12 @@ export const vaultPositionsAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validateMorphoService(runtime, "GET_MORPHO_VAULT_POSITIONS", state, message);
+    return validateMorphoService(
+      runtime,
+      "GET_MORPHO_VAULT_POSITIONS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -99,12 +107,19 @@ export const vaultPositionsAction: Action = {
     options?: any,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    logger.info("[GET_MORPHO_VAULT_POSITIONS] Starting Morpho vault positions action");
+    logger.info(
+      "[GET_MORPHO_VAULT_POSITIONS] Starting Morpho vault positions action",
+    );
 
     try {
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<VaultPositionsParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<VaultPositionsParams>;
 
       // Store input parameters for return
       const inputParams: VaultPositionsInput = {
@@ -117,7 +132,7 @@ export const vaultPositionsAction: Action = {
       );
 
       // Determine chain - default to 'base' if not provided
-      const chain = (inputParams.chain as any) || 'base';
+      const chain = (inputParams.chain as any) || "base";
 
       // Get CDP service
       const cdp = runtime.getService(CdpService.serviceType) as CdpService;
@@ -153,7 +168,9 @@ export const vaultPositionsAction: Action = {
       );
 
       if (wallet.success === false) {
-        logger.warn("[GET_MORPHO_VAULT_POSITIONS] Entity wallet verification failed");
+        logger.warn(
+          "[GET_MORPHO_VAULT_POSITIONS] Entity wallet verification failed",
+        );
         return {
           ...wallet.result,
           input: inputParams,
@@ -199,10 +216,15 @@ export const vaultPositionsAction: Action = {
       // Fetch vault positions
       let vaults: UserVaultPosition[] = [];
       try {
-        vaults = await service.getUserVaultPositionsByAddress(walletAddress, chain);
+        vaults = await service.getUserVaultPositionsByAddress(
+          walletAddress,
+          chain,
+        );
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        logger.error(`[GET_MORPHO_VAULT_POSITIONS] Could not fetch vault positions: ${errMsg}`);
+        logger.error(
+          `[GET_MORPHO_VAULT_POSITIONS] Could not fetch vault positions: ${errMsg}`,
+        );
         const errorResult: VaultPositionsActionResult = {
           text: ` Failed to fetch vault positions: ${errMsg}`,
           success: false,
@@ -236,15 +258,17 @@ export const vaultPositionsAction: Action = {
 
       // Success message
       let text: string;
-      
+
       if (inputParams.vault) {
-        text = filtered.length > 0
-          ? ` Successfully fetched your vault position for ${inputParams.vault} on ${chain}.`
-          : ` You don't have a position in ${inputParams.vault} on ${chain}.`;
+        text =
+          filtered.length > 0
+            ? ` Successfully fetched your vault position for ${inputParams.vault} on ${chain}.`
+            : ` You don't have a position in ${inputParams.vault} on ${chain}.`;
       } else {
-        text = filtered.length > 0
-          ? ` Successfully fetched all your Morpho vault positions on ${chain}. Found ${filtered.length} vault${filtered.length === 1 ? '' : 's'}.`
-          : ` You don't have any vault positions on ${chain}.`;
+        text =
+          filtered.length > 0
+            ? ` Successfully fetched all your Morpho vault positions on ${chain}. Found ${filtered.length} vault${filtered.length === 1 ? "" : "s"}.`
+            : ` You don't have any vault positions on ${chain}.`;
       }
 
       // Format vault position data for frontend consumption
@@ -287,8 +311,13 @@ export const vaultPositionsAction: Action = {
       // Try to capture input params even in failure
       let failureInputParams: VaultPositionsInput = {};
       try {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams ?? {}) as Partial<VaultPositionsParams>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams ??
+          {}) as Partial<VaultPositionsParams>;
         failureInputParams = {
           vault: params.vault?.trim(),
           chain: params.chain?.trim()?.toLowerCase(),

@@ -60,7 +60,10 @@ async function generatePolymarketNarrative(
 ): Promise<string> {
   const dataContext = markets
     .slice(0, 12)
-    .map((m, i) => `${i + 1}. ${m.question}${m.volume ? ` (Vol: $${m.volume})` : ""}`)
+    .map(
+      (m, i) =>
+        `${i + 1}. ${m.question}${m.volume ? ` (Vol: $${m.volume})` : ""}`,
+    )
     .join("\n");
 
   const prompt = `You are Oracle, summarizing VINCE-priority Polymarket markets for a trader. The user wants to know what prediction markets matter for us (crypto, finance, macro) in plain language.
@@ -119,17 +122,19 @@ export const getVincePolymarketMarketsAction: Action = {
         return false;
       }
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService | null;
       if (!service) {
-        logger.warn("[GET_VINCE_POLYMARKET_MARKETS] Polymarket service not available");
+        logger.warn(
+          "[GET_VINCE_POLYMARKET_MARKETS] Polymarket service not available",
+        );
         return false;
       }
       return true;
     } catch (error) {
       logger.error(
         "[GET_VINCE_POLYMARKET_MARKETS] Error validating action:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -140,17 +145,28 @@ export const getVincePolymarketMarketsAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      logger.info("[GET_VINCE_POLYMARKET_MARKETS] Fetching VINCE-priority markets");
+      logger.info(
+        "[GET_VINCE_POLYMARKET_MARKETS] Fetching VINCE-priority markets",
+      );
 
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<GetVincePolymarketMarketsParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<GetVincePolymarketMarketsParams>;
 
       let group: GroupFilter = "all";
       const groupParam = (params.group ?? "").toString().toLowerCase();
-      if (groupParam === "crypto" || groupParam === "finance" || groupParam === "other") {
+      if (
+        groupParam === "crypto" ||
+        groupParam === "finance" ||
+        groupParam === "other"
+      ) {
         group = groupParam as VincePolymarketGroup;
       } else if (groupParam === "all" || groupParam === "") {
         group = "all";
@@ -159,7 +175,9 @@ export const getVincePolymarketMarketsAction: Action = {
       let limit = 20;
       if (params.limit !== undefined) {
         const parsed =
-          typeof params.limit === "string" ? parseInt(params.limit, 10) : params.limit;
+          typeof params.limit === "string"
+            ? parseInt(params.limit, 10)
+            : params.limit;
         if (!isNaN(parsed) && parsed > 0) {
           limit = Math.min(parsed, 50);
         }
@@ -168,7 +186,7 @@ export const getVincePolymarketMarketsAction: Action = {
       const inputParams: GetVincePolymarketMarketsInput = { group, limit };
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -178,13 +196,20 @@ export const getVincePolymarketMarketsAction: Action = {
           text: ` ${errorMsg}`,
           content: { error: "service_unavailable", details: errorMsg },
         });
-        return { success: false, error: new Error(errorMsg), input: inputParams } as GetVincePolymarketMarketsActionResult;
+        return {
+          success: false,
+          error: new Error(errorMsg),
+          input: inputParams,
+        } as GetVincePolymarketMarketsActionResult;
       }
 
       callback?.({ text: " Fetching VINCE-priority Polymarket markets..." });
 
       const tagSlugs = getSlugsByGroup(group);
-      const limitPerTag = Math.max(2, Math.ceil(limit / Math.max(1, tagSlugs.length)));
+      const limitPerTag = Math.max(
+        2,
+        Math.ceil(limit / Math.max(1, tagSlugs.length)),
+      );
 
       const markets = await service.getMarketsByPreferredTags({
         tagSlugs,
@@ -246,8 +271,12 @@ export const getVincePolymarketMarketsAction: Action = {
             condition_id: m.conditionId,
             question: m.question,
             volume: m.volume,
-            yes_token_id: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "yes")?.token_id,
-            no_token_id: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "no")?.token_id,
+            yes_token_id: m.tokens?.find(
+              (t: any) => t.outcome?.toLowerCase() === "yes",
+            )?.token_id,
+            no_token_id: m.tokens?.find(
+              (t: any) => t.outcome?.toLowerCase() === "no",
+            )?.token_id,
           })),
           count: markets.length,
           group,
@@ -273,7 +302,10 @@ export const getVincePolymarketMarketsAction: Action = {
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "What Polymarket markets matter for us?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What Polymarket markets matter for us?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -283,7 +315,10 @@ export const getVincePolymarketMarketsAction: Action = {
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Show our focus markets on Polymarket" } },
+      {
+        name: "{{user}}",
+        content: { text: "Show our focus markets on Polymarket" },
+      },
       {
         name: "Oracle",
         content: {

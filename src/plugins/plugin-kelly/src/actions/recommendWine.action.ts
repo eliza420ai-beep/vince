@@ -41,10 +41,18 @@ export const kellyRecommendWineAction: Action = {
   description:
     "Recommend one main wine and one alternative with tasting note and pairing; default to French wine (and Champagne) when region unspecified. Uses sommelier-playbook and wine-tasting knowledge.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     // "wine tasting" + booking/experience words → let experience action handle it
-    if (text.includes("wine tasting") && (text.includes("book") || text.includes("visit") || text.includes("experience"))) {
+    if (
+      text.includes("wine tasting") &&
+      (text.includes("book") ||
+        text.includes("visit") ||
+        text.includes("experience"))
+    ) {
       return false;
     }
     return wantsWineRecommendation(text);
@@ -78,7 +86,7 @@ export const kellyRecommendWineAction: Action = {
       let varietyNote = "";
       if (message.roomId && typeof runtime.getCache === "function") {
         const lastRec = await runtime.getCache<{ type: string; pick?: string }>(
-          `kelly:lastRecommend:${message.roomId}`
+          `kelly:lastRecommend:${message.roomId}`,
         );
         if (lastRec?.type === "wine" && lastRec.pick) {
           varietyNote = ` You recently recommended **${lastRec.pick}** to this user; choose a **different** wine from the context this time so they get variety.`;
@@ -86,7 +94,7 @@ export const kellyRecommendWineAction: Action = {
       }
       if (!varietyNote) {
         varietyNote =
-          " Vary your picks across regions and producers in the context (e.g. Burgundy, Rhône, Loire, Champagne, Alsace, Bordeaux); do not always choose the same two or the same region—rotate when the request is generic (e.g. \"wine for tonight\").";
+          ' Vary your picks across regions and producers in the context (e.g. Burgundy, Rhône, Loire, Champagne, Alsace, Bordeaux); do not always choose the same two or the same region—rotate when the request is generic (e.g. "wine for tonight").';
       }
 
       const prompt = `You are Kelly, the private sommelier. The user asks: "${userAsk}"

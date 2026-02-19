@@ -44,7 +44,8 @@ export const getMarketPriceAction: Action = {
   parameters: {
     conditionId: {
       type: "string",
-      description: "Market condition ID (66-character hex string starting with 0x)",
+      description:
+        "Market condition ID (66-character hex string starting with 0x)",
       required: true,
     },
   },
@@ -57,7 +58,7 @@ export const getMarketPriceAction: Action = {
       }
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -69,7 +70,7 @@ export const getMarketPriceAction: Action = {
     } catch (error) {
       logger.error(
         "[GET_POLYMARKET_PRICE] Error validating action:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -80,17 +81,31 @@ export const getMarketPriceAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_PRICE] Getting market price");
 
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      let params = (composedState?.data?.actionParams ?? {}) as Partial<GetMarketPriceParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      let params = (composedState?.data?.actionParams ??
+        {}) as Partial<GetMarketPriceParams>;
       let conditionId = (params.conditionId || params.marketId)?.trim();
       if (!conditionId) {
-        const extracted = await extractPolymarketParams(runtime, message, _state, { useLlm: true });
-        conditionId = (extracted.conditionId ?? extracted.condition_id ?? extracted.tokenId)?.trim();
+        const extracted = await extractPolymarketParams(
+          runtime,
+          message,
+          _state,
+          { useLlm: true },
+        );
+        conditionId = (
+          extracted.conditionId ??
+          extracted.condition_id ??
+          extracted.tokenId
+        )?.trim();
       }
 
       if (!conditionId) {
@@ -112,10 +127,12 @@ export const getMarketPriceAction: Action = {
       // Validate condition ID format (should be hex string starting with 0x)
       // Accept any valid hex ID with length between 40-70 chars to handle various API formats
       const isValidHex = /^0x[a-fA-F0-9]+$/.test(conditionId);
-      const isValidLength = conditionId.length >= 40 && conditionId.length <= 70;
+      const isValidLength =
+        conditionId.length >= 40 && conditionId.length <= 70;
 
       if (!isValidHex || !isValidLength) {
-        const errorMsg = "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
+        const errorMsg =
+          "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
         logger.error(`[GET_POLYMARKET_PRICE] ${errorMsg}`);
         const errorResult: GetMarketPriceActionResult = {
           text: ` ${errorMsg}. Please provide a valid market condition ID.`,
@@ -134,7 +151,7 @@ export const getMarketPriceAction: Action = {
 
       // Get service
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -204,7 +221,7 @@ export const getMarketPriceAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_PRICE] Successfully fetched prices - YES: ${prices.yes_price_formatted}, NO: ${prices.no_price_formatted}`
+        `[GET_POLYMARKET_PRICE] Successfully fetched prices - YES: ${prices.yes_price_formatted}, NO: ${prices.no_price_formatted}`,
       );
       return result;
     } catch (error) {

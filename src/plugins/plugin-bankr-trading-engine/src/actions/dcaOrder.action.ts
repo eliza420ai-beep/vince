@@ -1,9 +1,9 @@
 /**
  * OTAKU_DCA - Dollar Cost Average Order
- * 
+ *
  * Creates a DCA order that splits investment over time.
  * Perfect for accumulating positions without timing the market.
- * 
+ *
  * Examples:
  * - "DCA $1000 into ETH over 7 days" → 7 buys of ~$143 each
  * - "DCA $500 into WBTC, 10 buys, every 4 hours"
@@ -40,32 +40,32 @@ interface DCARequest {
 
 function parseDCARequest(text: string): DCARequest | null {
   const lower = text.toLowerCase();
-  
+
   // Amount pattern: "$1000", "1000 USDC", "$500"
   const amountMatch = text.match(/\$?(\d+(?:,\d{3})*(?:\.\d+)?)/);
   if (!amountMatch) return null;
-  
+
   const totalAmount = amountMatch[1].replace(/,/g, "");
-  
+
   // Buy token: "into ETH", "into WETH", "for WBTC"
   const buyTokenMatch = text.match(/(?:into|for|buy)\s+(\w+)/i);
   const buyTokenSymbol = buyTokenMatch?.[1]?.toUpperCase() || "WETH";
   const buyToken = BASE_TOKENS[buyTokenSymbol];
-  
+
   if (!buyToken) {
     return null; // Unknown token
   }
-  
+
   // Default sell token is USDC
   const sellToken = BASE_TOKENS.USDC;
-  
+
   // Execution count: "10 buys", "7 times", default 7
   const countMatch = text.match(/(\d+)\s*(?:buys?|times|executions?|orders?)/i);
   const executionCount = countMatch ? parseInt(countMatch[1]) : 7;
-  
+
   // Interval: "every 4 hours", "over 7 days", "hourly"
   let intervalMinutes = 60 * 24; // Default: daily
-  
+
   const intervalMatch = text.match(/every\s+(\d+)\s*(hour|minute|min|day)/i);
   if (intervalMatch) {
     const num = parseInt(intervalMatch[1]);
@@ -74,16 +74,16 @@ function parseDCARequest(text: string): DCARequest | null {
     else if (unit.startsWith("hour")) intervalMinutes = num * 60;
     else if (unit.startsWith("day")) intervalMinutes = num * 60 * 24;
   }
-  
+
   const overDaysMatch = text.match(/over\s+(\d+)\s*days?/i);
   if (overDaysMatch) {
     const days = parseInt(overDaysMatch[1]);
     intervalMinutes = Math.floor((days * 24 * 60) / executionCount);
   }
-  
+
   // Enforce minimum interval
   if (intervalMinutes < 5) intervalMinutes = 5;
-  
+
   return {
     totalAmount,
     buyToken,
@@ -119,7 +119,7 @@ export const dcaOrderAction: Action = {
       {
         name: "Otaku",
         content: {
-          text: "**DCA Order Preview:**\n\n💰 **Total Investment:** $1,000 USDC\n🎯 **Buying:** WETH\n📊 **Schedule:** 7 buys of ~$143 each\n⏱️ **Interval:** Every 24 hours\n\nType \"confirm\" to create this DCA order.",
+          text: '**DCA Order Preview:**\n\n💰 **Total Investment:** $1,000 USDC\n🎯 **Buying:** WETH\n📊 **Schedule:** 7 buys of ~$143 each\n⏱️ **Interval:** Every 24 hours\n\nType "confirm" to create this DCA order.',
           actions: ["OTAKU_DCA"],
         },
       },
@@ -132,30 +132,33 @@ export const dcaOrderAction: Action = {
       {
         name: "Otaku",
         content: {
-          text: "**DCA Order Preview:**\n\n💰 **Total Investment:** $500 USDC\n🎯 **Buying:** cbBTC\n📊 **Schedule:** 10 buys of $50 each\n⏱️ **Interval:** Every 4 hours\n\nType \"confirm\" to create this DCA order.",
+          text: '**DCA Order Preview:**\n\n💰 **Total Investment:** $500 USDC\n🎯 **Buying:** cbBTC\n📊 **Schedule:** 10 buys of $50 each\n⏱️ **Interval:** Every 4 hours\n\nType "confirm" to create this DCA order.',
           actions: ["OTAKU_DCA"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
-    
+
     // Must contain DCA intent
     const hasDCAIntent =
       text.includes("dca") ||
       (text.includes("dollar") && text.includes("cost")) ||
       (text.includes("recurring") && text.includes("buy")) ||
       (text.includes("auto") && text.includes("buy") && text.includes("over"));
-    
+
     if (!hasDCAIntent) return false;
-    
+
     // Check service availability
-    const tradingEngine = runtime.getService("bankr_trading_engine") as
-      | BankrTradingEngineService
-      | null;
-    
+    const tradingEngine = runtime.getService(
+      "bankr_trading_engine",
+    ) as BankrTradingEngineService | null;
+
     return !!tradingEngine?.isConfigured?.();
   },
 
@@ -164,22 +167,24 @@ export const dcaOrderAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const lower = text.toLowerCase();
-    
+
     // Check for confirmation
     const isConfirmation = lower === "confirm" || lower === "yes";
     const pendingDCA = state?.pendingDCA as DCARequest | undefined;
-    
+
     if (isConfirmation && pendingDCA) {
-      const tradingEngine = runtime.getService("bankr_trading_engine") as BankrTradingEngineService;
-      
+      const tradingEngine = runtime.getService(
+        "bankr_trading_engine",
+      ) as BankrTradingEngineService;
+
       await callback?.({
         text: "🔄 Creating DCA order...",
       });
-      
+
       try {
         const order = await tradingEngine.createDCAOrder({
           sellToken: pendingDCA.sellToken,
@@ -188,7 +193,7 @@ export const dcaOrderAction: Action = {
           executionCount: pendingDCA.executionCount,
           intervalMinutes: pendingDCA.intervalMinutes,
         });
-        
+
         await callback?.({
           text: [
             "✅ **DCA Order Created!**",
@@ -202,16 +207,19 @@ export const dcaOrderAction: Action = {
             "Your DCA will execute automatically. Track with `show my orders`.",
           ].join("\n"),
         });
-        
+
         return { success: true };
       } catch (err) {
         await callback?.({
           text: `❌ Failed to create DCA order: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
+        return {
+          success: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        };
       }
     }
-    
+
     // Parse new DCA request
     const request = parseDCARequest(text);
     if (!request) {
@@ -228,17 +236,23 @@ export const dcaOrderAction: Action = {
           "• DCA $2000 into ETH over 30 days",
         ].join("\n"),
       });
-      return { success: false, error: new Error("Could not parse DCA request") };
+      return {
+        success: false,
+        error: new Error("Could not parse DCA request"),
+      };
     }
-    
-    const perBuyAmount = (parseFloat(request.totalAmount) / request.executionCount).toFixed(2);
+
+    const perBuyAmount = (
+      parseFloat(request.totalAmount) / request.executionCount
+    ).toFixed(2);
     const totalDuration = request.intervalMinutes * request.executionCount;
-    
+
     // Find token symbol
-    const tokenSymbol = Object.entries(BASE_TOKENS).find(
-      ([, addr]) => addr.toLowerCase() === request.buyToken.toLowerCase()
-    )?.[0] || "Token";
-    
+    const tokenSymbol =
+      Object.entries(BASE_TOKENS).find(
+        ([, addr]) => addr.toLowerCase() === request.buyToken.toLowerCase(),
+      )?.[0] || "Token";
+
     // Build preview message
     const lines = [
       "**DCA Order Preview:**",
@@ -253,12 +267,12 @@ export const dcaOrderAction: Action = {
       "",
       'Type "confirm" to create this DCA order.',
     ];
-    
+
     await callback?.({ text: lines.join("\n") });
-    
+
     // Store pending DCA in state (would need state management)
     logger.info(`[OTAKU_DCA] Pending: ${JSON.stringify(request)}`);
-    
+
     return { success: true };
   },
 };

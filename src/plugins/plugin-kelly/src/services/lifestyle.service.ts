@@ -53,10 +53,17 @@ export class KellyLifestyleService extends Service {
   private validateCuratedScheduleStructure(): void {
     const content = this.loadCuratedSchedule();
     if (!content) return;
-    const required = ["## Restaurants by Day", "## Hotels by Season", "## Fitness / Health"];
+    const required = [
+      "## Restaurants by Day",
+      "## Hotels by Season",
+      "## Fitness / Health",
+    ];
     const missing = required.filter((s) => !content.includes(s));
     if (missing.length > 0) {
-      logger.warn("[KellyLifestyle] Curated schedule missing sections: " + missing.join(", "));
+      logger.warn(
+        "[KellyLifestyle] Curated schedule missing sections: " +
+          missing.join(", "),
+      );
     }
   }
 
@@ -66,7 +73,10 @@ export class KellyLifestyleService extends Service {
    */
   private loadCuratedSchedule(): string | null {
     const now = Date.now();
-    if (this.curatedScheduleCache && now - this.curatedScheduleCache.at < CURATED_SCHEDULE_CACHE_TTL_MS) {
+    if (
+      this.curatedScheduleCache &&
+      now - this.curatedScheduleCache.at < CURATED_SCHEDULE_CACHE_TTL_MS
+    ) {
       return this.curatedScheduleCache.content;
     }
     const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
@@ -92,14 +102,20 @@ export class KellyLifestyleService extends Service {
     logger.info("[KellyLifestyle] Service stopped");
   }
 
-  getCuratedOpenContext(day?: DayOfWeek, monthOverride?: number): CuratedOpenContext | null {
+  getCuratedOpenContext(
+    day?: DayOfWeek,
+    monthOverride?: number,
+  ): CuratedOpenContext | null {
     const d = day ?? this.getDayOfWeek();
     const month = monthOverride ?? this.getMonth();
     const isWinter = month <= 2;
 
     const content = this.loadCuratedSchedule();
     if (!content) {
-      logger.warn("[KellyLifestyle] Curated schedule file missing or empty: " + CURATED_SCHEDULE_PATH);
+      logger.warn(
+        "[KellyLifestyle] Curated schedule file missing or empty: " +
+          CURATED_SCHEDULE_PATH,
+      );
       return null;
     }
 
@@ -122,7 +138,9 @@ export class KellyLifestyleService extends Service {
       const restaurants = this.parseRestaurantLines(daySection);
       const hotels = this.parseHotelLines(hotelSection);
 
-      const palacePoolReopenDates = isWinter ? this.parsePalacePoolReopenDates(content) : undefined;
+      const palacePoolReopenDates = isWinter
+        ? this.parsePalacePoolReopenDates(content)
+        : undefined;
 
       return {
         restaurants,
@@ -151,10 +169,29 @@ export class KellyLifestyleService extends Service {
   /** Parse "Feb 5" or "Mar 6" into a Date (current year). Returns null if unparseable. */
   private parseReopenDate(dateStr: string): Date | null {
     const months: Record<string, number> = {
-      Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-      Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
-      January: 0, February: 1, March: 2, April: 3, June: 5,
-      July: 6, August: 7, September: 8, October: 9, November: 10, December: 11,
+      Jan: 0,
+      Feb: 1,
+      Mar: 2,
+      Apr: 3,
+      May: 4,
+      Jun: 5,
+      Jul: 6,
+      Aug: 7,
+      Sep: 8,
+      Oct: 9,
+      Nov: 10,
+      Dec: 11,
+      January: 0,
+      February: 1,
+      March: 2,
+      April: 3,
+      June: 5,
+      July: 6,
+      August: 7,
+      September: 8,
+      October: 9,
+      November: 10,
+      December: 11,
     };
     const m = dateStr.match(/^(\w+)\s+(\d+)/i);
     if (!m) return null;
@@ -184,12 +221,17 @@ export class KellyLifestyleService extends Service {
         parts.push(`${label} reopens ${dateStr}`);
       }
     }
-    return parts.length > 0 ? parts.join(", ") : "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6";
+    return parts.length > 0
+      ? parts.join(", ")
+      : "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6";
   }
 
   /** Parse "Palace indoor pools (winter swim)" subsection for "reopens Feb 12" etc. */
   private parsePalacePoolReopenDates(content: string): Record<string, string> {
-    const subsection = this.extractSection(content, "**Palace indoor pools (winter swim)**");
+    const subsection = this.extractSection(
+      content,
+      "**Palace indoor pools (winter swim)**",
+    );
     if (!subsection) return {};
     const out: Record<string, string> = {};
     const re = /reopens\s+(\w+\s+\d+)/i;
@@ -200,7 +242,8 @@ export class KellyLifestyleService extends Service {
         const dateStr = match[1] ?? match[0].replace(/reopens\s+/i, "").trim();
         if (line.includes("Palais")) out.Palais = dateStr;
         else if (line.includes("Caudalie")) out.Caudalie = dateStr;
-        else if (line.includes("Eugénie") || line.includes("Eugenie")) out.Eugenie = dateStr;
+        else if (line.includes("Eugénie") || line.includes("Eugenie"))
+          out.Eugenie = dateStr;
       }
     }
     return out;
@@ -402,15 +445,18 @@ export class KellyLifestyleService extends Service {
     if (day === "friday") {
       suggestions.push({
         category: "activity",
-        suggestion: "Focus on wellness and a great lunch to close the week; dinner at home",
-        reason: "Friday — wind down, pool or gym, lunch out; we do dinner at home",
+        suggestion:
+          "Focus on wellness and a great lunch to close the week; dinner at home",
+        reason:
+          "Friday — wind down, pool or gym, lunch out; we do dinner at home",
         priority: 1,
         daySpecific: true,
       });
     } else if (day === "wednesday") {
       suggestions.push({
         category: "activity",
-        suggestion: "Midweek escape day — hotel and lunch (we go out for lunch, not dinner)",
+        suggestion:
+          "Midweek escape day — hotel and lunch (we go out for lunch, not dinner)",
         reason: "Optimal day for a 5-star stay and a restaurant lunch",
         priority: 1,
         daySpecific: true,
@@ -519,10 +565,7 @@ export class KellyLifestyleService extends Service {
       "Biarritz to Guéthary: coast drive + lunch (south of Biarritz, max 1h).",
       "Pays Basque interior: Espelette or Saint-Jean-Pied-de-Port for lunch (day trip from Biarritz).",
     ];
-    const weekOfMonth = Math.min(
-      3,
-      Math.floor((new Date().getDate() - 1) / 7),
-    );
+    const weekOfMonth = Math.min(3, Math.floor((new Date().getDate() - 1) / 7));
     return ideas[weekOfMonth] ?? ideas[0];
   }
 

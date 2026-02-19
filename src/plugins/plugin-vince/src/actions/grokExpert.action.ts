@@ -742,7 +742,10 @@ export const vinceGrokExpertAction: Action = {
         try {
           await runCryptoIntelPostReport(runtime, memoryDir, grokResponse);
         } catch (e) {
-          logger.warn({ err: e }, "[GROK_EXPERT] Post-report memory update failed");
+          logger.warn(
+            { err: e },
+            "[GROK_EXPERT] Post-report memory update failed",
+          );
         }
       } else {
         // Single mega-prompt flow
@@ -766,7 +769,8 @@ export const vinceGrokExpertAction: Action = {
           return;
         }
         grokResponse = result.text.trim();
-        if (result.usage?.total_tokens != null) tokenUsage = result.usage.total_tokens;
+        if (result.usage?.total_tokens != null)
+          tokenUsage = result.usage.total_tokens;
         logger.info("[GROK_EXPERT] Grok response received");
       }
 

@@ -10,10 +10,14 @@ import {
 import { BankrAgentService } from "../services/bankr-agent.service";
 
 /** Prefer actionParams.jobId (or job_id); fall back to message text regex only when params are missing. */
-function getJobIdFromMessageOrState(message: Memory, state?: State): string | null {
+function getJobIdFromMessageOrState(
+  message: Memory,
+  state?: State,
+): string | null {
   const params = (state?.data?.actionParams || {}) as Record<string, unknown>;
   const fromParams = params.jobId ?? params.job_id;
-  if (typeof fromParams === "string" && fromParams.trim()) return fromParams.trim();
+  if (typeof fromParams === "string" && fromParams.trim())
+    return fromParams.trim();
   const text = message?.content?.text?.trim() ?? "";
   const match = text.match(/\b([a-zA-Z0-9_-]{8,})\b/);
   return match ? match[1] : null;
@@ -26,7 +30,9 @@ export const bankrJobStatusAction: Action = {
   similes: ["BANKR_JOB_STATUS", "BANKR_CHECK_JOB", "BANKR_GET_JOB"],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service?.isConfigured()) return false;
     return !!getJobIdFromMessageOrState(message, state);
   },
@@ -36,9 +42,11 @@ export const bankrJobStatusAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Agent service not available.";
       callback?.({ text: err });
@@ -47,7 +55,8 @@ export const bankrJobStatusAction: Action = {
 
     const jobId = getJobIdFromMessageOrState(message, state);
     if (!jobId) {
-      const err = "No jobId found. Provide it in the message or actionParams.jobId.";
+      const err =
+        "No jobId found. Provide it in the message or actionParams.jobId.";
       callback?.({ text: err });
       return { success: false, text: err };
     }
@@ -61,7 +70,8 @@ export const bankrJobStatusAction: Action = {
         parts.push(`Cancellable: ${status.cancellable}`);
       }
       if (status.completedAt) parts.push(`Completed: ${status.completedAt}`);
-      if (status.processingTime != null) parts.push(`Processing time: ${status.processingTime}ms`);
+      if (status.processingTime != null)
+        parts.push(`Processing time: ${status.processingTime}ms`);
 
       const reply = parts.join("\n");
       callback?.({
@@ -73,15 +83,31 @@ export const bankrJobStatusAction: Action = {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_JOB_STATUS] " + msg);
-      callback?.({ text: `Job status failed: ${msg}`, actions: ["BANKR_JOB_STATUS"] });
-      return { success: false, text: msg, error: err instanceof Error ? err : new Error(msg) };
+      callback?.({
+        text: `Job status failed: ${msg}`,
+        actions: ["BANKR_JOB_STATUS"],
+      });
+      return {
+        success: false,
+        text: msg,
+        error: err instanceof Error ? err : new Error(msg),
+      };
     }
   },
 
   examples: [
     [
-      { name: "user", content: { text: "What's the status of my Bankr job abc123?" } },
-      { name: "Otaku", content: { text: "Job `abc123`: completed\nResponse: …", actions: ["BANKR_JOB_STATUS"] } },
+      {
+        name: "user",
+        content: { text: "What's the status of my Bankr job abc123?" },
+      },
+      {
+        name: "Otaku",
+        content: {
+          text: "Job `abc123`: completed\nResponse: …",
+          actions: ["BANKR_JOB_STATUS"],
+        },
+      },
     ],
   ],
 };

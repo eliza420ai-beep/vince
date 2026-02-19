@@ -28,7 +28,9 @@ type GetActiveMarketsInput = {
   limit?: number;
 };
 
-type GetActiveMarketsActionResult = ActionResult & { input: GetActiveMarketsInput };
+type GetActiveMarketsActionResult = ActionResult & {
+  input: GetActiveMarketsInput;
+};
 
 type MarketWithPrices = {
   market: PolymarketMarket;
@@ -45,7 +47,9 @@ async function generateActiveMarketsNarrative(
   marketsWithPrices: MarketWithPrices[],
 ): Promise<string> {
   const lines = marketsWithPrices.slice(0, 10).map(({ market, prices }, i) => {
-    const vol = market.volume ? ` · $${parseFloat(market.volume).toLocaleString()} vol` : "";
+    const vol = market.volume
+      ? ` · $${parseFloat(market.volume).toLocaleString()} vol`
+      : "";
     return `${i + 1}. ${market.question} — YES ${prices.yes_price_formatted} / NO ${prices.no_price_formatted}${vol}`;
   });
   const prompt = `You are Oracle, the prediction-markets specialist. The user asked what's trending on Polymarket. Here are the active markets and current odds:
@@ -64,7 +68,9 @@ Reply with 1–2 paragraphs only:`;
     const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
     return String(response).trim();
   } catch (err) {
-    logger.warn("[GET_ACTIVE_POLYMARKETS] Narrative generation failed, using list only");
+    logger.warn(
+      "[GET_ACTIVE_POLYMARKETS] Narrative generation failed, using list only",
+    );
     return "";
   }
 }
@@ -99,11 +105,13 @@ export const getActiveMarketsAction: Action = {
       }
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
-        logger.warn("[GET_ACTIVE_POLYMARKETS] Polymarket service not available");
+        logger.warn(
+          "[GET_ACTIVE_POLYMARKETS] Polymarket service not available",
+        );
         return false;
       }
 
@@ -111,7 +119,7 @@ export const getActiveMarketsAction: Action = {
     } catch (error) {
       logger.error(
         "[GET_ACTIVE_POLYMARKETS] Error validating action:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -122,20 +130,27 @@ export const getActiveMarketsAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_ACTIVE_POLYMARKETS] Fetching active markets");
 
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<GetActiveMarketsParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<GetActiveMarketsParams>;
 
       // Parse limit parameter
       let limit = 10; // default
       if (params.limit) {
         const parsedLimit =
-          typeof params.limit === "string" ? parseInt(params.limit, 10) : params.limit;
+          typeof params.limit === "string"
+            ? parseInt(params.limit, 10)
+            : params.limit;
         if (!isNaN(parsedLimit) && parsedLimit > 0) {
           limit = Math.min(parsedLimit, 50); // cap at 50
         }
@@ -145,7 +160,7 @@ export const getActiveMarketsAction: Action = {
 
       // Get service
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -186,7 +201,9 @@ export const getActiveMarketsAction: Action = {
 
       const roomId = message?.roomId ?? "";
       if (roomId) {
-        service.recordActivity(roomId, "markets_list", { count: markets.length });
+        service.recordActivity(roomId, "markets_list", {
+          count: markets.length,
+        });
       }
 
       // Fetch prices for all markets in parallel
@@ -198,7 +215,7 @@ export const getActiveMarketsAction: Action = {
             return { market, prices };
           } catch (error) {
             logger.warn(
-              `[GET_ACTIVE_POLYMARKETS] Failed to fetch prices for ${market.conditionId}: ${error instanceof Error ? error.message : String(error)}`
+              `[GET_ACTIVE_POLYMARKETS] Failed to fetch prices for ${market.conditionId}: ${error instanceof Error ? error.message : String(error)}`,
             );
             // Return market without prices
             return {
@@ -214,11 +231,14 @@ export const getActiveMarketsAction: Action = {
               },
             };
           }
-        })
+        }),
       );
 
       // Narrative lead-in (ALOHA style); fallback to minimal header if LLM fails
-      let narrative = await generateActiveMarketsNarrative(runtime, marketsWithPrices as any);
+      let narrative = await generateActiveMarketsNarrative(
+        runtime,
+        marketsWithPrices as any,
+      );
       if (!narrative.trim()) {
         narrative = `Here’s what’s active on Polymarket right now—${marketsWithPrices.length} markets with live odds.`;
       }
@@ -241,8 +261,12 @@ export const getActiveMarketsAction: Action = {
         data: {
           markets: marketsWithPrices.map(({ market, prices }) => {
             const tokens = market.tokens || [];
-            const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
-            const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
+            const yesToken = tokens.find(
+              (t: any) => t.outcome?.toLowerCase() === "yes",
+            );
+            const noToken = tokens.find(
+              (t: any) => t.outcome?.toLowerCase() === "no",
+            );
             return {
               condition_id: market.conditionId,
               question: market.question,
@@ -263,7 +287,7 @@ export const getActiveMarketsAction: Action = {
       };
 
       logger.info(
-        `[GET_ACTIVE_POLYMARKETS] Successfully fetched ${marketsWithPrices.length} markets`
+        `[GET_ACTIVE_POLYMARKETS] Successfully fetched ${marketsWithPrices.length} markets`,
       );
 
       // Send final response to user (without this, the UI only shows the intermediate "Fetching..." message)

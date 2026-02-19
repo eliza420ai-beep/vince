@@ -17,7 +17,11 @@ import {
 } from "../constants";
 
 function buildPreferredTopicsSummary(): string {
-  const byGroup = { crypto: [] as string[], finance: [] as string[], other: [] as string[] };
+  const byGroup = {
+    crypto: [] as string[],
+    finance: [] as string[],
+    other: [] as string[],
+  };
   const seen = new Set<string>();
   for (const { label, group } of VINCE_POLYMARKET_PREFERRED_LABELS) {
     if (seen.has(label)) continue;
@@ -40,14 +44,14 @@ export const polymarketDiscoveryProvider: Provider = {
   get: async (
     runtime: IAgentRuntime,
     message: Memory,
-    state?: State
+    state?: State,
   ): Promise<ProviderResult> => {
     if (!shouldPolymarketPluginBeInContext(state, message)) {
       return { text: "", values: {} };
     }
 
     const service = runtime.getService(
-      PolymarketService.serviceType
+      PolymarketService.serviceType,
     ) as PolymarketService | null;
 
     const gammaApiUrl =

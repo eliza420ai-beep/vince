@@ -83,7 +83,8 @@ function parseRegime(text: string): "bullish" | "bearish" | "neutral" {
     if (r === "bearish") return "bearish";
     return "neutral";
   }
-  if (lower.includes("extreme fear") || lower.includes("capitulation")) return "neutral";
+  if (lower.includes("extreme fear") || lower.includes("capitulation"))
+    return "neutral";
   return "neutral";
 }
 
@@ -119,7 +120,11 @@ function parseResearchIdeaLine(line: string): GrokResearchIdea | null {
     !/\b(short|sell|reduce)\b/i.test(trimmed);
   const isShort = /\b(short|sell|reduce)\b/i.test(trimmed);
 
-  let direction: "long" | "short" = isShort ? "short" : isLong ? "long" : "long";
+  let direction: "long" | "short" = isShort
+    ? "short"
+    : isLong
+      ? "long"
+      : "long";
   let asset: string | null = null;
 
   for (const ticker of ASSET_TICKERS) {
@@ -175,7 +180,10 @@ function parseMarketRead(content: string): string | undefined {
   const after = content.slice(idx + marker.length);
   const nextSection = after.search(/\n\s*\*\*[^*]+\*\*/);
   const block = nextSection === -1 ? after : after.slice(0, nextSection);
-  const trimmed = block.replace(/^\s*\n?/, "").replace(/\n?\s*$/, "").trim();
+  const trimmed = block
+    .replace(/^\s*\n?/, "")
+    .replace(/\n?\s*$/, "")
+    .trim();
   return trimmed || undefined;
 }
 
@@ -190,7 +198,10 @@ export function parseKnowledgeGap(content: string): string | undefined {
   const after = content.slice(idx + marker.length);
   const nextSection = after.search(/\n\s*\*\*[^*]+\*\*/);
   const block = nextSection === -1 ? after : after.slice(0, nextSection);
-  const trimmed = block.replace(/^\s*\n?/, "").replace(/\n?\s*$/, "").trim();
+  const trimmed = block
+    .replace(/^\s*\n?/, "")
+    .replace(/\n?\s*$/, "")
+    .trim();
   return trimmed || undefined;
 }
 
@@ -201,14 +212,18 @@ export function parseKnowledgeGap(content: string): string | undefined {
 export function getGrokMarketReadSection(cwd: string = process.cwd()): string {
   const pulse = loadLatestGrokPulse(cwd);
   if (!pulse?.marketRead?.trim()) return "";
-  return "\n=== GROK MARKET READ (today) ===\n" + pulse.marketRead.trim() + "\n";
+  return (
+    "\n=== GROK MARKET READ (today) ===\n" + pulse.marketRead.trim() + "\n"
+  );
 }
 
 /**
  * Load and parse the latest grok-auto pulse file.
  * Returns null if no file, file too old, or parse error.
  */
-export function loadLatestGrokPulse(cwd: string = process.cwd()): GrokPulseData | null {
+export function loadLatestGrokPulse(
+  cwd: string = process.cwd(),
+): GrokPulseData | null {
   const filePath = findLatestGrokAutoFile(cwd);
   if (!filePath) return null;
 

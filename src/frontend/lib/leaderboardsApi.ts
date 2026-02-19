@@ -141,7 +141,12 @@ export interface NewsLeaderboardSection {
     newestUpdatedAt?: number | null;
   };
   /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
-  listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
+  listSentiment?: {
+    sentiment: string;
+    confidence: number;
+    hasHighRiskEvent: boolean;
+    updatedAt?: number;
+  };
 }
 
 export interface MoreLeaderboardSection {
@@ -153,7 +158,12 @@ export interface MoreLeaderboardSection {
     ethTldr: string | null;
   } | null;
   crossVenue: {
-    assets: { coin: string; hlFunding?: number; cexFunding?: number; arb?: string }[];
+    assets: {
+      coin: string;
+      hlFunding?: number;
+      cexFunding?: number;
+      arb?: string;
+    }[];
     arbOpportunities: string[];
   } | null;
   oiCap: string[] | null;
@@ -161,10 +171,20 @@ export interface MoreLeaderboardSection {
     total: number;
     unread: number;
     highPriority: number;
-    items: { type: string; title: string; message: string; timestamp: number }[];
+    items: {
+      type: string;
+      title: string;
+      message: string;
+      timestamp: number;
+    }[];
   } | null;
   watchlist: {
-    tokens: { symbol: string; chain?: string; priority?: string; targetMcap?: number }[];
+    tokens: {
+      symbol: string;
+      chain?: string;
+      priority?: string;
+      targetMcap?: number;
+    }[];
   } | null;
   regime: { btc?: string; eth?: string } | null;
   binanceIntel: {
@@ -190,7 +210,13 @@ export interface MoreLeaderboardSection {
     eth: { flows: string; whales: string; tldr: string } | null;
   } | null;
   nansenSmartMoney: {
-    tokens: { symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }[];
+    tokens: {
+      symbol: string;
+      chain: string;
+      netFlow: number;
+      buyVolume: number;
+      priceChange24h: number;
+    }[];
     creditRemaining: number | null;
   } | null;
   /** 24h volume vs 7d average (BTC, ETH, SOL, HYPE). Same logic as paper bot sizing. */
@@ -236,7 +262,7 @@ export async function fetchLeaderboardsWithError(
   agentId: string,
 ): Promise<LeaderboardsFetchResult> {
   const base = window.location.origin;
-    // ElizaOS core registers plugin routes as /{plugin.name}{route.path} → plugin-vince/vince/leaderboards
+  // ElizaOS core registers plugin routes as /{plugin.name}{route.path} → plugin-vince/vince/leaderboards
   const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/leaderboards?agentId=${encodeURIComponent(agentId)}`;
   try {
     const res = await fetch(url, {
@@ -247,10 +273,17 @@ export async function fetchLeaderboardsWithError(
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
-      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
       return { data: null, error: msg, status: res.status };
     }
-    return { data: body as LeaderboardsResponse, error: null, status: res.status };
+    return {
+      data: body as LeaderboardsResponse,
+      error: null,
+      status: res.status,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };
@@ -303,7 +336,10 @@ export interface PolymarketPriorityMarketsResponse {
     updatedAt: number;
   };
   /** Per-tag sections (Bitcoin, Ethereum, Solana, etc.) for leaderboard */
-  tagSections?: Record<string, { label: string; markets: PolymarketPriorityMarketItem[] }>;
+  tagSections?: Record<
+    string,
+    { label: string; markets: PolymarketPriorityMarketItem[] }
+  >;
 }
 
 export interface PolymarketPriorityMarketsFetchResult {
@@ -326,10 +362,17 @@ export async function fetchPolymarketPriorityMarkets(
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
-      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
       return { data: null, error: msg, status: res.status };
     }
-    return { data: body as PolymarketPriorityMarketsResponse, error: null, status: res.status };
+    return {
+      data: body as PolymarketPriorityMarketsResponse,
+      error: null,
+      status: res.status,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };
@@ -473,9 +516,11 @@ export interface PaperResponse {
   updatedAt: number;
 }
 
-export async function fetchPaperWithError(
-  agentId: string,
-): Promise<{ data: PaperResponse | null; error: string | null; status: number | null }> {
+export async function fetchPaperWithError(agentId: string): Promise<{
+  data: PaperResponse | null;
+  error: string | null;
+  status: number | null;
+}> {
   const base = window.location.origin;
   const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/paper?agentId=${encodeURIComponent(agentId)}`;
   try {
@@ -488,7 +533,10 @@ export async function fetchPaperWithError(
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
-      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
       return { data: null, error: msg, status: res.status };
     }
     return { data: body as PaperResponse, error: null, status: res.status };
@@ -523,7 +571,11 @@ export async function fetchUsageWithError(
   agentId: string,
   from?: string,
   to?: string,
-): Promise<{ data: UsageResponse | null; error: string | null; status: number | null }> {
+): Promise<{
+  data: UsageResponse | null;
+  error: string | null;
+  status: number | null;
+}> {
   const base = window.location.origin;
   const params = new URLSearchParams({ agentId });
   if (from) params.set("from", from);
@@ -538,7 +590,10 @@ export async function fetchUsageWithError(
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
-      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
       return { data: null, error: msg, status: res.status };
     }
     return { data: body as UsageResponse, error: null, status: res.status };
@@ -595,9 +650,11 @@ export interface SubstackPostsResponse {
   error?: string;
 }
 
-export async function fetchSubstackPostsWithError(
-  agentId: string,
-): Promise<{ data: SubstackPostsResponse | null; error: string | null; status: number | null }> {
+export async function fetchSubstackPostsWithError(agentId: string): Promise<{
+  data: SubstackPostsResponse | null;
+  error: string | null;
+  status: number | null;
+}> {
   const base = window.location.origin;
   const url = `${base}/api/agents/${agentId}/plugins/plugin-eliza/eliza/substack`;
   try {
@@ -609,11 +666,18 @@ export async function fetchSubstackPostsWithError(
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
-      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
       return { data: null, error: msg, status: res.status };
     }
     const data = body as SubstackPostsResponse;
-    return { data: { posts: data?.posts ?? [] }, error: null, status: res.status };
+    return {
+      data: { posts: data?.posts ?? [] },
+      error: null,
+      status: res.status,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };
@@ -633,7 +697,10 @@ export async function submitKnowledgeUpload(
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(120000),
     });
@@ -644,17 +711,23 @@ export async function submitKnowledgeUpload(
     }
     return {
       success: Boolean(body?.success),
-      message: body?.message != null ? toDisplayString(body.message) : undefined,
+      message:
+        body?.message != null ? toDisplayString(body.message) : undefined,
       error: body?.error != null ? toDisplayString(body.error) : undefined,
     };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Network or timeout error" };
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Network or timeout error",
+    };
   }
 }
 
-export async function fetchKnowledgeWithError(
-  agentId: string,
-): Promise<{ data: KnowledgeResponse | null; error: string | null; status: number | null }> {
+export async function fetchKnowledgeWithError(agentId: string): Promise<{
+  data: KnowledgeResponse | null;
+  error: string | null;
+  status: number | null;
+}> {
   const base = window.location.origin;
   const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/knowledge?agentId=${encodeURIComponent(agentId)}`;
   try {
@@ -666,7 +739,10 @@ export async function fetchKnowledgeWithError(
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
-      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
       return { data: null, error: msg, status: res.status };
     }
     return { data: body as KnowledgeResponse, error: null, status: res.status };
@@ -722,9 +798,11 @@ export interface KnowledgeQualityResponse {
   history?: KnowledgeQualityHistoryEntry[];
 }
 
-export async function fetchKnowledgeQualityResults(
-  agentId: string,
-): Promise<{ data: KnowledgeQualityResponse | null; error: string | null; status: number | null }> {
+export async function fetchKnowledgeQualityResults(agentId: string): Promise<{
+  data: KnowledgeQualityResponse | null;
+  error: string | null;
+  status: number | null;
+}> {
   const base = window.location.origin;
   const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/knowledge-quality-results?agentId=${encodeURIComponent(agentId)}`;
   try {
@@ -736,10 +814,17 @@ export async function fetchKnowledgeQualityResults(
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
-      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
       return { data: null, error: msg, status: res.status };
     }
-    return { data: body as KnowledgeQualityResponse, error: null, status: res.status };
+    return {
+      data: body as KnowledgeQualityResponse,
+      error: null,
+      status: res.status,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };

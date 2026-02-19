@@ -99,7 +99,13 @@ describe("KELLY_WEEK_AHEAD Action", () => {
       });
       const message = createMockMessage("week ahead");
       const callback = createMockCallback();
-      await kellyWeekAheadAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyWeekAheadAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       const text = callback.calls[0]?.text ?? "";
       const numbered = text.match(/\d+\./g) ?? [];
       expect(numbered.length).toBeGreaterThanOrEqual(3);

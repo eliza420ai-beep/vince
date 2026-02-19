@@ -12,7 +12,8 @@ import { shouldCoingeckoPluginBeInContext } from "../matcher";
 
 export const coingeckoPlugin: Plugin = {
   name: "plugin-coingecko",
-  description: "CoinGecko plugin exposing token metadata lookup, trending tokens, NFT collection stats, trending searches, price charts, historical prices, and coin categories",
+  description:
+    "CoinGecko plugin exposing token metadata lookup, trending tokens, NFT collection stats, trending searches, price charts, historical prices, and coin categories",
   actions: [
     getTokenMetadataAction,
     getTrendingTokensAction,
@@ -42,5 +43,3 @@ export {
   getCategoriesWithMarketDataAction,
   shouldCoingeckoPluginBeInContext,
 };
-
-

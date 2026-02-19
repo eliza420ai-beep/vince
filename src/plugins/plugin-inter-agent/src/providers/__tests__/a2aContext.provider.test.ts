@@ -13,7 +13,7 @@ describe("A2A Context Provider", () => {
 
   const createMockRuntime = (
     memories: Memory[] = [],
-    options?: { characterName?: string; roomName?: string }
+    options?: { characterName?: string; roomName?: string },
   ): IAgentRuntime =>
     ({
       agentId: mockAgentId,
@@ -21,14 +21,14 @@ describe("A2A Context Provider", () => {
       getMemories: mock(() => Promise.resolve(memories)),
       getRoom: mock(() =>
         Promise.resolve(
-          options?.roomName != null ? { name: options.roomName } : { name: "general" }
-        )
+          options?.roomName != null
+            ? { name: options.roomName }
+            : { name: "general" },
+        ),
       ),
     }) as unknown as IAgentRuntime;
 
-  const createMockMemory = (
-    overrides: Partial<Memory> = {}
-  ): Memory => ({
+  const createMockMemory = (overrides: Partial<Memory> = {}): Memory => ({
     id: "mem-1" as UUID,
     agentId: "sender-789" as UUID,
     entityId: "sender-789" as UUID,
@@ -42,7 +42,9 @@ describe("A2A Context Provider", () => {
   });
 
   const getText = (result: unknown): string =>
-    typeof result === "string" ? result : (result as { text?: string })?.text ?? "";
+    typeof result === "string"
+      ? result
+      : ((result as { text?: string })?.text ?? "");
 
   beforeEach(() => {
     delete process.env.A2A_MAX_EXCHANGES;
@@ -92,14 +94,22 @@ describe("A2A Context Provider", () => {
     // Simulate: vince → testagent → vince → testagent (2 responses from testagent)
     const memories: Memory[] = [
       createMockMemory({ content: { name: "vince", text: "hi" } }),
-      createMockMemory({ content: { name: "testagent", text: "hello" }, agentId: mockAgentId }),
+      createMockMemory({
+        content: { name: "testagent", text: "hello" },
+        agentId: mockAgentId,
+      }),
       createMockMemory({ content: { name: "vince", text: "how are you" } }),
-      createMockMemory({ content: { name: "testagent", text: "good" }, agentId: mockAgentId }),
+      createMockMemory({
+        content: { name: "testagent", text: "good" },
+        agentId: mockAgentId,
+      }),
       createMockMemory({ content: { name: "vince", text: "nice" } }),
     ];
 
     const runtime = createMockRuntime(memories);
-    const memory = createMockMemory({ content: { name: "vince", text: "great" } });
+    const memory = createMockMemory({
+      content: { name: "vince", text: "great" },
+    });
 
     const result = await a2aContextProvider.get(runtime, memory);
     const text = getText(result);
@@ -113,11 +123,16 @@ describe("A2A Context Provider", () => {
     // Simulate: vince → testagent (1 response from testagent, 1 more allowed)
     const memories: Memory[] = [
       createMockMemory({ content: { name: "vince", text: "hi" } }),
-      createMockMemory({ content: { name: "testagent", text: "hello" }, agentId: mockAgentId }),
+      createMockMemory({
+        content: { name: "testagent", text: "hello" },
+        agentId: mockAgentId,
+      }),
     ];
 
     const runtime = createMockRuntime(memories);
-    const memory = createMockMemory({ content: { name: "vince", text: "how are you" } });
+    const memory = createMockMemory({
+      content: { name: "vince", text: "how are you" },
+    });
 
     const result = await a2aContextProvider.get(runtime, memory);
     const text = getText(result);
@@ -130,11 +145,16 @@ describe("A2A Context Provider", () => {
 
     const memories: Memory[] = [
       createMockMemory({ content: { name: "vince", text: "hi" } }),
-      createMockMemory({ content: { name: "testagent", text: "hello" }, agentId: mockAgentId }),
+      createMockMemory({
+        content: { name: "testagent", text: "hello" },
+        agentId: mockAgentId,
+      }),
     ];
 
     const runtime = createMockRuntime(memories);
-    const memory = createMockMemory({ content: { name: "vince", text: "how are you" } });
+    const memory = createMockMemory({
+      content: { name: "vince", text: "how are you" },
+    });
 
     const result = await a2aContextProvider.get(runtime, memory);
     const text = getText(result);
@@ -144,8 +164,17 @@ describe("A2A Context Provider", () => {
 
   it("detects known agents", async () => {
     const runtime = createMockRuntime();
-    
-    for (const agent of ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"]) {
+
+    for (const agent of [
+      "vince",
+      "eliza",
+      "kelly",
+      "solus",
+      "otaku",
+      "sentinel",
+      "echo",
+      "oracle",
+    ]) {
       const memory = createMockMemory({
         content: { text: "Hello", name: agent },
       });

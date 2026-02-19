@@ -20,22 +20,22 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { 
-  scanProject, 
-  getProjectSummary, 
+import {
+  scanProject,
+  getProjectSummary,
   getAllTodos,
   getLessons,
-  type ProjectState 
+  type ProjectState,
 } from "../services/projectRadar.service";
-import { 
-  autoScore, 
-  rankWorkItems, 
+import {
+  autoScore,
+  rankWorkItems,
   getLearnings,
   formatScore,
-  type WorkItem 
+  type WorkItem,
 } from "../services/impactScorer.service";
 import { generateTaskBrief } from "../services/prdGenerator.service";
-import { 
+import {
   suggestOpenClawUsage,
   getOpenclawResearchSetup,
   getIntegrationPatterns,
@@ -79,17 +79,17 @@ const INTEGRATION_TRIGGERS = [
 
 function wantsSuggest(text: string): boolean {
   const lower = text.toLowerCase();
-  return SUGGEST_TRIGGERS.some(t => lower.includes(t));
+  return SUGGEST_TRIGGERS.some((t) => lower.includes(t));
 }
 
 function wantsTaskBrief(text: string): boolean {
   const lower = text.toLowerCase();
-  return TASK_BRIEF_TRIGGERS.some(t => lower.includes(t));
+  return TASK_BRIEF_TRIGGERS.some((t) => lower.includes(t));
 }
 
 function wantsIntegration(text: string): boolean {
   const lower = text.toLowerCase();
-  return INTEGRATION_TRIGGERS.some(t => lower.includes(t));
+  return INTEGRATION_TRIGGERS.some((t) => lower.includes(t));
 }
 
 /**
@@ -101,7 +101,7 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
 
   // TOP PRIORITY: 24/7 Market Research
   // Check if market research infra is healthy
-  const vincePlugin = state.plugins.find(p => p.name === "plugin-vince");
+  const vincePlugin = state.plugins.find((p) => p.name === "plugin-vince");
   if (vincePlugin && vincePlugin.healthScore < 80) {
     suggestions.push({
       id: "market-research-health",
@@ -114,11 +114,17 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
   }
 
   // Check for X research gaps
-  if (state.knowledgeGaps.some(g => g.toLowerCase().includes("x") || g.toLowerCase().includes("research"))) {
+  if (
+    state.knowledgeGaps.some(
+      (g) =>
+        g.toLowerCase().includes("x") || g.toLowerCase().includes("research"),
+    )
+  ) {
     suggestions.push({
       id: "x-research-gaps",
       title: "Set up openclaw for knowledge research",
-      description: "24/7 knowledge ingestion: dedicated X account + curated follows + Birdy → knowledge pipeline. No X API cost.",
+      description:
+        "24/7 knowledge ingestion: dedicated X account + curated follows + Birdy → knowledge pipeline. No X API cost.",
       category: "research",
       createdAt: now,
     });
@@ -136,7 +142,7 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
   }
 
   // High-priority todos from docs
-  const highTodos = state.allTodos.filter(t => t.priority === "high");
+  const highTodos = state.allTodos.filter((t) => t.priority === "high");
   for (const todo of highTodos.slice(0, 2)) {
     suggestions.push({
       id: `todo-${Math.random().toString(36).slice(2)}`,
@@ -148,7 +154,9 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
   }
 
   // North star deliverables that are stale or missing
-  const staleDeliverables = state.northStarDeliverables.filter(d => d.status === "stale" || d.status === "missing");
+  const staleDeliverables = state.northStarDeliverables.filter(
+    (d) => d.status === "stale" || d.status === "missing",
+  );
   for (const del of staleDeliverables.slice(0, 2)) {
     suggestions.push({
       id: `northstar-${del.deliverable.toLowerCase().replace(/\s+/g, "-")}`,
@@ -160,7 +168,9 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
   }
 
   // Plugins without tests
-  const untested = state.plugins.filter(p => !p.hasTests && p.actionCount > 0);
+  const untested = state.plugins.filter(
+    (p) => !p.hasTests && p.actionCount > 0,
+  );
   for (const plugin of untested.slice(0, 1)) {
     suggestions.push({
       id: `tests-${plugin.name}`,
@@ -173,7 +183,7 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
   }
 
   // In-progress items that might need attention
-  const staleInProgress = state.inProgress.filter(i => {
+  const staleInProgress = state.inProgress.filter((i) => {
     // If no date, consider potentially stale
     return !i.date;
   });
@@ -192,7 +202,8 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
   suggestions.push({
     id: "openclaw-adapter",
     title: "Evaluate openclaw-adapter for wallet plugins",
-    description: "The openclaw-adapter bridges Eliza plugins to OpenClaw. Consider for plugin-evm, plugin-solana, or Otaku wallet logic.",
+    description:
+      "The openclaw-adapter bridges Eliza plugins to OpenClaw. Consider for plugin-evm, plugin-solana, or Otaku wallet logic.",
     category: "infra",
     createdAt: now,
   });
@@ -212,7 +223,10 @@ export const sentinelSuggestAction: Action = {
   description:
     "Returns prioritized, impact-scored improvement suggestions. Uses Project Radar to understand current state, Impact Scorer to rank by value, and OpenClaw knowledge for integration guidance. Also handles task briefs for Claude Code and integration instructions for Milaidy/OpenClaw.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSuggest(text) || wantsTaskBrief(text) || wantsIntegration(text);
   },
@@ -228,23 +242,25 @@ export const sentinelSuggestAction: Action = {
 
     try {
       const userText = (message.content?.text ?? "").trim();
-      
+
       // Handle task brief request
       if (wantsTaskBrief(userText)) {
         // Extract the task from the request
-        const taskMatch = userText.match(/(?:brief|instructions)\s+(?:for\s+)?(?:claude\s+)?(?:code\s+)?(?:4\.6\s+)?(?:to\s+)?(.+)/i);
+        const taskMatch = userText.match(
+          /(?:brief|instructions)\s+(?:for\s+)?(?:claude\s+)?(?:code\s+)?(?:4\.6\s+)?(?:to\s+)?(.+)/i,
+        );
         const task = taskMatch?.[1]?.trim() || "the requested feature";
-        
+
         // Detect plugin from context
         const pluginMatch = userText.match(/(?:in|for)\s+(plugin-[a-z-]+)/i);
         const plugin = pluginMatch?.[1] || "plugin-vince";
-        
+
         const brief = generateTaskBrief(
           task.charAt(0).toUpperCase() + task.slice(1),
           `Implement ${task} as requested`,
-          plugin
+          plugin,
         );
-        
+
         await callback({
           text: `📝 **Task Brief for Claude Code**\n\nHere's a task brief you can paste into Cursor or the Claude Code controller.\n\n\`\`\`\n${brief}\n\`\`\``,
         });
@@ -254,24 +270,27 @@ export const sentinelSuggestAction: Action = {
       // Handle integration instructions request
       if (wantsIntegration(userText)) {
         const lower = userText.toLowerCase();
-        
+
         // openclaw/knowledge research setup
-        if (lower.includes("openclaw") || lower.includes("knowledge research")) {
+        if (
+          lower.includes("openclaw") ||
+          lower.includes("knowledge research")
+        ) {
           const setup = getOpenclawResearchSetup();
-          
+
           await callback({
             text: `🤖 **openclaw Knowledge Research Setup**
 
 **Purpose:** ${setup.purpose}
 
 **Requirements:**
-${setup.requirements.map(r => `• ${r}`).join("\n")}
+${setup.requirements.map((r) => `• ${r}`).join("\n")}
 
 **Steps:**
 ${setup.steps.join("\n")}
 
 **Benefits:**
-${setup.benefits.map(b => `✅ ${b}`).join("\n")}
+${setup.benefits.map((b) => `✅ ${b}`).join("\n")}
 
 ---
 *24/7 knowledge research without X API cost. OpenClaw matters A LOT.*`,
@@ -281,10 +300,13 @@ ${setup.benefits.map(b => `✅ ${b}`).join("\n")}
 
         // General integration instructions
         const patterns = getIntegrationPatterns();
-        const patternsText = patterns.map(p => 
-          `### ${p.name}\n${p.description}\n\n**When to use:** ${p.whenToUse}\n\n**Implementation:**\n${p.implementation}`
-        ).join("\n\n---\n\n");
-        
+        const patternsText = patterns
+          .map(
+            (p) =>
+              `### ${p.name}\n${p.description}\n\n**When to use:** ${p.whenToUse}\n\n**Implementation:**\n${p.implementation}`,
+          )
+          .join("\n\n---\n\n");
+
         await callback({
           text: `🔗 **OpenClaw & Milaidy Integration Patterns**
 
@@ -304,27 +326,33 @@ ${patternsText}
 
       // Main suggestions flow
       logger.info("[SENTINEL_SUGGEST] Scanning project state...");
-      
+
       // Get current project state
       const projectState = scanProject();
-      
+
       // Generate intelligent suggestions
       const suggestions = generateIntelligentSuggestions(projectState);
-      
+
       // Score and rank suggestions
       const ranked = rankWorkItems(suggestions);
-      
+
       // Get learnings from past suggestions
       const learnings = getLearnings();
-      
+
       // Get OpenClaw suggestions based on context
       const openclawSuggestions = suggestOpenClawUsage(userText);
-      
+
       // Optional narrative lead (ALOHA-style): one paragraph then details
       let narrativeLead = "";
       try {
-        const topTitles = ranked.slice(0, 5).map((r, i) => `${i + 1}. ${r.title}: ${r.description.slice(0, 80)}${r.description.length > 80 ? "…" : ""}`).join("\n");
-        const stateLine = `${projectState.plugins.length} plugins, ${projectState.inProgress.length} in progress, ${projectState.blocked.length} blocked, ${projectState.allTodos.filter(t => t.priority === "high").length} high-priority TODOs`;
+        const topTitles = ranked
+          .slice(0, 5)
+          .map(
+            (r, i) =>
+              `${i + 1}. ${r.title}: ${r.description.slice(0, 80)}${r.description.length > 80 ? "…" : ""}`,
+          )
+          .join("\n");
+        const stateLine = `${projectState.plugins.length} plugins, ${projectState.inProgress.length} in progress, ${projectState.blocked.length} blocked, ${projectState.allTodos.filter((t) => t.priority === "high").length} high-priority TODOs`;
         const narrativePrompt = `You are Sentinel. Given these impact-ranked priorities and project state, write one short narrative paragraph (flowing prose, no bullet list) that tells the user what to focus on and why. North star: 24/7 market research is top priority; OpenClaw matters a lot. Sound like a sharp colleague, not a report.
 
 Top priorities:\n${topTitles}
@@ -334,43 +362,56 @@ Project state: ${stateLine}
 ${NO_AI_SLOP}
 
 One paragraph only, no preamble:`;
-        const narrativeResp = await runtime.useModel(ModelType.TEXT_SMALL, { prompt: narrativePrompt });
-        const narrativeText = typeof narrativeResp === "string" ? narrativeResp : (narrativeResp as { text?: string })?.text ?? "";
-        if (narrativeText?.trim()) narrativeLead = narrativeText.trim() + "\n\n";
+        const narrativeResp = await runtime.useModel(ModelType.TEXT_SMALL, {
+          prompt: narrativePrompt,
+        });
+        const narrativeText =
+          typeof narrativeResp === "string"
+            ? narrativeResp
+            : ((narrativeResp as { text?: string })?.text ?? "");
+        if (narrativeText?.trim())
+          narrativeLead = narrativeText.trim() + "\n\n";
       } catch (_) {
         // fallback: no narrative, keep existing structure
       }
-      
+
       // Build the response
       let response = `🎯 **Sentinel Suggestions** (Impact-Scored)\n\n`;
       if (narrativeLead) response += narrativeLead;
       response += `*North star: 24/7 market research is TOP PRIORITY. OpenClaw matters A LOT.*\n\n`;
-      
+
       // Top 5 suggestions with scores
       response += `**Top Priorities:**\n\n`;
       for (let i = 0; i < Math.min(5, ranked.length); i++) {
         const item = ranked[i];
-        const scoreEmoji = item.score.totalScore >= 50 ? "🔥" : 
-                          item.score.totalScore >= 30 ? "🟢" : 
-                          item.score.totalScore >= 15 ? "🟡" : "⚪";
-        
+        const scoreEmoji =
+          item.score.totalScore >= 50
+            ? "🔥"
+            : item.score.totalScore >= 30
+              ? "🟢"
+              : item.score.totalScore >= 15
+                ? "🟡"
+                : "⚪";
+
         response += `${i + 1}. ${scoreEmoji} **${item.title}** (Score: ${item.score.totalScore})\n`;
         response += `   ${item.description.slice(0, 100)}${item.description.length > 100 ? "..." : ""}\n`;
         if (item.plugin) response += `   *Target: ${item.plugin}*\n`;
         response += `\n`;
       }
-      
+
       // Project state summary
       response += `---\n\n**📡 Project State:**\n`;
       response += `• Plugins: ${projectState.plugins.length} (${projectState.totalActions} actions, ${projectState.totalServices} services)\n`;
       response += `• Progress: ${projectState.completed.length} done, ${projectState.inProgress.length} active, ${projectState.blocked.length} blocked\n`;
-      response += `• Open TODOs: ${projectState.allTodos.length} (${projectState.allTodos.filter(t => t.priority === "high").length} high)\n`;
-      
+      response += `• Open TODOs: ${projectState.allTodos.length} (${projectState.allTodos.filter((t) => t.priority === "high").length} high)\n`;
+
       // North star status
-      const activeNS = projectState.northStarDeliverables.filter(d => d.status === "active").length;
+      const activeNS = projectState.northStarDeliverables.filter(
+        (d) => d.status === "active",
+      ).length;
       const totalNS = projectState.northStarDeliverables.length;
       response += `• North Star: ${activeNS}/${totalNS} active\n`;
-      
+
       // OpenClaw suggestions
       if (openclawSuggestions.length > 0) {
         response += `\n**🦞 OpenClaw Opportunities:**\n`;
@@ -378,7 +419,7 @@ One paragraph only, no preamble:`;
           response += `• ${sug}\n`;
         }
       }
-      
+
       // Learnings
       if (learnings.length > 0) {
         response += `\n**📚 Learnings:**\n`;
@@ -386,9 +427,9 @@ One paragraph only, no preamble:`;
           response += `${learning}\n`;
         }
       }
-      
+
       response += `\n---\n*For a full PRD: "PRD for <feature>". For a task brief: "brief for Claude to <task>".*`;
-      
+
       const out = "Here are my suggestions—\n\n" + response;
       await callback({ text: out });
       return { success: true };
@@ -413,7 +454,10 @@ One paragraph only, no preamble:`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Task brief for Claude to refactor options action" } },
+      {
+        name: "{{user}}",
+        content: { text: "Task brief for Claude to refactor options action" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -422,7 +466,10 @@ One paragraph only, no preamble:`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "How do I set up openclaw for knowledge research?" } },
+      {
+        name: "{{user}}",
+        content: { text: "How do I set up openclaw for knowledge research?" },
+      },
       {
         name: "{{agent}}",
         content: {

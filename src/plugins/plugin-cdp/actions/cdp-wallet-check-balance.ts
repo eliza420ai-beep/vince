@@ -5,7 +5,7 @@ import {
   type State,
   type HandlerCallback,
   type ActionResult,
-  logger
+  logger,
 } from "@elizaos/core";
 import { getEntityWallet } from "../../../utils/entity";
 import { CdpService } from "../services/cdp.service";
@@ -62,18 +62,25 @@ export const cdpWalletCheckBalance: Action = {
     },
     chain: {
       type: "string",
-      description: "Blockchain network to check (e.g., 'base', 'ethereum', 'arbitrum'). If not provided, searches across all chains.",
+      description:
+        "Blockchain network to check (e.g., 'base', 'ethereum', 'arbitrum'). If not provided, searches across all chains.",
       required: false,
     },
     minAmount: {
       type: "string",
-      description: "Minimum amount needed in human-readable format (e.g., '1.5' for 1.5 tokens). If provided, validates if user has at least this amount.",
+      description:
+        "Minimum amount needed in human-readable format (e.g., '1.5' for 1.5 tokens). If provided, validates if user has at least this amount.",
       required: false,
     },
   },
-  
+
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validateCdpService(_runtime, "USER_WALLET_CHECK_BALANCE", state, message);
+    return validateCdpService(
+      _runtime,
+      "USER_WALLET_CHECK_BALANCE",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -85,19 +92,25 @@ export const cdpWalletCheckBalance: Action = {
   ): Promise<ActionResult> => {
     try {
       logger.info("[CHECK_TOKEN_BALANCE] Checking token balance");
-      
+
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<CheckBalanceParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<CheckBalanceParams>;
       const rawInput: CheckBalanceInput = {
         token: params.token,
         chain: params.chain,
         minAmount: params.minAmount,
       };
-      
+
       // Validate required parameters
       if (!params.token?.trim()) {
-        const errorMsg = "Token parameter is required (e.g., 'ETH', 'USDC', or contract address)";
+        const errorMsg =
+          "Token parameter is required (e.g., 'ETH', 'USDC', or contract address)";
         logger.error(`[CHECK_TOKEN_BALANCE] ${errorMsg}`);
         const errorResult: CheckBalanceActionResult = {
           text: ` ${errorMsg}`,
@@ -105,9 +118,9 @@ export const cdpWalletCheckBalance: Action = {
           error: "missing_token",
           input: rawInput,
         };
-        callback?.({ 
+        callback?.({
           text: errorResult.text,
-          content: { error: "missing_token", details: errorMsg }
+          content: { error: "missing_token", details: errorMsg },
         });
         return errorResult;
       }
@@ -116,14 +129,17 @@ export const cdpWalletCheckBalance: Action = {
       const chain = params.chain?.trim().toLowerCase();
       const minAmount = params.minAmount?.trim();
 
-      const isTokenAddress = tokenInput.startsWith("0x") && tokenInput.length === 42;
-      const normalizedToken = isTokenAddress ? null : normalizeTokenQuery(tokenInput);
+      const isTokenAddress =
+        tokenInput.startsWith("0x") && tokenInput.length === 42;
+      const normalizedToken = isTokenAddress
+        ? null
+        : normalizeTokenQuery(tokenInput);
 
       // Store input parameters (canonical symbol when possible)
       const inputParams: CheckBalanceInput = {
         token: isTokenAddress
           ? tokenInput
-          : normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase(),
+          : (normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase()),
       };
       if (chain) {
         inputParams.chain = chain;
@@ -133,9 +149,9 @@ export const cdpWalletCheckBalance: Action = {
       }
 
       // Validate chain if provided
-      const validChains = ['base', 'ethereum', 'arbitrum', 'scroll'];
+      const validChains = ["base", "ethereum", "arbitrum", "scroll"];
       if (chain && !validChains.includes(chain)) {
-        const errorMsg = `Invalid chain: ${chain}. Supported chains: ${validChains.join(', ')}`;
+        const errorMsg = `Invalid chain: ${chain}. Supported chains: ${validChains.join(", ")}`;
         logger.error(`[CHECK_TOKEN_BALANCE] ${errorMsg}`);
         const errorResult: CheckBalanceActionResult = {
           text: ` ${errorMsg}`,
@@ -143,9 +159,9 @@ export const cdpWalletCheckBalance: Action = {
           error: "invalid_chain",
           input: inputParams,
         };
-        callback?.({ 
+        callback?.({
           text: errorResult.text,
-          content: { error: "invalid_chain", details: errorMsg }
+          content: { error: "invalid_chain", details: errorMsg },
         });
         return errorResult;
       }
@@ -178,16 +194,18 @@ export const cdpWalletCheckBalance: Action = {
           error: "missing_account_name",
           input: inputParams,
         };
-        callback?.({ 
+        callback?.({
           text: errorResult.text,
-          content: { error: "missing_account_name", details: errorMsg }
+          content: { error: "missing_account_name", details: errorMsg },
         });
         return errorResult;
       }
-      
+
       // Get CDP service
-      const cdpService = runtime.getService(CdpService.serviceType) as CdpService;
-      
+      const cdpService = runtime.getService(
+        CdpService.serviceType,
+      ) as CdpService;
+
       if (!cdpService) {
         const errorMsg = "CDP service not available";
         logger.error(`[CHECK_TOKEN_BALANCE] ${errorMsg}`);
@@ -197,34 +215,41 @@ export const cdpWalletCheckBalance: Action = {
           error: "service_unavailable",
           input: inputParams,
         };
-        callback?.({ 
+        callback?.({
           text: errorResult.text,
-          content: { error: "service_unavailable", details: errorMsg }
+          content: { error: "service_unavailable", details: errorMsg },
         });
         return errorResult;
       }
 
       // Use cached wallet info for speed (most cases will have recent data)
-      const chainInfo = chain ? ` on ${chain}` : '';
-      const logToken = normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase();
+      const chainInfo = chain ? ` on ${chain}` : "";
+      const logToken =
+        normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase();
       logger.info(
         `[CHECK_TOKEN_BALANCE] Checking balance for ${logToken}${chainInfo} (account: ${accountName})`,
       );
-      
+
       // Pass wallet address to avoid CDP account lookup (prevents "account not initialized" errors)
-      const walletInfo = await cdpService.fetchWalletInfo(accountName, chain, wallet.walletAddress);
+      const walletInfo = await cdpService.fetchWalletInfo(
+        accountName,
+        chain,
+        wallet.walletAddress,
+      );
 
       // Find the token in wallet
-      let matchedToken: typeof walletInfo.tokens[number] | undefined;
+      let matchedToken: (typeof walletInfo.tokens)[number] | undefined;
 
       if (isTokenAddress) {
         // Token is a contract address
         matchedToken = walletInfo.tokens.find(
-          t => t.contractAddress?.toLowerCase() === tokenInput.toLowerCase(),
+          (t) => t.contractAddress?.toLowerCase() === tokenInput.toLowerCase(),
         );
       } else {
         // Token is a symbol - find across all chains or specific chain
-        const searchSymbols = normalizedToken?.searchSymbols ?? [tokenInput.toLowerCase()];
+        const searchSymbols = normalizedToken?.searchSymbols ?? [
+          tokenInput.toLowerCase(),
+        ];
         const matchingTokens = walletInfo.tokens.filter((t) => {
           if (chain && t.chain.toLowerCase() !== chain) {
             return false;
@@ -234,14 +259,15 @@ export const cdpWalletCheckBalance: Action = {
 
         if (matchingTokens.length > 0) {
           const sorted = matchingTokens.sort(
-            (a, b) => parseFloat(b.balance) - parseFloat(a.balance)
+            (a, b) => parseFloat(b.balance) - parseFloat(a.balance),
           );
           matchedToken = sorted[0];
         }
       }
 
       if (!matchedToken) {
-        const tokenLabel = normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase();
+        const tokenLabel =
+          normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase();
         const errorMsg = `Token ${tokenLabel} not found in wallet${chainInfo}`;
         logger.warn(`[CHECK_TOKEN_BALANCE] ${errorMsg}`);
         const text = ` You don't have any ${tokenLabel}${chainInfo}. Current balance: 0`;
@@ -273,15 +299,21 @@ export const cdpWalletCheckBalance: Action = {
         hasSufficientBalance = balanceNum >= minAmountNum;
       }
 
-      const matchedSymbol = matchedToken.symbol || (normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase());
+      const matchedSymbol =
+        matchedToken.symbol ||
+        (normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase());
       logger.info(
         `[CHECK_TOKEN_BALANCE] Found ${matchedSymbol.toUpperCase()}: ${matchedToken.balanceFormatted} ` +
-        `on ${matchedToken.chain} (≈$${matchedToken.usdValue.toFixed(2)})` +
-        (minAmount ? ` - ${hasSufficientBalance ? 'Sufficient' : 'Insufficient'}` : '')
+          `on ${matchedToken.chain} (≈$${matchedToken.usdValue.toFixed(2)})` +
+          (minAmount
+            ? ` - ${hasSufficientBalance ? "Sufficient" : "Insufficient"}`
+            : ""),
       );
 
       // Format response
-      const displaySymbol = matchedToken.symbol || (normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase());
+      const displaySymbol =
+        matchedToken.symbol ||
+        (normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase());
       let text = ` **${displaySymbol.toUpperCase()} Balance**\n\n`;
       text += `**Chain:** ${matchedToken.chain.charAt(0).toUpperCase() + matchedToken.chain.slice(1)}\n`;
       text += `**Balance:** ${matchedToken.balanceFormatted} ${matchedToken.symbol}\n`;
@@ -290,7 +322,7 @@ export const cdpWalletCheckBalance: Action = {
 
       if (minAmount) {
         text += `\n\n**Required:** ${minAmount} ${matchedToken.symbol}\n`;
-        text += `**Status:** ${hasSufficientBalance ? '✅ Sufficient balance' : '❌ Insufficient balance'}`;
+        text += `**Status:** ${hasSufficientBalance ? "✅ Sufficient balance" : "❌ Insufficient balance"}`;
       }
 
       const result: CheckBalanceActionResult = {
@@ -312,7 +344,6 @@ export const cdpWalletCheckBalance: Action = {
         input: inputParams,
       };
       return result;
-
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error(`[CHECK_TOKEN_BALANCE] Error: ${errorMsg}`);
@@ -321,9 +352,9 @@ export const cdpWalletCheckBalance: Action = {
         success: false,
         error: errorMsg,
       };
-      callback?.({ 
+      callback?.({
         text: errorResult.text,
-        content: { error: "check_balance_failed", details: errorMsg }
+        content: { error: "check_balance_failed", details: errorMsg },
       });
       return errorResult;
     }
@@ -332,22 +363,56 @@ export const cdpWalletCheckBalance: Action = {
   examples: [
     [
       { name: "{{user}}", content: { text: "do I have enough USDC to swap?" } },
-      { name: "{{agent}}", content: { text: " Checking your USDC balance...", action: "CHECK_TOKEN_BALANCE", token: "USDC" } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: " Checking your USDC balance...",
+          action: "CHECK_TOKEN_BALANCE",
+          token: "USDC",
+        },
+      },
     ],
     [
       { name: "{{user}}", content: { text: "check if I have 1 ETH on base" } },
-      { name: "{{agent}}", content: { text: " Checking ETH balance on base...", action: "CHECK_TOKEN_BALANCE", token: "ETH", chain: "base", minAmount: "1" } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: " Checking ETH balance on base...",
+          action: "CHECK_TOKEN_BALANCE",
+          token: "ETH",
+          chain: "base",
+          minAmount: "1",
+        },
+      },
     ],
     [
-      { name: "{{user}}", content: { text: "verify I have 100 BNKR before swapping" } },
-      { name: "{{agent}}", content: { text: " Verifying BNKR balance...", action: "CHECK_TOKEN_BALANCE", token: "BNKR", minAmount: "100" } },
+      {
+        name: "{{user}}",
+        content: { text: "verify I have 100 BNKR before swapping" },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: " Verifying BNKR balance...",
+          action: "CHECK_TOKEN_BALANCE",
+          token: "BNKR",
+          minAmount: "100",
+        },
+      },
     ],
     [
       { name: "{{user}}", content: { text: "can I afford to send 0.5 ETH?" } },
-      { name: "{{agent}}", content: { text: " Checking if you have 0.5 ETH...", action: "CHECK_TOKEN_BALANCE", token: "ETH", minAmount: "0.5" } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: " Checking if you have 0.5 ETH...",
+          action: "CHECK_TOKEN_BALANCE",
+          token: "ETH",
+          minAmount: "0.5",
+        },
+      },
     ],
   ],
 };
 
 export default cdpWalletCheckBalance;
-

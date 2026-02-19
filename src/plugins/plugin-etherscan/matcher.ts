@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for Etherscan plugin context activation
@@ -7,22 +10,40 @@ import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin
 export const etherscanKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
     // Transaction queries
-    "etherscan", "transaction", "tx", "hash", "confirmation", "confirm",
+    "etherscan",
+    "transaction",
+    "tx",
+    "hash",
+    "confirmation",
+    "confirm",
     // Contract verification
-    "contract", "verify", "verified", "verification", "address",
+    "contract",
+    "verify",
+    "verified",
+    "verification",
+    "address",
     // Explorer
-    "scan", "scanner", "explorer", "blockchain",
+    "scan",
+    "scanner",
+    "explorer",
+    "blockchain",
     // Status checks
-    "status", "failed", "success", "pending", "confirmed",
+    "status",
+    "failed",
+    "success",
+    "pending",
+    "confirmed",
     // Gas information
-    "gas", "gas used", "gas price",
+    "gas",
+    "gas used",
+    "gas price",
   ],
   regexPatterns: [
     /check.*tx/i,
     /verify.*contract/i,
     /transaction.*(?:status|confirmation|hash)/i,
-    /0x[a-fA-F0-9]{40}/,  // Contract address
-    /0x[a-fA-F0-9]{64}/,  // Transaction hash
+    /0x[a-fA-F0-9]{40}/, // Contract address
+    /0x[a-fA-F0-9]{64}/, // Transaction hash
   ],
 };
 
@@ -45,7 +66,10 @@ export const etherscanKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldEtherscanPluginBeInContext(state?: State, message?: Memory): boolean {
+export function shouldEtherscanPluginBeInContext(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, etherscanKeywordPatterns, message);
 }

@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "happiness audit naval",
@@ -44,11 +48,18 @@ Cite "Happiness Is a Skill", "Desire Is a Contract You Make to Be Unhappy", or "
 
 export const navalHappinessDesireAuditAction: Action = {
   name: "NAVAL_HAPPINESS_DESIRE_AUDIT",
-  similes: ["HAPPINESS_DESIRE_AUDIT", "DESIRE_CONTRACT", "PEACE_IN_MOTION_AUDIT"],
+  similes: [
+    "HAPPINESS_DESIRE_AUDIT",
+    "DESIRE_CONTRACT",
+    "PEACE_IN_MOTION_AUDIT",
+  ],
   description:
     "Happiness as skill, desire as contract to be unhappy. Which desires trap them? What would peace in motion look like? One step: drop a desire or add a practice.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsHappinessDesireAudit(text);
   },
@@ -83,7 +94,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -91,14 +102,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Happiness is a default you can train. Desire is a contract to be unhappy until you get it. Ask: which desire can I drop? Or what one practice builds the default — stillness, less comparison, truth.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Happiness audit naval: I'm always anxious about the next milestone — promotion, house, approval from my parents." } },
-      { name: "{{agent}}", content: { text: "Those are desire contracts — you've tied peace to outcomes you don't control. Promotion and house and approval keep moving. One step: pick one (e.g. parental approval) and ask what you'd feel if you stopped needing it. Or add five minutes of stillness daily so the default isn't 'waiting for the next thing.'" } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Happiness audit naval: I'm always anxious about the next milestone — promotion, house, approval from my parents.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Those are desire contracts — you've tied peace to outcomes you don't control. Promotion and house and approval keep moving. One step: pick one (e.g. parental approval) and ask what you'd feel if you stopped needing it. Or add five minutes of stillness daily so the default isn't 'waiting for the next thing.'",
+        },
+      },
     ],
   ],
 };

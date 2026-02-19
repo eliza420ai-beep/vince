@@ -15,7 +15,11 @@ import {
   type ProtocolTvlHistory,
   type ProtocolTvlPoint,
 } from "../services/defillama.service";
-import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateDefiLlamaService,
+  getDefiLlamaService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 import {
   limitSeries,
   parsePositiveInteger,
@@ -46,22 +50,34 @@ export const getProtocolTvlHistoryAction: Action = {
     },
     chain: {
       type: "string",
-      description: "Optional chain name to return a focused breakdown (e.g., 'Ethereum').",
+      description:
+        "Optional chain name to return a focused breakdown (e.g., 'Ethereum').",
       required: false,
     },
     days: {
       type: "number",
-      description: "Optional number of most recent days to include (default 365).",
+      description:
+        "Optional number of most recent days to include (default 365).",
       required: false,
     },
     compact: {
       type: "boolean",
-      description: "If true (default), returns downsampled data (~30 points) plus summary statistics. Set to false for full data.",
+      description:
+        "If true (default), returns downsampled data (~30 points) plus summary statistics. Set to false for full data.",
       required: false,
     },
   },
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefiLlamaService(runtime, "GET_PROTOCOL_TVL_HISTORY", state, message);
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
+    return validateDefiLlamaService(
+      runtime,
+      "GET_PROTOCOL_TVL_HISTORY",
+      state,
+      message,
+    );
   },
   handler: async (
     runtime: IAgentRuntime,
@@ -77,21 +93,37 @@ export const getProtocolTvlHistoryAction: Action = {
         throw new Error("DefiLlamaService not available");
       }
 
-      const params = await extractActionParams<{ protocol?: string; chain?: string; days?: number; compact?: boolean }>(runtime, message);
+      const params = await extractActionParams<{
+        protocol?: string;
+        chain?: string;
+        days?: number;
+        compact?: boolean;
+      }>(runtime, message);
 
-      const protocolParam = typeof params?.protocol === "string" ? params.protocol.trim() : "";
+      const protocolParam =
+        typeof params?.protocol === "string" ? params.protocol.trim() : "";
       if (!protocolParam) {
         const errorMsg = "Missing required parameter 'protocol'.";
         logger.error(`[GET_PROTOCOL_TVL_HISTORY] ${errorMsg}`);
-        return await respondWithError(callback, errorMsg, "missing_required_parameter");
+        return await respondWithError(
+          callback,
+          errorMsg,
+          "missing_required_parameter",
+        );
       }
 
-      const chainParamRaw = typeof params?.chain === "string" ? params.chain.trim() : "";
-      const chainParam = chainParamRaw ? sanitizeChainName(chainParamRaw) : undefined;
+      const chainParamRaw =
+        typeof params?.chain === "string" ? params.chain.trim() : "";
+      const chainParam = chainParamRaw
+        ? sanitizeChainName(chainParamRaw)
+        : undefined;
       if (chainParamRaw && !chainParam) {
-        const errorMsg = "Invalid 'chain' parameter. Use letters, numbers, spaces, or -_/().";
+        const errorMsg =
+          "Invalid 'chain' parameter. Use letters, numbers, spaces, or -_/().";
         logger.error(`[GET_PROTOCOL_TVL_HISTORY] ${errorMsg}`);
-        return await respondWithError(callback, errorMsg, "invalid_parameter", { chain: chainParamRaw });
+        return await respondWithError(callback, errorMsg, "invalid_parameter", {
+          chain: chainParamRaw,
+        });
       }
       validatedChain = chainParam;
 
@@ -107,7 +139,8 @@ export const getProtocolTvlHistoryAction: Action = {
 
       const lookupResults = await svc.getProtocolsByNames([protocolParam]);
       const match = lookupResults.find(
-        (result): result is ProtocolLookupResult & { data: ProtocolSummary } => Boolean(result.success && result.data),
+        (result): result is ProtocolLookupResult & { data: ProtocolSummary } =>
+          Boolean(result.success && result.data),
       );
 
       if (!match || !match.data) {
@@ -120,7 +153,11 @@ export const getProtocolTvlHistoryAction: Action = {
       if (!slugCandidate) {
         const errorMsg = `Unable to resolve protocol slug for '${match.data.name}'.`;
         logger.error(`[GET_PROTOCOL_TVL_HISTORY] ${errorMsg}`);
-        return await respondWithError(callback, errorMsg, "missing_protocol_slug");
+        return await respondWithError(
+          callback,
+          errorMsg,
+          "missing_protocol_slug",
+        );
       }
 
       logger.info(
@@ -138,18 +175,29 @@ export const getProtocolTvlHistoryAction: Action = {
         });
       }
 
-      const limitedChainSeries = buildChainSeries(history, chainParam, limitDays);
+      const limitedChainSeries = buildChainSeries(
+        history,
+        chainParam,
+        limitDays,
+      );
 
       // Apply downsampling and calculate summary in compact mode
-      const finalTotalSeries = compactMode ? downsampleSeries(limitedTotalSeries, MAX_POINTS_COMPACT) : limitedTotalSeries;
+      const finalTotalSeries = compactMode
+        ? downsampleSeries(limitedTotalSeries, MAX_POINTS_COMPACT)
+        : limitedTotalSeries;
       const finalChainSeries: Record<string, ProtocolTvlPoint[]> = {};
       for (const [chainName, series] of Object.entries(limitedChainSeries)) {
-        finalChainSeries[chainName] = compactMode ? downsampleSeries(series, MAX_POINTS_COMPACT) : series;
+        finalChainSeries[chainName] = compactMode
+          ? downsampleSeries(series, MAX_POINTS_COMPACT)
+          : series;
       }
 
       // Calculate summary statistics for the full limited series (before downsampling)
       const totalSeriesSummary = calculateTvlSummary(limitedTotalSeries);
-      const chainSeriesSummary: Record<string, ReturnType<typeof calculateTvlSummary>> = {};
+      const chainSeriesSummary: Record<
+        string,
+        ReturnType<typeof calculateTvlSummary>
+      > = {};
       for (const [chainName, series] of Object.entries(limitedChainSeries)) {
         chainSeriesSummary[chainName] = calculateTvlSummary(series);
       }
@@ -208,15 +256,24 @@ export const getProtocolTvlHistoryAction: Action = {
         };
       };
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : String(error);
+      const messageText =
+        error instanceof Error ? error.message : String(error);
       logger.error(`[GET_PROTOCOL_TVL_HISTORY] Action failed: ${messageText}`);
-      const isChainMiss = validatedChain && messageText.includes("No chain breakdown matched");
+      const isChainMiss =
+        validatedChain && messageText.includes("No chain breakdown matched");
       const responseMessage = isChainMiss
         ? messageText
         : `Failed to fetch protocol TVL history: ${messageText}`;
       const errorCode = isChainMiss ? "no_chain_match" : "action_failed";
-      const details = isChainMiss ? { chain: validatedChain ?? null } : undefined;
-      return await respondWithError(callback, responseMessage, errorCode, details ?? undefined);
+      const details = isChainMiss
+        ? { chain: validatedChain ?? null }
+        : undefined;
+      return await respondWithError(
+        callback,
+        responseMessage,
+        errorCode,
+        details ?? undefined,
+      );
     }
   },
   examples: [
@@ -236,7 +293,9 @@ export const getProtocolTvlHistoryAction: Action = {
     [
       {
         name: "{{user}}",
-        content: { text: "Give me Curve's Ethereum TVL trend over the last 90 days" },
+        content: {
+          text: "Give me Curve's Ethereum TVL trend over the last 90 days",
+        },
       },
       {
         name: "{{agent}}",
@@ -313,7 +372,9 @@ function buildChainSeries(
   }
 
   const chainLookup = chain.toLowerCase();
-  const matched = Object.entries(history.chainSeries).find(([chainName]) => chainName.toLowerCase() === chainLookup);
+  const matched = Object.entries(history.chainSeries).find(
+    ([chainName]) => chainName.toLowerCase() === chainLookup,
+  );
   if (matched) {
     chainSeries[matched[0]] = limitSeries(matched[1], limit);
     return chainSeries;
@@ -321,5 +382,3 @@ function buildChainSeries(
 
   throw new Error(`No chain breakdown matched '${chain}'.`);
 }
-
-

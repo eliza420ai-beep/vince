@@ -118,7 +118,9 @@ export class VinceRiskManagerService extends Service {
    * In vince_paper_aggressive we keep 40/35 and 2 confirming for ML data.
    */
   syncFromDynamicConfig(): void {
-    const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const aggressive =
+      this.runtime.getSetting?.("vince_paper_aggressive") === true ||
+      this.runtime.getSetting?.("vince_paper_aggressive") === "true";
     const thresholds = getEffectiveThresholds(this.runtime);
 
     if (!aggressive) {
@@ -515,13 +517,14 @@ export class VinceRiskManagerService extends Service {
     const isStrongSignal =
       signal.strength >= strongStrength &&
       signal.confidence >= strongConfidence;
-    const isCoreAsset = (CORE_ASSETS as readonly string[]).includes(signal.asset);
-    const minConfirming =
-      !isCoreAsset
-        ? 2 // HIP-3 / HYPE: fewer signal sources available
-        : isStrongSignal && signal.confirmingCount >= minConfirmingWhenStrong
-          ? minConfirmingWhenStrong
-          : this.limits.minConfirmingSignals;
+    const isCoreAsset = (CORE_ASSETS as readonly string[]).includes(
+      signal.asset,
+    );
+    const minConfirming = !isCoreAsset
+      ? 2 // HIP-3 / HYPE: fewer signal sources available
+      : isStrongSignal && signal.confirmingCount >= minConfirmingWhenStrong
+        ? minConfirmingWhenStrong
+        : this.limits.minConfirmingSignals;
     if (signal.confirmingCount < minConfirming) {
       return {
         valid: false,

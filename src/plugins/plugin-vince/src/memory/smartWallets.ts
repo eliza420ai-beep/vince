@@ -50,7 +50,11 @@ export async function addWallet(
 ): Promise<void> {
   const current = await readSmartWallets(memoryDir);
   const wallets = current?.wallets ?? [];
-  if (wallets.some((w) => w.address.toLowerCase() === wallet.address.toLowerCase())) {
+  if (
+    wallets.some(
+      (w) => w.address.toLowerCase() === wallet.address.toLowerCase(),
+    )
+  ) {
     return;
   }
   await writeSmartWallets(memoryDir, {

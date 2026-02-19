@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "renting my time",
@@ -42,7 +46,10 @@ export const navalRentingTimeAuditAction: Action = {
   description:
     "What fraction of income is from renting out your time? One step to shift a slice to ownership or leverage. You won't get rich renting out your time.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsRentingTimeAudit(text);
   },
@@ -77,7 +84,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -85,14 +92,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "You won't get rich renting out your time. Count how much of your income stops when you stop working — that's the renting slice. One step: create one stream that doesn't require your hours (product, content, equity, asset) and grow it.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Renting my time: 100% salary, no side projects. Naval time audit." } },
-      { name: "{{agent}}", content: { text: "Right now 100% time-based — if you stop showing up, income goes to zero. One step: pick one thing you could turn into an asset in 6 months — a small product, a course, a newsletter, or negotiate equity so part of your upside is ownership. Start with 5% of energy; compound from there." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Renting my time: 100% salary, no side projects. Naval time audit.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Right now 100% time-based — if you stop showing up, income goes to zero. One step: pick one thing you could turn into an asset in 6 months — a small product, a course, a newsletter, or negotiate equity so part of your upside is ownership. Start with 5% of energy; compound from there.",
+        },
+      },
     ],
   ],
 };

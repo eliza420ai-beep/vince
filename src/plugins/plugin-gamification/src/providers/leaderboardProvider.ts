@@ -1,23 +1,38 @@
-import type { Provider, IAgentRuntime, Memory, State, ProviderResult } from '@elizaos/core';
-import { GamificationService } from '../services/GamificationService';
+import type {
+  Provider,
+  IAgentRuntime,
+  Memory,
+  State,
+  ProviderResult,
+} from "@elizaos/core";
+import { GamificationService } from "../services/GamificationService";
 
 export const leaderboardProvider: Provider = {
-  name: 'LEADERBOARD',
+  name: "LEADERBOARD",
   description: "Top ranks and user's rank for context.",
 
   dynamic: true,
-  get: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<ProviderResult> => {
+  get: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<ProviderResult> => {
     try {
-      const gamificationService = runtime.getService('gamification') as GamificationService;
+      const gamificationService = runtime.getService(
+        "gamification",
+      ) as GamificationService;
       if (!gamificationService) {
         return {
-          text: 'Ranking service unavailable.',
+          text: "Ranking service unavailable.",
           values: {},
         };
       }
 
-      const topUsers = await gamificationService.getLeaderboard('weekly', 5);
-      const userRank = await gamificationService.getUserRank(message.entityId, 'weekly');
+      const topUsers = await gamificationService.getLeaderboard("weekly", 5);
+      const userRank = await gamificationService.getUserRank(
+        message.entityId,
+        "weekly",
+      );
 
       return {
         text: `Current weekly leaderboard top 5. User's rank: #${userRank}`,
@@ -35,10 +50,9 @@ export const leaderboardProvider: Provider = {
       };
     } catch (error) {
       return {
-        text: 'Could not load leaderboard.',
+        text: "Could not load leaderboard.",
         values: {},
       };
     }
   },
 };
-

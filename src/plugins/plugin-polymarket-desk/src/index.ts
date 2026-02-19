@@ -23,7 +23,11 @@ export const pluginPolymarketDesk: Plugin = {
 
   schema: deskSchema,
 
-  actions: [polymarketEdgeCheckAction, polymarketRiskApproveAction, polymarketDeskReportAction],
+  actions: [
+    polymarketEdgeCheckAction,
+    polymarketRiskApproveAction,
+    polymarketDeskReportAction,
+  ],
 
   init: async (_config, runtime) => {
     registerDeskSchedule(runtime);

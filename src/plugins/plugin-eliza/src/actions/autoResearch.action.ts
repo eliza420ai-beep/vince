@@ -15,7 +15,13 @@
  * - "fill gaps" — Auto-generate topics from gaps and research
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
@@ -42,30 +48,26 @@ const SOURCE_REGISTRY: Record<string, string[]> = {
     "docs.solana.com",
     "academy.binance.com",
   ],
-  "defi": [
+  defi: [
     "defillama.com",
     "docs.uniswap.org",
     "docs.aave.com",
     "paradigm.xyz",
     "a16zcrypto.com",
   ],
-  "trading": [
+  trading: [
     "tradingview.com/education",
     "investopedia.com",
     "glassnode.com/academy",
   ],
-  "layer2": [
+  layer2: [
     "l2beat.com",
     "docs.arbitrum.io",
     "docs.optimism.io",
     "docs.base.org",
   ],
-  "ai-agents": [
-    "docs.eliza.ai",
-    "langchain.com",
-    "github.com/elizaos",
-  ],
-  "governance": [
+  "ai-agents": ["docs.eliza.ai", "langchain.com", "github.com/elizaos"],
+  governance: [
     "docs.snapshot.org",
     "tally.xyz",
     "docs.compound.finance/governance",
@@ -76,62 +78,78 @@ type SubCommand = "session" | "topic" | "audit" | "agenda" | "gaps" | "next";
 
 function detectSubCommand(text: string): { command: SubCommand; arg?: string } {
   const textLower = text.toLowerCase();
-  
+
   if (textLower.includes("audit") || textLower.includes("analyze knowledge")) {
     return { command: "audit" };
   }
-  
-  if (textLower.includes("agenda") || textLower.includes("priorities") || textLower.includes("queue")) {
+
+  if (
+    textLower.includes("agenda") ||
+    textLower.includes("priorities") ||
+    textLower.includes("queue")
+  ) {
     return { command: "agenda" };
   }
-  
-  if (textLower.includes("fill gaps") || textLower.includes("generate topics")) {
+
+  if (
+    textLower.includes("fill gaps") ||
+    textLower.includes("generate topics")
+  ) {
     return { command: "gaps" };
   }
-  
+
   if (textLower.includes("next topic") || textLower.includes("what's next")) {
     return { command: "next" };
   }
-  
-  if (textLower.includes("research session") || textLower.includes("start research")) {
+
+  if (
+    textLower.includes("research session") ||
+    textLower.includes("start research")
+  ) {
     return { command: "session" };
   }
-  
+
   // Check for specific topic
-  const topicMatch = text.match(/research\s+(?:about\s+|on\s+)?["']?([^"'\n]+?)["']?(?:\s+in\s+(\w+))?$/i);
+  const topicMatch = text.match(
+    /research\s+(?:about\s+|on\s+)?["']?([^"'\n]+?)["']?(?:\s+in\s+(\w+))?$/i,
+  );
   if (topicMatch) {
     return { command: "topic", arg: topicMatch[1].trim() };
   }
-  
+
   return { command: "agenda" };
 }
 
 /**
  * Format audit results
  */
-function formatAuditReport(gaps: ReturnType<typeof auditKnowledge>["gaps"], coverage: Record<string, number>): string {
+function formatAuditReport(
+  gaps: ReturnType<typeof auditKnowledge>["gaps"],
+  coverage: Record<string, number>,
+): string {
   let response = `🔍 **Knowledge Audit**\n\n`;
-  
+
   // Coverage overview
   response += `**Coverage by Category:**\n`;
   const sortedCoverage = Object.entries(coverage).sort((a, b) => a[1] - b[1]);
-  
+
   for (const [cat, pct] of sortedCoverage) {
     const bar = pct >= 80 ? "🟢" : pct >= 50 ? "🟡" : "🔴";
-    const barVisual = "█".repeat(Math.floor(pct / 10)) + "░".repeat(10 - Math.floor(pct / 10));
+    const barVisual =
+      "█".repeat(Math.floor(pct / 10)) + "░".repeat(10 - Math.floor(pct / 10));
     response += `${bar} **${cat}**: ${barVisual} ${pct}%\n`;
   }
   response += `\n`;
-  
+
   // Gaps detail
   if (gaps.length > 0) {
     response += `**Gaps Found (${gaps.length}):**\n\n`;
-    
+
     const gapsByType = {
-      missing: gaps.filter(g => g.gapType === "missing"),
-      shallow: gaps.filter(g => g.gapType === "shallow"),
-      stale: gaps.filter(g => g.gapType === "stale"),
-      subtopics: gaps.filter(g => g.gapType === "subtopics"),
+      missing: gaps.filter((g) => g.gapType === "missing"),
+      shallow: gaps.filter((g) => g.gapType === "shallow"),
+      stale: gaps.filter((g) => g.gapType === "stale"),
+      subtopics: gaps.filter((g) => g.gapType === "subtopics"),
     };
 
     if (gapsByType.missing.length > 0) {
@@ -171,7 +189,7 @@ function formatAuditReport(gaps: ReturnType<typeof auditKnowledge>["gaps"], cove
   } else {
     response += `✅ **No critical gaps found!**\n\n`;
   }
-  
+
   // Recommendations
   response += `**Recommended Actions:**\n`;
   if (gaps.length > 0) {
@@ -181,7 +199,7 @@ function formatAuditReport(gaps: ReturnType<typeof auditKnowledge>["gaps"], cove
     response += `• Run \`research agenda\` to see current priorities\n`;
     response += `• Focus on updating stale content\n`;
   }
-  
+
   return response;
 }
 
@@ -192,13 +210,18 @@ function formatNextTopics(topics: ResearchTopic[]): string {
   if (topics.length === 0) {
     return `📋 **Research Queue Empty**\n\nRun \`audit knowledge\` to find gaps, then \`fill gaps\` to generate topics.`;
   }
-  
+
   let response = `📋 **Next Research Topics (${topics.length})**\n\n`;
-  
+
   for (let i = 0; i < topics.length; i++) {
     const t = topics[i];
-    const priorityEmoji = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" }[t.priority];
-    
+    const priorityEmoji = {
+      critical: "🔴",
+      high: "🟠",
+      medium: "🟡",
+      low: "🟢",
+    }[t.priority];
+
     response += `${i + 1}. ${priorityEmoji} **${t.topic}**\n`;
     response += `   Category: \`${t.category}\` | Depth: ${t.depth}\n`;
     response += `   Reason: ${t.reason}\n`;
@@ -207,11 +230,11 @@ function formatNextTopics(topics: ResearchTopic[]): string {
     }
     response += `\n`;
   }
-  
+
   response += `---\n`;
   response += `Run \`research <topic>\` to research a specific topic,\n`;
   response += `or \`research session\` to auto-research the queue.`;
-  
+
   return response;
 }
 
@@ -224,25 +247,26 @@ async function researchTopic(
   runtime: IAgentRuntime,
 ): Promise<{ success: boolean; filesCreated: string[]; summary: string }> {
   logger.info(`[AutoResearch] Researching: ${topic.topic}`);
-  
+
   // Get suggested sources
   const sources = SOURCE_REGISTRY[topic.category] || [];
-  
+
   // In production, this would:
   // 1. Search web for topic + authoritative sources
   // 2. Fetch and extract content from top results
   // 3. Use summarize CLI to process
   // 4. Save to knowledge folder
-  
+
   // For now, create a placeholder that documents what WOULD happen
   const categoryPath = path.join(getKnowledgeRoot(), topic.category);
   if (!fs.existsSync(categoryPath)) {
     fs.mkdirSync(categoryPath, { recursive: true });
   }
-  
-  const filename = topic.topic.toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".md";
+
+  const filename =
+    topic.topic.toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".md";
   const filepath = path.join(categoryPath, filename);
-  
+
   // Create research stub
   const content = `# ${topic.topic}
 
@@ -259,7 +283,7 @@ async function researchTopic(
 
 ## Suggested Sources
 
-${sources.map(s => `- ${s}`).join("\n")}
+${sources.map((s) => `- ${s}`).join("\n")}
 
 ## Research Notes
 
@@ -282,7 +306,7 @@ ${sources.map(s => `- ${s}`).join("\n")}
 `;
 
   fs.writeFileSync(filepath, content);
-  
+
   return {
     success: true,
     filesCreated: [filepath],
@@ -424,15 +448,17 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
       case "gaps": {
         const added = generateTopicsFromGaps();
         const nextTopics = getNextTopics(5);
-        
+
         let response = `📚 **Gap Analysis Complete**\n\n`;
         response += `Generated **${added} research topics** from knowledge gaps.\n\n`;
-        
+
         if (nextTopics.length > 0) {
-          const byCritical = nextTopics.filter(t => t.priority === "critical");
-          const byHigh = nextTopics.filter(t => t.priority === "high");
-          const byMedium = nextTopics.filter(t => t.priority === "medium");
-          
+          const byCritical = nextTopics.filter(
+            (t) => t.priority === "critical",
+          );
+          const byHigh = nextTopics.filter((t) => t.priority === "high");
+          const byMedium = nextTopics.filter((t) => t.priority === "medium");
+
           if (byCritical.length > 0) {
             response += `🔴 **Critical:**\n`;
             for (const t of byCritical) {
@@ -440,7 +466,7 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
             }
             response += `\n`;
           }
-          
+
           if (byHigh.length > 0) {
             response += `🟠 **High Priority:**\n`;
             for (const t of byHigh) {
@@ -448,7 +474,7 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
             }
             response += `\n`;
           }
-          
+
           if (byMedium.length > 0) {
             response += `🟡 **Medium:**\n`;
             for (const t of byMedium.slice(0, 3)) {
@@ -457,7 +483,7 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
             response += `\n`;
           }
         }
-        
+
         response += `Run \`next topics\` to see the full queue, or \`research session\` to start.`;
         const gapsOut = "Here's the gap analysis—\n\n" + response;
         callback?.({ text: gapsOut });
@@ -477,28 +503,30 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
           callback?.({ text: "Please specify a topic: `research <topic>`" });
           return true;
         }
-        
+
         // Add topic to queue and research it
         const topic = addResearchTopic(arg, "emerging", {
           priority: "high",
           reason: "User requested",
           depth: "intermediate",
         });
-        
+
         updateTopicStatus(topic.id, "researching");
-        
+
         const result = await researchTopic(topic, runtime);
-        
+
         if (result.success) {
           updateTopicStatus(topic.id, "completed", {
             filesAdded: result.filesCreated,
           });
-          
+
           const topicOut = `✅ **Research Complete: ${arg}**\n\n${result.summary}\n\n**Next steps:**\n• Review and expand the stub at \`${result.filesCreated[0]}\`\n• Use UPLOAD to add related content\n• Run \`next topics\` to continue research`;
           callback?.({ text: "Here's the research result—\n\n" + topicOut });
         } else {
           updateTopicStatus(topic.id, "blocked");
-          callback?.({ text: `❌ Research failed for "${arg}". Try again later.` });
+          callback?.({
+            text: `❌ Research failed for "${arg}". Try again later.`,
+          });
         }
         return true;
       }
@@ -506,29 +534,31 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
       case "session": {
         const session = startResearchSession();
         const topics = getNextTopics(3);
-        
+
         if (topics.length === 0) {
           callback?.({
             text: `📚 **Research Session**\n\nNo topics in queue. Run \`audit knowledge\` then \`fill gaps\` first.`,
           });
           return true;
         }
-        
+
         let response = `📚 **Research Session Started**\n\n`;
         response += `Session ID: \`${session.id}\`\n`;
         response += `Topics to research: ${topics.length}\n\n`;
-        
+
         const filesCreated: string[] = [];
         const topicsResearched: string[] = [];
-        
+
         for (const topic of topics) {
           updateTopicStatus(topic.id, "researching");
           response += `🔄 Researching: **${topic.topic}**...\n`;
-          
+
           const result = await researchTopic(topic, runtime);
-          
+
           if (result.success) {
-            updateTopicStatus(topic.id, "completed", { filesAdded: result.filesCreated });
+            updateTopicStatus(topic.id, "completed", {
+              filesAdded: result.filesCreated,
+            });
             filesCreated.push(...result.filesCreated);
             topicsResearched.push(topic.topic);
             response += `   ✅ ${result.summary}\n`;
@@ -537,19 +567,19 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
             response += `   ❌ Failed\n`;
           }
         }
-        
+
         endResearchSession(session.id, {
           topicsResearched,
           filesCreated,
           sourcesUsed: [],
         });
-        
+
         response += `\n---\n`;
         response += `**Session Complete:**\n`;
         response += `• ${topicsResearched.length} topics researched\n`;
         response += `• ${filesCreated.length} files created\n\n`;
         response += `Review the stubs in \`knowledge/\` and expand with UPLOAD.`;
-        
+
         const sessionOut = "Here's the research session—\n\n" + response;
         callback?.({ text: sessionOut });
         return true;

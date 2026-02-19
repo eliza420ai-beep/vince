@@ -2,7 +2,14 @@
  * COINBASE_CANCEL_ORDER - Cancel one or more orders on Coinbase Advanced Trade.
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback, ActionResult } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+  ActionResult,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import {
   getAdvancedTradeConfig,
@@ -13,7 +20,11 @@ import {
 const PATH = "/api/v3/brokerage/orders/batch_cancel";
 
 interface CancelOrdersResponse {
-  results?: Array<{ order_id?: string; success?: boolean; failure_reason?: string }>;
+  results?: Array<{
+    order_id?: string;
+    success?: boolean;
+    failure_reason?: string;
+  }>;
 }
 
 export const cdpAdvancedTradeCancelOrder: Action = {
@@ -23,7 +34,11 @@ export const cdpAdvancedTradeCancelOrder: Action = {
     "Cancel one or more open orders on Coinbase (Advanced Trade). Provide order_ids (array of order ID strings). Use after COINBASE_LIST_ORDERS to cancel by ID. Requires Advanced Trade API keys.",
 
   parameters: {
-    order_ids: { type: "array", description: "Order IDs to cancel (e.g. from COINBASE_LIST_ORDERS)", required: true },
+    order_ids: {
+      type: "array",
+      description: "Order IDs to cancel (e.g. from COINBASE_LIST_ORDERS)",
+      required: true,
+    },
   },
 
   validate: async (_runtime: IAgentRuntime) => isAdvancedTradeConfigured(),
@@ -33,7 +48,7 @@ export const cdpAdvancedTradeCancelOrder: Action = {
     _message: Memory,
     _state?: State,
     options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     const config = getAdvancedTradeConfig();
     if (!config) {
@@ -49,7 +64,12 @@ export const cdpAdvancedTradeCancelOrder: Action = {
     }
 
     try {
-      const data = await advancedTradeRequest<CancelOrdersResponse>("POST", PATH, config, { order_ids: orderIds });
+      const data = await advancedTradeRequest<CancelOrdersResponse>(
+        "POST",
+        PATH,
+        config,
+        { order_ids: orderIds },
+      );
       const results = data?.results ?? [];
       const ok = results.filter((r) => r.success).length;
       const failed = results.filter((r) => !r.success);
@@ -58,7 +78,11 @@ export const cdpAdvancedTradeCancelOrder: Action = {
           ? `Canceled ${ok} order(s) on Coinbase.`
           : `Canceled ${ok} order(s). Failed: ${failed.map((r) => `${r.order_id} (${r.failure_reason ?? "?"})`).join(", ")}`;
       await callback?.({ text });
-      return { success: failed.length === 0, text, data: data as Record<string, unknown> };
+      return {
+        success: failed.length === 0,
+        text,
+        data: data as Record<string, unknown>,
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.warn(`[COINBASE_CANCEL_ORDER] ${msg}`);
@@ -68,8 +92,17 @@ export const cdpAdvancedTradeCancelOrder: Action = {
   },
   examples: [
     [
-      { name: "user", content: { text: "Cancel my open BTC order on Coinbase" } },
-      { name: "Otaku", content: { text: "Canceling order…", actions: ["COINBASE_CANCEL_ORDER"] } },
+      {
+        name: "user",
+        content: { text: "Cancel my open BTC order on Coinbase" },
+      },
+      {
+        name: "Otaku",
+        content: {
+          text: "Canceling order…",
+          actions: ["COINBASE_CANCEL_ORDER"],
+        },
+      },
     ],
   ],
 };

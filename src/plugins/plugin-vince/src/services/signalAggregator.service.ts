@@ -922,8 +922,14 @@ export class VinceSignalAggregatorService extends Service {
     ) as VinceXSentimentService | null;
     if (xSentimentService?.isConfigured()) {
       try {
-        const xConfidenceFloor =
-          Math.min(100, Math.max(1, parseInt(process.env.X_SENTIMENT_CONFIDENCE_FLOOR ?? "40", 10) || 40));
+        const xConfidenceFloor = Math.min(
+          100,
+          Math.max(
+            1,
+            parseInt(process.env.X_SENTIMENT_CONFIDENCE_FLOOR ?? "40", 10) ||
+              40,
+          ),
+        );
         const xSoftTierEnabled = /^(1|true|yes)$/i.test(
           (process.env.X_SENTIMENT_SOFT_TIER_ENABLED ?? "").trim(),
         );
@@ -938,7 +944,9 @@ export class VinceSignalAggregatorService extends Service {
         if (isPrimaryTier || isSoftTier) {
           const discount = Math.round(confidence * (isSoftTier ? 0.5 : 0.8));
           const baseStrength = 52 + Math.min(15, confidence / 6);
-          const strength = isSoftTier ? Math.round(baseStrength * 0.3) : baseStrength;
+          const strength = isSoftTier
+            ? Math.round(baseStrength * 0.3)
+            : baseStrength;
           const lowLabel = isSoftTier ? " (low confidence)" : "";
           if (sentiment === "bullish") {
             if (hasHighRiskEvent) {
@@ -950,7 +958,9 @@ export class VinceSignalAggregatorService extends Service {
                 strength,
                 confidence: discount,
                 source: "XSentiment",
-                factors: [`X sentiment bullish (${confidence}% confidence)${lowLabel}`],
+                factors: [
+                  `X sentiment bullish (${confidence}% confidence)${lowLabel}`,
+                ],
                 timestamp: Date.now(),
               });
               sources.push("XSentiment");
@@ -967,10 +977,13 @@ export class VinceSignalAggregatorService extends Service {
                 : strength,
               confidence: discount,
               source: "XSentiment",
-              factors:
-                hasHighRiskEvent
-                  ? [`X sentiment bearish (${confidence}%) + risk event active${lowLabel}`]
-                  : [`X sentiment bearish (${confidence}% confidence)${lowLabel}`],
+              factors: hasHighRiskEvent
+                ? [
+                    `X sentiment bearish (${confidence}%) + risk event active${lowLabel}`,
+                  ]
+                : [
+                    `X sentiment bearish (${confidence}% confidence)${lowLabel}`,
+                  ],
               timestamp: Date.now(),
             });
             sources.push("XSentiment");
@@ -990,9 +1003,7 @@ export class VinceSignalAggregatorService extends Service {
               timestamp: Date.now(),
             });
             sources.push("XSentiment");
-            allFactors.push(
-              `X sentiment neutral (${confidence}% confidence)`,
-            );
+            allFactors.push(`X sentiment neutral (${confidence}% confidence)`);
           }
         }
         if (!sources.includes("XSentiment")) {
@@ -1609,7 +1620,9 @@ export class VinceSignalAggregatorService extends Service {
             triedNoContribution.push("HIP3");
           }
         } catch (e) {
-          logger.debug(`[VinceSignalAggregator] HIP-3 service error for ${asset}: ${e}`);
+          logger.debug(
+            `[VinceSignalAggregator] HIP-3 service error for ${asset}: ${e}`,
+          );
           triedNoContribution.push("HIP3");
         }
       }
@@ -1788,7 +1801,11 @@ export class VinceSignalAggregatorService extends Service {
     try {
       const binanceService = this.runtime.getService(
         "VINCE_BINANCE_SERVICE",
-      ) as { getIntelligence?: (asset: string) => Promise<{ crossExchangeFunding?: { spread?: number } | null }> } | null;
+      ) as {
+        getIntelligence?: (
+          asset: string,
+        ) => Promise<{ crossExchangeFunding?: { spread?: number } | null }>;
+      } | null;
       if (binanceService?.getIntelligence && direction !== "neutral") {
         const intel = await withTimeout(
           SOURCE_FETCH_TIMEOUT_MS,
@@ -1801,18 +1818,26 @@ export class VinceSignalAggregatorService extends Service {
           // Spread < 0 means HL funding lower (shorts crowded on HL)
           if (spread > 0 && direction === "short") {
             volumeMultiplier *= 1.1; // Confirms contrarian short (longs crowded)
-            allFactors.push(`Cross-exchange funding spread confirms short (HL longs crowded, spread: ${(spread * 100).toFixed(3)}%)`);
+            allFactors.push(
+              `Cross-exchange funding spread confirms short (HL longs crowded, spread: ${(spread * 100).toFixed(3)}%)`,
+            );
           } else if (spread < 0 && direction === "long") {
             volumeMultiplier *= 1.1; // Confirms contrarian long (shorts crowded)
-            allFactors.push(`Cross-exchange funding spread confirms long (HL shorts crowded, spread: ${(spread * 100).toFixed(3)}%)`);
+            allFactors.push(
+              `Cross-exchange funding spread confirms long (HL shorts crowded, spread: ${(spread * 100).toFixed(3)}%)`,
+            );
           } else if (spread > 0 && direction === "long") {
             volumeMultiplier *= 0.95; // Slight penalty: going with the crowd on HL
-            allFactors.push(`Cross-exchange funding spread: HL longs crowded (spread: ${(spread * 100).toFixed(3)}%)`);
+            allFactors.push(
+              `Cross-exchange funding spread: HL longs crowded (spread: ${(spread * 100).toFixed(3)}%)`,
+            );
           }
         }
       }
     } catch (e) {
-      logger.debug(`[VinceSignalAggregator] Cross-exchange funding check failed: ${e}`);
+      logger.debug(
+        `[VinceSignalAggregator] Cross-exchange funding check failed: ${e}`,
+      );
     }
 
     // =========================================
@@ -2376,8 +2401,11 @@ export class VinceSignalAggregatorService extends Service {
       {
         name: "XSentiment",
         available:
-          (this.runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null)
-            ?.isConfigured?.() ?? false,
+          (
+            this.runtime.getService(
+              "VINCE_X_SENTIMENT_SERVICE",
+            ) as VinceXSentimentService | null
+          )?.isConfigured?.() ?? false,
       },
       {
         name: "Deribit",

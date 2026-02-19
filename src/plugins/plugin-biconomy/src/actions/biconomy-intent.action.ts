@@ -14,7 +14,11 @@ import { CdpNetwork } from "../../../plugin-cdp/types";
 import { BiconomyService } from "../services/biconomy.service";
 import { type QuoteRequest } from "../types";
 import { tryGetBaseUsdcFeeToken } from "../utils/fee-token";
-import { resolveTokenForBiconomy, getTokenDecimalsForBiconomy, isNativeToken } from "../utils/token-resolver";
+import {
+  resolveTokenForBiconomy,
+  getTokenDecimalsForBiconomy,
+  isNativeToken,
+} from "../utils/token-resolver";
 import {
   DEFAULT_SLIPPAGE,
   validateSlippage,
@@ -77,8 +81,7 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
     },
     inputChain: {
       type: "string",
-      description:
-        "Input chain name (ethereum, base, arbitrum)",
+      description: "Input chain name (ethereum, base, arbitrum)",
       required: true,
     },
     inputAmount: {
@@ -176,7 +179,10 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Validate required parameters
       const inputToken = params?.inputToken?.toLowerCase().trim();
@@ -407,7 +413,10 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
       }
 
       // Get token decimals - use Biconomy helper to handle native tokens (18 decimals)
-      const decimals = await getTokenDecimalsForBiconomy(inputTokenAddress, inputChain);
+      const decimals = await getTokenDecimalsForBiconomy(
+        inputTokenAddress,
+        inputChain,
+      );
 
       const amountInWei = parseUnits(inputAmount, decimals);
 
@@ -459,19 +468,22 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
       // Without these, tokens remain in the Biconomy Nexus/Smart Account
       // Use different methods for native vs ERC20 tokens
       const withdrawalFlows: any[] = [];
-      
+
       for (let i = 0; i < targetChainIds.length; i++) {
         const chainId = targetChainIds[i]!;
         const tokenAddress = targetTokenAddresses[i];
         const isNative = isNativeToken(tokenAddress);
-        
+
         if (isNative) {
           // Native token (ETH, POL) - need Nexus address for runtimeNativeBalanceOf
           logger.info(
             `[MEE_SUPERTX_REBALANCE] Adding native token withdrawal for target ${i} on chain ${chainId}`,
           );
-          
-          const nexusAddress = await biconomyService.getNexusAddress(userAddress, chainId);
+
+          const nexusAddress = await biconomyService.getNexusAddress(
+            userAddress,
+            chainId,
+          );
           if (!nexusAddress) {
             logger.warn(
               `[MEE_SUPERTX_REBALANCE] Could not find Nexus address for chain ${chainId} - skipping withdrawal for target ${i}`,
@@ -481,13 +493,13 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
             });
             continue; // Skip this withdrawal
           }
-          
+
           withdrawalFlows.push(
             biconomyService.buildNativeWithdrawalInstructionWithRuntimeBalance(
               chainId,
               userAddress,
               nexusAddress,
-            )
+            ),
           );
         } else {
           // ERC20 token - use standard runtimeErc20Balance
@@ -496,7 +508,7 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
               tokenAddress,
               chainId,
               userAddress,
-            )
+            ),
           );
         }
       }

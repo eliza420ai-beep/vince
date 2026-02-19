@@ -20,7 +20,11 @@ export interface GrokSubAgentConfig {
 export const DATA_CONTEXT_PLACEHOLDER = "{{DATA_CONTEXT}}";
 export const X_VIBE_SUMMARY_PLACEHOLDER = "{{X_VIBE_SUMMARY}}";
 
-function injectPlaceholders(template: string, dataContext: string, xVibeSummary: string): string {
+function injectPlaceholders(
+  template: string,
+  dataContext: string,
+  xVibeSummary: string,
+): string {
   return template
     .replace(/\{\{DATA_CONTEXT\}\}/g, dataContext)
     .replace(/\{\{X_VIBE_SUMMARY\}\}/g, xVibeSummary);

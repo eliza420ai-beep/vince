@@ -94,14 +94,12 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
     },
     srcChain: {
       type: "string",
-      description:
-        "Source chain name (ethereum, base, arbitrum)",
+      description: "Source chain name (ethereum, base, arbitrum)",
       required: true,
     },
     dstChain: {
       type: "string",
-      description:
-        "Destination chain name (ethereum, base, arbitrum)",
+      description: "Destination chain name (ethereum, base, arbitrum)",
       required: true,
     },
     amount: {
@@ -164,7 +162,10 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Validate required parameters
       const token = params?.token?.toLowerCase().trim();
@@ -514,7 +515,10 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
           ["ACTION_STATE"],
           true,
         );
-        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+        const params = (composedState?.data?.actionParams || {}) as Record<
+          string,
+          any
+        >;
         failureInputParams = {
           token: params?.token,
           srcChain: params?.srcChain,

@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "one terminal",
@@ -49,11 +54,19 @@ Direct. Benefit-led: what they get is one place, not chaos.`;
 
 export const navalOneTerminalAction: Action = {
   name: "NAVAL_ONE_TERMINAL",
-  similes: ["ONE_TERMINAL", "ONE_PLACE_FOR_INTEL", "CLAWTERM", "STOP_FRAGMENTING"],
+  similes: [
+    "ONE_TERMINAL",
+    "ONE_PLACE_FOR_INTEL",
+    "CLAWTERM",
+    "STOP_FRAGMENTING",
+  ],
   description:
     "One place for intel. Stop fragmenting across 20 tools. One shift so they have one source of truth, not chaos.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsOneTerminal(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "One terminal: one place (or one command) that gives you the picture. Rule: don't open a second tool until the first has given you what you need. You get one source of truth, not 20 tabs.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I'm jumping between Dune, DexScreener, Discord, and five other things." } },
-      { name: "{{agent}}", content: { text: "That's fragmentation. Shift: one place — call it your terminal — that aggregates or one command that pulls it. Rule: one URL or one digest; that's your open. No second tab until you've used the first. You get one place, not chaos." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I'm jumping between Dune, DexScreener, Discord, and five other things.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "That's fragmentation. Shift: one place — call it your terminal — that aggregates or one command that pulls it. Rule: one URL or one digest; that's your open. No second tab until you've used the first. You get one place, not chaos.",
+        },
+      },
     ],
   ],
 };

@@ -1,20 +1,20 @@
 /**
  * X Accounts Service
- * 
+ *
  * Account analysis and discovery.
  * Profile analysis, recent takes, reputation scoring.
  */
 
-import { getXClient, XClientService } from './xClient.service';
-import type { XTweet, XUser, AccountTier } from '../types/tweet.types';
-import type { AccountAnalysis } from '../types/analysis.types';
-import { 
-  getAccountTier, 
-  getAccountReliability, 
+import { getXClient, XClientService } from "./xClient.service";
+import type { XTweet, XUser, AccountTier } from "../types/tweet.types";
+import type { AccountAnalysis } from "../types/analysis.types";
+import {
+  getAccountTier,
+  getAccountReliability,
   ACCOUNT_BY_USERNAME,
   ALL_QUALITY_ACCOUNTS,
-} from '../constants/qualityAccounts';
-import { ALL_TOPICS } from '../constants/topics';
+} from "../constants/qualityAccounts";
+import { ALL_TOPICS } from "../constants/topics";
 
 export interface AccountSearchOptions {
   includeMetrics?: boolean;
@@ -36,7 +36,7 @@ export class XAccountsService {
    */
   async getAccount(username: string): Promise<XUser | null> {
     // Remove @ if present
-    const cleanUsername = username.replace(/^@/, '');
+    const cleanUsername = username.replace(/^@/, "");
     return this.client.getUserByUsername(cleanUsername);
   }
 
@@ -44,8 +44,8 @@ export class XAccountsService {
    * Analyze an account
    */
   async analyzeAccount(username: string): Promise<AccountAnalysis | null> {
-    const cleanUsername = username.replace(/^@/, '');
-    
+    const cleanUsername = username.replace(/^@/, "");
+
     // Get user profile
     const user = await this.getAccount(cleanUsername);
     if (!user) return null;
@@ -57,13 +57,21 @@ export class XAccountsService {
     });
 
     // Calculate metrics
-    const avgLikes = recentTweets.length > 0
-      ? recentTweets.reduce((sum, t) => sum + (t.metrics?.likeCount ?? 0), 0) / recentTweets.length
-      : 0;
+    const avgLikes =
+      recentTweets.length > 0
+        ? recentTweets.reduce(
+            (sum, t) => sum + (t.metrics?.likeCount ?? 0),
+            0,
+          ) / recentTweets.length
+        : 0;
 
-    const avgRetweets = recentTweets.length > 0
-      ? recentTweets.reduce((sum, t) => sum + (t.metrics?.retweetCount ?? 0), 0) / recentTweets.length
-      : 0;
+    const avgRetweets =
+      recentTweets.length > 0
+        ? recentTweets.reduce(
+            (sum, t) => sum + (t.metrics?.retweetCount ?? 0),
+            0,
+          ) / recentTweets.length
+        : 0;
 
     const followers = user.metrics?.followersCount ?? 0;
     const engagementRate = followers > 0 ? (avgLikes / followers) * 100 : 0;
@@ -102,7 +110,7 @@ export class XAccountsService {
    * Get recent takes from an account
    */
   async getRecentTakes(username: string, count = 10): Promise<XTweet[]> {
-    const cleanUsername = username.replace(/^@/, '');
+    const cleanUsername = username.replace(/^@/, "");
     const user = await this.getAccount(cleanUsername);
     if (!user) return [];
 
@@ -117,8 +125,11 @@ export class XAccountsService {
    * Get top tweets by engagement (for content audit).
    * Fetches up to 100 tweets, sorts by likeCount + 2*retweetCount + replyCount, returns top count.
    */
-  async getTopTweetsByEngagement(username: string, count = 20): Promise<XTweet[]> {
-    const cleanUsername = username.replace(/^@/, '');
+  async getTopTweetsByEngagement(
+    username: string,
+    count = 20,
+  ): Promise<XTweet[]> {
+    const cleanUsername = username.replace(/^@/, "");
     const user = await this.getAccount(cleanUsername);
     if (!user) return [];
 
@@ -129,7 +140,9 @@ export class XAccountsService {
     });
 
     const score = (t: XTweet) =>
-      (t.metrics?.likeCount ?? 0) + 2 * (t.metrics?.retweetCount ?? 0) + (t.metrics?.replyCount ?? 0);
+      (t.metrics?.likeCount ?? 0) +
+      2 * (t.metrics?.retweetCount ?? 0) +
+      (t.metrics?.replyCount ?? 0);
     const sorted = [...tweets].sort((a, b) => score(b) - score(a));
     return sorted.slice(0, count);
   }
@@ -138,7 +151,7 @@ export class XAccountsService {
    * Check if an account is in our quality list
    */
   isQualityAccount(username: string): boolean {
-    const cleanUsername = username.replace(/^@/, '').toLowerCase();
+    const cleanUsername = username.replace(/^@/, "").toLowerCase();
     return ACCOUNT_BY_USERNAME.has(cleanUsername);
   }
 
@@ -159,18 +172,20 @@ export class XAccountsService {
     }
 
     // Find quality accounts with overlapping topic focus
-    const similar = ALL_QUALITY_ACCOUNTS.filter(qa => {
+    const similar = ALL_QUALITY_ACCOUNTS.filter((qa) => {
       if (qa.username.toLowerCase() === username.toLowerCase()) return false;
-      return qa.focus.some(f => analysis.topicFocus.includes(f));
+      return qa.focus.some((f) => analysis.topicFocus.includes(f));
     });
 
-    return similar.map(qa => qa.username);
+    return similar.map((qa) => qa.username);
   }
 
   /**
    * Batch analyze multiple accounts
    */
-  async batchAnalyze(usernames: string[]): Promise<Map<string, AccountAnalysis | null>> {
+  async batchAnalyze(
+    usernames: string[],
+  ): Promise<Map<string, AccountAnalysis | null>> {
     const results = new Map<string, AccountAnalysis | null>();
 
     // Process in batches to respect rate limits
@@ -184,7 +199,7 @@ export class XAccountsService {
       }
 
       // Small delay between requests
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
     return results;
@@ -194,10 +209,14 @@ export class XAccountsService {
   // Internal
   // ─────────────────────────────────────────────────────────────
 
-  private determineTier(user: XUser, avgLikes: number, engagementRate: number): AccountTier {
+  private determineTier(
+    user: XUser,
+    avgLikes: number,
+    engagementRate: number,
+  ): AccountTier {
     // Check our known accounts first
     const knownTier = getAccountTier(user.username);
-    if (knownTier !== 'standard') {
+    if (knownTier !== "standard") {
       return knownTier;
     }
 
@@ -205,41 +224,45 @@ export class XAccountsService {
 
     // Whale: 100k+ followers and high engagement
     if (followers >= 100000 && engagementRate > 0.5) {
-      return 'whale';
+      return "whale";
     }
 
     // Alpha: High engagement rate regardless of follower count
     if (avgLikes > 500 && engagementRate > 1) {
-      return 'alpha';
+      return "alpha";
     }
 
     // Verified
-    if (user.verified || user.verifiedType === 'blue') {
-      return 'verified';
+    if (user.verified || user.verifiedType === "blue") {
+      return "verified";
     }
 
     // Quality: Decent engagement
     if (avgLikes > 100 && engagementRate > 0.3) {
-      return 'quality';
+      return "quality";
     }
 
-    return 'standard';
+    return "standard";
   }
 
-  private getTierReason(tier: AccountTier, user: XUser, avgLikes: number): string {
+  private getTierReason(
+    tier: AccountTier,
+    user: XUser,
+    avgLikes: number,
+  ): string {
     const followers = user.metrics?.followersCount ?? 0;
 
     switch (tier) {
-      case 'whale':
+      case "whale":
         return `${this.formatNumber(followers)} followers, market-moving influence`;
-      case 'alpha':
+      case "alpha":
         return `High engagement (${Math.round(avgLikes)} avg likes), quality insights`;
-      case 'quality':
-        return 'Consistent valuable content';
-      case 'verified':
-        return 'Verified account';
+      case "quality":
+        return "Consistent valuable content";
+      case "verified":
+        return "Verified account";
       default:
-        return 'Standard account';
+        return "Standard account";
     }
   }
 
@@ -250,8 +273,8 @@ export class XAccountsService {
       const text = tweet.text.toLowerCase();
 
       for (const topic of ALL_TOPICS) {
-        const matches = topic.searchTerms.some(term => 
-          text.includes(term.toLowerCase())
+        const matches = topic.searchTerms.some((term) =>
+          text.includes(term.toLowerCase()),
         );
 
         if (matches) {
@@ -268,23 +291,33 @@ export class XAccountsService {
       .map(([topicId]) => topicId);
   }
 
-  private detectSentimentBias(tweets: XTweet[]): 'bullish' | 'bearish' | 'neutral' {
-    const bullishTerms = ['bullish', 'long', 'buy', 'moon', 'pump', 'lfg', 'accumulate'];
-    const bearishTerms = ['bearish', 'short', 'sell', 'dump', 'crash', 'rekt'];
+  private detectSentimentBias(
+    tweets: XTweet[],
+  ): "bullish" | "bearish" | "neutral" {
+    const bullishTerms = [
+      "bullish",
+      "long",
+      "buy",
+      "moon",
+      "pump",
+      "lfg",
+      "accumulate",
+    ];
+    const bearishTerms = ["bearish", "short", "sell", "dump", "crash", "rekt"];
 
     let bullishCount = 0;
     let bearishCount = 0;
 
     for (const tweet of tweets) {
       const text = tweet.text.toLowerCase();
-      
-      if (bullishTerms.some(t => text.includes(t))) bullishCount++;
-      if (bearishTerms.some(t => text.includes(t))) bearishCount++;
+
+      if (bullishTerms.some((t) => text.includes(t))) bullishCount++;
+      if (bearishTerms.some((t) => text.includes(t))) bearishCount++;
     }
 
-    if (bullishCount > bearishCount * 1.5) return 'bullish';
-    if (bearishCount > bullishCount * 1.5) return 'bearish';
-    return 'neutral';
+    if (bullishCount > bearishCount * 1.5) return "bullish";
+    if (bearishCount > bullishCount * 1.5) return "bearish";
+    return "neutral";
   }
 
   private formatNumber(num: number): string {

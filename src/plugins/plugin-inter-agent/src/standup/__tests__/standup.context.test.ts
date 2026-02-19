@@ -14,9 +14,10 @@ describe("standup.context", () => {
       expect(result).toContain("@VINCE, go.");
     });
 
-    it("is one line (no newlines)", () => {
+    it("includes Naval quote and standup kickoff on separate lines", () => {
       const result = buildShortStandupKickoff();
-      expect(result).not.toContain("\n");
+      expect(result).toContain("Naval");
+      expect(result).toContain("\n");
     });
   });
 });

@@ -9,20 +9,34 @@ const PREFIX = "otaku:pending";
 const TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 function cacheKey(
-  action: "swap" | "bridge" | "morpho" | "stopLoss" | "approve" | "nftMint" | "vinceSignal",
+  action:
+    | "swap"
+    | "bridge"
+    | "morpho"
+    | "stopLoss"
+    | "approve"
+    | "nftMint"
+    | "vinceSignal",
   roomId: string,
-  entityId: string
+  entityId: string,
 ): string {
   return `${PREFIX}:${action}:${roomId}:${entityId}`;
 }
 
-export type PendingActionType = "swap" | "bridge" | "morpho" | "stopLoss" | "approve" | "nftMint" | "vinceSignal";
+export type PendingActionType =
+  | "swap"
+  | "bridge"
+  | "morpho"
+  | "stopLoss"
+  | "approve"
+  | "nftMint"
+  | "vinceSignal";
 
 export async function setPending<T>(
   runtime: IAgentRuntime,
   message: Memory,
   action: PendingActionType,
-  payload: T
+  payload: T,
 ): Promise<void> {
   const key = cacheKey(action, message.roomId, message.entityId ?? "");
   await runtime.setCache(key, { payload, at: Date.now() });
@@ -31,7 +45,7 @@ export async function setPending<T>(
 export async function getPending<T>(
   runtime: IAgentRuntime,
   message: Memory,
-  action: PendingActionType
+  action: PendingActionType,
 ): Promise<T | null> {
   const key = cacheKey(action, message.roomId, message.entityId ?? "");
   const entry = await runtime.getCache<{ payload: T; at: number }>(key);
@@ -46,7 +60,7 @@ export async function getPending<T>(
 export async function clearPending(
   runtime: IAgentRuntime,
   message: Memory,
-  action: PendingActionType
+  action: PendingActionType,
 ): Promise<void> {
   const key = cacheKey(action, message.roomId, message.entityId ?? "");
   await runtime.deleteCache(key);
@@ -64,13 +78,15 @@ const CONFIRM_PHRASES = [
 
 export function isConfirmation(text: string): boolean {
   const t = text.toLowerCase().trim();
-  return CONFIRM_PHRASES.some((p) => t === p || t.startsWith(p + " ") || t.endsWith(" " + p));
+  return CONFIRM_PHRASES.some(
+    (p) => t === p || t.startsWith(p + " ") || t.endsWith(" " + p),
+  );
 }
 
 export async function hasPending(
   runtime: IAgentRuntime,
   message: Memory,
-  action: PendingActionType
+  action: PendingActionType,
 ): Promise<boolean> {
   const payload = await getPending(runtime, message, action);
   return payload != null;

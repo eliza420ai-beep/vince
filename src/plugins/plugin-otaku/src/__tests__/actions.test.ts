@@ -145,7 +145,7 @@ describe("OTAKU_SWAP", () => {
 
 describe("OTAKU_LIMIT_ORDER", () => {
   const action = otakuPlugin.actions.find(
-    (a) => a.name === "OTAKU_LIMIT_ORDER"
+    (a) => a.name === "OTAKU_LIMIT_ORDER",
   )!;
 
   describe("validate", () => {
@@ -232,9 +232,7 @@ describe("OTAKU_DCA", () => {
 });
 
 describe("OTAKU_POSITIONS", () => {
-  const action = otakuPlugin.actions.find(
-    (a) => a.name === "OTAKU_POSITIONS"
-  )!;
+  const action = otakuPlugin.actions.find((a) => a.name === "OTAKU_POSITIONS")!;
 
   describe("validate", () => {
     it("should validate positions intent", async () => {

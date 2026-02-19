@@ -4,7 +4,13 @@
  * stale cache, empty/few tweets, stop() cleanup, query shape (HYPE vs $TICKER),
  * staggered refresh (one asset per tick), and persistent cache file load/save.
  */
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+} from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -49,7 +55,8 @@ function mockXResearch(overrides: { search?: any } = {}) {
   return {
     isConfigured: () => true,
     search: overrides.search ?? vi.fn().mockResolvedValue([]),
-    getSentimentCooldownKey: (i?: number) => `vince_x:rate_limited_sentiment_${i ?? 0}`,
+    getSentimentCooldownKey: (i?: number) =>
+      `vince_x:rate_limited_sentiment_${i ?? 0}`,
   };
 }
 
@@ -110,7 +117,9 @@ describe("VinceXSentimentService", () => {
     it("returns neutral and 0 confidence when cache is empty (no refresh for asset)", async () => {
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search: vi.fn().mockResolvedValue([]) }),
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({
+            search: vi.fn().mockResolvedValue([]),
+          }),
         } as any,
       });
       const service = new VinceXSentimentService(runtime);
@@ -123,9 +132,11 @@ describe("VinceXSentimentService", () => {
     });
 
     it("returns neutral and 0 confidence when cache is stale (older than TTL)", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets(["bullish moon pump", "moon soon", "buy the dip"]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(
+          mockTweets(["bullish moon pump", "moon soon", "buy the dip"]),
+        );
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -133,7 +144,10 @@ describe("VinceXSentimentService", () => {
       });
       const service = await VinceXSentimentService.start(runtime);
       expect(service.getTradingSentiment("BTC").sentiment).toBe("bullish");
-      const cache = (service as any).cache as Map<string, { updatedAt: number }>;
+      const cache = (service as any).cache as Map<
+        string,
+        { updatedAt: number }
+      >;
       const entry = cache.get("BTC");
       expect(entry).toBeDefined();
       entry!.updatedAt = Date.now() - STALE_CACHE_AGE_MS;
@@ -146,9 +160,11 @@ describe("VinceXSentimentService", () => {
     });
 
     it("stop() clears cache so getTradingSentiment returns neutral/0 after stop", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets(["bullish moon", "pump buy", "long growth"]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(
+          mockTweets(["bullish moon", "pump buy", "long growth"]),
+        );
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -167,9 +183,16 @@ describe("VinceXSentimentService", () => {
 
   describe("sentiment and risk", () => {
     it("returns bullish and non-zero confidence after refresh with bullish tweets", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets(["BTC is so bullish", "moon soon", "buy the dip", "bull run"]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(
+          mockTweets([
+            "BTC is so bullish",
+            "moon soon",
+            "buy the dip",
+            "bull run",
+          ]),
+        );
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -184,9 +207,11 @@ describe("VinceXSentimentService", () => {
     });
 
     it("returns bearish after refresh with bearish tweets", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets(["BTC dump", "bearish", "sell", "crash incoming"]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(
+          mockTweets(["BTC dump", "bearish", "sell", "crash incoming"]),
+        );
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -199,14 +224,16 @@ describe("VinceXSentimentService", () => {
     });
 
     it("returns neutral when tweets have no strong bullish/bearish keywords", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets([
-          "BTC is trading sideways",
-          "waiting for catalyst",
-          "no clear direction",
-          "consolidation continues",
-        ]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(
+          mockTweets([
+            "BTC is trading sideways",
+            "waiting for catalyst",
+            "no clear direction",
+            "consolidation continues",
+          ]),
+        );
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -218,9 +245,11 @@ describe("VinceXSentimentService", () => {
     });
 
     it("sets hasHighRiskEvent when tweets contain risk keywords", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets(["rug pull", "scam token", "exploit found"]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(
+          mockTweets(["rug pull", "scam token", "exploit found"]),
+        );
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -248,9 +277,9 @@ describe("VinceXSentimentService", () => {
     });
 
     it("stores neutral/0 when search returns fewer than MIN_TWEETS_FOR_CONFIDENCE", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets(["bullish moon", "pump"]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(mockTweets(["bullish moon", "pump"]));
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -353,13 +382,25 @@ describe("VinceXSentimentService", () => {
       });
       const service = new VinceXSentimentService(runtime);
       await service.refreshOneAsset(0);
-      expect(search).toHaveBeenLastCalledWith("$BTC OR Bitcoin lang:en -is:reply -is:retweet", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith(
+        "$BTC OR Bitcoin lang:en -is:reply -is:retweet",
+        expect.any(Object),
+      );
       await service.refreshOneAsset(1);
-      expect(search).toHaveBeenLastCalledWith("$ETH OR Ethereum lang:en -is:reply -is:retweet", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith(
+        "$ETH OR Ethereum lang:en -is:reply -is:retweet",
+        expect.any(Object),
+      );
       await service.refreshOneAsset(2);
-      expect(search).toHaveBeenLastCalledWith("$SOL OR Solana lang:en -is:reply -is:retweet", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith(
+        "$SOL OR Solana lang:en -is:reply -is:retweet",
+        expect.any(Object),
+      );
       await service.refreshOneAsset(3);
-      expect(search).toHaveBeenLastCalledWith("HYPE crypto lang:en -is:reply -is:retweet", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith(
+        "HYPE crypto lang:en -is:reply -is:retweet",
+        expect.any(Object),
+      );
     });
   });
 
@@ -397,15 +438,17 @@ describe("VinceXSentimentService", () => {
 
   describe("confidence formula", () => {
     it("reaches at least 40 confidence for 5+ tweets with clear signal (avgSentiment ~0.2)", async () => {
-      const search = vi.fn().mockResolvedValue(
-        mockTweets([
-          "bullish moon pump",
-          "buy long growth",
-          "accumulate bottom",
-          "rally surge",
-          "bull run",
-        ]),
-      );
+      const search = vi
+        .fn()
+        .mockResolvedValue(
+          mockTweets([
+            "bullish moon pump",
+            "buy long growth",
+            "accumulate bottom",
+            "rally surge",
+            "bull run",
+          ]),
+        );
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -434,7 +477,9 @@ describe("VinceXSentimentService", () => {
 
   describe("stagger and cache file", () => {
     it("refreshOneAsset(index) refreshes only that asset (one search call per tick)", async () => {
-      const search = vi.fn().mockResolvedValue(mockTweets(["bullish moon", "pump"]));
+      const search = vi
+        .fn()
+        .mockResolvedValue(mockTweets(["bullish moon", "pump"]));
       const runtime = createMockRuntime({
         services: {
           VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -443,7 +488,10 @@ describe("VinceXSentimentService", () => {
       const service = new VinceXSentimentService(runtime);
       await service.refreshOneAsset(1);
       expect(search).toHaveBeenCalledTimes(1);
-      expect(search).toHaveBeenCalledWith("$ETH OR Ethereum lang:en -is:reply -is:retweet", expect.any(Object));
+      expect(search).toHaveBeenCalledWith(
+        "$ETH OR Ethereum lang:en -is:reply -is:retweet",
+        expect.any(Object),
+      );
     });
 
     it("loads cache from file on start so getTradingSentiment returns file data for other assets", async () => {
@@ -488,9 +536,11 @@ describe("VinceXSentimentService", () => {
       const cwd = process.cwd();
       process.chdir(tmp);
       try {
-        const search = vi.fn().mockResolvedValue(
-          mockTweets(["bearish dump", "sell", "crash", "bear market"]),
-        );
+        const search = vi
+          .fn()
+          .mockResolvedValue(
+            mockTweets(["bearish dump", "sell", "crash", "bear market"]),
+          );
         const runtime = createMockRuntime({
           services: {
             VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
@@ -499,7 +549,11 @@ describe("VinceXSentimentService", () => {
         const service = new VinceXSentimentService(runtime);
         service.loadCacheFromFile();
         await service.refreshOneAsset(0);
-        const cachePath = path.join(".elizadb", "vince-paper-bot", "x-sentiment-cache.json");
+        const cachePath = path.join(
+          ".elizadb",
+          "vince-paper-bot",
+          "x-sentiment-cache.json",
+        );
         expect(existsSync(cachePath)).toBe(true);
         const data = JSON.parse(readFileSync(cachePath, "utf-8"));
         expect(data.BTC).toBeDefined();

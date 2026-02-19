@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { 
-  Execute, 
-  ExecuteStep, 
+import type {
+  Execute,
+  ExecuteStep,
   ExecuteStepItem,
   ProgressData,
   CallFees,
@@ -10,7 +10,15 @@ import type {
 } from "@relayprotocol/relay-sdk";
 
 // Re-export SDK types for convenience
-export type { Execute, ExecuteStep, ExecuteStepItem, ProgressData, CallFees, CallBreakdown, QuoteDetails };
+export type {
+  Execute,
+  ExecuteStep,
+  ExecuteStepItem,
+  ProgressData,
+  CallFees,
+  CallBreakdown,
+  QuoteDetails,
+};
 
 // Supported chains for Relay
 export const RelaySupportedChains = {
@@ -22,7 +30,8 @@ export const RelaySupportedChains = {
   SCROLL: 534352,
 } as const;
 
-export type RelayChainId = (typeof RelaySupportedChains)[keyof typeof RelaySupportedChains];
+export type RelayChainId =
+  (typeof RelaySupportedChains)[keyof typeof RelaySupportedChains];
 
 // Supported currencies
 export const RelayCurrencies = [
@@ -41,13 +50,19 @@ export type RelayCurrency = (typeof RelayCurrencies)[number];
 // Quote request schema - Updated for Relay SDK 2.x
 export const QuoteRequestSchema = z.object({
   user: z.string().describe("User wallet address"),
-  chainId: z.number().describe("Origin chain ID"),  // renamed from originChainId
-  toChainId: z.number().describe("Destination chain ID"),  // renamed from destinationChainId
-  currency: z.string().describe("Currency on origin chain"),  // renamed from originCurrency
-  toCurrency: z.string().optional().describe("Currency on destination chain"),  // renamed from destinationCurrency
+  chainId: z.number().describe("Origin chain ID"), // renamed from originChainId
+  toChainId: z.number().describe("Destination chain ID"), // renamed from destinationChainId
+  currency: z.string().describe("Currency on origin chain"), // renamed from originCurrency
+  toCurrency: z.string().optional().describe("Currency on destination chain"), // renamed from destinationCurrency
   amount: z.string().describe("Amount in wei"),
-  recipient: z.string().optional().describe("Recipient address (defaults to user)"),
-  tradeType: z.enum(["EXACT_INPUT", "EXACT_OUTPUT"]).optional().default("EXACT_INPUT"),
+  recipient: z
+    .string()
+    .optional()
+    .describe("Recipient address (defaults to user)"),
+  tradeType: z
+    .enum(["EXACT_INPUT", "EXACT_OUTPUT"])
+    .optional()
+    .default("EXACT_INPUT"),
   referrer: z.string().optional().describe("Referrer address for fees"),
 });
 
@@ -58,11 +73,22 @@ export type QuoteRequest = z.infer<typeof QuoteRequestSchema>;
 // Bridge request schema - LLM provides chain names, not IDs
 // Note: user address is derived from EVM_PRIVATE_KEY, not from LLM
 export const BridgeRequestSchema = z.object({
-  originChain: z.string().describe("Origin chain name (e.g., 'ethereum', 'base', 'arbitrum')"),
-  destinationChain: z.string().describe("Destination chain name (e.g., 'ethereum', 'base', 'arbitrum')"),
-  currency: z.string().describe("Currency to bridge (symbol like 'eth', 'usdc')"),
-  amount: z.string().describe("Amount in human-readable format (e.g., '0.5' for 0.5 ETH)"),
-  recipient: z.string().optional().describe("Recipient address (defaults to user's wallet)"),
+  originChain: z
+    .string()
+    .describe("Origin chain name (e.g., 'ethereum', 'base', 'arbitrum')"),
+  destinationChain: z
+    .string()
+    .describe("Destination chain name (e.g., 'ethereum', 'base', 'arbitrum')"),
+  currency: z
+    .string()
+    .describe("Currency to bridge (symbol like 'eth', 'usdc')"),
+  amount: z
+    .string()
+    .describe("Amount in human-readable format (e.g., '0.5' for 0.5 ETH)"),
+  recipient: z
+    .string()
+    .optional()
+    .describe("Recipient address (defaults to user's wallet)"),
   useExactInput: z.boolean().optional().default(true),
   useExternalLiquidity: z.boolean().optional().default(false),
   referrer: z.string().optional().describe("Referrer address"),
@@ -75,8 +101,8 @@ export interface ResolvedBridgeRequest {
   user: string;
   originChainId: number;
   destinationChainId: number;
-  currency: string;  // Contract address on origin chain
-  toCurrency?: string;  // Contract address on destination chain
+  currency: string; // Contract address on origin chain
+  toCurrency?: string; // Contract address on destination chain
   amount: string; // in wei
   recipient?: string;
   useExactInput?: boolean;
@@ -91,13 +117,15 @@ export const ExecuteCallRequestSchema = z.object({
   destinationChainId: z.number().describe("Destination chain ID"),
   originCurrency: z.string().describe("Currency on origin chain"),
   amount: z.string().describe("Amount in wei"),
-  txs: z.array(
-    z.object({
-      to: z.string().describe("Contract address to call"),
-      value: z.string().describe("Value to send"),
-      data: z.string().describe("Calldata"),
-    })
-  ).describe("Array of transactions to execute on destination"),
+  txs: z
+    .array(
+      z.object({
+        to: z.string().describe("Contract address to call"),
+        value: z.string().describe("Value to send"),
+        data: z.string().describe("Calldata"),
+      }),
+    )
+    .describe("Array of transactions to execute on destination"),
   recipient: z.string().optional().describe("Recipient address"),
 });
 

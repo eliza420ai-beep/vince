@@ -58,7 +58,12 @@ export const getEventDetailAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_EVENT_DETAIL", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_EVENT_DETAIL",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -66,13 +71,16 @@ export const getEventDetailAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_EVENT_DETAIL] Fetching event detail");
 
       // Extract parameters
-      const params = await extractActionParams<GetEventDetailParams>(runtime, message);
+      const params = await extractActionParams<GetEventDetailParams>(
+        runtime,
+        message,
+      );
 
       // Validate that at least one identifier is provided
       const eventIdOrSlug = params.event_id || params.event_slug;
@@ -114,7 +122,9 @@ export const getEventDetailAction: Action = {
       }
 
       // Fetch event detail
-      logger.info(`[GET_POLYMARKET_EVENT_DETAIL] Fetching event: ${eventIdOrSlug}`);
+      logger.info(
+        `[GET_POLYMARKET_EVENT_DETAIL] Fetching event: ${eventIdOrSlug}`,
+      );
       const event = await service.getEventDetail(eventIdOrSlug);
 
       // Format response
@@ -125,7 +135,7 @@ export const getEventDetailAction: Action = {
       }
 
       if (event.tags && event.tags.length > 0) {
-        text += `**Tags:** ${event.tags.map(t => t.label).join(", ")}\n\n`;
+        text += `**Tags:** ${event.tags.map((t) => t.label).join(", ")}\n\n`;
       }
 
       if (event.start_date) {
@@ -181,7 +191,7 @@ export const getEventDetailAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_EVENT_DETAIL] Successfully fetched event: ${event.title} (${event.markets?.length || 0} markets)`
+        `[GET_POLYMARKET_EVENT_DETAIL] Successfully fetched event: ${event.title} (${event.markets?.length || 0} markets)`,
       );
       return result;
     } catch (error) {

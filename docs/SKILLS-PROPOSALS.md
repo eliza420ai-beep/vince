@@ -1,6 +1,6 @@
 # Proposed Cursor Skills — Belief-Router Grade
 
-*Push, not pull. One team, one dream. No hype.*
+_Push, not pull. One team, one dream. No hype._
 
 This doc proposes **four new skills** for Cursor/Claude that match the quality and structure of the [Belief Router](https://github.com/rohunvora/belief-skill/blob/main/SKILL.md): clear triggers, input validation, structured process, fixed output format, and rules. Each fits VINCE/LIVETHELIFETV brand, north star (proactive agent, stay in the game without 12+ hours on screens), and existing agents (Solus, Sentinel, VINCE, Kelly, Eliza).
 
@@ -223,12 +223,12 @@ Next: [one line — "draft from X" or "need to add Y"]
 
 ## Summary
 
-| Skill            | Trigger (vibe)     | Input → Output              | Fits                          |
-|-----------------|--------------------|-----------------------------|-------------------------------|
-| **Strike Ritual**   | Weekly options call | View/stack → one structure + card | Solus, Hypersurface, $100K stack |
-| **Cost Burn**      | What's our burn     | Period → burn + trend + card | Sentinel, TREASURY            |
-| **Signal vs Noise**| Distill push        | ALOHA/standup/paste → top 3 + 3  | North star, stay in game      |
-| **Thesis-to-Essay**| Belief → essay shape| Thesis → title, debt, corpus | Thesis first, Eliza, Substack |
+| Skill               | Trigger (vibe)       | Input → Output                    | Fits                             |
+| ------------------- | -------------------- | --------------------------------- | -------------------------------- |
+| **Strike Ritual**   | Weekly options call  | View/stack → one structure + card | Solus, Hypersurface, $100K stack |
+| **Cost Burn**       | What's our burn      | Period → burn + trend + card      | Sentinel, TREASURY               |
+| **Signal vs Noise** | Distill push         | ALOHA/standup/paste → top 3 + 3   | North star, stay in game         |
+| **Thesis-to-Essay** | Belief → essay shape | Thesis → title, debt, corpus      | Thesis first, Eliza, Substack    |
 
 All four: **one job, input validation, structured process, fixed card, rules.** No execution, no keys, no hype. Evidence and clarity over volume.
 
@@ -241,24 +241,24 @@ All four: **one job, input validation, structured process, fixed card, rules.** 
 3. **Cost Burn** — Depends on cost data (TREASURY.md, Sentinel output, or Usage); template first if no data.
 4. **Thesis-to-Essay** — Depends on knowledge/ and Naval map; keyword scan is enough for v1.
 
-*Last updated: 2026-02-17. Belief Router reference: [rohunvora/belief-skill](https://github.com/rohunvora/belief-skill).*
+_Last updated: 2026-02-17. Belief Router reference: [rohunvora/belief-skill](https://github.com/rohunvora/belief-skill)._
 
 ---
 
 ## One skill per agent
 
-One Cursor/Claude skill per VINCE agent. Each is scoped to that agent’s lane and constraints; triggers and output are designed so a human (or another agent) can run the skill and get a result that *feels like* that agent. No execution in skills—Otaku is the only executor, and that stays in-app.
+One Cursor/Claude skill per VINCE agent. Each is scoped to that agent’s lane and constraints; triggers and output are designed so a human (or another agent) can run the skill and get a result that _feels like_ that agent. No execution in skills—Otaku is the only executor, and that stays in-app.
 
-| Agent | Skill name | One-line job |
-|-------|------------|--------------|
-| VINCE | **aloha-in-a-page** | One scannable ALOHA-style brief (vibe, majors, options, perps, trade today?). |
-| Kelly | **allowlist-pick** | One recommendation from lifestyle/knowledge (place, wine, workout) with one-line why. |
-| Solus | **strike-one-pager** | Weekly options call: CC vs CSP, asset, size/skip/watch, invalidation (Solus lane). |
-| Sentinel | **prd-from-brief** | Pasteable PRD or task brief from a short problem/scope description. |
-| Otaku | **execution-checklist** | Safe steps for a stated intent (swap, bridge, DCA); “Otaku executes, no keys here.” |
-| Oracle | **polymarket-scan** | Top markets + odds for a topic; read-only, no order placement. |
-| Eliza | **knowledge-router** | Which knowledge file/dir answers this; debt score; what to add if gap. |
-| ECHO | **x-pulse-one-pager** | One-pager of CT sentiment on a topic; “for prices ask VINCE.” |
+| Agent    | Skill name              | One-line job                                                                          |
+| -------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| VINCE    | **aloha-in-a-page**     | One scannable ALOHA-style brief (vibe, majors, options, perps, trade today?).         |
+| Kelly    | **allowlist-pick**      | One recommendation from lifestyle/knowledge (place, wine, workout) with one-line why. |
+| Solus    | **strike-one-pager**    | Weekly options call: CC vs CSP, asset, size/skip/watch, invalidation (Solus lane).    |
+| Sentinel | **prd-from-brief**      | Pasteable PRD or task brief from a short problem/scope description.                   |
+| Otaku    | **execution-checklist** | Safe steps for a stated intent (swap, bridge, DCA); “Otaku executes, no keys here.”   |
+| Oracle   | **polymarket-scan**     | Top markets + odds for a topic; read-only, no order placement.                        |
+| Eliza    | **knowledge-router**    | Which knowledge file/dir answers this; debt score; what to add if gap.                |
+| ECHO     | **x-pulse-one-pager**   | One-pager of CT sentiment on a topic; “for prices ask VINCE.”                         |
 
 ---
 
@@ -273,6 +273,7 @@ NOT for: live execution (Otaku), strike ritual (Solus), or full ALOHA run (use t
 **Process:** (1) If user has standup/day-report or pasted VINCE output, distill it. (2) If not, list what’s needed (options view, perps, vibe) and produce a template or “paste ALOHA output and I’ll distill.” (3) Output one page: vibe · majors · options · perps · trade today?
 
 **Output card:**
+
 ```
 ALOHA · [date]
 Vibe: [one word]
@@ -297,6 +298,7 @@ NOT for: trading, execution, or recommendations outside lifestyle (defer to othe
 **Process:** (1) Category + optional constraints (city, vibe, occasion). (2) Search or list `knowledge/the-good-life/`, `allowlist-places.txt`, or project equivalent. (3) Pick one; if none match, say “no match in allowlist—add one or ask Kelly in chat.” (4) One-line why + source path.
 
 **Output card:**
+
 ```
 KELLY PICK · [category]
 Pick: [name]
@@ -319,6 +321,7 @@ NOT for: belief routing (Belief Router), execution (Otaku), or live IV/options d
 **Process:** Same as **Strike Ritual Skill** (§1): asset scan (spot if available), structure choice, size/skip/watch, invalidation, cross-check. Spot from context or CoinGecko; direction/IV from pasted context or user.
 
 **Output card:**
+
 ```
 SOLUS · [ASSET] · [CC|CSP] · [SIZE|SKIP|WATCH]
 Notional: $[X] · Invalidation: [price or condition]
@@ -340,6 +343,7 @@ NOT for: running code, deploying, or cost/treasury (use cost-burn skill).
 **Process:** (1) Ingest brief (problem, scope, constraints). (2) Optional: scan project (plugins, docs) for context. (3) Output PRD format: context, goals, non-goals, scope, success criteria, open questions. (4) Pasteable markdown for `docs/standup/prds/` or Cursor.
 
 **Output card:**
+
 ```
 PRD · [short title]
 Context: [2–3 lines]
@@ -365,6 +369,7 @@ NOT for: actually executing (use Otaku in app), or pricing/TA (VINCE).
 **Process:** (1) Parse intent (e.g. “swap 100 USDC for ETH on Base”, “bridge to Base”, “set stop-loss on X”). (2) List steps: chain, wallet, confirmation points, estimated gas/fees if known. (3) One-line risks and “Otaku executes; no keys in this skill.”
 
 **Output card:**
+
 ```
 OTAKU CHECKLIST · [intent]
 1. [step]
@@ -391,6 +396,7 @@ NOT for: placing orders (read-only), or options/IV (VINCE/Solus).
 **Process:** (1) Topic or question (e.g. “Fed March”, “BTC 100k”). (2) Search priority markets (`knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md`) or generic search. (3) Top 3–5 markets with condition, yes/no odds, one-line relevance. (4) “For execution, use Polymarket in-app; this is read-only.”
 
 **Output card:**
+
 ```
 ORACLE · Polymarket scan · [topic]
 1. [market] — Yes [X]¢ · [one line]
@@ -414,6 +420,7 @@ NOT for: UPLOAD or writing (use Eliza in app), or live data (VINCE).
 **Process:** (1) Query or thesis. (2) Scan or list `knowledge/` (and known dirs: teammate, the-good-life, sentinel-docs, etc.). (3) Match files/dirs; if none, debt 3 (gap). (4) One-line “what to add” if gap.
 
 **Output card:**
+
 ```
 ELIZA · Knowledge · [query]
 Found: [path(s)] or "No match"
@@ -436,6 +443,7 @@ NOT for: prices or TA (handoff VINCE), or posting (read-only).
 **Process:** (1) Topic (e.g. BTC, SOL, funding) or “general CT.” (2) If x-research CLI available: run search or pulse equivalent; else describe “run X_PULSE or x-search for [topic]” and template output. (3) Bullets: key takes, accounts, sentiment. (4) “For prices/levels, ask VINCE.”
 
 **Output card:**
+
 ```
 ECHO · X pulse · [topic]
 • [take 1]
@@ -452,13 +460,13 @@ For prices/TA → VINCE.
 
 ### Summary: agent ↔ skill
 
-| Agent | Skill | Primary output |
-|-------|--------|-----------------|
-| VINCE | aloha-in-a-page | One-page brief (vibe, majors, options, perps, trade today?) |
-| Kelly | allowlist-pick | One lifestyle pick + why + source |
-| Solus | strike-one-pager | CC vs CSP, asset, size/skip/watch, invalidation |
-| Sentinel | prd-from-brief | Pasteable PRD / task brief |
-| Otaku | execution-checklist | Steps + confirmations for intent; “Otaku executes” |
-| Oracle | polymarket-scan | Top markets + odds for topic; read-only |
-| Eliza | knowledge-router | Paths + debt score + “what to add” if gap |
-| ECHO | x-pulse-one-pager | CT sentiment bullets + “for prices → VINCE” |
+| Agent    | Skill               | Primary output                                              |
+| -------- | ------------------- | ----------------------------------------------------------- |
+| VINCE    | aloha-in-a-page     | One-page brief (vibe, majors, options, perps, trade today?) |
+| Kelly    | allowlist-pick      | One lifestyle pick + why + source                           |
+| Solus    | strike-one-pager    | CC vs CSP, asset, size/skip/watch, invalidation             |
+| Sentinel | prd-from-brief      | Pasteable PRD / task brief                                  |
+| Otaku    | execution-checklist | Steps + confirmations for intent; “Otaku executes”          |
+| Oracle   | polymarket-scan     | Top markets + odds for topic; read-only                     |
+| Eliza    | knowledge-router    | Paths + debt score + “what to add” if gap                   |
+| ECHO     | x-pulse-one-pager   | CT sentiment bullets + “for prices → VINCE”                 |

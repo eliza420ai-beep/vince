@@ -33,7 +33,9 @@ type GetUserPositionsInput = {
   walletAddress?: string;
 };
 
-type GetUserPositionsActionResult = ActionResult & { input: GetUserPositionsInput };
+type GetUserPositionsActionResult = ActionResult & {
+  input: GetUserPositionsInput;
+};
 
 export const getUserPositionsAction: Action = {
   name: "GET_POLYMARKET_POSITIONS",
@@ -58,7 +60,12 @@ export const getUserPositionsAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_POSITIONS", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_POSITIONS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -66,15 +73,23 @@ export const getUserPositionsAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_POSITIONS] Getting user positions");
 
-      let params = await extractActionParams<GetUserPositionsParams>(runtime, message);
+      let params = await extractActionParams<GetUserPositionsParams>(
+        runtime,
+        message,
+      );
       let walletAddress = params.walletAddress?.trim();
       if (!walletAddress) {
-        const extracted = await extractPolymarketParams(runtime, message, _state, { useLlm: true });
+        const extracted = await extractPolymarketParams(
+          runtime,
+          message,
+          _state,
+          { useLlm: true },
+        );
         walletAddress = extracted.walletAddress?.trim();
       }
 
@@ -135,7 +150,9 @@ export const getUserPositionsAction: Action = {
       callback?.({ text: " Fetching positions..." });
 
       // Fetch user positions
-      logger.info(`[GET_POLYMARKET_POSITIONS] Fetching positions for ${walletAddress}`);
+      logger.info(
+        `[GET_POLYMARKET_POSITIONS] Fetching positions for ${walletAddress}`,
+      );
       const positions = await service.getUserPositions(walletAddress);
 
       if (positions.length === 0) {
@@ -203,7 +220,7 @@ export const getUserPositionsAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_POSITIONS] Successfully fetched ${positions.length} positions`
+        `[GET_POLYMARKET_POSITIONS] Successfully fetched ${positions.length} positions`,
       );
       return result;
     } catch (error) {

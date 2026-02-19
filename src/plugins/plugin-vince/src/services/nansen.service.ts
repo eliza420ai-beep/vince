@@ -19,12 +19,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 
 // Types
-export type NansenChain =
-  | "ethereum"
-  | "solana"
-  | "base"
-  | "arbitrum"
-  ;
+export type NansenChain = "ethereum" | "solana" | "base" | "arbitrum";
 
 export interface SmartMoneyToken {
   tokenAddress: string;
@@ -180,7 +175,9 @@ export class VinceNansenService extends Service {
     if (!this.apiKey) {
       if (!this.hasLoggedUnavailable) {
         this.hasLoggedUnavailable = true;
-        logger.debug("[VinceNansenService] Skipping request — no API key (Nansen optional).");
+        logger.debug(
+          "[VinceNansenService] Skipping request — no API key (Nansen optional).",
+        );
       }
       return null;
     }
@@ -236,7 +233,10 @@ export class VinceNansenService extends Service {
       return data;
     } catch (error) {
       clearTimeout(timeoutId);
-      logger.debug({ error, endpoint }, "[VinceNansenService] Fetch failed (Nansen optional)");
+      logger.debug(
+        { error, endpoint },
+        "[VinceNansenService] Fetch failed (Nansen optional)",
+      );
       return null;
     }
   }

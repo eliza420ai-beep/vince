@@ -179,6 +179,9 @@ export async function logAndApplyImprovementReportWeights(
         .join(", ");
       return `${model}: ${m}`;
     });
-    logger.info("[ImprovementReport] Holdout metrics (drift/sizing): " + parts.join(" | "));
+    logger.info(
+      "[ImprovementReport] Holdout metrics (drift/sizing): " +
+        parts.join(" | "),
+    );
   }
 }

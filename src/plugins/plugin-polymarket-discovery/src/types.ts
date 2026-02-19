@@ -31,31 +31,31 @@ export interface PolymarketRewards {
  * Note: API returns camelCase fields
  */
 export interface PolymarketMarket {
-  conditionId: string;             // 66 char hex ID (0x...) - API returns camelCase
-  question: string;                // Market question
-  description?: string;            // Detailed description
-  slug?: string;                   // URL-friendly slug - API returns camelCase
-  endDateIso?: string;             // ISO 8601 end date - API returns camelCase
-  game_start_time?: string;        // ISO 8601 game start
-  clobTokenIds?: string;           // CLOB token IDs (comma-separated) - API returns camelCase
-  tokens?: PolymarketToken[];      // Yes/No outcome tokens (if available)
-  rewards?: PolymarketRewards;     // Rewards program data
-  active?: boolean;                // Market is active
-  closed?: boolean;                // Market is closed
-  resolved?: boolean;              // Market has been resolved
-  volume?: string;                 // Trading volume (USD)
-  liquidity?: string;              // Available liquidity (USD)
-  category?: string;               // Market category
-  tags?: string[];                 // Market tags
-  icon?: string;                   // Icon URL
-  image?: string;                  // Image URL
-  competitive?: number;            // Competitiveness score (0-5)
-  enableOrderBook?: boolean;       // Order book enabled
-  neg_risk?: boolean;              // Negative risk market
+  conditionId: string; // 66 char hex ID (0x...) - API returns camelCase
+  question: string; // Market question
+  description?: string; // Detailed description
+  slug?: string; // URL-friendly slug - API returns camelCase
+  endDateIso?: string; // ISO 8601 end date - API returns camelCase
+  game_start_time?: string; // ISO 8601 game start
+  clobTokenIds?: string; // CLOB token IDs (comma-separated) - API returns camelCase
+  tokens?: PolymarketToken[]; // Yes/No outcome tokens (if available)
+  rewards?: PolymarketRewards; // Rewards program data
+  active?: boolean; // Market is active
+  closed?: boolean; // Market is closed
+  resolved?: boolean; // Market has been resolved
+  volume?: string; // Trading volume (USD)
+  liquidity?: string; // Available liquidity (USD)
+  category?: string; // Market category
+  tags?: string[]; // Market tags
+  icon?: string; // Icon URL
+  image?: string; // Image URL
+  competitive?: number; // Competitiveness score (0-5)
+  enableOrderBook?: boolean; // Order book enabled
+  neg_risk?: boolean; // Negative risk market
   // Snake_case aliases added by mapApiMarketToInterface
-  condition_id?: string;           // Alias for conditionId
-  end_date_iso?: string;           // Alias for endDateIso
-  market_slug?: string;            // Alias for slug
+  condition_id?: string; // Alias for conditionId
+  end_date_iso?: string; // Alias for endDateIso
+  market_slug?: string; // Alias for slug
   // From Gamma search/events payload (for getPricesFromMarketPayload)
   outcomePrices?: string | string[];
   // Parent event context when market comes from GET /events (for building polymarket.com/event URLs)
@@ -77,8 +77,8 @@ export interface MarketsResponse {
  * Order book entry (bid/ask)
  */
 export interface OrderBookEntry {
-  price: string;      // Price as string (0.01 - 0.99)
-  size: string;       // Size as string
+  price: string; // Price as string (0.01 - 0.99)
+  size: string; // Size as string
 }
 
 /**
@@ -139,12 +139,12 @@ export interface MarketPrices {
  * Search parameters for market discovery
  */
 export interface MarketSearchParams {
-  query?: string;              // Keyword search
-  category?: string;           // Filter by category
-  active?: boolean;            // Only active markets
-  closed?: boolean;            // Include closed markets
-  limit?: number;              // Results limit (default 20)
-  offset?: number;             // Pagination offset
+  query?: string; // Keyword search
+  category?: string; // Filter by category
+  active?: boolean; // Only active markets
+  closed?: boolean; // Include closed markets
+  limit?: number; // Results limit (default 20)
+  offset?: number; // Pagination offset
 }
 
 /**
@@ -180,10 +180,10 @@ export interface CachedPrice {
 export interface PolymarketServiceConfig {
   gammaApiUrl: string;
   clobApiUrl: string;
-  marketCacheTtl: number;     // TTL for market data (default 60s)
-  priceCacheTtl: number;      // TTL for price data (default 15s)
-  maxRetries: number;         // Max retry attempts (default 3)
-  requestTimeout: number;     // Request timeout in ms (default 10000)
+  marketCacheTtl: number; // TTL for market data (default 60s)
+  priceCacheTtl: number; // TTL for price data (default 15s)
+  maxRetries: number; // Max retry attempts (default 3)
+  requestTimeout: number; // Request timeout in ms (default 10000)
 }
 
 /**
@@ -203,8 +203,8 @@ export interface FormattedMarket {
  * Historical price data point
  */
 export interface PriceHistoryPoint {
-  t: number;  // Unix timestamp
-  p: string;  // Price as string (0.01 - 0.99)
+  t: number; // Unix timestamp
+  p: string; // Price as string (0.01 - 0.99)
 }
 
 /**
@@ -284,68 +284,68 @@ export interface PolymarketError {
  * Proxy wallet configuration
  */
 export interface ProxyWalletConfig {
-  gnosisProxyFactory: string;  // Gnosis Safe proxy factory address
-  customProxyFactory?: string;  // Custom proxy factory (if needed)
+  gnosisProxyFactory: string; // Gnosis Safe proxy factory address
+  customProxyFactory?: string; // Custom proxy factory (if needed)
 }
 
 /**
  * User position in a market (matches Polymarket Data API response)
  */
 export interface Position {
-  proxyWallet: string;         // User's proxy wallet address
-  asset: string;               // Token ID
-  conditionId: string;         // Condition ID
-  size: number;                // Position size
-  avgPrice: number;            // Average entry price
-  initialValue: number;        // Initial investment value
-  currentValue: number;        // Current position value in USD
-  cashPnl: number;             // Cash profit/loss (unrealized)
-  percentPnl: number;          // PnL as percentage
-  totalBought: number;         // Total amount bought
-  realizedPnl: number;         // Realized profit/loss
-  percentRealizedPnl: number;  // Realized PnL as percentage
-  curPrice: number;            // Current market price
-  redeemable: boolean;         // Can be redeemed
-  mergeable: boolean;          // Can be merged
-  title: string;               // Market title
-  slug: string;                // Market slug
-  icon: string;                // Market icon URL
-  eventId: string;             // Event ID
-  eventSlug: string;           // Event slug
-  outcome: string;             // "Yes" or "No"
-  outcomeIndex: number;        // 0 or 1
-  oppositeOutcome: string;     // Opposite outcome name
-  oppositeAsset: string;       // Opposite token ID
-  endDate: string;             // Market end date
-  negativeRisk: boolean;       // Negative risk flag
+  proxyWallet: string; // User's proxy wallet address
+  asset: string; // Token ID
+  conditionId: string; // Condition ID
+  size: number; // Position size
+  avgPrice: number; // Average entry price
+  initialValue: number; // Initial investment value
+  currentValue: number; // Current position value in USD
+  cashPnl: number; // Cash profit/loss (unrealized)
+  percentPnl: number; // PnL as percentage
+  totalBought: number; // Total amount bought
+  realizedPnl: number; // Realized profit/loss
+  percentRealizedPnl: number; // Realized PnL as percentage
+  curPrice: number; // Current market price
+  redeemable: boolean; // Can be redeemed
+  mergeable: boolean; // Can be merged
+  title: string; // Market title
+  slug: string; // Market slug
+  icon: string; // Market icon URL
+  eventId: string; // Event ID
+  eventSlug: string; // Event slug
+  outcome: string; // "Yes" or "No"
+  outcomeIndex: number; // 0 or 1
+  oppositeOutcome: string; // Opposite outcome name
+  oppositeAsset: string; // Opposite token ID
+  endDate: string; // Market end date
+  negativeRisk: boolean; // Negative risk flag
 }
 
 /**
  * User balance information
  */
 export interface Balance {
-  total_value: string;         // Total portfolio value in USD
-  available_balance: string;   // Available USDC balance
-  positions_value: string;     // Value locked in positions
-  realized_pnl: string;        // Realized profit/loss
-  unrealized_pnl: string;      // Unrealized profit/loss
-  timestamp?: number;          // Data timestamp
+  total_value: string; // Total portfolio value in USD
+  available_balance: string; // Available USDC balance
+  positions_value: string; // Value locked in positions
+  realized_pnl: string; // Realized profit/loss
+  unrealized_pnl: string; // Unrealized profit/loss
+  timestamp?: number; // Data timestamp
 }
 
 /**
  * Trade history entry
  */
 export interface Trade {
-  id: string;                  // Trade ID
-  market: string;              // Market identifier
-  condition_id: string;        // Condition ID
-  asset_id: string;            // Token ID
-  outcome: "YES" | "NO";       // Outcome traded
-  side: "BUY" | "SELL";        // Trade side
-  size: string;                // Trade size
-  price: string;               // Execution price
-  timestamp: number;           // Unix timestamp
-  transaction_hash?: string;   // On-chain tx hash
+  id: string; // Trade ID
+  market: string; // Market identifier
+  condition_id: string; // Condition ID
+  asset_id: string; // Token ID
+  outcome: "YES" | "NO"; // Outcome traded
+  side: "BUY" | "SELL"; // Trade side
+  size: string; // Trade size
+  price: string; // Execution price
+  timestamp: number; // Unix timestamp
+  transaction_hash?: string; // On-chain tx hash
 }
 
 /**
@@ -356,35 +356,35 @@ export interface Trade {
  * Open interest data for market-wide exposure metrics
  */
 export interface OpenInterestData {
-  total_value: string;         // Total value locked across all markets
-  markets_count?: number;      // Number of active markets
-  timestamp?: number;          // Data timestamp
+  total_value: string; // Total value locked across all markets
+  markets_count?: number; // Number of active markets
+  timestamp?: number; // Data timestamp
 }
 
 /**
  * Live volume data for real-time trading activity
  */
 export interface VolumeData {
-  total_volume_24h: string;    // 24h volume across all markets
+  total_volume_24h: string; // 24h volume across all markets
   markets?: Array<{
-    condition_id: string;      // Market identifier
-    volume: string;            // Market-specific volume
-    question?: string;         // Market question
+    condition_id: string; // Market identifier
+    volume: string; // Market-specific volume
+    question?: string; // Market question
   }>;
-  timestamp?: number;          // Data timestamp
+  timestamp?: number; // Data timestamp
 }
 
 /**
  * Spread data for bid-ask analysis
  */
 export interface SpreadData {
-  condition_id: string;        // Market identifier
-  spread: string;              // Bid-ask spread
-  spread_percentage: string;   // Spread as percentage
-  best_bid: string;            // Best bid price
-  best_ask: string;            // Best ask price
-  question?: string;           // Market question
-  liquidity_score?: number;    // Liquidity quality score (0-100)
+  condition_id: string; // Market identifier
+  spread: string; // Bid-ask spread
+  spread_percentage: string; // Spread as percentage
+  best_bid: string; // Best bid price
+  best_ask: string; // Best ask price
+  question?: string; // Market question
+  liquidity_score?: number; // Liquidity quality score (0-100)
 }
 
 /**
@@ -395,47 +395,47 @@ export interface SpreadData {
  * Tag structure from Polymarket API
  */
 export interface PolymarketTag {
-  id: string;                  // Tag ID
-  label: string;               // Tag display label
-  slug: string;                // URL-friendly slug
+  id: string; // Tag ID
+  label: string; // Tag display label
+  slug: string; // URL-friendly slug
 }
 
 /**
  * Polymarket Event (higher-level grouping of markets)
  */
 export interface PolymarketEvent {
-  id: string;                  // Event ID
-  slug?: string;               // URL-friendly slug
-  title: string;               // Event title
-  description?: string;        // Event description
-  start_date?: string;         // ISO 8601 start date
-  end_date?: string;           // ISO 8601 end date
-  image?: string;              // Event image URL
-  icon?: string;               // Event icon URL
-  active?: boolean;            // Event is active
-  closed?: boolean;            // Event is closed
-  archived?: boolean;          // Event is archived
-  tags?: PolymarketTag[];      // Event tags
+  id: string; // Event ID
+  slug?: string; // URL-friendly slug
+  title: string; // Event title
+  description?: string; // Event description
+  start_date?: string; // ISO 8601 start date
+  end_date?: string; // ISO 8601 end date
+  image?: string; // Event image URL
+  icon?: string; // Event icon URL
+  active?: boolean; // Event is active
+  closed?: boolean; // Event is closed
+  archived?: boolean; // Event is archived
+  tags?: PolymarketTag[]; // Event tags
   markets?: PolymarketMarket[]; // Associated markets (only in detail view)
-  market_count?: number;       // Number of markets in event
+  market_count?: number; // Number of markets in event
 }
 
 /**
  * Event detail response (includes associated markets)
  */
 export interface PolymarketEventDetail extends PolymarketEvent {
-  markets: PolymarketMarket[];  // Full list of markets for this event
+  markets: PolymarketMarket[]; // Full list of markets for this event
 }
 
 /**
  * Event filters for browsing
  */
 export interface EventFilters {
-  active?: boolean;            // Filter by active status
-  closed?: boolean;            // Include closed events
-  tag?: string;                // Filter by tag
-  limit?: number;              // Results limit (default 20)
-  offset?: number;             // Pagination offset
+  active?: boolean; // Filter by active status
+  closed?: boolean; // Include closed events
+  tag?: string; // Filter by tag
+  limit?: number; // Results limit (default 20)
+  offset?: number; // Pagination offset
 }
 /**
  * Phase 5A: Extended Portfolio Types
@@ -445,31 +445,31 @@ export interface EventFilters {
  * Closed position (resolved market)
  */
 export interface ClosedPosition {
-  market: string;              // Market identifier
-  condition_id: string;        // Condition ID
-  asset_id: string;            // Token ID
-  outcome: "YES" | "NO";       // Outcome position
-  size: string;                // Position size
-  avg_price: string;           // Average entry price
-  settlement_price: string;    // Final settlement price (0 or 1)
-  pnl: string;                 // Realized profit/loss
-  pnl_percentage: string;      // PnL as percentage
-  closed_at: number;           // Unix timestamp of settlement
-  payout: string;              // Total payout received
-  won: boolean;                // True if position won
+  market: string; // Market identifier
+  condition_id: string; // Condition ID
+  asset_id: string; // Token ID
+  outcome: "YES" | "NO"; // Outcome position
+  size: string; // Position size
+  avg_price: string; // Average entry price
+  settlement_price: string; // Final settlement price (0 or 1)
+  pnl: string; // Realized profit/loss
+  pnl_percentage: string; // PnL as percentage
+  closed_at: number; // Unix timestamp of settlement
+  payout: string; // Total payout received
+  won: boolean; // True if position won
 }
 
 /**
  * User activity entry (on-chain events)
  */
 export interface UserActivity {
-  id: string;                  // Activity ID
+  id: string; // Activity ID
   type: "DEPOSIT" | "WITHDRAWAL" | "TRADE" | "REDEMPTION"; // Activity type
-  amount: string;              // Amount in USDC
-  timestamp: number;           // Unix timestamp
-  transaction_hash: string;    // On-chain tx hash
-  market?: string;             // Related market (for trades)
-  outcome?: "YES" | "NO";      // Related outcome (for trades)
+  amount: string; // Amount in USDC
+  timestamp: number; // Unix timestamp
+  transaction_hash: string; // On-chain tx hash
+  market?: string; // Related market (for trades)
+  outcome?: "YES" | "NO"; // Related outcome (for trades)
   status: "CONFIRMED" | "PENDING"; // Transaction status
 }
 
@@ -477,12 +477,12 @@ export interface UserActivity {
  * Top holder in a market
  */
 export interface TopHolder {
-  address: string;             // Wallet address (may be anonymized)
-  outcome: "YES" | "NO";       // Outcome held
-  size: string;                // Position size
-  value: string;               // Current value in USD
-  percentage: string;          // % of total market liquidity
-  is_public: boolean;          // Whether wallet is publicly identified
+  address: string; // Wallet address (may be anonymized)
+  outcome: "YES" | "NO"; // Outcome held
+  size: string; // Position size
+  value: string; // Current value in USD
+  percentage: string; // % of total market liquidity
+  is_public: boolean; // Whether wallet is publicly identified
 }
 
 /** Gamma API: tag from GET /tags */
@@ -545,4 +545,3 @@ export interface PolymarketActivityEntry {
   data: Record<string, unknown>;
   timestamp: number;
 }
-

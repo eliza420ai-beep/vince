@@ -21,7 +21,10 @@ export function getSubstackFeedUrl(): string {
 
 function extractOne(tag: string, blob: string): string {
   const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`<${escaped}(?:\\s[^>]*)?>([\\s\\S]*?)</${escaped}>`, "i");
+  const re = new RegExp(
+    `<${escaped}(?:\\s[^>]*)?>([\\s\\S]*?)</${escaped}>`,
+    "i",
+  );
   const m = blob.match(re);
   if (!m) return "";
   let raw = m[1];
@@ -45,7 +48,8 @@ function parseRssFeed(xml: string): SubstackPost[] {
 
     let chunks: string[] = [];
     for (const m of xml.matchAll(itemRegex)) chunks.push(m[1]);
-    if (chunks.length === 0) for (const m of xml.matchAll(entryRegex)) chunks.push(m[1]);
+    if (chunks.length === 0)
+      for (const m of xml.matchAll(entryRegex)) chunks.push(m[1]);
 
     for (let i = 0; i < Math.min(chunks.length, MAX_POSTS); i++) {
       const blob = chunks[i];
@@ -67,12 +71,16 @@ function parseRssFeed(xml: string): SubstackPost[] {
 /**
  * Fetch and parse Substack RSS. Returns up to MAX_POSTS. Never throws.
  */
-export async function fetchSubstackPosts(feedUrl: string): Promise<SubstackPost[]> {
+export async function fetchSubstackPosts(
+  feedUrl: string,
+): Promise<SubstackPost[]> {
   try {
     const res = await fetch(feedUrl, {
       headers: {
-        Accept: "application/rss+xml, application/xml, text/xml, application/atom+xml",
-        "User-Agent": "Vince-Bot/1.0 (Ikigai Studio; +https://github.com/elizaos/eliza)",
+        Accept:
+          "application/rss+xml, application/xml, text/xml, application/atom+xml",
+        "User-Agent":
+          "Vince-Bot/1.0 (Ikigai Studio; +https://github.com/elizaos/eliza)",
       },
       signal: AbortSignal.timeout(10000),
     });

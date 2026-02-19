@@ -49,12 +49,12 @@ Purpose: canonical runtime contract for the VINCE paper-trading and execution fl
 
 **Role:** User-triggered or interactive commands. Not for scheduled cron turns.
 
-| Intent            | Trigger examples                    | Action / path                          |
-|-------------------|-------------------------------------|----------------------------------------|
-| Execute trade     | "trade", "go long", "go short"      | `VINCE_BOT_TRADE` → `openTrade()`      |
-| Check status      | "bot status", "portfolio"           | `VINCE_BOT_STATUS`                     |
-| Pause / resume    | "pause bot", "resume bot"           | `VINCE_BOT_PAUSE`                      |
-| Explain decision  | "why", "explain"                    | `VINCE_WHY_TRADE`                      |
+| Intent           | Trigger examples               | Action / path                     |
+| ---------------- | ------------------------------ | --------------------------------- |
+| Execute trade    | "trade", "go long", "go short" | `VINCE_BOT_TRADE` → `openTrade()` |
+| Check status     | "bot status", "portfolio"      | `VINCE_BOT_STATUS`                |
+| Pause / resume   | "pause bot", "resume bot"      | `VINCE_BOT_PAUSE`                 |
+| Explain decision | "why", "explain"               | `VINCE_WHY_TRADE`                 |
 
 If a user asks to execute and no plan/signal exists, generate or refresh context first (e.g. “trade” can trigger evaluation then execution).
 

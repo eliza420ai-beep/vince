@@ -5,7 +5,11 @@
 
 import type { IAgentRuntime } from "@elizaos/core";
 import { logger } from "@elizaos/core";
-import type { CdpService, MorphoService, BankrOrdersService } from "../types/services";
+import type {
+  CdpService,
+  MorphoService,
+  BankrOrdersService,
+} from "../types/services";
 
 export const MORPHO_HEALTH_WARN_THRESHOLD = 1.2;
 
@@ -26,7 +30,9 @@ export async function getAlerts(runtime: IAgentRuntime): Promise<AlertItem[]> {
 
   const cdp = runtime.getService("cdp") as CdpService | null;
   const morpho = runtime.getService("morpho") as MorphoService | null;
-  const bankrOrders = runtime.getService("bankr_orders") as BankrOrdersService | null;
+  const bankrOrders = runtime.getService(
+    "bankr_orders",
+  ) as BankrOrdersService | null;
 
   let address: string | undefined;
   if (cdp?.getWalletAddress) {
@@ -64,7 +70,10 @@ export async function getAlerts(runtime: IAgentRuntime): Promise<AlertItem[]> {
       if (bankrOrders.getActiveOrders) {
         orders = await bankrOrders.getActiveOrders();
       } else if (address && bankrOrders.listOrders) {
-        const listRes = await bankrOrders.listOrders({ maker: address, status: "active" });
+        const listRes = await bankrOrders.listOrders({
+          maker: address,
+          status: "active",
+        });
         orders = listRes.orders ?? [];
       }
       const stopOrders = orders.filter(
@@ -72,8 +81,8 @@ export async function getAlerts(runtime: IAgentRuntime): Promise<AlertItem[]> {
           (o.orderType ?? o.type ?? "").toLowerCase().includes("stop") ||
           (o.orderType ?? o.type ?? "").toLowerCase().includes("sl"),
       );
-      const dcaOrders = orders.filter(
-        (o) => (o.orderType ?? o.type ?? "").toLowerCase().includes("dca"),
+      const dcaOrders = orders.filter((o) =>
+        (o.orderType ?? o.type ?? "").toLowerCase().includes("dca"),
       );
       if (stopOrders.length > 0) {
         alerts.push({

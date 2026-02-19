@@ -59,7 +59,7 @@ We expect Solus (and the Day Report) to produce something as actionable as this.
 - **On-chain / contrarian:** e.g. MVRV, base-building, JPM mining cost floor, Bernstein targets.
 - **Clear answer:** Yes/No (e.g. "No, I don't think BTC will be above $70,000 by next Friday") with short-term path and caveats.
 
-Example closing line: *"My take: No, I don't think BTC will be above $70,000 by next Friday. The prevailing extreme fear, recent 30%+ monthly drop, and lack of immediate bullish catalysts suggest continued chop or downside pressure in the $60,000–$70,000 range over the next week."*
+Example closing line: _"My take: No, I don't think BTC will be above $70,000 by next Friday. The prevailing extreme fear, recent 30%+ monthly drop, and lack of immediate bullish catalysts suggest continued chop or downside pressure in the $60,000–$70,000 range over the next week."_
 
 The standup and Day Report must include: (1) the essential question, (2) Solus's call (Above/Below/Uncertain + one sentence), (3) TL;DR and actions.
 
@@ -71,28 +71,28 @@ The standup and Day Report must include: (1) the essential question, (2) Solus's
 
 Use this list when generating release notes. Scan PR titles, descriptions, and linked issues to extract key changes.
 
-| # | Title | Merged |
-|---|--------|--------|
-| 20 | Daily Standup FineTune | 2026-02-13 |
-| 19 | fix(standup): turn-based responses + concise prompts | 2026-02-13 |
-| 18 | Feature/v2.4 multiagent | 2026-02-12 |
-| 17 | feat(v2.5): Autonomous Trading Standup System | 2026-02-12 |
-| 16 | feat(v2.4): Symmetric A2A Discord Chat with Loop Protection | 2026-02-12 |
-| 15 | feat: v2.3.0 — BANKR Deep Integration | 2026-02-12 |
-| 14 | docs: v2.2.0 release notes | 2026-02-12 |
-| 13 | feat: plugin-x-research + ECHO agent (CSO) | 2026-02-12 |
-| 12 | Feature/plugin x research | 2026-02-12 |
-| 11 | Feature/plugin eliza | 2026-02-11 |
-| 10 | feat(plugin-sentinel): 10x upgrade - world-class core dev with PRDs, trading intelligence, multi-agent vision | 2026-02-11 |
-| 9 | feat(plugin-eliza): Dedicated Eliza plugin with content production capabilities | 2026-02-11 |
-| 8 | Implement OpenClaw plugin integration and enhance market data fetching… | 2026-02-11 |
-| 7 | 🚀 V2.0.0 - OpenClaw Enterprise Plugin (28+ Features) | 2026-02-11 |
-| 6 | Refactor character plugin tests to use a type guard for plugin retrieval | 2026-02-09 |
-| 5 | Feat/oneteamonedream | 2026-02-09 |
-| 4 | Frontend/otaku mirror | 2026-02-06 |
-| 3 | Merge pull request #1 from IkigaiLabsETH/frontend/otaku-mirror | 2026-02-06 |
-| 2 | Frontend/otaku mirror | 2026-02-06 (closed) |
-| 1 | Frontend/otaku mirror | 2026-02-06 |
+| #   | Title                                                                                                         | Merged              |
+| --- | ------------------------------------------------------------------------------------------------------------- | ------------------- |
+| 20  | Daily Standup FineTune                                                                                        | 2026-02-13          |
+| 19  | fix(standup): turn-based responses + concise prompts                                                          | 2026-02-13          |
+| 18  | Feature/v2.4 multiagent                                                                                       | 2026-02-12          |
+| 17  | feat(v2.5): Autonomous Trading Standup System                                                                 | 2026-02-12          |
+| 16  | feat(v2.4): Symmetric A2A Discord Chat with Loop Protection                                                   | 2026-02-12          |
+| 15  | feat: v2.3.0 — BANKR Deep Integration                                                                         | 2026-02-12          |
+| 14  | docs: v2.2.0 release notes                                                                                    | 2026-02-12          |
+| 13  | feat: plugin-x-research + ECHO agent (CSO)                                                                    | 2026-02-12          |
+| 12  | Feature/plugin x research                                                                                     | 2026-02-12          |
+| 11  | Feature/plugin eliza                                                                                          | 2026-02-11          |
+| 10  | feat(plugin-sentinel): 10x upgrade - world-class core dev with PRDs, trading intelligence, multi-agent vision | 2026-02-11          |
+| 9   | feat(plugin-eliza): Dedicated Eliza plugin with content production capabilities                               | 2026-02-11          |
+| 8   | Implement OpenClaw plugin integration and enhance market data fetching…                                       | 2026-02-11          |
+| 7   | 🚀 V2.0.0 - OpenClaw Enterprise Plugin (28+ Features)                                                         | 2026-02-11          |
+| 6   | Refactor character plugin tests to use a type guard for plugin retrieval                                      | 2026-02-09          |
+| 5   | Feat/oneteamonedream                                                                                          | 2026-02-09          |
+| 4   | Frontend/otaku mirror                                                                                         | 2026-02-06          |
+| 3   | Merge pull request #1 from IkigaiLabsETH/frontend/otaku-mirror                                                | 2026-02-06          |
+| 2   | Frontend/otaku mirror                                                                                         | 2026-02-06 (closed) |
+| 1   | Frontend/otaku mirror                                                                                         | 2026-02-06          |
 
 **Key themes to extract (examples):** Sentinel 10x, Eliza plugin V2, OpenClaw, plugin-x-research, ECHO (CSO), BANKR, A2A + loop protection, autonomous standup, standup state/orchestrator/data fetcher, turn-based standup, Day Report, One Team One Dream, frontend/otaku mirror.
 
@@ -110,6 +110,7 @@ Extract key changes per PR/theme: Sentinel 10x, Eliza plugin, OpenClaw, x-resear
 Output a GitHub-ready CHANGELOG entry + README "What's New" section.
 
 **Why it matters:**
+
 - Single source of truth: closed PRs drive release notes
 - Accurate history from v1/v2 through standup fine-tune (PR #20)
 - Reduces manual curation and missed PRs
@@ -130,17 +131,20 @@ Output a GitHub-ready CHANGELOG entry + README "What's New" section.
 ## ✅ Success Criteria
 
 **Must Have (P0):**
+
 - [ ] Feature works as described in Goal
 - [ ] No regression in existing functionality
 - [ ] Tests pass: `bun test`
 - [ ] TypeScript compiles: `bun run build`
 
 **Should Have (P1):**
+
 - [ ] Unit tests for new services
 - [ ] Error handling for edge cases
 - [ ] Logs at appropriate levels (debug, info, warn, error)
 
 **Nice to Have (P2):**
+
 - [ ] Performance within acceptable bounds
 - [ ] Documentation updated if public API changes
 
@@ -152,8 +156,8 @@ Output a GitHub-ready CHANGELOG entry + README "What's New" section.
 
 **Target Location:** `src/plugins/plugin-sentinel/src/`
 
-
 **Architecture Rules (MANDATORY):**
+
 1. **Plugin boundaries:** Logic lives in plugins, not agents. Agents are thin orchestrators.
 2. **No duplicate lanes:** Each agent owns a clear domain. No overlapping responsibilities.
 3. **Services over actions:** Complex logic goes in services; actions are thin wrappers.
@@ -219,21 +223,25 @@ Output a GitHub-ready CHANGELOG entry + README "What's New" section.
 ## 🧪 Testing & Validation
 
 **Unit Tests:**
+
 - File: `src/plugins/plugin-sentinel/src/__tests__/release-notes-from-closed-prs.test.ts` (or equivalent)
 - Mock external dependencies
 - Test happy path + error cases
 
 **Integration Tests:**
+
 - Verify action triggers correctly
 - Verify service outputs expected data
 - Check cache behavior if applicable
 
 **Manual Verification:**
+
 - Run `elizaos dev`
 - Trigger the action via chat
 - Verify output matches expectations
 
 **Commands:**
+
 ```bash
 bun test src/plugins/plugin-sentinel/  # Run plugin tests
 bun run build                     # Type check
@@ -245,6 +253,7 @@ elizaos dev                       # Manual test
 ## 🚫 Out of Scope
 
 **NOT included in this PRD:**
+
 - UI changes (unless explicitly stated)
 - Database schema changes (unless explicitly stated)
 - Changes to other plugins (except plugin-sentinel)
@@ -252,10 +261,11 @@ elizaos dev                       # Manual test
 - Documentation updates (separate task)
 
 **Future considerations:**
+
 - Automate release-notes generation from closed PRs (e.g. on release tag)
 - Per-version slices (e.g. “v2.2.0” = PRs merged before that tag)
 - Integration with GitHub API for PR body/description extraction
 
 ---
 
-*Generated by Sentinel PRD Generator. Keep the architecture as good as it gets.*
+_Generated by Sentinel PRD Generator. Keep the architecture as good as it gets._

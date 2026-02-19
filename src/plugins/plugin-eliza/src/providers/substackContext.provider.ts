@@ -20,7 +20,8 @@ import {
   type SubstackPost,
 } from "../services/substackFeed";
 
-const SUBSTACK_PROFILE_API_BASE = "https://substack.com/profile/search/linkedin";
+const SUBSTACK_PROFILE_API_BASE =
+  "https://substack.com/profile/search/linkedin";
 const RSS_CACHE_KEY = "plugin-eliza:substack:rss";
 const PROFILE_CACHE_KEY = "plugin-eliza:substack:profile";
 const RSS_CACHE_TTL_MS = 20 * 60 * 1000; // 20 min
@@ -56,7 +57,9 @@ function getLinkedInHandle(): string | null {
   return handle || null;
 }
 
-async function fetchSubstackProfile(linkedInHandle: string): Promise<SubstackProfileResult | null> {
+async function fetchSubstackProfile(
+  linkedInHandle: string,
+): Promise<SubstackProfileResult | null> {
   try {
     const url = `${SUBSTACK_PROFILE_API_BASE}/${encodeURIComponent(linkedInHandle)}`;
     const res = await fetch(url, {
@@ -79,12 +82,17 @@ function formatProfileSummary(profile: SubstackProfileResult | null): string {
   const parts: string[] = [];
   if (profile.profileUrl) parts.push(`Profile: ${profile.profileUrl}`);
   if (profile.identityHandle) parts.push(`Handle: @${profile.identityHandle}`);
-  if (typeof profile.followerCount === "number") parts.push(`Followers: ${profile.followerCount}`);
+  if (typeof profile.followerCount === "number")
+    parts.push(`Followers: ${profile.followerCount}`);
   if (typeof profile.roughNumFreeSubscribers === "number")
     parts.push(`~Free subscribers: ${profile.roughNumFreeSubscribers}`);
   const ls = profile.leaderboardStatus;
-  if (ls?.label) parts.push(`Leaderboard: ${ls.label}${ls.rank != null ? ` (rank ${ls.rank})` : ""}`);
-  if (profile.bestsellerTier) parts.push(`Bestseller: ${profile.bestsellerTier}`);
+  if (ls?.label)
+    parts.push(
+      `Leaderboard: ${ls.label}${ls.rank != null ? ` (rank ${ls.rank})` : ""}`,
+    );
+  if (profile.bestsellerTier)
+    parts.push(`Bestseller: ${profile.bestsellerTier}`);
   return parts.join(". ");
 }
 
@@ -121,9 +129,12 @@ export const substackContextProvider: Provider = {
         values.substackRecentPosts = posts;
         if (posts.length > 0) {
           const lines = posts.map(
-            (p) => `- "${p.title}" ${p.link}${p.date ? ` (${p.date.slice(0, 10)})` : ""}`,
+            (p) =>
+              `- "${p.title}" ${p.link}${p.date ? ` (${p.date.slice(0, 10)})` : ""}`,
           );
-          textParts.push(`Recent Ikigai Studio Substack posts:\n${lines.join("\n")}`);
+          textParts.push(
+            `Recent Ikigai Studio Substack posts:\n${lines.join("\n")}`,
+          );
         }
       }
 

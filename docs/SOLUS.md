@@ -37,14 +37,14 @@ Solus is the **CFO (Chief Financial Officer)** agent: Hypersurface options exper
 
 ## Key Files for Code Review
 
-| Area | Path |
-|------|------|
-| Agent definition | [src/agents/solus.ts](src/agents/solus.ts) |
-| Plugin entry | [src/plugins/plugin-solus/src/index.ts](src/plugins/plugin-solus/src/index.ts) |
-| Actions | [src/plugins/plugin-solus/src/actions/](src/plugins/plugin-solus/src/actions/) |
-| Providers | [src/plugins/plugin-solus/src/providers/](src/plugins/plugin-solus/src/providers/) |
-| Utils (isSolus) | [src/plugins/plugin-solus/src/utils/solus.ts](src/plugins/plugin-solus/src/utils/solus.ts) |
-| Three curves | [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) |
+| Area             | Path                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| Agent definition | [src/agents/solus.ts](src/agents/solus.ts)                                                 |
+| Plugin entry     | [src/plugins/plugin-solus/src/index.ts](src/plugins/plugin-solus/src/index.ts)             |
+| Actions          | [src/plugins/plugin-solus/src/actions/](src/plugins/plugin-solus/src/actions/)             |
+| Providers        | [src/plugins/plugin-solus/src/providers/](src/plugins/plugin-solus/src/providers/)         |
+| Utils (isSolus)  | [src/plugins/plugin-solus/src/utils/solus.ts](src/plugins/plugin-solus/src/utils/solus.ts) |
+| Three curves     | [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md)                   |
 
 ---
 

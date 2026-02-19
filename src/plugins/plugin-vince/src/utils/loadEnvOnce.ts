@@ -52,9 +52,13 @@ export function loadEnvOnce(): void {
         if (eq > 0) {
           const key = trimmed.slice(0, eq).trim();
           let val = trimmed.slice(eq + 1).trim();
-          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+          if (
+            (val.startsWith('"') && val.endsWith('"')) ||
+            (val.startsWith("'") && val.endsWith("'"))
+          )
             val = val.slice(1, -1);
-          if (!process.env[key] || key === "X_BEARER_TOKEN") process.env[key] = val;
+          if (!process.env[key] || key === "X_BEARER_TOKEN")
+            process.env[key] = val;
         }
       }
     }

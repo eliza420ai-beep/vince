@@ -94,7 +94,9 @@ async function fetchBankrOrders(runtime: IAgentRuntime): Promise<BankrOrder[]> {
           allOrders.push(...result.orders);
         }
       } catch (err) {
-        logger.warn(`[BankrOrdersProvider] Error fetching orders for ${wallet.address}: ${err}`);
+        logger.warn(
+          `[BankrOrdersProvider] Error fetching orders for ${wallet.address}: ${err}`,
+        );
       }
     }
 
@@ -130,7 +132,7 @@ function getChainName(chainId?: number): string {
     42161: "Arbitrum",
     10: "Optimism",
   };
-  return chainId ? chains[chainId] ?? `Chain ${chainId}` : "Unknown";
+  return chainId ? (chains[chainId] ?? `Chain ${chainId}`) : "Unknown";
 }
 
 /**
@@ -141,13 +143,10 @@ function getChainName(chainId?: number): string {
  */
 export const bankrOrdersProvider: Provider = {
   name: "BANKR_ORDERS_PROVIDER",
-  description: "Active BANKR orders (limit/stop/DCA/TWAP) for cross-agent context",
+  description:
+    "Active BANKR orders (limit/stop/DCA/TWAP) for cross-agent context",
 
-  get: async (
-    runtime: IAgentRuntime,
-    _message: Memory,
-    _state?: State
-  ) => {
+  get: async (runtime: IAgentRuntime, _message: Memory, _state?: State) => {
     const orders = await fetchBankrOrders(runtime);
 
     if (orders.length === 0) {

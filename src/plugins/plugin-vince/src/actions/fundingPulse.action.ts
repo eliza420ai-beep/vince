@@ -125,7 +125,10 @@ export const vinceFundingPulseAction: Action = {
   description:
     "Who's paying: funding rates, long/short ratio, liquidation heat — one narrative plus optional tweet",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("funding") ||
@@ -163,9 +166,7 @@ export const vinceFundingPulseAction: Action = {
         for (const asset of CORE_ASSETS) {
           const f = coinglass.getFunding(asset);
           if (f)
-            fundingLines.push(
-              `${asset}: ${(f.rate * 100).toFixed(4)}% (8h)`,
-            );
+            fundingLines.push(`${asset}: ${(f.rate * 100).toFixed(4)}% (8h)`);
           const ls = coinglass.getLongShortRatio(asset);
           if (ls)
             lsLines.push(
@@ -222,11 +223,7 @@ export const vinceFundingPulseAction: Action = {
         lsLines,
         liquidationLines,
       );
-      const briefing = await generateHumanBriefing(
-        runtime,
-        dataContext,
-        date,
-      );
+      const briefing = await generateHumanBriefing(runtime, dataContext, date);
       const tweet = await generateTweet(runtime, dataContext, date);
 
       const sections: string[] = [];

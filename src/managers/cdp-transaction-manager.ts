@@ -1658,7 +1658,8 @@ export class CdpTransactionManager {
               transport: http(rpcUrl),
             });
 
-            const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
+            const wrappedNativeAddress =
+              WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
             if (!wrappedNativeAddress) {
               throw new Error(
                 `Wrapped native token not configured for network: ${network}`,
@@ -1762,7 +1763,8 @@ export class CdpTransactionManager {
             transport: http(rpcUrl),
           });
 
-          const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
+          const wrappedNativeAddress =
+            WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
           if (!wrappedNativeAddress) {
             throw new Error(
               `Wrapped native token not configured for network: ${network}`,
@@ -2678,7 +2680,8 @@ export class CdpTransactionManager {
       throw new Error(`Uniswap V3 Quoter not available on network: ${network}`);
     }
 
-    const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
+    const wrappedNativeAddress =
+      WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
     if (!wrappedNativeAddress) {
       throw new Error(
         `Wrapped native token not configured for network: ${network}`,

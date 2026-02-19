@@ -36,7 +36,11 @@ export interface AgentIdentity {
 // Reputation Registry Types
 // ---------------------------------------------------------------------------
 
-export type TrustModel = "reputation" | "crypto-economic" | "tee-attestation" | "zkml";
+export type TrustModel =
+  | "reputation"
+  | "crypto-economic"
+  | "tee-attestation"
+  | "zkml";
 
 export interface ReputationEntry {
   rater: string;

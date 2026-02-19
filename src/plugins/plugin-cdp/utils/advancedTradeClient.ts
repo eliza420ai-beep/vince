@@ -16,7 +16,11 @@ export interface AdvancedTradeConfig {
   keySecret: string; // PEM EC private key (ES256)
 }
 
-function buildJwt(method: string, path: string, config: AdvancedTradeConfig): string {
+function buildJwt(
+  method: string,
+  path: string,
+  config: AdvancedTradeConfig,
+): string {
   const uri = `${method} ${REQUEST_HOST}${path}`;
   const nbf = Math.floor(Date.now() / 1000);
   const exp = nbf + 120;
@@ -37,7 +41,7 @@ export async function advancedTradeRequest<T>(
   method: "GET" | "POST" | "DELETE",
   path: string,
   config: AdvancedTradeConfig,
-  body?: object
+  body?: object,
 ): Promise<T> {
   const jwt = buildJwt(method, path, config);
   const url = `${ADVANCED_TRADE_BASE}${path}`;

@@ -11,7 +11,10 @@ import { MorphoService } from "../services";
 import { MorphoMarketData, UserPosition } from "../types";
 import { getEntityWallet } from "../../../../utils/entity";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
-import { validateMorphoService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateMorphoService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 import BigNumber from "bignumber.js";
 
 interface MarketPositionsParams {
@@ -24,7 +27,9 @@ type MarketPositionsInput = {
   chain?: string;
 };
 
-type MarketPositionsActionResult = ActionResult & { input: MarketPositionsInput };
+type MarketPositionsActionResult = ActionResult & {
+  input: MarketPositionsInput;
+};
 
 // Helper function to format market position data
 function formatMarketPositionData(positions: UserPosition[]) {
@@ -56,11 +61,13 @@ function formatMarketPositionData(positions: UserPosition[]) {
         currentLoanPerCollateral: pos.prices.currentLoanPerCollateral,
         liquidationLoanPerCollateral: pos.prices.liquidationLoanPerCollateral,
       },
-      supply: pos.supply ? {
-        hasSupplied: pos.supply.hasSupplied,
-        currentApy: pos.supply.currentApy,
-        earnedInterest: pos.supply.earnedInterest,
-      } : undefined,
+      supply: pos.supply
+        ? {
+            hasSupplied: pos.supply.hasSupplied,
+            currentApy: pos.supply.currentApy,
+            earnedInterest: pos.supply.earnedInterest,
+          }
+        : undefined,
     };
   });
 }
@@ -97,7 +104,12 @@ export const marketPositionsAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validateMorphoService(runtime, "GET_MORPHO_MARKET_POSITIONS", state, message);
+    return validateMorphoService(
+      runtime,
+      "GET_MORPHO_MARKET_POSITIONS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -107,12 +119,19 @@ export const marketPositionsAction: Action = {
     options?: any,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    logger.info("[GET_MORPHO_MARKET_POSITIONS] Starting Morpho positions action");
+    logger.info(
+      "[GET_MORPHO_MARKET_POSITIONS] Starting Morpho positions action",
+    );
 
     try {
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<MarketPositionsParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<MarketPositionsParams>;
 
       // Store input parameters for return
       const inputParams: MarketPositionsInput = {
@@ -125,7 +144,7 @@ export const marketPositionsAction: Action = {
       );
 
       // Determine chain - default to 'base' if not provided
-      const chain = (inputParams.chain as any) || 'base';
+      const chain = (inputParams.chain as any) || "base";
 
       // Get CDP service
       const cdp = runtime.getService(CdpService.serviceType) as CdpService;
@@ -161,7 +180,9 @@ export const marketPositionsAction: Action = {
       );
 
       if (wallet.success === false) {
-        logger.warn("[GET_MORPHO_MARKET_POSITIONS] Entity wallet verification failed");
+        logger.warn(
+          "[GET_MORPHO_MARKET_POSITIONS] Entity wallet verification failed",
+        );
         return {
           ...wallet.result,
           input: inputParams,
@@ -212,11 +233,13 @@ export const marketPositionsAction: Action = {
           walletAddress,
           inputParams.market,
           chain,
-          publicClient
+          publicClient,
         );
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        logger.error(`[GET_MORPHO_MARKET_POSITIONS] Could not fetch position data: ${errMsg}`);
+        logger.error(
+          `[GET_MORPHO_MARKET_POSITIONS] Could not fetch position data: ${errMsg}`,
+        );
         const errorResult: MarketPositionsActionResult = {
           text: ` Failed to fetch position data: ${errMsg}`,
           success: false,
@@ -238,9 +261,9 @@ export const marketPositionsAction: Action = {
       }
 
       // Success message
-      const hasPositions = positions.some(p => p?.hasPosition);
+      const hasPositions = positions.some((p) => p?.hasPosition);
       let text: string;
-      
+
       if (inputParams.market) {
         const position = positions[0];
         text = position?.hasPosition
@@ -248,7 +271,7 @@ export const marketPositionsAction: Action = {
           : ` You don't have an open position for ${inputParams.market} on ${chain}.`;
       } else {
         text = hasPositions
-          ? ` Successfully fetched all your Morpho positions on ${chain}. Found ${positions.filter(p => p?.hasPosition).length} position${positions.filter(p => p?.hasPosition).length === 1 ? '' : 's'}.`
+          ? ` Successfully fetched all your Morpho positions on ${chain}. Found ${positions.filter((p) => p?.hasPosition).length} position${positions.filter((p) => p?.hasPosition).length === 1 ? "" : "s"}.`
           : ` You don't have any open positions on ${chain}.`;
       }
 
@@ -292,8 +315,13 @@ export const marketPositionsAction: Action = {
       // Try to capture input params even in failure
       let failureInputParams: MarketPositionsInput = {};
       try {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams ?? {}) as Partial<MarketPositionsParams>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams ??
+          {}) as Partial<MarketPositionsParams>;
         failureInputParams = {
           market: params.market?.trim(),
           chain: params.chain?.trim()?.toLowerCase(),

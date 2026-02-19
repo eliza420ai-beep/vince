@@ -290,14 +290,26 @@ export class VinceMLInferenceService extends Service {
       if (report) {
         this.improvementReport = report;
         const cal = report.signal_quality_calibration;
-        if (cal && typeof cal.scale === "number" && typeof cal.intercept === "number") {
-          this.signalQualityCalibration = { scale: cal.scale, intercept: cal.intercept };
-          logger.info(`[MLInference] Signal quality calibration: scale=${cal.scale}, intercept=${cal.intercept}`);
+        if (
+          cal &&
+          typeof cal.scale === "number" &&
+          typeof cal.intercept === "number"
+        ) {
+          this.signalQualityCalibration = {
+            scale: cal.scale,
+            intercept: cal.intercept,
+          };
+          logger.info(
+            `[MLInference] Signal quality calibration: scale=${cal.scale}, intercept=${cal.intercept}`,
+          );
         } else {
           this.signalQualityCalibration = null;
         }
       }
-      if (typeof meta.signal_quality_input_dim === "number" && meta.signal_quality_input_dim > 0) {
+      if (
+        typeof meta.signal_quality_input_dim === "number" &&
+        meta.signal_quality_input_dim > 0
+      ) {
         this.signalQualityInputDim = meta.signal_quality_input_dim;
         logger.info(
           `[MLInference] Signal quality input dim: ${this.signalQualityInputDim}`,
@@ -396,7 +408,7 @@ export class VinceMLInferenceService extends Service {
     const allIndices = [0, 1, 2];
     const tpLevelSkipped =
       tpIndices.length < 3
-        ? allIndices.find((i) => !tpIndices.includes(i)) ?? null
+        ? (allIndices.find((i) => !tpIndices.includes(i)) ?? null)
         : null;
     return {
       modelsLoaded,
@@ -540,7 +552,8 @@ export class VinceMLInferenceService extends Service {
 
         // Assuming output is probability (binary: index 0 or 1; use positive class)
         let probability = results.output?.data?.[0] ?? 0.5;
-        const numOutputs = results.output?.dims?.[1] ?? (results.output?.data?.length ?? 1);
+        const numOutputs =
+          results.output?.dims?.[1] ?? results.output?.data?.length ?? 1;
         if (numOutputs > 1 && typeof results.output?.data?.[1] === "number") {
           probability = results.output.data[1];
         }

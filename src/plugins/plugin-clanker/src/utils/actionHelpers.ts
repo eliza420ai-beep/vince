@@ -4,7 +4,12 @@
  * Shared utilities for Clanker plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
 import { ClankerService } from "../services/clanker.service";
 import { shouldClankerPluginBeInContext } from "../../matcher";
 
@@ -21,7 +26,7 @@ export function validateClankerService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   try {
     // Check plugin context first
@@ -30,7 +35,7 @@ export function validateClankerService(
     }
 
     const service = runtime.getService(
-      ClankerService.serviceType
+      ClankerService.serviceType,
     ) as ClankerService;
 
     if (!service) {
@@ -42,7 +47,7 @@ export function validateClankerService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -55,10 +60,10 @@ export function validateClankerService(
  * @returns Clanker service instance or null
  */
 export function getClankerService(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): ClankerService | null {
   return runtime.getService(
-    ClankerService.serviceType
+    ClankerService.serviceType,
   ) as ClankerService | null;
 }
 
@@ -71,12 +76,12 @@ export function getClankerService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }

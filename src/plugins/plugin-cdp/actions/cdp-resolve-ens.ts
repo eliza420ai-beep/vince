@@ -166,11 +166,17 @@ export const cdpResolveEns: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<ResolveEnsParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<ResolveEnsParams>;
 
       if (!params.query || params.query.trim().length === 0) {
-        const errorMsg = "ENS query is required. Provide an ENS name like 'vitalik.eth' or an Ethereum address.";
+        const errorMsg =
+          "ENS query is required. Provide an ENS name like 'vitalik.eth' or an Ethereum address.";
         logger.error(`[RESOLVE_ENS] ${errorMsg}`);
         const errorResult: ResolveEnsActionResult = {
           text: ` ${errorMsg}`,
@@ -197,7 +203,9 @@ export const cdpResolveEns: Action = {
 
       const url = buildRequestUrl(resolvedParams);
 
-      callback?.({ text: ` Resolving ENS data for \`${resolvedParams.query}\`...` });
+      callback?.({
+        text: ` Resolving ENS data for \`${resolvedParams.query}\`...`,
+      });
       logger.info(`[RESOLVE_ENS] Fetching ENS data from ${url}`);
 
       const response = await fetch(url, {
@@ -305,7 +313,12 @@ export const cdpResolveEns: Action = {
       },
     ],
     [
-      { name: "{{user}}", content: { text: "lookup the ens for 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "lookup the ens for 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+        },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -316,7 +329,10 @@ export const cdpResolveEns: Action = {
       },
     ],
     [
-      { name: "{{user}}", content: { text: "get ens info vitalik.eth including farcaster" } },
+      {
+        name: "{{user}}",
+        content: { text: "get ens info vitalik.eth including farcaster" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -331,4 +347,3 @@ export const cdpResolveEns: Action = {
 };
 
 export default cdpResolveEns;
-

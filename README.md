@@ -5,13 +5,13 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
 
-### *Push, not pull.*
+### _Push, not pull._
 
 **Unified data intelligence** for options · perps · memes · DeFi · lifestyle · NFT floors — with a **self-improving paper trading bot** at the core. Battle-tested signal from the trenches; no hype, no shilling, no timing the market.
 
@@ -31,20 +31,27 @@
 
 ---
 
-## What's New in V3.0 — Renaissance Fund 3.0
+## What's New in V3.3
 
-Every trade expressible onchain. The daily **What's the Trade** thesis now constrains picks to Hyperliquid perps (4 core + 34 HIP-3 assets). The full WTT → Paper Bot → Feature Store → ML loop is live.
+**102 tests pass, 0 fail. Build clean. Type check clean.** The daily standup is now the team's single report of the day.
 
-| Focus | Summary |
-|:---|:---|
-| **HIP-3 only picks** | Thesis, narrative, and extraction prompts enforce onchain-only tickers. Hard gate rejects non-HIP-3 primary picks (falls back to alt). `ECHO_WTT_HIP3_ONLY=true` (default). |
-| **WTT → Paper Bot** | Daily thesis generates a structured JSON pick; paper bot auto-evaluates, opens trades with WTT rubric metadata (alignment, edge, payoff, timing). |
-| **Feature store + ML** | WTT rubric ordinals stored per trade. `invalidateHit` computed on close. `wtt_*` columns in ML training; improvement report includes `wtt_performance` when 5+ WTT trades. |
-| **Robinhood as context** | Offchain stock data stays (gated by `ECHO_WTT_ROBINHOOD_ENABLED=true`) but labeled "context only" — LLM sees IREN is hot, expresses the thesis via SEMIS or AMD. |
-| **Hyperliquid adapter** | Expanded from 3 tickers to full 38-asset universe (live funding, OI, volume for all HIP-3 + core). |
-| **Env vars** | `ECHO_WTT_HIP3_ONLY`, `ECHO_WTT_ROBINHOOD_ENABLED`, `VINCE_PAPER_WTT_ENABLED`. |
+| Focus                                | Summary                                                                                                                                                                                                                                                                                  |
+| :----------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Day Report = Report of the Day**   | Kelly's daily standup output is now an 800-1200 word flowing narrative (same style as VINCE's Report of the Day: trading desk letter, cross-agent data, opinionated take) followed by a **Daily TODO** table (5-7 actionable items with @Owner). Parsed automatically by the Ralph loop. |
+| **Team Priorities in every standup** | The Day Report prompt includes 11 strategic priorities (BTC macro, Solus options, paper bot, Otaku web4 wallet, Sentinel repo, Eliza content, Clawterm AI agents, Oracle Polymarket, ECHO X alpha, Kelly+Naval live the life, VINCE data sources) so TODO items always move the needle.  |
+| **Duplicate WTT trade fix**          | Paper bot was opening the same What's-the-Trade pick twice when two eval cycles fired before the position registered. Fix: pick file is renamed to `.traded.json` after opening.                                                                                                         |
+| **TypeScript declarations fixed**    | Build now emits clean declarations (was "Failed to generate TypeScript declarations"). Added module declarations for `@elizaos/plugin-x402`, included `elizaos-plugins.d.ts` in build config, excluded standalone scripts, fixed XDK type casts.                                         |
+| **Pre-existing test fixes**          | `buildShortStandupKickoff` test updated for Naval quote format; Otaku template test updated for wallet-setup focus.                                                                                                                                                                      |
+| **Single Oracle for Polymarket**     | Oracle runs all three desk workers (analyst, risk, perf). Polymarket Risk and Performance agents removed.                                                                                                                                                                                |
+| **Quick actions + About**            | Agent-specific quick actions and About modals refined for all 10 agents.                                                                                                                                                                                                                 |
 
-**Previous releases:** [v2.8](docs/RELEASE_v2.8.md) · [v2.7](docs/RELEASE_v2.7.md) · [v2.5.0](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
+### System status (from startup logs)
+
+**Healthy:** 10 agents running, all connected to Discord, 13+ data sources live (CoinGlass, CoinGecko, Deribit, Binance, Hyperliquid, Santiment, MandoMinutes, DefiLlama, Meteora, DexScreener, Nansen, Polymarket, X). Paper bot active with 20 trades, 22 historical contexts, Bayesian tuner with 8 observations. ML signal quality calibrated (74 features, threshold 0.5). Top signal features: RSI lag2 (8.47%), priceChange24h (6.08%), DVOL (5.73%). Source importance: MarketRegime 40.3%, NewsSentiment 36.6%, BinanceFundingExtreme 23.1%.
+
+**Next up:** Otaku wallet keys (CDP/Bankr/Morpho plugins loaded, just needs `EVM_PRIVATE_KEY`), ONNX rebuild (`bun rebuild onnxruntime-node`), CoinGlass/Liquidation/TopTraders at 0% ML importance (data is live but not yet contributing to signal quality).
+
+**Previous releases:** [v3.0](docs/RELEASE_v3.0.md) · [v2.8](docs/RELEASE_v2.8.md) · [v2.7](docs/RELEASE_v2.7.md) · [v2.5.0](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -52,16 +59,18 @@ Every trade expressible onchain. The daily **What's the Trade** thesis now const
 
 Clear lanes, no overlap: data → plan → call → lifestyle → infra.
 
-| Agent | Lane |
-|:---|:---|
-| **Eliza** | Knowledge, research, brainstorm — the base everything builds on. |
-| **VINCE** | Objective data: options, perps, memes, news, paper bot. Push, not pull. |
-| **ECHO** | CT sentiment, X research, social alpha. Your ears on X. |
-| **Oracle** | Prediction markets: Polymarket (read-only). Priority markets; handoffs to VINCE and Solus. |
-| **Solus** | Plan and call. Size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
-| **Otaku** | **Only agent with a funded wallet.** DeFi: Morpho, yield, CDP; mints NFTs when Sentinel creates gen art. |
-| **Kelly** | Touch grass: hotels, fine dining, wine, health, fitness. No trading. |
-| **Sentinel** | Ops, cost steward, ONNX, ART, clawdbot, task briefs for Claude. |
+| Agent        | Lane                                                                                                      |
+| :----------- | :-------------------------------------------------------------------------------------------------------- |
+| **Eliza**    | Knowledge, research, brainstorm, Substack content — the base everything builds on.                        |
+| **VINCE**    | Objective data: options, perps, memes, news, paper bot, 13+ data sources. Push, not pull.                 |
+| **ECHO**     | CT sentiment, X research, social alpha, contrarian flags. Your ears on X.                                 |
+| **Oracle**   | Prediction markets: Polymarket discovery, odds, portfolio (read-only). Single agent for all desk workers. |
+| **Solus**    | Plan and call. Weekly BTC options on Hypersurface, strike/direction/invalidation.                         |
+| **Otaku**    | **Only agent with a wallet.** DeFi: Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Web4 path.          |
+| **Kelly**    | Touch grass: hotels, fine dining, wine, health, fitness. Standup facilitator. No trading.                 |
+| **Sentinel** | Ops, cost steward, ONNX, ART, PRDs, OpenClaw guide, repo improvements.                                    |
+| **Naval**    | Philosophy, mental models, standup conclusions. One thesis, one signal, one team one dream.               |
+| **Clawterm** | AI agents terminal: OpenClaw skills, Milaidy, ElizaOS, setup tips, trending.                              |
 
 → [MULTI_AGENT.md](docs/MULTI_AGENT.md) — One conversation, ask any teammate by name; standups 2×/day; policy and Discord.
 
@@ -75,20 +84,20 @@ Clear lanes, no overlap: data → plan → call → lifestyle → infra.
 
 ## Quick Links
 
-| | |
-|:---|:---|
-| [FEATURE-STORE](docs/FEATURE-STORE.md) | ML & paper bot · feature store |
-| [PAPER-BOT-AND-ML](docs/PAPER-BOT-AND-ML.md) | Heart of VINCE · signals → trades → learning · MandoMinutes · train_models |
-| [ONNX](docs/ONNX.md) | Train → export → deploy · recent train_models.py improvements |
-| [MULTI_AGENT](docs/MULTI_AGENT.md) | ASK_AGENT · standups |
-| [Release v2.8](docs/RELEASE_v2.8.md) | OpenClaw orientation · standup reorg · docs cleanup |
-| [OTAKU](docs/OTAKU.md) | The executor agent · dev section |
-| [SUPABASE_MIGRATION](docs/SUPABASE_MIGRATION.md) | Production persistence |
-| [DEPLOY](docs/DEPLOY.md) | Eliza Cloud · env · troubleshooting |
-| [CLAUDE](CLAUDE.md) | Dev guide (character, plugins, tests) |
-| [plugin-vince](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
-| [plugin-kelly](src/plugins/plugin-kelly/) | Lifestyle concierge |
-| [BRANDING](docs/BRANDING.md) | Voice · positioning · LIVETHELIFETV |
+|                                                  |                                                                            |
+| :----------------------------------------------- | :------------------------------------------------------------------------- |
+| [FEATURE-STORE](docs/FEATURE-STORE.md)           | ML & paper bot · feature store                                             |
+| [PAPER-BOT-AND-ML](docs/PAPER-BOT-AND-ML.md)     | Heart of VINCE · signals → trades → learning · MandoMinutes · train_models |
+| [ONNX](docs/ONNX.md)                             | Train → export → deploy · recent train_models.py improvements              |
+| [MULTI_AGENT](docs/MULTI_AGENT.md)               | ASK_AGENT · standups                                                       |
+| [Release v2.8](docs/RELEASE_v2.8.md)             | OpenClaw orientation · standup reorg · docs cleanup                        |
+| [OTAKU](docs/OTAKU.md)                           | The executor agent · dev section                                           |
+| [SUPABASE_MIGRATION](docs/SUPABASE_MIGRATION.md) | Production persistence                                                     |
+| [DEPLOY](docs/DEPLOY.md)                         | Eliza Cloud · env · troubleshooting                                        |
+| [CLAUDE](CLAUDE.md)                              | Dev guide (character, plugins, tests)                                      |
+| [plugin-vince](src/plugins/plugin-vince/)        | README · WHAT · WHY · HOW                                                  |
+| [plugin-kelly](src/plugins/plugin-kelly/)        | Lifestyle concierge                                                        |
+| [BRANDING](docs/BRANDING.md)                     | Voice · positioning · LIVETHELIFETV                                        |
 
 **For OpenClaw:** Working on this repo or the fork? See [OPENCLAW.md](OPENCLAW.md) for **openclaw-agents/**, **vault/**, **skills/**, **tasks/**.
 
@@ -123,7 +132,7 @@ Renaissance Fund has always been about one thing: **translating raw conviction i
 - **ALOHA** — Primary action. One command: vibe check + PERPS + OPTIONS + "should we trade today?"
 - **Paper bot & ML** — More signal coverage, cleaner features, better ONNX. Supabase Postgres, retrain + improvement weights, getVibeCheck → paper bot, NASDAQ 24h + macro. Avoided decisions now stored for ML.
 
-*ALOHA in, better ML out.*
+_ALOHA in, better ML out._
 
 ---
 
@@ -133,7 +142,7 @@ Signals → trades → feature store → Python train → ONNX deploy. Four mode
 
 **Recent pipeline:** Optuna tuning, walk-forward validation, SHAP explainability, lag features, Platt calibration, feature manifests, ONNX hashing, parallel training; retrain when win rate &lt; 45%. No train/serve skew; no holdout leakage.
 
-**VinceBench helps ML automatically.** Every closed trade gets a per-decision *bench score* (process quality: signal, risk, timing, regime). That score is stored on the feature record (`labels.benchScore`) and used at training time: with `--bench-score-weight`, the signal-quality model learns more from high-quality decisions; optional `--min-bench-score` or `--bench-score-quantile` trains only on strong-process trades. New trades get the score when they close; historical JSONL can be backfilled with `bun run src/plugins/plugin-vince/scripts/backfill-bench-scores.ts --input .elizadb/vince-paper-bot/features`. Details → [FEATURE-STORE.md § VinceBench and ML](docs/FEATURE-STORE.md#vincebench-and-ml).
+**VinceBench helps ML automatically.** Every closed trade gets a per-decision _bench score_ (process quality: signal, risk, timing, regime). That score is stored on the feature record (`labels.benchScore`) and used at training time: with `--bench-score-weight`, the signal-quality model learns more from high-quality decisions; optional `--min-bench-score` or `--bench-score-quantile` trains only on strong-process trades. New trades get the score when they close; historical JSONL can be backfilled with `bun run src/plugins/plugin-vince/scripts/backfill-bench-scores.ts --input .elizadb/vince-paper-bot/features`. Details → [FEATURE-STORE.md § VinceBench and ML](docs/FEATURE-STORE.md#vincebench-and-ml).
 
 **Re-run training** (from repo root; writes ONNX into the agent models dir so no copy step):
 
@@ -187,14 +196,16 @@ bun start              # production (Postgres when POSTGRES_URL set)
 
 ## Scripts
 
-| Script | Purpose |
-|:---|:---|
-| `elizaos dev` | Hot-reload development |
-| `bun start` | Production start (migration bootstrap when POSTGRES_URL set) |
-| `bun run deploy:cloud` | Deploy to Eliza Cloud |
-| `bun run sync:supabase` | Backfill features to Supabase |
-| `bun run db:check` | Verify DB migrations |
-| `bun run train-models` | Train ML models (see [plugin-vince/scripts](src/plugins/plugin-vince/scripts/README.md)) |
+| Script                  | Purpose                                                                                  |
+| :---------------------- | :--------------------------------------------------------------------------------------- |
+| `elizaos dev`           | Hot-reload development                                                                   |
+| `bun start`             | Production start (migration bootstrap when POSTGRES_URL set)                             |
+| `bun run deploy:cloud`  | Deploy to Eliza Cloud                                                                    |
+| `bun run sync:supabase` | Backfill features to Supabase                                                            |
+| `bun run db:check`      | Verify DB migrations                                                                     |
+| `bun run train-models`  | Train ML models (see [plugin-vince/scripts](src/plugins/plugin-vince/scripts/README.md)) |
+| `bun run type-check`    | TypeScript check (no emit). Run before PRs.                                              |
+| `bun run check-all`     | type-check + format check + tests                                                        |
 
 ---
 
@@ -209,20 +220,20 @@ bun start              # production (Postgres when POSTGRES_URL set)
 
 ## Quick Reference
 
-| | | |
-|:---|:---|:---|
-| **Run** | `elizaos dev` | `bun start` |
-| **Deploy** | `bun run deploy:cloud` | |
-| **Backfill** | `bun run sync:supabase` | |
-| **DB** | `bun run db:check` | `bun run db:bootstrap` |
+|                   |                            |                                   |
+| :---------------- | :------------------------- | :-------------------------------- |
+| **Run**           | `elizaos dev`              | `bun start`                       |
+| **Deploy**        | `bun run deploy:cloud`     |                                   |
+| **Backfill**      | `bun run sync:supabase`    |                                   |
+| **DB**            | `bun run db:check`         | `bun run db:bootstrap`            |
 | **Feature store** | `vince_paper_bot_features` | `plugin_vince.paper_bot_features` |
-| **ML bucket** | `vince-ml-models` | |
-| **Train** | `bun run train-models` | Holdout metrics in report |
+| **ML bucket**     | `vince-ml-models`          |                                   |
+| **Train**         | `bun run train-models`     | Holdout metrics in report         |
 
 ---
 
 <div align="center">
 
-*Built with [ElizaOS](https://github.com/elizaos/eliza). No hype. No permission. No exit.*
+_Built with [ElizaOS](https://github.com/elizaos/eliza). No hype. No permission. No exit._
 
 </div>

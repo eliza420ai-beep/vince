@@ -56,7 +56,10 @@ export async function loadPredictions(): Promise<Prediction[]> {
     return Array.isArray(data) ? data : [];
   } catch (e: unknown) {
     if ((e as NodeJS.ErrnoException)?.code === "ENOENT") return [];
-    logger.warn({ err: e }, "[PredictionTracker] Failed to load predictions.json");
+    logger.warn(
+      { err: e },
+      "[PredictionTracker] Failed to load predictions.json",
+    );
     return [];
   }
 }
@@ -76,13 +79,17 @@ async function savePredictions(predictions: Prediction[]): Promise<void> {
 /**
  * Save a new prediction (e.g. from Solus's structured call after Day Report).
  */
-export async function savePrediction(input: PredictionInput): Promise<Prediction> {
+export async function savePrediction(
+  input: PredictionInput,
+): Promise<Prediction> {
   const predictions = await loadPredictions();
   const id = `pred-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const pred: Prediction = { ...input, id, source: input.source ?? "Solus" };
   predictions.push(pred);
   await savePredictions(predictions);
-  logger.info(`[PredictionTracker] Saved prediction: ${input.asset} ${input.direction} ${input.strike ?? "—"} expiry ${input.expiryDate}`);
+  logger.info(
+    `[PredictionTracker] Saved prediction: ${input.asset} ${input.direction} ${input.strike ?? "—"} expiry ${input.expiryDate}`,
+  );
   return pred;
 }
 
@@ -107,7 +114,11 @@ async function fetchPriceUsd(asset: string): Promise<number | null> {
 /**
  * Validate predictions whose expiry has passed: fetch actual price and set outcome.
  */
-export async function validatePredictions(): Promise<{ validated: number; correct: number; incorrect: number }> {
+export async function validatePredictions(): Promise<{
+  validated: number;
+  correct: number;
+  incorrect: number;
+}> {
   const predictions = await loadPredictions();
   const now = new Date().toISOString();
   let validated = 0;
@@ -119,8 +130,10 @@ export async function validatePredictions(): Promise<{ validated: number; correc
     const actualPrice = await fetchPriceUsd(p.asset);
     if (actualPrice == null) continue;
     const strike = p.strike ?? 0;
-    const aboveHit = p.direction.toLowerCase() === "above" && actualPrice >= strike;
-    const belowHit = p.direction.toLowerCase() === "below" && actualPrice <= strike;
+    const aboveHit =
+      p.direction.toLowerCase() === "above" && actualPrice >= strike;
+    const belowHit =
+      p.direction.toLowerCase() === "below" && actualPrice <= strike;
     const hit = aboveHit || belowHit;
     p.outcome = hit ? "correct" : "incorrect";
     p.actualPrice = actualPrice;
@@ -131,7 +144,9 @@ export async function validatePredictions(): Promise<{ validated: number; correc
   }
   if (validated > 0) {
     await savePredictions(predictions);
-    logger.info(`[PredictionTracker] Validated ${validated} predictions: ${correct} correct, ${incorrect} incorrect`);
+    logger.info(
+      `[PredictionTracker] Validated ${validated} predictions: ${correct} correct, ${incorrect} incorrect`,
+    );
   }
   return { validated, correct, incorrect };
 }
@@ -139,7 +154,10 @@ export async function validatePredictions(): Promise<{ validated: number; correc
 /**
  * Get accuracy stats for the last N predictions (only validated ones).
  */
-export function getAccuracyStats(predictions: Prediction[], lastN = 10): {
+export function getAccuracyStats(
+  predictions: Prediction[],
+  lastN = 10,
+): {
   total: number;
   correct: number;
   incorrect: number;
@@ -152,7 +170,9 @@ export function getAccuracyStats(predictions: Prediction[], lastN = 10): {
   const incorrect = last.filter((p) => p.outcome === "incorrect").length;
   const total = last.length;
   const accuracyPct = total > 0 ? Math.round((correct / total) * 100) : 0;
-  const lastIncorrect = [...withOutcome].reverse().find((p) => p.outcome === "incorrect");
+  const lastIncorrect = [...withOutcome]
+    .reverse()
+    .find((p) => p.outcome === "incorrect");
   const lastMiss =
     lastIncorrect != null && lastIncorrect.actualPrice != null
       ? `${lastIncorrect.asset} ${lastIncorrect.direction} $${lastIncorrect.strike ?? "?"} on ${(lastIncorrect.expiryDate ?? "").slice(0, 10)} — was $${lastIncorrect.actualPrice}`
@@ -181,7 +201,10 @@ export async function formatPredictionScoreboard(lastN = 10): Promise<string> {
  * Extract Solus call from structured block and save as prediction.
  * Expiry is parsed from call.expiry (ISO date string); if missing, use 7 days from now.
  */
-export function predictionFromStructuredCall(parsed: ParsedStructuredBlock, date: string): PredictionInput | null {
+export function predictionFromStructuredCall(
+  parsed: ParsedStructuredBlock,
+  date: string,
+): PredictionInput | null {
   const call = parsed?.call;
   if (!call?.asset || !call?.direction) return null;
   let expiryDate = call.expiry?.trim();

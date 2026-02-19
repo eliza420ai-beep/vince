@@ -47,9 +47,15 @@ export const openclawAi2027Action: Action = {
   similes: ["OPENCLAW_AI_2027", "AI_2027", "AGI_SCENARIO"],
   description:
     "Return AI 2027 scenario summary from ai-2027.com (superhuman AI, AGI timelines, OpenBrain, Agent progression, alignment, takeoff). Use when the user asks about AI 2027, ai-2027, AGI timeline, takeoff, superhuman AI scenario, Kokotajlo, OpenBrain.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /ai\s*2027|ai-2027/i.test(text) ||
       /agi\s*timeline|takeoff/i.test(text) ||
@@ -73,11 +79,23 @@ export const openclawAi2027Action: Action = {
   examples: [
     [
       { name: "{{user}}", content: { text: "What's AI 2027?" } },
-      { name: "{{agent}}", content: { text: AI_2027_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_2027"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: AI_2027_MD.slice(0, 500) + "...",
+          actions: ["OPENCLAW_AI_2027"],
+        },
+      },
     ],
     [
       { name: "{{user}}", content: { text: "Tell me about the AGI timeline" } },
-      { name: "{{agent}}", content: { text: AI_2027_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_2027"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: AI_2027_MD.slice(0, 500) + "...",
+          actions: ["OPENCLAW_AI_2027"],
+        },
+      },
     ],
   ],
 };

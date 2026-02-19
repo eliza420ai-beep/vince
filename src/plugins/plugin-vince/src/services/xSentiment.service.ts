@@ -8,7 +8,13 @@
  * Persistent cache file for restarts and optional cron. Depends on VinceXResearchService.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  renameSync,
+} from "node:fs";
 import path from "node:path";
 import { Service, logger } from "@elizaos/core";
 import type { IAgentRuntime } from "@elizaos/core";
@@ -50,7 +56,11 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function getStaggerIntervalMs(): number {
   loadEnvOnce();
-  const ms = parseInt(process.env.X_SENTIMENT_STAGGER_INTERVAL_MS ?? String(STAGGER_INTERVAL_MS_DEFAULT), 10);
+  const ms = parseInt(
+    process.env.X_SENTIMENT_STAGGER_INTERVAL_MS ??
+      String(STAGGER_INTERVAL_MS_DEFAULT),
+    10,
+  );
   return Math.max(10 * 60_000, Math.min(ONE_DAY_MS, ms)); // 10 min to 24h
 }
 
@@ -68,7 +78,9 @@ function getMinTweetsForConfidence(): number {
   const v = process.env.X_SENTIMENT_MIN_TWEETS;
   if (v === undefined || v === "") return MIN_TWEETS_FOR_CONFIDENCE_DEFAULT;
   const n = parseInt(v, 10);
-  return Number.isNaN(n) || n < 1 ? MIN_TWEETS_FOR_CONFIDENCE_DEFAULT : Math.min(20, n);
+  return Number.isNaN(n) || n < 1
+    ? MIN_TWEETS_FOR_CONFIDENCE_DEFAULT
+    : Math.min(20, n);
 }
 const BULL_BEAR_THRESHOLD_DEFAULT = 0.15;
 function getBullBearThreshold(): number {
@@ -76,7 +88,9 @@ function getBullBearThreshold(): number {
   const v = process.env.X_SENTIMENT_BULL_BEAR_THRESHOLD;
   if (v === undefined || v === "") return BULL_BEAR_THRESHOLD_DEFAULT;
   const n = parseFloat(v);
-  return Number.isNaN(n) || n <= 0 ? BULL_BEAR_THRESHOLD_DEFAULT : Math.min(0.5, n);
+  return Number.isNaN(n) || n <= 0
+    ? BULL_BEAR_THRESHOLD_DEFAULT
+    : Math.min(0.5, n);
 }
 
 /** Allowed since values for X search (X API start_time). Default 1d. */
@@ -92,7 +106,9 @@ function getSentimentSince(): string {
 /** Sort order for X sentiment search. Default relevancy. */
 function getSentimentSortOrder(): "relevancy" | "recency" {
   loadEnvOnce();
-  const v = (process.env.X_SENTIMENT_SORT_ORDER ?? "relevancy").trim().toLowerCase();
+  const v = (process.env.X_SENTIMENT_SORT_ORDER ?? "relevancy")
+    .trim()
+    .toLowerCase();
   if (v === "recency") return "recency";
   return "relevancy";
 }
@@ -139,23 +155,43 @@ export function parseRateLimitResetSeconds(message: string): number {
 /** True when a second token is set for sentiment/background so in-chat keeps using primary. */
 function useBackgroundToken(): boolean {
   loadEnvOnce();
-  return !!(process.env.X_BEARER_TOKEN_SENTIMENT?.trim() || process.env.X_BEARER_TOKEN_BACKGROUND?.trim());
+  return !!(
+    process.env.X_BEARER_TOKEN_SENTIMENT?.trim() ||
+    process.env.X_BEARER_TOKEN_BACKGROUND?.trim()
+  );
 }
 /** Load keyword lists from env X_SENTIMENT_KEYWORDS_PATH (JSON: { bullish, bearish, risk }) or built-in. */
 export function getKeywordLists(): SentimentKeywordLists {
   loadEnvOnce();
   const fp = process.env.X_SENTIMENT_KEYWORDS_PATH?.trim();
   if (!fp || !existsSync(fp)) {
-    return { bullish: [...BULLISH_WORDS], bearish: [...BEARISH_WORDS], risk: [...RISK_WORDS] };
+    return {
+      bullish: [...BULLISH_WORDS],
+      bearish: [...BEARISH_WORDS],
+      risk: [...RISK_WORDS],
+    };
   }
   try {
-    const data = JSON.parse(readFileSync(fp, "utf-8")) as Record<string, unknown>;
-    const bullish = Array.isArray(data.bullish) ? (data.bullish as string[]) : [...BULLISH_WORDS];
-    const bearish = Array.isArray(data.bearish) ? (data.bearish as string[]) : [...BEARISH_WORDS];
-    const risk = Array.isArray(data.risk) ? (data.risk as string[]) : [...RISK_WORDS];
+    const data = JSON.parse(readFileSync(fp, "utf-8")) as Record<
+      string,
+      unknown
+    >;
+    const bullish = Array.isArray(data.bullish)
+      ? (data.bullish as string[])
+      : [...BULLISH_WORDS];
+    const bearish = Array.isArray(data.bearish)
+      ? (data.bearish as string[])
+      : [...BEARISH_WORDS];
+    const risk = Array.isArray(data.risk)
+      ? (data.risk as string[])
+      : [...RISK_WORDS];
     return { bullish, bearish, risk };
   } catch {
-    return { bullish: [...BULLISH_WORDS], bearish: [...BEARISH_WORDS], risk: [...RISK_WORDS] };
+    return {
+      bullish: [...BULLISH_WORDS],
+      bearish: [...BEARISH_WORDS],
+      risk: [...RISK_WORDS],
+    };
   }
 }
 
@@ -198,7 +234,8 @@ function getCacheFilePath(): string {
 
 export class VinceXSentimentService extends Service {
   static serviceType = "VINCE_X_SENTIMENT_SERVICE";
-  capabilityDescription = "X (Twitter) sentiment for core assets (staggered refresh, cache)";
+  capabilityDescription =
+    "X (Twitter) sentiment for core assets (staggered refresh, cache)";
 
   private cache = new Map<string, CachedSentiment>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -244,11 +281,15 @@ export class VinceXSentimentService extends Service {
     const cycleHours = (staggerMs * sentimentAssets.length) / (60 * 60 * 1000);
     logger.debug(
       "[VinceXSentimentService] Started (one asset every " +
-        (staggerMin >= 60 ? `${Math.round(staggerMin / 60)}h` : `${staggerMin} min`) +
+        (staggerMin >= 60
+          ? `${Math.round(staggerMin / 60)}h`
+          : `${staggerMin} min`) +
         ", " +
         sentimentAssets.length +
         " assets = full cycle every " +
-        (cycleHours >= 1 ? `${cycleHours.toFixed(1)}h` : `${Math.round(cycleHours * 60)} min`) +
+        (cycleHours >= 1
+          ? `${cycleHours.toFixed(1)}h`
+          : `${Math.round(cycleHours * 60)} min`) +
         ", cache: " +
         cachePath +
         ")",
@@ -272,7 +313,9 @@ export class VinceXSentimentService extends Service {
           service.staggerIndex += 1;
         })
         .catch((e) =>
-          logger.warn("[VinceXSentimentService] Refresh failed: " + (e as Error).message),
+          logger.warn(
+            "[VinceXSentimentService] Refresh failed: " + (e as Error).message,
+          ),
         );
     }, staggerMs);
     return service;
@@ -325,7 +368,9 @@ export class VinceXSentimentService extends Service {
       confidence: cached.confidence,
       hasHighRiskEvent: cached.hasHighRiskEvent,
       updatedAt: cached.updatedAt,
-      ...(cached.isContrarian !== undefined && { isContrarian: cached.isContrarian }),
+      ...(cached.isContrarian !== undefined && {
+        isContrarian: cached.isContrarian,
+      }),
       ...(cached.contrarianNote && { contrarianNote: cached.contrarianNote }),
     };
   }
@@ -348,28 +393,45 @@ export class VinceXSentimentService extends Service {
   }> {
     loadEnvOnce();
     const listEnabled = process.env.X_SENTIMENT_LIST_ENABLED;
-    if (listEnabled !== undefined && listEnabled !== "" && !/^(1|true|yes)$/i.test(listEnabled.trim())) {
+    if (
+      listEnabled !== undefined &&
+      listEnabled !== "" &&
+      !/^(1|true|yes)$/i.test(listEnabled.trim())
+    ) {
       return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
     }
     const xResearch = this.runtime.getService(
       "VINCE_X_RESEARCH_SERVICE",
     ) as VinceXResearchService | null;
-    if (!xResearch?.isConfigured()) return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
+    if (!xResearch?.isConfigured())
+      return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
     const listId = xResearch.getListId();
-    if (!listId) return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
+    if (!listId)
+      return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
     const now = Date.now();
-    if (this.listSentimentCache && now - this.listSentimentCacheTs < VinceXSentimentService.LIST_SENTIMENT_TTL_MS) {
+    if (
+      this.listSentimentCache &&
+      now - this.listSentimentCacheTs <
+        VinceXSentimentService.LIST_SENTIMENT_TTL_MS
+    ) {
       return {
         sentiment: this.listSentimentCache.sentiment,
         confidence: this.listSentimentCache.confidence,
         hasHighRiskEvent: this.listSentimentCache.hasHighRiskEvent,
         updatedAt: this.listSentimentCache.updatedAt,
-        ...(this.listSentimentCache.isContrarian !== undefined && { isContrarian: this.listSentimentCache.isContrarian }),
-        ...(this.listSentimentCache.contrarianNote && { contrarianNote: this.listSentimentCache.contrarianNote }),
+        ...(this.listSentimentCache.isContrarian !== undefined && {
+          isContrarian: this.listSentimentCache.isContrarian,
+        }),
+        ...(this.listSentimentCache.contrarianNote && {
+          contrarianNote: this.listSentimentCache.contrarianNote,
+        }),
       };
     }
     try {
-      const { tweets } = await xResearch.getListPosts(listId, { maxResults: 50, useBackgroundToken: useBackgroundToken() });
+      const { tweets } = await xResearch.getListPosts(listId, {
+        maxResults: 50,
+        useBackgroundToken: useBackgroundToken(),
+      });
       const entry = computeSentimentFromTweets(toTweetLikes(tweets), {
         keywordLists: getKeywordLists(),
         minTweets: getMinTweetsForConfidence(),
@@ -406,8 +468,12 @@ export class VinceXSentimentService extends Service {
               confidence: entry.confidence,
               hasHighRiskEvent: !!entry.hasHighRiskEvent,
               updatedAt: entry.updatedAt,
-              ...(entry.isContrarian !== undefined && { isContrarian: entry.isContrarian }),
-              ...(entry.contrarianNote && { contrarianNote: entry.contrarianNote }),
+              ...(entry.isContrarian !== undefined && {
+                isContrarian: entry.isContrarian,
+              }),
+              ...(entry.contrarianNote && {
+                contrarianNote: entry.contrarianNote,
+              }),
             });
           }
         }
@@ -427,7 +493,9 @@ export class VinceXSentimentService extends Service {
     let data: XSentimentCacheFile = {};
     if (existsSync(filePath)) {
       try {
-        data = JSON.parse(readFileSync(filePath, "utf-8")) as XSentimentCacheFile;
+        data = JSON.parse(
+          readFileSync(filePath, "utf-8"),
+        ) as XSentimentCacheFile;
       } catch {
         // overwrite with fresh object
       }
@@ -501,12 +569,20 @@ export class VinceXSentimentService extends Service {
     const query = buildSentimentQuery(asset);
     const since = getSentimentSince();
     const sortOrder = getSentimentSortOrder();
-    if ("getPostCountsRecent" in xResearch && typeof xResearch.getPostCountsRecent === "function") {
+    if (
+      "getPostCountsRecent" in xResearch &&
+      typeof xResearch.getPostCountsRecent === "function"
+    ) {
       try {
-        const counts = await xResearch.getPostCountsRecent(query, { granularity: "day" });
+        const counts = await xResearch.getPostCountsRecent(query, {
+          granularity: "day",
+        });
         const total = counts.reduce((s, b) => s + (b.tweet_count ?? 0), 0);
         if (total === 0) {
-          logger.debug({ asset, query }, "[VinceXSentimentService] tweet volume 0, skipping full search");
+          logger.debug(
+            { asset, query },
+            "[VinceXSentimentService] tweet volume 0, skipping full search",
+          );
           return; // keep previous cache
         }
       } catch {
@@ -514,8 +590,14 @@ export class VinceXSentimentService extends Service {
       }
     }
     const tweets =
-      "searchForSentiment" in xResearch && typeof xResearch.searchForSentiment === "function"
-        ? await xResearch.searchForSentiment(query, { pages: 2, since, sortOrder, tokenIndex: assetIndex })
+      "searchForSentiment" in xResearch &&
+      typeof xResearch.searchForSentiment === "function"
+        ? await xResearch.searchForSentiment(query, {
+            pages: 2,
+            since,
+            sortOrder,
+            tokenIndex: assetIndex,
+          })
         : await xResearch.search(appendSentimentQueryFilters(query), {
             maxResults: 30,
             pages: 1,
@@ -534,10 +616,15 @@ export class VinceXSentimentService extends Service {
       useWeightedKeywords: true,
     });
     this.cache.set(asset, entry);
-    const showCost = process.env.X_SENTIMENT_SHOW_COST === "true" || process.env.LOG_LEVEL === "debug";
+    const showCost =
+      process.env.X_SENTIMENT_SHOW_COST === "true" ||
+      process.env.LOG_LEVEL === "debug";
     if (showCost && tweets.length > 0) {
       const estUsd = (tweets.length * 0.005).toFixed(2);
-      logger.debug({ asset, posts: tweets.length, estUsd }, "[plugin-vince] X sentiment refresh");
+      logger.debug(
+        { asset, posts: tweets.length, estUsd },
+        "[plugin-vince] X sentiment refresh",
+      );
     }
   }
 
@@ -559,10 +646,15 @@ export class VinceXSentimentService extends Service {
       sortByMetric?: "likes" | "impressions" | "retweets" | "replies";
     } & Partial<ComputeSentimentOptions> = {},
   ): Promise<{ tweets: XTweet[]; sentiment: SentimentCacheEntry }> {
-    const xResearch = this.runtime.getService("VINCE_X_RESEARCH_SERVICE") as VinceXResearchService | null;
+    const xResearch = this.runtime.getService(
+      "VINCE_X_RESEARCH_SERVICE",
+    ) as VinceXResearchService | null;
     if (!xResearch) throw new Error("VinceXResearchService not available");
     let tweets: XTweet[];
-    if ("searchForSentiment" in xResearch && typeof xResearch.searchForSentiment === "function") {
+    if (
+      "searchForSentiment" in xResearch &&
+      typeof xResearch.searchForSentiment === "function"
+    ) {
       tweets = await xResearch.searchForSentiment(query, {
         pages: opts.pages ?? 2,
         since: opts.since ?? getSentimentSince(),
@@ -583,7 +675,8 @@ export class VinceXSentimentService extends Service {
       const minEng = opts.minEngagement ?? 0;
       const minFoll = opts.minFollowers ?? 0;
       tweets = raw.filter(
-        (t) => t.metrics.likes >= minEng && (t.author_followers ?? 0) >= minFoll,
+        (t) =>
+          t.metrics.likes >= minEng && (t.author_followers ?? 0) >= minFoll,
       );
     }
     if (opts.prioritizeVips ?? true) {
@@ -594,7 +687,13 @@ export class VinceXSentimentService extends Service {
       tweets = xResearch.sortBy(tweets, opts.sortByMetric);
     }
     tweets = xResearch.dedupeById(tweets);
-    const { keywordLists, minTweets, bullBearThreshold, engagementCap, riskMinTweets } = opts;
+    const {
+      keywordLists,
+      minTweets,
+      bullBearThreshold,
+      engagementCap,
+      riskMinTweets,
+    } = opts;
     const entry = computeSentimentFromTweets(toTweetLikes(tweets), {
       keywordLists: keywordLists ?? getKeywordLists(),
       minTweets: minTweets ?? getMinTweetsForConfidence(),

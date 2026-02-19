@@ -36,10 +36,10 @@ Oracle is the **CPO agent**: read-only Polymarket specialist for discovery, odds
 
 ## Key Files
 
-| Area | Path |
-|------|------|
-| Agent | [src/agents/oracle.ts](src/agents/oracle.ts) |
-| Plugin | [src/plugins/plugin-polymarket-discovery/](src/plugins/plugin-polymarket-discovery/) |
+| Area             | Path                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| Agent            | [src/agents/oracle.ts](src/agents/oracle.ts)                                                           |
+| Plugin           | [src/plugins/plugin-polymarket-discovery/](src/plugins/plugin-polymarket-discovery/)                   |
 | Priority markets | [knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md](knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md) |
 
 ---

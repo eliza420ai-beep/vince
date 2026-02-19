@@ -17,13 +17,18 @@ function getSubmitParams(state?: State): {
   const params = (state?.data?.actionParams || {}) as Record<string, unknown>;
   const transaction = params.transaction;
   if (transaction === undefined || transaction === null) return null;
-  const description = typeof params.description === "string" ? params.description : undefined;
+  const description =
+    typeof params.description === "string" ? params.description : undefined;
   const waitForConfirmation = params.waitForConfirmation === true;
   if (typeof transaction === "string") {
     return { transaction, waitForConfirmation, description };
   }
   if (typeof transaction === "object" && !Array.isArray(transaction)) {
-    return { transaction: transaction as Record<string, unknown>, waitForConfirmation, description };
+    return {
+      transaction: transaction as Record<string, unknown>,
+      waitForConfirmation,
+      description,
+    };
   }
   return null;
 }
@@ -35,7 +40,9 @@ export const bankrAgentSubmitAction: Action = {
   similes: ["BANKR_SUBMIT", "BANKR_SUBMIT_TX", "BANKR_BROADCAST"],
 
   validate: async (runtime: IAgentRuntime, _message: Memory, state?: State) => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service?.isConfigured()) return false;
     return !!getSubmitParams(state);
   },
@@ -45,9 +52,11 @@ export const bankrAgentSubmitAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Agent service not available.";
       callback?.({ text: err });
@@ -56,7 +65,8 @@ export const bankrAgentSubmitAction: Action = {
 
     const submitParams = getSubmitParams(state);
     if (!submitParams) {
-      const err = "Missing actionParams.transaction (hex string or transaction object).";
+      const err =
+        "Missing actionParams.transaction (hex string or transaction object).";
       callback?.({ text: err });
       return { success: false, text: err };
     }
@@ -65,7 +75,9 @@ export const bankrAgentSubmitAction: Action = {
       const result = await service.submitTransaction({
         transaction: submitParams.transaction,
         waitForConfirmation: submitParams.waitForConfirmation,
-        ...(submitParams.description && { description: submitParams.description }),
+        ...(submitParams.description && {
+          description: submitParams.description,
+        }),
       });
       if (!result.success) {
         const msg = result.error || result.message || "Submit failed.";
@@ -88,15 +100,28 @@ export const bankrAgentSubmitAction: Action = {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_AGENT_SUBMIT] " + msg);
-      callback?.({ text: `Bankr submit failed: ${msg}`, actions: ["BANKR_AGENT_SUBMIT"] });
-      return { success: false, text: msg, error: err instanceof Error ? err : new Error(msg) };
+      callback?.({
+        text: `Bankr submit failed: ${msg}`,
+        actions: ["BANKR_AGENT_SUBMIT"],
+      });
+      return {
+        success: false,
+        text: msg,
+        error: err instanceof Error ? err : new Error(msg),
+      };
     }
   },
 
   examples: [
     [
       { name: "user", content: { text: "Submit this signed transaction" } },
-      { name: "Otaku", content: { text: "Submitted. TxHash: `0x…`", actions: ["BANKR_AGENT_SUBMIT"] } },
+      {
+        name: "Otaku",
+        content: {
+          text: "Submitted. TxHash: `0x…`",
+          actions: ["BANKR_AGENT_SUBMIT"],
+        },
+      },
     ],
   ],
 };

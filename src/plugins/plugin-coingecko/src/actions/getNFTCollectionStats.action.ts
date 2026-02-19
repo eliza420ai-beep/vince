@@ -7,7 +7,10 @@ import {
   State,
   logger,
 } from "@elizaos/core";
-import { validateCoingeckoService, getCoingeckoService } from "../utils/actionHelpers";
+import {
+  validateCoingeckoService,
+  getCoingeckoService,
+} from "../utils/actionHelpers";
 
 export const getNFTCollectionStatsAction: Action = {
   name: "GET_NFT_COLLECTION_STATS",
@@ -25,13 +28,23 @@ export const getNFTCollectionStatsAction: Action = {
   parameters: {
     collection: {
       type: "string",
-      description: "NFT collection identifier (collection ID, name, or contract address). Examples: 'cryptopunks', 'bored-ape-yacht-club', '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'",
+      description:
+        "NFT collection identifier (collection ID, name, or contract address). Examples: 'cryptopunks', 'bored-ape-yacht-club', '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'",
       required: true,
     },
   },
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateCoingeckoService(runtime, "GET_NFT_COLLECTION_STATS", state, message);
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
+    return validateCoingeckoService(
+      runtime,
+      "GET_NFT_COLLECTION_STATS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -48,14 +61,21 @@ export const getNFTCollectionStatsAction: Action = {
       }
 
       // Read parameters from state (extracted by multiStepDecisionTemplate)
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams || {}) as { collection?: string };
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams || {}) as {
+        collection?: string;
+      };
 
       // Extract and validate collection parameter (required)
       const collectionRaw: string | undefined = params?.collection?.trim();
 
       if (!collectionRaw) {
-        const errorMsg = "Missing required parameter 'collection'. Please specify which NFT collection to fetch stats for (e.g., 'cryptopunks', 'bored-ape-yacht-club', or a contract address).";
+        const errorMsg =
+          "Missing required parameter 'collection'. Please specify which NFT collection to fetch stats for (e.g., 'cryptopunks', 'bored-ape-yacht-club', or a contract address).";
         logger.error(`[GET_NFT_COLLECTION_STATS] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
@@ -71,7 +91,9 @@ export const getNFTCollectionStatsAction: Action = {
         return errorResult;
       }
 
-      logger.info(`[GET_NFT_COLLECTION_STATS] Fetching stats for collection: ${collectionRaw}`);
+      logger.info(
+        `[GET_NFT_COLLECTION_STATS] Fetching stats for collection: ${collectionRaw}`,
+      );
 
       // Store input parameters for return
       const inputParams = { collection: collectionRaw };
@@ -100,14 +122,20 @@ export const getNFTCollectionStatsAction: Action = {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_NFT_COLLECTION_STATS] Action failed: ${msg}`);
-      
+
       // Try to capture input params even in failure
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams || {}) as { collection?: string };
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams || {}) as {
+        collection?: string;
+      };
       const failureInputParams = {
         collection: params?.collection,
       };
-      
+
       // Provide helpful error message
       const errorText = `Failed to fetch NFT collection stats: ${msg}
 
@@ -116,14 +144,14 @@ Please provide a valid NFT collection identifier:
 - Contract address (e.g., '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d')
 
 Example: "Get stats for cryptopunks" or "Show me floor price for bored-ape-yacht-club"`;
-      
+
       const errorResult: ActionResult = {
         text: errorText,
         success: false,
         error: msg,
         input: failureInputParams,
       } as ActionResult & { input: typeof failureInputParams };
-      
+
       if (callback) {
         await callback({
           text: errorResult.text,
@@ -163,4 +191,3 @@ Example: "Get stats for cryptopunks" or "Show me floor price for bored-ape-yacht
     ],
   ],
 };
-

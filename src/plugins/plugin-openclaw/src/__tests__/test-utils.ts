@@ -33,7 +33,7 @@ export function createMockCallback(): MockCallback {
 
 export function createMockMessage(
   text: string,
-  options?: { entityId?: UUID; roomId?: UUID; agentId?: UUID }
+  options?: { entityId?: UUID; roomId?: UUID; agentId?: UUID },
 ): Memory {
   return {
     id: uuidv4() as UUID,
@@ -59,7 +59,9 @@ export interface MockRuntimeOverrides {
   getSetting?: (key: string) => string | boolean | null | undefined;
 }
 
-export function createMockRuntime(overrides?: MockRuntimeOverrides): IAgentRuntime {
+export function createMockRuntime(
+  overrides?: MockRuntimeOverrides,
+): IAgentRuntime {
   return {
     agentId: uuidv4() as UUID,
     character: overrides?.character ?? { name: "OtherAgent" },
@@ -75,7 +77,7 @@ export function createMockRuntime(overrides?: MockRuntimeOverrides): IAgentRunti
  */
 export async function withEnv(
   env: Record<string, string | undefined>,
-  fn: () => Promise<void>
+  fn: () => Promise<void>,
 ): Promise<void> {
   const prev: Record<string, string | undefined> = {};
   for (const key of Object.keys(env)) {

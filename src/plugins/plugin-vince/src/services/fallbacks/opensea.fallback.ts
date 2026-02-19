@@ -244,7 +244,8 @@ export class OpenSeaFallbackService implements IOpenSeaService {
     try {
       const p = l?.price?.current;
       if (!p) return 0;
-      const value = typeof p.value === "string" ? p.value : String(p.value ?? "0");
+      const value =
+        typeof p.value === "string" ? p.value : String(p.value ?? "0");
       const decimals = typeof p.decimals === "number" ? p.decimals : 18;
       return this.weiToEth(value, decimals);
     } catch {
@@ -364,8 +365,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
         resp = await this.fetchOpenSea<EventsResponse>(
           `/events/collection/${slug}?event_type=successful&limit=10`,
         );
-        events =
-          resp?.data ?? resp?.asset_events ?? resp?.events ?? [];
+        events = resp?.data ?? resp?.asset_events ?? resp?.events ?? [];
       }
       const prices: number[] = [];
       for (const e of events) {

@@ -19,12 +19,15 @@ Meanwhile, the infrastructure build continues. Sentinel's pushing OpenClaw adapt
 **TL;DR:** BTC neutral with bullish sentiment extremes — sell premium, don't chase.
 
 ### Actions (max 3, each with @Owner)
+
 1. **BTC Covered Call** — @Solus — Sell $68,500 strike, Friday expiry, invalidation $67,000
 2. **CT Sentiment Monitor** — @ECHO — Watch for sentiment reversal signals above +70
 3. **Data Feed Initialization** — @VINCE — Complete Hyperliquid API setup for live signals
 
 ### Risks
+
 Early assignment if BTC breaks $68,500 before Friday
 
 ---
-*Ship it.*
+
+_Ship it._

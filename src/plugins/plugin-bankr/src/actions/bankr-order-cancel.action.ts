@@ -9,10 +9,14 @@ import {
 } from "@elizaos/core";
 import { BankrOrdersService } from "../services/bankr-orders.service";
 
-function getCancelParams(state?: State): { orderId: string; signature: string } | null {
+function getCancelParams(
+  state?: State,
+): { orderId: string; signature: string } | null {
   const params = (state?.data?.actionParams || {}) as Record<string, unknown>;
-  const orderId = typeof params.orderId === "string" ? params.orderId.trim() : null;
-  const signature = typeof params.signature === "string" ? params.signature.trim() : null;
+  const orderId =
+    typeof params.orderId === "string" ? params.orderId.trim() : null;
+  const signature =
+    typeof params.signature === "string" ? params.signature.trim() : null;
   if (!orderId || !signature) return null;
   return { orderId, signature };
 }
@@ -24,7 +28,9 @@ export const bankrOrderCancelAction: Action = {
   similes: ["BANKR_CANCEL_ORDER", "BANKR_ORDER_CANCEL"],
 
   validate: async (runtime: IAgentRuntime, _message: Memory, state?: State) => {
-    const service = runtime.getService<BankrOrdersService>(BankrOrdersService.serviceType);
+    const service = runtime.getService<BankrOrdersService>(
+      BankrOrdersService.serviceType,
+    );
     if (!service?.isConfigured()) return false;
     return !!getCancelParams(state);
   },
@@ -34,9 +40,11 @@ export const bankrOrderCancelAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    const service = runtime.getService<BankrOrdersService>(BankrOrdersService.serviceType);
+    const service = runtime.getService<BankrOrdersService>(
+      BankrOrdersService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Orders service not available.";
       callback?.({ text: err });
@@ -63,15 +71,28 @@ export const bankrOrderCancelAction: Action = {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_ORDER_CANCEL] " + msg);
-      callback?.({ text: `Cancel failed: ${msg}`, actions: ["BANKR_ORDER_CANCEL"] });
-      return { success: false, text: msg, error: err instanceof Error ? err : new Error(msg) };
+      callback?.({
+        text: `Cancel failed: ${msg}`,
+        actions: ["BANKR_ORDER_CANCEL"],
+      });
+      return {
+        success: false,
+        text: msg,
+        error: err instanceof Error ? err : new Error(msg),
+      };
     }
   },
 
   examples: [
     [
       { name: "user", content: { text: "Cancel my Bankr order abc123" } },
-      { name: "Otaku", content: { text: "Order `abc123` cancelled.", actions: ["BANKR_ORDER_CANCEL"] } },
+      {
+        name: "Otaku",
+        content: {
+          text: "Order `abc123` cancelled.",
+          actions: ["BANKR_ORDER_CANCEL"],
+        },
+      },
     ],
   ],
 };

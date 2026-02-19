@@ -11,7 +11,10 @@ import { MorphoService } from "../services";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
 import { getEntityWallet } from "../../../../utils/entity";
 import { getTxExplorerUrl } from "../../../../constants/chains";
-import { validateMorphoService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateMorphoService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 
 interface MarketTransferParams {
   intent?: string;
@@ -122,7 +125,12 @@ export const marketTransferAction: Action = {
     },
   },
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validateMorphoService(runtime, "MORPHO_MARKET_TRANSFER", state, message);
+    return validateMorphoService(
+      runtime,
+      "MORPHO_MARKET_TRANSFER",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -136,8 +144,13 @@ export const marketTransferAction: Action = {
 
     try {
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<MarketTransferParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<MarketTransferParams>;
 
       // Store input parameters for return
       const inputParams: MarketTransferInput = {
@@ -161,9 +174,10 @@ export const marketTransferAction: Action = {
         "withdraw",
         "withdrawcollateral",
       ];
-      
+
       if (!inputParams.intent) {
-        const errorMsg = "Missing operation. Please specify supply, supplyCollateral, borrow, repay, withdraw, or withdrawCollateral.";
+        const errorMsg =
+          "Missing operation. Please specify supply, supplyCollateral, borrow, repay, withdraw, or withdrawCollateral.";
         logger.error(`[MORPHO_MARKET_TRANSFER] ${errorMsg}`);
         const errorResult: MarketTransferActionResult = {
           text: `❌ ${errorMsg}`,
@@ -204,7 +218,8 @@ export const marketTransferAction: Action = {
 
       // Validate market
       if (!inputParams.market) {
-        const errorMsg = 'Missing market. Provide a market pair (e.g., "WETH/USDC") or marketId.';
+        const errorMsg =
+          'Missing market. Provide a market pair (e.g., "WETH/USDC") or marketId.';
         logger.error(`[MORPHO_MARKET_TRANSFER] ${errorMsg}`);
         const errorResult: MarketTransferActionResult = {
           text: `❌ ${errorMsg}`,
@@ -225,7 +240,8 @@ export const marketTransferAction: Action = {
 
       // Validate assets (required for all operations except full repayment)
       if (!inputParams.fullRepayment && !inputParams.assets) {
-        const errorMsg = 'Missing amount. Provide a pure number without units (e.g., "1", "0.5", "100").';
+        const errorMsg =
+          'Missing amount. Provide a pure number without units (e.g., "1", "0.5", "100").';
         logger.error(`[MORPHO_MARKET_TRANSFER] ${errorMsg}`);
         const errorResult: MarketTransferActionResult = {
           text: `❌ ${errorMsg}`,
@@ -270,11 +286,13 @@ export const marketTransferAction: Action = {
       }
 
       // Get services
-      const service = runtime.getService(MorphoService.serviceType) as MorphoService;
+      const service = runtime.getService(
+        MorphoService.serviceType,
+      ) as MorphoService;
       const cdp = runtime.getService(CdpService.serviceType) as CdpService;
 
       // Determine chain - default to 'base' if not provided
-      const chain = (inputParams.chain as any) || 'base';
+      const chain = (inputParams.chain as any) || "base";
 
       // Get entity wallet
       const wallet = await getEntityWallet(
@@ -285,7 +303,9 @@ export const marketTransferAction: Action = {
       );
 
       if (wallet.success === false) {
-        logger.warn("[MORPHO_MARKET_TRANSFER] Entity wallet verification failed");
+        logger.warn(
+          "[MORPHO_MARKET_TRANSFER] Entity wallet verification failed",
+        );
         return {
           ...wallet.result,
           input: inputParams,
@@ -321,9 +341,9 @@ export const marketTransferAction: Action = {
           accountName,
           network: chain,
         });
-        viemClients = { 
-          walletClient: viem.walletClient, 
-          publicClient: viem.publicClient 
+        viemClients = {
+          walletClient: viem.walletClient,
+          publicClient: viem.publicClient,
         };
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -382,7 +402,10 @@ export const marketTransferAction: Action = {
 
         case "withdrawcollateral":
           operationParams.assets = inputParams.assets;
-          hashes = await service.withdrawCollateral(operationParams, viemClients);
+          hashes = await service.withdrawCollateral(
+            operationParams,
+            viemClients,
+          );
           break;
 
         default:
@@ -413,8 +436,8 @@ export const marketTransferAction: Action = {
 
       const emoji = getOperationEmoji(inputParams.intent);
       const description = getOperationDescription(inputParams.intent);
-      const amountText = inputParams.fullRepayment 
-        ? "full debt" 
+      const amountText = inputParams.fullRepayment
+        ? "full debt"
         : `${inputParams.assets} assets`;
 
       const text = `✅ ${emoji} **${description}** completed for **${amountText}** in **${inputParams.market}** on **${chain}**.\n\n**Transaction${hashes.length > 1 ? "s" : ""}:**\n${list}`;
@@ -460,8 +483,13 @@ export const marketTransferAction: Action = {
       // Try to capture input params even in failure
       let failureInputParams: MarketTransferInput = {};
       try {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams ?? {}) as Partial<MarketTransferParams>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams ??
+          {}) as Partial<MarketTransferParams>;
         failureInputParams = {
           intent: params.intent?.trim().toLowerCase(),
           market: params.market?.trim(),

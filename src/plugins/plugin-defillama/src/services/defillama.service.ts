@@ -1,6 +1,9 @@
 import { logger, Service, type IAgentRuntime } from "@elizaos/core";
 
-type ChainTvlsRawRecord = Record<string, number | string | null | { tvl?: number }>;
+type ChainTvlsRawRecord = Record<
+  string,
+  number | string | null | { tvl?: number }
+>;
 
 export type DefiLlamaProtocol = {
   id: string;
@@ -119,7 +122,8 @@ export type ProtocolLookupResult = {
 
 export class DefiLlamaService extends Service {
   static serviceType = "defillama_protocols" as const;
-  capabilityDescription = "Look up DeFiLlama protocols by name/symbol and yield opportunities (TTL-cached)";
+  capabilityDescription =
+    "Look up DeFiLlama protocols by name/symbol and yield opportunities (TTL-cached)";
 
   // Protocol TVL cache
   private cache: DefiLlamaProtocol[] = [];
@@ -128,12 +132,18 @@ export class DefiLlamaService extends Service {
   private protocolIndex: Map<string, DefiLlamaProtocol> = new Map();
 
   // Protocol history cache
-  private protocolHistoryCache: Map<string, { timestamp: number; data: ProtocolTvlHistory }> = new Map();
+  private protocolHistoryCache: Map<
+    string,
+    { timestamp: number; data: ProtocolTvlHistory }
+  > = new Map();
   private protocolHistoryTtlMs: number = 300000;
   private protocolHistoryMaxEntries: number = 128;
 
   // Chain history cache
-  private chainHistoryCache: Map<string, { timestamp: number; data: ChainTvlPoint[] }> = new Map();
+  private chainHistoryCache: Map<
+    string,
+    { timestamp: number; data: ChainTvlPoint[] }
+  > = new Map();
   private chainHistoryTtlMs: number = 300000;
   private chainHistoryMaxEntries: number = 128;
 
@@ -142,7 +152,9 @@ export class DefiLlamaService extends Service {
   private yieldsCacheTimestampMs: number = 0;
   private yieldsTtlMs: number = 300000; // 5 minutes
 
-  constructor(runtime: IAgentRuntime) { super(runtime); }
+  constructor(runtime: IAgentRuntime) {
+    super(runtime);
+  }
 
   static async start(runtime: IAgentRuntime): Promise<DefiLlamaService> {
     const svc = new DefiLlamaService(runtime);
@@ -158,28 +170,39 @@ export class DefiLlamaService extends Service {
       if (!Number.isNaN(parsed) && parsed >= 0) this.ttlMs = parsed;
     }
 
-    const protocolHistoryTtlSetting = runtime.getSetting("DEFILLAMA_PROTOCOL_HISTORY_TTL_MS");
+    const protocolHistoryTtlSetting = runtime.getSetting(
+      "DEFILLAMA_PROTOCOL_HISTORY_TTL_MS",
+    );
     if (protocolHistoryTtlSetting) {
       const parsed = Number(protocolHistoryTtlSetting);
-      if (!Number.isNaN(parsed) && parsed >= 0) this.protocolHistoryTtlMs = parsed;
+      if (!Number.isNaN(parsed) && parsed >= 0)
+        this.protocolHistoryTtlMs = parsed;
     }
 
-    const protocolHistoryMaxSetting = runtime.getSetting("DEFILLAMA_PROTOCOL_HISTORY_MAX_ENTRIES");
+    const protocolHistoryMaxSetting = runtime.getSetting(
+      "DEFILLAMA_PROTOCOL_HISTORY_MAX_ENTRIES",
+    );
     if (protocolHistoryMaxSetting) {
       const parsed = Number(protocolHistoryMaxSetting);
-      if (!Number.isNaN(parsed) && parsed > 0) this.protocolHistoryMaxEntries = parsed;
+      if (!Number.isNaN(parsed) && parsed > 0)
+        this.protocolHistoryMaxEntries = parsed;
     }
 
-    const chainHistoryTtlSetting = runtime.getSetting("DEFILLAMA_CHAIN_TVL_TTL_MS");
+    const chainHistoryTtlSetting = runtime.getSetting(
+      "DEFILLAMA_CHAIN_TVL_TTL_MS",
+    );
     if (chainHistoryTtlSetting) {
       const parsed = Number(chainHistoryTtlSetting);
       if (!Number.isNaN(parsed) && parsed >= 0) this.chainHistoryTtlMs = parsed;
     }
 
-    const chainHistoryMaxSetting = runtime.getSetting("DEFILLAMA_CHAIN_TVL_MAX_ENTRIES");
+    const chainHistoryMaxSetting = runtime.getSetting(
+      "DEFILLAMA_CHAIN_TVL_MAX_ENTRIES",
+    );
     if (chainHistoryMaxSetting) {
       const parsed = Number(chainHistoryMaxSetting);
-      if (!Number.isNaN(parsed) && parsed > 0) this.chainHistoryMaxEntries = parsed;
+      if (!Number.isNaN(parsed) && parsed > 0)
+        this.chainHistoryMaxEntries = parsed;
     }
 
     // Initialize yields TTL
@@ -190,10 +213,7 @@ export class DefiLlamaService extends Service {
     }
 
     // Load both caches in parallel
-    await Promise.all([
-      this.loadIndex(),
-      this.loadYieldsPools()
-    ]);
+    await Promise.all([this.loadIndex(), this.loadYieldsPools()]);
   }
 
   async stop(): Promise<void> {}
@@ -225,7 +245,10 @@ export class DefiLlamaService extends Service {
       }
       if (!picked) {
         for (const protocol of this.cache) {
-          const slugValue = typeof protocol.slug === "string" ? protocol.slug.toLowerCase() : "";
+          const slugValue =
+            typeof protocol.slug === "string"
+              ? protocol.slug.toLowerCase()
+              : "";
           if (slugValue.startsWith(qLower)) {
             picked = protocol;
             break;
@@ -236,7 +259,11 @@ export class DefiLlamaService extends Service {
       if (picked) {
         results.push({ id: q, success: true, data: shapeProtocol(picked) });
       } else {
-        results.push({ id: q, success: false, error: `No protocol match for: ${q}` });
+        results.push({
+          id: q,
+          success: false,
+          error: `No protocol match for: ${q}`,
+        });
       }
     }
 
@@ -247,7 +274,10 @@ export class DefiLlamaService extends Service {
    * Search for multiple protocol candidates matching a query (0-5 matches)
    * Returns protocols sorted by relevance and TVL
    */
-  async searchProtocolCandidates(query: string, maxResults: number = 5): Promise<ProtocolSummary[]> {
+  async searchProtocolCandidates(
+    query: string,
+    maxResults: number = 5,
+  ): Promise<ProtocolSummary[]> {
     await this.ensureFresh();
     const q = (query || "").trim();
     if (!q) {
@@ -255,12 +285,14 @@ export class DefiLlamaService extends Service {
     }
 
     const qLower = q.toLowerCase();
-    const candidates: Array<{ protocol: DefiLlamaProtocol; score: number }> = [];
+    const candidates: Array<{ protocol: DefiLlamaProtocol; score: number }> =
+      [];
 
     for (const protocol of this.cache) {
       const name = (protocol.name || "").toLowerCase();
       const symbol = (protocol.symbol || "").toLowerCase();
-      const slug = typeof protocol.slug === "string" ? protocol.slug.toLowerCase() : "";
+      const slug =
+        typeof protocol.slug === "string" ? protocol.slug.toLowerCase() : "";
 
       let score = 0;
 
@@ -269,11 +301,19 @@ export class DefiLlamaService extends Service {
         score = 1000;
       }
       // Starts with query
-      else if (name.startsWith(qLower) || symbol.startsWith(qLower) || slug.startsWith(qLower)) {
+      else if (
+        name.startsWith(qLower) ||
+        symbol.startsWith(qLower) ||
+        slug.startsWith(qLower)
+      ) {
         score = 500;
       }
       // Contains query
-      else if (name.includes(qLower) || symbol.includes(qLower) || slug.includes(qLower)) {
+      else if (
+        name.includes(qLower) ||
+        symbol.includes(qLower) ||
+        slug.includes(qLower)
+      ) {
         score = 100;
       }
 
@@ -305,43 +345,39 @@ export class DefiLlamaService extends Service {
     limit?: number;
   }): Promise<YieldPool[]> {
     await this.ensureYieldsFresh();
-    
+
     let results = this.yieldsCache;
 
     // Filter by protocol (fuzzy match)
     if (params.protocol) {
       const projectLower = params.protocol.toLowerCase();
-      results = results.filter(p => 
-        p.project.toLowerCase().includes(projectLower)
+      results = results.filter((p) =>
+        p.project.toLowerCase().includes(projectLower),
       );
     }
 
     // Filter by token symbol (exact match, case-insensitive)
     if (params.token) {
       const tokenLower = params.token.toLowerCase();
-      results = results.filter(p => 
-        p.symbol.toLowerCase() === tokenLower
-      );
+      results = results.filter((p) => p.symbol.toLowerCase() === tokenLower);
     }
 
     // Filter by chain (case-insensitive)
     if (params.chain) {
       const chainLower = params.chain.toLowerCase();
-      results = results.filter(p => 
-        p.chain.toLowerCase() === chainLower
-      );
+      results = results.filter((p) => p.chain.toLowerCase() === chainLower);
     }
 
     // Filter by minimum APY
     if (params.minApy !== undefined) {
-      results = results.filter(p => 
-        p.apy !== null && p.apy >= params.minApy!
+      results = results.filter(
+        (p) => p.apy !== null && p.apy >= params.minApy!,
       );
     }
 
     // Filter stablecoins only
     if (params.stablecoinOnly) {
-      results = results.filter(p => p.stablecoin);
+      results = results.filter((p) => p.stablecoin);
     }
 
     // Sort by APY descending (highest yields first)
@@ -358,43 +394,49 @@ export class DefiLlamaService extends Service {
   async getPoolChart(poolId: string): Promise<YieldChartPoint[]> {
     const url = `https://yields.llama.fi/chart/${poolId}`;
     const maxAttempts = 3;
-    
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-      
+
       try {
-        logger.debug(`[DefiLlama] Fetching chart for pool ${poolId} (attempt ${attempt}/${maxAttempts})`);
+        logger.debug(
+          `[DefiLlama] Fetching chart for pool ${poolId} (attempt ${attempt}/${maxAttempts})`,
+        );
         const res = await fetch(url, {
           method: "GET",
-          headers: { 
+          headers: {
             Accept: "application/json",
-            "User-Agent": "ElizaOS-DefiLlama/1.0"
+            "User-Agent": "ElizaOS-DefiLlama/1.0",
           },
-          signal: controller.signal
+          signal: controller.signal,
         });
-        
+
         clearTimeout(timeout);
         if (!res.ok) throw new Error(`Failed ${res.status} ${res.statusText}`);
-        
+
         const json = await res.json();
         return json.data || [];
       } catch (e) {
         clearTimeout(timeout);
         const isLast = attempt === maxAttempts;
         const msg = e instanceof Error ? e.message : String(e);
-        
+
         if (isLast) {
-          logger.error(`[DefiLlama] Failed to fetch chart for ${poolId} after ${maxAttempts} attempts: ${msg}`);
+          logger.error(
+            `[DefiLlama] Failed to fetch chart for ${poolId} after ${maxAttempts} attempts: ${msg}`,
+          );
           throw new Error(`Failed to fetch pool chart: ${msg}`);
         }
-        
+
         const backoff = 500 * Math.pow(2, attempt - 1);
-        logger.warn(`[DefiLlama] Chart fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`);
+        logger.warn(
+          `[DefiLlama] Chart fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`,
+        );
         await new Promise((r) => setTimeout(r, backoff));
       }
     }
-    
+
     return [];
   }
 
@@ -424,7 +466,10 @@ export class DefiLlamaService extends Service {
     return shaped;
   }
 
-  async getChainTvlHistory(chain: string, options?: ChainTvlHistoryOptions): Promise<ChainTvlPoint[]> {
+  async getChainTvlHistory(
+    chain: string,
+    options?: ChainTvlHistoryOptions,
+  ): Promise<ChainTvlPoint[]> {
     const trimmedChain = chain.trim();
     if (!trimmedChain) {
       throw new Error("Chain name is required for TVL history lookup");
@@ -439,7 +484,9 @@ export class DefiLlamaService extends Service {
       return cached.data;
     }
 
-    const params = filterSegment ? `?filter=${encodeURIComponent(filterSegment)}` : "";
+    const params = filterSegment
+      ? `?filter=${encodeURIComponent(filterSegment)}`
+      : "";
     const url = `https://api.llama.fi/v2/historicalChainTvl/${encodeURIComponent(trimmedChain)}${params}`;
     const rawSeries = await this.fetchJsonWithRetry<RawChainTvlPoint[]>(url, {
       timeoutMs: 20000,
@@ -448,7 +495,9 @@ export class DefiLlamaService extends Service {
     });
 
     if (!Array.isArray(rawSeries)) {
-      throw new Error("Unexpected response structure from DefiLlama chain TVL endpoint");
+      throw new Error(
+        "Unexpected response structure from DefiLlama chain TVL endpoint",
+      );
     }
 
     const shapedSeries: ChainTvlPoint[] = [];
@@ -477,12 +526,18 @@ export class DefiLlamaService extends Service {
 
   private async ensureYieldsFresh(): Promise<void> {
     const now = Date.now();
-    if (this.yieldsCache.length === 0 || now - this.yieldsCacheTimestampMs > this.yieldsTtlMs) {
+    if (
+      this.yieldsCache.length === 0 ||
+      now - this.yieldsCacheTimestampMs > this.yieldsTtlMs
+    ) {
       await this.loadYieldsPools();
     }
   }
 
-  private async fetchJsonWithRetry<T>(url: string, options: { timeoutMs: number; maxAttempts: number; baseDelayMs?: number }): Promise<T> {
+  private async fetchJsonWithRetry<T>(
+    url: string,
+    options: { timeoutMs: number; maxAttempts: number; baseDelayMs?: number },
+  ): Promise<T> {
     const { timeoutMs, maxAttempts, baseDelayMs } = options;
     const headers = {
       Accept: "application/json",
@@ -493,8 +548,14 @@ export class DefiLlamaService extends Service {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        logger.debug(`[DefiLlama] Fetching ${url} (attempt ${attempt}/${maxAttempts})`);
-        const response = await fetch(url, { method: "GET", headers, signal: controller.signal });
+        logger.debug(
+          `[DefiLlama] Fetching ${url} (attempt ${attempt}/${maxAttempts})`,
+        );
+        const response = await fetch(url, {
+          method: "GET",
+          headers,
+          signal: controller.signal,
+        });
         clearTimeout(timeout);
         if (!response.ok) {
           throw new Error(`Failed ${response.status} ${response.statusText}`);
@@ -508,8 +569,12 @@ export class DefiLlamaService extends Service {
         if (isLastAttempt) {
           throw new Error(`Failed to fetch ${url}: ${message}`);
         }
-        const delayMs = (baseDelayMs ?? 500) * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
-        logger.warn(`[DefiLlama] Request failed (attempt ${attempt}): ${message}. Retrying in ${delayMs}ms...`);
+        const delayMs =
+          (baseDelayMs ?? 500) * Math.pow(2, attempt - 1) +
+          Math.floor(Math.random() * 200);
+        logger.warn(
+          `[DefiLlama] Request failed (attempt ${attempt}): ${message}. Retrying in ${delayMs}ms...`,
+        );
         await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
       }
     }
@@ -525,23 +590,43 @@ export class DefiLlamaService extends Service {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
       try {
-        logger.debug(`[DefiLlama] Loading protocols (attempt ${attempt}/${maxAttempts}): ${url}`);
-        const res = await fetch(url, { method: "GET", headers: { Accept: "application/json", "User-Agent": "ElizaOS-DefiLlama/1.0" }, signal: controller.signal });
+        logger.debug(
+          `[DefiLlama] Loading protocols (attempt ${attempt}/${maxAttempts}): ${url}`,
+        );
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "ElizaOS-DefiLlama/1.0",
+          },
+          signal: controller.signal,
+        });
         clearTimeout(timeout);
         if (!res.ok) throw new Error(`Failed ${res.status} ${res.statusText}`);
         const list = (await res.json()) as DefiLlamaProtocol[];
         this.cache = Array.isArray(list) ? list : [];
         this.cacheTimestampMs = Date.now();
         this.rebuildProtocolIndex();
-        logger.info(`[DefiLlama] Protocols loaded: ${this.cache.length} (ttlMs=${this.ttlMs})`);
+        logger.info(
+          `[DefiLlama] Protocols loaded: ${this.cache.length} (ttlMs=${this.ttlMs})`,
+        );
         return;
       } catch (e) {
         clearTimeout(timeout);
         const isLast = attempt === maxAttempts;
         const msg = e instanceof Error ? e.message : String(e);
-        if (isLast) { logger.error(`[DefiLlama] Failed to load protocols after ${maxAttempts} attempts: ${msg}`); throw new Error(`Unable to load DefiLlama protocol index: ${msg}`); }
-        const backoff = baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
-        logger.warn(`[DefiLlama] Fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`);
+        if (isLast) {
+          logger.error(
+            `[DefiLlama] Failed to load protocols after ${maxAttempts} attempts: ${msg}`,
+          );
+          throw new Error(`Unable to load DefiLlama protocol index: ${msg}`);
+        }
+        const backoff =
+          baseDelayMs * Math.pow(2, attempt - 1) +
+          Math.floor(Math.random() * 200);
+        logger.warn(
+          `[DefiLlama] Fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`,
+        );
         await new Promise((r) => setTimeout(r, backoff));
       }
     }
@@ -555,8 +640,17 @@ export class DefiLlamaService extends Service {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 20000); // 20s for larger response
       try {
-        logger.debug(`[DefiLlama] Loading yields pools (attempt ${attempt}/${maxAttempts}): ${url}`);
-        const res = await fetch(url, { method: "GET", headers: { Accept: "application/json", "User-Agent": "ElizaOS-DefiLlama/1.0" }, signal: controller.signal });
+        logger.debug(
+          `[DefiLlama] Loading yields pools (attempt ${attempt}/${maxAttempts}): ${url}`,
+        );
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "ElizaOS-DefiLlama/1.0",
+          },
+          signal: controller.signal,
+        });
         clearTimeout(timeout);
         if (!res.ok) throw new Error(`Failed ${res.status} ${res.statusText}`);
         const json = await res.json();
@@ -573,40 +667,63 @@ export class DefiLlamaService extends Service {
         }
 
         this.yieldsCache = shapedPools;
-        
+
         this.yieldsCacheTimestampMs = Date.now();
-        logger.info(`[DefiLlama] Yields pools loaded: ${this.yieldsCache.length} (ttlMs=${this.yieldsTtlMs})`);
+        logger.info(
+          `[DefiLlama] Yields pools loaded: ${this.yieldsCache.length} (ttlMs=${this.yieldsTtlMs})`,
+        );
         return;
       } catch (e) {
         clearTimeout(timeout);
         const isLast = attempt === maxAttempts;
         const msg = e instanceof Error ? e.message : String(e);
-        if (isLast) { logger.error(`[DefiLlama] Failed to load yields pools after ${maxAttempts} attempts: ${msg}`); throw new Error(`Unable to load DefiLlama yields pools: ${msg}`); }
-        const backoff = baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
-        logger.warn(`[DefiLlama] Yields fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`);
+        if (isLast) {
+          logger.error(
+            `[DefiLlama] Failed to load yields pools after ${maxAttempts} attempts: ${msg}`,
+          );
+          throw new Error(`Unable to load DefiLlama yields pools: ${msg}`);
+        }
+        const backoff =
+          baseDelayMs * Math.pow(2, attempt - 1) +
+          Math.floor(Math.random() * 200);
+        logger.warn(
+          `[DefiLlama] Yields fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`,
+        );
         await new Promise((r) => setTimeout(r, backoff));
       }
     }
   }
 
-  private setProtocolHistoryCache(key: string, data: ProtocolTvlHistory, now: number): void {
+  private setProtocolHistoryCache(
+    key: string,
+    data: ProtocolTvlHistory,
+    now: number,
+  ): void {
     if (this.protocolHistoryCache.has(key)) {
       this.protocolHistoryCache.delete(key);
     }
     while (this.protocolHistoryCache.size >= this.protocolHistoryMaxEntries) {
-      const oldestKey = this.protocolHistoryCache.keys().next().value as string | undefined;
+      const oldestKey = this.protocolHistoryCache.keys().next().value as
+        | string
+        | undefined;
       if (!oldestKey) break;
       this.protocolHistoryCache.delete(oldestKey);
     }
     this.protocolHistoryCache.set(key, { timestamp: now, data });
   }
 
-  private setChainHistoryCache(key: string, data: ChainTvlPoint[], now: number): void {
+  private setChainHistoryCache(
+    key: string,
+    data: ChainTvlPoint[],
+    now: number,
+  ): void {
     if (this.chainHistoryCache.has(key)) {
       this.chainHistoryCache.delete(key);
     }
     while (this.chainHistoryCache.size >= this.chainHistoryMaxEntries) {
-      const oldestKey = this.chainHistoryCache.keys().next().value as string | undefined;
+      const oldestKey = this.chainHistoryCache.keys().next().value as
+        | string
+        | undefined;
       if (!oldestKey) break;
       this.chainHistoryCache.delete(oldestKey);
     }
@@ -637,7 +754,8 @@ export class DefiLlamaService extends Service {
       if (symbolKey) {
         this.protocolIndex.set(symbolKey, protocol);
       }
-      const slugKey = typeof protocol.slug === "string" ? protocol.slug.toLowerCase() : "";
+      const slugKey =
+        typeof protocol.slug === "string" ? protocol.slug.toLowerCase() : "";
       if (slugKey) {
         this.protocolIndex.set(slugKey, protocol);
       }
@@ -708,7 +826,9 @@ function shapeYieldPool(raw: RawYieldPool): YieldPool | null {
   };
 }
 
-function normalizeNullableNumber(value: number | string | null | undefined): number | null {
+function normalizeNullableNumber(
+  value: number | string | null | undefined,
+): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
@@ -722,10 +842,16 @@ function normalizeNullableNumber(value: number | string | null | undefined): num
 }
 
 function shapeProtocol(p: DefiLlamaProtocol): ProtocolSummary {
-  const chains: string[] = Array.isArray(p.chains) ? Array.from(new Set(p.chains)) : [];
-  const chainTvls = shapeChainTvlsRecord((p as { chainTvls?: ChainTvlsRawRecord }).chainTvls);
+  const chains: string[] = Array.isArray(p.chains)
+    ? Array.from(new Set(p.chains))
+    : [];
+  const chainTvls = shapeChainTvlsRecord(
+    (p as { chainTvls?: ChainTvlsRawRecord }).chainTvls,
+  );
 
-  const toNumberOrNull = (value: number | string | null | undefined): number | null =>
+  const toNumberOrNull = (
+    value: number | string | null | undefined,
+  ): number | null =>
     typeof value === "number" && Number.isFinite(value) ? value : null;
 
   const slugValue = typeof p.slug === "string" ? p.slug : null;
@@ -759,7 +885,9 @@ function shapeProtocol(p: DefiLlamaProtocol): ProtocolSummary {
   };
 }
 
-function shapeChainTvlsRecord(value: ChainTvlsRawRecord | undefined): Record<string, number> {
+function shapeChainTvlsRecord(
+  value: ChainTvlsRawRecord | undefined,
+): Record<string, number> {
   if (!value) {
     return {};
   }
@@ -773,14 +901,22 @@ function shapeChainTvlsRecord(value: ChainTvlsRawRecord | undefined): Record<str
       if (!Number.isNaN(parsed)) {
         shaped[chainName] = parsed;
       }
-    } else if (rawValue && typeof rawValue === "object" && typeof rawValue.tvl === "number" && Number.isFinite(rawValue.tvl)) {
+    } else if (
+      rawValue &&
+      typeof rawValue === "object" &&
+      typeof rawValue.tvl === "number" &&
+      Number.isFinite(rawValue.tvl)
+    ) {
       shaped[chainName] = rawValue.tvl;
     }
   }
   return shaped;
 }
 
-function shapeProtocolHistory(raw: RawProtocolHistory, fallbackSlug: string): ProtocolTvlHistory {
+function shapeProtocolHistory(
+  raw: RawProtocolHistory,
+  fallbackSlug: string,
+): ProtocolTvlHistory {
   const totalSeries: ProtocolTvlPoint[] = Array.isArray(raw.tvl)
     ? raw.tvl.filter(isRawProtocolHistoryPoint).map((point) => ({
         date: point.date,
@@ -804,7 +940,8 @@ function shapeProtocolHistory(raw: RawProtocolHistory, fallbackSlug: string): Pr
     }
   }
 
-  const latestPoint = totalSeries.length > 0 ? totalSeries[totalSeries.length - 1] : undefined;
+  const latestPoint =
+    totalSeries.length > 0 ? totalSeries[totalSeries.length - 1] : undefined;
 
   return {
     slug: raw.slug ?? fallbackSlug,
@@ -817,22 +954,26 @@ function shapeProtocolHistory(raw: RawProtocolHistory, fallbackSlug: string): Pr
   };
 }
 
-function isRawProtocolHistoryPoint(point: RawProtocolHistoryPoint | undefined): point is { date: number; totalLiquidityUSD: number } {
+function isRawProtocolHistoryPoint(
+  point: RawProtocolHistoryPoint | undefined,
+): point is { date: number; totalLiquidityUSD: number } {
   return Boolean(
     point &&
-      typeof point.date === "number" &&
-      Number.isFinite(point.date) &&
-      typeof point.totalLiquidityUSD === "number" &&
-      Number.isFinite(point.totalLiquidityUSD)
+    typeof point.date === "number" &&
+    Number.isFinite(point.date) &&
+    typeof point.totalLiquidityUSD === "number" &&
+    Number.isFinite(point.totalLiquidityUSD),
   );
 }
 
-function isRawChainTvlPoint(point: RawChainTvlPoint | undefined): point is { date: number; tvl: number } {
+function isRawChainTvlPoint(
+  point: RawChainTvlPoint | undefined,
+): point is { date: number; tvl: number } {
   return Boolean(
     point &&
-      typeof point.date === "number" &&
-      Number.isFinite(point.date) &&
-      typeof point.tvl === "number" &&
-      Number.isFinite(point.tvl)
+    typeof point.date === "number" &&
+    Number.isFinite(point.date) &&
+    typeof point.tvl === "number" &&
+    Number.isFinite(point.tvl),
   );
 }

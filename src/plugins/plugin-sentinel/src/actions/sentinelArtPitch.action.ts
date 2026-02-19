@@ -40,7 +40,10 @@ export const sentinelArtPitchAction: Action = {
   description:
     "Suggests gen art or creative coding ideas and angles in the style of Meridian, QQL, Ringers, Fidenza, XCOPY; surfaces ART gems from elizaOS examples.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsArtPitch(text);
   },
@@ -72,7 +75,7 @@ Context:\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's a gen-art pitch—\n\n" + text.trim();
       await callback({ text: out });
       return { success: true };
@@ -81,7 +84,10 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Gen art / XCOPY-style ideas: 1) Check elizaOS/examples/art for generative patterns. 2) Meridian/QQL/Ringers/Fidenza = long-form generative, parameters, editions. 3) XCOPY = glitch, motion, crypto-native. Ingest examples/art into knowledge for concrete refs. Refs: github.com/elizaOS/examples, knowledge/art-collections.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

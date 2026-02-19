@@ -123,7 +123,10 @@ export const vinceRegimeAction: Action = {
   description:
     "Market regime, fear/greed, and vol (DVOL) — one 'where we are' narrative plus optional tweet",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("regime") ||
@@ -172,8 +175,7 @@ export const vinceRegimeAction: Action = {
       ) as VinceCoinGlassService | null;
       if (coinglass) {
         const fg = coinglass.getFearGreed();
-        if (fg)
-          fearGreedLine = `Value: ${fg.value}, ${fg.classification}`;
+        if (fg) fearGreedLine = `Value: ${fg.value}, ${fg.classification}`;
       }
 
       const dvolLines: string[] = [];
@@ -197,11 +199,7 @@ export const vinceRegimeAction: Action = {
         fearGreedLine,
         dvolLines,
       );
-      const briefing = await generateHumanBriefing(
-        runtime,
-        dataContext,
-        date,
-      );
+      const briefing = await generateHumanBriefing(runtime, dataContext, date);
       const tweet = await generateTweet(runtime, dataContext, date);
 
       const sections: string[] = [];

@@ -39,12 +39,12 @@ ECHO is the **CSO (Chief Sentiment Officer)** agent: the voice of Crypto Twitter
 
 ## Key Files for Code Review
 
-| Area | Path |
-|------|------|
-| Agent definition | [src/agents/echo.ts](src/agents/echo.ts) |
-| X research plugin | [src/plugins/plugin-x-research/](src/plugins/plugin-x-research/) |
-| Actions (X_PULSE, X_VIBE, etc.) | [src/plugins/plugin-x-research/src/actions/](src/plugins/plugin-x-research/src/actions/) |
-| Spec / instructions | [src/plugins/plugin-x-research/SPEC.md](src/plugins/plugin-x-research/SPEC.md), [AGENT_INSTRUCTIONS.md](src/plugins/plugin-x-research/AGENT_INSTRUCTIONS.md) |
+| Area                            | Path                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Agent definition                | [src/agents/echo.ts](src/agents/echo.ts)                                                                                                                     |
+| X research plugin               | [src/plugins/plugin-x-research/](src/plugins/plugin-x-research/)                                                                                             |
+| Actions (X_PULSE, X_VIBE, etc.) | [src/plugins/plugin-x-research/src/actions/](src/plugins/plugin-x-research/src/actions/)                                                                     |
+| Spec / instructions             | [src/plugins/plugin-x-research/SPEC.md](src/plugins/plugin-x-research/SPEC.md), [AGENT_INSTRUCTIONS.md](src/plugins/plugin-x-research/AGENT_INSTRUCTIONS.md) |
 
 ---
 

@@ -73,7 +73,8 @@ function generateId(): string {
 }
 
 function detectType(text: string): QueueItemType {
-  if (text.includes("youtube.com") || text.includes("youtu.be")) return "youtube";
+  if (text.includes("youtube.com") || text.includes("youtu.be"))
+    return "youtube";
   if (text.includes(".pdf")) return "pdf";
   if (text.startsWith("http")) return "article";
   return "topic";
@@ -96,33 +97,39 @@ function formatQueueItem(item: QueueItem, index: number): string {
     normal: "🟡",
     low: "🟢",
   };
-  
+
   const icon = statusIcons[item.status];
   const priority = priorityIcons[item.priority];
   const content = item.url || item.topic || "Unknown";
-  const truncated = content.length > 60 ? content.slice(0, 60) + "..." : content;
+  const truncated =
+    content.length > 60 ? content.slice(0, 60) + "..." : content;
   const age = Math.floor((Date.now() - item.addedAt) / (1000 * 60 * 60));
-  
+
   return `${index + 1}. ${icon} ${priority} **${item.type}** - ${truncated}
    Added: ${age}h ago | ID: \`${item.id}\`${item.savedTo ? `\n   → Saved: \`${item.savedTo}\`` : ""}${item.error ? `\n   ⚠️ ${item.error}` : ""}`;
 }
 
 function formatQueue(queue: ResearchQueue): string {
   const pending = queue.items.filter((i) => i.status === "pending");
-  const completed = queue.items.filter((i) => i.status === "completed").slice(-5);
+  const completed = queue.items
+    .filter((i) => i.status === "completed")
+    .slice(-5);
   const failed = queue.items.filter((i) => i.status === "failed").slice(-3);
 
-  const pendingStr = pending.length > 0
-    ? pending.map((item, i) => formatQueueItem(item, i)).join("\n\n")
-    : "Queue is empty! Add items with:\n`queue add [URL or topic]`";
+  const pendingStr =
+    pending.length > 0
+      ? pending.map((item, i) => formatQueueItem(item, i)).join("\n\n")
+      : "Queue is empty! Add items with:\n`queue add [URL or topic]`";
 
-  const completedStr = completed.length > 0
-    ? completed.map((item, i) => formatQueueItem(item, i)).join("\n")
-    : "None yet";
+  const completedStr =
+    completed.length > 0
+      ? completed.map((item, i) => formatQueueItem(item, i)).join("\n")
+      : "None yet";
 
-  const failedStr = failed.length > 0
-    ? failed.map((item, i) => formatQueueItem(item, i)).join("\n")
-    : "None";
+  const failedStr =
+    failed.length > 0
+      ? failed.map((item, i) => formatQueueItem(item, i)).join("\n")
+      : "None";
 
   return `📋 **Research Queue**
 
@@ -147,12 +154,7 @@ ${failedStr}
 
 export const researchQueueAction: Action = {
   name: "RESEARCH_QUEUE",
-  similes: [
-    "QUEUE",
-    "ADD_TO_QUEUE",
-    "RESEARCH_LIST",
-    "INGEST_QUEUE",
-  ],
+  similes: ["QUEUE", "ADD_TO_QUEUE", "RESEARCH_LIST", "INGEST_QUEUE"],
   description: `Manage the research queue for batch content ingestion.
 
 TRIGGERS:
@@ -197,7 +199,11 @@ Use this to batch up content for later ingestion.`,
 
       // VIEW QUEUE
       if (
-        (lower.includes("queue") && !lower.includes("add") && !lower.includes("process") && !lower.includes("remove") && !lower.includes("clear")) ||
+        (lower.includes("queue") &&
+          !lower.includes("add") &&
+          !lower.includes("process") &&
+          !lower.includes("remove") &&
+          !lower.includes("clear")) ||
         lower === "queue" ||
         lower.includes("show queue") ||
         lower.includes("view queue") ||
@@ -217,13 +223,21 @@ Use this to batch up content for later ingestion.`,
       // ADD TO QUEUE
       if (lower.includes("add") || lower.includes("queue:")) {
         const url = extractUrl(text);
-        const isHighPriority = lower.includes("high") || lower.includes("urgent") || lower.includes("important");
-        const isLowPriority = lower.includes("low") || lower.includes("later") || lower.includes("someday");
-        
+        const isHighPriority =
+          lower.includes("high") ||
+          lower.includes("urgent") ||
+          lower.includes("important");
+        const isLowPriority =
+          lower.includes("low") ||
+          lower.includes("later") ||
+          lower.includes("someday");
+
         let topic: string | undefined;
         if (!url) {
           // Extract topic (everything after "add" or "queue:")
-          const topicMatch = text.match(/(?:add|queue:?)\s+(?:high\s+|low\s+)?(.+)/i);
+          const topicMatch = text.match(
+            /(?:add|queue:?)\s+(?:high\s+|low\s+)?(.+)/i,
+          );
           topic = topicMatch?.[1]?.trim();
         }
 
@@ -248,7 +262,7 @@ Use this to batch up content for later ingestion.`,
         };
 
         queue.items.push(newItem);
-        
+
         // Sort by priority (high first, then by date)
         queue.items.sort((a, b) => {
           if (a.status !== "pending" || b.status !== "pending") return 0;
@@ -257,10 +271,12 @@ Use this to batch up content for later ingestion.`,
           if (pDiff !== 0) return pDiff;
           return a.addedAt - b.addedAt;
         });
-        
+
         saveQueue(queue);
 
-        const pending = queue.items.filter((i) => i.status === "pending").length;
+        const pending = queue.items.filter(
+          (i) => i.status === "pending",
+        ).length;
 
         if (callback) {
           await callback({
@@ -303,12 +319,14 @@ Use this to batch up content for later ingestion.`,
         saveQueue(queue);
 
         // Provide instructions for manual processing
-        const instructions = toProcess.map((item) => {
-          if (item.url) {
-            return `**${item.type}:** Upload this URL:\n\`upload: ${item.url}\``;
-          }
-          return `**topic:** Research and add content about: ${item.topic}`;
-        }).join("\n\n");
+        const instructions = toProcess
+          .map((item) => {
+            if (item.url) {
+              return `**${item.type}:** Upload this URL:\n\`upload: ${item.url}\``;
+            }
+            return `**topic:** Research and add content about: ${item.topic}`;
+          })
+          .join("\n\n");
 
         if (callback) {
           await callback({
@@ -358,7 +376,9 @@ Use this to batch up content for later ingestion.`,
       // CLEAR COMPLETED/FAILED
       if (lower.includes("clear")) {
         const before = queue.items.length;
-        queue.items = queue.items.filter((i) => i.status === "pending" || i.status === "processing");
+        queue.items = queue.items.filter(
+          (i) => i.status === "pending" || i.status === "processing",
+        );
         const removed = before - queue.items.length;
         saveQueue(queue);
 
@@ -403,7 +423,6 @@ Use this to batch up content for later ingestion.`,
           actions: ["RESEARCH_QUEUE"],
         });
       }
-
     } catch (error) {
       logger.error({ error }, "[RESEARCH_QUEUE] Error");
       if (callback) {
@@ -417,7 +436,10 @@ Use this to batch up content for later ingestion.`,
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "queue add https://youtube.com/watch?v=xyz" } },
+      {
+        name: "{{user}}",
+        content: { text: "queue add https://youtube.com/watch?v=xyz" },
+      },
       {
         name: "{{agent}}",
         content: {

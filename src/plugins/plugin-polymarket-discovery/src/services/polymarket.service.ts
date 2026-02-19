@@ -12,7 +12,12 @@
  * - No authentication required (read-only)
  */
 
-import { type IAgentRuntime, Service, ServiceType, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  Service,
+  ServiceType,
+  logger,
+} from "@elizaos/core";
 import { getProxyWalletAddress } from "@polymarket/sdk";
 import type {
   PolymarketMarket,
@@ -69,24 +74,31 @@ function mapApiMarketToInterface(apiMarket: any): PolymarketMarket {
   let outcomes: string[] = [];
   let tokenIds: string[] = [];
   let prices: string[] = [];
-  
+
   try {
-    outcomes = typeof apiMarket.outcomes === 'string' 
-      ? JSON.parse(apiMarket.outcomes) 
-      : (apiMarket.outcomes || []);
-    tokenIds = typeof apiMarket.clobTokenIds === 'string'
-      ? JSON.parse(apiMarket.clobTokenIds)
-      : (apiMarket.clobTokenIds || []);
-    prices = typeof apiMarket.outcomePrices === 'string'
-      ? JSON.parse(apiMarket.outcomePrices)
-      : (apiMarket.outcomePrices || []);
+    outcomes =
+      typeof apiMarket.outcomes === "string"
+        ? JSON.parse(apiMarket.outcomes)
+        : apiMarket.outcomes || [];
+    tokenIds =
+      typeof apiMarket.clobTokenIds === "string"
+        ? JSON.parse(apiMarket.clobTokenIds)
+        : apiMarket.clobTokenIds || [];
+    prices =
+      typeof apiMarket.outcomePrices === "string"
+        ? JSON.parse(apiMarket.outcomePrices)
+        : apiMarket.outcomePrices || [];
   } catch {
     // If parsing fails, leave as empty arrays
   }
 
   // Construct tokens array if not present but we have the data
   let tokens = apiMarket.tokens;
-  if ((!tokens || tokens.length === 0) && outcomes.length > 0 && tokenIds.length > 0) {
+  if (
+    (!tokens || tokens.length === 0) &&
+    outcomes.length > 0 &&
+    tokenIds.length > 0
+  ) {
     tokens = outcomes.map((outcome: string, index: number) => ({
       token_id: tokenIds[index],
       outcome: outcome,
@@ -106,7 +118,8 @@ function mapApiMarketToInterface(apiMarket: any): PolymarketMarket {
 
 export class PolymarketService extends Service {
   static serviceType = "POLYMARKET_DISCOVERY_SERVICE" as const;
-  capabilityDescription = "Discover and fetch real-time pricing data for Polymarket prediction markets.";
+  capabilityDescription =
+    "Discover and fetch real-time pricing data for Polymarket prediction markets.";
 
   // API endpoints (overridden in initialize from settings)
   private gammaApiUrl: string = DEFAULT_GAMMA_API_URL;
@@ -114,7 +127,8 @@ export class PolymarketService extends Service {
   private dataApiUrl: string = DEFAULT_DATA_API_URL;
 
   // Proxy wallet constants
-  private readonly GNOSIS_PROXY_FACTORY = "0xaB45c5A4B0c941a2F231C04C3f49182e1A254052";
+  private readonly GNOSIS_PROXY_FACTORY =
+    "0xaB45c5A4B0c941a2F231C04C3f49182e1A254052";
   private readonly POLYGON_CHAIN_ID = 137;
 
   // Cache configuration
@@ -134,35 +148,49 @@ export class PolymarketService extends Service {
   private marketCacheOrder: string[] = []; // Track access order for LRU
   private priceCache: Map<string, CachedPrice> = new Map();
   private priceCacheOrder: string[] = []; // Track access order for LRU
-  private priceHistoryCache: Map<string, { data: MarketPriceHistory; timestamp: number }> = new Map();
+  private priceHistoryCache: Map<
+    string,
+    { data: MarketPriceHistory; timestamp: number }
+  > = new Map();
   private priceHistoryCacheOrder: string[] = []; // Track access order for LRU
-  private positionsCache: Map<string, { data: Position[]; timestamp: number }> = new Map();
+  private positionsCache: Map<string, { data: Position[]; timestamp: number }> =
+    new Map();
   private positionsCacheOrder: string[] = []; // Track access order for LRU
-  private tradesCache: Map<string, { data: Trade[]; timestamp: number }> = new Map();
+  private tradesCache: Map<string, { data: Trade[]; timestamp: number }> =
+    new Map();
   private tradesCacheOrder: string[] = []; // Track access order for LRU
-  private marketsListCache: { data: PolymarketMarket[]; timestamp: number } | null = null;
-  
+  private marketsListCache: {
+    data: PolymarketMarket[];
+    timestamp: number;
+  } | null = null;
+
   // Phase 4: Events cache
   private eventsListCache: { data: any[]; timestamp: number } | null = null;
-  private eventsCache: Map<string, { data: any; timestamp: number }> = new Map();
+  private eventsCache: Map<string, { data: any; timestamp: number }> =
+    new Map();
   private eventsCacheOrder: string[] = [];
   private eventCacheTtl: number = 60000; // 1 minute
   private maxEventCacheSize: number = 50;
-  
+
   // Phase 3B: Analytics caches
   private openInterestCache: { data: any; timestamp: number } | null = null;
   private liveVolumeCache: { data: any; timestamp: number } | null = null;
   private spreadsCache: { data: any[]; timestamp: number } | null = null;
   private analyticsCacheTtl: number = 30000; // 30 seconds
-  
+
   // Phase 5A: Extended portfolio caches
-  private closedPositionsCache: Map<string, { data: any[]; timestamp: number }> = new Map();
+  private closedPositionsCache: Map<
+    string,
+    { data: any[]; timestamp: number }
+  > = new Map();
   private closedPositionsCacheOrder: string[] = [];
   private closedPositionsCacheTtl: number = 60000; // 1 minute
-  private userActivityCache: Map<string, { data: any[]; timestamp: number }> = new Map();
+  private userActivityCache: Map<string, { data: any[]; timestamp: number }> =
+    new Map();
   private userActivityCacheOrder: string[] = [];
   private userActivityCacheTtl: number = 60000; // 1 minute
-  private topHoldersCache: Map<string, { data: any[]; timestamp: number }> = new Map();
+  private topHoldersCache: Map<string, { data: any[]; timestamp: number }> =
+    new Map();
   private topHoldersCacheOrder: string[] = [];
   private topHoldersCacheTtl: number = 60000; // 1 minute
 
@@ -185,36 +213,58 @@ export class PolymarketService extends Service {
 
   async initialize(runtime: IAgentRuntime): Promise<void> {
     // Load configuration with defaults and type guards
-    this.gammaApiUrl = (runtime.getSetting("POLYMARKET_GAMMA_API_URL") as string) || DEFAULT_GAMMA_API_URL;
-    this.clobApiUrl = (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) || DEFAULT_CLOB_API_URL;
-    this.dataApiUrl = (runtime.getSetting("POLYMARKET_DATA_API_URL") as string) || DEFAULT_DATA_API_URL;
+    this.gammaApiUrl =
+      (runtime.getSetting("POLYMARKET_GAMMA_API_URL") as string) ||
+      DEFAULT_GAMMA_API_URL;
+    this.clobApiUrl =
+      (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) ||
+      DEFAULT_CLOB_API_URL;
+    this.dataApiUrl =
+      (runtime.getSetting("POLYMARKET_DATA_API_URL") as string) ||
+      DEFAULT_DATA_API_URL;
 
     // Safe parsing with validation
-    const marketCacheTtlSetting = runtime.getSetting("POLYMARKET_MARKET_CACHE_TTL") as string;
-    this.marketCacheTtl = marketCacheTtlSetting ? Number(marketCacheTtlSetting) : 60000;
+    const marketCacheTtlSetting = runtime.getSetting(
+      "POLYMARKET_MARKET_CACHE_TTL",
+    ) as string;
+    this.marketCacheTtl = marketCacheTtlSetting
+      ? Number(marketCacheTtlSetting)
+      : 60000;
     if (isNaN(this.marketCacheTtl) || this.marketCacheTtl <= 0) {
       this.marketCacheTtl = 60000; // Default 1 minute
     }
 
-    const priceCacheTtlSetting = runtime.getSetting("POLYMARKET_PRICE_CACHE_TTL") as string;
-    this.priceCacheTtl = priceCacheTtlSetting ? Number(priceCacheTtlSetting) : 15000;
+    const priceCacheTtlSetting = runtime.getSetting(
+      "POLYMARKET_PRICE_CACHE_TTL",
+    ) as string;
+    this.priceCacheTtl = priceCacheTtlSetting
+      ? Number(priceCacheTtlSetting)
+      : 15000;
     if (isNaN(this.priceCacheTtl) || this.priceCacheTtl <= 0) {
       this.priceCacheTtl = 15000; // Default 15 seconds
     }
 
-    const maxRetriesSetting = runtime.getSetting("POLYMARKET_MAX_RETRIES") as string;
+    const maxRetriesSetting = runtime.getSetting(
+      "POLYMARKET_MAX_RETRIES",
+    ) as string;
     this.maxRetries = maxRetriesSetting ? Number(maxRetriesSetting) : 3;
     if (isNaN(this.maxRetries) || this.maxRetries < 0) {
       this.maxRetries = 3; // Default 3 retries
     }
 
-    const requestTimeoutSetting = runtime.getSetting("POLYMARKET_REQUEST_TIMEOUT") as string;
-    this.requestTimeout = requestTimeoutSetting ? Number(requestTimeoutSetting) : 10000;
+    const requestTimeoutSetting = runtime.getSetting(
+      "POLYMARKET_REQUEST_TIMEOUT",
+    ) as string;
+    this.requestTimeout = requestTimeoutSetting
+      ? Number(requestTimeoutSetting)
+      : 10000;
     if (isNaN(this.requestTimeout) || this.requestTimeout <= 0) {
       this.requestTimeout = 10000; // Default 10 seconds
     }
 
-    logger.info(`[PolymarketService] Initialized with Gamma API: ${this.gammaApiUrl}, CLOB API: ${this.clobApiUrl}, Data API: ${this.dataApiUrl}`);
+    logger.info(
+      `[PolymarketService] Initialized with Gamma API: ${this.gammaApiUrl}, CLOB API: ${this.clobApiUrl}, Data API: ${this.dataApiUrl}`,
+    );
   }
 
   async stop(): Promise<void> {
@@ -235,7 +285,11 @@ export class PolymarketService extends Service {
   /**
    * LRU cache helper: Evict oldest entry if cache exceeds max size
    */
-  private evictIfNeeded(cache: Map<string, any>, order: string[], maxSize: number): void {
+  private evictIfNeeded(
+    cache: Map<string, any>,
+    order: string[],
+    maxSize: number,
+  ): void {
     while (cache.size >= maxSize && order.length > 0) {
       const oldestKey = order.shift(); // Remove least recently used (first in array)
       if (oldestKey) {
@@ -252,7 +306,7 @@ export class PolymarketService extends Service {
     key: string,
     cache: Map<string, T>,
     order: string[],
-    ttl: number
+    ttl: number,
   ): T | null {
     const cached = cache.get(key);
     if (!cached) {
@@ -284,7 +338,7 @@ export class PolymarketService extends Service {
     value: T,
     cache: Map<string, T>,
     order: string[],
-    maxSize: number
+    maxSize: number,
   ): void {
     this.evictIfNeeded(cache, order, maxSize);
     cache.set(key, value);
@@ -294,7 +348,10 @@ export class PolymarketService extends Service {
   /**
    * Fetch with timeout using AbortController
    */
-  private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit = {},
+  ): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
 
@@ -308,7 +365,9 @@ export class PolymarketService extends Service {
     } catch (error) {
       clearTimeout(timeoutId);
       if ((error as Error).name === "AbortError") {
-        throw new Error(`Request timeout after ${this.requestTimeout}ms: ${url}`);
+        throw new Error(
+          `Request timeout after ${this.requestTimeout}ms: ${url}`,
+        );
       }
       throw error;
     }
@@ -319,7 +378,7 @@ export class PolymarketService extends Service {
    */
   private async retryFetch<T>(
     fn: () => Promise<T>,
-    retries: number = this.maxRetries
+    retries: number = this.maxRetries,
   ): Promise<T> {
     let lastError: Error | null = null;
 
@@ -329,7 +388,8 @@ export class PolymarketService extends Service {
       } catch (error) {
         lastError = error as Error;
         const isLastAttempt = attempt === retries - 1;
-        const isMarketNotFound = lastError.message?.includes("Market not found");
+        const isMarketNotFound =
+          lastError.message?.includes("Market not found");
 
         if (isLastAttempt || isMarketNotFound) {
           if (isMarketNotFound) throw lastError;
@@ -339,7 +399,7 @@ export class PolymarketService extends Service {
         // Exponential backoff: 1s, 2s, 4s
         const backoffMs = Math.pow(2, attempt) * 1000;
         logger.warn(
-          `[PolymarketService] Attempt ${attempt + 1}/${retries} failed: ${lastError.message}. Retrying in ${backoffMs}ms...`
+          `[PolymarketService] Attempt ${attempt + 1}/${retries} failed: ${lastError.message}. Retrying in ${backoffMs}ms...`,
         );
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
@@ -361,15 +421,19 @@ export class PolymarketService extends Service {
     try {
       const tokenIds = JSON.parse(market.clobTokenIds);
       const outcomes = market.outcomes ? JSON.parse(market.outcomes) : [];
-      const prices = market.outcomePrices ? JSON.parse(market.outcomePrices) : [];
+      const prices = market.outcomePrices
+        ? JSON.parse(market.outcomePrices)
+        : [];
 
       market.tokens = tokenIds.map((id: string, i: number) => ({
         token_id: id,
         outcome: outcomes[i],
-        price: prices[i] ? parseFloat(prices[i]) : undefined
+        price: prices[i] ? parseFloat(prices[i]) : undefined,
       }));
     } catch (e) {
-      logger.warn(`[PolymarketService] Failed to parse tokens for market ${market.conditionId}: ${e instanceof Error ? e.message : String(e)}`);
+      logger.warn(
+        `[PolymarketService] Failed to parse tokens for market ${market.conditionId}: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
     return market;
   }
@@ -384,7 +448,9 @@ export class PolymarketService extends Service {
     if (this.marketsListCache) {
       const age = Date.now() - this.marketsListCache.timestamp;
       if (age < this.marketCacheTtl) {
-        logger.debug(`[PolymarketService] Returning cached markets list (age: ${age}ms)`);
+        logger.debug(
+          `[PolymarketService] Returning cached markets list (age: ${age}ms)`,
+        );
         return this.marketsListCache.data.slice(0, limit);
       }
     }
@@ -394,14 +460,16 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gamma API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const rawData = await response.json() as any[];
+      const rawData = (await response.json()) as any[];
       const data = rawData.map(mapApiMarketToInterface);
 
       // Parse tokens from JSON strings
-      const marketsWithTokens = data.map(market => this.parseTokens(market));
+      const marketsWithTokens = data.map((market) => this.parseTokens(market));
 
       // Update cache
       this.marketsListCache = {
@@ -409,7 +477,9 @@ export class PolymarketService extends Service {
         timestamp: Date.now(),
       };
 
-      logger.info(`[PolymarketService] Fetched ${marketsWithTokens.length} active markets`);
+      logger.info(
+        `[PolymarketService] Fetched ${marketsWithTokens.length} active markets`,
+      );
       return marketsWithTokens;
     });
   }
@@ -417,12 +487,17 @@ export class PolymarketService extends Service {
   /**
    * Gamma public-search: server-side keyword search. Returns markets from events.
    */
-  async searchMarketsViaGammaSearch(query: string, limit: number = DEFAULT_PAGE_LIMIT): Promise<PolymarketMarket[]> {
+  async searchMarketsViaGammaSearch(
+    query: string,
+    limit: number = DEFAULT_PAGE_LIMIT,
+  ): Promise<PolymarketMarket[]> {
     const safeLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
     const url = `${this.gammaApiUrl}${GAMMA_PUBLIC_SEARCH_PATH}?q=${encodeURIComponent(query)}&limit_per_type=${safeLimit}&events_status=active`;
     const response = await this.fetchWithTimeout(url);
     if (!response.ok) {
-      throw new Error(`Gamma public-search error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Gamma public-search error: ${response.status} ${response.statusText}`,
+      );
     }
     const body = (await response.json()) as GammaPublicSearchResponse;
     const events = body.events ?? [];
@@ -437,7 +512,9 @@ export class PolymarketService extends Service {
       if (markets.length >= safeLimit) break;
     }
     const withTokens = markets.map((m) => this.parseTokens(m));
-    logger.info(`[PolymarketService] Gamma public-search "${query}" returned ${withTokens.length} markets`);
+    logger.info(
+      `[PolymarketService] Gamma public-search "${query}" returned ${withTokens.length} markets`,
+    );
     return withTokens;
   }
 
@@ -465,7 +542,10 @@ export class PolymarketService extends Service {
   /**
    * Resolve preferred slug to Gamma tag id using map built with tagKeys. Tries slug and normalized variants.
    */
-  private static resolveSlugToTagId(slug: string, slugToTagId: Map<string, string>): string | undefined {
+  private static resolveSlugToTagId(
+    slug: string,
+    slugToTagId: Map<string, string>,
+  ): string | undefined {
     const candidates = [
       slug,
       slug.toLowerCase(),
@@ -487,21 +567,33 @@ export class PolymarketService extends Service {
     const url = `${this.gammaApiUrl}${GAMMA_TAGS_PATH}`;
     const response = await this.fetchWithTimeout(url);
     if (!response.ok) {
-      throw new Error(`Gamma tags error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Gamma tags error: ${response.status} ${response.statusText}`,
+      );
     }
-    const list = (await response.json()) as { id: string; label: string; slug: string }[];
+    const list = (await response.json()) as {
+      id: string;
+      label: string;
+      slug: string;
+    }[];
     return list;
   }
 
   /**
    * Resolve a single tag by slug via GET /tags/slug/{slug}. Returns null on 404 or non-ok (no throw).
    */
-  async getTagBySlug(slug: string): Promise<{ id: string; label: string; slug: string } | null> {
+  async getTagBySlug(
+    slug: string,
+  ): Promise<{ id: string; label: string; slug: string } | null> {
     const url = `${this.gammaApiUrl}${GAMMA_TAGS_PATH}/slug/${encodeURIComponent(slug.trim())}`;
     try {
       const response = await this.fetchWithTimeout(url);
       if (!response.ok) return null;
-      const tag = (await response.json()) as { id: string; label?: string; slug?: string };
+      const tag = (await response.json()) as {
+        id: string;
+        label?: string;
+        slug?: string;
+      };
       if (!tag?.id) return null;
       return {
         id: String(tag.id),
@@ -516,7 +608,10 @@ export class PolymarketService extends Service {
   /**
    * Get events by tag (id or slug). Resolve slug to id via getTags() if needed. Uses normalized slug/label variants (hyphen/underscore/space) so "fed-rates" matches Gamma slug "fed_rates".
    */
-  async getEventsByTag(tagIdOrSlug: string, limit: number = DEFAULT_PAGE_LIMIT): Promise<PolymarketMarket[]> {
+  async getEventsByTag(
+    tagIdOrSlug: string,
+    limit: number = DEFAULT_PAGE_LIMIT,
+  ): Promise<PolymarketMarket[]> {
     let tagId = tagIdOrSlug;
     if (!tagIdOrSlug.match(/^\d+$/)) {
       const tags = await this.getTags();
@@ -528,12 +623,19 @@ export class PolymarketService extends Service {
           }
         }
       }
-      const resolved = PolymarketService.resolveSlugToTagId(tagIdOrSlug, slugToTagId);
+      const resolved = PolymarketService.resolveSlugToTagId(
+        tagIdOrSlug,
+        slugToTagId,
+      );
       if (resolved) {
         tagId = resolved;
       } else {
         const fallback = await this.getTagBySlug(tagIdOrSlug);
-        const tag = fallback ?? (tagIdOrSlug.includes("-") ? await this.getTagBySlug(tagIdOrSlug.replace(/-/g, "_")) : null);
+        const tag =
+          fallback ??
+          (tagIdOrSlug.includes("-")
+            ? await this.getTagBySlug(tagIdOrSlug.replace(/-/g, "_"))
+            : null);
         if (tag?.id && /^\d+$/.test(String(tag.id))) tagId = tag.id;
       }
     }
@@ -541,14 +643,21 @@ export class PolymarketService extends Service {
     const url = `${this.gammaApiUrl}${GAMMA_EVENTS_PATH}?tag_id=${encodeURIComponent(tagId)}&closed=false&active=true&limit=${safeLimit}&order=volume&ascending=false`;
     const response = await this.fetchWithTimeout(url);
     if (!response.ok) {
-      throw new Error(`Gamma events-by-tag error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Gamma events-by-tag error: ${response.status} ${response.statusText}`,
+      );
     }
     const events = (await response.json()) as GammaSearchEvent[];
     const markets: PolymarketMarket[] = [];
     for (const ev of events) {
       const eventMarkets = ev.markets ?? [];
       const evSlug = ev.slug ?? (ev as any).slug;
-      const evId = ev.id != null ? String(ev.id) : (ev as any).id != null ? String((ev as any).id) : undefined;
+      const evId =
+        ev.id != null
+          ? String(ev.id)
+          : (ev as any).id != null
+            ? String((ev as any).id)
+            : undefined;
       for (const m of eventMarkets) {
         const apiMarket = { ...m, conditionId: m.conditionId ?? (m as any).id };
         const mapped = mapApiMarketToInterface(apiMarket);
@@ -562,7 +671,9 @@ export class PolymarketService extends Service {
       if (markets.length >= safeLimit) break;
     }
     const withTokens = markets.map((m) => this.parseTokens(m));
-    logger.info(`[PolymarketService] getEventsByTag(${tagIdOrSlug}) returned ${withTokens.length} markets`);
+    logger.info(
+      `[PolymarketService] getEventsByTag(${tagIdOrSlug}) returned ${withTokens.length} markets`,
+    );
     return withTokens;
   }
 
@@ -577,7 +688,10 @@ export class PolymarketService extends Service {
   }): Promise<PolymarketMarket[]> {
     const tagSlugs = options?.tagSlugs ?? VINCE_POLYMARKET_PREFERRED_TAG_SLUGS;
     const limitPerTag = Math.min(Math.max(1, options?.limitPerTag ?? 10), 50);
-    const totalLimit = Math.min(Math.max(1, options?.totalLimit ?? 20), MAX_PAGE_LIMIT);
+    const totalLimit = Math.min(
+      Math.max(1, options?.totalLimit ?? 20),
+      MAX_PAGE_LIMIT,
+    );
 
     const slugToTagId = new Map<string, string>();
     try {
@@ -590,7 +704,9 @@ export class PolymarketService extends Service {
         }
       }
     } catch (err) {
-      logger.warn(`[PolymarketService] getMarketsByPreferredTags getTags failed: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `[PolymarketService] getMarketsByPreferredTags getTags failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     const seen = new Set<string>();
@@ -602,17 +718,25 @@ export class PolymarketService extends Service {
       let tagId = PolymarketService.resolveSlugToTagId(slug, slugToTagId);
       if (!tagId) {
         const tag = await this.getTagBySlug(slug);
-        const fallbackTag = tag ?? (slug.includes("-") ? await this.getTagBySlug(slug.replace(/-/g, "_")) : null);
+        const fallbackTag =
+          tag ??
+          (slug.includes("-")
+            ? await this.getTagBySlug(slug.replace(/-/g, "_"))
+            : null);
         if (fallbackTag && /^\d+$/.test(String(fallbackTag.id))) {
           tagId = fallbackTag.id;
           slugToTagId.set(slug, tagId);
           slugToTagId.set(slug.toLowerCase(), tagId);
-          logger.info(`[PolymarketService] getMarketsByPreferredTags resolved slug "${slug}" via GET /tags/slug (id ${tagId})`);
+          logger.info(
+            `[PolymarketService] getMarketsByPreferredTags resolved slug "${slug}" via GET /tags/slug (id ${tagId})`,
+          );
         }
       }
       if (!tagId) {
         unresolvedSlugs.push(slug);
-        logger.debug(`[PolymarketService] getMarketsByPreferredTags skip slug "${slug}" (no matching Gamma tag)`);
+        logger.debug(
+          `[PolymarketService] getMarketsByPreferredTags skip slug "${slug}" (no matching Gamma tag)`,
+        );
         continue;
       }
       resolvedSlugs.push(slug);
@@ -626,14 +750,18 @@ export class PolymarketService extends Service {
           }
         }
       } catch (err) {
-        logger.warn(`[PolymarketService] getMarketsByPreferredTags skip tag "${slug}" (id ${tagId}): ${err instanceof Error ? err.message : String(err)}`);
+        logger.warn(
+          `[PolymarketService] getMarketsByPreferredTags skip tag "${slug}" (id ${tagId}): ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
     logger.info(
       `[PolymarketService] getMarketsByPreferredTags: resolved ${resolvedSlugs.length}/${tagSlugs.length}: ${resolvedSlugs.join(", ") || "none"}` +
-        (unresolvedSlugs.length > 0 ? `; unresolved: ${unresolvedSlugs.join(", ")}` : "") +
-        `; ${merged.length} unique → ${Math.min(merged.length, totalLimit)} returned`
+        (unresolvedSlugs.length > 0
+          ? `; unresolved: ${unresolvedSlugs.join(", ")}`
+          : "") +
+        `; ${merged.length} unique → ${Math.min(merged.length, totalLimit)} returned`,
     );
 
     const byVolume = (a: PolymarketMarket, b: PolymarketMarket) => {
@@ -650,27 +778,44 @@ export class PolymarketService extends Service {
    * Weekly Crypto markets for leaderboard vibe check (Hypersurface weekly options).
    * Tries: (A) GET /events with tag_id=crypto + recurrence=weekly, (B) tag_id=crypto then filter by series.recurrence, (C) public-search "weekly crypto".
    */
-  async getWeeklyCryptoMarkets(limit: number = 15): Promise<PolymarketMarket[]> {
+  async getWeeklyCryptoMarkets(
+    limit: number = 15,
+  ): Promise<PolymarketMarket[]> {
     const safeLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
     let cryptoTagId: string | null = null;
     try {
       const tags = await this.getTags();
       const crypto = tags.find(
-        (t) => t.slug?.toLowerCase() === "crypto" || t.label?.toLowerCase() === "crypto"
+        (t) =>
+          t.slug?.toLowerCase() === "crypto" ||
+          t.label?.toLowerCase() === "crypto",
       );
-      if (crypto?.id && /^\d+$/.test(String(crypto.id))) cryptoTagId = crypto.id;
+      if (crypto?.id && /^\d+$/.test(String(crypto.id)))
+        cryptoTagId = crypto.id;
     } catch (err) {
-      logger.warn(`[PolymarketService] getWeeklyCryptoMarkets getTags failed: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `[PolymarketService] getWeeklyCryptoMarkets getTags failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
-    const flattenEventsToMarkets = (events: GammaSearchEvent[]): PolymarketMarket[] => {
+    const flattenEventsToMarkets = (
+      events: GammaSearchEvent[],
+    ): PolymarketMarket[] => {
       const markets: PolymarketMarket[] = [];
       for (const ev of events) {
         const eventMarkets = ev.markets ?? [];
         const evSlug = ev.slug ?? (ev as any).slug;
-        const evId = ev.id != null ? String(ev.id) : (ev as any).id != null ? String((ev as any).id) : undefined;
+        const evId =
+          ev.id != null
+            ? String(ev.id)
+            : (ev as any).id != null
+              ? String((ev as any).id)
+              : undefined;
         for (const m of eventMarkets) {
-          const apiMarket = { ...m, conditionId: m.conditionId ?? (m as any).id };
+          const apiMarket = {
+            ...m,
+            conditionId: m.conditionId ?? (m as any).id,
+          };
           const mapped = mapApiMarketToInterface(apiMarket);
           markets.push({
             ...mapped,
@@ -715,12 +860,16 @@ export class PolymarketService extends Service {
             }
             deduped.sort(byVolume);
             const out = filterOpenMarkets(deduped).slice(0, safeLimit);
-            logger.info(`[PolymarketService] getWeeklyCryptoMarkets (recurrence=weekly): ${out.length} markets`);
+            logger.info(
+              `[PolymarketService] getWeeklyCryptoMarkets (recurrence=weekly): ${out.length} markets`,
+            );
             return out;
           }
         }
       } catch (err) {
-        logger.debug(`[PolymarketService] getWeeklyCryptoMarkets recurrence path failed: ${err instanceof Error ? err.message : String(err)}`);
+        logger.debug(
+          `[PolymarketService] getWeeklyCryptoMarkets recurrence path failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
 
       try {
@@ -733,7 +882,11 @@ export class PolymarketService extends Service {
             const recurrence = series?.recurrence?.toLowerCase?.();
             const slug = (ev.slug ?? "").toLowerCase();
             const title = (ev.title ?? "").toLowerCase();
-            return recurrence === "weekly" || slug.includes("weekly") || title.includes("weekly");
+            return (
+              recurrence === "weekly" ||
+              slug.includes("weekly") ||
+              title.includes("weekly")
+            );
           });
           if (weeklyEvents.length > 0) {
             const markets = flattenEventsToMarkets(weeklyEvents);
@@ -748,26 +901,37 @@ export class PolymarketService extends Service {
             }
             deduped.sort(byVolume);
             const out = filterOpenMarkets(deduped).slice(0, safeLimit);
-            logger.info(`[PolymarketService] getWeeklyCryptoMarkets (tag+filter): ${out.length} markets`);
+            logger.info(
+              `[PolymarketService] getWeeklyCryptoMarkets (tag+filter): ${out.length} markets`,
+            );
             return out;
           }
         }
       } catch (err) {
-        logger.debug(`[PolymarketService] getWeeklyCryptoMarkets tag+filter path failed: ${err instanceof Error ? err.message : String(err)}`);
+        logger.debug(
+          `[PolymarketService] getWeeklyCryptoMarkets tag+filter path failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
     try {
-      const markets = await this.searchMarketsViaGammaSearch("weekly crypto", safeLimit);
+      const markets = await this.searchMarketsViaGammaSearch(
+        "weekly crypto",
+        safeLimit,
+      );
       if (markets.length > 0) {
         const out = filterOpenMarkets(markets).slice(0, safeLimit);
         if (out.length > 0) {
-          logger.info(`[PolymarketService] getWeeklyCryptoMarkets (search fallback): ${out.length} markets`);
+          logger.info(
+            `[PolymarketService] getWeeklyCryptoMarkets (search fallback): ${out.length} markets`,
+          );
           return out;
         }
       }
     } catch (err) {
-      logger.debug(`[PolymarketService] getWeeklyCryptoMarkets search fallback failed: ${err instanceof Error ? err.message : String(err)}`);
+      logger.debug(
+        `[PolymarketService] getWeeklyCryptoMarkets search fallback failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     logger.info(`[PolymarketService] getWeeklyCryptoMarkets: no markets found`);
@@ -777,7 +941,11 @@ export class PolymarketService extends Service {
   /**
    * Record activity for provider context (in-memory, per room).
    */
-  recordActivity(roomId: string, type: PolymarketActivityType, data: Record<string, unknown>): void {
+  recordActivity(
+    roomId: string,
+    type: PolymarketActivityType,
+    data: Record<string, unknown>,
+  ): void {
     let list = this.activityLog.get(roomId);
     if (!list) {
       list = [];
@@ -799,9 +967,12 @@ export class PolymarketService extends Service {
     const lines = list.slice(-5).map((e, i) => {
       const n = list.length - 5 + i + 1;
       if (e.type === "search") return `${n}. Search: "${e.data.query ?? "?"}"`;
-      if (e.type === "markets_list") return `${n}. Viewed markets list (${e.data.count ?? "?"} markets)`;
-      if (e.type === "market_detail") return `${n}. Viewed market detail: ${e.data.conditionId ?? "?"}`;
-      if (e.type === "price_history") return `${n}. Viewed price history: ${e.data.conditionId ?? "?"}`;
+      if (e.type === "markets_list")
+        return `${n}. Viewed markets list (${e.data.count ?? "?"} markets)`;
+      if (e.type === "market_detail")
+        return `${n}. Viewed market detail: ${e.data.conditionId ?? "?"}`;
+      if (e.type === "price_history")
+        return `${n}. Viewed price history: ${e.data.conditionId ?? "?"}`;
       if (e.type === "orderbook") return `${n}. Viewed orderbook`;
       if (e.type === "events_list") return `${n}. Viewed events list`;
       if (e.type === "event_detail") return `${n}. Viewed event detail`;
@@ -824,13 +995,22 @@ export class PolymarketService extends Service {
    * @returns Filtered array of markets matching search criteria
    */
   async searchMarkets(params: MarketSearchParams): Promise<PolymarketMarket[]> {
-    const { query, category, active = true, closed = false, limit = 20, offset = 0 } = params;
-    logger.info(`[PolymarketService] Searching markets: query="${query}", category="${category}", limit=${limit}, closed=${closed}`);
+    const {
+      query,
+      category,
+      active = true,
+      closed = false,
+      limit = 20,
+      offset = 0,
+    } = params;
+    logger.info(
+      `[PolymarketService] Searching markets: query="${query}", category="${category}", limit=${limit}, closed=${closed}`,
+    );
 
     return this.retryFetch(async () => {
       // Build query parameters
       const queryParams = new URLSearchParams();
-      
+
       // IMPORTANT: Since Gamma API doesn't support server-side search, we need to fetch
       // a larger batch of markets to filter client-side. We fetch more markets than the
       // requested limit to ensure we can return enough results after filtering.
@@ -854,14 +1034,16 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gamma API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const rawMarkets = await response.json() as any[];
+      const rawMarkets = (await response.json()) as any[];
       let markets = rawMarkets.map(mapApiMarketToInterface);
 
       // Parse tokens from JSON strings
-      markets = markets.map(market => this.parseTokens(market));
+      markets = markets.map((market) => this.parseTokens(market));
 
       // Client-side filtering by query text
       if (query) {
@@ -870,7 +1052,7 @@ export class PolymarketService extends Service {
           (m) =>
             m.question?.toLowerCase().includes(lowerQuery) ||
             m.description?.toLowerCase().includes(lowerQuery) ||
-            m.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))
+            m.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery)),
         );
       }
 
@@ -878,13 +1060,15 @@ export class PolymarketService extends Service {
       if (category) {
         const lowerCategory = category.toLowerCase();
         markets = markets.filter(
-          (m) => m.category?.toLowerCase() === lowerCategory
+          (m) => m.category?.toLowerCase() === lowerCategory,
         );
       }
 
       // Return only the requested number of results
       const results = markets.slice(0, limit);
-      logger.info(`[PolymarketService] Found ${results.length} markets matching search criteria (out of ${markets.length} matches)`);
+      logger.info(
+        `[PolymarketService] Found ${results.length} markets matching search criteria (out of ${markets.length} matches)`,
+      );
       return results;
     });
   }
@@ -912,11 +1096,13 @@ export class PolymarketService extends Service {
       conditionId,
       this.marketCache,
       this.marketCacheOrder,
-      this.marketCacheTtl
+      this.marketCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached market (conditionId: ${conditionId})`);
+      logger.debug(
+        `[PolymarketService] Returning cached market (conditionId: ${conditionId})`,
+      );
       return cached.data;
     }
 
@@ -928,14 +1114,16 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gamma API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const rawMarkets = await response.json() as any[];
+      const rawMarkets = (await response.json()) as any[];
       const markets = rawMarkets.map(mapApiMarketToInterface);
-      
+
       const market = markets.find(
-        (m) => (m.condition_id ?? m.conditionId) === conditionId
+        (m) => (m.condition_id ?? m.conditionId) === conditionId,
       );
 
       if (!market) {
@@ -955,10 +1143,12 @@ export class PolymarketService extends Service {
         },
         this.marketCache,
         this.marketCacheOrder,
-        this.maxMarketCacheSize
+        this.maxMarketCacheSize,
       );
 
-      logger.info(`[PolymarketService] Fetched market: ${marketWithTokens.question}`);
+      logger.info(
+        `[PolymarketService] Fetched market: ${marketWithTokens.question}`,
+      );
       return marketWithTokens;
     });
   }
@@ -970,17 +1160,28 @@ export class PolymarketService extends Service {
    * @returns MarketPrices shape or null when payload has no usable prices
    */
   getPricesFromMarketPayload(market: PolymarketMarket): MarketPrices | null {
-    const conditionId = market.conditionId ?? (market as any).condition_id ?? "";
+    const conditionId =
+      market.conditionId ?? (market as any).condition_id ?? "";
     if (!conditionId) return null;
 
     let yesPriceNum: number | undefined;
     let noPriceNum: number | undefined;
 
     if (market.tokens && market.tokens.length >= 2) {
-      const yesToken = market.tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
-      const noToken = market.tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
-      const yesP = yesToken && typeof (yesToken as any).price === "number" ? (yesToken as any).price : undefined;
-      const noP = noToken && typeof (noToken as any).price === "number" ? (noToken as any).price : undefined;
+      const yesToken = market.tokens.find(
+        (t: any) => t.outcome?.toLowerCase() === "yes",
+      );
+      const noToken = market.tokens.find(
+        (t: any) => t.outcome?.toLowerCase() === "no",
+      );
+      const yesP =
+        yesToken && typeof (yesToken as any).price === "number"
+          ? (yesToken as any).price
+          : undefined;
+      const noP =
+        noToken && typeof (noToken as any).price === "number"
+          ? (noToken as any).price
+          : undefined;
       if (yesP != null && noP != null) {
         yesPriceNum = yesP;
         noPriceNum = noP;
@@ -991,8 +1192,14 @@ export class PolymarketService extends Service {
       let prices: number[] = [];
       try {
         const raw = market.outcomePrices;
-        if (Array.isArray(raw)) prices = raw.map((p: any) => parseFloat(String(p))).filter((n) => !Number.isNaN(n));
-        else if (typeof raw === "string") prices = JSON.parse(raw).map((p: any) => parseFloat(String(p))).filter((n: number) => !Number.isNaN(n));
+        if (Array.isArray(raw))
+          prices = raw
+            .map((p: any) => parseFloat(String(p)))
+            .filter((n) => !Number.isNaN(n));
+        else if (typeof raw === "string")
+          prices = JSON.parse(raw)
+            .map((p: any) => parseFloat(String(p)))
+            .filter((n: number) => !Number.isNaN(n));
       } catch {
         // ignore
       }
@@ -1031,18 +1238,22 @@ export class PolymarketService extends Service {
    * @returns Current market prices with spread calculation
    */
   async getMarketPrices(conditionId: string): Promise<MarketPrices> {
-    logger.info(`[PolymarketService] Fetching prices for market: ${conditionId}`);
+    logger.info(
+      `[PolymarketService] Fetching prices for market: ${conditionId}`,
+    );
 
     // Check LRU cache
     const cached = this.getCached(
       conditionId,
       this.priceCache,
       this.priceCacheOrder,
-      this.priceCacheTtl
+      this.priceCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached prices (conditionId: ${conditionId})`);
+      logger.debug(
+        `[PolymarketService] Returning cached prices (conditionId: ${conditionId})`,
+      );
       return cached.data;
     }
 
@@ -1054,12 +1265,16 @@ export class PolymarketService extends Service {
         throw new Error(`Market ${conditionId} has invalid token structure`);
       }
 
-      const yesToken = market.tokens.find((t) => t.outcome.toLowerCase() === "yes");
-      const noToken = market.tokens.find((t) => t.outcome.toLowerCase() === "no");
+      const yesToken = market.tokens.find(
+        (t) => t.outcome.toLowerCase() === "yes",
+      );
+      const noToken = market.tokens.find(
+        (t) => t.outcome.toLowerCase() === "no",
+      );
 
       if (!yesToken || !noToken) {
         throw new Error(
-          `Market ${conditionId} missing Yes/No tokens. Available outcomes: ${market.tokens.map((t) => t.outcome).join(", ")}`
+          `Market ${conditionId} missing Yes/No tokens. Available outcomes: ${market.tokens.map((t) => t.outcome).join(", ")}`,
         );
       }
 
@@ -1079,8 +1294,8 @@ export class PolymarketService extends Service {
       if (!yesBook.asks[0]?.price || !noBook.asks[0]?.price) {
         logger.warn(
           `[PolymarketService] Empty orderbook for market ${conditionId}, ` +
-          `using fallback 50/50 prices (YES: ${yesBook.asks[0]?.price ? 'has price' : 'NO LIQUIDITY'}, ` +
-          `NO: ${noBook.asks[0]?.price ? 'has price' : 'NO LIQUIDITY'})`
+            `using fallback 50/50 prices (YES: ${yesBook.asks[0]?.price ? "has price" : "NO LIQUIDITY"}, ` +
+            `NO: ${noBook.asks[0]?.price ? "has price" : "NO LIQUIDITY"})`,
         );
       }
 
@@ -1109,11 +1324,11 @@ export class PolymarketService extends Service {
         },
         this.priceCache,
         this.priceCacheOrder,
-        this.maxPriceCacheSize
+        this.maxPriceCacheSize,
       );
 
       logger.info(
-        `[PolymarketService] Fetched prices - YES: ${prices.yes_price_formatted}, NO: ${prices.no_price_formatted}`
+        `[PolymarketService] Fetched prices - YES: ${prices.yes_price_formatted}, NO: ${prices.no_price_formatted}`,
       );
       return prices;
     });
@@ -1123,24 +1338,28 @@ export class PolymarketService extends Service {
    * Get orderbook for a specific token
    */
   async getOrderBook(tokenId: string): Promise<OrderBook> {
-    logger.debug(`[PolymarketService] Fetching orderbook for token: ${tokenId}`);
+    logger.debug(
+      `[PolymarketService] Fetching orderbook for token: ${tokenId}`,
+    );
 
     return this.retryFetch(async () => {
       const url = `${this.clobApiUrl}/book?token_id=${tokenId}`;
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`CLOB API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `CLOB API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const orderBook = await response.json() as OrderBook;
+      const orderBook = (await response.json()) as OrderBook;
       return orderBook;
     });
   }
 
   /**
    * Get available market categories
-   * 
+   *
    * NOTE: Categories are available on the /events endpoint, not /markets.
    * We fetch active events and aggregate their category field.
    */
@@ -1153,10 +1372,12 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gamma API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const events = await response.json() as Array<{
+      const events = (await response.json()) as Array<{
         category?: string;
         title?: string;
         active?: boolean;
@@ -1175,7 +1396,9 @@ export class PolymarketService extends Service {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
-      logger.info(`[PolymarketService] Found ${categories.length} categories from ${events.length} events`);
+      logger.info(
+        `[PolymarketService] Found ${categories.length} categories from ${events.length} events`,
+      );
       return categories;
     });
   }
@@ -1196,10 +1419,10 @@ export class PolymarketService extends Service {
     conditionId: string,
     outcome: "YES" | "NO" = "YES",
     interval: string = "1d",
-    fidelity?: number
+    fidelity?: number,
   ): Promise<MarketPriceHistory> {
     logger.info(
-      `[PolymarketService] Fetching price history: ${conditionId}, outcome: ${outcome}, interval: ${interval}`
+      `[PolymarketService] Fetching price history: ${conditionId}, outcome: ${outcome}, interval: ${interval}`,
     );
 
     // Create cache key
@@ -1210,11 +1433,13 @@ export class PolymarketService extends Service {
       cacheKey,
       this.priceHistoryCache,
       this.priceHistoryCacheOrder,
-      this.priceHistoryCacheTtl
+      this.priceHistoryCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached price history (${cacheKey})`);
+      logger.debug(
+        `[PolymarketService] Returning cached price history (${cacheKey})`,
+      );
       return cached.data;
     }
 
@@ -1228,12 +1453,12 @@ export class PolymarketService extends Service {
 
       // Find the token for the requested outcome (case-insensitive)
       const token = market.tokens.find(
-        (t) => t.outcome.toLowerCase() === outcome.toLowerCase()
+        (t) => t.outcome.toLowerCase() === outcome.toLowerCase(),
       );
 
       if (!token) {
         throw new Error(
-          `Market ${conditionId} missing ${outcome} token. Available outcomes: ${market.tokens.map((t) => t.outcome).join(", ")}`
+          `Market ${conditionId} missing ${outcome} token. Available outcomes: ${market.tokens.map((t) => t.outcome).join(", ")}`,
         );
       }
 
@@ -1241,7 +1466,7 @@ export class PolymarketService extends Service {
       const queryParams = new URLSearchParams();
       queryParams.set("market", token.token_id);
       queryParams.set("interval", interval);
-      
+
       // Auto-set fidelity for longer intervals to get full history
       // Without fidelity, 'max' only returns ~30 days of minute-by-minute data
       // With fidelity=1440 (daily), we get the complete market history
@@ -1253,7 +1478,7 @@ export class PolymarketService extends Service {
           effectiveFidelity = 360; // 6-hourly for 1 week (reasonable granularity)
         }
       }
-      
+
       if (effectiveFidelity) {
         queryParams.set("fidelity", effectiveFidelity.toString());
       }
@@ -1263,7 +1488,9 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`CLOB API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `CLOB API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = (await response.json()) as PriceHistoryResponse;
@@ -1275,13 +1502,18 @@ export class PolymarketService extends Service {
         return {
           timestamp,
           price: parseFloat(point.p),
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), // Format: "Jan 15"
+          date: date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }), // Format: "Jan 15"
         };
       });
 
       // Calculate current price (last data point)
       const currentPrice =
-        dataPoints.length > 0 ? dataPoints[dataPoints.length - 1].price : undefined;
+        dataPoints.length > 0
+          ? dataPoints[dataPoints.length - 1].price
+          : undefined;
 
       const priceHistory: MarketPriceHistory = {
         condition_id: conditionId,
@@ -1302,11 +1534,11 @@ export class PolymarketService extends Service {
         },
         this.priceHistoryCache,
         this.priceHistoryCacheOrder,
-        this.maxPriceHistoryCacheSize
+        this.maxPriceHistoryCacheSize,
       );
 
       logger.info(
-        `[PolymarketService] Fetched price history: ${dataPoints.length} data points, current price: ${currentPrice?.toFixed(4) || "N/A"}`
+        `[PolymarketService] Fetched price history: ${dataPoints.length} data points, current price: ${currentPrice?.toFixed(4) || "N/A"}`,
       );
       return priceHistory;
     });
@@ -1327,12 +1559,19 @@ export class PolymarketService extends Service {
    * @returns Proxy wallet address (checksum format)
    */
   deriveProxyAddress(eoaAddress: string): string {
-    logger.debug(`[PolymarketService] Deriving proxy address for EOA: ${eoaAddress}`);
+    logger.debug(
+      `[PolymarketService] Deriving proxy address for EOA: ${eoaAddress}`,
+    );
 
     // Use @polymarket/sdk to derive proxy wallet address
     // getProxyWalletAddress(factory, user) computes the deterministic CREATE2 address
-    const proxyAddress = getProxyWalletAddress(this.GNOSIS_PROXY_FACTORY, eoaAddress);
-    logger.info(`[PolymarketService] Derived proxy: ${proxyAddress} for EOA: ${eoaAddress}`);
+    const proxyAddress = getProxyWalletAddress(
+      this.GNOSIS_PROXY_FACTORY,
+      eoaAddress,
+    );
+    logger.info(
+      `[PolymarketService] Derived proxy: ${proxyAddress} for EOA: ${eoaAddress}`,
+    );
     return proxyAddress;
   }
 
@@ -1346,7 +1585,9 @@ export class PolymarketService extends Service {
    * @returns Array of positions with current values and P&L
    */
   async getUserPositions(walletAddress: string): Promise<Position[]> {
-    logger.info(`[PolymarketService] Fetching positions for wallet: ${walletAddress}`);
+    logger.info(
+      `[PolymarketService] Fetching positions for wallet: ${walletAddress}`,
+    );
 
     // Derive proxy address if this is an EOA
     const proxyAddress = this.deriveProxyAddress(walletAddress);
@@ -1356,11 +1597,13 @@ export class PolymarketService extends Service {
       proxyAddress,
       this.positionsCache,
       this.positionsCacheOrder,
-      this.positionsCacheTtl
+      this.positionsCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached positions (wallet: ${proxyAddress})`);
+      logger.debug(
+        `[PolymarketService] Returning cached positions (wallet: ${proxyAddress})`,
+      );
       return cached.data;
     }
 
@@ -1369,10 +1612,12 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Data API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Data API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const positions = await response.json() as Position[];
+      const positions = (await response.json()) as Position[];
 
       // Update LRU cache
       this.setCached(
@@ -1383,10 +1628,12 @@ export class PolymarketService extends Service {
         },
         this.positionsCache,
         this.positionsCacheOrder,
-        100 // Max 100 wallets cached
+        100, // Max 100 wallets cached
       );
 
-      logger.info(`[PolymarketService] Fetched ${positions.length} positions for wallet: ${proxyAddress}`);
+      logger.info(
+        `[PolymarketService] Fetched ${positions.length} positions for wallet: ${proxyAddress}`,
+      );
       return positions;
     });
   }
@@ -1401,7 +1648,9 @@ export class PolymarketService extends Service {
    * @returns Balance summary with total value and P&L
    */
   async getUserBalance(walletAddress: string): Promise<Balance> {
-    logger.info(`[PolymarketService] Fetching balance for wallet: ${walletAddress}`);
+    logger.info(
+      `[PolymarketService] Fetching balance for wallet: ${walletAddress}`,
+    );
 
     // Derive proxy address if this is an EOA
     const proxyAddress = this.deriveProxyAddress(walletAddress);
@@ -1412,11 +1661,16 @@ export class PolymarketService extends Service {
       const valueResponse = await this.fetchWithTimeout(valueUrl);
 
       if (!valueResponse.ok) {
-        throw new Error(`Data API error: ${valueResponse.status} ${valueResponse.statusText}`);
+        throw new Error(
+          `Data API error: ${valueResponse.status} ${valueResponse.statusText}`,
+        );
       }
 
       // API returns array: [{"user":"0x...", "value":123.45}]
-      const valueData = await valueResponse.json() as Array<{ user: string; value: number }>;
+      const valueData = (await valueResponse.json()) as Array<{
+        user: string;
+        value: number;
+      }>;
       const totalValue = valueData.length > 0 ? valueData[0].value : 0;
 
       // Fetch positions to calculate positions value and P&L
@@ -1446,7 +1700,7 @@ export class PolymarketService extends Service {
       };
 
       logger.info(
-        `[PolymarketService] Fetched balance - Total: ${balance.total_value}, Positions: ${balance.positions_value}, Available: ${balance.available_balance}`
+        `[PolymarketService] Fetched balance - Total: ${balance.total_value}, Positions: ${balance.positions_value}, Available: ${balance.available_balance}`,
       );
       return balance;
     });
@@ -1462,8 +1716,13 @@ export class PolymarketService extends Service {
    * @param limit - Maximum number of trades to return (default: 100)
    * @returns Array of trade history entries
    */
-  async getUserTrades(walletAddress: string, limit: number = 100): Promise<Trade[]> {
-    logger.info(`[PolymarketService] Fetching trades for wallet: ${walletAddress}, limit: ${limit}`);
+  async getUserTrades(
+    walletAddress: string,
+    limit: number = 100,
+  ): Promise<Trade[]> {
+    logger.info(
+      `[PolymarketService] Fetching trades for wallet: ${walletAddress}, limit: ${limit}`,
+    );
 
     // Derive proxy address if this is an EOA
     const proxyAddress = this.deriveProxyAddress(walletAddress);
@@ -1476,11 +1735,13 @@ export class PolymarketService extends Service {
       cacheKey,
       this.tradesCache,
       this.tradesCacheOrder,
-      this.tradesCacheTtl
+      this.tradesCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached trades (wallet: ${proxyAddress})`);
+      logger.debug(
+        `[PolymarketService] Returning cached trades (wallet: ${proxyAddress})`,
+      );
       return cached.data;
     }
 
@@ -1489,10 +1750,12 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Data API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Data API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const trades = await response.json() as Trade[];
+      const trades = (await response.json()) as Trade[];
 
       // Update LRU cache
       this.setCached(
@@ -1503,10 +1766,12 @@ export class PolymarketService extends Service {
         },
         this.tradesCache,
         this.tradesCacheOrder,
-        100 // Max 100 wallet-limit combinations cached
+        100, // Max 100 wallet-limit combinations cached
       );
 
-      logger.info(`[PolymarketService] Fetched ${trades.length} trades for wallet: ${proxyAddress}`);
+      logger.info(
+        `[PolymarketService] Fetched ${trades.length} trades for wallet: ${proxyAddress}`,
+      );
       return trades;
     });
   }
@@ -1526,14 +1791,18 @@ export class PolymarketService extends Service {
    */
   async getEvents(filters?: EventFilters): Promise<PolymarketEvent[]> {
     const { active, closed, tag, limit = 20, offset = 0 } = filters || {};
-    logger.info(`[PolymarketService] Fetching events with filters: active=${active}, tag=${tag}, limit=${limit}`);
+    logger.info(
+      `[PolymarketService] Fetching events with filters: active=${active}, tag=${tag}, limit=${limit}`,
+    );
 
     // Check cache (only cache if no filters, since filtered results vary)
     if (!filters || (active === undefined && !closed && !tag && offset === 0)) {
       if (this.eventsListCache) {
         const age = Date.now() - this.eventsListCache.timestamp;
         if (age < this.eventCacheTtl) {
-          logger.debug(`[PolymarketService] Returning cached events list (age: ${age}ms)`);
+          logger.debug(
+            `[PolymarketService] Returning cached events list (age: ${age}ms)`,
+          );
           return this.eventsListCache.data.slice(0, limit);
         }
       }
@@ -1562,13 +1831,18 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gamma API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const events = await response.json() as PolymarketEvent[];
+      const events = (await response.json()) as PolymarketEvent[];
 
       // Update cache only if no filters
-      if (!filters || (active === undefined && !closed && !tag && offset === 0)) {
+      if (
+        !filters ||
+        (active === undefined && !closed && !tag && offset === 0)
+      ) {
         this.eventsListCache = {
           data: events,
           timestamp: Date.now(),
@@ -1597,11 +1871,13 @@ export class PolymarketService extends Service {
       eventIdOrSlug,
       this.eventsCache,
       this.eventsCacheOrder,
-      this.eventCacheTtl
+      this.eventCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached event (${eventIdOrSlug})`);
+      logger.debug(
+        `[PolymarketService] Returning cached event (${eventIdOrSlug})`,
+      );
       return cached.data;
     }
 
@@ -1615,10 +1891,12 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gamma API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const event = await response.json() as PolymarketEventDetail;
+      const event = (await response.json()) as PolymarketEventDetail;
 
       // Update LRU cache
       this.setCached(
@@ -1629,10 +1907,12 @@ export class PolymarketService extends Service {
         },
         this.eventsCache,
         this.eventsCacheOrder,
-        this.maxEventCacheSize
+        this.maxEventCacheSize,
       );
 
-      logger.info(`[PolymarketService] Fetched event: ${event.title} (${event.markets?.length || 0} markets)`);
+      logger.info(
+        `[PolymarketService] Fetched event: ${event.title} (${event.markets?.length || 0} markets)`,
+      );
       return event;
     });
   }
@@ -1656,7 +1936,9 @@ export class PolymarketService extends Service {
     if (this.openInterestCache) {
       const age = Date.now() - this.openInterestCache.timestamp;
       if (age < this.analyticsCacheTtl) {
-        logger.debug(`[PolymarketService] Returning cached open interest (age: ${age}ms)`);
+        logger.debug(
+          `[PolymarketService] Returning cached open interest (age: ${age}ms)`,
+        );
         return this.openInterestCache.data;
       }
     }
@@ -1666,17 +1948,22 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Data API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Data API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       // API returns array format: [{"market": "GLOBAL", "value": 344230134.862965}]
-      const responseData = await response.json() as Array<{market: string, value: number}>;
-      const rawData = responseData[0] || {market: "GLOBAL", value: 0};
+      const responseData = (await response.json()) as Array<{
+        market: string;
+        value: number;
+      }>;
+      const rawData = responseData[0] || { market: "GLOBAL", value: 0 };
 
       // Transform to expected format
       const data: OpenInterestData = {
         total_value: rawData.value.toString(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Update cache
@@ -1685,7 +1972,9 @@ export class PolymarketService extends Service {
         timestamp: Date.now(),
       };
 
-      logger.info(`[PolymarketService] Fetched open interest: ${data.total_value}`);
+      logger.info(
+        `[PolymarketService] Fetched open interest: ${data.total_value}`,
+      );
       return data;
     });
   }
@@ -1707,7 +1996,9 @@ export class PolymarketService extends Service {
     if (this.liveVolumeCache) {
       const age = Date.now() - this.liveVolumeCache.timestamp;
       if (age < this.analyticsCacheTtl) {
-        logger.debug(`[PolymarketService] Returning cached live volume (age: ${age}ms)`);
+        logger.debug(
+          `[PolymarketService] Returning cached live volume (age: ${age}ms)`,
+        );
         return this.liveVolumeCache.data;
       }
     }
@@ -1719,10 +2010,12 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gamma API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const markets = await response.json() as Array<{
+      const markets = (await response.json()) as Array<{
         conditionId: string;
         question: string;
         volume24hr: number;
@@ -1730,17 +2023,20 @@ export class PolymarketService extends Service {
       }>;
 
       // Aggregate total 24h volume from all fetched markets
-      const totalVolume = markets.reduce((sum, m) => sum + (m.volume24hr || 0), 0);
+      const totalVolume = markets.reduce(
+        (sum, m) => sum + (m.volume24hr || 0),
+        0,
+      );
 
       // Transform to expected format with top markets
       const data: VolumeData = {
         total_volume_24h: totalVolume.toFixed(2),
-        markets: markets.slice(0, 20).map(m => ({
+        markets: markets.slice(0, 20).map((m) => ({
           condition_id: m.conditionId,
           volume: (m.volume24hr || 0).toFixed(2),
           question: m.question,
         })),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Update cache
@@ -1749,7 +2045,9 @@ export class PolymarketService extends Service {
         timestamp: Date.now(),
       };
 
-      logger.info(`[PolymarketService] Fetched live volume: $${(totalVolume / 1_000_000).toFixed(2)}M from ${markets.length} markets`);
+      logger.info(
+        `[PolymarketService] Fetched live volume: $${(totalVolume / 1_000_000).toFixed(2)}M from ${markets.length} markets`,
+      );
       return data;
     });
   }
@@ -1763,13 +2061,17 @@ export class PolymarketService extends Service {
    * @returns Array of spread data for markets
    */
   async getSpreads(limit: number = 20): Promise<SpreadData[]> {
-    logger.info(`[PolymarketService] Fetching spreads for top ${limit} markets`);
+    logger.info(
+      `[PolymarketService] Fetching spreads for top ${limit} markets`,
+    );
 
     // Check cache
     if (this.spreadsCache) {
       const age = Date.now() - this.spreadsCache.timestamp;
       if (age < this.analyticsCacheTtl) {
-        logger.debug(`[PolymarketService] Returning cached spreads (age: ${age}ms)`);
+        logger.debug(
+          `[PolymarketService] Returning cached spreads (age: ${age}ms)`,
+        );
         return this.spreadsCache.data.slice(0, limit);
       }
     }
@@ -1779,7 +2081,9 @@ export class PolymarketService extends Service {
       const markets = await this.getActiveMarkets(limit);
 
       if (markets.length === 0) {
-        logger.warn("[PolymarketService] No active markets found for spread calculation");
+        logger.warn(
+          "[PolymarketService] No active markets found for spread calculation",
+        );
         return [];
       }
 
@@ -1792,13 +2096,17 @@ export class PolymarketService extends Service {
             try {
               tokenIds = JSON.parse(market.clobTokenIds as any);
             } catch (e) {
-              logger.debug(`[PolymarketService] Failed to parse clobTokenIds for ${market.conditionId}`);
+              logger.debug(
+                `[PolymarketService] Failed to parse clobTokenIds for ${market.conditionId}`,
+              );
               return null;
             }
           }
 
           if (tokenIds.length === 0) {
-            logger.debug(`[PolymarketService] No token IDs for ${market.conditionId}`);
+            logger.debug(
+              `[PolymarketService] No token IDs for ${market.conditionId}`,
+            );
             return null;
           }
 
@@ -1814,21 +2122,29 @@ export class PolymarketService extends Service {
           });
 
           if (!response.ok) {
-            logger.debug(`[PolymarketService] Failed to fetch spread for ${market.question}: ${response.status}`);
+            logger.debug(
+              `[PolymarketService] Failed to fetch spread for ${market.question}: ${response.status}`,
+            );
             return null;
           }
 
-          const spreadResponse = await response.json() as { spread: string };
+          const spreadResponse = (await response.json()) as { spread: string };
           const spread = parseFloat(spreadResponse.spread);
 
           // Fetch orderbook to get best bid/ask prices for additional context
           const orderbook = await this.getOrderBook(tokenId);
-          const bestBid = orderbook.bids[0]?.price ? parseFloat(orderbook.bids[0].price) : 0;
-          const bestAsk = orderbook.asks[0]?.price ? parseFloat(orderbook.asks[0].price) : 0;
+          const bestBid = orderbook.bids[0]?.price
+            ? parseFloat(orderbook.bids[0].price)
+            : 0;
+          const bestAsk = orderbook.asks[0]?.price
+            ? parseFloat(orderbook.asks[0].price)
+            : 0;
 
           // Skip if no liquidity
           if (bestBid === 0 || bestAsk === 0) {
-            logger.debug(`[PolymarketService] No liquidity for ${market.question}`);
+            logger.debug(
+              `[PolymarketService] No liquidity for ${market.question}`,
+            );
             return null;
           }
 
@@ -1836,9 +2152,12 @@ export class PolymarketService extends Service {
 
           // Calculate liquidity score based on spread
           let liquidityScore = 0;
-          if (spread < 0.01) liquidityScore = 90 + (1 - spread / 0.01) * 10; // 90-100 for <1% spread
-          else if (spread < 0.05) liquidityScore = 70 + (1 - spread / 0.05) * 20; // 70-90 for 1-5%
-          else if (spread < 0.10) liquidityScore = 50 + (1 - spread / 0.10) * 20; // 50-70 for 5-10%
+          if (spread < 0.01)
+            liquidityScore = 90 + (1 - spread / 0.01) * 10; // 90-100 for <1% spread
+          else if (spread < 0.05)
+            liquidityScore = 70 + (1 - spread / 0.05) * 20; // 70-90 for 1-5%
+          else if (spread < 0.1)
+            liquidityScore = 50 + (1 - spread / 0.1) * 20; // 50-70 for 5-10%
           else liquidityScore = Math.max(0, 50 - spread * 100); // <50 for >10%
 
           const spreadData: SpreadData = {
@@ -1854,7 +2173,7 @@ export class PolymarketService extends Service {
           return spreadData;
         } catch (error) {
           logger.debug(
-            `[PolymarketService] Failed to fetch spread for ${market.question}: ${error instanceof Error ? error.message : String(error)}`
+            `[PolymarketService] Failed to fetch spread for ${market.question}: ${error instanceof Error ? error.message : String(error)}`,
           );
           return null;
         }
@@ -1869,7 +2188,9 @@ export class PolymarketService extends Service {
         timestamp: Date.now(),
       };
 
-      logger.info(`[PolymarketService] Fetched spreads for ${spreads.length}/${markets.length} markets`);
+      logger.info(
+        `[PolymarketService] Fetched spreads for ${spreads.length}/${markets.length} markets`,
+      );
       return spreads;
     });
   }
@@ -1888,8 +2209,13 @@ export class PolymarketService extends Service {
    * @param side - Optional filter to BUY or SELL side
    * @returns Orderbook summary with bids, asks, and calculated metrics
    */
-  async getOrderbook(tokenId: string, side?: "BUY" | "SELL"): Promise<OrderbookSummary> {
-    logger.info(`[PolymarketService] Fetching orderbook for token: ${tokenId}${side ? ` (${side} side)` : ""}`);
+  async getOrderbook(
+    tokenId: string,
+    side?: "BUY" | "SELL",
+  ): Promise<OrderbookSummary> {
+    logger.info(
+      `[PolymarketService] Fetching orderbook for token: ${tokenId}${side ? ` (${side} side)` : ""}`,
+    );
 
     return this.retryFetch(async () => {
       const queryParams = new URLSearchParams();
@@ -1902,14 +2228,18 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`CLOB API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `CLOB API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const orderbook = await response.json() as OrderBook;
+      const orderbook = (await response.json()) as OrderBook;
 
       // Calculate summary metrics
-      const bestBid = orderbook.bids.length > 0 ? orderbook.bids[0].price : undefined;
-      const bestAsk = orderbook.asks.length > 0 ? orderbook.asks[0].price : undefined;
+      const bestBid =
+        orderbook.bids.length > 0 ? orderbook.bids[0].price : undefined;
+      const bestAsk =
+        orderbook.asks.length > 0 ? orderbook.asks[0].price : undefined;
 
       let spread: string | undefined;
       let midPrice: string | undefined;
@@ -1937,7 +2267,7 @@ export class PolymarketService extends Service {
 
       logger.info(
         `[PolymarketService] Fetched orderbook - ${orderbook.bids.length} bids, ${orderbook.asks.length} asks, ` +
-        `best: ${bestBid || "N/A"}/${bestAsk || "N/A"}`
+          `best: ${bestBid || "N/A"}/${bestAsk || "N/A"}`,
       );
 
       return summary;
@@ -1955,14 +2285,18 @@ export class PolymarketService extends Service {
    * @returns Array of orderbook summaries
    */
   async getOrderbooks(tokenIds: string[]): Promise<OrderbookSummary[]> {
-    logger.info(`[PolymarketService] Fetching orderbooks for ${tokenIds.length} tokens`);
+    logger.info(
+      `[PolymarketService] Fetching orderbooks for ${tokenIds.length} tokens`,
+    );
 
     if (tokenIds.length === 0) {
       return [];
     }
 
     if (tokenIds.length > 100) {
-      logger.warn(`[PolymarketService] Token IDs exceeds max of 100, truncating to first 100`);
+      logger.warn(
+        `[PolymarketService] Token IDs exceeds max of 100, truncating to first 100`,
+      );
       tokenIds = tokenIds.slice(0, 100);
     }
 
@@ -1976,13 +2310,15 @@ export class PolymarketService extends Service {
       });
 
       if (response.ok) {
-        const orderbooks = await response.json() as OrderBook[];
-        
+        const orderbooks = (await response.json()) as OrderBook[];
+
         // Convert to summaries with calculated metrics
         const summaries: OrderbookSummary[] = orderbooks.map((orderbook) => {
           const tokenId = orderbook.asset_id;
-          const bestBid = orderbook.bids.length > 0 ? orderbook.bids[0].price : undefined;
-          const bestAsk = orderbook.asks.length > 0 ? orderbook.asks[0].price : undefined;
+          const bestBid =
+            orderbook.bids.length > 0 ? orderbook.bids[0].price : undefined;
+          const bestAsk =
+            orderbook.asks.length > 0 ? orderbook.asks[0].price : undefined;
 
           let spread: string | undefined;
           let midPrice: string | undefined;
@@ -2009,24 +2345,34 @@ export class PolymarketService extends Service {
           };
         });
 
-        logger.info(`[PolymarketService] Fetched ${summaries.length} orderbooks via batch`);
+        logger.info(
+          `[PolymarketService] Fetched ${summaries.length} orderbooks via batch`,
+        );
         return summaries;
       }
-      
+
       // Batch failed, log and fall through to individual requests
-      logger.warn(`[PolymarketService] Batch orderbooks API failed (${response.status}), falling back to individual requests`);
+      logger.warn(
+        `[PolymarketService] Batch orderbooks API failed (${response.status}), falling back to individual requests`,
+      );
     } catch (error) {
-      logger.warn(`[PolymarketService] Batch orderbooks failed: ${error instanceof Error ? error.message : String(error)}, falling back to individual requests`);
+      logger.warn(
+        `[PolymarketService] Batch orderbooks failed: ${error instanceof Error ? error.message : String(error)}, falling back to individual requests`,
+      );
     }
 
     // Fallback: fetch orderbooks individually in parallel
-    logger.info(`[PolymarketService] Fetching ${tokenIds.length} orderbooks individually (fallback)`);
-    
+    logger.info(
+      `[PolymarketService] Fetching ${tokenIds.length} orderbooks individually (fallback)`,
+    );
+
     const orderbookPromises = tokenIds.map(async (tokenId) => {
       try {
         return await this.getOrderbook(tokenId);
       } catch (error) {
-        logger.warn(`[PolymarketService] Failed to fetch orderbook for ${tokenId.slice(0, 10)}...: ${error instanceof Error ? error.message : String(error)}`);
+        logger.warn(
+          `[PolymarketService] Failed to fetch orderbook for ${tokenId.slice(0, 10)}...: ${error instanceof Error ? error.message : String(error)}`,
+        );
         return null;
       }
     });
@@ -2034,7 +2380,9 @@ export class PolymarketService extends Service {
     const results = await Promise.all(orderbookPromises);
     const summaries = results.filter((r): r is OrderbookSummary => r !== null);
 
-    logger.info(`[PolymarketService] Fetched ${summaries.length}/${tokenIds.length} orderbooks individually`);
+    logger.info(
+      `[PolymarketService] Fetched ${summaries.length}/${tokenIds.length} orderbooks individually`,
+    );
     return summaries;
   }
 
@@ -2046,7 +2394,9 @@ export class PolymarketService extends Service {
    * Get or derive proxy address
    * Helper method to handle both EOA and proxy addresses
    */
-  private async getOrDeriveProxyAddress(walletAddress: string): Promise<string> {
+  private async getOrDeriveProxyAddress(
+    walletAddress: string,
+  ): Promise<string> {
     // Simple heuristic: if address looks like a proxy (starts with certain patterns),
     // use as-is, otherwise derive it
     // For now, always derive to ensure consistency
@@ -2063,7 +2413,9 @@ export class PolymarketService extends Service {
    * @returns Array of closed positions with win/loss info
    */
   async getClosedPositions(walletAddress: string): Promise<any[]> {
-    logger.info(`[PolymarketService] Fetching closed positions for wallet: ${walletAddress}`);
+    logger.info(
+      `[PolymarketService] Fetching closed positions for wallet: ${walletAddress}`,
+    );
 
     // Get proxy address (derive if EOA, pass through if already proxy)
     const proxyAddress = await this.getOrDeriveProxyAddress(walletAddress);
@@ -2073,11 +2425,13 @@ export class PolymarketService extends Service {
       proxyAddress,
       this.closedPositionsCache,
       this.closedPositionsCacheOrder,
-      this.closedPositionsCacheTtl
+      this.closedPositionsCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached closed positions (wallet: ${proxyAddress})`);
+      logger.debug(
+        `[PolymarketService] Returning cached closed positions (wallet: ${proxyAddress})`,
+      );
       return cached.data;
     }
 
@@ -2086,16 +2440,21 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Data API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Data API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       // Transform API response to ClosedPosition interface
       // API returns camelCase fields, interface expects snake_case
-      const rawPositions = await response.json() as Array<any>;
-      const closedPositions: ClosedPosition[] = rawPositions.map(raw => {
+      const rawPositions = (await response.json()) as Array<any>;
+      const closedPositions: ClosedPosition[] = rawPositions.map((raw) => {
         // Calculate pnl_percentage: (realizedPnl / invested) * 100
         const invested = raw.totalBought * raw.avgPrice;
-        const pnlPercentage = invested > 0 ? ((raw.realizedPnl / invested) * 100).toFixed(2) : "0.00";
+        const pnlPercentage =
+          invested > 0
+            ? ((raw.realizedPnl / invested) * 100).toFixed(2)
+            : "0.00";
 
         // Calculate payout: totalBought * settlement price
         const payout = (raw.totalBought * raw.curPrice).toString();
@@ -2112,7 +2471,7 @@ export class PolymarketService extends Service {
           pnl_percentage: pnlPercentage,
           closed_at: raw.timestamp,
           payout,
-          won: raw.curPrice === 1
+          won: raw.curPrice === 1,
         };
       });
 
@@ -2125,10 +2484,12 @@ export class PolymarketService extends Service {
         },
         this.closedPositionsCache,
         this.closedPositionsCacheOrder,
-        100 // Max 100 wallets cached
+        100, // Max 100 wallets cached
       );
 
-      logger.info(`[PolymarketService] Fetched ${closedPositions.length} closed positions for wallet: ${proxyAddress}`);
+      logger.info(
+        `[PolymarketService] Fetched ${closedPositions.length} closed positions for wallet: ${proxyAddress}`,
+      );
       return closedPositions;
     });
   }
@@ -2143,7 +2504,9 @@ export class PolymarketService extends Service {
    * @returns Array of user activity entries
    */
   async getUserActivity(walletAddress: string): Promise<UserActivity[]> {
-    logger.info(`[PolymarketService] Fetching user activity for wallet: ${walletAddress}`);
+    logger.info(
+      `[PolymarketService] Fetching user activity for wallet: ${walletAddress}`,
+    );
 
     // Get proxy address (derive if EOA, pass through if already proxy)
     const proxyAddress = await this.getOrDeriveProxyAddress(walletAddress);
@@ -2153,11 +2516,13 @@ export class PolymarketService extends Service {
       proxyAddress,
       this.userActivityCache,
       this.userActivityCacheOrder,
-      this.userActivityCacheTtl
+      this.userActivityCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached user activity (wallet: ${proxyAddress})`);
+      logger.debug(
+        `[PolymarketService] Returning cached user activity (wallet: ${proxyAddress})`,
+      );
       return cached.data;
     }
 
@@ -2166,12 +2531,14 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Data API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Data API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       // Transform API response to UserActivity interface
       // API returns camelCase fields, interface expects snake_case
-      const rawActivity = await response.json() as Array<any>;
+      const rawActivity = (await response.json()) as Array<any>;
       const activity: UserActivity[] = rawActivity.map((raw, index) => ({
         id: raw.transactionHash || `activity_${index}`,
         type: raw.type as "DEPOSIT" | "WITHDRAWAL" | "TRADE" | "REDEMPTION",
@@ -2180,7 +2547,7 @@ export class PolymarketService extends Service {
         transaction_hash: raw.transactionHash,
         market: raw.title,
         outcome: raw.outcome?.toUpperCase() as "YES" | "NO" | undefined,
-        status: "CONFIRMED" as const
+        status: "CONFIRMED" as const,
       }));
 
       // Update LRU cache
@@ -2192,10 +2559,12 @@ export class PolymarketService extends Service {
         },
         this.userActivityCache,
         this.userActivityCacheOrder,
-        100 // Max 100 wallets cached
+        100, // Max 100 wallets cached
       );
 
-      logger.info(`[PolymarketService] Fetched ${activity.length} activity entries for wallet: ${proxyAddress}`);
+      logger.info(
+        `[PolymarketService] Fetched ${activity.length} activity entries for wallet: ${proxyAddress}`,
+      );
       return activity;
     });
   }
@@ -2213,18 +2582,22 @@ export class PolymarketService extends Service {
    * @returns Array of top holders with position sizes
    */
   async getTopHolders(conditionId: string): Promise<TopHolder[]> {
-    logger.info(`[PolymarketService] Fetching top holders for market: ${conditionId}`);
+    logger.info(
+      `[PolymarketService] Fetching top holders for market: ${conditionId}`,
+    );
 
     // Check LRU cache
     const cached = this.getCached(
       conditionId,
       this.topHoldersCache,
       this.topHoldersCacheOrder,
-      this.topHoldersCacheTtl
+      this.topHoldersCacheTtl,
     );
 
     if (cached) {
-      logger.debug(`[PolymarketService] Returning cached top holders (market: ${conditionId})`);
+      logger.debug(
+        `[PolymarketService] Returning cached top holders (market: ${conditionId})`,
+      );
       return cached.data;
     }
 
@@ -2233,22 +2606,27 @@ export class PolymarketService extends Service {
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
-        throw new Error(`Data API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Data API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       // API returns: [{token: string, holders: [{proxyWallet, amount, outcomeIndex, displayUsernamePublic, ...}]}]
       // Need to flatten to TopHolder[]
-      const data = await response.json() as Array<{token: string, holders: Array<any>}>;
+      const data = (await response.json()) as Array<{
+        token: string;
+        holders: Array<any>;
+      }>;
 
-      const holders: TopHolder[] = data.flatMap(group =>
-        group.holders.map(h => ({
+      const holders: TopHolder[] = data.flatMap((group) =>
+        group.holders.map((h) => ({
           address: h.proxyWallet,
           outcome: h.outcomeIndex === 0 ? "YES" : "NO",
           size: h.amount.toString(),
           value: "0", // Not provided by API
           percentage: "0", // Calculate if needed
-          is_public: h.displayUsernamePublic
-        }))
+          is_public: h.displayUsernamePublic,
+        })),
       );
 
       // Update LRU cache
@@ -2260,10 +2638,12 @@ export class PolymarketService extends Service {
         },
         this.topHoldersCache,
         this.topHoldersCacheOrder,
-        100 // Max 100 markets cached
+        100, // Max 100 markets cached
       );
 
-      logger.info(`[PolymarketService] Fetched ${holders.length} top holders for market: ${conditionId}`);
+      logger.info(
+        `[PolymarketService] Fetched ${holders.length} top holders for market: ${conditionId}`,
+      );
       return holders;
     });
   }

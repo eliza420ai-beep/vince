@@ -1,4 +1,7 @@
-export { ensureStandupWorldAndRoom, registerStandupTask } from "./standup.tasks";
+export {
+  ensureStandupWorldAndRoom,
+  registerStandupTask,
+} from "./standup.tasks";
 export type { StandupRoomResult } from "./standup.tasks";
 export {
   isStandupCoordinator,

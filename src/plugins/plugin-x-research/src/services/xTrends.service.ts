@@ -1,20 +1,47 @@
 /**
  * X Trends Service
- * 
+ *
  * Personalized trends with volume data.
  * Detect when our topics are trending.
  */
 
-import { getXClient, XClientService } from './xClient.service';
-import type { XTrend, TrendingTopicStatus, TrendVolume } from '../types/trends.types';
-import { ALL_TOPICS, TOPIC_BY_ID } from '../constants/topics';
+import { logger } from "@elizaos/core";
+import { getXClient, XClientService } from "./xClient.service";
+import type {
+  XTrend,
+  TrendingTopicStatus,
+  TrendVolume,
+} from "../types/trends.types";
+import { ALL_TOPICS, TOPIC_BY_ID } from "../constants/topics";
 
 // Keywords to match for crypto/finance trends (incl. tokenized AI / AI infra)
 const CRYPTO_KEYWORDS = [
-  'btc', 'bitcoin', 'eth', 'ethereum', 'sol', 'solana', 'crypto',
-  'defi', 'nft', 'web3', 'blockchain', 'token', 'coin', 'altcoin',
-  'binance', 'coinbase', 'sec', 'etf', 'hype', 'hyperliquid',
-  'bankr', 'bnkr', 'agent token', 'tokenized agent', 'ai infra', 'tokenized ai',
+  "btc",
+  "bitcoin",
+  "eth",
+  "ethereum",
+  "sol",
+  "solana",
+  "crypto",
+  "defi",
+  "nft",
+  "web3",
+  "blockchain",
+  "token",
+  "coin",
+  "altcoin",
+  "binance",
+  "coinbase",
+  "sec",
+  "etf",
+  "hype",
+  "hyperliquid",
+  "bankr",
+  "bnkr",
+  "agent token",
+  "tokenized agent",
+  "ai infra",
+  "tokenized ai",
 ];
 
 /**
@@ -34,7 +61,10 @@ export class XTrendsService {
    */
   async getTrends(): Promise<XTrend[]> {
     // Check cache
-    if (this.trendCache && Date.now() - this.trendCache.timestamp < this.cacheTtlMs) {
+    if (
+      this.trendCache &&
+      Date.now() - this.trendCache.timestamp < this.cacheTtlMs
+    ) {
       return this.trendCache.data;
     }
 
@@ -53,17 +83,19 @@ export class XTrendsService {
   async getCryptoTrends(): Promise<XTrend[]> {
     const allTrends = await this.getTrends();
 
-    return allTrends.filter(trend => {
+    return allTrends.filter((trend) => {
       const name = trend.trendName.toLowerCase();
-      
+
       // Check category
-      if (trend.category?.toLowerCase().includes('crypto') ||
-          trend.category?.toLowerCase().includes('finance')) {
+      if (
+        trend.category?.toLowerCase().includes("crypto") ||
+        trend.category?.toLowerCase().includes("finance")
+      ) {
         return true;
       }
 
       // Check keywords
-      return CRYPTO_KEYWORDS.some(kw => name.includes(kw));
+      return CRYPTO_KEYWORDS.some((kw) => name.includes(kw));
     });
   }
 
@@ -72,7 +104,7 @@ export class XTrendsService {
    */
   async getOurTopicsTrending(): Promise<TrendingTopicStatus[]> {
     const trends = await this.getTrends();
-    const trendNames = trends.map(t => t.trendName.toLowerCase());
+    const trendNames = trends.map((t) => t.trendName.toLowerCase());
 
     const results: TrendingTopicStatus[] = [];
 
@@ -82,9 +114,10 @@ export class XTrendsService {
       let matchedTrend: XTrend | undefined;
 
       for (const term of topic.searchTerms) {
-        const termLower = term.toLowerCase().replace('#', '');
-        const trendIndex = trendNames.findIndex(tn => 
-          tn.includes(termLower) || termLower.includes(tn.replace('#', ''))
+        const termLower = term.toLowerCase().replace("#", "");
+        const trendIndex = trendNames.findIndex(
+          (tn) =>
+            tn.includes(termLower) || termLower.includes(tn.replace("#", "")),
         );
 
         if (trendIndex !== -1) {
@@ -98,7 +131,7 @@ export class XTrendsService {
       if (!isTrending) {
         for (const tag of topic.hashtags) {
           const tagLower = `#${tag.toLowerCase()}`;
-          const trendIndex = trendNames.findIndex(tn => tn === tagLower);
+          const trendIndex = trendNames.findIndex((tn) => tn === tagLower);
 
           if (trendIndex !== -1) {
             isTrending = true;
@@ -135,16 +168,19 @@ export class XTrendsService {
     try {
       // Get counts for the last 24h
       const query = topic.searchTerms[0];
-      const counts = await this.client.getCounts(query, { granularity: 'hour' });
+      const counts = await this.client.getCounts(query, {
+        granularity: "hour",
+      });
 
       if (!counts.data || counts.data.length < 6) {
         return null;
       }
 
-      const volumes = counts.data.map(d => d.tweetCount);
+      const volumes = counts.data.map((d) => d.tweetCount);
       const current = volumes[volumes.length - 1];
       const avg24h = volumes.reduce((a, b) => a + b, 0) / volumes.length;
-      const percentChange = avg24h > 0 ? ((current - avg24h) / avg24h) * 100 : 0;
+      const percentChange =
+        avg24h > 0 ? ((current - avg24h) / avg24h) * 100 : 0;
 
       return {
         topic: topicId,
@@ -154,7 +190,7 @@ export class XTrendsService {
         isSpike: percentChange > 100, // 2x or more
       };
     } catch (error) {
-      console.error(`[xTrends] Error getting volume for ${topicId}:`, error);
+      logger.error({ err: error, topicId }, "[xTrends] Error getting volume");
       return null;
     }
   }
@@ -174,11 +210,11 @@ export class XTrendsService {
 
     // Check volume for topics that are trending
     const trendingTopicIds = trending
-      .filter(t => t.isTrending)
-      .map(t => t.topic);
+      .filter((t) => t.isTrending)
+      .map((t) => t.topic);
 
     const volumeSpikes: TrendVolume[] = [];
-    
+
     for (const topicId of trendingTopicIds.slice(0, 5)) {
       const volume = await this.getTrendVolume(topicId);
       if (volume?.isSpike) {

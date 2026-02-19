@@ -665,11 +665,11 @@ export class BiconomyService extends Service {
 
   /**
    * Build a native token withdrawal instruction with runtime balance
-   * 
+   *
    * Uses ETH Forwarder with runtimeErc20Balance for native token (zero address).
    * Pattern: forward(address) signature but with TWO args - recipient + runtimeErc20Balance.
    * Biconomy internally handles converting the runtime balance to msg.value.
-   * 
+   *
    * @param chainId - Chain ID for execution
    * @param recipientAddress - Address to receive the native tokens (EOA)
    * @param _nexusAddress - Nexus companion account address (unused, kept for signature compatibility)
@@ -708,10 +708,10 @@ export class BiconomyService extends Service {
 
   /**
    * Get the Nexus (Smart Account) address for an EOA
-   * 
+   *
    * Uses Biconomy's /v1/mee/orchestrator endpoint to get the Nexus address for a specific chain.
    * Returns the latest version (2.2.1) address preferably, or falls back to older versions.
-   * 
+   *
    * @param ownerAddress - EOA address
    * @param chainId - Chain ID to query
    * @returns Nexus address or null if not found
@@ -722,27 +722,28 @@ export class BiconomyService extends Service {
     chainId: number,
   ): Promise<`0x${string}` | null> {
     try {
-      logger.info(`[BICONOMY SERVICE] Getting Nexus address for ${ownerAddress} on chain ${chainId}`);
-      
-      const response = await fetch(
-        `${BICONOMY_API_URL}/v1/mee/orchestrator`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(this.apiKey && { "X-API-Key": this.apiKey }),
-          },
-          body: JSON.stringify({ ownerAddress }),
+      logger.info(
+        `[BICONOMY SERVICE] Getting Nexus address for ${ownerAddress} on chain ${chainId}`,
+      );
+
+      const response = (await fetch(`${BICONOMY_API_URL}/v1/mee/orchestrator`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(this.apiKey && { "X-API-Key": this.apiKey }),
         },
-      ) as HttpResponse;
+        body: JSON.stringify({ ownerAddress }),
+      })) as HttpResponse;
 
       if (!response.ok) {
         const errorText = await response.text();
-        logger.warn(`[BICONOMY SERVICE] Failed to get Nexus address: ${response.status} - ${errorText}`);
+        logger.warn(
+          `[BICONOMY SERVICE] Failed to get Nexus address: ${response.status} - ${errorText}`,
+        );
         return null;
       }
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         ownerAddress: string;
         deployments: Array<{
           chainId: number;
@@ -755,27 +756,37 @@ export class BiconomyService extends Service {
       };
 
       // Find deployments for the requested chain
-      const deploymentsForChain = data.deployments?.filter(d => d.chainId === chainId) || [];
-      
+      const deploymentsForChain =
+        data.deployments?.filter((d) => d.chainId === chainId) || [];
+
       if (deploymentsForChain.length === 0) {
-        logger.warn(`[BICONOMY SERVICE] No Nexus deployment found for chain ${chainId}`);
+        logger.warn(
+          `[BICONOMY SERVICE] No Nexus deployment found for chain ${chainId}`,
+        );
         return null;
       }
 
       // Prefer the latest version (2.2.1) or already deployed accounts
-      const latestDeployment = deploymentsForChain.find(d => d.addressVersion === "2.2.1") 
-        || deploymentsForChain.find(d => d.isDeployed) 
-        || deploymentsForChain[0];
+      const latestDeployment =
+        deploymentsForChain.find((d) => d.addressVersion === "2.2.1") ||
+        deploymentsForChain.find((d) => d.isDeployed) ||
+        deploymentsForChain[0];
 
       if (latestDeployment?.address) {
-        logger.info(`[BICONOMY SERVICE] Found Nexus address: ${latestDeployment.address} (v${latestDeployment.addressVersion}, deployed: ${latestDeployment.isDeployed})`);
+        logger.info(
+          `[BICONOMY SERVICE] Found Nexus address: ${latestDeployment.address} (v${latestDeployment.addressVersion}, deployed: ${latestDeployment.isDeployed})`,
+        );
         return latestDeployment.address as `0x${string}`;
       }
 
-      logger.warn(`[BICONOMY SERVICE] No valid Nexus address found for chain ${chainId}`);
+      logger.warn(
+        `[BICONOMY SERVICE] No valid Nexus address found for chain ${chainId}`,
+      );
       return null;
     } catch (error) {
-      logger.warn(`[BICONOMY SERVICE] Error getting Nexus address: ${(error as Error).message}`);
+      logger.warn(
+        `[BICONOMY SERVICE] Error getting Nexus address: ${(error as Error).message}`,
+      );
       return null;
     }
   }

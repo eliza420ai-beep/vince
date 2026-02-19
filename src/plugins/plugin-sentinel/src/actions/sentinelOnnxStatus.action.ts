@@ -33,7 +33,10 @@ export const sentinelOnnxStatusAction: Action = {
   description:
     "Summarizes feature-store state (local jsonl, PGLite/Postgres, Supabase), ONNX training readiness (90+ rows), and one-line next step (train_models, enable Supabase). Uses knowledge FEATURE-STORE, ONNX.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsOnnxStatus(text);
   },
@@ -60,7 +63,7 @@ Context:\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's the ONNX and feature-store status—\n\n" + text.trim();
       await callback({ text: out });
       return { success: true };
@@ -69,13 +72,19 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Feature store: local jsonl in .elizadb/vince-paper-bot/features/; PGLite/Postgres table plugin_vince.paper_bot_features; optional Supabase vince_paper_bot_features (SUPABASE_SERVICE_ROLE_KEY). ONNX: 90+ rows then run train_models.py. Refs: FEATURE-STORE.md, ONNX.md.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "What is the ONNX and feature store status?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What is the ONNX and feature store status?" },
+      },
       {
         name: "{{agent}}",
         content: {

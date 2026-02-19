@@ -18,7 +18,13 @@ import {
   type State,
   logger,
 } from "@elizaos/core";
-import { isHumanMessage, buildStandupContext, getAgentRole, AGENT_ROLES, type AgentName } from "../standup/standupReports";
+import {
+  isHumanMessage,
+  buildStandupContext,
+  getAgentRole,
+  AGENT_ROLES,
+  type AgentName,
+} from "../standup/standupReports";
 import {
   isStandupActive,
   startStandupSession,
@@ -33,7 +39,13 @@ import {
   touchActivity,
   getSessionStats,
 } from "../standup/standupState";
-import { getStandupResponseDelay, getEssentialStandupQuestion, SHARED_INSIGHTS_SENTINEL, isStandupKickoffRequest, getStandupDiscordMentionId } from "../standup/standup.constants";
+import {
+  getStandupResponseDelay,
+  getEssentialStandupQuestion,
+  SHARED_INSIGHTS_SENTINEL,
+  isStandupKickoffRequest,
+  getStandupDiscordMentionId,
+} from "../standup/standup.constants";
 import {
   getProgressionMessage,
   checkStandupHealth,
@@ -44,28 +56,42 @@ import { ALOHA_STYLE_BLOCK } from "../standup/standupStyle";
 import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
 
 /** Known agent names for A2A detection */
-const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm", "naval"];
+const KNOWN_AGENTS = [
+  "vince",
+  "eliza",
+  "kelly",
+  "solus",
+  "otaku",
+  "sentinel",
+  "echo",
+  "oracle",
+  "clawterm",
+  "naval",
+];
 
 /** Human names/usernames to recognize (Discord username, co-founders). Env: A2A_KNOWN_HUMANS (comma-separated). Default: livethelifetv,ikigai. */
 function getKnownHumans(): string[] {
   const raw = process.env.A2A_KNOWN_HUMANS?.trim();
   if (raw) {
-    return raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    return raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
   }
   return ["livethelifetv", "ikigai"];
 }
 
-/** 
+/**
  * Standup turn order — agents respond ONE AT A TIME in this sequence.
  * Kelly calls each agent by name, others WAIT until called.
  */
 const STANDUP_TURN_ORDER = [
-  "vince",    // Market data first (best data)
-  "eliza",    // Research patterns
-  "echo",     // CT sentiment
-  "oracle",   // Prediction markets
-  "solus",    // Risk/sizing
-  "otaku",    // Execution status
+  "vince", // Market data first (best data)
+  "eliza", // Research patterns
+  "echo", // CT sentiment
+  "oracle", // Prediction markets
+  "solus", // Risk/sizing
+  "otaku", // Execution status
   "sentinel", // System health
   "clawterm", // OpenClaw & AI/AGI
   // Kelly wraps up
@@ -82,13 +108,29 @@ function getNextAgentInOrder(currentAgent: string): string | null {
 
 /** Check if agent is the last in standup */
 function isLastStandupAgent(agentName: string): boolean {
-  return agentName.toLowerCase() === STANDUP_TURN_ORDER[STANDUP_TURN_ORDER.length - 1];
+  return (
+    agentName.toLowerCase() ===
+    STANDUP_TURN_ORDER[STANDUP_TURN_ORDER.length - 1]
+  );
 }
 
 /** Check if message looks like a standup report */
 function looksLikeReport(text: string): boolean {
   const lower = text.toLowerCase();
-  const indicators = ["##", "|", "signal", "bull", "bear", "action", "btc", "sol", "funding", "divergence", "report", "standup"];
+  const indicators = [
+    "##",
+    "|",
+    "signal",
+    "bull",
+    "bear",
+    "action",
+    "btc",
+    "sol",
+    "funding",
+    "divergence",
+    "report",
+    "standup",
+  ];
   return indicators.filter((i) => lower.includes(i)).length >= 2;
 }
 
@@ -99,10 +141,10 @@ function looksLikeReport(text: string): boolean {
 function isDirectlyAddressed(agentName: string, messageText: string): boolean {
   const lower = messageText.toLowerCase();
   const nameLower = agentName.toLowerCase();
-  
+
   // Check for @mention
   if (lower.includes(`@${nameLower}`)) return true;
-  
+
   // Check for "AgentName," or "AgentName:" at word boundary
   const patterns = [
     new RegExp(`\\b${nameLower},`, "i"),
@@ -111,20 +153,31 @@ function isDirectlyAddressed(agentName: string, messageText: string): boolean {
     new RegExp(`\\b${nameLower}—`, "i"),
     new RegExp(`^${nameLower}\\b`, "i"), // Starts with name
   ];
-  
+
   return patterns.some((p) => p.test(messageText));
 }
 
 /** Check if message is from a known human */
-function isFromKnownHuman(memory: Memory, resolvedName?: string): { isHuman: boolean; humanName: string | null } {
-  const senderName = resolvedName || String(
-    memory.content?.name ?? memory.content?.userName ?? (memory.content as any)?._resolvedSenderName ?? ""
-  ).toLowerCase();
+function isFromKnownHuman(
+  memory: Memory,
+  resolvedName?: string,
+): { isHuman: boolean; humanName: string | null } {
+  const senderName =
+    resolvedName ||
+    String(
+      memory.content?.name ??
+        memory.content?.userName ??
+        (memory.content as any)?._resolvedSenderName ??
+        "",
+    ).toLowerCase();
 
   const knownHumans = getKnownHumans();
   for (const human of knownHumans) {
     if (senderName.includes(human)) {
-      return { isHuman: true, humanName: human.charAt(0).toUpperCase() + human.slice(1) };
+      return {
+        isHuman: true,
+        humanName: human.charAt(0).toUpperCase() + human.slice(1),
+      };
     }
   }
 
@@ -137,17 +190,31 @@ function isFromKnownHuman(memory: Memory, resolvedName?: string): { isHuman: boo
 }
 
 /** Check if a message is from a known agent. Always returns canonical lowercase name when possible. v2-entityid */
-function isFromKnownAgent(memory: Memory, resolvedName?: string): { isAgent: boolean; agentName: string | null } {
-  const senderName = resolvedName || String(
-    memory.content?.name ?? memory.content?.userName ?? (memory.content as any)?._resolvedSenderName ?? ""
-  ).toLowerCase();
+function isFromKnownAgent(
+  memory: Memory,
+  resolvedName?: string,
+): { isAgent: boolean; agentName: string | null } {
+  const senderName =
+    resolvedName ||
+    String(
+      memory.content?.name ??
+        memory.content?.userName ??
+        (memory.content as any)?._resolvedSenderName ??
+        "",
+    ).toLowerCase();
 
-  logger.debug(`[A2A_DETECT] senderName="${senderName}", agentId=${memory.agentId ?? "none"}, isBot=${(memory.content?.metadata as Record<string, unknown> | undefined)?.isBot ?? "unset"}`);
+  logger.debug(
+    `[A2A_DETECT] senderName="${senderName}", agentId=${memory.agentId ?? "none"}, isBot=${(memory.content?.metadata as Record<string, unknown> | undefined)?.isBot ?? "unset"}`,
+  );
 
   // Check 0: known humans are never agents — so kickoff/priority block can run (standup channel)
   const knownHumans = getKnownHumans();
-  const isKnownHumanName = senderName && knownHumans.some((h) => senderName === h || senderName.includes(h));
-  console.log(`[A2A_DETECT] senderName="${senderName}", knownHumans=${JSON.stringify(knownHumans)}, match=${isKnownHumanName}, agentId=${memory.agentId ?? "none"}`);
+  const isKnownHumanName =
+    senderName &&
+    knownHumans.some((h) => senderName === h || senderName.includes(h));
+  logger.debug(
+    `[A2A_DETECT] senderName="${senderName}", knownHumans=${JSON.stringify(knownHumans)}, match=${isKnownHumanName}, agentId=${memory.agentId ?? "none"}`,
+  );
   if (isKnownHumanName) {
     return { isAgent: false, agentName: null };
   }
@@ -160,7 +227,9 @@ function isFromKnownAgent(memory: Memory, resolvedName?: string): { isAgent: boo
   }
 
   // Check 2: bot flag — try to resolve to a canonical agent name first
-  const metadata = memory.content?.metadata as Record<string, unknown> | undefined;
+  const metadata = memory.content?.metadata as
+    | Record<string, unknown>
+    | undefined;
   if (metadata?.isBot === true || metadata?.fromBot === true) {
     for (const agent of KNOWN_AGENTS) {
       if (senderName.includes(agent)) {
@@ -178,7 +247,9 @@ function isFromKnownAgent(memory: Memory, resolvedName?: string): { isAgent: boo
         return { isAgent: true, agentName: agent };
       }
     }
-    logger.debug(`[A2A_DETECT] agentId present but name unresolved — treating as agent (senderName="${senderName}")`);
+    logger.debug(
+      `[A2A_DETECT] agentId present but name unresolved — treating as agent (senderName="${senderName}")`,
+    );
     return { isAgent: true, agentName: senderName || "unknown-agent" };
   }
 
@@ -231,7 +302,7 @@ async function countRecentExchanges(
   runtime: IAgentRuntime,
   roomId: string,
   senderName: string,
-  lookback: number
+  lookback: number,
 ): Promise<number> {
   try {
     const memories = await runtime.getMemories({
@@ -246,8 +317,11 @@ async function countRecentExchanges(
     // Count how many times I've responded in this conversation
     // Each response to the other agent counts as an exchange
     for (const mem of memories) {
-      const memSender = String(mem.content?.name ?? mem.content?.userName ?? "").toLowerCase();
-      const isMe = memSender.includes(myName) || mem.agentId === runtime.agentId;
+      const memSender = String(
+        mem.content?.name ?? mem.content?.userName ?? "",
+      ).toLowerCase();
+      const isMe =
+        memSender.includes(myName) || mem.agentId === runtime.agentId;
 
       if (isMe) {
         myResponses++;
@@ -263,24 +337,25 @@ async function countRecentExchanges(
 
 export const a2aContextProvider: Provider = {
   name: "A2A_CONTEXT",
-  description: "Provides context about agent-to-agent and agent-to-human conversations in standups",
+  description:
+    "Provides context about agent-to-agent and agent-to-human conversations in standups",
 
-  get: async (
-    runtime: IAgentRuntime,
-    message: Memory,
-    _state?: State
-  ) => {
+  get: async (runtime: IAgentRuntime, message: Memory, _state?: State) => {
     const myName = runtime.character?.name || "Agent";
     const myNameLower = myName.toLowerCase();
     const messageText = message.content?.text || "";
     // Resolve sender identity: content.name/userName are often empty for Discord messages.
     // Instead, check if entityId matches any known agent ID — if not, it's a human.
-    let resolvedSenderName = String(message.content?.name ?? message.content?.userName ?? "").toLowerCase();
+    let resolvedSenderName = String(
+      message.content?.name ?? message.content?.userName ?? "",
+    ).toLowerCase();
     let senderIsDefinitelyHuman = false;
     if (!resolvedSenderName && message.entityId) {
       // Check if sender entityId matches any agent — if not, treat as human
       const eliza = (runtime as any).elizaOS;
-      const allAgents = eliza?.getAgents?.() as { agentId: string; character?: { name?: string } }[] | undefined;
+      const allAgents = eliza?.getAgents?.() as
+        | { agentId: string; character?: { name?: string } }[]
+        | undefined;
       const agentIds = new Set<string>(allAgents?.map((a) => a.agentId) ?? []);
       agentIds.add(runtime.agentId); // include self
       if (!agentIds.has(message.entityId)) {
@@ -289,16 +364,18 @@ export const a2aContextProvider: Provider = {
         try {
           const senderEntity = await runtime.getEntityById(message.entityId);
           resolvedSenderName = (senderEntity?.names?.[0] ?? "").toLowerCase();
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
         if (!resolvedSenderName) resolvedSenderName = "human";
       }
     }
-    
+
     // Check room type
     const room = await runtime.getRoom(message.roomId);
     const roomName = room?.name ?? "";
     const inStandupChannel = isStandupRoom(roomName);
-    
+
     // Classify sender: use entityId-based detection first (reliable), then fall back to name-based
     let isAgent: boolean;
     let agentName: string | null;
@@ -310,33 +387,48 @@ export const a2aContextProvider: Provider = {
       isAgent = result.isAgent;
       agentName = result.agentName;
     }
-    console.log(`[A2A_CLASSIFY] sender="${resolvedSenderName}", entityId=${message.entityId}, definitelyHuman=${senderIsDefinitelyHuman}, isAgent=${isAgent}, inStandup=${inStandupChannel}`);
+    logger.debug(
+      `[A2A_CLASSIFY] sender="${resolvedSenderName}", entityId=${message.entityId}, definitelyHuman=${senderIsDefinitelyHuman}, isAgent=${isAgent}, inStandup=${inStandupChannel}`,
+    );
 
     // Check if this is from a HUMAN (only when not already identified as an agent)
     if (!isAgent) {
       // If entityId-based detection says human, trust it even if name is unknown
-      const isHuman = senderIsDefinitelyHuman || isFromKnownHuman(message, resolvedSenderName).isHuman;
-      const humanName = resolvedSenderName || isFromKnownHuman(message, resolvedSenderName).humanName || "Human";
+      const isHuman =
+        senderIsDefinitelyHuman ||
+        isFromKnownHuman(message, resolvedSenderName).isHuman;
+      const humanName =
+        resolvedSenderName ||
+        isFromKnownHuman(message, resolvedSenderName).humanName ||
+        "Human";
       if (isHuman) {
         // In standup channels only the facilitator responds to humans (rate limit)
         if (inStandupChannel) {
           const singleResponder = getStandupSingleResponder();
-          const amFacilitator =
-            myNameLower === singleResponder.toLowerCase();
+          const amFacilitator = myNameLower === singleResponder.toLowerCase();
           if (!amFacilitator) {
             logger.info(
-              `[A2A_CONTEXT] ${myName}: Human in standup channel — single responder is ${singleResponder}, IGNORE`
+              `[A2A_CONTEXT] ${myName}: Human in standup channel — single responder is ${singleResponder}, IGNORE`,
             );
-            return { text: `[SYSTEM OVERRIDE] ${humanName ?? "HUMAN"} is speaking in the standup channel. Only the standup facilitator (${singleResponder}) responds to human messages here. Action: IGNORE. Do not reply.` };
+            return {
+              text: `[SYSTEM OVERRIDE] ${humanName ?? "HUMAN"} is speaking in the standup channel. Only the standup facilitator (${singleResponder}) responds to human messages here. Action: IGNORE. Do not reply.`,
+            };
           }
           if (amFacilitator && isStandupKickoffRequest(messageText)) {
-            logger.info(`[A2A_CONTEXT] ${myName}: Human asked to start standup — force STANDUP_FACILITATE`);
-            return { text: `[STANDUP KICKOFF — SYSTEM] Regardless of time of day, day of week, or how many times they asked: the user explicitly requested a standup. You MUST use action STANDUP_FACILITATE and NO other action. Do NOT use REPLY. Do NOT output conversational text — the action will post the kickoff. Output only: <actions>STANDUP_FACILITATE</actions> with minimal or no <text>.` };
+            logger.info(
+              `[A2A_CONTEXT] ${myName}: Human asked to start standup — force STANDUP_FACILITATE`,
+            );
+            return {
+              text: `[STANDUP KICKOFF — SYSTEM] Regardless of time of day, day of week, or how many times they asked: the user explicitly requested a standup. You MUST use action STANDUP_FACILITATE and NO other action. Do NOT use REPLY. Do NOT output conversational text — the action will post the kickoff. Output only: <actions>STANDUP_FACILITATE</actions> with minimal or no <text>.`,
+            };
           }
         }
-        logger.info(`[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`);
+        logger.info(
+          `[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`,
+        );
         const role = getAgentRole(myName);
-        return { text: `
+        return {
+          text: `
 ## ⭐ HUMAN MESSAGE — PRIORITY RESPONSE
 
 **${humanName}** (Co-Founder) is speaking to you directly.
@@ -350,51 +442,65 @@ export const a2aContextProvider: Provider = {
 
 You are ${myName}${role ? ` (${role.title} - ${role.focus})` : ""}.
 Address ${humanName} directly. Be useful.
-` };
+`,
+        };
       }
     }
-    
+
     // ═══════════════════════════════════════════════════════════════════════
     // STANDUP TURN-BASED LOGIC: Only respond when directly called
     // ═══════════════════════════════════════════════════════════════════════
     if (inStandupChannel && isAgent) {
       const amDirectlyCalled = isDirectlyAddressed(myName, messageText);
-      const amFacilitator = myNameLower === getStandupSingleResponder().toLowerCase();
-      
+      const amFacilitator =
+        myNameLower === getStandupSingleResponder().toLowerCase();
+
       // Kelly (facilitator) can always respond to manage the standup
       if (amFacilitator) {
         // PREVENT SELF-LOOP: If this message is from Kelly, don't respond to yourself
         if (isKellyMessage(agentName || "")) {
-          logger.info(`[A2A_CONTEXT] Kelly: Ignoring own message to prevent self-loop`);
-          return { text: `[SYSTEM OVERRIDE] This is your own message. Do NOT respond to yourself. Wait for an agent to report.` };
+          logger.info(
+            `[A2A_CONTEXT] Kelly: Ignoring own message to prevent self-loop`,
+          );
+          return {
+            text: `[SYSTEM OVERRIDE] This is your own message. Do NOT respond to yourself. Wait for an agent to report.`,
+          };
         }
-        
+
         // Update activity timestamp
         touchActivity();
-        
+
         // Check if an agent just reported — auto-progress to next
         const agentNameLower = agentName?.toLowerCase() ?? "";
-        const reportingAgent = STANDUP_TURN_ORDER.find((a) =>
-          a === agentNameLower || agentNameLower.includes(a)
+        const reportingAgent = STANDUP_TURN_ORDER.find(
+          (a) => a === agentNameLower || agentNameLower.includes(a),
         );
         const isReport =
-          looksLikeReport(messageText) || (!!reportingAgent && messageText.trim().length >= 15);
+          looksLikeReport(messageText) ||
+          (!!reportingAgent && messageText.trim().length >= 15);
 
         if (reportingAgent && isReport) {
           // Check if already reported (prevent duplicates)
           if (hasAgentReported(reportingAgent)) {
-            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} already reported — ignoring duplicate`);
-            return { text: `[SYSTEM OVERRIDE] ${reportingAgent.toUpperCase()} already reported. Do NOT call them again. Wait for the current agent or proceed.` };
+            logger.info(
+              `[A2A_CONTEXT] Kelly: ${reportingAgent} already reported — ignoring duplicate`,
+            );
+            return {
+              text: `[SYSTEM OVERRIDE] ${reportingAgent.toUpperCase()} already reported. Do NOT call them again. Wait for the current agent or proceed.`,
+            };
           }
-          
+
           // Mark as reported
           markAgentReported(reportingAgent);
-          
+
           // Check if all done
           if (haveAllAgentsReported()) {
             markWrappingUp();
-            logger.info(`[A2A_CONTEXT] Kelly: All agents reported — triggering wrap-up`);
-            return { text: `
+            logger.info(
+              `[A2A_CONTEXT] Kelly: All agents reported — triggering wrap-up`,
+            );
+            return {
+              text: `
 ## AUTO-WRAP: Generate Day Report
 
 All ${STANDUP_TURN_ORDER.length} agents have reported. Time to synthesize.
@@ -405,16 +511,20 @@ Say: "Synthesizing..." then generate a CONCISE Day Report.
 - TL;DR = ONE sentence
 - Max 3 actions with @owners
 - Under 200 words total
-` };
+`,
+            };
           }
-          
+
           // Use orchestrator for actual delay + next agent
           const progression = await getProgressionMessage();
-          
+
           if (progression.action === "call_next" && progression.nextAgent) {
-            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} reported — progression: ${progression.message}`);
-            
-            return { text: `
+            logger.info(
+              `[A2A_CONTEXT] Kelly: ${reportingAgent} reported — progression: ${progression.message}`,
+            );
+
+            return {
+              text: `
 ## AUTO-PROGRESS: Call Next Agent
 
 ${reportingAgent.toUpperCase()} just reported. 
@@ -422,19 +532,22 @@ ${reportingAgent.toUpperCase()} just reported.
 **YOUR ONLY RESPONSE:** "${progression.message}"
 
 Copy that EXACTLY. Nothing else. Do NOT add commentary, lifestyle tips, summaries, or "recharge" talk. Just call the next agent.
-` };
+`,
+            };
           }
-          
+
           if (progression.action === "skip" && progression.nextAgent) {
             logger.warn(`[A2A_CONTEXT] Kelly: Skipping stuck agent`);
-            
-            return { text: `
+
+            return {
+              text: `
 ## SKIP: Agent Timed Out
 
 **YOUR ONLY RESPONSE:** "${progression.message}"
 
 Copy that EXACTLY. The timed-out agent will not report today.
-` };
+`,
+            };
           }
         }
 
@@ -445,15 +558,22 @@ Copy that EXACTLY. The timed-out agent will not report today.
           const currentUnreported = getNextUnreportedAgent();
           if (currentUnreported) {
             markAgentReported(currentUnreported);
-            logger.warn(`[A2A_CONTEXT] Kelly: Could not resolve reporting agent from "${agentName}" — marked ${currentUnreported} as reported`);
+            logger.warn(
+              `[A2A_CONTEXT] Kelly: Could not resolve reporting agent from "${agentName}" — marked ${currentUnreported} as reported`,
+            );
           }
           const nextAgent = getNextUnreportedAgent();
           if (nextAgent) {
             const displayName = getAgentDisplayName(nextAgent);
             const discordId = getStandupDiscordMentionId(nextAgent);
-            const callText = discordId ? `<@${discordId}> go.` : `@${displayName}, go.`;
-            logger.warn(`[A2A_CONTEXT] Kelly: Forcing progression to ${displayName}`);
-            return { text: `
+            const callText = discordId
+              ? `<@${discordId}> go.`
+              : `@${displayName}, go.`;
+            logger.warn(
+              `[A2A_CONTEXT] Kelly: Forcing progression to ${displayName}`,
+            );
+            return {
+              text: `
 ## AUTO-PROGRESS: Call Next Agent
 
 An agent just reported.
@@ -461,12 +581,16 @@ An agent just reported.
 **YOUR ONLY RESPONSE:** "${callText}"
 
 Copy that EXACTLY. Nothing else. Do not summarize, do not comment, do not add lifestyle tips.
-` };
+`,
+            };
           } else if (currentUnreported) {
             // That was the last agent — wrap up
             markWrappingUp();
-            logger.info(`[A2A_CONTEXT] Kelly: All agents reported (via fallback) — triggering wrap-up`);
-            return { text: `
+            logger.info(
+              `[A2A_CONTEXT] Kelly: All agents reported (via fallback) — triggering wrap-up`,
+            );
+            return {
+              text: `
 ## AUTO-WRAP: Generate Day Report
 
 All ${STANDUP_TURN_ORDER.length} agents have reported. Time to synthesize.
@@ -475,17 +599,23 @@ All ${STANDUP_TURN_ORDER.length} agents have reported. Time to synthesize.
 - TL;DR = ONE sentence
 - Max 3 actions with @owners
 - Under 200 words total
-` };
+`,
+            };
           }
         }
 
         // Check if standup is wrapping up
         if (isWrappingUp()) {
-          return { text: `[SYSTEM OVERRIDE] Standup is already wrapping up. Do not interrupt. Wait for the Day Report to complete.` };
+          return {
+            text: `[SYSTEM OVERRIDE] Standup is already wrapping up. Do not interrupt. Wait for the Day Report to complete.`,
+          };
         }
-        
-        logger.info(`[A2A_CONTEXT] ${myName}: Facilitator in standup — may respond`);
-        return { text: `
+
+        logger.info(
+          `[A2A_CONTEXT] ${myName}: Facilitator in standup — may respond`,
+        );
+        return {
+          text: `
 ## Standup Facilitator Mode
 
 You are Kelly, facilitating the **trading standup**. You are coordinator only. Keep every message very short. No commentary, no summaries between agents.
@@ -503,23 +633,27 @@ You are Kelly, facilitating the **trading standup**. You are coordinator only. K
 - Do not echo numbers, execution, or weekend plans already stated.
 
 **Transitions are 3 words max:** "@Eliza, go."
-` };
+`,
+        };
       }
-      
+
       // Not the facilitator: only respond if directly called
       if (!amDirectlyCalled) {
         logger.info(
-          `[A2A_CONTEXT] 🚫 ${myName}: In standup but NOT called — waiting for turn`
+          `[A2A_CONTEXT] 🚫 ${myName}: In standup but NOT called — waiting for turn`,
         );
-        return { text: `[SYSTEM OVERRIDE] This is a turn-based standup. You were NOT called by name. 
+        return {
+          text: `[SYSTEM OVERRIDE] This is a turn-based standup. You were NOT called by name. 
 Wait for Kelly to call "@${myName}" before responding. 
-Action: IGNORE. Do not reply until it's your turn.` };
+Action: IGNORE. Do not reply until it's your turn.`,
+        };
       }
-      
+
       // I was directly called — it's my turn!
       logger.info(`[A2A_CONTEXT] ✅ ${myName}: Called in standup — responding`);
       const role = getAgentRole(myName);
-      const msgText = typeof message.content?.text === "string" ? message.content.text : "";
+      const msgText =
+        typeof message.content?.text === "string" ? message.content.text : "";
       let hasSharedInsights = msgText.includes(SHARED_INSIGHTS_SENTINEL);
       let sharedInsightsContent = hasSharedInsights ? msgText : "";
 
@@ -532,14 +666,17 @@ Action: IGNORE. Do not reply until it's your turn.` };
             count: 15,
           });
           const sentinelMsg = recentMemories.find((m) =>
-            String(m.content?.text || "").includes(SHARED_INSIGHTS_SENTINEL)
+            String(m.content?.text || "").includes(SHARED_INSIGHTS_SENTINEL),
           );
           if (sentinelMsg) {
             hasSharedInsights = true;
             sharedInsightsContent = String(sentinelMsg.content?.text || "");
           }
         } catch (err) {
-          logger.warn({ err }, "[A2A_CONTEXT] Failed to check recent messages for sentinel");
+          logger.warn(
+            { err },
+            "[A2A_CONTEXT] Failed to check recent messages for sentinel",
+          );
         }
       }
 
@@ -548,23 +685,30 @@ Action: IGNORE. Do not reply until it's your turn.` };
         try {
           const fromFile = await loadSharedDailyInsights();
           if (fromFile) sharedInsightsContent = fromFile;
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
       }
 
       // Build shared context block that will be prepended to synthesis prompts
       const sharedContext = sharedInsightsContent.trim()
         ? `\n\n**SHARED DAILY INSIGHTS (read before responding):**\n${sharedInsightsContent.slice(0, 4000)}\n\n`
         : "";
-      
+
       // Check if this agent is under construction
       const roleKey = Object.keys(AGENT_ROLES).find(
-        (k) => k.toLowerCase() === myNameLower
+        (k) => k.toLowerCase() === myNameLower,
       ) as AgentName | undefined;
-      const isUnderConstruction = roleKey ? (AGENT_ROLES[roleKey] as { isUnderConstruction?: boolean }).isUnderConstruction : false;
-      
+      const isUnderConstruction = roleKey
+        ? (AGENT_ROLES[roleKey] as { isUnderConstruction?: boolean })
+            .isUnderConstruction
+        : false;
+
       // Under construction agents give minimal status update
       if (isUnderConstruction) {
-        logger.info(`[A2A_CONTEXT] ${myName}: Under construction — minimal response`);
+        logger.info(
+          `[A2A_CONTEXT] ${myName}: Under construction — minimal response`,
+        );
 
         // Fetch the status message for other under-construction agents
         let statusData = "";
@@ -574,19 +718,25 @@ Action: IGNORE. Do not reply until it's your turn.` };
             statusData = data;
           }
         } catch (err) {
-          logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
+          logger.warn(
+            { err },
+            `[A2A_CONTEXT] Failed to fetch data for ${myName}`,
+          );
         }
-        
+
         if (hasSharedInsights) {
-          return { text: `${sharedContext}
+          return {
+            text: `${sharedContext}
 ## 🚧 YOUR TURN — Synthesis (Under Construction)
 
 Shared daily insights are above. You are **under construction**. Add one link to another agent's insight if relevant; otherwise one short status. Natural prose, MAX 30 words. No lifestyle, travel, or wellness content.
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 **Context:** ${statusData || `🚧 ${role?.focus || myName} under construction.`}
-` };
+`,
+          };
         }
-        return { text: `
+        return {
+          text: `
 ## 🚧 YOUR TURN — Status Update (Under Construction)
 
 Kelly called on you. You are **under construction** — give a brief status in natural prose (no bullet dumps).
@@ -596,22 +746,26 @@ Kelly called on you. You are **under construction** — give a brief status in n
 **Context:** ${statusData || `🚧 ${role?.focus || myName} under construction. No action items.`}
 
 **RULES:** MAX 30 words. One short sentence or two. Acknowledge you're under construction. No fake data, no promises. Do not say "happy to help" or offer to do things you can't do. Write like a human, not a template.
-` };
+`,
+        };
       }
-      
+
       // Eliza: mostly listening; report = knowledge gaps, essay ideas, research for knowledge/
       if (myNameLower === "eliza") {
         if (hasSharedInsights) {
-          return { text: `${sharedContext}
+          return {
+            text: `${sharedContext}
 ## 🎯 YOUR TURN — Trading Standup Synthesis (Eliza)
 
 Shared daily insights are above. Do NOT repeat your section. Do NOT echo lifestyle, travel, dining, or wellness content.
 
 Your job: (1) One **knowledge gap** the team should research for better trades. (2) One **content idea** (essay or thread) inspired by today's market data. (3) One **cross-agent link** between what you see and another agent's data. ~80 words, natural prose. No fluff.
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
-` };
+`,
+          };
         }
-        return { text: `
+        return {
+          text: `
 ## 🎯 YOUR TURN — Standup Report (Eliza: Listening Mode)
 
 Kelly called on you. You were mostly listening. Write a short day report in natural prose: what you heard and what it inspires (knowledge gaps, one essay idea for Ikigai Studio Substack, research to add to knowledge/). No bullet lists — flowing sentences.
@@ -619,9 +773,10 @@ Kelly called on you. You were mostly listening. Write a short day report in natu
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 
 **RULES:** MAXIMUM 80 words. Natural prose only — no bullet dumps, no AI-slop (leverage, delve, actionable, etc.). You react to what VINCE, ECHO, Oracle, etc. said. No fake data; only gaps/ideas inspired by the standup. No questions back. Do not repeat what another agent already said.
-` };
+`,
+        };
       }
-      
+
       // Solus: essential question + prior reports + Grok-style synthesis (250-300 words)
       if (myNameLower === "solus") {
         let priorReportsSnippet = "";
@@ -632,18 +787,26 @@ Kelly called on you. You were mostly listening. Write a short day report in natu
             count: 20,
           });
           const reportLike = recentMemories.filter(
-            (m) => m.content?.text && /## (VINCE|Eliza|ECHO|Oracle)/i.test(String(m.content.text))
+            (m) =>
+              m.content?.text &&
+              /## (VINCE|Eliza|ECHO|Oracle)/i.test(String(m.content.text)),
           );
-          const texts = reportLike.slice(-6).map((m) => String(m.content?.text || "").trim());
+          const texts = reportLike
+            .slice(-6)
+            .map((m) => String(m.content?.text || "").trim());
           if (texts.length > 0) {
             priorReportsSnippet = `\n\n**Prior reports (this standup):**\n${texts.join("\n\n---\n\n")}`;
           }
         } catch (err) {
-          logger.warn({ err }, "[A2A_CONTEXT] Failed to get prior reports for Solus");
+          logger.warn(
+            { err },
+            "[A2A_CONTEXT] Failed to get prior reports for Solus",
+          );
         }
         const essentialQ = getEssentialStandupQuestion();
         if (hasSharedInsights) {
-          return { text: `${sharedContext}
+          return {
+            text: `${sharedContext}
 ## 🎯 YOUR TURN — Trading Standup Synthesis (Solus: Options Lead)
 
 Shared daily insights are above. Answer the essential question **using the shared insights**; link to VINCE's funding/price, Oracle's odds, ECHO's sentiment. Do NOT repeat your section. Do NOT echo lifestyle, travel, or wellness content.
@@ -656,9 +819,11 @@ ${priorReportsSnippet}
 **Your answer must include:** (1) Strike/position call for this week's Hypersurface options — specific strike, direction, why. (2) One cross-agent link (VINCE data + Oracle odds + ECHO sentiment). (3) Clear Yes/No on the essential question and one sentence path. 250-300 words, ALOHA style. No lifestyle.
 
 ${ALOHA_STYLE_BLOCK}
-` };
+`,
+          };
         }
-        return { text: `
+        return {
+          text: `
 ## 🎯 YOUR TURN — Standup Report (Solus: Options Lead)
 
 Kelly called on you. You do most of the thinking. Answer the essential question using data from the team.
@@ -673,9 +838,10 @@ ${priorReportsSnippet}
 **RULES:** 250-300 words. Write like a smart friend over coffee — narrative, no bullet dumps. Use prior reports above; don't make up numbers. End with "My take: [Yes/No], ..." and one sentence path. Do not repeat what another agent already said. Add only your synthesis and take.
 
 ${ALOHA_STYLE_BLOCK}
-` };
+`,
+        };
       }
-      
+
       // Fetch real data for this agent
       let liveData = "";
       try {
@@ -684,9 +850,12 @@ ${ALOHA_STYLE_BLOCK}
           liveData = `\n\n**📊 LIVE DATA (use this):**\n${data}`;
         }
       } catch (err) {
-        logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
+        logger.warn(
+          { err },
+          `[A2A_CONTEXT] Failed to fetch data for ${myName}`,
+        );
       }
-      
+
       const solusOptionsLine =
         myNameLower === "solus"
           ? "\n**You are the options expert:** Lead with strike/position call or Hypersurface-relevant action; keep coordination chat to a minimum.\n"
@@ -709,7 +878,8 @@ ${ALOHA_STYLE_BLOCK}
           : "";
 
       if (hasSharedInsights) {
-        return { text: `${sharedContext}
+        return {
+          text: `${sharedContext}
 ## 🎯 YOUR TURN — Trading Standup (Synthesis)
 
 **CRITICAL:** This is a NEW standup. Ignore any prior standup results in your memory. Report fresh data NOW. Do not say "already complete" or "already reported." Every standup is independent.
@@ -728,10 +898,12 @@ ${clawtermLine}
 ${liveData}
 
 Keep it ~100–150 words. ALOHA style, no bullets.
-` };
+`,
+        };
       }
 
-      return { text: `
+      return {
+        text: `
 ## 🎯 YOUR TURN — Standup Day Report (ALOHA style)
 
 **CRITICAL:** This is a NEW standup. Ignore any prior standup results in your memory. Report fresh data NOW. Do not say "already complete" or "already reported." Every standup is independent.
@@ -748,9 +920,10 @@ ${liveData}
 ${ALOHA_STYLE_BLOCK}
 
 **HARD RULES:** Use the LIVE DATA above — don't make up numbers. No "here's my update" or formal intros. No questions back. Do not repeat what another agent already said. Add only your own update; if confirming, one word (e.g. "Confirmed.") or hand off only. Keep to ~200-300 words.
-` };
+`,
+      };
     }
-    
+
     if (!isAgent) {
       // Not from an agent or human we recognize — treat as normal
       return { text: "" };
@@ -758,18 +931,24 @@ ${ALOHA_STYLE_BLOCK}
 
     // Unknown sender (e.g. Direct/API with no display name): don't apply exchange limit — we can't assume it's another agent
     if (agentName === "unknown-agent" || agentName === "unknown-bot") {
-      logger.debug(`[A2A_CONTEXT] ${myName}: Message from ${agentName} — no exchange limit applied`);
+      logger.debug(
+        `[A2A_CONTEXT] ${myName}: Message from ${agentName} — no exchange limit applied`,
+      );
       return { text: "" };
     }
 
     // Knowledge channel: never apply A2A exchange limit — UPLOAD and knowledge expansion always allowed
     if (isKnowledgeRoom(roomName)) {
-      logger.info(`[A2A_CONTEXT] ${myName}: Knowledge channel — no exchange limit; UPLOAD allowed`);
-      return { text: `
+      logger.info(
+        `[A2A_CONTEXT] ${myName}: Knowledge channel — no exchange limit; UPLOAD allowed`,
+      );
+      return {
+        text: `
 ## Knowledge channel
 
 You are in the **knowledge** channel. You may respond and use **UPLOAD** to add documents or content to the knowledge base. No exchange limit here — always process UPLOAD and knowledge expansion when requested.
-` };
+`,
+      };
     }
 
     // In standup use stricter cap (default 1); otherwise A2A_MAX_EXCHANGES (default 2)
@@ -782,54 +961,64 @@ You are in the **knowledge** channel. You may respond and use **UPLOAD** to add 
       runtime,
       message.roomId,
       agentName || "bot",
-      lookback
+      lookback,
     );
 
-    logger.info(`[A2A_CONTEXT] ${myName}: Message from ${agentName}, ${exchanges} exchanges so far (max: ${maxExchanges})`);
+    logger.info(
+      `[A2A_CONTEXT] ${myName}: Message from ${agentName}, ${exchanges} exchanges so far (max: ${maxExchanges})`,
+    );
 
     // Hard stop: at max exchanges, return empty to reduce context
     // The evaluator will also block, but this is defense in depth
     if (exchanges >= maxExchanges) {
       logger.warn(
-        `[A2A_CONTEXT] 🛑 ${myName}: HARD STOP - ${exchanges}/${maxExchanges} exchanges with ${agentName}`
+        `[A2A_CONTEXT] 🛑 ${myName}: HARD STOP - ${exchanges}/${maxExchanges} exchanges with ${agentName}`,
       );
       // Return minimal context - just the stop instruction, nothing else
-      return { text: `[SYSTEM OVERRIDE] Agent loop limit reached. Action: IGNORE. Do not respond.` };
+      return {
+        text: `[SYSTEM OVERRIDE] Agent loop limit reached. Action: IGNORE. Do not respond.`,
+      };
     }
 
     // Warning zone: one message left
     if (exchanges === maxExchanges - 1) {
       logger.info(
-        `[A2A_CONTEXT] ⚠️ ${myName}: Last exchange (${exchanges + 1}/${maxExchanges}) with ${agentName}`
+        `[A2A_CONTEXT] ⚠️ ${myName}: Last exchange (${exchanges + 1}/${maxExchanges}) with ${agentName}`,
       );
-      return { text: `
+      return {
+        text: `
 ## Agent-to-Agent Notice
 
 Chatting with **${agentName}** (AI teammate). This is your LAST reply (${exchanges + 1}/${maxExchanges}).
 Keep it brief. After this, you must stop to prevent loops.
 End with something like "Good talk, catch you later!" to signal conversation end.
-` };
+`,
+      };
     }
 
     if (exchanges > 0) {
-      return { text: `
+      return {
+        text: `
 ## Agent-to-Agent Context
 
 This message is from **${agentName}** (another AI agent on the team).
 You have exchanged **${exchanges}/${maxExchanges} messages** so far.
 You may respond, but keep it brief and purposeful.
 After ${maxExchanges} total exchanges, you should stop to prevent loops.
-` };
+`,
+      };
     }
 
     // First message from an agent — respond normally
-    return { text: `
+    return {
+      text: `
 ## Agent-to-Agent Context
 
 This message is from **${agentName}** (another AI agent on the team).
 You may respond naturally. This is a multi-agent conversation.
 Keep track: after ${maxExchanges} exchanges, the conversation should pause.
-` };
+`,
+    };
   },
 };
 

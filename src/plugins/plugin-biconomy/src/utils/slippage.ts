@@ -1,10 +1,10 @@
-import { 
-  type ActionResult, 
-  type HandlerCallback, 
-  type State, 
+import {
+  type ActionResult,
+  type HandlerCallback,
+  type State,
   type IAgentRuntime,
   ModelType,
-  logger 
+  logger,
 } from "@elizaos/core";
 
 export const DEFAULT_SLIPPAGE = 1; // 1%
@@ -20,14 +20,14 @@ export interface SlippageValidationResult {
 /**
  * Use LLM to detect user consent for high slippage in recent messages.
  * Analyzes conversation context to determine if user has agreed to proceed.
- * 
+ *
  * @param runtime - Agent runtime for LLM access
  * @param state - Current state with recent messages
  * @returns true if user consent detected via LLM analysis
  */
 async function detectUserConsentViaLLM(
   runtime: IAgentRuntime,
-  state?: State
+  state?: State,
 ): Promise<boolean> {
   if (!state?.recentMessagesData) return false;
 
@@ -35,7 +35,7 @@ async function detectUserConsentViaLLM(
   const recentMessages = (state.recentMessagesData as any[])
     .filter((msg: any) => msg.userId !== msg.agentId) // Only user messages
     .slice(-3)
-    .map((msg: any) => msg.content?.text || '')
+    .map((msg: any) => msg.content?.text || "")
     .filter((text: string) => text.trim().length > 0);
 
   if (recentMessages.length === 0) return false;
@@ -44,7 +44,7 @@ async function detectUserConsentViaLLM(
   const prompt = `Analyze if the user has given consent to proceed with a high-risk action (specifically high slippage in a trade).
 
 Recent user messages:
-${recentMessages.map((text: string, i: number) => `${i + 1}. "${text}"`).join('\n')}
+${recentMessages.map((text: string, i: number) => `${i + 1}. "${text}"`).join("\n")}
 
 Does the user's recent message(s) indicate they want to proceed despite the warning? Look for:
 - Affirmative responses (yes, ok, proceed, confirm, go ahead, do it, etc.)
@@ -57,11 +57,12 @@ Respond with ONLY "YES" if consent is clearly given, or "NO" if not.`;
     const response = await runtime.useModel(ModelType.TEXT_SMALL, {
       messages: [
         {
-          role: 'system',
-          content: 'You are a consent detection assistant. Analyze user messages and respond with only YES or NO.',
+          role: "system",
+          content:
+            "You are a consent detection assistant. Analyze user messages and respond with only YES or NO.",
         },
         {
-          role: 'user',
+          role: "user",
           content: prompt,
         },
       ],
@@ -69,9 +70,9 @@ Respond with ONLY "YES" if consent is clearly given, or "NO" if not.`;
       temperature: 0.1,
     } as any);
 
-    const answer = (response || '').toString().trim().toUpperCase();
+    const answer = (response || "").toString().trim().toUpperCase();
     logger.debug(`[Slippage] LLM consent detection: ${answer}`);
-    
+
     return answer === "YES";
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -88,7 +89,7 @@ function createSlippageError(
   errorCode: string,
   inputParams: Record<string, unknown>,
   actionName: string,
-  callback?: HandlerCallback
+  callback?: HandlerCallback,
 ): SlippageValidationResult {
   logger.warn(`[${actionName}] Slippage validation failed: ${errorCode}`);
   callback?.({ text: errorMsg });
@@ -146,7 +147,7 @@ export async function validateSlippage(
   inputParams: Record<string, unknown>,
   actionName: string,
   callback?: HandlerCallback,
-  state?: State
+  state?: State,
 ): Promise<SlippageValidationResult> {
   // Validate: must be a number
   if (typeof slippage !== "number" || Number.isNaN(slippage)) {
@@ -155,7 +156,7 @@ export async function validateSlippage(
       "invalid_slippage_type",
       inputParams,
       actionName,
-      callback
+      callback,
     );
   }
 
@@ -166,7 +167,7 @@ export async function validateSlippage(
       "slippage_must_be_positive",
       inputParams,
       actionName,
-      callback
+      callback,
     );
   }
 
@@ -177,7 +178,7 @@ export async function validateSlippage(
       "slippage_exceeds_maximum",
       inputParams,
       actionName,
-      callback
+      callback,
     );
   }
 
@@ -188,7 +189,7 @@ export async function validateSlippage(
       "slippage_exceeds_absolute_max",
       inputParams,
       actionName,
-      callback
+      callback,
     );
   }
 
@@ -198,36 +199,43 @@ export async function validateSlippage(
     // This prevents string values like "false" from being treated as truthy
     let hasConsent = false;
     let confirmationSource = "";
-    
-    if (typeof confirmHighSlippage === "boolean" && confirmHighSlippage === true) {
+
+    if (
+      typeof confirmHighSlippage === "boolean" &&
+      confirmHighSlippage === true
+    ) {
       hasConsent = true;
       confirmationSource = "explicit parameter";
-    } else if (typeof confirmHighSlippage !== "boolean" && confirmHighSlippage !== undefined && confirmHighSlippage !== null) {
+    } else if (
+      typeof confirmHighSlippage !== "boolean" &&
+      confirmHighSlippage !== undefined &&
+      confirmHighSlippage !== null
+    ) {
       // Log warning if non-boolean value was passed
       logger.warn(
-        `[${actionName}] Invalid confirmHighSlippage type: ${typeof confirmHighSlippage}. Expected boolean, treating as false for safety.`
+        `[${actionName}] Invalid confirmHighSlippage type: ${typeof confirmHighSlippage}. Expected boolean, treating as false for safety.`,
       );
     }
-    
+
     if (!hasConsent) {
       // Try to detect consent via LLM
       hasConsent = await detectUserConsentViaLLM(runtime, state);
       confirmationSource = "LLM-detected from recent messages";
     }
-    
+
     if (!hasConsent) {
       return createSlippageError(
         `⚠️ Slippage of ${slippage}% is above the recommended maximum of ${MAX_SLIPPAGE_WITHOUT_CONFIRMATION}%. This could result in significant value loss. To proceed, please confirm you're okay with high slippage.`,
         "high_slippage_not_confirmed",
         inputParams,
         actionName,
-        callback
+        callback,
       );
     }
 
     // Log how confirmation was obtained
     logger.warn(
-      `[${actionName}] Proceeding with high slippage: ${slippage}% (confirmed via ${confirmationSource})`
+      `[${actionName}] Proceeding with high slippage: ${slippage}% (confirmed via ${confirmationSource})`,
     );
     callback?.({
       text: `⚠️ Proceeding with high slippage of ${slippage}% as confirmed.`,

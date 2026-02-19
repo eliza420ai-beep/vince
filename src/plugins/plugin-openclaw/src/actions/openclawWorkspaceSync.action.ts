@@ -57,9 +57,15 @@ export const openclawWorkspaceSyncAction: Action = {
   similes: ["WORKSPACE_SYNC", "SYNC_WORKSPACE", "OPENCLAW_SYNC"],
   description:
     "Return OpenClaw workspace sync from ARCHITECTURE.md (openclaw-agents/workspace ↔ knowledge/teammate ↔ ~/.openclaw/workspace). Use when the user asks about workspace sync, sync workspace.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /workspace\s+sync/i.test(text) ||
       /sync\s+workspace/i.test(text) ||
@@ -75,17 +81,30 @@ export const openclawWorkspaceSyncAction: Action = {
   ): Promise<ActionResult> => {
     const intro = "Here's how to sync your workspace with OpenClaw—";
     const out = intro + "\n\n" + OPENCLAW_WORKSPACE_SYNC_MD;
-    if (callback) await callback({ text: out, actions: ["OPENCLAW_WORKSPACE_SYNC"] });
+    if (callback)
+      await callback({ text: out, actions: ["OPENCLAW_WORKSPACE_SYNC"] });
     return { success: true, text: out };
   },
   examples: [
     [
       { name: "{{user}}", content: { text: "How do I sync workspace?" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...", actions: ["OPENCLAW_WORKSPACE_SYNC"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_WORKSPACE_SYNC"],
+        },
+      },
     ],
     [
       { name: "{{user}}", content: { text: "workspace sync openclaw" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...", actions: ["OPENCLAW_WORKSPACE_SYNC"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_WORKSPACE_SYNC"],
+        },
+      },
     ],
   ],
 };

@@ -26,7 +26,9 @@ function syntheticMessage(text: string, runtime: IAgentRuntime): Memory {
   };
 }
 
-async function generateWeeklySuggestions(runtime: IAgentRuntime): Promise<string> {
+async function generateWeeklySuggestions(
+  runtime: IAgentRuntime,
+): Promise<string> {
   const state = await runtime.composeState(
     syntheticMessage("Weekly suggestions", runtime),
     undefined,
@@ -36,7 +38,7 @@ async function generateWeeklySuggestions(runtime: IAgentRuntime): Promise<string
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
   return typeof response === "string"
     ? response
-    : (response as { text?: string })?.text ?? String(response);
+    : ((response as { text?: string })?.text ?? String(response));
 }
 
 const PUSH_SOURCES = ["discord", "slack", "telegram"] as const;
@@ -99,7 +101,8 @@ async function pushToSentinelChannels(
   }
 
   const isNoSendHandler = (e: unknown): boolean =>
-    String(e).includes("No send handler") || String(e).includes("Send handler not found");
+    String(e).includes("No send handler") ||
+    String(e).includes("Send handler not found");
 
   let sent = 0;
   for (const target of targets) {
@@ -131,7 +134,9 @@ export async function registerSentinelWeeklyTask(
     validate: async () => true,
     execute: async (rt: IAgentRuntime) => {
       if (process.env.SENTINEL_WEEKLY_ENABLED === "false") return;
-      logger.debug("[SentinelWeekly] Building suggestions and investor update...");
+      logger.debug(
+        "[SentinelWeekly] Building suggestions and investor update...",
+      );
       try {
         const list = await generateWeeklySuggestions(rt);
         const suggestionsMessage = [

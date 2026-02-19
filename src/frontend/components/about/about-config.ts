@@ -27,6 +27,25 @@ export interface AboutConfig {
 
 const DEFAULT_AGENT = "VINCE";
 
+/** Canonical About keys (display name as stored in ABOUT_CONFIG). */
+const ABOUT_CONFIG_KEYS = [
+  "VINCE",
+  "Otaku",
+  "Kelly",
+  "Solus",
+  "Sentinel",
+  "ECHO",
+  "Clawterm",
+  "Oracle",
+  "Naval",
+  "Eliza",
+] as const;
+
+/** Map lowercase agent name to canonical key for case-insensitive About lookup. */
+const AGENT_ABOUT_KEY_MAP: Record<string, string> = Object.fromEntries(
+  ABOUT_CONFIG_KEYS.map((k) => [k.toLowerCase(), k]),
+);
+
 export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   VINCE: {
     headline: "Know why. Trade better.",
@@ -94,7 +113,8 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         example: "",
       },
     ],
-    proTip: "Say gm or ALOHA. One entry.",
+    proTip:
+      "Say gm or ALOHA. One entry. For X/CT sentiment and threads, ask Echo.",
   },
 
   Otaku: {
@@ -731,13 +751,13 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Oracle: {
     headline: "A palantir into what the market thinks.",
     intro:
-      "Prediction-markets specialist (Polymarket-first). Read-only discovery, odds, orderbooks, portfolio. Priority markets are a palantir into market belief; signals feed the paper bot (perps on Hyperliquid), Hypersurface strike selection (weekly predictions most important), and a macro vibe check. No trading—handoffs: live perps/paper bot → VINCE, strike/execution → Solus, DeFi/wallet → Otaku.",
+      "One agent for all Polymarket: prediction-markets specialist (discovery, odds, orderbooks, portfolio) plus the full desk—hourly edge check, 15m risk snapshot, and 4h performance report. Priority markets are a palantir into market belief; signals feed the paper bot (perps on Hyperliquid), Hypersurface strike selection (weekly predictions most important), and a macro vibe check. No trading—handoffs: live perps/paper bot → VINCE, strike/execution → Solus, DeFi/wallet → Otaku.",
     tags: [
       { label: "Polymarket", withSparkles: true },
       { label: "Palantir" },
+      { label: "Desk: edge, risk, perf" },
       { label: "Paper bot signals" },
       { label: "Hypersurface strikes" },
-      { label: "Vibe check" },
       { label: "Read-only" },
     ],
     capabilities: [
@@ -750,6 +770,11 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         title: "Discovery & search",
         description:
           "Trending markets, search by keyword or category, market detail, real-time prices, price history, categories, events.",
+      },
+      {
+        title: "Desk: edge, risk, performance",
+        description:
+          "One agent runs all desk tasks: hourly edge check (Synth vs market), 15m risk snapshot (pending signals), 4h performance report. Use quick actions or ask for an edge check or desk report.",
       },
       {
         title: "Orderbooks & analytics",
@@ -781,6 +806,17 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           '"What Polymarket markets matter for us?" or "trending predictions"',
       },
       {
+        name: "Plugin-Polymarket-Desk",
+        category: "Desk",
+        summary:
+          "Oracle runs all desk tasks: hourly edge check (Synth vs market), 15m risk snapshot (pending signals), 4h performance report. One agent, no separate Risk/Performance bots.",
+        points: [
+          "POLYMARKET_ANALYST_HOURLY, POLYMARKET_RISK_15M, POLYMARKET_PERF_4H.",
+        ],
+        example:
+          '"Run Polymarket edge check for BTC" or "Polymarket desk report"',
+      },
+      {
         name: "Powered by ElizaOS",
         category: "AI Engine",
         summary:
@@ -797,7 +833,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
     ],
     proTip:
-      'Ask "What Polymarket markets matter for us?" or "Show our focus markets". For live perps or paper bot ask VINCE; for strike/execution ask Solus.',
+      'Ask "What Polymarket markets matter for us?" or use quick actions for edge check and desk report. For live perps or paper bot ask VINCE; for strike/execution ask Solus.',
   },
 
   Naval: {
@@ -1023,7 +1059,11 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
 };
 
 export function getAboutConfig(agentName?: string | null): AboutConfig {
-  const key = agentName?.trim() || DEFAULT_AGENT;
+  const raw = agentName?.trim() || DEFAULT_AGENT;
+  const key =
+    ABOUT_CONFIG[raw] !== undefined
+      ? raw
+      : (AGENT_ABOUT_KEY_MAP[raw.toLowerCase()] ?? DEFAULT_AGENT);
   return ABOUT_CONFIG[key] ?? ABOUT_CONFIG[DEFAULT_AGENT];
 }
 

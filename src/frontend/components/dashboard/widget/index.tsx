@@ -3,7 +3,10 @@
 import React, { useState, useEffect, memo } from "react";
 import { Card, CardContent } from "@/frontend/components/ui/card";
 import TVNoise from "@/frontend/components/ui/tv-noise";
-import { fetchLeaderboards, LEADERBOARDS_STALE_MS } from "@/frontend/lib/leaderboardsApi";
+import {
+  fetchLeaderboards,
+  LEADERBOARDS_STALE_MS,
+} from "@/frontend/lib/leaderboardsApi";
 
 const COINGECKO_BTC_URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true";
@@ -14,7 +17,8 @@ const HYPE_SOL_POLL_MS = 60_000;
 
 function formatBtcPrice(usd: number): string {
   if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
-  if (usd >= 1_000) return `$${usd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  if (usd >= 1_000)
+    return `$${usd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
   return `$${usd.toFixed(2)}`;
 }
 
@@ -167,7 +171,9 @@ function Widget({ agentId, mode = "degen" }: WidgetProps) {
                 <span className="opacity-50 text-[0.65rem] uppercase tracking-wide">
                   {mode === "normies" ? "Sentiment" : "Fear & Greed"}
                 </span>
-                <span className="font-normal normal-case">{fearGreedLine ?? "…"}</span>
+                <span className="font-normal normal-case">
+                  {fearGreedLine ?? "…"}
+                </span>
               </div>
             </>
           ) : (
@@ -202,19 +208,25 @@ function Widget({ agentId, mode = "degen" }: WidgetProps) {
 
         <div className="grid grid-cols-3 gap-2 items-center">
           <div className="text-left">
-            <span className="opacity-50 uppercase block whitespace-nowrap">HYPE</span>
+            <span className="opacity-50 uppercase block whitespace-nowrap">
+              HYPE
+            </span>
             <span className="block font-mono">
               {hypePrice != null ? formatWholePrice(hypePrice) : "…"}
             </span>
           </div>
           <div className="flex flex-col items-center justify-center min-w-0 px-1 text-center">
-            <span className="opacity-50 uppercase whitespace-nowrap">Trading Session</span>
+            <span className="opacity-50 uppercase whitespace-nowrap">
+              Trading Session
+            </span>
             <span className="font-normal normal-case whitespace-nowrap text-center">
               {getTradingSessionFull(currentTime)}
             </span>
           </div>
           <div className="text-right">
-            <span className="opacity-50 uppercase block whitespace-nowrap">SOL</span>
+            <span className="opacity-50 uppercase block whitespace-nowrap">
+              SOL
+            </span>
             <span className="block font-mono">
               {solPrice != null ? formatWholePrice(solPrice) : "…"}
             </span>

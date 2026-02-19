@@ -82,7 +82,10 @@ export const RISK_WORDS = [
  * If phrase found in text (case-insensitive), return this sentiment and skip word count.
  * "bull trap" / "bear trap" -> neutral; "buy the dip" -> bullish; "sell the rip" -> bearish.
  */
-export const PHRASE_OVERRIDES: { phrase: string; sentiment: "bullish" | "bearish" | "neutral" }[] = [
+export const PHRASE_OVERRIDES: {
+  phrase: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+}[] = [
   { phrase: "bull trap", sentiment: "neutral" },
   { phrase: "bear trap", sentiment: "neutral" },
   { phrase: "buy the dip", sentiment: "bullish" },

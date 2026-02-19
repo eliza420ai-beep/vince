@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "accountability authenticity",
@@ -40,11 +44,18 @@ If this fails the authenticity test, what would pass it?`;
 
 export const navalAccountabilityAuthenticityAction: Action = {
   name: "NAVAL_ACCOUNTABILITY_AUTHENTICITY",
-  similes: ["ACCOUNTABILITY_AUTHENTICITY", "AUTHENTICITY_TEST", "NAVAL_DECISION_TEST"],
+  similes: [
+    "ACCOUNTABILITY_AUTHENTICITY",
+    "AUTHENTICITY_TEST",
+    "NAVAL_DECISION_TEST",
+  ],
   description:
     "Naval's test: authentic or for show? Willing to be publicly accountable? What would you do if no one was watching? If it fails, what would pass?",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsAccountability(text);
   },
@@ -79,7 +90,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -87,14 +98,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Authentic: nothing to hide, nothing to prove. Accountable: people know who to credit or blame. If you wouldn't do it with no one watching, it's not authentic.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Considering taking a VP title at a growth-stage company. Accountability vs authenticity?" } },
-      { name: "{{agent}}", content: { text: "1. Authentic or looks good? — Does the work excite you or the title? 2. Publicly accountable? — Can you own the outcome in public? 3. If no one watching? — Would you still want the job? If it's mostly title, what would pass: a role where you'd do the work even without the title." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Considering taking a VP title at a growth-stage company. Accountability vs authenticity?",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Authentic or looks good? — Does the work excite you or the title? 2. Publicly accountable? — Can you own the outcome in public? 3. If no one watching? — Would you still want the job? If it's mostly title, what would pass: a role where you'd do the work even without the title.",
+        },
+      },
     ],
   ],
 };

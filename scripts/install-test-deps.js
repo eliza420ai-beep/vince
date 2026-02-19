@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
-import { spawnSync } from 'child_process';
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
+import { spawnSync } from "child_process";
 
 const testDependencies = {
-  '@cypress/react': '^9.0.1',
-  '@cypress/vite-dev-server': '^6.0.3',
-  '@testing-library/cypress': '^10.0.3',
-  cypress: '^14.4.1',
+  "@cypress/react": "^9.0.1",
+  "@cypress/vite-dev-server": "^6.0.3",
+  "@testing-library/cypress": "^10.0.3",
+  cypress: "^14.4.1",
 };
 
 function isInstalled(packageName) {
   try {
-    const packageJsonPath = join(process.cwd(), 'package.json');
+    const packageJsonPath = join(process.cwd(), "package.json");
     if (existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-      const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+      const deps = {
+        ...packageJson.dependencies,
+        ...packageJson.devDependencies,
+      };
       return packageName in deps;
     }
   } catch (error) {
@@ -31,24 +34,24 @@ function installTestDependencies() {
     .map(([name, version]) => `${name}@${version}`);
 
   if (missingDeps.length === 0) {
-    console.log('✓ Test dependencies already installed');
+    console.log("✓ Test dependencies already installed");
     return;
   }
 
-  console.log('Installing test dependencies...');
+  console.log("Installing test dependencies...");
   try {
-    const proc = spawnSync('bun', ['add', '-d', ...missingDeps], {
-      stdio: 'inherit',
+    const proc = spawnSync("bun", ["add", "-d", ...missingDeps], {
+      stdio: "inherit",
       cwd: process.cwd(),
       shell: false,
     });
 
     if (proc.status !== 0) {
-      throw new Error('bun add command failed');
+      throw new Error("bun add command failed");
     }
-    console.log('✓ Test dependencies installed successfully');
+    console.log("✓ Test dependencies installed successfully");
   } catch (error) {
-    console.error('Failed to install test dependencies:', error.message);
+    console.error("Failed to install test dependencies:", error.message);
     process.exit(1);
   }
 }

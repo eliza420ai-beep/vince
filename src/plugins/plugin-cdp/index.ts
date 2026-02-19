@@ -33,13 +33,13 @@ export { shouldCdpPluginBeInContext, cdpKeywordPatterns } from "./matcher";
 
 /**
  * CDP Plugin
- * 
+ *
  * Provides Coinbase Developer Platform integration for:
  * - Wallet management (balances, tokens, NFTs)
  * - Token transfers and swaps
  * - NFT transfers
  * - x402 paid API requests (new!)
- * 
+ *
  * Actions:
  * - USER_WALLET_INFO: View wallet balances and assets
  * - CHECK_TOKEN_BALANCE: Fast balance check for specific token (optimized for transaction validation)
@@ -79,5 +79,3 @@ export const cdpPlugin: Plugin = {
 };
 
 export default cdpPlugin;
-
-

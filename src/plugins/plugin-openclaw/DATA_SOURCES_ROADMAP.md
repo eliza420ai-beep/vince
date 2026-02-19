@@ -12,11 +12,11 @@ This doc describes what is needed to **get real data** for those three sections 
 
 **What’s needed:**
 
-| Need | Description | Possible sources |
-|------|-------------|------------------|
-| Search results | Recent tweets/posts about the token(s) | X API (already in repo) |
+| Need                      | Description                                           | Possible sources                    |
+| ------------------------- | ----------------------------------------------------- | ----------------------------------- |
+| Search results            | Recent tweets/posts about the token(s)                | X API (already in repo)             |
 | Optional: sentiment score | Aggregate vibe (e.g. 1–10 or bullish/neutral/bearish) | From search + LLM, or dedicated API |
-| Optional: KOL list | Handles to treat as “KOLs” for weighting | Config or static list |
+| Optional: KOL list        | Handles to treat as “KOLs” for weighting              | Config or static list               |
 
 **What already exists in VINCE:**
 
@@ -40,11 +40,11 @@ This doc describes what is needed to **get real data** for those three sections 
 
 **What’s needed:**
 
-| Need | Description | Possible sources |
-|------|-------------|------------------|
-| Whale / large transfers | Large moves, exchange in/out, notable wallets | TopTraders (VINCE ref), Sanbase, Whale Alert–style API, or chain indexers |
-| DEX / flow data | Per-token or per-pool volume, net flows | DefiLlama, Birdeye, DEX aggregator APIs, or chain RPC + indexer |
-| Optional: OI / funding | Already on Hyperliquid | plugin-vince HL service; could be merged into “market” or “on-chain” context |
+| Need                    | Description                                   | Possible sources                                                             |
+| ----------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
+| Whale / large transfers | Large moves, exchange in/out, notable wallets | TopTraders (VINCE ref), Sanbase, Whale Alert–style API, or chain indexers    |
+| DEX / flow data         | Per-token or per-pool volume, net flows       | DefiLlama, Birdeye, DEX aggregator APIs, or chain RPC + indexer              |
+| Optional: OI / funding  | Already on Hyperliquid                        | plugin-vince HL service; could be merged into “market” or “on-chain” context |
 
 **What already exists in VINCE:**
 
@@ -68,11 +68,11 @@ This doc describes what is needed to **get real data** for those three sections 
 
 **What’s needed:**
 
-| Need | Description | Possible sources |
-|------|-------------|------------------|
-| Headlines | Recent news for the token(s) or “crypto” | CryptoPanic, NewsAPI, Tavily, or RSS |
-| Optional: fear/greed | Single index (e.g. 0–100) | Alternative.me, or reuse from Grok daily / internal-docs |
-| Optional: sentiment per headline | Positive/negative/neutral | From API or small LLM pass on headline only |
+| Need                             | Description                              | Possible sources                                         |
+| -------------------------------- | ---------------------------------------- | -------------------------------------------------------- |
+| Headlines                        | Recent news for the token(s) or “crypto” | CryptoPanic, NewsAPI, Tavily, or RSS                     |
+| Optional: fear/greed             | Single index (e.g. 0–100)                | Alternative.me, or reuse from Grok daily / internal-docs |
+| Optional: sentiment per headline | Positive/negative/neutral                | From API or small LLM pass on headline only              |
 
 **What already exists in VINCE:**
 
@@ -113,10 +113,10 @@ Once real data exists for a section:
 
 ## 5. Summary table
 
-| Section   | Real data needed                          | Existing in repo              | Next step |
-|-----------|-------------------------------------------|-------------------------------|-----------|
-| **Alpha** | X search/briefing for token(s)            | VINCE_X_RESEARCH, X API       | Call X research from OpenClaw or shared helper; pass result as alpha context. |
-| **On-chain** | Whale/DEX/flows (and optionally HL OI/funding) | VINCE refs: Sanbase, TopTraders, HL | Add `fetchOnChainContext` (Sanbase/Birdeye/Helius/HL); pass as onchain context. |
-| **News**  | Headlines (+ optional fear/greed)         | Tavily, openclaw-agents refs  | Add `fetchNewsContext` (CryptoPanic or Tavily); replace mock `getNewsDigest`; pass as news context. |
+| Section      | Real data needed                               | Existing in repo                    | Next step                                                                                           |
+| ------------ | ---------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Alpha**    | X search/briefing for token(s)                 | VINCE_X_RESEARCH, X API             | Call X research from OpenClaw or shared helper; pass result as alpha context.                       |
+| **On-chain** | Whale/DEX/flows (and optionally HL OI/funding) | VINCE refs: Sanbase, TopTraders, HL | Add `fetchOnChainContext` (Sanbase/Birdeye/Helius/HL); pass as onchain context.                     |
+| **News**     | Headlines (+ optional fear/greed)              | Tavily, openclaw-agents refs        | Add `fetchNewsContext` (CryptoPanic or Tavily); replace mock `getNewsDigest`; pass as news context. |
 
 After each pipeline returns real context, wire it into `executeAgentWithStreaming` and remove that section from the “no data” path so the LLM gets **only** grounded input and the disclaimer is no longer shown for that section.

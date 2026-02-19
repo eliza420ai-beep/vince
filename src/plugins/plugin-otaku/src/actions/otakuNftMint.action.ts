@@ -44,13 +44,16 @@ interface MintRequest {
 }
 
 // Known mint contracts (mainnet)
-const KNOWN_COLLECTIONS: Record<string, { name: string; address: string; chain: string }> = {
-  "zorb": {
+const KNOWN_COLLECTIONS: Record<
+  string,
+  { name: string; address: string; chain: string }
+> = {
+  zorb: {
     name: "Zorbs",
     address: "0xCa21d4228cDCc68D4e23807E5e370C07577Dd152",
     chain: "ethereum",
   },
-  "zorbs": {
+  zorbs: {
     name: "Zorbs",
     address: "0xCa21d4228cDCc68D4e23807E5e370C07577Dd152",
     chain: "ethereum",
@@ -84,7 +87,9 @@ function parseMintRequest(text: string): MintRequest | null {
   let artPrompt: string | undefined;
   if (isGenArt) {
     // Extract art prompt
-    const promptMatch = text.match(/(?:generate|create|make)\s+(?:an?\s+)?(?:nft\s+)?(?:of\s+)?(.+?)(?:\s+and\s+mint|\s+then\s+mint|$)/i);
+    const promptMatch = text.match(
+      /(?:generate|create|make)\s+(?:an?\s+)?(?:nft\s+)?(?:of\s+)?(.+?)(?:\s+and\s+mint|\s+then\s+mint|$)/i,
+    );
     if (promptMatch) {
       artPrompt = promptMatch[1].trim();
     }
@@ -113,7 +118,9 @@ function parseMintRequest(text: string): MintRequest | null {
 
   // Price
   let price: string | undefined;
-  const priceMatch = text.match(/(?:for|at|price)\s+(\d+\.?\d*)\s*(eth|usdc)?/i);
+  const priceMatch = text.match(
+    /(?:for|at|price)\s+(\d+\.?\d*)\s*(eth|usdc)?/i,
+  );
   if (priceMatch) {
     price = priceMatch[1] + (priceMatch[2] || " ETH");
   } else if (lower.includes("free")) {
@@ -165,7 +172,7 @@ export const otakuNftMintAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**NFT Mint:**\n- Contract: 0x1234...\n- Quantity: 1\n- Price: Free mint\n\nType \"confirm\" to mint.",
+          text: '**NFT Mint:**\n- Contract: 0x1234...\n- Quantity: 1\n- Price: Free mint\n\nType "confirm" to mint.',
           actions: ["OTAKU_NFT_MINT"],
         },
       },
@@ -173,19 +180,24 @@ export const otakuNftMintAction: Action = {
     [
       {
         name: "{{user}}",
-        content: { text: "Generate an AI art piece of a cyberpunk cat and mint it" },
+        content: {
+          text: "Generate an AI art piece of a cyberpunk cat and mint it",
+        },
       },
       {
         name: "{{agent}}",
         content: {
-          text: "**Gen Art + Mint:**\n- Prompt: \"cyberpunk cat\"\n- Creator: Sentinel (CTO)\n- Minter: Otaku (you)\n\nI'll ask Sentinel to generate the art, then mint it. Type \"confirm\" to proceed.",
+          text: '**Gen Art + Mint:**\n- Prompt: "cyberpunk cat"\n- Creator: Sentinel (CTO)\n- Minter: Otaku (you)\n\nI\'ll ask Sentinel to generate the art, then mint it. Type "confirm" to proceed.',
           actions: ["OTAKU_NFT_MINT"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     if (isConfirmation(text)) {
@@ -194,7 +206,8 @@ export const otakuNftMintAction: Action = {
 
     const hasMintIntent =
       text.includes("mint") ||
-      (text.includes("nft") && (text.includes("create") || text.includes("generate")));
+      (text.includes("nft") &&
+        (text.includes("create") || text.includes("generate")));
 
     if (!hasMintIntent) return false;
 
@@ -207,7 +220,7 @@ export const otakuNftMintAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
@@ -249,10 +262,17 @@ export const otakuNftMintAction: Action = {
           '- "Generate an AI art piece of a sunset and mint it"',
         ].join("\n"),
       });
-      return { success: false, error: new Error("Could not parse mint request") };
+      return {
+        success: false,
+        error: new Error("Could not parse mint request"),
+      };
     }
 
-    const pendingMint = await getPending<MintRequest>(runtime, message, "nftMint");
+    const pendingMint = await getPending<MintRequest>(
+      runtime,
+      message,
+      "nftMint",
+    );
 
     if (isConfirmation(text) && pendingMint) {
       await clearPending(runtime, message, "nftMint");
@@ -295,12 +315,16 @@ export const otakuNftMintAction: Action = {
               await callback?.({
                 text: `✅ Gen art minted!\n\n**Contract:** ${GEN_ART_MINT_CONTRACT.slice(0, 20)}...\n**TX:** ${txHash.slice(0, 24)}...\n**Token URI:** ${tokenURI.slice(0, 50)}...`,
               });
-              await appendNotificationEvent(runtime, {
-                action: "nft_minted",
-                title: "NFT minted",
-                subtitle: `Gen art: ${pendingMint.artPrompt?.slice(0, 40)}...`,
-                metadata: { txHash },
-              }, message.entityId);
+              await appendNotificationEvent(
+                runtime,
+                {
+                  action: "nft_minted",
+                  title: "NFT minted",
+                  subtitle: `Gen art: ${pendingMint.artPrompt?.slice(0, 40)}...`,
+                  metadata: { txHash },
+                },
+                message.entityId,
+              );
               return { success: true };
             }
           }
@@ -313,7 +337,10 @@ export const otakuNftMintAction: Action = {
           await callback?.({
             text: `❌ Gen art pipeline failed: ${err instanceof Error ? err.message : String(err)}\n\nTry asking Sentinel directly, then come back to mint.`,
           });
-          return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
+          return {
+            success: false,
+            error: err instanceof Error ? err : new Error(String(err)),
+          };
         }
       }
 
@@ -323,7 +350,10 @@ export const otakuNftMintAction: Action = {
         await callback?.({
           text: "CDP service not available for minting.",
         });
-        return { success: false, error: new Error("CDP service not available") };
+        return {
+          success: false,
+          error: new Error("CDP service not available"),
+        };
       }
 
       await callback?.({
@@ -332,9 +362,10 @@ export const otakuNftMintAction: Action = {
 
       try {
         // Build mint transaction
-        const mintValue = pendingMint.price && pendingMint.price !== "0"
-          ? BigInt(parseFloat(pendingMint.price) * 1e18)
-          : 0n;
+        const mintValue =
+          pendingMint.price && pendingMint.price !== "0"
+            ? BigInt(parseFloat(pendingMint.price) * 1e18)
+            : 0n;
 
         let result: any;
 
@@ -366,12 +397,16 @@ export const otakuNftMintAction: Action = {
           await callback?.({
             text: "Here's the mint result—\n\n" + mintOut,
           });
-          await appendNotificationEvent(runtime, {
-            action: "nft_minted",
-            title: "NFT minted",
-            subtitle: `${pendingMint.quantity} NFT(s) · ${pendingMint.contractAddress?.slice(0, 10)}...`,
-            metadata: { txHash },
-          }, message.entityId);
+          await appendNotificationEvent(
+            runtime,
+            {
+              action: "nft_minted",
+              title: "NFT minted",
+              subtitle: `${pendingMint.quantity} NFT(s) · ${pendingMint.contractAddress?.slice(0, 10)}...`,
+              metadata: { txHash },
+            },
+            message.entityId,
+          );
           return { success: true };
         }
 
@@ -380,7 +415,10 @@ export const otakuNftMintAction: Action = {
         await callback?.({
           text: `❌ Mint failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
+        return {
+          success: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        };
       }
     }
 
@@ -395,16 +433,24 @@ export const otakuNftMintAction: Action = {
       lines.push(`💎 **Minter:** Otaku (me)`);
       lines.push(`⛓️ **Chain:** ${request.chain}`);
       lines.push("");
-      lines.push("Sentinel will generate the art, then I'll mint it as an NFT.");
+      lines.push(
+        "Sentinel will generate the art, then I'll mint it as an NFT.",
+      );
     } else {
       lines.push("**NFT Mint:**");
       lines.push("");
       if (request.collection) {
-        lines.push(`📦 **Collection:** ${KNOWN_COLLECTIONS[request.collection]?.name || request.collection}`);
+        lines.push(
+          `📦 **Collection:** ${KNOWN_COLLECTIONS[request.collection]?.name || request.collection}`,
+        );
       }
-      lines.push(`📍 **Contract:** ${request.contractAddress?.slice(0, 20)}...`);
+      lines.push(
+        `📍 **Contract:** ${request.contractAddress?.slice(0, 20)}...`,
+      );
       lines.push(`🔢 **Quantity:** ${request.quantity}`);
-      lines.push(`💰 **Price:** ${request.price || "Unknown (check contract)"}`);
+      lines.push(
+        `💰 **Price:** ${request.price || "Unknown (check contract)"}`,
+      );
       lines.push(`⛓️ **Chain:** ${request.chain}`);
     }
 

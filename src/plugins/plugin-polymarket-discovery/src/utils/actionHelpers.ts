@@ -4,7 +4,12 @@
  * Shared utilities for Polymarket discovery plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
 import { isAddress } from "viem";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
@@ -31,7 +36,7 @@ export function validatePolymarketService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   try {
     // Check plugin context first
@@ -40,7 +45,7 @@ export function validatePolymarketService(
     }
 
     const service = runtime.getService(
-      PolymarketService.serviceType
+      PolymarketService.serviceType,
     ) as PolymarketService;
 
     if (!service) {
@@ -52,7 +57,7 @@ export function validatePolymarketService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -65,10 +70,10 @@ export function validatePolymarketService(
  * @returns Polymarket service instance or null
  */
 export function getPolymarketService(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): PolymarketService | null {
   return runtime.getService(
-    PolymarketService.serviceType
+    PolymarketService.serviceType,
   ) as PolymarketService | null;
 }
 
@@ -81,12 +86,12 @@ export function getPolymarketService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }
@@ -102,7 +107,7 @@ export async function extractActionParams<T>(
 export function truncateAddress(
   address: string,
   prefixLength: number = 6,
-  suffixLength: number = 4
+  suffixLength: number = 4,
 ): string {
   if (!address || address.length <= prefixLength + suffixLength + 2) {
     return address;
@@ -121,7 +126,7 @@ export function truncateAddress(
  */
 export function formatCurrency(
   value: number | string,
-  decimals: number = 2
+  decimals: number = 2,
 ): string {
   const numValue = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(numValue)) return "$0.00";
@@ -143,7 +148,7 @@ export function formatCurrency(
  */
 export function formatNumber(
   value: number | string,
-  decimals: number = 0
+  decimals: number = 0,
 ): string {
   const numValue = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(numValue)) return "0";
@@ -165,7 +170,7 @@ export function formatNumber(
 export function formatPercentage(
   value: number,
   decimals: number = 2,
-  isDecimal: boolean = true
+  isDecimal: boolean = true,
 ): string {
   if (isNaN(value)) return "0.00%";
 
@@ -182,7 +187,7 @@ export function formatPercentage(
  */
 export function formatPriceChange(
   firstPrice: number,
-  lastPrice: number
+  lastPrice: number,
 ): { value: number; percentage: number; formatted: string } {
   const change = lastPrice - firstPrice;
   // Handle edge case where firstPrice is 0 to avoid Infinity

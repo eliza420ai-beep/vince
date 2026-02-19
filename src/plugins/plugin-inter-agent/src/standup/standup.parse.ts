@@ -51,7 +51,9 @@ const StandupActionItemSchema = z.object({
 const ParsedStandupSchema = z.object({
   actionItems: z.array(StandupActionItemSchema).default([]),
   lessonsByAgentName: z.record(z.string(), z.string()).default({}),
-  disagreements: z.array(z.object({ agentA: z.string(), agentB: z.string() })).default([]),
+  disagreements: z
+    .array(z.object({ agentA: z.string(), agentB: z.string() }))
+    .default([]),
   suggestions: z.array(z.string()).optional().default([]),
 });
 
@@ -88,7 +90,9 @@ const EMPTY_PARSED: ParsedStandup = {
   suggestions: [],
 };
 
-function normalizeParsed(parsed: z.infer<typeof ParsedStandupSchema>): ParsedStandup {
+function normalizeParsed(
+  parsed: z.infer<typeof ParsedStandupSchema>,
+): ParsedStandup {
   return {
     actionItems: parsed.actionItems.map((item) => ({
       assigneeAgentName: item.assigneeAgentName ?? "",
@@ -119,7 +123,10 @@ export async function parseStandupTranscript(
 
   const attempt = async (): Promise<ParsedStandup> => {
     const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
-    const raw = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    const raw =
+      typeof response === "string"
+        ? response
+        : ((response as { text?: string })?.text ?? "");
     const jsonStr = raw.replace(/^[\s\S]*?(\{[\s\S]*\})[\s\S]*$/m, "$1").trim();
     const parsedUnknown = JSON.parse(jsonStr) as unknown;
     const parsed = ParsedStandupSchema.parse(parsedUnknown);
@@ -129,11 +136,17 @@ export async function parseStandupTranscript(
   try {
     return await attempt();
   } catch (err) {
-    logger.warn({ err }, "[Standup] parseStandupTranscript failed, retrying once");
+    logger.warn(
+      { err },
+      "[Standup] parseStandupTranscript failed, retrying once",
+    );
     try {
       return await attempt();
     } catch (retryErr) {
-      logger.warn({ err: retryErr }, "[Standup] parseStandupTranscript retry failed");
+      logger.warn(
+        { err: retryErr },
+        "[Standup] parseStandupTranscript retry failed",
+      );
       return { ...EMPTY_PARSED };
     }
   }

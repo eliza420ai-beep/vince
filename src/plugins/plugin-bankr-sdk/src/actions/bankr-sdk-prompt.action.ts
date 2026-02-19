@@ -8,10 +8,15 @@ import {
 } from "@elizaos/core";
 import { BankrSdkService } from "../services/bankr-sdk.service";
 
-function getPromptFromMessageOrState(message: Memory, state?: State): string | null {
+function getPromptFromMessageOrState(
+  message: Memory,
+  state?: State,
+): string | null {
   const text = message?.content?.text?.trim();
   if (text) return text;
-  const actionParams = state?.data?.actionParams as Record<string, unknown> | undefined;
+  const actionParams = state?.data?.actionParams as
+    | Record<string, unknown>
+    | undefined;
   const prompt = actionParams?.prompt ?? actionParams?.text;
   if (typeof prompt === "string" && prompt.trim()) return prompt.trim();
   return null;
@@ -24,7 +29,9 @@ export const bankrSdkPromptAction: Action = {
   similes: ["BANKR_SDK", "BANKR_SDK_EXECUTE", "BANKR_PROMPT_SDK"],
 
   validate: async (runtime: IAgentRuntime, message: Memory) => {
-    const service = runtime.getService<BankrSdkService>(BankrSdkService.serviceType);
+    const service = runtime.getService<BankrSdkService>(
+      BankrSdkService.serviceType,
+    );
     if (!service?.isConfigured()) return false;
     const prompt = getPromptFromMessageOrState(message);
     return !!prompt;
@@ -35,7 +42,7 @@ export const bankrSdkPromptAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     const prompt = getPromptFromMessageOrState(message, state);
     if (!prompt) {
@@ -44,7 +51,9 @@ export const bankrSdkPromptAction: Action = {
       return { success: false, text: err };
     }
 
-    const service = runtime.getService<BankrSdkService>(BankrSdkService.serviceType);
+    const service = runtime.getService<BankrSdkService>(
+      BankrSdkService.serviceType,
+    );
     if (!service) {
       const err = "Bankr SDK service not available.";
       callback?.({ text: err });
@@ -61,16 +70,31 @@ export const bankrSdkPromptAction: Action = {
 
       if (result.status === "failed" && result.error) {
         const errMsg = result.error;
-        callback?.({ text: `Bankr SDK job failed: ${errMsg}`, actions: ["BANKR_SDK_PROMPT"] });
-        return { success: false, text: errMsg, data: { status: result.status } };
+        callback?.({
+          text: `Bankr SDK job failed: ${errMsg}`,
+          actions: ["BANKR_SDK_PROMPT"],
+        });
+        return {
+          success: false,
+          text: errMsg,
+          data: { status: result.status },
+        };
       }
 
       if (result.status === "cancelled") {
-        callback?.({ text: "Bankr SDK job was cancelled.", actions: ["BANKR_SDK_PROMPT"] });
-        return { success: true, text: "Job cancelled.", data: { status: result.status } };
+        callback?.({
+          text: "Bankr SDK job was cancelled.",
+          actions: ["BANKR_SDK_PROMPT"],
+        });
+        return {
+          success: true,
+          text: "Job cancelled.",
+          data: { status: result.status },
+        };
       }
 
-      const responseText = result.response ?? result.error ?? "No response from Bankr.";
+      const responseText =
+        result.response ?? result.error ?? "No response from Bankr.";
       const txCount = result.transactions?.length ?? 0;
       const txNote =
         txCount > 0

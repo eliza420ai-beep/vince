@@ -72,7 +72,10 @@ export const getTrendingTokensAction: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Extract parameters with defaults
       const network: string = (params?.network?.trim() || "base").toLowerCase();
@@ -122,7 +125,10 @@ export const getTrendingTokensAction: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
       const failureInputParams = {
         network: params?.network || "base",
         limit: params?.limit || 10,

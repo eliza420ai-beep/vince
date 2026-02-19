@@ -41,14 +41,14 @@ Sentinel is the **CTO agent**: ops, architecture steward, cost steward, and proa
 
 ## Key Files for Code Review
 
-| Area | Path |
-|------|------|
-| Agent definition | [src/agents/sentinel.ts](src/agents/sentinel.ts) |
-| Plugin entry | [src/plugins/plugin-sentinel/src/index.ts](src/plugins/plugin-sentinel/src/index.ts) |
-| Actions | [src/plugins/plugin-sentinel/src/actions/](src/plugins/plugin-sentinel/src/actions/) |
-| Services | [src/plugins/plugin-sentinel/src/services/](src/plugins/plugin-sentinel/src/services/) (projectRadar, prdGenerator, openclawKnowledge, etc.) |
-| Tasks | [src/plugins/plugin-sentinel/src/tasks/](src/plugins/plugin-sentinel/src/tasks/) |
-| TREASURY | [docs/TREASURY.md](docs/TREASURY.md) |
+| Area             | Path                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent definition | [src/agents/sentinel.ts](src/agents/sentinel.ts)                                                                                             |
+| Plugin entry     | [src/plugins/plugin-sentinel/src/index.ts](src/plugins/plugin-sentinel/src/index.ts)                                                         |
+| Actions          | [src/plugins/plugin-sentinel/src/actions/](src/plugins/plugin-sentinel/src/actions/)                                                         |
+| Services         | [src/plugins/plugin-sentinel/src/services/](src/plugins/plugin-sentinel/src/services/) (projectRadar, prdGenerator, openclawKnowledge, etc.) |
+| Tasks            | [src/plugins/plugin-sentinel/src/tasks/](src/plugins/plugin-sentinel/src/tasks/)                                                             |
+| TREASURY         | [docs/TREASURY.md](docs/TREASURY.md)                                                                                                         |
 
 ---
 

@@ -468,21 +468,21 @@ Add the plugin to your character's plugins array:
 
 All persistent data is stored in `.elizadb/vince-paper-bot/`:
 
-| File | Purpose |
-| --- | --- |
-| `features/*.jsonl` | Feature store for ML training |
-| `models/training_metadata.json` | Thresholds + holdout_metrics from last training run |
-| `models/improvement_report.md` | Human-readable improvement report (thresholds, TP performance, factors) |
-| `weight-bandit-state.json` | Thompson Sampling win/loss counts |
-| `signal-similarity-state.json` | Embedded trade contexts |
-| `bayesian-tuner-state.json` | Parameter optimization history |
-| `improvement-journal.md` | Structured improvement suggestions |
-| `portfolio.json` | Paper trading portfolio state |
-| `positions.json` | Open position tracking |
-| `journal.json` | Trade history |
-| `risk-state.json` | Circuit breaker state |
-| `goal-tracker.json` | Daily/monthly KPI tracking |
-| `tuned-config.json` | Dynamically tuned parameters |
+| File                            | Purpose                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `features/*.jsonl`              | Feature store for ML training                                           |
+| `models/training_metadata.json` | Thresholds + holdout_metrics from last training run                     |
+| `models/improvement_report.md`  | Human-readable improvement report (thresholds, TP performance, factors) |
+| `weight-bandit-state.json`      | Thompson Sampling win/loss counts                                       |
+| `signal-similarity-state.json`  | Embedded trade contexts                                                 |
+| `bayesian-tuner-state.json`     | Parameter optimization history                                          |
+| `improvement-journal.md`        | Structured improvement suggestions                                      |
+| `portfolio.json`                | Paper trading portfolio state                                           |
+| `positions.json`                | Open position tracking                                                  |
+| `journal.json`                  | Trade history                                                           |
+| `risk-state.json`               | Circuit breaker state                                                   |
+| `goal-tracker.json`             | Daily/monthly KPI tracking                                              |
+| `tuned-config.json`             | Dynamically tuned parameters                                            |
 
 ### Inspecting State
 

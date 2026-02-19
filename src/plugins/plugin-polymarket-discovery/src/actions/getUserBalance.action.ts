@@ -55,7 +55,12 @@ export const getUserBalanceAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_BALANCE", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_BALANCE",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -63,13 +68,16 @@ export const getUserBalanceAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_BALANCE] Getting user balance");
 
       // Read parameters from state
-      const params = await extractActionParams<GetUserBalanceParams>(runtime, message);
+      const params = await extractActionParams<GetUserBalanceParams>(
+        runtime,
+        message,
+      );
 
       // Extract wallet address
       const walletAddress = params.walletAddress?.trim();
@@ -129,7 +137,9 @@ export const getUserBalanceAction: Action = {
       }
 
       // Fetch user balance
-      logger.info(`[GET_POLYMARKET_BALANCE] Fetching balance for ${walletAddress}`);
+      logger.info(
+        `[GET_POLYMARKET_BALANCE] Fetching balance for ${walletAddress}`,
+      );
       const balance = await service.getUserBalance(walletAddress);
 
       // Parse values
@@ -173,7 +183,7 @@ export const getUserBalanceAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_BALANCE] Successfully fetched balance - Total: $${totalValue.toFixed(2)}`
+        `[GET_POLYMARKET_BALANCE] Successfully fetched balance - Total: $${totalValue.toFixed(2)}`,
       );
       return result;
     } catch (error) {

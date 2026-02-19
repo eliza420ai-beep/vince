@@ -70,9 +70,7 @@ export function recordContextOutcome(
  * Get adjustment multiplier (0.5–1.5) from win-rates for the given bucket keys.
  * Uses average win-rate across buckets when multiple keys; no data => 1.0.
  */
-export function getContextAdjustmentMultiplier(
-  bucketKeys: string[],
-): number {
+export function getContextAdjustmentMultiplier(bucketKeys: string[]): number {
   if (bucketKeys.length === 0) return 1.0;
   const stats = load();
   let sumRate = 0;

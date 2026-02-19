@@ -35,7 +35,10 @@ export const kellyWeekAheadAction: Action = {
   description:
     "Returns 3–5 suggestions for the week across dining, hotels, wellness from the-good-life and curated schedule.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsWeekAhead(text);
   },
@@ -60,14 +63,29 @@ export const kellyWeekAheadAction: Action = {
       const season = service?.getCurrentSeason() ?? "pool";
       const contextBlock = typeof state.text === "string" ? state.text : "";
 
-      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
       const today = dayNames[new Date().getDay()] ?? "Monday";
-      const { currentTimeParis: timeParis, pastLunch } = getParisTimeAndPastLunch(today);
+      const { currentTimeParis: timeParis, pastLunch } =
+        getParisTimeAndPastLunch(today);
 
-      const restLine = restaurants.length > 0 ? restaurants.slice(0, 8).join("; ") : "See curated-open-schedule by day";
-      const hotelLine = hotels.length > 0 ? hotels.slice(0, 5).join("; ") : "See curated-open-schedule";
+      const restLine =
+        restaurants.length > 0
+          ? restaurants.slice(0, 8).join("; ")
+          : "See curated-open-schedule by day";
+      const hotelLine =
+        hotels.length > 0
+          ? hotels.slice(0, 5).join("; ")
+          : "See curated-open-schedule";
       const palacePoolLine =
-        season === "gym" ? service?.getPalacePoolStatusLine() ?? "" : "";
+        season === "gym" ? (service?.getPalacePoolStatusLine() ?? "") : "";
       const weatherSummary = (state.values?.weatherSummary as string) ?? "";
       const weatherLine = weatherSummary || "Weather unavailable.";
 

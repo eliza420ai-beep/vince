@@ -2,7 +2,15 @@
  * Tests for A2A Loop Guard Evaluator
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  mock,
+} from "bun:test";
 import type { IAgentRuntime, Memory, UUID } from "@elizaos/core";
 
 // Import after mocking
@@ -20,9 +28,7 @@ describe("A2A Loop Guard Evaluator", () => {
       getMemories: mock(() => Promise.resolve(memories)),
     }) as unknown as IAgentRuntime;
 
-  const createMockMemory = (
-    overrides: Partial<Memory> = {}
-  ): Memory => ({
+  const createMockMemory = (overrides: Partial<Memory> = {}): Memory => ({
     id: "mem-1" as UUID,
     agentId: mockSenderId,
     entityId: mockSenderId,
@@ -124,9 +130,17 @@ describe("A2A Loop Guard Evaluator", () => {
       // Simulate conversation: sender → agent → sender → agent (2 exchanges)
       const memories: Memory[] = [
         createMockMemory({ id: "m1" as UUID, entityId: mockSenderId }),
-        createMockMemory({ id: "m2" as UUID, entityId: mockAgentId, agentId: mockAgentId }),
+        createMockMemory({
+          id: "m2" as UUID,
+          entityId: mockAgentId,
+          agentId: mockAgentId,
+        }),
         createMockMemory({ id: "m3" as UUID, entityId: mockSenderId }),
-        createMockMemory({ id: "m4" as UUID, entityId: mockAgentId, agentId: mockAgentId }),
+        createMockMemory({
+          id: "m4" as UUID,
+          entityId: mockAgentId,
+          agentId: mockAgentId,
+        }),
         createMockMemory({ id: "m5" as UUID, entityId: mockSenderId }),
       ];
 
@@ -145,7 +159,11 @@ describe("A2A Loop Guard Evaluator", () => {
       // Simulate: sender → agent (1 exchange)
       const memories: Memory[] = [
         createMockMemory({ id: "m1" as UUID, entityId: mockSenderId }),
-        createMockMemory({ id: "m2" as UUID, entityId: mockAgentId, agentId: mockAgentId }),
+        createMockMemory({
+          id: "m2" as UUID,
+          entityId: mockAgentId,
+          agentId: mockAgentId,
+        }),
         createMockMemory({ id: "m3" as UUID, entityId: mockSenderId }),
       ];
 
@@ -174,7 +192,16 @@ describe("A2A Loop Guard Evaluator", () => {
   });
 
   describe("known agent detection", () => {
-    const knownAgents = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
+    const knownAgents = [
+      "vince",
+      "eliza",
+      "kelly",
+      "solus",
+      "otaku",
+      "sentinel",
+      "echo",
+      "oracle",
+    ];
 
     for (const agentName of knownAgents) {
       it(`detects ${agentName} as known agent`, async () => {
@@ -205,7 +232,11 @@ describe("A2A Loop Guard Evaluator", () => {
 
       const memories: Memory[] = [
         createMockMemory({ id: "m1" as UUID, entityId: mockSenderId }),
-        createMockMemory({ id: "m2" as UUID, entityId: mockAgentId, agentId: mockAgentId }),
+        createMockMemory({
+          id: "m2" as UUID,
+          entityId: mockAgentId,
+          agentId: mockAgentId,
+        }),
         createMockMemory({ id: "m3" as UUID, entityId: mockSenderId }),
       ];
 
@@ -222,7 +253,11 @@ describe("A2A Loop Guard Evaluator", () => {
       // No env var set, should use default of 3
       const memories: Memory[] = [
         createMockMemory({ id: "m1" as UUID, entityId: mockSenderId }),
-        createMockMemory({ id: "m2" as UUID, entityId: mockAgentId, agentId: mockAgentId }),
+        createMockMemory({
+          id: "m2" as UUID,
+          entityId: mockAgentId,
+          agentId: mockAgentId,
+        }),
         createMockMemory({ id: "m3" as UUID, entityId: mockSenderId }),
       ];
 

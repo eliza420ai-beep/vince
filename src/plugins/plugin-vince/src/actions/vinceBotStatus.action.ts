@@ -114,7 +114,9 @@ Write the paragraph:`;
     const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
     return String(response).trim();
   } catch (err) {
-    logger.warn("[VINCE_BOT_STATUS] Narrative generation failed, using structured output");
+    logger.warn(
+      "[VINCE_BOT_STATUS] Narrative generation failed, using structured output",
+    );
     throw err;
   }
 }
@@ -347,8 +349,13 @@ export const vinceBotStatusAction: Action = {
       const sessionLabel = riskManager
         ? (() => {
             const session = riskManager.getTradingSession();
-            const icon =
-              session.isOverlap ? "overlap" : session.session === "asian" ? "asian" : session.session === "off-hours" ? "off-hours" : "US";
+            const icon = session.isOverlap
+              ? "overlap"
+              : session.session === "asian"
+                ? "asian"
+                : session.session === "off-hours"
+                  ? "off-hours"
+                  : "US";
             return `${icon} · ${session.description}`;
           })()
         : "—";
@@ -366,7 +373,10 @@ export const vinceBotStatusAction: Action = {
 
       let text: string;
       try {
-        const narrative = await generateBotStatusNarrative(runtime, dataContext);
+        const narrative = await generateBotStatusNarrative(
+          runtime,
+          dataContext,
+        );
         text = narrative + "\n" + BOT_FOOTER;
       } catch {
         lines.push(BOT_FOOTER);

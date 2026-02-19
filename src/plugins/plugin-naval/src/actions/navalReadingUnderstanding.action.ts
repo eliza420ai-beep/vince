@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "reading for understanding",
@@ -41,11 +45,18 @@ No summaries. Only actionable models and direct applications.`;
 
 export const navalReadingUnderstandingAction: Action = {
   name: "NAVAL_READING_UNDERSTANDING",
-  similes: ["READING_UNDERSTANDING", "BOOK_MENTAL_MODELS", "SHOULD_I_FINISH_BOOK"],
+  similes: [
+    "READING_UNDERSTANDING",
+    "BOOK_MENTAL_MODELS",
+    "SHOULD_I_FINISH_BOOK",
+  ],
   description:
     "Extract 3 mental models from a book, apply to your problem, what the book assumes wrong. Should you finish or move on? What to read next.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsReadingUnderstanding(text);
   },
@@ -80,7 +91,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -88,14 +99,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Three mental models, how to apply each to your problem, what the book assumes wrong. Then: finish or abandon (Naval abandons freely), and what to read next.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Reading Antifragile. My problem: deciding whether to leave my job. Extract mental models and apply." } },
-      { name: "{{agent}}", content: { text: "1. Models: antifragility gains from volatility; optionality; barbell. 2. Apply: quitting is optionality; staying in a role that doesn't stress you = no gain. 3. Assumes: you can afford volatility. Finish if you want the full barbell argument. Next: optionality (Taleb or Naval on decision-making)." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Reading Antifragile. My problem: deciding whether to leave my job. Extract mental models and apply.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Models: antifragility gains from volatility; optionality; barbell. 2. Apply: quitting is optionality; staying in a role that doesn't stress you = no gain. 3. Assumes: you can afford volatility. Finish if you want the full barbell argument. Next: optionality (Taleb or Naval on decision-making).",
+        },
+      },
     ],
   ],
 };

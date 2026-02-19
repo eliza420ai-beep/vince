@@ -75,7 +75,13 @@ describe("KELLY_RECOMMEND_ROWING", () => {
       "**Session:** 20 min — 5 min warm-up at 20 spm, 4x3 min at 26-28 spm with 1 min easy between, 2 min cool-down. **Why:** Matches the interval pattern of paddling out through sets — burst effort, brief recovery, repeat.";
     const msg = createMockMessage("rowing for surf fit");
     const cb = createMockCallback();
-    await kellyRecommendRowingAction.handler(runtime, msg, createMockState(), {}, cb);
+    await kellyRecommendRowingAction.handler(
+      runtime,
+      msg,
+      createMockState(),
+      {},
+      cb,
+    );
 
     const text = cb.calls[0]?.text ?? "";
     expect(findBannedJargon(text)).toEqual([]);

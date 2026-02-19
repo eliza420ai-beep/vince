@@ -16,8 +16,8 @@ Bankr **SDK** integration for ElizaOS using [@bankr/sdk](https://docs.bankr.bot/
 
 ## Actions
 
-| Action | Description |
-|--------|-------------|
+| Action               | Description                                                                                                                                                                                                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **BANKR_SDK_PROMPT** | Send a natural-language prompt via @bankr/sdk. Same prompt types as Agent API (portfolio, transfers, swaps, limit/stop/DCA/TWAP, leveraged, token launch, NFTs, etc.). Returns `response` text; if the job produced transactions, returns them so **you can submit them yourself** (SDK does not execute). |
 
 ## Who loads it

@@ -9,7 +9,10 @@ import {
 } from "@elizaos/core";
 import { BankrAgentService } from "../services/bankr-agent.service";
 
-function getJobIdFromMessageOrState(message: Memory, state?: State): string | null {
+function getJobIdFromMessageOrState(
+  message: Memory,
+  state?: State,
+): string | null {
   const text = message?.content?.text?.trim() ?? "";
   const match = text.match(/\b([a-zA-Z0-9_-]{8,})\b/);
   if (match) return match[1];
@@ -25,7 +28,9 @@ export const bankrAgentCancelJobAction: Action = {
   similes: ["BANKR_CANCEL_JOB", "BANKR_JOB_CANCEL"],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service?.isConfigured()) return false;
     return !!getJobIdFromMessageOrState(message, state);
   },
@@ -35,9 +40,11 @@ export const bankrAgentCancelJobAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Agent service not available.";
       callback?.({ text: err });
@@ -46,7 +53,8 @@ export const bankrAgentCancelJobAction: Action = {
 
     const jobId = getJobIdFromMessageOrState(message, state);
     if (!jobId) {
-      const err = "No jobId found. Provide it in the message or actionParams.jobId.";
+      const err =
+        "No jobId found. Provide it in the message or actionParams.jobId.";
       callback?.({ text: err });
       return { success: false, text: err };
     }
@@ -63,15 +71,28 @@ export const bankrAgentCancelJobAction: Action = {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_AGENT_CANCEL_JOB] " + msg);
-      callback?.({ text: `Cancel job failed: ${msg}`, actions: ["BANKR_AGENT_CANCEL_JOB"] });
-      return { success: false, text: msg, error: err instanceof Error ? err : new Error(msg) };
+      callback?.({
+        text: `Cancel job failed: ${msg}`,
+        actions: ["BANKR_AGENT_CANCEL_JOB"],
+      });
+      return {
+        success: false,
+        text: msg,
+        error: err instanceof Error ? err : new Error(msg),
+      };
     }
   },
 
   examples: [
     [
       { name: "user", content: { text: "Cancel my Bankr job abc123" } },
-      { name: "Otaku", content: { text: "Bankr job `abc123` cancelled.", actions: ["BANKR_AGENT_CANCEL_JOB"] } },
+      {
+        name: "Otaku",
+        content: {
+          text: "Bankr job `abc123` cancelled.",
+          actions: ["BANKR_AGENT_CANCEL_JOB"],
+        },
+      },
     ],
   ],
 };

@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "retirement cope",
@@ -44,7 +48,10 @@ export const navalRetirementCopeAction: Action = {
   description:
     "Retirement = today is complete in itself. Love it or leading somewhere? Would you do it if wealthy? What drains you? What changes get you there?",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsRetirement(text);
   },
@@ -79,7 +86,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -87,14 +94,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Retirement is when you stop sacrificing today for tomorrow. When today is complete in itself, you're retired. If you wouldn't do it if wealthy, something's wrong.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Retirement test. I'm in consulting, good pay, hate the travel and politics." } },
-      { name: "{{agent}}", content: { text: "1. Love or leads somewhere? — Leads somewhere (pay). 2. If wealthy? — Probably not. 3. Draining: travel, politics — you're paying dues. Changes: niche to remote-only, or build product so you're not selling hours. Get to work you'd do for free." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Retirement test. I'm in consulting, good pay, hate the travel and politics.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Love or leads somewhere? — Leads somewhere (pay). 2. If wealthy? — Probably not. 3. Draining: travel, politics — you're paying dues. Changes: niche to remote-only, or build product so you're not selling hours. Get to work you'd do for free.",
+        },
+      },
     ],
   ],
 };

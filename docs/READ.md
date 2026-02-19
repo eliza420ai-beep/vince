@@ -1,7 +1,7 @@
 # READ
 
-*Underwritten by IKIGAI STUDIO · LIVETHELIFETV · [ikigaistudio.substack.com](https://ikigaistudio.substack.com)*  
-*No hype. No shilling. No timing the market.*
+_Underwritten by IKIGAI STUDIO · LIVETHELIFETV · [ikigaistudio.substack.com](https://ikigaistudio.substack.com)_  
+_No hype. No shilling. No timing the market._
 
 ---
 
@@ -21,7 +21,7 @@ That list is what crypto is. Not metaphorically—literally.
 
 AI cannot use the banking system. Try opening a bank account as an AI agent. You need an SSN, human identity, KYC, sometimes a branch visit. AI has none of that. With crypto: send a wallet address. Done. No questions asked.
 
-Satoshi wrote: *a purely peer-to-peer version of electronic cash.* We assumed peers meant humans. AI agents are peers too—and better fits for crypto: they don’t sleep, they’re always online, they execute at machine speed, they don’t tilt, and their accounting is exact. Programmable money makes sense when the users are programs. Smart contracts seemed overbuilt for humans—*why do I need code to enforce a deal when I can sign a contract?*—but for agents coordinating with each other, code *is* the contract. They are code. They speak in code. They trust code more than paper.
+Satoshi wrote: _a purely peer-to-peer version of electronic cash._ We assumed peers meant humans. AI agents are peers too—and better fits for crypto: they don’t sleep, they’re always online, they execute at machine speed, they don’t tilt, and their accounting is exact. Programmable money makes sense when the users are programs. Smart contracts seemed overbuilt for humans—_why do I need code to enforce a deal when I can sign a contract?_—but for agents coordinating with each other, code _is_ the contract. They are code. They speak in code. They trust code more than paper.
 
 So: smart contracts aren’t for humans. They’re for autonomous agents that need trustless coordination.
 
@@ -53,7 +53,7 @@ We weren’t “early” to crypto. We were the test users. Humans use crypto; A
 
 Think back to early 2020. A few people were talking about a virus. Most of us weren’t. The market was fine, schools were open, life was normal. Then, in about three weeks, the world changed. We’re in the “this seems overblown” phase of something larger than that.
 
-This is written for people who keep asking *what’s actually going on with AI?* and get a polite, cocktail-party answer. The honest version sounds unhinged—but the gap between what’s said and what’s happening has gotten too wide. The people who matter deserve to hear what’s coming.
+This is written for people who keep asking _what’s actually going on with AI?_ and get a polite, cocktail-party answer. The honest version sounds unhinged—but the gap between what’s said and what’s happening has gotten too wide. The people who matter deserve to hear what’s coming.
 
 A small number of people shape the future: a few hundred researchers at a handful of labs. One training run, a few months, can shift the whole trajectory. Most of us in AI build on foundations we didn’t lay. We’re watching it the same as you; we’re just closer, so we feel the shake first. The moment to say it plainly is now.
 
@@ -61,7 +61,7 @@ A small number of people shape the future: a few hundred researchers at a handfu
 
 ### What already happened (to us)
 
-Outside of tech, few people get this: many in the industry are sounding the alarm because it already happened to *us*. We’re not predicting. We’re reporting what occurred in our own work and saying you’re next.
+Outside of tech, few people get this: many in the industry are sounding the alarm because it already happened to _us_. We’re not predicting. We’re reporting what occurred in our own work and saying you’re next.
 
 AI improved in steps for years. Then new techniques unlocked a faster pace. Then faster again. Each model wasn’t just better—it was better by a wider margin, and the time between releases shrank. Then two major labs dropped new models on the same day. Something clicked. Not like a switch—like realizing the water is at your chest.
 
@@ -127,5 +127,5 @@ We’re past the point where this is a dinner conversation about the future. The
 
 ---
 
-*IKIGAI STUDIO — Thesis and market insights from the trenches. Bitcoin, macro, lifestyle. No VCs, no permission.*  
-*[ikigaistudio.substack.com](https://ikigaistudio.substack.com) · One Team One Dream · ikigailabs.eth*
+_IKIGAI STUDIO — Thesis and market insights from the trenches. Bitcoin, macro, lifestyle. No VCs, no permission._  
+_[ikigaistudio.substack.com](https://ikigaistudio.substack.com) · One Team One Dream · ikigailabs.eth_

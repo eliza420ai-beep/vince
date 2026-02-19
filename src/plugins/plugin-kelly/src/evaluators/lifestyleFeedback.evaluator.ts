@@ -77,14 +77,17 @@ function formatFact(fb: ExtractedFeedback): string {
   const cat = fb.category ? ` (${fb.category})` : "";
   const parts: string[] = [];
   if (fb.sentiment === "positive") {
-    parts.push(`User loved${place}${cat}.${fb.reason ? ` ${fb.reason}` : ""}`.trim());
+    parts.push(
+      `User loved${place}${cat}.${fb.reason ? ` ${fb.reason}` : ""}`.trim(),
+    );
   } else if (fb.sentiment === "negative") {
     const reason = fb.reason ?? "prefer something different next time";
     parts.push(`User said${place}${cat} was not a fit; ${reason}`.trim());
   } else if (fb.reason) {
     parts.push(`User preference: ${fb.reason}`.trim());
   }
-  if (fb.preferredCuisine?.trim()) parts.push(`Preferred cuisine: ${fb.preferredCuisine.trim()}.`);
+  if (fb.preferredCuisine?.trim())
+    parts.push(`Preferred cuisine: ${fb.preferredCuisine.trim()}.`);
   if (fb.preferredVibe === "quiet") parts.push("User prefers quieter spots.");
   if (fb.preferredVibe === "lively") parts.push("User prefers livelier spots.");
   return parts.join(" ");
@@ -160,7 +163,9 @@ Output only the JSON object, no other text.`;
       content: {
         text: factText,
         ...(tags.length > 0 && { tags }),
-        ...(parsed.preferredCuisine?.trim() && { preferredCuisine: parsed.preferredCuisine.trim() }),
+        ...(parsed.preferredCuisine?.trim() && {
+          preferredCuisine: parsed.preferredCuisine.trim(),
+        }),
         ...(parsed.preferredVibe && { preferredVibe: parsed.preferredVibe }),
       },
       roomId,
@@ -168,10 +173,9 @@ Output only the JSON object, no other text.`;
     };
 
     const id = await runtime.createMemory(memory, "facts", true);
-    await runtime.queueEmbeddingGeneration?.(
-      { ...memory, id },
-      "low",
-    ).catch(() => {});
+    await runtime
+      .queueEmbeddingGeneration?.({ ...memory, id }, "low")
+      .catch(() => {});
 
     logger.info(`[LifestyleFeedback] Stored fact: ${factText}`);
   } catch (e) {

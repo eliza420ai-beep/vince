@@ -42,7 +42,10 @@ export const sentinelCostStatusAction: Action = {
   description:
     "Summarizes project costs from TREASURY and cost breakdown: token usage (Usage tab), LLM choice and cost, Cursor Max, data API tiers; breakeven and 100K target; emphasizes watching burn rate.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsCostStatus(text);
   },
@@ -71,7 +74,7 @@ Context:\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's the cost picture—\n\n" + text.trim();
       await callback({ text: out });
       return { success: true };
@@ -80,7 +83,10 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Cost summary couldn't be generated. Check Leaderboard → Usage and TREASURY.md (cost breakdown section) for token usage, LLM choice, Cursor, data API tiers, breakeven, and 100K target. Always watch burn rate.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

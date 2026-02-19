@@ -24,7 +24,10 @@ if (fs.existsSync(envPath)) {
       if (eq > 0) {
         const key = trimmed.slice(0, eq).trim();
         let val = trimmed.slice(eq + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        )
           val = val.slice(1, -1);
         process.env[key] = val;
       }
@@ -34,12 +37,18 @@ if (fs.existsSync(envPath)) {
 
 const postgresUrl = process.env.POSTGRES_URL;
 if (!postgresUrl) {
-  console.error("POSTGRES_URL not set in .env. Set it (e.g. Supabase) or leave it empty to use local PGLite.");
+  console.error(
+    "POSTGRES_URL not set in .env. Set it (e.g. Supabase) or leave it empty to use local PGLite.",
+  );
   process.exit(1);
 }
-const sslReject = process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
+const sslReject =
+  process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
 const sslRelax =
-  sslReject === "false" || sslReject === "0" || sslReject === "no" || sslReject === "off";
+  sslReject === "false" ||
+  sslReject === "0" ||
+  sslReject === "no" ||
+  sslReject === "off";
 
 const sqlPath = path.resolve(__dirname, "supabase-migrations-bootstrap.sql");
 if (!fs.existsSync(sqlPath)) {
@@ -64,7 +73,9 @@ async function main() {
     await client.connect();
     console.log("Running migration bootstrap SQL...");
     await client.query(sql);
-    console.log("Done. Schema 'migrations' and tables created. You can run: bun start");
+    console.log(
+      "Done. Schema 'migrations' and tables created. You can run: bun start",
+    );
   } catch (err) {
     console.error("Bootstrap failed:", err.message);
     if (err.code) console.error("Code:", err.code);

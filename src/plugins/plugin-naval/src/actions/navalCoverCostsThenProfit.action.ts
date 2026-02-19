@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "cover costs",
@@ -49,11 +54,19 @@ Direct. No hype. Give them the number to know and the rule.`;
 
 export const navalCoverCostsThenProfitAction: Action = {
   name: "NAVAL_COVER_COSTS_THEN_PROFIT",
-  similes: ["COVER_COSTS_THEN_PROFIT", "BURNRATE_BREAKEVEN", "NO_ENDLESS_BURN", "COST_STEWARD"],
+  similes: [
+    "COVER_COSTS_THEN_PROFIT",
+    "BURNRATE_BREAKEVEN",
+    "NO_ENDLESS_BURN",
+    "COST_STEWARD",
+  ],
   description:
     "Cover costs, then profitability. No endless burn. One number to know (burn or breakeven) and one rule.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsCoverCostsThenProfit(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Cover costs, then profit. One number: monthly burn (or what revenue covers it). One rule: we don't add cost without a path to cover it. Quarterly: closer to breakeven or not?",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "We're burning on API and infra. When do we need to be profitable?" } },
-      { name: "{{agent}}", content: { text: "Step one: sum every recurring cost. That's your monthly number to cover. Rule: no new cost without a plan to cover it (revenue, cut elsewhere, or timeline to breakeven). Set a breakeven date and work backward. If you don't know the number, you're burning blind." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "We're burning on API and infra. When do we need to be profitable?",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Step one: sum every recurring cost. That's your monthly number to cover. Rule: no new cost without a plan to cover it (revenue, cut elsewhere, or timeline to breakeven). Set a breakeven date and work backward. If you don't know the number, you're burning blind.",
+        },
+      },
     ],
   ],
 };

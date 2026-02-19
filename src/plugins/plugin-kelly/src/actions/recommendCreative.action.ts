@@ -70,7 +70,8 @@ function detectDomain(text: string): CreativeDomain {
     lower.includes("paint") ||
     lower.includes("canvas") ||
     lower.includes("oil")
-  ) return "painting";
+  )
+    return "painting";
   if (
     lower.includes("hasselblad") ||
     lower.includes("fuji") ||
@@ -79,7 +80,8 @@ function detectDomain(text: string): CreativeDomain {
     lower.includes("medium format") ||
     lower.includes("film photography") ||
     lower.includes("analog")
-  ) return "photography";
+  )
+    return "photography";
   if (
     lower.includes("ableton") ||
     lower.includes("push 3") ||
@@ -88,7 +90,8 @@ function detectDomain(text: string): CreativeDomain {
     lower.includes("music production") ||
     lower.includes("produce music") ||
     lower.includes("make music")
-  ) return "music";
+  )
+    return "music";
   if (
     lower.includes("blackmagic") ||
     lower.includes("bmpcc") ||
@@ -97,12 +100,14 @@ function detectDomain(text: string): CreativeDomain {
     lower.includes("irix") ||
     lower.includes("cinema camera") ||
     lower.includes("filmmaking")
-  ) return "cinema";
+  )
+    return "cinema";
   if (
     lower.includes("blender") ||
     lower.includes("mcp") ||
     lower.includes("claude desktop")
-  ) return "blender";
+  )
+    return "blender";
   return "general";
 }
 
@@ -195,8 +200,7 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();
 
-      const domainLabel =
-        domain === "general" ? "creative" : domain;
+      const domainLabel = domain === "general" ? "creative" : domain;
       const out = text
         ? `Here's a ${domainLabel} tip—\n\n` + text
         : "I don't have a specific tip for that right now. Check lifestyle/creative-practice for painting, photography, music, and cinema workflows.";
@@ -217,7 +221,10 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Tips to get started with oil painting" } },
+      {
+        name: "{{user}}",
+        content: { text: "Tips to get started with oil painting" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -227,7 +234,10 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "How to use Push 3 with Ableton for house music?" } },
+      {
+        name: "{{user}}",
+        content: { text: "How to use Push 3 with Ableton for house music?" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -237,7 +247,10 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Blender with Claude MCP — how does that work?" } },
+      {
+        name: "{{user}}",
+        content: { text: "Blender with Claude MCP — how does that work?" },
+      },
       {
         name: "{{agent}}",
         content: {

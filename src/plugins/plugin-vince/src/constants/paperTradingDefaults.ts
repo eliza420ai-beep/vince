@@ -343,9 +343,7 @@ export function isHip3Enabled(runtime: IAgentRuntime): boolean {
  * Unset / empty = full universe (core + HIP-3).
  * Env: VINCE_PAPER_ASSETS (e.g. VINCE_PAPER_ASSETS=BTC,NVDA,GOLD).
  */
-export function getPaperTradeAssets(
-  runtime: IAgentRuntime,
-): readonly string[] {
+export function getPaperTradeAssets(runtime: IAgentRuntime): readonly string[] {
   const raw = runtime.getSetting?.("vince_paper_assets");
   if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
     const list = String(raw)
@@ -446,7 +444,11 @@ export type WttRubricStrings = {
   alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
   edge: "undiscovered" | "emerging" | "consensus" | "crowded";
   payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
-  timingForgiveness: "very_forgiving" | "forgiving" | "punishing" | "very_punishing";
+  timingForgiveness:
+    | "very_forgiving"
+    | "forgiving"
+    | "punishing"
+    | "very_punishing";
 };
 
 const WTT_ALIGNMENT_ORD: Record<string, number> = {

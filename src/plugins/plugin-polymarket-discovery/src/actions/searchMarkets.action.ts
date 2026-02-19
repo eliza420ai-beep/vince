@@ -71,7 +71,7 @@ export const searchMarketsAction: Action = {
       }
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -83,7 +83,7 @@ export const searchMarketsAction: Action = {
     } catch (error) {
       logger.error(
         "[SEARCH_POLYMARKETS] Error validating action:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -94,23 +94,35 @@ export const searchMarketsAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[SEARCH_POLYMARKETS] Searching markets");
 
       // Prefer ACTION_STATE; fill from LLM/regex when missing
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      let params = (composedState?.data?.actionParams ?? {}) as Partial<SearchMarketsParams>;
-      const hasCriteria = (params.query?.trim() || params.category?.trim());
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      let params = (composedState?.data?.actionParams ??
+        {}) as Partial<SearchMarketsParams>;
+      const hasCriteria = params.query?.trim() || params.category?.trim();
       if (!hasCriteria) {
-        const extracted = await extractPolymarketParams(runtime, message, _state, {
-          requiredKeys: [],
-          useLlm: true,
-        });
+        const extracted = await extractPolymarketParams(
+          runtime,
+          message,
+          _state,
+          {
+            requiredKeys: [],
+            useLlm: true,
+          },
+        );
         if (extracted.query) params = { ...params, query: extracted.query };
-        if (extracted.category) params = { ...params, category: extracted.category };
-        if (extracted.limit != null) params = { ...params, limit: extracted.limit };
+        if (extracted.category)
+          params = { ...params, category: extracted.category };
+        if (extracted.limit != null)
+          params = { ...params, limit: extracted.limit };
       }
 
       const query = params.query?.trim();
@@ -119,7 +131,9 @@ export const searchMarketsAction: Action = {
       let limit = 10;
       if (params.limit) {
         const parsedLimit =
-          typeof params.limit === "string" ? parseInt(params.limit, 10) : params.limit;
+          typeof params.limit === "string"
+            ? parseInt(params.limit, 10)
+            : params.limit;
         if (!isNaN(parsedLimit) && parsedLimit > 0) {
           limit = Math.min(parsedLimit, 50);
         }
@@ -148,7 +162,7 @@ export const searchMarketsAction: Action = {
 
       // Get service
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -182,7 +196,7 @@ export const searchMarketsAction: Action = {
           markets = await service.searchMarketsViaGammaSearch(query, limit);
         } catch (err) {
           logger.warn(
-            `[SEARCH_POLYMARKETS] Gamma public-search failed, using fallback: ${err instanceof Error ? err.message : String(err)}`
+            `[SEARCH_POLYMARKETS] Gamma public-search failed, using fallback: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }
@@ -191,7 +205,7 @@ export const searchMarketsAction: Action = {
           markets = await service.getEventsByTag(category, limit);
         } catch (err) {
           logger.warn(
-            `[SEARCH_POLYMARKETS] Gamma events-by-tag failed, using fallback: ${err instanceof Error ? err.message : String(err)}`
+            `[SEARCH_POLYMARKETS] Gamma events-by-tag failed, using fallback: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }
@@ -233,8 +247,13 @@ export const searchMarketsAction: Action = {
       }
 
       // Use prices from search payload (outcomePrices/tokens) to avoid getMarketDetail for conditionIds not in GET /markets list
-      logger.info(`[SEARCH_POLYMARKETS] Fetching prices for ${markets.length} markets`);
-      const fallbackPrices = (market: { conditionId?: string; [k: string]: any }) => ({
+      logger.info(
+        `[SEARCH_POLYMARKETS] Fetching prices for ${markets.length} markets`,
+      );
+      const fallbackPrices = (market: {
+        conditionId?: string;
+        [k: string]: any;
+      }) => ({
         yes_price: "0.50",
         no_price: "0.50",
         yes_price_formatted: "50.0%",
@@ -244,7 +263,8 @@ export const searchMarketsAction: Action = {
         condition_id: market.conditionId ?? market.condition_id ?? "",
       });
       const marketsWithPrices = markets.map((market) => {
-        const prices = service.getPricesFromMarketPayload(market) ?? fallbackPrices(market);
+        const prices =
+          service.getPricesFromMarketPayload(market) ?? fallbackPrices(market);
         return { market, prices };
       });
 
@@ -284,8 +304,12 @@ export const searchMarketsAction: Action = {
         data: {
           markets: marketsWithPrices.map(({ market, prices }) => {
             const tokens = market.tokens || [];
-            const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
-            const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
+            const yesToken = tokens.find(
+              (t: any) => t.outcome?.toLowerCase() === "yes",
+            );
+            const noToken = tokens.find(
+              (t: any) => t.outcome?.toLowerCase() === "no",
+            );
             return {
               condition_id: market.conditionId,
               question: market.question,
@@ -307,7 +331,9 @@ export const searchMarketsAction: Action = {
         input: inputParams,
       };
 
-      logger.info(`[SEARCH_POLYMARKETS] Successfully found ${marketsWithPrices.length} markets`);
+      logger.info(
+        `[SEARCH_POLYMARKETS] Successfully found ${marketsWithPrices.length} markets`,
+      );
       // Send the full search results to the user (early callback only sent "Searching...")
       callback?.({
         text: result.text,

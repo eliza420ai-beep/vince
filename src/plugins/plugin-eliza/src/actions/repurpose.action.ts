@@ -88,49 +88,69 @@ Number them 1-5. Write the hooks:`,
 
 function detectTargetFormat(text: string): RepurposeFormat {
   const lower = text.toLowerCase();
-  if (lower.includes("thread") || lower.includes("tweets") || lower.includes("twitter")) {
+  if (
+    lower.includes("thread") ||
+    lower.includes("tweets") ||
+    lower.includes("twitter")
+  ) {
     return "thread";
   }
-  if (lower.includes("essay") || lower.includes("article") || lower.includes("substack") || lower.includes("expand")) {
+  if (
+    lower.includes("essay") ||
+    lower.includes("article") ||
+    lower.includes("substack") ||
+    lower.includes("expand")
+  ) {
     return "essay";
   }
   if (lower.includes("linkedin")) {
     return "linkedin";
   }
-  if (lower.includes("key points") || lower.includes("keypoints") || lower.includes("takeaways") || lower.includes("summary")) {
+  if (
+    lower.includes("key points") ||
+    lower.includes("keypoints") ||
+    lower.includes("takeaways") ||
+    lower.includes("summary")
+  ) {
     return "keypoints";
   }
-  if (lower.includes("hook") || lower.includes("opening") || lower.includes("alternative")) {
+  if (
+    lower.includes("hook") ||
+    lower.includes("opening") ||
+    lower.includes("alternative")
+  ) {
     return "hooks";
   }
   return "thread"; // default
 }
 
 function findRecentDraft(type?: string): string | null {
-  const searchDirs = type === "tweet" 
-    ? [path.join(DRAFTS_DIR, "tweets")]
-    : [DRAFTS_DIR, path.join(DRAFTS_DIR, "tweets")];
-  
+  const searchDirs =
+    type === "tweet"
+      ? [path.join(DRAFTS_DIR, "tweets")]
+      : [DRAFTS_DIR, path.join(DRAFTS_DIR, "tweets")];
+
   let newestFile: { path: string; mtime: number } | null = null;
-  
+
   for (const dir of searchDirs) {
     if (!fs.existsSync(dir)) continue;
-    
-    const files = fs.readdirSync(dir)
+
+    const files = fs
+      .readdirSync(dir)
       .filter((f) => f.endsWith(".md"))
       .map((f) => {
         const fullPath = path.join(dir, f);
         const stat = fs.statSync(fullPath);
         return { path: fullPath, mtime: stat.mtime.getTime() };
       });
-    
+
     for (const file of files) {
       if (!newestFile || file.mtime > newestFile.mtime) {
         newestFile = file;
       }
     }
   }
-  
+
   return newestFile?.path || null;
 }
 
@@ -141,12 +161,17 @@ function extractContentFromDraft(filepath: string): string {
   return withoutFrontmatter.trim();
 }
 
-function saveDraft(content: string, format: RepurposeFormat, originalTopic: string): string {
-  const subdir = format === "thread" ? path.join(DRAFTS_DIR, "tweets") : DRAFTS_DIR;
+function saveDraft(
+  content: string,
+  format: RepurposeFormat,
+  originalTopic: string,
+): string {
+  const subdir =
+    format === "thread" ? path.join(DRAFTS_DIR, "tweets") : DRAFTS_DIR;
   if (!fs.existsSync(subdir)) {
     fs.mkdirSync(subdir, { recursive: true });
   }
-  
+
   const slug = originalTopic
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -154,7 +179,7 @@ function saveDraft(content: string, format: RepurposeFormat, originalTopic: stri
   const timestamp = Date.now();
   const filename = `repurposed-${format}-${slug}-${timestamp}.md`;
   const filepath = path.join(subdir, filename);
-  
+
   const frontmatter = `---
 type: repurposed
 format: ${format}
@@ -164,19 +189,14 @@ status: draft
 ---
 
 `;
-  
+
   fs.writeFileSync(filepath, frontmatter + content, "utf-8");
   return filepath;
 }
 
 export const repurposeAction = {
   name: "REPURPOSE",
-  similes: [
-    "REPURPOSE_CONTENT",
-    "TURN_INTO",
-    "CONVERT_TO",
-    "TRANSFORM",
-  ],
+  similes: ["REPURPOSE_CONTENT", "TURN_INTO", "CONVERT_TO", "TRANSFORM"],
   description: `Repurpose content between formats.
 
 TRIGGERS:
@@ -207,10 +227,13 @@ FORMATS:
       text.includes("convert to") ||
       text.includes("turn that") ||
       text.includes("turn this") ||
-      (text.includes("into a") && (text.includes("thread") || text.includes("essay") || text.includes("linkedin"))) ||
+      (text.includes("into a") &&
+        (text.includes("thread") ||
+          text.includes("essay") ||
+          text.includes("linkedin"))) ||
       (text.includes("expand") && text.includes("essay")) ||
       text.includes("key points") ||
-      text.includes("give me") && text.includes("hooks")
+      (text.includes("give me") && text.includes("hooks"))
     );
   },
 
@@ -222,36 +245,42 @@ FORMATS:
     callback?: HandlerCallback,
   ): Promise<void> => {
     const text = message.content?.text || "";
-    
+
     try {
       const targetFormat = detectTargetFormat(text);
-      
+
       // Find source content
       let sourceContent: string | null = null;
       let sourcePath: string | null = null;
-      
+
       // Check if there's content in the message itself (pasted)
       const contentMatch = text.match(/```([\s\S]*?)```/);
       if (contentMatch) {
         sourceContent = contentMatch[1].trim();
       }
-      
+
       // Otherwise, look for recent draft
       if (!sourceContent) {
         // Check for specific file reference
         const fileMatch = text.match(/draft[s]?\/[\w\-\/]+\.md/i);
         if (fileMatch) {
-          sourcePath = fileMatch[0].startsWith("knowledge/") ? fileMatch[0] : `knowledge/${fileMatch[0]}`;
+          sourcePath = fileMatch[0].startsWith("knowledge/")
+            ? fileMatch[0]
+            : `knowledge/${fileMatch[0]}`;
         } else {
           // Find most recent draft
-          sourcePath = findRecentDraft(text.includes("thread") || text.includes("tweet") ? "tweet" : undefined);
+          sourcePath = findRecentDraft(
+            text.includes("thread") || text.includes("tweet")
+              ? "tweet"
+              : undefined,
+          );
         }
-        
+
         if (sourcePath && fs.existsSync(sourcePath)) {
           sourceContent = extractContentFromDraft(sourcePath);
         }
       }
-      
+
       if (!sourceContent || sourceContent.length < 50) {
         if (callback) {
           await callback({
@@ -269,7 +298,10 @@ Recent draft: ${sourcePath ? `\`${sourcePath}\`` : "none found"}`,
         return;
       }
 
-      logger.info({ targetFormat, sourceLength: sourceContent.length }, "[REPURPOSE] Transforming content...");
+      logger.info(
+        { targetFormat, sourceLength: sourceContent.length },
+        "[REPURPOSE] Transforming content...",
+      );
 
       if (callback) {
         await callback({
@@ -288,7 +320,10 @@ ${sourceContent}`;
         system: `You are a content strategist for Ikigai Studio. Transform content between formats while maintaining the core message and voice. Be sharp, confident, no AI slop.`,
       } as any);
 
-      const result = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+      const result =
+        typeof response === "string"
+          ? response
+          : ((response as { text?: string })?.text ?? "");
 
       if (!result || result.length < 50) {
         if (callback) {

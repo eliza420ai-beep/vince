@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "push not pull",
@@ -49,11 +54,19 @@ Direct. Benefit-led: what they get is time and focus back.`;
 
 export const navalPushNotPullAction: Action = {
   name: "NAVAL_PUSH_NOT_PULL",
-  similes: ["PUSH_NOT_PULL", "PROACTIVE_NOT_PULL", "GET_FED_NOT_CHECK", "PING_ME_NOT_CHAT"],
+  similes: [
+    "PUSH_NOT_PULL",
+    "PROACTIVE_NOT_PULL",
+    "GET_FED_NOT_CHECK",
+    "PING_ME_NOT_CHAT",
+  ],
   description:
     "Proactive beats reactive: get fed what you need, stop checking. One shift so they stay in the game without 12h on screens.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsPushNotPull(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Push not pull: have the system send you what you need — one digest, one command — so you're not the one refreshing. One rule: only open the app when you're pinged.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I'm always checking charts and Discord. How do I get push not pull?" } },
-      { name: "{{agent}}", content: { text: "You're pulling. Shift: one daily push — vibe, perps, options, 'trade today?' — at a fixed time. You open once, read, close. Rule: no chart refresh until the push lands. Your edge isn't reaction speed; it's not burning out." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I'm always checking charts and Discord. How do I get push not pull?",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're pulling. Shift: one daily push — vibe, perps, options, 'trade today?' — at a fixed time. You open once, read, close. Rule: no chart refresh until the push lands. Your edge isn't reaction speed; it's not burning out.",
+        },
+      },
     ],
   ],
 };

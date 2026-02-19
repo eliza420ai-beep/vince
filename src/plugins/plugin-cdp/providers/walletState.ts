@@ -3,10 +3,10 @@ import { getEntityWallet } from "../../../utils/entity";
 
 export const walletStateProvider: Provider = {
   name: "WALLET_STATE",
-  description: "Indicates whether the user has an active Coinbase CDP wallet and its details",
+  description:
+    "Indicates whether the user has an active Coinbase CDP wallet and its details",
   dynamic: true,
   get: async (runtime: IAgentRuntime, message: Memory, _state: State) => {
-
     const walletResult = await getEntityWallet(
       runtime,
       message,
@@ -17,13 +17,14 @@ export const walletStateProvider: Provider = {
     let hasWallet = false;
 
     if (walletResult.success) {
-
       hasWallet = true;
     } else {
       hasWallet = false;
     }
 
-    const walletAddress = walletResult.success ? walletResult.walletAddress : "";
+    const walletAddress = walletResult.success
+      ? walletResult.walletAddress
+      : "";
 
     const text = hasWallet
       ? ` Wallet is set up and ready. Address: \`${walletAddress}\` (provider: "cdp").`
@@ -38,5 +39,3 @@ export const walletStateProvider: Provider = {
 };
 
 export default walletStateProvider;
-
-

@@ -98,7 +98,8 @@ export const DELIVERABLE_TYPES: DeliverableType[] = [
     type: "essay",
     owner: "Eliza, Solus",
     outputDir: "docs/standup/essays/",
-    description: "Long-form Substack essays — benefit-led, one clear idea, no AI slop",
+    description:
+      "Long-form Substack essays — benefit-led, one clear idea, no AI slop",
     format: "Markdown, YYYY-MM-DD-essay-<slug>.md",
   },
   {
@@ -119,21 +120,24 @@ export const DELIVERABLE_TYPES: DeliverableType[] = [
     type: "trades",
     owner: "VINCE",
     outputDir: "docs/standup/trades/",
-    description: "Suggested perps (Hyperliquid) and options (HypeSurface) for BTC/SOL/ETH/HYPE",
+    description:
+      "Suggested perps (Hyperliquid) and options (HypeSurface) for BTC/SOL/ETH/HYPE",
     format: "Structured bullets/table, YYYY-MM-DD-trades-<source>.md",
   },
   {
     type: "good_life",
     owner: "Kelly",
     outputDir: "docs/standup/good-life/",
-    description: "Founder good-life suggestions: travel, dining, wine, health, fitness",
+    description:
+      "Founder good-life suggestions: travel, dining, wine, health, fitness",
     format: "Markdown list, YYYY-MM-DD-good-life-<theme>.md",
   },
   {
     type: "prd",
     owner: "Sentinel",
     outputDir: "docs/standup/prds/",
-    description: "PRD for Cursor — goal, acceptance criteria, architecture rules",
+    description:
+      "PRD for Cursor — goal, acceptance criteria, architecture rules",
     format: "Full PRD markdown, YYYY-MM-DD-prd-<slug>.md",
   },
   {
@@ -163,7 +167,8 @@ export interface ArchitectureConcept {
 export const ARCHITECTURE_CONCEPTS: ArchitectureConcept[] = [
   {
     name: "ASK_AGENT",
-    description: "One agent asks another a question and reports the answer in the same thread",
+    description:
+      "One agent asks another a question and reports the answer in the same thread",
     implementation: "plugin-inter-agent → elizaOS.handleMessage(agentId, msg)",
     keyPoints: [
       "In-process when runtime.elizaOS available (standard elizaos start)",
@@ -174,8 +179,10 @@ export const ARCHITECTURE_CONCEPTS: ArchitectureConcept[] = [
   },
   {
     name: "Option C Discord",
-    description: "Each agent has its own Discord Application ID — separate bot identities",
-    implementation: "VINCE_DISCORD_APPLICATION_ID, KELLY_DISCORD_APPLICATION_ID, etc.",
+    description:
+      "Each agent has its own Discord Application ID — separate bot identities",
+    implementation:
+      "VINCE_DISCORD_APPLICATION_ID, KELLY_DISCORD_APPLICATION_ID, etc.",
     keyPoints: [
       "Users see separate bots (Vince, Kelly, Sentinel) with distinct presence",
       "NOT multiplexing one bot by session",
@@ -185,7 +192,8 @@ export const ARCHITECTURE_CONCEPTS: ArchitectureConcept[] = [
   },
   {
     name: "Standups",
-    description: "Kelly-coordinated 2×/day autonomous meetings — agents discuss without you",
+    description:
+      "Kelly-coordinated 2×/day autonomous meetings — agents discuss without you",
     implementation: "plugin-inter-agent/standup/ → STANDUP_ENABLED=true",
     keyPoints: [
       "Coordinator: Kelly (CHRO / Chief Vibes Officer)",
@@ -197,8 +205,10 @@ export const ARCHITECTURE_CONCEPTS: ArchitectureConcept[] = [
   },
   {
     name: "Feedback Flow",
-    description: "User feedback from testing → Sentinel triages → PRD or Eliza task",
-    implementation: "PLANNED: FEEDBACK trigger → ASK_AGENT Sentinel → triage → deliverable",
+    description:
+      "User feedback from testing → Sentinel triages → PRD or Eliza task",
+    implementation:
+      "PLANNED: FEEDBACK trigger → ASK_AGENT Sentinel → triage → deliverable",
     keyPoints: [
       "Code/behavior fix → PRD for Cursor",
       "Knowledge gap → Eliza task (what to add/update)",
@@ -208,8 +218,10 @@ export const ARCHITECTURE_CONCEPTS: ArchitectureConcept[] = [
   },
   {
     name: "Dev Worker Strategy",
-    description: "Use OpenClaw or Milaidy as autonomous dev worker to implement PRDs",
-    implementation: "POST to Milaidy Gateway or OpenClaw session with repo access",
+    description:
+      "Use OpenClaw or Milaidy as autonomous dev worker to implement PRDs",
+    implementation:
+      "POST to Milaidy Gateway or OpenClaw session with repo access",
     keyPoints: [
       "Milaidy preferred (same ElizaOS stack, existing Gateway hook)",
       "OpenClaw viable alternative (session tools, reply-back)",
@@ -233,7 +245,7 @@ export function getAgentRoles(): AgentRole[] {
  * Get agent by name
  */
 export function getAgentRole(name: string): AgentRole | undefined {
-  return AGENT_ROLES.find(a => a.name.toLowerCase() === name.toLowerCase());
+  return AGENT_ROLES.find((a) => a.name.toLowerCase() === name.toLowerCase());
 }
 
 /**
@@ -247,7 +259,7 @@ export function getDeliverableTypes(): DeliverableType[] {
  * Get deliverable type by name
  */
 export function getDeliverableType(type: string): DeliverableType | undefined {
-  return DELIVERABLE_TYPES.find(d => d.type === type);
+  return DELIVERABLE_TYPES.find((d) => d.type === type);
 }
 
 /**
@@ -277,24 +289,26 @@ ${NORTH_STAR_FEELING}
 
 | Agent | Role | Lane |
 |-------|------|------|
-${AGENT_ROLES.map(a => `| **${a.name}** | ${a.role} | ${a.lane} |`).join("\n")}
+${AGENT_ROLES.map((a) => `| **${a.name}** | ${a.role} | ${a.lane} |`).join("\n")}
 
 ## Key Architecture Concepts
 
-${ARCHITECTURE_CONCEPTS.map(c => `### ${c.name}
+${ARCHITECTURE_CONCEPTS.map(
+  (c) => `### ${c.name}
 ${c.description}
 
 **Implementation:** ${c.implementation}
 
 **Key Points:**
-${c.keyPoints.map(p => `• ${p}`).join("\n")}
-`).join("\n")}
+${c.keyPoints.map((p) => `• ${p}`).join("\n")}
+`,
+).join("\n")}
 
 ## North Star Deliverables
 
 | Type | Owner | Output |
 |------|-------|--------|
-${DELIVERABLE_TYPES.map(d => `| ${d.type} | ${d.owner} | ${d.outputDir} |`).join("\n")}
+${DELIVERABLE_TYPES.map((d) => `| ${d.type} | ${d.owner} | ${d.outputDir} |`).join("\n")}
 
 ---
 *One team, one dream. That feeling is what we're optimizing for.*
@@ -306,29 +320,33 @@ ${DELIVERABLE_TYPES.map(d => `| ${d.type} | ${d.owner} | ${d.outputDir} |`).join
  */
 export function checkArchitectureHealth(): string[] {
   const issues: string[] = [];
-  
+
   // Check for common misconfigurations
   if (!process.env.STANDUP_ENABLED) {
     issues.push("STANDUP_ENABLED not set — autonomous standups disabled");
   }
-  
+
   // Check for duplicate Discord app IDs (would need actual env values)
   const discordAppIds = new Set<string>();
   for (const agent of AGENT_ROLES) {
     const appId = process.env[`${agent.discordEnvPrefix}_APPLICATION_ID`];
     if (appId) {
       if (discordAppIds.has(appId)) {
-        issues.push(`Duplicate Discord Application ID for ${agent.name} — each agent needs its own`);
+        issues.push(
+          `Duplicate Discord Application ID for ${agent.name} — each agent needs its own`,
+        );
       }
       discordAppIds.add(appId);
     }
   }
-  
+
   // Check for Milaidy Gateway
   if (!process.env.MILAIDY_GATEWAY_URL) {
-    issues.push("MILAIDY_GATEWAY_URL not set — standup build items will use fallback in-VINCE code gen");
+    issues.push(
+      "MILAIDY_GATEWAY_URL not set — standup build items will use fallback in-VINCE code gen",
+    );
   }
-  
+
   return issues;
 }
 
@@ -338,36 +356,66 @@ export function checkArchitectureHealth(): string[] {
 export function getMultiAgentSuggestions(context: string): string[] {
   const suggestions: string[] = [];
   const lower = context.toLowerCase();
-  
+
   if (lower.includes("discord") || lower.includes("channel")) {
-    suggestions.push("Ensure Option C: each agent has its own Discord Application ID for distinct bot identities");
-    suggestions.push("Create #daily-standup channel and invite coordinator bot (Kelly) for standup summaries");
+    suggestions.push(
+      "Ensure Option C: each agent has its own Discord Application ID for distinct bot identities",
+    );
+    suggestions.push(
+      "Create #daily-standup channel and invite coordinator bot (Kelly) for standup summaries",
+    );
   }
-  
+
   if (lower.includes("standup") || lower.includes("meeting")) {
-    suggestions.push("Enable STANDUP_ENABLED=true for Kelly-coordinated 2×/day autonomous standups");
-    suggestions.push("Configure STANDUP_UTC_HOURS for exact standup times (e.g. 8,20)");
+    suggestions.push(
+      "Enable STANDUP_ENABLED=true for Kelly-coordinated 2×/day autonomous standups",
+    );
+    suggestions.push(
+      "Configure STANDUP_UTC_HOURS for exact standup times (e.g. 8,20)",
+    );
   }
-  
+
   if (lower.includes("feedback") || lower.includes("testing")) {
-    suggestions.push("Implement feedback flow: tested agent → ASK_AGENT Sentinel → triage → PRD or Eliza task");
+    suggestions.push(
+      "Implement feedback flow: tested agent → ASK_AGENT Sentinel → triage → PRD or Eliza task",
+    );
   }
-  
-  if (lower.includes("dev worker") || lower.includes("implement") || lower.includes("prd")) {
-    suggestions.push("Consider Milaidy as dev worker: extend standup-action contract for PRD implementation");
-    suggestions.push("Set MILAIDY_GATEWAY_URL for standup build items to be processed automatically");
+
+  if (
+    lower.includes("dev worker") ||
+    lower.includes("implement") ||
+    lower.includes("prd")
+  ) {
+    suggestions.push(
+      "Consider Milaidy as dev worker: extend standup-action contract for PRD implementation",
+    );
+    suggestions.push(
+      "Set MILAIDY_GATEWAY_URL for standup build items to be processed automatically",
+    );
   }
-  
-  if (lower.includes("a2a") || lower.includes("ask agent") || lower.includes("inter-agent")) {
-    suggestions.push("Configure settings.interAgent.allowedTargets per character for A2A policy");
-    suggestions.push("Use optional allow rules for fine-grained control: { source: 'Kelly', target: '*' }");
+
+  if (
+    lower.includes("a2a") ||
+    lower.includes("ask agent") ||
+    lower.includes("inter-agent")
+  ) {
+    suggestions.push(
+      "Configure settings.interAgent.allowedTargets per character for A2A policy",
+    );
+    suggestions.push(
+      "Use optional allow rules for fine-grained control: { source: 'Kelly', target: '*' }",
+    );
   }
-  
+
   if (suggestions.length === 0) {
-    suggestions.push("Review MULTI_AGENT.md for the full multi-agent architecture vision");
-    suggestions.push("North star: 'Feels genuinely alive — like you're building together'");
+    suggestions.push(
+      "Review MULTI_AGENT.md for the full multi-agent architecture vision",
+    );
+    suggestions.push(
+      "North star: 'Feels genuinely alive — like you're building together'",
+    );
   }
-  
+
   return suggestions;
 }
 
@@ -379,7 +427,7 @@ export function getA2APolicyTemplate(agentName: string): string {
   if (!agent) {
     return `// Agent "${agentName}" not found in dream team`;
   }
-  
+
   return `// A2A Policy for ${agent.name} (${agent.role})
 settings: {
   interAgent: {

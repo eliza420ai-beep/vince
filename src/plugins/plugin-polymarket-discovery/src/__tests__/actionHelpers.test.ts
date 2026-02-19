@@ -19,8 +19,12 @@ import {
 
 describe("isValidEthereumAddress", () => {
   it("returns true for valid address", () => {
-    expect(isValidEthereumAddress("0x742d35Cc6634C0532925a3b844Bc454e4438f44e")).toBe(true);
-    expect(isValidEthereumAddress("0x0000000000000000000000000000000000000001")).toBe(true);
+    expect(
+      isValidEthereumAddress("0x742d35Cc6634C0532925a3b844Bc454e4438f44e"),
+    ).toBe(true);
+    expect(
+      isValidEthereumAddress("0x0000000000000000000000000000000000000001"),
+    ).toBe(true);
   });
 
   it("returns false for invalid address", () => {
@@ -92,29 +96,45 @@ describe("formatPriceChange", () => {
 describe("validatePolymarketService", () => {
   it("returns true when context and service present", () => {
     const state = createMockState({
-      recentMessagesData: [{ id: "1", content: { text: "polymarket odds" }, createdAt: 0 } as any],
+      recentMessagesData: [
+        { id: "1", content: { text: "polymarket odds" }, createdAt: 0 } as any,
+      ],
     });
     const message = createMockMessage("show polymarket markets");
-    const runtime = createMockRuntime({ polymarketService: createMockPolymarketService([]) });
-    expect(validatePolymarketService(runtime, "TEST", state, message)).toBe(true);
+    const runtime = createMockRuntime({
+      polymarketService: createMockPolymarketService([]),
+    });
+    expect(validatePolymarketService(runtime, "TEST", state, message)).toBe(
+      true,
+    );
   });
 
   it("returns false when service is null", () => {
     const state = createMockState({
-      recentMessagesData: [{ id: "1", content: { text: "polymarket" }, createdAt: 0 } as any],
+      recentMessagesData: [
+        { id: "1", content: { text: "polymarket" }, createdAt: 0 } as any,
+      ],
     });
     const message = createMockMessage("polymarket");
     const runtime = createMockRuntime({ polymarketService: null });
-    expect(validatePolymarketService(runtime, "TEST", state, message)).toBe(false);
+    expect(validatePolymarketService(runtime, "TEST", state, message)).toBe(
+      false,
+    );
   });
 
   it("returns false when not in context", () => {
     const state = createMockState({
-      recentMessagesData: [{ id: "1", content: { text: "weather today" }, createdAt: 0 } as any],
+      recentMessagesData: [
+        { id: "1", content: { text: "weather today" }, createdAt: 0 } as any,
+      ],
     });
     const message = createMockMessage("tell me a joke");
-    const runtime = createMockRuntime({ polymarketService: createMockPolymarketService([]) });
-    expect(validatePolymarketService(runtime, "TEST", state, message)).toBe(false);
+    const runtime = createMockRuntime({
+      polymarketService: createMockPolymarketService([]),
+    });
+    expect(validatePolymarketService(runtime, "TEST", state, message)).toBe(
+      false,
+    );
   });
 });
 
@@ -139,7 +159,10 @@ describe("extractActionParams", () => {
         createMockState({ data: { actionParams: params } }),
     });
     const message = createMockMessage("test");
-    const result = await extractActionParams<{ group: string; limit: number }>(runtime, message);
+    const result = await extractActionParams<{ group: string; limit: number }>(
+      runtime,
+      message,
+    );
     expect(result).toEqual(params);
   });
 

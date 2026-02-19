@@ -3,8 +3,8 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
@@ -30,7 +30,7 @@ Like [elizaOS/otaku](https://github.com/elizaOS/otaku), you can deploy to **Rail
 2. In the project **Variables** tab, set at least:
    - `ANTHROPIC_API_KEY`
    - `OPENAI_API_KEY`
-   Optionally add `POSTGRES_URL`, Supabase keys, and other vars from [Env vars for production](#env-vars-for-production).
+     Optionally add `POSTGRES_URL`, Supabase keys, and other vars from [Env vars for production](#env-vars-for-production).
 3. Deploy; Railway will run the build then start with `elizaos start`. The app listens on the port Railway provides (`PORT` env is set automatically).
 
 **Persistence:** Same as Eliza Cloud — with **PGLite only** (no `POSTGRES_URL`), redeploys get a fresh filesystem; set **`POSTGRES_URL`** (e.g. Supabase) if you want DB and paper-trade data to persist across deploys. See [Will trading data persist and be used after a redeploy?](#will-trading-data-persist-and-be-used-after-a-redeploy).
@@ -140,20 +140,20 @@ this comes from **@elizaos/plugin-discord**. The bot does not have the **View Au
 
 ## Env vars for production
 
-| Env | Required | Used by |
-|-----|----------|--------|
-| `ANTHROPIC_API_KEY` | ✅ Yes | Claude (VINCE model) |
-| `OPENAI_API_KEY` | ✅ Yes | Embeddings (plugin-sql / RAG) |
-| `POSTGRES_URL` | No (PGLite default) | Persistent DB (plugin-sql). **Omit** to use **PGLite**; set to `postgresql://...` only if you want Postgres. |
+| Env                 | Required            | Used by                                                                                                      |
+| ------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `ANTHROPIC_API_KEY` | ✅ Yes              | Claude (VINCE model)                                                                                         |
+| `OPENAI_API_KEY`    | ✅ Yes              | Embeddings (plugin-sql / RAG)                                                                                |
+| `POSTGRES_URL`      | No (PGLite default) | Persistent DB (plugin-sql). **Omit** to use **PGLite**; set to `postgresql://...` only if you want Postgres. |
 
 **Paper trades / feature store:** Trades are always stored in **JSONL** under `.elizadb/vince-paper-bot/features/`. With PGLite they are also written to `plugin_vince.paper_bot_features`. No extra env needed for JSONL or PGLite.
 
 ### Will trading data persist and be used after a redeploy?
 
-| Setup | After redeploy |
-|--------|-----------------|
-| **PGLite only** (no `POSTGRES_URL`, no Supabase) | **No.** The container is new; `.elizadb/` and PGLite live on the container filesystem and are lost. New instance = empty features and DB. |
-| **Postgres** (`POSTGRES_URL` set, e.g. Supabase) | **Yes.** Data in `plugin_vince.paper_bot_features` (and all ElizaOS tables) lives in your external DB and is reused. |
+| Setup                                                     | After redeploy                                                                                                                                              |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PGLite only** (no `POSTGRES_URL`, no Supabase)          | **No.** The container is new; `.elizadb/` and PGLite live on the container filesystem and are lost. New instance = empty features and DB.                   |
+| **Postgres** (`POSTGRES_URL` set, e.g. Supabase)          | **Yes.** Data in `plugin_vince.paper_bot_features` (and all ElizaOS tables) lives in your external DB and is reused.                                        |
 | **Supabase dual-write** (`SUPABASE_SERVICE_ROLE_KEY` set) | **Yes.** Features are also written to `vince_paper_bot_features` in Supabase; that data persists across redeploys and can be used for training or analysis. |
 
 **Summary:** In the **current state** (PGLite, no Postgres, no Supabase keys), redeploying to Eliza Cloud gives a **fresh container** — trading data is **not** stored or used after redeploy. To keep and use trading data across redeploys, set **`POSTGRES_URL`** (and optionally **`SUPABASE_SERVICE_ROLE_KEY`** for the feature table). ML ONNX models must still be [copied into the repo and committed](#ml-onnx-on-eliza-cloud--will-it-be-active) to be active on Cloud.
@@ -164,14 +164,14 @@ To reduce token use and stay under LLM rate limits (e.g. Anthropic 200K input to
 
 Optional (plugin-vince features):
 
-| Env | Used by |
-|-----|--------|
-| `BIRDEYE_API_KEY` | Top traders / Birdeye |
-| `COINGLASS_API_KEY` | Funding / OI (CoinGlass) |
-| `SANTIMENT_API_KEY` | Sanbase on-chain |
-| `NANSEN_API_KEY` | Nansen smart money |
-| `OPENSEA_API_KEY` | NFT floors (OpenSea fallback) |
-| `XAI_API_KEY` | X.ai model fallback |
+| Env                 | Used by                       |
+| ------------------- | ----------------------------- |
+| `BIRDEYE_API_KEY`   | Top traders / Birdeye         |
+| `COINGLASS_API_KEY` | Funding / OI (CoinGlass)      |
+| `SANTIMENT_API_KEY` | Sanbase on-chain              |
+| `NANSEN_API_KEY`    | Nansen smart money            |
+| `OPENSEA_API_KEY`   | NFT floors (OpenSea fallback) |
+| `XAI_API_KEY`       | X.ai model fallback           |
 
 **Supabase (optional — for ML feature store):**
 

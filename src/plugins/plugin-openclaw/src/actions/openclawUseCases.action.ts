@@ -54,9 +54,15 @@ export const openclawUseCasesAction: Action = {
   similes: ["OPENCLAW_USE_CASES", "BEST_FOR", "WHAT_CAN_OPENCLAW"],
   description:
     "Return OpenClaw use cases from OPENCLAW_VISION.md and plugin README (fork VINCE, bio-digital hub, multi-channel). Use when the user asks use case, best for, what can OpenClaw do.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /openclaw\s+use\s+case/i.test(text) ||
       /(best|good)\s+for\s+openclaw/i.test(text) ||
@@ -73,17 +79,30 @@ export const openclawUseCasesAction: Action = {
   ): Promise<ActionResult> => {
     const intro = "Here's what OpenClaw is best for—";
     const out = intro + "\n\n" + OPENCLAW_USE_CASES_MD;
-    if (callback) await callback({ text: out, actions: ["OPENCLAW_USE_CASES"] });
+    if (callback)
+      await callback({ text: out, actions: ["OPENCLAW_USE_CASES"] });
     return { success: true, text: out };
   },
   examples: [
     [
       { name: "{{user}}", content: { text: "What are OpenClaw use cases?" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...", actions: ["OPENCLAW_USE_CASES"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_USE_CASES"],
+        },
+      },
     ],
     [
       { name: "{{user}}", content: { text: "What is OpenClaw best for?" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...", actions: ["OPENCLAW_USE_CASES"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_USE_CASES"],
+        },
+      },
     ],
   ],
 };

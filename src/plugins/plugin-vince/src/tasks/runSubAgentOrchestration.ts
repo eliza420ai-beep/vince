@@ -99,7 +99,10 @@ export async function runSubAgentOrchestration(
             sectionBodies.push(result.text.trim());
           }
         } catch (e) {
-          logger.warn({ err: e, subAgent: config.id }, "[GROK_SUB] Sub-agent call failed");
+          logger.warn(
+            { err: e, subAgent: config.id },
+            "[GROK_SUB] Sub-agent call failed",
+          );
         }
       }
     } else if (config.queryTemplate) {
@@ -121,7 +124,10 @@ export async function runSubAgentOrchestration(
           sectionBodies.push(result.text.trim());
         }
       } catch (e) {
-        logger.warn({ err: e, subAgent: config.id }, "[GROK_SUB] Sub-agent call failed");
+        logger.warn(
+          { err: e, subAgent: config.id },
+          "[GROK_SUB] Sub-agent call failed",
+        );
       }
     }
 
@@ -146,13 +152,17 @@ export async function runSubAgentOrchestration(
   }
 
   // Section 6: wallet activity (Phase 5). Section 8: Grok call with EV format (Phase 4).
-  let section6Body = "## 6. Smart Wallet Activity\n\n*(No tracked wallets or data.)*";
+  let section6Body =
+    "## 6. Smart Wallet Activity\n\n*(No tracked wallets or data.)*";
   if (memoryDir && xaiService) {
     try {
-      const walletSummary = await getWalletActivitySummary(memoryDir, runtime, { maxWallets: 5 });
+      const walletSummary = await getWalletActivitySummary(memoryDir, runtime, {
+        maxWallets: 5,
+      });
       const s6Result = await xaiService.generateText({
         prompt: `Summarize this smart wallet activity into Section 6: Smart Wallet Activity. Write 2-4 sentences. Focus on notable moves and any convergence (same token across wallets).\n\n${walletSummary}`,
-        system: "You are a crypto intel analyst. Output only the section content (no ## 6 header).",
+        system:
+          "You are a crypto intel analyst. Output only the section content (no ## 6 header).",
         model: GROK_MODEL,
         temperature: 0.2,
         maxTokens: 400,
@@ -164,7 +174,8 @@ export async function runSubAgentOrchestration(
       logger.warn({ err: e }, "[GROK_SUB] Section 6 generation failed");
     }
   }
-  let section8Body = "## 8. Today's Recommendations\n\n*(No recommendations generated.)*";
+  let section8Body =
+    "## 8. Today's Recommendations\n\n*(No recommendations generated.)*";
   if (xaiService) {
     try {
       const section8Prompt = `Generate Section 8: Today's Recommendations in this exact format.
@@ -186,15 +197,20 @@ Format:
 Output only the section (## 8. ...) with 1-3 items per subsection. Use three-scenario EV (bull/base/bear probabilities and returns, then EV %).`;
 
       const s8Result = await xaiService.generateText({
-        prompt: section8Prompt + "\n\nData context:\n" + dataContextText.slice(0, 4000),
-        system: "You are a crypto intel analyst. Output only the Section 8 markdown.",
+        prompt:
+          section8Prompt +
+          "\n\nData context:\n" +
+          dataContextText.slice(0, 4000),
+        system:
+          "You are a crypto intel analyst. Output only the Section 8 markdown.",
         model: GROK_MODEL,
         temperature: 0.3,
         maxTokens: 1500,
       });
       if (s8Result.success && s8Result.text?.trim()) {
         section8Body = s8Result.text.trim();
-        if (!section8Body.startsWith("##")) section8Body = "## 8. Today's Recommendations\n\n" + section8Body;
+        if (!section8Body.startsWith("##"))
+          section8Body = "## 8. Today's Recommendations\n\n" + section8Body;
       }
     } catch (e) {
       logger.warn({ err: e }, "[GROK_SUB] Section 8 generation failed");
@@ -223,7 +239,11 @@ Output only the section (## 8. ...) with 1-3 items per subsection. Use three-sce
   if (s9) ordered.push(s9);
 
   let reportSoFar = ordered
-    .map((s) => (s.body.startsWith("##") ? s.body : `## ${s.number}. ${s.title}\n\n${s.body}`))
+    .map((s) =>
+      s.body.startsWith("##")
+        ? s.body
+        : `## ${s.number}. ${s.title}\n\n${s.body}`,
+    )
     .join("\n\n");
 
   // Section 10: synthesis

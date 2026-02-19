@@ -32,14 +32,19 @@ function parseArgs(): {
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--data-dir" && args[i + 1]) dataDir = args[++i];
     else if (args[i] === "--out" && args[i + 1]) outDir = args[++i];
-    else if (args[i] === "--min-trades" && args[i + 1]) minTrades = parseInt(args[++i], 10);
+    else if (args[i] === "--min-trades" && args[i + 1])
+      minTrades = parseInt(args[++i], 10);
     else if (args[i] === "--regime" && args[i + 1]) regime = args[++i];
-    else if (args[i] === "--limit" && args[i + 1]) limit = parseInt(args[++i], 10);
+    else if (args[i] === "--limit" && args[i + 1])
+      limit = parseInt(args[++i], 10);
   }
   return { dataDir, outDir, minTrades, regime, limit };
 }
 
-function filterByRegime(records: FeatureRecord[], regime: string): FeatureRecord[] {
+function filterByRegime(
+  records: FeatureRecord[],
+  regime: string,
+): FeatureRecord[] {
   const r = regime.toLowerCase();
   return records.filter((rec) => {
     const mr = (rec.regime?.marketRegime ?? "").toLowerCase();
@@ -51,7 +56,9 @@ function filterByRegime(records: FeatureRecord[], regime: string): FeatureRecord
 function main(): void {
   const { dataDir, outDir, minTrades, regime, limit } = parseArgs();
 
-  const dataPath = dataDir ?? path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
+  const dataPath =
+    dataDir ??
+    path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
   let records = loadScenarios({
     dataDir: dataPath,
     completeOnly: true,
@@ -60,12 +67,16 @@ function main(): void {
   });
 
   if (minTrades > 0 && records.length < minTrades) {
-    console.warn(`Only ${records.length} complete records (min-trades ${minTrades}). Proceeding anyway.`);
+    console.warn(
+      `Only ${records.length} complete records (min-trades ${minTrades}). Proceeding anyway.`,
+    );
   }
 
   if (regime) {
     records = filterByRegime(records, regime);
-    console.log(`Filtered to ${records.length} records for regime "${regime}".`);
+    console.log(
+      `Filtered to ${records.length} records for regime "${regime}".`,
+    );
   }
 
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });

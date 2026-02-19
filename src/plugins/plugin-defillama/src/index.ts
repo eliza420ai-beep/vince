@@ -11,7 +11,8 @@ import { shouldDefiLlamaPluginBeActive } from "../matcher";
 
 export const defiLlamaPlugin: Plugin = {
   name: "plugin-defillama",
-  description: "DeFiLlama integration: protocol discovery, TVL lookups, yield opportunities, and historical trends",
+  description:
+    "DeFiLlama integration: protocol discovery, TVL lookups, yield opportunities, and historical trends",
 
   async init() {
     logger.info("Initializing DefiLlama plugin...");
@@ -41,5 +42,3 @@ export {
   getYieldHistoryAction,
   shouldDefiLlamaPluginBeActive,
 };
-
-

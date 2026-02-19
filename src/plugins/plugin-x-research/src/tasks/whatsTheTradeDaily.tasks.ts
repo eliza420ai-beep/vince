@@ -23,16 +23,48 @@ import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 // Kept in sync manually; add new HIP-3 assets here when they go live on Hyperliquid.
 const WTT_UNIVERSE_TICKERS = [
   // Core
-  "BTC", "ETH", "SOL", "HYPE",
+  "BTC",
+  "ETH",
+  "SOL",
+  "HYPE",
   // HIP-3 Commodities
-  "GOLD", "SILVER", "COPPER", "NATGAS", "OIL", "USOIL",
+  "GOLD",
+  "SILVER",
+  "COPPER",
+  "NATGAS",
+  "OIL",
+  "USOIL",
   // HIP-3 Indices
-  "XYZ100", "US500", "SMALL2000", "MAG7", "SEMIS", "INFOTECH", "ROBOT",
+  "XYZ100",
+  "US500",
+  "SMALL2000",
+  "MAG7",
+  "SEMIS",
+  "INFOTECH",
+  "ROBOT",
   // HIP-3 Stocks
-  "NVDA", "TSLA", "AAPL", "AMZN", "GOOGL", "META", "MSFT", "PLTR",
-  "COIN", "HOOD", "NFLX", "MSTR", "AMD", "INTC", "ORCL", "MU", "SNDK", "CRCL",
+  "NVDA",
+  "TSLA",
+  "AAPL",
+  "AMZN",
+  "GOOGL",
+  "META",
+  "MSFT",
+  "PLTR",
+  "COIN",
+  "HOOD",
+  "NFLX",
+  "MSTR",
+  "AMD",
+  "INTC",
+  "ORCL",
+  "MU",
+  "SNDK",
+  "CRCL",
   // HIP-3 AI/Tech
-  "OPENAI", "ANTHROPIC", "SPACEX",
+  "OPENAI",
+  "ANTHROPIC",
+  "SPACEX",
 ] as const;
 const WTT_UNIVERSE_LABEL = WTT_UNIVERSE_TICKERS.join(", ");
 const WTT_UNIVERSE_SET = new Set<string>(WTT_UNIVERSE_TICKERS);
@@ -59,7 +91,11 @@ export interface WttPick {
     alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
     edge: "undiscovered" | "emerging" | "consensus" | "crowded";
     payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
-    timingForgiveness: "very_forgiving" | "forgiving" | "punishing" | "very_punishing";
+    timingForgiveness:
+      | "very_forgiving"
+      | "forgiving"
+      | "punishing"
+      | "very_punishing";
   };
   evThresholdPct?: number;
   killConditions: string[];
@@ -71,7 +107,8 @@ const SCRIPT_TIMEOUT_MS = 25_000;
 
 function getSkillDir(): string {
   const envDir = process.env.WHATS_THE_TRADE_SKILL_DIR?.trim();
-  if (envDir) return path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir);
+  if (envDir)
+    return path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir);
   return path.join(process.cwd(), "skills", "whats-the-trade");
 }
 
@@ -95,7 +132,7 @@ function getOutputPathJson(date: Date): string {
 function runBunScript(
   skillDir: string,
   scriptPath: string,
-  args: string[]
+  args: string[],
 ): Promise<{ stdout: string; stderr: string; json: unknown }> {
   return new Promise((resolve, reject) => {
     const proc = spawn("bun", ["run", scriptPath, ...args], {
@@ -105,12 +142,24 @@ function runBunScript(
     });
     let stdout = "";
     let stderr = "";
-    proc.stdout?.on("data", (d) => { stdout += d.toString(); });
-    proc.stderr?.on("data", (d) => { stderr += d.toString(); });
+    proc.stdout?.on("data", (d) => {
+      stdout += d.toString();
+    });
+    proc.stderr?.on("data", (d) => {
+      stderr += d.toString();
+    });
     proc.on("error", reject);
     proc.on("close", (code) => {
       const jsonMatch = stdout.match(/\{[\s\S]*\}/);
-      const json = jsonMatch ? (() => { try { return JSON.parse(jsonMatch[0]); } catch { return null; } })() : null;
+      const json = jsonMatch
+        ? (() => {
+            try {
+              return JSON.parse(jsonMatch[0]);
+            } catch {
+              return null;
+            }
+          })()
+        : null;
       if (code !== 0 && !json) {
         reject(new Error(`Script exited ${code}: ${stderr.slice(0, 200)}`));
       } else {
@@ -123,18 +172,28 @@ function runBunScript(
 async function suggestThesis(
   runtime: IAgentRuntime,
   dateStr: string,
-  hip3Only: boolean
+  hip3Only: boolean,
 ): Promise<string> {
   const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that fits a sentiment/vibe lens: what narrative could CT or macro be pricing that we can express in one trade? Examples: "Fed holds in March", "AI defense spending will accelerate", "SOL outperforms ETH on relative strength".`;
   const constraint = hip3Only
     ? ` The trade MUST be expressible onchain via a Hyperliquid perp. Available tickers: ${WTT_UNIVERSE_LABEL}. Pick a thesis that maps to one of these assets.`
     : "";
-  const prompt = base + constraint + " Reply with only that one sentence, no quotes or preamble.";
+  const prompt =
+    base +
+    constraint +
+    " Reply with only that one sentence, no quotes or preamble.";
   try {
-    const out = await runtime.useModel(ModelType.TEXT_LARGE, { prompt, maxTokens: 80 });
-    return String(out).trim().replace(/^["']|["']$/g, "");
+    const out = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt,
+      maxTokens: 80,
+    });
+    return String(out)
+      .trim()
+      .replace(/^["']|["']$/g, "");
   } catch (e) {
-    logger.warn("[ECHO WhatstheTrade] Thesis suggestion failed, using fallback");
+    logger.warn(
+      "[ECHO WhatstheTrade] Thesis suggestion failed, using fallback",
+    );
     return "Risk-on rotation; crypto and risk assets may outperform on the week.";
   }
 }
@@ -143,7 +202,7 @@ async function fetchAdapterData(
   skillDir: string,
   thesis: string,
   hip3Only: boolean,
-  rhEnabled: boolean
+  rhEnabled: boolean,
 ): Promise<string> {
   const lines: string[] = [];
   const keywords = thesis.split(/\s+/).slice(0, 4).join(" ");
@@ -153,17 +212,26 @@ async function fetchAdapterData(
     const kalshi = await runBunScript(
       skillDir,
       "scripts/adapters/kalshi/instruments.ts",
-      [keywords]
+      [keywords],
     );
-    if (kalshi.json && typeof kalshi.json === "object" && "instruments" in kalshi.json) {
-      const arr = (kalshi.json as { instruments?: unknown[] }).instruments ?? [];
+    if (
+      kalshi.json &&
+      typeof kalshi.json === "object" &&
+      "instruments" in kalshi.json
+    ) {
+      const arr =
+        (kalshi.json as { instruments?: unknown[] }).instruments ?? [];
       lines.push("=== KALSHI ===");
       arr.slice(0, 5).forEach((i: Record<string, unknown>) => {
-        lines.push(`  ${i.ticker ?? i.title ?? ""}: ${i.yes_ask ?? i.lastPrice ?? ""}`);
+        lines.push(
+          `  ${i.ticker ?? i.title ?? ""}: ${i.yes_ask ?? i.lastPrice ?? ""}`,
+        );
       });
     }
   } catch (e) {
-    logger.debug("[ECHO WhatstheTrade] Kalshi adapter skip: " + (e as Error).message);
+    logger.debug(
+      "[ECHO WhatstheTrade] Kalshi adapter skip: " + (e as Error).message,
+    );
   }
 
   // Robinhood/Yahoo: offchain stock context (optional, labeled as context-only when hip3Only)
@@ -172,20 +240,30 @@ async function fetchAdapterData(
       const rh = await runBunScript(
         skillDir,
         "scripts/adapters/robinhood/instruments.ts",
-        ["NVDA,AAPL,HIMS,TSLA"]
+        ["NVDA,AAPL,HIMS,TSLA"],
       );
-      if (rh.json && typeof rh.json === "object" && "validated_instruments" in rh.json) {
-        const arr = (rh.json as { validated_instruments?: unknown[] }).validated_instruments ?? [];
+      if (
+        rh.json &&
+        typeof rh.json === "object" &&
+        "validated_instruments" in rh.json
+      ) {
+        const arr =
+          (rh.json as { validated_instruments?: unknown[] })
+            .validated_instruments ?? [];
         const label = hip3Only
           ? "\n=== ROBINHOOD (offchain context only — do NOT use as primary pick) ==="
           : "\n=== ROBINHOOD (sample) ===";
         lines.push(label);
         arr.slice(0, 4).forEach((i: Record<string, unknown>) => {
-          lines.push(`  ${i.ticker ?? ""}: $${i.price ?? ""} (${i.day_change_pct ?? ""}%)`);
+          lines.push(
+            `  ${i.ticker ?? ""}: $${i.price ?? ""} (${i.day_change_pct ?? ""}%)`,
+          );
         });
       }
     } catch (e) {
-      logger.debug("[ECHO WhatstheTrade] Robinhood adapter skip: " + (e as Error).message);
+      logger.debug(
+        "[ECHO WhatstheTrade] Robinhood adapter skip: " + (e as Error).message,
+      );
     }
   }
 
@@ -197,23 +275,35 @@ async function fetchAdapterData(
     const hl = await runBunScript(
       skillDir,
       "scripts/adapters/hyperliquid/instruments.ts",
-      [hlTickers]
+      [hlTickers],
     );
-    if (hl.json && typeof hl.json === "object" && "validated_instruments" in hl.json) {
-      const arr = (hl.json as { validated_instruments?: unknown[] }).validated_instruments ?? [];
+    if (
+      hl.json &&
+      typeof hl.json === "object" &&
+      "validated_instruments" in hl.json
+    ) {
+      const arr =
+        (hl.json as { validated_instruments?: unknown[] })
+          .validated_instruments ?? [];
       const label = hip3Only
         ? "\n=== HYPERLIQUID (onchain tradeable — pick from these) ==="
         : "\n=== HYPERLIQUID ===";
       lines.push(label);
       arr.forEach((i: Record<string, unknown>) => {
-        lines.push(`  ${i.ticker ?? ""}: $${i.mark_price ?? ""} funding ${i.funding_rate ?? ""}`);
+        lines.push(
+          `  ${i.ticker ?? ""}: $${i.mark_price ?? ""} funding ${i.funding_rate ?? ""}`,
+        );
       });
     }
   } catch (e) {
-    logger.debug("[ECHO WhatstheTrade] Hyperliquid adapter skip: " + (e as Error).message);
+    logger.debug(
+      "[ECHO WhatstheTrade] Hyperliquid adapter skip: " + (e as Error).message,
+    );
   }
 
-  return lines.length > 0 ? lines.join("\n") : "No live instrument data could be loaded.";
+  return lines.length > 0
+    ? lines.join("\n")
+    : "No live instrument data could be loaded.";
 }
 
 async function generateNarrative(
@@ -221,7 +311,7 @@ async function generateNarrative(
   thesis: string,
   dataContext: string,
   dateLabel: string,
-  hip3Only: boolean
+  hip3Only: boolean,
 ): Promise<string> {
   const marketScope = hip3Only
     ? `you pick the single best onchain expression using Hyperliquid perps (core crypto or HIP-3 assets: stocks, indices, commodities all trade as perps on Hyperliquid). Your PRIMARY pick ticker must be from the Hyperliquid universe. You may reference offchain context (Robinhood stocks, Kalshi odds) to support your reasoning, but the trade card ticker must be a Hyperliquid perp from: ${WTT_UNIVERSE_LABEL}.`
@@ -277,7 +367,7 @@ async function extractStructuredPick(
   thesis: string,
   narrative: string,
   dateStr: string,
-  hip3Only: boolean
+  hip3Only: boolean,
 ): Promise<WttPick | null> {
   const tickerConstraint = hip3Only
     ? `primaryTicker MUST be one of: ${WTT_UNIVERSE_LABEL}. `
@@ -334,21 +424,38 @@ Output only the JSON object, no markdown or explanation.`;
       primaryEntryPrice: Number(parsed.primaryEntryPrice) || 0,
       primaryRiskUsd: Number(parsed.primaryRiskUsd) || 0,
       invalidateCondition: String(parsed.invalidateCondition ?? ""),
-      killConditions: Array.isArray(parsed.killConditions) ? (parsed.killConditions as string[]) : [],
+      killConditions: Array.isArray(parsed.killConditions)
+        ? (parsed.killConditions as string[])
+        : [],
       rubric: {
-        alignment: (rubric?.alignment as WttPick["rubric"]["alignment"]) ?? "partial",
+        alignment:
+          (rubric?.alignment as WttPick["rubric"]["alignment"]) ?? "partial",
         edge: (rubric?.edge as WttPick["rubric"]["edge"]) ?? "consensus",
-        payoffShape: (rubric?.payoffShape as WttPick["rubric"]["payoffShape"]) ?? "moderate",
-        timingForgiveness: (rubric?.timingForgiveness as WttPick["rubric"]["timingForgiveness"]) ?? "punishing",
+        payoffShape:
+          (rubric?.payoffShape as WttPick["rubric"]["payoffShape"]) ??
+          "moderate",
+        timingForgiveness:
+          (rubric?.timingForgiveness as WttPick["rubric"]["timingForgiveness"]) ??
+          "punishing",
       },
     };
-    if (parsed.altTicker != null) pick.altTicker = String(parsed.altTicker).toUpperCase();
-    if (parsed.altDirection === "short" || parsed.altDirection === "long") pick.altDirection = parsed.altDirection;
-    if (parsed.altInstrument != null) pick.altInstrument = String(parsed.altInstrument);
-    if (typeof parsed.evThresholdPct === "number" && !Number.isNaN(parsed.evThresholdPct)) pick.evThresholdPct = parsed.evThresholdPct;
+    if (parsed.altTicker != null)
+      pick.altTicker = String(parsed.altTicker).toUpperCase();
+    if (parsed.altDirection === "short" || parsed.altDirection === "long")
+      pick.altDirection = parsed.altDirection;
+    if (parsed.altInstrument != null)
+      pick.altInstrument = String(parsed.altInstrument);
+    if (
+      typeof parsed.evThresholdPct === "number" &&
+      !Number.isNaN(parsed.evThresholdPct)
+    )
+      pick.evThresholdPct = parsed.evThresholdPct;
     return pick;
   } catch (e) {
-    logger.warn("[ECHO WhatstheTrade] Structured pick extraction failed: " + (e as Error).message);
+    logger.warn(
+      "[ECHO WhatstheTrade] Structured pick extraction failed: " +
+        (e as Error).message,
+    );
     return null;
   }
 }
@@ -394,7 +501,7 @@ async function savePickJson(pick: WttPick, date: Date): Promise<string | null> {
  * Also produces a structured JSON sidecar for the paper bot when extraction succeeds.
  */
 export async function runWhatsTheTradeReport(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): Promise<{ filepath: string | null; report: string; pick: WttPick | null }> {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
@@ -406,19 +513,36 @@ export async function runWhatsTheTradeReport(
 
   // HIP-3 constraint: default true (Renaissance Fund 3.0 north star — all trades onchain)
   const hip3Only =
-    (runtime.getSetting("ECHO_WTT_HIP3_ONLY") ?? process.env.ECHO_WTT_HIP3_ONLY ?? "true") !== "false";
+    (runtime.getSetting("ECHO_WTT_HIP3_ONLY") ??
+      process.env.ECHO_WTT_HIP3_ONLY ??
+      "true") !== "false";
   // Robinhood adapter: default true (offchain color helps LLM find best onchain proxy)
   const rhEnabled =
-    (runtime.getSetting("ECHO_WTT_ROBINHOOD_ENABLED") ?? process.env.ECHO_WTT_ROBINHOOD_ENABLED ?? "true") !== "false";
+    (runtime.getSetting("ECHO_WTT_ROBINHOOD_ENABLED") ??
+      process.env.ECHO_WTT_ROBINHOOD_ENABLED ??
+      "true") !== "false";
 
   if (hip3Only) {
-    logger.info("[ECHO WhatstheTrade] HIP-3 only mode: primary pick must be a Hyperliquid perp");
+    logger.info(
+      "[ECHO WhatstheTrade] HIP-3 only mode: primary pick must be a Hyperliquid perp",
+    );
   }
 
   const skillDir = getSkillDir();
   const thesis = await suggestThesis(runtime, dateLabel, hip3Only);
-  const dataContext = await fetchAdapterData(skillDir, thesis, hip3Only, rhEnabled);
-  const narrative = await generateNarrative(runtime, thesis, dataContext, dateLabel, hip3Only);
+  const dataContext = await fetchAdapterData(
+    skillDir,
+    thesis,
+    hip3Only,
+    rhEnabled,
+  );
+  const narrative = await generateNarrative(
+    runtime,
+    thesis,
+    dataContext,
+    dateLabel,
+    hip3Only,
+  );
   const fullReport = [
     `**What's the trade** _${dateLabel}_`,
     "",
@@ -433,19 +557,27 @@ export async function runWhatsTheTradeReport(
   ].join("\n");
   const filepath = await saveReport(fullReport, now);
 
-  let pick = await extractStructuredPick(runtime, thesis, narrative, dateStr, hip3Only);
+  let pick = await extractStructuredPick(
+    runtime,
+    thesis,
+    narrative,
+    dateStr,
+    hip3Only,
+  );
 
   // Hard gate: reject non-HIP-3 primary picks when hip3Only is enabled
   if (hip3Only && pick) {
     const onchain = isWttUniverseTicker(pick.primaryTicker);
     if (!onchain) {
       logger.warn(
-        `[ECHO WhatstheTrade] Primary pick ${pick.primaryTicker} is not a HIP-3 asset, checking alt...`
+        `[ECHO WhatstheTrade] Primary pick ${pick.primaryTicker} is not a HIP-3 asset, checking alt...`,
       );
-      const altOnchain = pick.altTicker ? isWttUniverseTicker(pick.altTicker) : false;
+      const altOnchain = pick.altTicker
+        ? isWttUniverseTicker(pick.altTicker)
+        : false;
       if (altOnchain && pick.altTicker) {
         logger.info(
-          `[ECHO WhatstheTrade] Swapping to alt ticker ${pick.altTicker} (HIP-3 asset)`
+          `[ECHO WhatstheTrade] Swapping to alt ticker ${pick.altTicker} (HIP-3 asset)`,
         );
         pick.primaryTicker = pick.altTicker;
         pick.primaryDirection = pick.altDirection ?? pick.primaryDirection;
@@ -455,7 +587,7 @@ export async function runWhatsTheTradeReport(
         pick.altInstrument = undefined;
       } else {
         logger.warn(
-          `[ECHO WhatstheTrade] Neither primary (${pick.primaryTicker}) nor alt (${pick.altTicker ?? "none"}) is HIP-3. Pick rejected.`
+          `[ECHO WhatstheTrade] Neither primary (${pick.primaryTicker}) nor alt (${pick.altTicker ?? "none"}) is HIP-3. Pick rejected.`,
         );
         pick = null;
       }
@@ -467,15 +599,20 @@ export async function runWhatsTheTradeReport(
 }
 
 export async function registerWhatsTheTradeDailyTask(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): Promise<void> {
   if (process.env.ECHO_WHATS_THE_TRADE_ENABLED === "false") {
-    logger.info("[ECHO WhatstheTrade] Task disabled (ECHO_WHATS_THE_TRADE_ENABLED=false)");
+    logger.info(
+      "[ECHO WhatstheTrade] Task disabled (ECHO_WHATS_THE_TRADE_ENABLED=false)",
+    );
     return;
   }
 
   const hourUtc =
-    parseInt(process.env.ECHO_WHATS_THE_TRADE_HOUR ?? String(DEFAULT_HOUR_UTC), 10) || DEFAULT_HOUR_UTC;
+    parseInt(
+      process.env.ECHO_WHATS_THE_TRADE_HOUR ?? String(DEFAULT_HOUR_UTC),
+      10,
+    ) || DEFAULT_HOUR_UTC;
   const worldId = runtime.agentId as UUID;
 
   runtime.registerTaskWorker({
@@ -485,17 +622,21 @@ export async function registerWhatsTheTradeDailyTask(
       const now = new Date();
       if (now.getUTCHours() !== hourUtc) {
         logger.debug(
-          `[ECHO WhatstheTrade] Skip: hour ${now.getUTCHours()} UTC, target ${hourUtc}`
+          `[ECHO WhatstheTrade] Skip: hour ${now.getUTCHours()} UTC, target ${hourUtc}`,
         );
         return;
       }
 
-      logger.info("[ECHO WhatstheTrade] Building daily what's-the-trade report...");
+      logger.info(
+        "[ECHO WhatstheTrade] Building daily what's-the-trade report...",
+      );
 
       try {
         await runWhatsTheTradeReport(rt);
       } catch (error) {
-        logger.error("[ECHO WhatstheTrade] Failed: " + (error as Error).message);
+        logger.error(
+          "[ECHO WhatstheTrade] Failed: " + (error as Error).message,
+        );
       }
     },
   });
@@ -514,6 +655,6 @@ export async function registerWhatsTheTradeDailyTask(
   });
 
   logger.info(
-    `[ECHO WhatstheTrade] Task registered (runs at ${hourUtc}:00 UTC, output: docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.md)`
+    `[ECHO WhatstheTrade] Task registered (runs at ${hourUtc}:00 UTC, output: docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.md)`,
   );
 }

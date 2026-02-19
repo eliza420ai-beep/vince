@@ -11,7 +11,10 @@ import { MorphoService } from "../services";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
 import { MorphoMarketData } from "../types";
 import { getEntityWallet } from "../../../../utils/entity";
-import { validateMorphoService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateMorphoService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 
 interface MarketInfoParams {
   market?: string;
@@ -56,7 +59,12 @@ export const marketInfoAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validateMorphoService(runtime, "GET_MORPHO_MARKET_INFO", state, message);
+    return validateMorphoService(
+      runtime,
+      "GET_MORPHO_MARKET_INFO",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -70,8 +78,13 @@ export const marketInfoAction: Action = {
 
     try {
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<MarketInfoParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<MarketInfoParams>;
 
       // Store input parameters for return
       const inputParams: MarketInfoInput = {
@@ -88,7 +101,7 @@ export const marketInfoAction: Action = {
       ) as MorphoService;
 
       // Determine chain - default to 'base' if not provided
-      const chain = (inputParams.chain as any) || 'base';
+      const chain = (inputParams.chain as any) || "base";
 
       // Get CDP service
       const cdp = runtime.getService(CdpService.serviceType) as CdpService;
@@ -124,7 +137,9 @@ export const marketInfoAction: Action = {
       );
 
       if (wallet.success === false) {
-        logger.warn("[GET_MORPHO_MARKET_INFO] Entity wallet verification failed");
+        logger.warn(
+          "[GET_MORPHO_MARKET_INFO] Entity wallet verification failed",
+        );
         return {
           ...wallet.result,
           input: inputParams,
@@ -163,7 +178,11 @@ export const marketInfoAction: Action = {
       });
       const publicClient = viemClient.publicClient;
 
-      const markets = await service.getMarketData(inputParams.market, chain, publicClient);
+      const markets = await service.getMarketData(
+        inputParams.market,
+        chain,
+        publicClient,
+      );
 
       if (!markets.length) {
         const errorText = ` No market data${inputParams.market ? ` for ${inputParams.market}` : ""} found.`;
@@ -197,9 +216,13 @@ export const marketInfoAction: Action = {
       // Success message
       const text = inputParams.market
         ? ` Successfully fetched market data for ${inputParams.market} on ${chain}.`
-        : ` Successfully fetched all Morpho markets on ${chain}. Found ${markets.length} market${markets.length === 1 ? '' : 's'}.`;
+        : ` Successfully fetched all Morpho markets on ${chain}. Found ${markets.length} market${markets.length === 1 ? "" : "s"}.`;
 
-      const data = { actionName: "GET_MORPHO_MARKET_INFO", params: inputParams, markets };
+      const data = {
+        actionName: "GET_MORPHO_MARKET_INFO",
+        params: inputParams,
+        markets,
+      };
 
       if (callback) {
         await callback({
@@ -230,8 +253,13 @@ export const marketInfoAction: Action = {
       // Try to capture input params even in failure
       let failureInputParams: MarketInfoInput = {};
       try {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams ?? {}) as Partial<MarketInfoParams>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams ??
+          {}) as Partial<MarketInfoParams>;
         failureInputParams = {
           market: params.market?.trim(),
           chain: params.chain?.trim()?.toLowerCase(),

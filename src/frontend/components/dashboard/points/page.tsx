@@ -17,7 +17,30 @@ import { Trophy, RefreshCw, Copy, Check } from "lucide-react";
 import { UUID } from "@elizaos/core";
 
 // Type assertion for gamification service (will be available after API client rebuild)
-const gamificationClient = (elizaClient as { gamification?: { getLeaderboard: (agentId: UUID, scope: "weekly" | "all_time", limit: number) => Promise<{ scope: string; entries: LeaderboardEntry[]; userRank: number; limit: number }>; getReferralCode: (agentId: UUID) => Promise<{ referralLink: string; stats: { totalReferrals: number; activatedReferrals: number; totalPointsEarned: number } }> } }).gamification;
+const gamificationClient = (
+  elizaClient as {
+    gamification?: {
+      getLeaderboard: (
+        agentId: UUID,
+        scope: "weekly" | "all_time",
+        limit: number,
+      ) => Promise<{
+        scope: string;
+        entries: LeaderboardEntry[];
+        userRank: number;
+        limit: number;
+      }>;
+      getReferralCode: (agentId: UUID) => Promise<{
+        referralLink: string;
+        stats: {
+          totalReferrals: number;
+          activatedReferrals: number;
+          totalPointsEarned: number;
+        };
+      }>;
+    };
+  }
+).gamification;
 
 interface PointsPageProps {
   agentId: UUID;
@@ -53,7 +76,12 @@ export default function PointsPage({ agentId }: PointsPageProps) {
   const [scope, setScope] = useState<"weekly" | "all_time">("weekly");
   const [copied, setCopied] = useState(false);
 
-  const { data: leaderboardData, isLoading, error, refetch } = useQuery({
+  const {
+    data: leaderboardData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["leaderboard", agentId, scope],
     queryFn: async () => {
       if (!gamificationClient) {
@@ -92,7 +120,7 @@ export default function PointsPage({ agentId }: PointsPageProps) {
         avatar,
         featured: index < 3,
       };
-    }
+    },
   );
 
   const handleRefresh = () => {
@@ -165,11 +193,16 @@ export default function PointsPage({ agentId }: PointsPageProps) {
             </Button>
           </div>
 
-          <TabsContent value="weekly" className="mt-6 flex-1 min-h-0 flex flex-col">
+          <TabsContent
+            value="weekly"
+            className="mt-6 flex-1 min-h-0 flex flex-col"
+          >
             {error && !isLoading ? (
               <DashboardCard title="WEEKLY LEADERBOARD">
                 <div className="text-center py-12">
-                  <p className="text-destructive mb-2">Error loading leaderboard</p>
+                  <p className="text-destructive mb-2">
+                    Error loading leaderboard
+                  </p>
                   <p className="text-sm text-muted-foreground mb-4">
                     {error instanceof Error ? error.message : "Unknown error"}
                   </p>
@@ -215,11 +248,16 @@ export default function PointsPage({ agentId }: PointsPageProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="all_time" className="mt-6 flex-1 min-h-0 flex flex-col">
+          <TabsContent
+            value="all_time"
+            className="mt-6 flex-1 min-h-0 flex flex-col"
+          >
             {error && !isLoading ? (
               <DashboardCard title="ALL-TIME LEADERBOARD">
                 <div className="text-center py-12">
-                  <p className="text-destructive mb-2">Error loading leaderboard</p>
+                  <p className="text-destructive mb-2">
+                    Error loading leaderboard
+                  </p>
                   <p className="text-sm text-muted-foreground mb-4">
                     {error instanceof Error ? error.message : "Unknown error"}
                   </p>
@@ -274,9 +312,7 @@ export default function PointsPage({ agentId }: PointsPageProps) {
                     #{leaderboardData!.userRank}
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {scope === "weekly"
-                      ? "Weekly Ranking"
-                      : "All-Time Ranking"}
+                    {scope === "weekly" ? "Weekly Ranking" : "All-Time Ranking"}
                   </div>
                 </div>
               </div>
@@ -336,7 +372,9 @@ export default function PointsPage({ agentId }: PointsPageProps) {
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Points Earned: </span>
+                    <span className="text-muted-foreground">
+                      Points Earned:{" "}
+                    </span>
                     <span className="font-semibold">
                       {referralData.stats.totalPointsEarned.toLocaleString()}
                     </span>

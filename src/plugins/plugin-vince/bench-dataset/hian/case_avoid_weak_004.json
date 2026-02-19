@@ -14,8 +14,6 @@
   "ground_truth": {
     "direction": "neutral",
     "min_confidence": 0,
-    "required_signatures": [
-      "avoid.low_quality_rejected"
-    ]
+    "required_signatures": ["avoid.low_quality_rejected"]
   }
 }

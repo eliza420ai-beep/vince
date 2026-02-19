@@ -145,7 +145,8 @@ export const positionsHandler: RouteHandler = async (
   const middleware = createMiddleware({
     network: X402_NETWORK,
     amount: PRICE_POSITIONS,
-    description: "Otaku portfolio positions - wallet balances and active orders",
+    description:
+      "Otaku portfolio positions - wallet balances and active orders",
     mimeType: "application/json",
     payTo: X402_PAY_TO,
     maxTimeoutSeconds: 300,

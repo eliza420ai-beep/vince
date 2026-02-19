@@ -1,12 +1,7 @@
-import {
-  logger,
-  Service,
-  type IAgentRuntime,
-  type UUID,
-} from '@elizaos/core';
-import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
-import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
-import { leaderboardSnapshotsTable, pointBalancesTable } from '../schema';
+import { logger, Service, type IAgentRuntime, type UUID } from "@elizaos/core";
+import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
+import { leaderboardSnapshotsTable, pointBalancesTable } from "../schema";
 
 interface RuntimeWithDb {
   db?: PgDatabase<PgQueryResultHKT>;
@@ -14,17 +9,17 @@ interface RuntimeWithDb {
 
 /**
  * LeaderboardService - Read-only service for leaderboard queries
- * 
+ *
  * SCHEDULING: Aggregation and weekly resets are handled by pg_cron jobs.
  * See: migrations/001_pg_cron_setup.sql
- * 
+ *
  * This service provides:
  * - Reading from pre-aggregated leaderboard snapshots (fast)
  * - Manual aggregation methods for testing/one-off runs
  */
 export class LeaderboardService extends Service {
-  static serviceType = 'leaderboard-sync';
-  capabilityDescription = 'Reads leaderboard snapshots aggregated by pg_cron';
+  static serviceType = "leaderboard-sync";
+  capabilityDescription = "Reads leaderboard snapshots aggregated by pg_cron";
 
   private getDb(): PgDatabase<PgQueryResultHKT> | undefined {
     return (this.runtime as unknown as RuntimeWithDb).db;
@@ -34,16 +29,20 @@ export class LeaderboardService extends Service {
    * Check if a userId belongs to an agent (not a human user)
    */
   private isAgent(userId: UUID): boolean {
-    return userId === this.runtime.agentId || userId === this.runtime.character.id;
+    return (
+      userId === this.runtime.agentId || userId === this.runtime.character.id
+    );
   }
 
   static async start(runtime: IAgentRuntime): Promise<LeaderboardService> {
     const service = new LeaderboardService(runtime);
-    
+
     // Mark agent user IDs in the database so pg_cron jobs can filter them
     await service.markAgentUserIds();
-    
-    logger.info('[LeaderboardService] Initialized (pg_cron handles scheduling)');
+
+    logger.info(
+      "[LeaderboardService] Initialized (pg_cron handles scheduling)",
+    );
     return service;
   }
 
@@ -55,14 +54,13 @@ export class LeaderboardService extends Service {
     const db = this.getDb();
     if (!db) return;
 
-    const agentIds = [
-      this.runtime.agentId,
-      this.runtime.character.id,
-    ].filter((id): id is UUID => !!id);
+    const agentIds = [this.runtime.agentId, this.runtime.character.id].filter(
+      (id): id is UUID => !!id,
+    );
 
     // Remove duplicates
     const uniqueAgentIds = [...new Set(agentIds)];
-    
+
     for (const agentId of uniqueAgentIds) {
       try {
         // Upsert: create with is_agent=TRUE or update existing to is_agent=TRUE
@@ -83,9 +81,13 @@ export class LeaderboardService extends Service {
               updatedAt: new Date(),
             },
           });
-        logger.debug(`[LeaderboardService] Marked agent ${agentId} as is_agent=TRUE`);
+        logger.debug(
+          `[LeaderboardService] Marked agent ${agentId} as is_agent=TRUE`,
+        );
       } catch (err) {
-        logger.warn(`[LeaderboardService] Failed to mark agent ${agentId}: ${err}`);
+        logger.warn(
+          `[LeaderboardService] Failed to mark agent ${agentId}: ${err}`,
+        );
       }
     }
   }
@@ -93,14 +95,19 @@ export class LeaderboardService extends Service {
   /**
    * Get cached leaderboard from snapshots (fast - reads from pre-aggregated table)
    */
-  async getCachedLeaderboard(scope: 'weekly' | 'all_time', limit = 100): Promise<Array<{
-    rank: number;
-    userId: string;
-    points: number;
-  }>> {
+  async getCachedLeaderboard(
+    scope: "weekly" | "all_time",
+    limit = 100,
+  ): Promise<
+    Array<{
+      rank: number;
+      userId: string;
+      points: number;
+    }>
+  > {
     const db = this.getDb();
     if (!db) {
-      logger.error('[LeaderboardService] Database not available');
+      logger.error("[LeaderboardService] Database not available");
       return [];
     }
 
@@ -115,7 +122,7 @@ export class LeaderboardService extends Service {
       .orderBy(leaderboardSnapshotsTable.rank)
       .limit(limit);
 
-    return snapshots.map(s => ({
+    return snapshots.map((s) => ({
       rank: s.rank,
       userId: s.userId,
       points: s.points,
@@ -125,7 +132,9 @@ export class LeaderboardService extends Service {
   /**
    * Get last snapshot timestamp
    */
-  async getLastSnapshotTime(scope: 'weekly' | 'all_time'): Promise<Date | null> {
+  async getLastSnapshotTime(
+    scope: "weekly" | "all_time",
+  ): Promise<Date | null> {
     const db = this.getDb();
     if (!db) return null;
 
@@ -142,13 +151,13 @@ export class LeaderboardService extends Service {
   /**
    * Manual aggregation - useful for testing or one-off runs
    * In production, pg_cron handles this every 5 minutes
-   * 
+   *
    * Uses same filtering as pg_cron: is_agent = FALSE OR is_agent IS NULL
    */
   async aggregateSnapshots(): Promise<void> {
     const db = this.getDb();
     if (!db) {
-      logger.error('[LeaderboardService] Database not available');
+      logger.error("[LeaderboardService] Database not available");
       return;
     }
 
@@ -156,7 +165,7 @@ export class LeaderboardService extends Service {
       // Filter: exclude agents (is_agent = FALSE OR is_agent IS NULL) - matches pg_cron behavior
       const notAgentFilter = or(
         eq(pointBalancesTable.isAgent, false),
-        isNull(pointBalancesTable.isAgent)
+        isNull(pointBalancesTable.isAgent),
       );
 
       // Aggregate all-time leaderboard (excluding agents, points > 0)
@@ -183,14 +192,14 @@ export class LeaderboardService extends Service {
 
       // Prepare batch inserts
       const allTimeSnapshots = allTimeBalances.map((balance, i) => ({
-        scope: 'all_time' as const,
+        scope: "all_time" as const,
         rank: i + 1,
         userId: balance.userId,
         points: balance.points,
       }));
 
       const weeklySnapshots = weeklyBalances.map((balance, i) => ({
-        scope: 'weekly' as const,
+        scope: "weekly" as const,
         rank: i + 1,
         userId: balance.userId,
         points: balance.points,
@@ -198,8 +207,12 @@ export class LeaderboardService extends Service {
 
       // Use transaction for atomicity
       await db.transaction(async (tx) => {
-        await tx.delete(leaderboardSnapshotsTable).where(eq(leaderboardSnapshotsTable.scope, 'all_time'));
-        await tx.delete(leaderboardSnapshotsTable).where(eq(leaderboardSnapshotsTable.scope, 'weekly'));
+        await tx
+          .delete(leaderboardSnapshotsTable)
+          .where(eq(leaderboardSnapshotsTable.scope, "all_time"));
+        await tx
+          .delete(leaderboardSnapshotsTable)
+          .where(eq(leaderboardSnapshotsTable.scope, "weekly"));
 
         if (allTimeSnapshots.length > 0) {
           await tx.insert(leaderboardSnapshotsTable).values(allTimeSnapshots);
@@ -209,9 +222,14 @@ export class LeaderboardService extends Service {
         }
       });
 
-      logger.debug('[LeaderboardService] Manual snapshot aggregation completed');
+      logger.debug(
+        "[LeaderboardService] Manual snapshot aggregation completed",
+      );
     } catch (error) {
-      logger.error({ error }, '[LeaderboardService] Error in aggregateSnapshots');
+      logger.error(
+        { error },
+        "[LeaderboardService] Error in aggregateSnapshots",
+      );
       throw error;
     }
   }
@@ -224,21 +242,19 @@ export class LeaderboardService extends Service {
   async resetWeeklyPoints(): Promise<void> {
     const db = this.getDb();
     if (!db) {
-      logger.error('[LeaderboardService] Database not available');
+      logger.error("[LeaderboardService] Database not available");
       return;
     }
 
-    await db
-      .update(pointBalancesTable)
-      .set({ 
-        weeklyPoints: 0,
-        updatedAt: new Date(),
-      });
+    await db.update(pointBalancesTable).set({
+      weeklyPoints: 0,
+      updatedAt: new Date(),
+    });
 
-    logger.info('[LeaderboardService] Manual weekly points reset completed');
+    logger.info("[LeaderboardService] Manual weekly points reset completed");
   }
 
   async stop(): Promise<void> {
-    logger.info('[LeaderboardService] Stopped');
+    logger.info("[LeaderboardService] Stopped");
   }
 }

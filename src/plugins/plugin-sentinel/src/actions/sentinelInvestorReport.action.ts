@@ -31,7 +31,10 @@ export const sentinelInvestorReportAction: Action = {
   description:
     "Produces a short structured investor update: burn/run rate, cost summary (tokens, LLM, Cursor, data APIs), paper bot line (See Leaderboard → Trading Bot tab), one-line priorities for the week.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsInvestorReport(text);
   },
@@ -91,8 +94,9 @@ ${NO_AI_SLOP}
 
 Context:\n${contextBlock}`;
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
-  return (typeof response === "string"
-    ? response
-    : (response as { text?: string })?.text ?? String(response)
+  return (
+    typeof response === "string"
+      ? response
+      : ((response as { text?: string })?.text ?? String(response))
   ).trim();
 }

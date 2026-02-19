@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "naval crypto",
@@ -43,11 +47,18 @@ Tone: friend over coffee. No price targets or trading advice.`;
 
 export const navalCryptoWealthMindsetAction: Action = {
   name: "NAVAL_CRYPTO_WEALTH_MINDSET",
-  similes: ["CRYPTO_WEALTH_MINDSET", "NAVAL_CRYPTO", "BUILD_VS_SPECULATE_CRYPTO"],
+  similes: [
+    "CRYPTO_WEALTH_MINDSET",
+    "NAVAL_CRYPTO",
+    "BUILD_VS_SPECULATE_CRYPTO",
+  ],
   description:
     "Crypto/bitcoin/tokens through Naval's lens: building vs speculating, permissionless upside, earn while you sleep. No price targets.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsCryptoWealth(text);
   },
@@ -82,7 +93,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -90,14 +101,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Wealth in crypto = building specific knowledge + leverage (product, protocol, content), not just trading. If you're only speculating, ask: what would the build version look like? Earn while you sleep means something that pays you when you're not watching the chart.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Naval crypto: I hold BTC and ETH, no building. Wondering if I'm just speculating." } },
-      { name: "{{agent}}", content: { text: "Right now it's mostly speculation — your upside is price. Creation version: use your stack to fund or build something (tool, content, stake in a project) so you're adding value and building specific knowledge. Or get clear on a long-term thesis and treat hold as a deliberate choice, not a bet. Either way, shift some energy toward something that compounds when you're not looking at the chart." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Naval crypto: I hold BTC and ETH, no building. Wondering if I'm just speculating.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Right now it's mostly speculation — your upside is price. Creation version: use your stack to fund or build something (tool, content, stake in a project) so you're adding value and building specific knowledge. Or get clear on a long-term thesis and treat hold as a deliberate choice, not a bet. Either way, shift some energy toward something that compounds when you're not looking at the chart.",
+        },
+      },
     ],
   ],
 };

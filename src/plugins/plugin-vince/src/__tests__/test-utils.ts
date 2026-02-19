@@ -325,12 +325,19 @@ export function createMockServices() {
       getComprehensiveData: async () => mockDeribitData.comprehensiveData,
       getIndexPrice: async (_asset: string) => 95000,
       getDVOL: async (_asset: string) => 55,
-      getIVSurface: async (_asset: string) => ({ skew: -0.05, skewInterpretation: "bullish" }),
+      getIVSurface: async (_asset: string) => ({
+        skew: -0.05,
+        skewInterpretation: "bullish",
+      }),
       refreshData: async () => {},
     },
     VINCE_COINGLASS_SERVICE: {
       getOpenInterest: (_asset: string) =>
-        mockCoinGlassData.openInterest?.[0] ?? { symbol: "BTC", openInterest: 25e9, change24h: 5 },
+        mockCoinGlassData.openInterest?.[0] ?? {
+          symbol: "BTC",
+          openInterest: 25e9,
+          change24h: 5,
+        },
       getFundingRates: async () => mockCoinGlassData.fundingRates,
       getFearGreed: () => mockCoinGlassData.fearGreed,
       getFunding: (_asset: string) => ({ rate: -0.0005 }),
@@ -367,7 +374,10 @@ export function createMockServices() {
       getSentiment: async () => mockNewsData.sentiment,
       getTopNews: async () => mockNewsData.topNews,
       getRiskEvents: async () => mockNewsData.riskEvents,
-      getOverallSentiment: async () => ({ sentiment: "neutral", confidence: 60 }),
+      getOverallSentiment: async () => ({
+        sentiment: "neutral",
+        confidence: 60,
+      }),
       getActiveRiskEvents: async () => [],
       refreshData: async () => {},
       getNewsSummary: () => ({
@@ -422,7 +432,10 @@ export function createMockServices() {
     VINCE_TOP_TRADERS_SERVICE: {
       getTopTraders: async () => [],
       getTraderStats: async () => ({}),
-      generateSignal: async (_asset: string) => ({ direction: "long", strength: 65 }),
+      generateSignal: async (_asset: string) => ({
+        direction: "long",
+        strength: 65,
+      }),
     },
     VINCE_PAPER_TRADING_SERVICE: {
       getStatus: async () => mockPaperTradingData.status,
@@ -449,7 +462,10 @@ export function createMockServices() {
     VINCE_SANBASE_SERVICE: {
       getSocialVolume: async () => [],
       isConfigured: () => true,
-      getExchangeFlows: async (_asset: string) => ({ netFlow: -500000, sentiment: "accumulation" }),
+      getExchangeFlows: async (_asset: string) => ({
+        netFlow: -500000,
+        sentiment: "accumulation",
+      }),
       getNetworkActivity: async (_asset: string) => ({ trend: "increasing" }),
       getWhaleActivity: async (_asset: string) => ({ sentiment: "bullish" }),
     },
@@ -587,9 +603,7 @@ export async function testHandlerExecution(
 // Mock data factories for bullBearCase.test.ts
 // ==========================================
 
-export function createMockCoinGlassData(
-  bias: "bullish" | "bearish",
-): {
+export function createMockCoinGlassData(bias: "bullish" | "bearish"): {
   funding: { rate: number };
   longShortRatio: { ratio: number };
   fearGreed: { value: number; classification: string };
@@ -608,9 +622,7 @@ export function createMockCoinGlassData(
   };
 }
 
-export function createMockDeribitData(
-  bias: "bullish" | "bearish",
-): {
+export function createMockDeribitData(bias: "bullish" | "bearish"): {
   dvol: number;
   ivSurface: { skewInterpretation: string; skew: number };
 } {
@@ -626,9 +638,7 @@ export function createMockDeribitData(
   };
 }
 
-export function createMockSanbaseData(
-  bias: "bullish" | "bearish",
-): {
+export function createMockSanbaseData(bias: "bullish" | "bearish"): {
   exchangeFlows: { netFlow: number; sentiment: string };
   networkActivity: { trend: string };
   whaleActivity: { sentiment: string };
@@ -647,22 +657,32 @@ export function createMockSanbaseData(
   };
 }
 
-export function createMockNansenData(
-  bias: "bullish" | "bearish",
-): { isAccumulating: { accumulating: boolean; netFlow: number; confidence: string } } {
+export function createMockNansenData(bias: "bullish" | "bearish"): {
+  isAccumulating: {
+    accumulating: boolean;
+    netFlow: number;
+    confidence: string;
+  };
+} {
   if (bias === "bullish") {
     return {
-      isAccumulating: { accumulating: true, netFlow: 500000, confidence: "high" },
+      isAccumulating: {
+        accumulating: true,
+        netFlow: 500000,
+        confidence: "high",
+      },
     };
   }
   return {
-    isAccumulating: { accumulating: false, netFlow: -300000, confidence: "low" },
+    isAccumulating: {
+      accumulating: false,
+      netFlow: -300000,
+      confidence: "low",
+    },
   };
 }
 
-export function createMockTopTradersData(
-  bias: "bullish" | "bearish",
-): {
+export function createMockTopTradersData(bias: "bullish" | "bearish"): {
   signal: { direction: string; strength: number };
   recentSignals: { action: string }[];
 } {
@@ -678,9 +698,7 @@ export function createMockTopTradersData(
   };
 }
 
-export function createMockNewsSentimentData(
-  bias: "bullish" | "bearish",
-): {
+export function createMockNewsSentimentData(bias: "bullish" | "bearish"): {
   overallSentiment: { sentiment: string };
   activeRiskEvents: unknown[];
 } {
@@ -696,9 +714,10 @@ export function createMockNewsSentimentData(
   };
 }
 
-export function createMockCoinGeckoData(
-  _bias: "bullish" | "bearish",
-): { priceChange24h: number; health: string } {
+export function createMockCoinGeckoData(_bias: "bullish" | "bearish"): {
+  priceChange24h: number;
+  health: string;
+} {
   return { priceChange24h: 5, health: "healthy" };
 }
 
@@ -710,7 +729,10 @@ function createMockServicesWithBias(
   const baseCoinglass = base.VINCE_COINGLASS_SERVICE as Record<string, unknown>;
   const baseNews = base.VINCE_NEWS_SENTIMENT_SERVICE as Record<string, unknown>;
   const baseNansen = base.VINCE_NANSEN_SERVICE as Record<string, unknown>;
-  const baseTopTraders = base.VINCE_TOP_TRADERS_SERVICE as Record<string, unknown>;
+  const baseTopTraders = base.VINCE_TOP_TRADERS_SERVICE as Record<
+    string,
+    unknown
+  >;
 
   if (bias === "mixed") {
     // Neutral data so bull and bear strengths are balanced
@@ -721,11 +743,18 @@ function createMockServicesWithBias(
         getFunding: () => ({ rate: 0 }),
         getLongShortRatio: () => ({ ratio: 0.5 }),
         getFearGreed: () => ({ value: 50, classification: "neutral" }),
-        getOpenInterest: () => ({ symbol: "BTC", openInterest: 25e9, change24h: 0 }),
+        getOpenInterest: () => ({
+          symbol: "BTC",
+          openInterest: 25e9,
+          change24h: 0,
+        }),
       },
       VINCE_NEWS_SENTIMENT_SERVICE: {
         ...baseNews,
-        getOverallSentiment: async () => ({ sentiment: "neutral", confidence: 50 }),
+        getOverallSentiment: async () => ({
+          sentiment: "neutral",
+          confidence: 50,
+        }),
         getActiveRiskEvents: async () => [],
       },
     };
@@ -739,12 +768,22 @@ function createMockServicesWithBias(
       ...baseCoinglass,
       getFunding: () => ({ rate: cg.funding.rate }),
       getLongShortRatio: () => ({ ratio: cg.longShortRatio.ratio }),
-      getFearGreed: () => ({ value: cg.fearGreed.value, classification: cg.fearGreed.classification }),
-      getOpenInterest: () => ({ symbol: "BTC", openInterest: 25e9, change24h: 5 }),
+      getFearGreed: () => ({
+        value: cg.fearGreed.value,
+        classification: cg.fearGreed.classification,
+      }),
+      getOpenInterest: () => ({
+        symbol: "BTC",
+        openInterest: 25e9,
+        change24h: 5,
+      }),
     },
     VINCE_NEWS_SENTIMENT_SERVICE: {
       ...baseNews,
-      getOverallSentiment: async () => ({ sentiment: news.overallSentiment.sentiment, confidence: 70 }),
+      getOverallSentiment: async () => ({
+        sentiment: news.overallSentiment.sentiment,
+        confidence: 70,
+      }),
       getActiveRiskEvents: async () => news.activeRiskEvents,
     },
   };

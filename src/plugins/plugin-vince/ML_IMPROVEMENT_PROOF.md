@@ -72,6 +72,7 @@ So the “proof” is: on the same data that generated the suggestion, applying 
 ### B. Unit test: “Training produces models, metadata, and holdout metrics”
 
 `scripts/test_train_models.py` (8 tests) generates synthetic features, runs `train_models.py`, and asserts:
+
 - Models and metadata are produced; ONNX files when export succeeds.
 - **Holdout metrics** appear in `improvement_report.holdout_metrics` when training runs (for drift/sizing).
 - **Smoke tests** for `--recency-decay`/`--balance-assets` and `--tune-hyperparams` (code paths complete without crash).

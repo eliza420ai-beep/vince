@@ -17,7 +17,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
-  timeoutMs: number = REQUEST_TIMEOUT_MS
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -42,8 +42,14 @@ export class BankrAgentService extends Service {
 
   constructor(runtime: IAgentRuntime) {
     super(runtime);
-    this.apiUrl = (runtime.getSetting("BANKR_AGENT_URL") as string) || process.env.BANKR_AGENT_URL || DEFAULT_AGENT_URL;
-    this.apiKey = (runtime.getSetting("BANKR_API_KEY") as string)?.trim() || (process.env.BANKR_API_KEY as string)?.trim() || "";
+    this.apiUrl =
+      (runtime.getSetting("BANKR_AGENT_URL") as string) ||
+      process.env.BANKR_AGENT_URL ||
+      DEFAULT_AGENT_URL;
+    this.apiKey =
+      (runtime.getSetting("BANKR_API_KEY") as string)?.trim() ||
+      (process.env.BANKR_API_KEY as string)?.trim() ||
+      "";
     if (this.apiKey) {
       logger.info("[BANKR AGENT] API key configured (from runtime or env)");
     }
@@ -71,18 +77,18 @@ export class BankrAgentService extends Service {
       throw new Error("BANKR_API_KEY is not set");
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/prompt`;
-    const res = await fetchWithTimeout(
-      url,
-      {
-        method: "POST",
-        headers: {
-          [API_KEY_HEADER]: this.apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt }),
-      }
-    );
-    const data = (await res.json()) as PromptResponse & { error?: string; message?: string };
+    const res = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: {
+        [API_KEY_HEADER]: this.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prompt }),
+    });
+    const data = (await res.json()) as PromptResponse & {
+      error?: string;
+      message?: string;
+    };
     if (!res.ok) {
       throw new Error(data.error || data.message || "Bankr Agent API error");
     }
@@ -101,7 +107,10 @@ export class BankrAgentService extends Service {
       method: "GET",
       headers: { [API_KEY_HEADER]: this.apiKey },
     });
-    const data = (await res.json()) as JobStatusResponse & { error?: string; message?: string };
+    const data = (await res.json()) as JobStatusResponse & {
+      error?: string;
+      message?: string;
+    };
     if (!res.ok) {
       throw new Error(data.error || data.message || "Bankr Agent API error");
     }
@@ -117,9 +126,14 @@ export class BankrAgentService extends Service {
       method: "GET",
       headers: { [API_KEY_HEADER]: this.apiKey },
     });
-    const data = (await res.json()) as UserInfoResponse & { error?: string; message?: string };
+    const data = (await res.json()) as UserInfoResponse & {
+      error?: string;
+      message?: string;
+    };
     if (!res.ok) {
-      throw new Error(data.error || data.message || "Bankr User Info API error");
+      throw new Error(
+        data.error || data.message || "Bankr User Info API error",
+      );
     }
     return data;
   }
@@ -131,14 +145,30 @@ export class BankrAgentService extends Service {
     const { signatureType, message, typedData, transaction, payload } = request;
     const body: Record<string, unknown> = { signatureType };
     if (signatureType === "personal_sign") {
-      body.message = message ?? (typeof payload === "string" ? payload : undefined);
-      if (body.message == null) throw new Error("personal_sign requires message or payload (string)");
+      body.message =
+        message ?? (typeof payload === "string" ? payload : undefined);
+      if (body.message == null)
+        throw new Error("personal_sign requires message or payload (string)");
     } else if (signatureType === "eth_signTypedData_v4") {
-      body.typedData = typedData ?? (typeof payload === "object" && payload && !Array.isArray(payload) ? payload : undefined);
-      if (body.typedData == null) throw new Error("eth_signTypedData_v4 requires typedData or payload (object)");
+      body.typedData =
+        typedData ??
+        (typeof payload === "object" && payload && !Array.isArray(payload)
+          ? payload
+          : undefined);
+      if (body.typedData == null)
+        throw new Error(
+          "eth_signTypedData_v4 requires typedData or payload (object)",
+        );
     } else if (signatureType === "eth_signTransaction") {
-      body.transaction = transaction ?? (typeof payload === "object" && payload && !Array.isArray(payload) ? payload : undefined);
-      if (body.transaction == null) throw new Error("eth_signTransaction requires transaction or payload (object)");
+      body.transaction =
+        transaction ??
+        (typeof payload === "object" && payload && !Array.isArray(payload)
+          ? payload
+          : undefined);
+      if (body.transaction == null)
+        throw new Error(
+          "eth_signTransaction requires transaction or payload (object)",
+        );
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/sign`;
     const res = await fetchWithTimeout(url, {
@@ -149,7 +179,10 @@ export class BankrAgentService extends Service {
       },
       body: JSON.stringify(body),
     });
-    const data = (await res.json()) as SignResponse & { error?: string; message?: string };
+    const data = (await res.json()) as SignResponse & {
+      error?: string;
+      message?: string;
+    };
     if (!res.ok) {
       throw new Error(data.error || data.message || "Bankr Sign API error");
     }
@@ -157,7 +190,7 @@ export class BankrAgentService extends Service {
   }
 
   async submitTransaction(
-    request: SubmitTransactionRequest
+    request: SubmitTransactionRequest,
   ): Promise<SubmitTransactionResponse> {
     if (!this.isConfigured()) {
       throw new Error("BANKR_API_KEY is not set");
@@ -190,7 +223,10 @@ export class BankrAgentService extends Service {
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/job/${jobId}/cancel`;
     const res = await fetchWithTimeout(url, {
       method: "POST",
-      headers: { [API_KEY_HEADER]: this.apiKey, "Content-Type": "application/json" },
+      headers: {
+        [API_KEY_HEADER]: this.apiKey,
+        "Content-Type": "application/json",
+      },
     });
     if (!res.ok) {
       const data = (await res.json()) as { error?: string; message?: string };
@@ -200,7 +236,11 @@ export class BankrAgentService extends Service {
 
   async pollJobUntilComplete(
     jobId: string,
-    options?: { intervalMs?: number; maxAttempts?: number; onStatus?: (status: JobStatus, message: string) => void }
+    options?: {
+      intervalMs?: number;
+      maxAttempts?: number;
+      onStatus?: (status: JobStatus, message: string) => void;
+    },
   ): Promise<JobStatusResponse> {
     const intervalMs = options?.intervalMs ?? 1500;
     const maxAttempts = options?.maxAttempts ?? 120;
@@ -209,10 +249,19 @@ export class BankrAgentService extends Service {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const status = await this.getJobStatus(jobId);
       if (onStatus) {
-        const msg = status.status === "pending" ? "Thinking..." : status.status === "processing" ? "Working on it..." : status.status;
+        const msg =
+          status.status === "pending"
+            ? "Thinking..."
+            : status.status === "processing"
+              ? "Working on it..."
+              : status.status;
         onStatus(status.status, msg);
       }
-      if (status.status === "completed" || status.status === "failed" || status.status === "cancelled") {
+      if (
+        status.status === "completed" ||
+        status.status === "failed" ||
+        status.status === "cancelled"
+      ) {
         return status;
       }
       await new Promise((r) => setTimeout(r, intervalMs));

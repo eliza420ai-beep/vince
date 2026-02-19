@@ -57,12 +57,23 @@ Use Tailscale—no public port exposure. SSH tunnel: \`ssh -L 18789:localhost:18
 
 export const openclawSecurityGuideAction: Action = {
   name: "OPENCLAW_SECURITY_GUIDE",
-  similes: ["OPENCLAW_SECURITY", "OPENCLAW_HARDENING", "SECURE_OPENCLAW", "PROMPT_INJECTION_OPENCLAW"],
+  similes: [
+    "OPENCLAW_SECURITY",
+    "OPENCLAW_HARDENING",
+    "SECURE_OPENCLAW",
+    "PROMPT_INJECTION_OPENCLAW",
+  ],
   description:
     "Return OpenClaw security guide: EF dAI blog link, prompt injection, ACIP/PromptGuard/SkillGuard, MEMORY.md, operational rules, audit. Use when the user asks about openclaw security, prompt injection openclaw, secure openclaw, or openclaw hardening.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /openclaw\s+security/i.test(text) ||
       /prompt\s+injection\s+openclaw/i.test(text) ||
@@ -80,7 +91,8 @@ export const openclawSecurityGuideAction: Action = {
   ): Promise<ActionResult> => {
     const intro = "Here's the OpenClaw security picture—";
     const out = intro + "\n\n" + OPENCLAW_SECURITY_GUIDE_MD;
-    if (callback) await callback({ text: out, actions: ["OPENCLAW_SECURITY_GUIDE"] });
+    if (callback)
+      await callback({ text: out, actions: ["OPENCLAW_SECURITY_GUIDE"] });
     return { success: true, text: out };
   },
   examples: [
@@ -95,7 +107,10 @@ export const openclawSecurityGuideAction: Action = {
       },
     ],
     [
-      { name: "{{user}}", content: { text: "How do I secure OpenClaw against prompt injection?" } },
+      {
+        name: "{{user}}",
+        content: { text: "How do I secure OpenClaw against prompt injection?" },
+      },
       {
         name: "{{agent}}",
         content: {

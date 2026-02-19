@@ -103,7 +103,9 @@ export class VinceMeteoraService extends Service {
 
     // Priority 1: High-APY pool with decent TVL (best LP entry candidate)
     const hotCandidates = this.allPools
-      .filter((p) => p.tvl >= VinceMeteoraService.HOT_POOL_MIN_TVL && p.apy >= 0.05)
+      .filter(
+        (p) => p.tvl >= VinceMeteoraService.HOT_POOL_MIN_TVL && p.apy >= 0.05,
+      )
       .sort((a, b) => b.apy - a.apy);
     if (hotCandidates.length > 0) {
       const best = hotCandidates[0];
@@ -177,7 +179,8 @@ export class VinceMeteoraService extends Service {
         .filter((p: any) => parseFloat(p.apr || 0) >= MIN_APY);
 
       const byTvl = [...qualified].sort(
-        (a: any, b: any) => (parseFloat(b.liquidity) || 0) - (parseFloat(a.liquidity) || 0),
+        (a: any, b: any) =>
+          (parseFloat(b.liquidity) || 0) - (parseFloat(a.liquidity) || 0),
       );
       const byApy = [...qualified].sort(
         (a: any, b: any) => (parseFloat(b.apr) || 0) - (parseFloat(a.apr) || 0),
@@ -204,8 +207,14 @@ export class VinceMeteoraService extends Service {
         const address = poolData.address || poolData.pair_address;
         const pool: MeteoraPool = {
           address,
-          tokenA: poolData.name?.split("-")[0]?.trim() || poolData.name_x || "UNKNOWN",
-          tokenB: poolData.name?.split("-")[1]?.trim() || poolData.name_y || "UNKNOWN",
+          tokenA:
+            poolData.name?.split("-")[0]?.trim() ||
+            poolData.name_x ||
+            "UNKNOWN",
+          tokenB:
+            poolData.name?.split("-")[1]?.trim() ||
+            poolData.name_y ||
+            "UNKNOWN",
           binWidth: parseFloat(poolData.bin_step) / 100 || 0.25,
           tvl: parseFloat(poolData.liquidity) || 0,
           apy: parseFloat(poolData.apr) || 0,
@@ -312,7 +321,9 @@ export class VinceMeteoraService extends Service {
    * Get all pools ranked by APY (desc), with category for display.
    * Use for "Rank | Pair | APY | TVL | Table/note" view.
    */
-  getAllPoolsRankedByApy(limit: number = 25): Array<MeteoraPool & { category: "topTvl" | "meme" }> {
+  getAllPoolsRankedByApy(
+    limit: number = 25,
+  ): Array<MeteoraPool & { category: "topTvl" | "meme" }> {
     const topTvlSet = new Set(this.topPools.slice(0, 10).map((p) => p.address));
     const memeSet = new Set(
       this.getMemePoolOpportunities().map((p) => p.address),
@@ -320,11 +331,11 @@ export class VinceMeteoraService extends Service {
 
     const withCategory = this.allPools.map((p) => ({
       ...p,
-      category: (memeSet.has(p.address) ? "meme" : "topTvl") as "topTvl" | "meme",
+      category: (memeSet.has(p.address) ? "meme" : "topTvl") as
+        | "topTvl"
+        | "meme",
     }));
 
-    return withCategory
-      .sort((a, b) => b.apy - a.apy)
-      .slice(0, limit);
+    return withCategory.sort((a, b) => b.apy - a.apy).slice(0, limit);
   }
 }

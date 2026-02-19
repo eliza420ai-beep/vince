@@ -12,9 +12,17 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
-import { MON_TUE_CLOSED_LINE, PAST_LUNCH_INSTRUCTION, NEVER_INVENT_LINE } from "../constants/safety";
+import {
+  MON_TUE_CLOSED_LINE,
+  PAST_LUNCH_INSTRUCTION,
+  NEVER_INVENT_LINE,
+} from "../constants/safety";
 import { getVoiceAvoidPromptFragment } from "../constants/voice";
-import { loadPlacesAllowlist, allNamesOnAllowlist, extractRecommendationNames } from "../utils/recommendationGuards";
+import {
+  loadPlacesAllowlist,
+  allNamesOnAllowlist,
+  extractRecommendationNames,
+} from "../utils/recommendationGuards";
 
 type PlaceType = "hotel" | "restaurant";
 
@@ -106,7 +114,10 @@ export const kellyRecommendPlaceAction: Action = {
   description:
     "Recommend exactly one best pick and one alternative for a hotel or restaurant in a given place, using only the-good-life knowledge.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
       (text.includes("recommend") &&
@@ -148,7 +159,9 @@ export const kellyRecommendPlaceAction: Action = {
       if (
         !inDefaultRegion &&
         knowledgeSnippet.length < 200 &&
-        !knowledgeSnippet.toLowerCase().includes(placeQuery.toLowerCase().slice(0, 15))
+        !knowledgeSnippet
+          .toLowerCase()
+          .includes(placeQuery.toLowerCase().slice(0, 15))
       ) {
         await callback({
           text: `I don't have enough in the-good-life for **${placeQuery}**. Check MICHELIN Guide or James Edition for more options—I only recommend from my curated knowledge.`,
@@ -170,7 +183,9 @@ export const kellyRecommendPlaceAction: Action = {
       const lifestyleService = runtime.getService(
         "KELLY_LIFESTYLE_SERVICE",
       ) as KellyLifestyleService | null;
-      const requestedDay = state.values?.kellyRequestedDay as string | undefined;
+      const requestedDay = state.values?.kellyRequestedDay as
+        | string
+        | undefined;
       if (applyOpenTodayFilter && lifestyleService) {
         const dayOverride = requestedDay
           ? (requestedDay.toLowerCase() as
@@ -219,10 +234,9 @@ export const kellyRecommendPlaceAction: Action = {
         (typeLabel === "restaurant" && isGenericPlace
           ? " For restaurant when no city is given, use landes-locals and curated-open-schedule (restaurants open today); prefer Landes and Basque coast. Only suggest places within 2h of home."
           : "");
-      const defaultRegionHint =
-        inDefaultRegion
-          ? `\n**We have the-good-life content for ${placeQuery}** (michelin-restaurants, luxury-hotels, landes-locals). Use the context below; recommend one best pick and one alternative. Only say "I don't have a curated pick" if the context truly contains no ${typeLabel} names for this place.\n\n`
-          : "";
+      const defaultRegionHint = inDefaultRegion
+        ? `\n**We have the-good-life content for ${placeQuery}** (michelin-restaurants, luxury-hotels, landes-locals). Use the context below; recommend one best pick and one alternative. Only say "I don't have a curated pick" if the context truly contains no ${typeLabel} names for this place.\n\n`
+        : "";
       const prompt = `You are Kelly, a concierge. The user wants a ${typeLabel} recommendation in or near: **${placeQuery}**.
 
 ${openTodayBlock}${regionHint ? regionHint + "\n\n" : ""}${defaultRegionHint}
@@ -247,12 +261,15 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock
       if (!text) {
         logger.debug("[KELLY_RECOMMEND_PLACE] Used fallback (empty response)");
       }
-      const reqDay = (requestedDay ?? state.values?.kellyRequestedDay) as string | undefined;
+      const reqDay = (requestedDay ?? state.values?.kellyRequestedDay) as
+        | string
+        | undefined;
       if (reqDay) {
         const reqDayLower = reqDay.toString().toLowerCase();
         if (
           (reqDayLower === "monday" || reqDayLower === "tuesday") &&
-          (text.includes("Relais de la Poste") || text.includes("Côté Quillier"))
+          (text.includes("Relais de la Poste") ||
+            text.includes("Côté Quillier"))
         ) {
           text =
             text +
@@ -261,8 +278,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock
       }
 
       const allowlist = loadPlacesAllowlist();
-      if (text && allowlist.length > 0 && !allNamesOnAllowlist(text, allowlist)) {
-        logger.debug("[KELLY_RECOMMEND_PLACE] Response guard: replacing off-allowlist names with fallback");
+      if (
+        text &&
+        allowlist.length > 0 &&
+        !allNamesOnAllowlist(text, allowlist)
+      ) {
+        logger.debug(
+          "[KELLY_RECOMMEND_PLACE] Response guard: replacing off-allowlist names with fallback",
+        );
         text = `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`;
       }
 

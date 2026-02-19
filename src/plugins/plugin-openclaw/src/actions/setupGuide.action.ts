@@ -83,12 +83,23 @@ To run Eliza plugins *inside* an OpenClaw agent (e.g. wallet, Solana, EVM):
 
 export const openclawSetupGuideAction: Action = {
   name: "OPENCLAW_SETUP_GUIDE",
-  similes: ["OPENCLAW_GUIDE", "OPENCLAW_SETUP", "OPENCLAW_INSTALL", "GATEWAY_SETUP"],
+  similes: [
+    "OPENCLAW_GUIDE",
+    "OPENCLAW_SETUP",
+    "OPENCLAW_INSTALL",
+    "GATEWAY_SETUP",
+  ],
   description:
     "Return OpenClaw setup guide from docs.openclaw.ai and OPENCLAW_ADAPTER.md (install, onboard, gateway, security, plugin env). Use when the user asks how to set up OpenClaw, install OpenClaw, or configure the gateway.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /openclaw\s+setup/i.test(text) ||
       /(how\s+to\s+)?(set\s+up|install|configure)\s+openclaw/i.test(text) ||
@@ -107,7 +118,8 @@ export const openclawSetupGuideAction: Action = {
   ): Promise<ActionResult> => {
     const intro = "Here's how to get OpenClaw running—";
     const out = intro + "\n\n" + OPENCLAW_SETUP_GUIDE_MD;
-    if (callback) await callback({ text: out, actions: ["OPENCLAW_SETUP_GUIDE"] });
+    if (callback)
+      await callback({ text: out, actions: ["OPENCLAW_SETUP_GUIDE"] });
     return { success: true, text: out };
   },
   examples: [

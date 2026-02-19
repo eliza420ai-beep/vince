@@ -17,7 +17,9 @@ export interface KellyHealthResult {
 /**
  * Simple health check: service exists and getCuratedOpenContext returns non-null (or at least service is ready).
  */
-export async function getKellyHealth(runtime: IAgentRuntime): Promise<KellyHealthResult> {
+export async function getKellyHealth(
+  runtime: IAgentRuntime,
+): Promise<KellyHealthResult> {
   const service = runtime.getService(
     "KELLY_LIFESTYLE_SERVICE",
   ) as KellyLifestyleService | null;

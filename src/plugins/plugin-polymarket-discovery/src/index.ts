@@ -62,7 +62,10 @@ import { polymarketDiscoveryProvider } from "./providers/polymarketDiscovery.pro
 import { buildPriorityMarketsHandler } from "./routes/priorityMarkets";
 
 // Context Matcher
-export { shouldPolymarketPluginBeInContext, polymarketKeywordPatterns } from "../matcher";
+export {
+  shouldPolymarketPluginBeInContext,
+  polymarketKeywordPatterns,
+} from "../matcher";
 
 // Types
 export type * from "./types";

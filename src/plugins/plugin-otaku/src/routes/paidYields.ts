@@ -88,8 +88,10 @@ async function handleYields(
         const filtered = pools
           .filter((p: any) => {
             if (p.apy < minApyNum) return false;
-            if (chainFilter && p.chain?.toLowerCase() !== chainFilter) return false;
-            if (tokenFilter && !p.symbol?.toUpperCase().includes(tokenFilter)) return false;
+            if (chainFilter && p.chain?.toLowerCase() !== chainFilter)
+              return false;
+            if (tokenFilter && !p.symbol?.toUpperCase().includes(tokenFilter))
+              return false;
             if (p.tvlUsd < 100000) return false; // Min $100k TVL
             return true;
           })
@@ -101,7 +103,12 @@ async function handleYields(
             chain: p.chain,
             apy: Math.round(p.apy * 100) / 100,
             tvl: Math.round(p.tvlUsd),
-            risk: p.ilRisk === "no" && p.apy < 20 ? "low" : p.apy > 50 ? "high" : "medium",
+            risk:
+              p.ilRisk === "no" && p.apy < 20
+                ? "low"
+                : p.apy > 50
+                  ? "high"
+                  : "medium",
             url: p.url,
           }));
 
@@ -122,7 +129,8 @@ async function handleYields(
         const morphoYields = markets
           .filter((m: any) => {
             if (m.supplyApy < minApyNum) return false;
-            if (tokenFilter && m.loanAsset?.toUpperCase() !== tokenFilter) return false;
+            if (tokenFilter && m.loanAsset?.toUpperCase() !== tokenFilter)
+              return false;
             return true;
           })
           .slice(0, 10)

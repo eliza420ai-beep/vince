@@ -49,7 +49,10 @@ function mockRuntime(overrides?: {
 }
 
 function mockMessage(): Memory {
-  return { entityId: "user-1", content: { text: "What's our latest Substack post?" } } as Memory;
+  return {
+    entityId: "user-1",
+    content: { text: "What's our latest Substack post?" },
+  } as Memory;
 }
 
 describe("SubstackContextProvider", () => {
@@ -69,7 +72,10 @@ describe("SubstackContextProvider", () => {
     globalThis.fetch = async (url: string | URL) => {
       const u = typeof url === "string" ? url : url.toString();
       if (u.includes("substack.com/feed")) {
-        return new Response(SAMPLE_RSS, { status: 200, headers: { "Content-Type": "application/xml" } });
+        return new Response(SAMPLE_RSS, {
+          status: 200,
+          headers: { "Content-Type": "application/xml" },
+        });
       }
       return new Response("", { status: 404 });
     };
@@ -89,7 +95,10 @@ describe("SubstackContextProvider", () => {
     expect(typeof result.text).toBe("string");
     expect(result.values).toBeDefined();
     expect(Array.isArray(result.values?.substackRecentPosts)).toBe(true);
-    const posts = result.values?.substackRecentPosts as { title: string; link: string }[];
+    const posts = result.values?.substackRecentPosts as {
+      title: string;
+      link: string;
+    }[];
     expect(posts.length).toBeGreaterThanOrEqual(1);
     expect(posts[0].title).toBe("Test Post One");
     expect(posts[0].link).toContain("ikigaistudio.substack.com");
@@ -164,7 +173,10 @@ describe("SubstackContextProvider", () => {
     expect(result).toBeDefined();
     expect(result.text).toContain("Substack profile");
     expect(result.values?.substackProfile).toBeDefined();
-    const profile = result.values?.substackProfile as { identityHandle?: string; followerCount?: number };
+    const profile = result.values?.substackProfile as {
+      identityHandle?: string;
+      followerCount?: number;
+    };
     expect(profile?.identityHandle).toBe("ikigaistudio");
     expect(profile?.followerCount).toBe(1000);
   });

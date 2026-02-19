@@ -2,4 +2,8 @@
  * Bankr Providers
  */
 
-export { bankrProvider, getBankrData, type BankrProviderData } from './bankr.provider';
+export {
+  bankrProvider,
+  getBankrData,
+  type BankrProviderData,
+} from "./bankr.provider";

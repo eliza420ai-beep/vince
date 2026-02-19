@@ -33,7 +33,10 @@ export const sentinelArtGemsAction: Action = {
   description:
     "Lists 3–5 concrete gems (pattern or file) from elizaOS/examples, especially art, with 'we could use for X here'. Uses knowledge elizaOS/examples/art if ingested; optional web search.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsArtGems(text);
   },
@@ -60,8 +63,10 @@ Context:\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
-      const out = "Here are concrete gems from elizaOS examples we could use here—\n\n" + text.trim();
+          : ((response as { text?: string })?.text ?? String(response));
+      const out =
+        "Here are concrete gems from elizaOS examples we could use here—\n\n" +
+        text.trim();
       await callback({ text: out });
       return { success: true };
     } catch (error) {
@@ -69,13 +74,19 @@ Context:\n${contextBlock}`;
       await callback({
         text: "Art gems (elizaOS/examples/art): 1) Check the art folder for NFT/generative patterns. 2) Reuse action/provider structure for our ART lane. 3) Ingest examples/art into knowledge for concrete file refs. Refs: github.com/elizaOS/examples, internal-docs.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "What can we take from elizaOS examples art?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What can we take from elizaOS examples art?" },
+      },
       {
         name: "{{agent}}",
         content: {

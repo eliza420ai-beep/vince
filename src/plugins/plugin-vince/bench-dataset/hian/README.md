@@ -3,6 +3,7 @@
 Signal-extraction challenges for VinceBench: given noisy market context, the agent must extract the correct trading decision and produce the required signatures.
 
 Each case has:
+
 - **id**: Unique scenario ID
 - **description**: Human-readable scenario summary
 - **context**: Market/session/signal snapshot (noisy inputs)

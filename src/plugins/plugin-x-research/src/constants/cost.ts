@@ -11,7 +11,7 @@ export const COST_PER_USER_LOOKUP_EST_USD = 0.01;
 
 export function formatCostFooter(postsRead: number): string {
   const est = postsRead * COST_PER_POST_EST_USD;
-  const formatted = est < 0.01 ? '<$0.01' : `$${est.toFixed(2)}`;
+  const formatted = est < 0.01 ? "<$0.01" : `$${est.toFixed(2)}`;
   return `_Est. X API: ~${formatted} (${postsRead} posts)_`;
 }
 
@@ -28,9 +28,9 @@ export function formatCostFooterCombined(breakdown: CostBreakdown): string {
   const users = breakdown.userLookups ?? 0;
   const total =
     posts * COST_PER_POST_EST_USD + users * COST_PER_USER_LOOKUP_EST_USD;
-  const formatted = total < 0.01 ? '<$0.01' : `$${total.toFixed(2)}`;
+  const formatted = total < 0.01 ? "<$0.01" : `$${total.toFixed(2)}`;
   const parts: string[] = [];
   if (posts > 0) parts.push(`${posts} posts`);
   if (users > 0) parts.push(`${users} user lookups`);
-  return `_Est. X API: ~${formatted} (${parts.join(', ')})_`;
+  return `_Est. X API: ~${formatted} (${parts.join(", ")})_`;
 }

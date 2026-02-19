@@ -1,6 +1,6 @@
 /**
  * X Search Service
- * 
+ *
  * High-level search operations:
  * - Topic-based searches
  * - Quality filtering
@@ -8,16 +8,20 @@
  * - Volume spike detection
  */
 
-import { getXClient, XClientService } from './xClient.service';
-import type { XTweet, XSearchResponse, XCountsResponse } from '../types/tweet.types';
-import type { VolumeSpike } from '../types/analysis.types';
-import { ALL_TOPICS, TOPIC_BY_ID, type Topic } from '../constants/topics';
-import { getAccountTier } from '../constants/qualityAccounts';
+import { getXClient, XClientService } from "./xClient.service";
+import type {
+  XTweet,
+  XSearchResponse,
+  XCountsResponse,
+} from "../types/tweet.types";
+import type { VolumeSpike } from "../types/analysis.types";
+import { ALL_TOPICS, TOPIC_BY_ID, type Topic } from "../constants/topics";
+import { getAccountTier } from "../constants/qualityAccounts";
 
 export interface TopicSearchOptions {
   maxResults?: number;
   minLikes?: number;
-  sortOrder?: 'recency' | 'relevancy';
+  sortOrder?: "recency" | "relevancy";
   excludeRetweets?: boolean;
   excludeReplies?: boolean;
   hoursBack?: number;
@@ -40,7 +44,7 @@ export interface FreeFormSearchOptions {
   query: string;
   /** Optional: restrict to tweets from this username (without @). */
   from?: string;
-  sortOrder?: 'recency' | 'relevancy';
+  sortOrder?: "recency" | "relevancy";
   maxResults?: number;
   /** Max pages to fetch (1 page ≈ 100 tweets). Use >1 for deeper research. */
   maxPages?: number;
@@ -64,7 +68,10 @@ export class XSearchService {
   /**
    * Search for a specific topic
    */
-  async searchTopic(topicId: string, options: TopicSearchOptions = {}): Promise<XTweet[]> {
+  async searchTopic(
+    topicId: string,
+    options: TopicSearchOptions = {},
+  ): Promise<XTweet[]> {
     const topic = TOPIC_BY_ID[topicId];
     if (!topic) {
       throw new Error(`Unknown topic: ${topicId}`);
@@ -73,17 +80,23 @@ export class XSearchService {
     const {
       maxResults = 100,
       minLikes = 0,
-      sortOrder = 'relevancy',
+      sortOrder = "relevancy",
       excludeRetweets = true,
       excludeReplies = true,
       hoursBack = 24,
     } = options;
 
     // Build query
-    const query = this.buildTopicQuery(topic, { excludeRetweets, excludeReplies, minLikes });
+    const query = this.buildTopicQuery(topic, {
+      excludeRetweets,
+      excludeReplies,
+      minLikes,
+    });
 
     // Calculate time range
-    const startTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString();
+    const startTime = new Date(
+      Date.now() - hoursBack * 60 * 60 * 1000,
+    ).toISOString();
 
     const response = await this.client.searchRecent(query, {
       maxResults,
@@ -105,7 +118,7 @@ export class XSearchService {
     const {
       query: rawQuery,
       from,
-      sortOrder = 'relevancy',
+      sortOrder = "relevancy",
       maxResults = 50,
       maxPages = 1,
       minLikes = 0,
@@ -115,14 +128,16 @@ export class XSearchService {
 
     let query = rawQuery.trim();
     if (from) {
-      const username = from.replace(/^@/, '');
-      if (!query.toLowerCase().includes('from:')) {
+      const username = from.replace(/^@/, "");
+      if (!query.toLowerCase().includes("from:")) {
         query = `${query} from:${username}`;
       }
     }
-    query += ' lang:en -is:retweet -is:reply';
+    query += " lang:en -is:retweet -is:reply";
 
-    const startTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString();
+    const startTime = new Date(
+      Date.now() - hoursBack * 60 * 60 * 1000,
+    ).toISOString();
     const perPage = Math.min(maxResults, 100);
     const allTweets: XTweet[] = [];
     let nextToken: string | undefined;
@@ -149,9 +164,13 @@ export class XSearchService {
   /**
    * Search multiple topics at once
    */
-  async searchMultipleTopics(options: MultiSearchOptions = {}): Promise<Map<string, XTweet[]>> {
+  async searchMultipleTopics(
+    options: MultiSearchOptions = {},
+  ): Promise<Map<string, XTweet[]>> {
     const {
-      topicsIds: rawTopicsIds = ALL_TOPICS.filter(t => t.priority === 'high').map(t => t.id),
+      topicsIds: rawTopicsIds = ALL_TOPICS.filter(
+        (t) => t.priority === "high",
+      ).map((t) => t.id),
       maxResultsPerTopic: rawMaxResults = 50,
       deduplicateAcrossTopics = true,
       quick = false,
@@ -168,7 +187,7 @@ export class XSearchService {
     const batchSize = 3;
     for (let i = 0; i < topicsIds.length; i += batchSize) {
       const batch = topicsIds.slice(i, i + batchSize);
-      
+
       const batchResults = await Promise.all(
         batch.map(async (topicId) => {
           try {
@@ -182,15 +201,15 @@ export class XSearchService {
             console.error(`[xSearch] Error searching ${topicId}:`, error);
             return { topicId, tweets: [] };
           }
-        })
+        }),
       );
 
       for (const { topicId, tweets } of batchResults) {
         let filtered = tweets;
-        
+
         if (deduplicateAcrossTopics) {
-          filtered = tweets.filter(t => !seenIds.has(t.id));
-          filtered.forEach(t => seenIds.add(t.id));
+          filtered = tweets.filter((t) => !seenIds.has(t.id));
+          filtered.forEach((t) => seenIds.add(t.id));
         }
 
         results.set(topicId, filtered);
@@ -198,7 +217,7 @@ export class XSearchService {
 
       // Small delay between batches to respect rate limits
       if (i + batchSize < topicsIds.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
@@ -208,7 +227,9 @@ export class XSearchService {
   /**
    * Get top engaging tweets across all topics
    */
-  async getTopEngaging(options: { limit?: number; hoursBack?: number } = {}): Promise<XTweet[]> {
+  async getTopEngaging(
+    options: { limit?: number; hoursBack?: number } = {},
+  ): Promise<XTweet[]> {
     const { limit = 20, hoursBack = 24 } = options;
 
     const topicResults = await this.searchMultipleTopics({
@@ -218,7 +239,7 @@ export class XSearchService {
 
     // Flatten and sort by engagement
     const allTweets = Array.from(topicResults.values()).flat();
-    
+
     return allTweets
       .sort((a, b) => {
         const aScore = this.engagementScore(a);
@@ -232,23 +253,28 @@ export class XSearchService {
    * Detect volume spikes for topics
    */
   async detectVolumeSpikes(topicIds?: string[]): Promise<VolumeSpike[]> {
-    const topics = topicIds 
-      ? topicIds.map(id => TOPIC_BY_ID[id]).filter(Boolean) as Topic[]
-      : ALL_TOPICS.filter(t => t.priority === 'high');
+    const topics = topicIds
+      ? (topicIds.map((id) => TOPIC_BY_ID[id]).filter(Boolean) as Topic[])
+      : ALL_TOPICS.filter((t) => t.priority === "high");
 
     const spikes: VolumeSpike[] = [];
 
     for (const topic of topics) {
       try {
         const query = topic.searchTerms[0]; // Use primary search term
-        const counts = await this.client.getCounts(query, { granularity: 'hour' });
-        
+        const counts = await this.client.getCounts(query, {
+          granularity: "hour",
+        });
+
         const spike = this.analyzeVolumeCounts(topic.id, counts);
         if (spike) {
           spikes.push(spike);
         }
       } catch (error) {
-        console.error(`[xSearch] Error checking volume for ${topic.id}:`, error);
+        console.error(
+          `[xSearch] Error checking volume for ${topic.id}:`,
+          error,
+        );
       }
     }
 
@@ -261,27 +287,35 @@ export class XSearchService {
 
   private buildTopicQuery(
     topic: Topic,
-    options: { excludeRetweets?: boolean; excludeReplies?: boolean; minLikes?: number }
+    options: {
+      excludeRetweets?: boolean;
+      excludeReplies?: boolean;
+      minLikes?: number;
+    },
   ): string {
-    const { excludeRetweets = true, excludeReplies = true, minLikes = 0 } = options;
+    const {
+      excludeRetweets = true,
+      excludeReplies = true,
+      minLikes = 0,
+    } = options;
 
     // Combine search terms with OR
     const termPart = topic.searchTerms
-      .map(t => t.includes(' ') ? `"${t}"` : t)
-      .join(' OR ');
+      .map((t) => (t.includes(" ") ? `"${t}"` : t))
+      .join(" OR ");
 
     let query = `(${termPart})`;
 
     // Add cashtags if available
     if (topic.cashtags && topic.cashtags.length > 0) {
-      const cashtagPart = topic.cashtags.map(c => `$${c}`).join(' OR ');
+      const cashtagPart = topic.cashtags.map((c) => `$${c}`).join(" OR ");
       query = `(${termPart} OR ${cashtagPart})`;
     }
 
     // Filters (min_faves is not available on all X API tiers; we filter post-fetch instead)
-    query += ' lang:en';
-    if (excludeRetweets) query += ' -is:retweet';
-    if (excludeReplies) query += ' -is:reply';
+    query += " lang:en";
+    if (excludeRetweets) query += " -is:retweet";
+    if (excludeReplies) query += " -is:reply";
 
     return query;
   }
@@ -304,9 +338,9 @@ export class XSearchService {
     }
 
     // Enrich tweets
-    return tweets.map(tweet => {
+    return tweets.map((tweet) => {
       const author = userMap.get(tweet.authorId);
-      const username = (author as any)?.username ?? '';
+      const username = (author as any)?.username ?? "";
       const tier = getAccountTier(username);
 
       // Calculate velocity (if we have created_at)
@@ -314,18 +348,21 @@ export class XSearchService {
       if (tweet.createdAt && tweet.metrics) {
         const ageMs = Date.now() - new Date(tweet.createdAt).getTime();
         const ageHours = ageMs / (1000 * 60 * 60);
-        if (ageHours > 0.1) { // At least 6 minutes old
+        if (ageHours > 0.1) {
+          // At least 6 minutes old
           velocity = tweet.metrics.likeCount / ageHours;
         }
       }
 
       return {
         ...tweet,
-        author: author as XTweet['author'],
+        author: author as XTweet["author"],
         computed: {
           velocity,
           qualityTier: tier,
-          isThread: tweet.conversationId === tweet.id && (tweet.text.includes('🧵') || tweet.text.includes('Thread')),
+          isThread:
+            tweet.conversationId === tweet.id &&
+            (tweet.text.includes("🧵") || tweet.text.includes("Thread")),
         },
       };
     });
@@ -333,23 +370,28 @@ export class XSearchService {
 
   private engagementScore(tweet: XTweet): number {
     if (!tweet.metrics) return 0;
-    
+
     const { likeCount, retweetCount, replyCount, quoteCount } = tweet.metrics;
-    
+
     // Weighted engagement score
     // Likes are common, retweets/quotes show stronger signal
-    return likeCount + (retweetCount * 3) + (quoteCount * 4) + (replyCount * 2);
+    return likeCount + retweetCount * 3 + quoteCount * 4 + replyCount * 2;
   }
 
-  private analyzeVolumeCounts(topicId: string, counts: XCountsResponse): VolumeSpike | null {
+  private analyzeVolumeCounts(
+    topicId: string,
+    counts: XCountsResponse,
+  ): VolumeSpike | null {
     if (!counts.data || counts.data.length < 6) return null;
 
     // Get recent hour vs average (safe mapping so missing/undefined tweetCount → 0)
-    const volumes = counts.data.map(d => Number(d?.tweetCount) || 0);
+    const volumes = counts.data.map((d) => Number(d?.tweetCount) || 0);
     const recentVolume = volumes[volumes.length - 1];
-    const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
+    const avgVolume =
+      volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
 
-    if (!Number.isFinite(avgVolume) || avgVolume <= 0 || avgVolume < 10) return null; // Not enough baseline or invalid
+    if (!Number.isFinite(avgVolume) || avgVolume <= 0 || avgVolume < 10)
+      return null; // Not enough baseline or invalid
 
     const spikeMultiple = recentVolume / avgVolume;
     if (!Number.isFinite(spikeMultiple) || spikeMultiple <= 0) return null;

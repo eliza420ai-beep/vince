@@ -18,7 +18,7 @@ function createMockRuntime(overrides?: {
       (key: string) =>
         getSetting?.(key) ??
         (key === "A2A_STANDUP_CHANNEL_NAMES" ? null : null) ??
-        null
+        null,
     ),
     ...overrides,
   } as unknown as IAgentRuntime;
@@ -29,7 +29,11 @@ function createMessage(overrides?: {
   text?: string;
   isBot?: boolean;
 }): Memory {
-  const { senderName = "user", text = "hello", isBot = false } = overrides ?? {};
+  const {
+    senderName = "user",
+    text = "hello",
+    isBot = false,
+  } = overrides ?? {};
   return {
     id: "msg-1" as any,
     entityId: "entity-1" as any,

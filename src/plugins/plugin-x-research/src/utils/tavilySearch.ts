@@ -4,17 +4,18 @@
  * Same pattern as plugin-vince/src/utils/webSearch.ts.
  */
 
-import type { IAgentRuntime } from '@elizaos/core';
-import { logger } from '@elizaos/core';
+import type { IAgentRuntime } from "@elizaos/core";
+import { logger } from "@elizaos/core";
 
-const TAVILY_SEARCH_URL = 'https://api.tavily.com/search';
+const TAVILY_SEARCH_URL = "https://api.tavily.com/search";
 const DEFAULT_MAX_SNIPPETS = 3;
 
 function getTavilyApiKey(runtime?: IAgentRuntime): string | null {
-  const fromRuntime = runtime?.getSetting?.('TAVILY_API_KEY');
-  if (typeof fromRuntime === 'string' && fromRuntime.trim()) return fromRuntime.trim();
+  const fromRuntime = runtime?.getSetting?.("TAVILY_API_KEY");
+  if (typeof fromRuntime === "string" && fromRuntime.trim())
+    return fromRuntime.trim();
   const fromEnv = process.env.TAVILY_API_KEY;
-  if (typeof fromEnv === 'string' && fromEnv.trim()) return fromEnv.trim();
+  if (typeof fromEnv === "string" && fromEnv.trim()) return fromEnv.trim();
   return null;
 }
 
@@ -36,7 +37,7 @@ interface TavilyResponse {
 export async function tavilySearch(
   query: string,
   runtime?: IAgentRuntime,
-  maxResults: number = DEFAULT_MAX_SNIPPETS
+  maxResults: number = DEFAULT_MAX_SNIPPETS,
 ): Promise<string[]> {
   const apiKey = getTavilyApiKey(runtime);
   if (!apiKey) return [];
@@ -44,21 +45,24 @@ export async function tavilySearch(
   const limit = Math.min(Math.max(1, maxResults), 5);
   try {
     const res = await fetch(TAVILY_SEARCH_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         query,
         max_results: limit,
-        search_depth: 'basic',
+        search_depth: "basic",
         include_answer: false,
       }),
     });
 
     if (!res.ok) {
-      logger.warn({ status: res.status, query }, 'Tavily search request failed');
+      logger.warn(
+        { status: res.status, query },
+        "Tavily search request failed",
+      );
       return [];
     }
 
@@ -73,7 +77,7 @@ export async function tavilySearch(
     }
     return snippets;
   } catch (err) {
-    logger.warn({ err, query }, 'Tavily search error');
+    logger.warn({ err, query }, "Tavily search error");
     return [];
   }
 }

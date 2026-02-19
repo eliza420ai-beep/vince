@@ -15,12 +15,15 @@ The team's reading the market like a poker player with a decent hand but no clea
 **TL;DR:** BTC neutral with bullish sentiment extremes — sell premium, don't chase.
 
 ### Actions (max 3, each with @Owner)
+
 1. **BTC Covered Call** — @Solus — Sell $68,500 strike, Friday expiry, invalidation $67,000
 2. **CT Sentiment Monitor** — @ECHO — Watch for sentiment reversal signals above +70
 3. **Data Feed Initialization** — @VINCE — Complete Hyperliquid API setup for live signals
 
 ### Risks
+
 Bullish sentiment at extremes could trigger sharp reversal.
 
 ---
-*Ship it.*
+
+_Ship it._

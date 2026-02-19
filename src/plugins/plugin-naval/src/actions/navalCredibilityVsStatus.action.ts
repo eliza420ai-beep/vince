@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "credibility vs status",
@@ -46,7 +50,10 @@ export const navalCredibilityVsStatusAction: Action = {
   description:
     "Audit last 6 months: credibility (delivered, accountable) vs status (hierarchy, optics). What to kill, what to double down on.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsCredibility(text);
   },
@@ -81,7 +88,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -89,14 +96,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Credibility = trust from delivering. Status = position in a hierarchy. Kill what's only status. Double down on what builds credibility and would matter in 5 years.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Credibility vs status audit. Last 6 months: promoted to lead, shipped 2 features, started a newsletter, lots of LinkedIn." } },
-      { name: "{{agent}}", content: { text: "Lead title = status. Shipped features = credibility. Newsletter = credibility if you keep delivering. LinkedIn = status unless it's proof of work. Kill: LinkedIn theater. Double down: ship, newsletter with real takes." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Credibility vs status audit. Last 6 months: promoted to lead, shipped 2 features, started a newsletter, lots of LinkedIn.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Lead title = status. Shipped features = credibility. Newsletter = credibility if you keep delivering. LinkedIn = status unless it's proof of work. Kill: LinkedIn theater. Double down: ship, newsletter with real takes.",
+        },
+      },
     ],
   ],
 };

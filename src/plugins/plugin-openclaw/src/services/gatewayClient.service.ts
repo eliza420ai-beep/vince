@@ -79,10 +79,18 @@ async function fetchHealthOnce(
   url: string,
   headers: Record<string, string>,
 ): Promise<GatewayHealthResult> {
-  const res = await fetch(url, { method: "GET", headers, signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) });
+  const res = await fetch(url, {
+    method: "GET",
+    headers,
+    signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+  });
   if (res.ok) return { ok: true, status: "ok", message: "Gateway reachable." };
   const text = await res.text();
-  return { ok: false, status: "error", message: `Gateway returned ${res.status}: ${text.slice(0, 200)}` };
+  return {
+    ok: false,
+    status: "error",
+    message: `Gateway returned ${res.status}: ${text.slice(0, 200)}`,
+  };
 }
 
 /**
@@ -106,11 +114,14 @@ export async function getHealth(): Promise<GatewayHealthResult> {
           "OPENCLAW_GATEWAY_URL points to a remote host. For security, the plugin refuses to connect unless OPENCLAW_ALLOW_REMOTE_GATEWAY=true. Prefer loopback (http://127.0.0.1:18789).",
       };
     }
-    logger?.warn?.({ url: base }, "Connecting to remote OpenClaw Gateway (OPENCLAW_ALLOW_REMOTE_GATEWAY=true).");
+    logger?.warn?.(
+      { url: base },
+      "Connecting to remote OpenClaw Gateway (OPENCLAW_ALLOW_REMOTE_GATEWAY=true).",
+    );
   }
   const token = getToken();
   const headers: Record<string, string> = {
-    "Accept": "application/json, text/plain, */*",
+    Accept: "application/json, text/plain, */*",
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -123,7 +134,10 @@ export async function getHealth(): Promise<GatewayHealthResult> {
         return await fetchHealthOnce(url, headers);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        logger?.debug?.({ err, url, attempt }, "OpenClaw Gateway health fetch failed");
+        logger?.debug?.(
+          { err, url, attempt },
+          "OpenClaw Gateway health fetch failed",
+        );
         if (url === endpoints[endpoints.length - 1] && attempt === 0) {
           await new Promise((r) => setTimeout(r, HEALTH_RETRY_DELAY_MS));
         } else if (url === endpoints[endpoints.length - 1]) {
@@ -132,7 +146,11 @@ export async function getHealth(): Promise<GatewayHealthResult> {
       }
     }
   }
-  return { ok: false, status: "unreachable", message: "Gateway did not respond." };
+  return {
+    ok: false,
+    status: "unreachable",
+    message: "Gateway did not respond.",
+  };
 }
 
 /**
@@ -144,7 +162,9 @@ export async function getStatus(): Promise<GatewayStatusResult> {
     return { ok: true, status: health.status, message: health.message };
   }
   try {
-    const { stdout } = await execAsync("openclaw gateway status", { timeout: 5000 });
+    const { stdout } = await execAsync("openclaw gateway status", {
+      timeout: 5000,
+    });
     const details = stdout?.trim().slice(0, 500);
     return {
       ok: false,
@@ -161,10 +181,17 @@ export async function getStatus(): Promise<GatewayStatusResult> {
  * Run an agent via CLI: openclaw agent --message "..." [--agent <id>].
  * Prefer CLI for minimal dependency on Gateway protocol.
  */
-export async function runAgent(task: string, agentId?: string): Promise<RunAgentResult> {
+export async function runAgent(
+  task: string,
+  agentId?: string,
+): Promise<RunAgentResult> {
   const args = ["agent", "--message", task];
   if (agentId) args.push("--agent", agentId);
-  const cmd = "openclaw " + args.map((a) => (a.includes(" ") ? `"${a.replace(/"/g, '\\"')}"` : a)).join(" ");
+  const cmd =
+    "openclaw " +
+    args
+      .map((a) => (a.includes(" ") ? `"${a.replace(/"/g, '\\"')}"` : a))
+      .join(" ");
   try {
     const { stdout, stderr } = await execAsync(cmd, {
       timeout: GATEWAY_CLI_TIMEOUT_MS,

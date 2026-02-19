@@ -16,14 +16,14 @@ import {
   Service,
   type UUID,
   type WorldPayload,
-} from '@elizaos/core';
+} from "@elizaos/core";
 
-import * as evaluators from './evaluators/index.js';
-import * as providers from './providers/index.js';
+import * as evaluators from "./evaluators/index.js";
+import * as providers from "./providers/index.js";
 
-import { TaskService } from './services/task.js';
-import { EmbeddingGenerationService } from './services/embedding.js';
-import { OtakuMessageService } from './services/otaku-message-service.js';
+import { TaskService } from "./services/task.js";
+import { EmbeddingGenerationService } from "./services/embedding.js";
+import { OtakuMessageService } from "./services/otaku-message-service.js";
 
 // Export the message service for external use
 export { OtakuMessageService };
@@ -49,15 +49,19 @@ const syncSingleUser = async (
   serverId: string,
   channelId: string,
   type: ChannelType,
-  source: string
+  source: string,
 ) => {
   try {
     const entity = await runtime.getEntityById(entityId);
-    runtime.logger.info(`[Bootstrap] Syncing user: ${entity?.metadata?.username || entityId}`);
+    runtime.logger.info(
+      `[Bootstrap] Syncing user: ${entity?.metadata?.username || entityId}`,
+    );
 
     // Ensure we're not using WORLD type and that we have a valid channelId
     if (!channelId) {
-      runtime.logger.warn(`[Bootstrap] Cannot sync user ${entity?.id} without a valid channelId`);
+      runtime.logger.warn(
+        `[Bootstrap] Cannot sync user ${entity?.id} without a valid channelId`,
+      );
       return;
     }
 
@@ -79,15 +83,15 @@ const syncSingleUser = async (
         : undefined;
 
     runtime.logger.info(
-      `[Bootstrap] syncSingleUser - type: ${type}, isDM: ${type === ChannelType.DM}, worldMetadata: ${JSON.stringify(worldMetadata)}`
+      `[Bootstrap] syncSingleUser - type: ${type}, isDM: ${type === ChannelType.DM}, worldMetadata: ${JSON.stringify(worldMetadata)}`,
     );
 
     await runtime.ensureConnection({
       entityId,
       roomId,
-      name: (entity?.metadata?.name || entity?.metadata?.username || `User${entityId}`) as
-        | undefined
-        | string,
+      name: (entity?.metadata?.name ||
+        entity?.metadata?.username ||
+        `User${entityId}`) as undefined | string,
       source,
       channelId,
       type,
@@ -99,16 +103,20 @@ const syncSingleUser = async (
     try {
       const createdWorld = await runtime.getWorld(worldId);
       runtime.logger.info(
-        `[Bootstrap] Created world check - ID: ${worldId}, metadata: ${JSON.stringify(createdWorld?.metadata)}`
+        `[Bootstrap] Created world check - ID: ${worldId}, metadata: ${JSON.stringify(createdWorld?.metadata)}`,
       );
     } catch (error) {
-      runtime.logger.error(`[Bootstrap] Failed to verify created world: ${error}`);
+      runtime.logger.error(
+        `[Bootstrap] Failed to verify created world: ${error}`,
+      );
     }
 
-    runtime.logger.success(`[Bootstrap] Successfully synced user: ${entity?.id}`);
+    runtime.logger.success(
+      `[Bootstrap] Successfully synced user: ${entity?.id}`,
+    );
   } catch (error) {
     runtime.logger.error(
-      `[Bootstrap] Error syncing user: ${error instanceof Error ? error.message : String(error)}`
+      `[Bootstrap] Error syncing user: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 };
@@ -124,14 +132,18 @@ const handleServerSync = async ({
   source,
   onComplete,
 }: WorldPayload) => {
-  runtime.logger.debug(`[Bootstrap] Handling server sync event for server: ${world.name}`);
+  runtime.logger.debug(
+    `[Bootstrap] Handling server sync event for server: ${world.name}`,
+  );
   try {
     await runtime.ensureConnections(entities, rooms, source, world);
-    runtime.logger.debug(`Successfully synced standardized world structure for ${world.name}`);
+    runtime.logger.debug(
+      `Successfully synced standardized world structure for ${world.name}`,
+    );
     onComplete?.();
   } catch (error) {
     runtime.logger.error(
-      `Error processing standardized server data: ${error instanceof Error ? error.message : String(error)}`
+      `Error processing standardized server data: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 };
@@ -153,25 +165,28 @@ const controlMessageHandler = async ({
 }) => {
   try {
     runtime.logger.debug(
-      `[controlMessageHandler] Processing control message: ${message.payload.action} for room ${message.roomId}`
+      `[controlMessageHandler] Processing control message: ${message.payload.action} for room ${message.roomId}`,
     );
 
     // Here we would use a WebSocket service to send the control message to the frontend
     // This would typically be handled by a registered service with sendMessage capability
 
     // Get any registered WebSocket service
-    const serviceNames = Array.from(runtime.getAllServices().keys()) as string[];
+    const serviceNames = Array.from(
+      runtime.getAllServices().keys(),
+    ) as string[];
     const websocketServiceName = serviceNames.find(
       (name: string) =>
-        name.toLowerCase().includes('websocket') || name.toLowerCase().includes('socket')
+        name.toLowerCase().includes("websocket") ||
+        name.toLowerCase().includes("socket"),
     );
 
     if (websocketServiceName) {
       const websocketService = runtime.getService(websocketServiceName);
-      if (websocketService && 'sendMessage' in websocketService) {
+      if (websocketService && "sendMessage" in websocketService) {
         // Send the control message through the WebSocket service
         await (websocketService as any).sendMessage({
-          type: 'controlMessage',
+          type: "controlMessage",
           payload: {
             action: message.payload.action,
             target: message.payload.target,
@@ -180,30 +195,32 @@ const controlMessageHandler = async ({
         });
 
         runtime.logger.debug(
-          `[controlMessageHandler] Control message ${message.payload.action} sent successfully`
+          `[controlMessageHandler] Control message ${message.payload.action} sent successfully`,
         );
       } else {
         runtime.logger.error(
-          '[controlMessageHandler] WebSocket service does not have sendMessage method'
+          "[controlMessageHandler] WebSocket service does not have sendMessage method",
         );
       }
     } else {
       runtime.logger.error(
-        '[controlMessageHandler] No WebSocket service found to send control message'
+        "[controlMessageHandler] No WebSocket service found to send control message",
       );
     }
   } catch (error) {
-    runtime.logger.error(`[controlMessageHandler] Error processing control message: ${error}`);
+    runtime.logger.error(
+      `[controlMessageHandler] Error processing control message: ${error}`,
+    );
   }
 };
 
 /**
  * NOTE: Message handling has been migrated to service-based architecture.
- * 
+ *
  * MESSAGE_RECEIVED, VOICE_MESSAGE_RECEIVED, MESSAGE_DELETED, and CHANNEL_CLEARED
  * events are no longer handled here. Instead, the OtakuMessageService handles
  * all message processing directly via runtime.messageService.
- * 
+ *
  * This aligns with ElizaOS 1.7.0+ architecture where DefaultMessageService
  * (or custom implementations like OtakuMessageService) handle the message flow.
  */
@@ -227,19 +244,25 @@ const events: PluginEvents = {
   [EventType.ENTITY_JOINED]: [
     async (payload: EntityPayload) => {
       payload.runtime.logger.debug(
-        `[Bootstrap] ENTITY_JOINED event received for entity ${payload.entityId}`
+        `[Bootstrap] ENTITY_JOINED event received for entity ${payload.entityId}`,
       );
 
       if (!payload.worldId) {
-        payload.runtime.logger.error('[Bootstrap] No worldId provided for entity joined');
+        payload.runtime.logger.error(
+          "[Bootstrap] No worldId provided for entity joined",
+        );
         return;
       }
       if (!payload.roomId) {
-        payload.runtime.logger.error('[Bootstrap] No roomId provided for entity joined');
+        payload.runtime.logger.error(
+          "[Bootstrap] No roomId provided for entity joined",
+        );
         return;
       }
       if (!payload.metadata?.type) {
-        payload.runtime.logger.error('[Bootstrap] No type provided for entity joined');
+        payload.runtime.logger.error(
+          "[Bootstrap] No type provided for entity joined",
+        );
         return;
       }
 
@@ -249,7 +272,7 @@ const events: PluginEvents = {
         payload.worldId,
         payload.roomId,
         payload.metadata.type as ChannelType,
-        payload.source
+        payload.source,
       );
     },
   ],
@@ -262,18 +285,18 @@ const events: PluginEvents = {
         if (entity) {
           entity.metadata = {
             ...entity.metadata,
-            status: 'INACTIVE',
+            status: "INACTIVE",
             leftAt: Date.now(),
           };
           await payload.runtime.updateEntity(entity);
         }
         payload.runtime.logger.info(
-          `[Bootstrap] User ${payload.entityId} left world ${payload.worldId}`
+          `[Bootstrap] User ${payload.entityId} left world ${payload.worldId}`,
         );
       } catch (error: any) {
         payload.runtime.logger.error(
-          '[Bootstrap] Error handling user left:',
-          error instanceof Error ? error.message : String(error)
+          "[Bootstrap] Error handling user left:",
+          error instanceof Error ? error.message : String(error),
         );
       }
     },
@@ -282,13 +305,15 @@ const events: PluginEvents = {
   [EventType.ACTION_STARTED]: [
     async (payload: ActionEventPayload) => {
       try {
-        const messageBusService = payload.runtime.getService('message-bus-service') as any;
+        const messageBusService = payload.runtime.getService(
+          "message-bus-service",
+        ) as any;
         if (messageBusService) {
           await messageBusService.notifyActionStart(
             payload.roomId,
             payload.world,
             payload.content,
-            payload.messageId
+            payload.messageId,
           );
         }
       } catch (error) {
@@ -300,13 +325,15 @@ const events: PluginEvents = {
   [EventType.ACTION_COMPLETED]: [
     async (payload: ActionEventPayload) => {
       try {
-        const messageBusService = payload.runtime.getService('message-bus-service') as any;
+        const messageBusService = payload.runtime.getService(
+          "message-bus-service",
+        ) as any;
         if (messageBusService) {
           await messageBusService.notifyActionUpdate(
             payload.roomId,
             payload.world,
             payload.content,
-            payload.messageId
+            payload.messageId,
           );
         }
       } catch (error) {
@@ -318,16 +345,18 @@ const events: PluginEvents = {
   [EventType.EVALUATOR_STARTED]: [
     async (payload: EvaluatorEventPayload) => {
       logger.debug(
-        `[Bootstrap] Evaluator started: ${payload.evaluatorName} (${payload.evaluatorId})`
+        `[Bootstrap] Evaluator started: ${payload.evaluatorName} (${payload.evaluatorId})`,
       );
     },
   ],
 
   [EventType.EVALUATOR_COMPLETED]: [
     async (payload: EvaluatorEventPayload) => {
-      const status = payload.error ? `failed: ${payload.error.message}` : 'completed';
+      const status = payload.error
+        ? `failed: ${payload.error.message}`
+        : "completed";
       logger.debug(
-        `[Bootstrap] Evaluator ${status}: ${payload.evaluatorName} (${payload.evaluatorId})`
+        `[Bootstrap] Evaluator ${status}: ${payload.evaluatorName} (${payload.evaluatorId})`,
       );
     },
   ],
@@ -338,7 +367,7 @@ const events: PluginEvents = {
         await payload.runtime.log({
           entityId: payload.entityId,
           roomId: payload.roomId,
-          type: 'run_event',
+          type: "run_event",
           body: {
             runId: payload.runId,
             status: payload.status,
@@ -346,10 +375,12 @@ const events: PluginEvents = {
             roomId: payload.roomId,
             entityId: payload.entityId,
             startTime: payload.startTime,
-            source: payload.source || 'unknown',
+            source: payload.source || "unknown",
           },
         });
-        logger.debug(`[Bootstrap] Logged RUN_STARTED event for run ${payload.runId}`);
+        logger.debug(
+          `[Bootstrap] Logged RUN_STARTED event for run ${payload.runId}`,
+        );
       } catch (error) {
         logger.error(`[Bootstrap] Failed to log RUN_STARTED event: ${error}`);
       }
@@ -359,11 +390,18 @@ const events: PluginEvents = {
   [EventType.RUN_ENDED]: [
     async (payload: RunEventPayload) => {
       try {
-        const extended = payload as RunEventPayload & { usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }; estimatedTokens?: number };
+        const extended = payload as RunEventPayload & {
+          usage?: {
+            prompt_tokens?: number;
+            completion_tokens?: number;
+            total_tokens?: number;
+          };
+          estimatedTokens?: number;
+        };
         await payload.runtime.log({
           entityId: payload.entityId,
           roomId: payload.roomId,
-          type: 'run_event',
+          type: "run_event",
           body: {
             runId: payload.runId,
             status: payload.status,
@@ -374,13 +412,13 @@ const events: PluginEvents = {
             endTime: payload.endTime,
             duration: payload.duration,
             error: payload.error,
-            source: payload.source || 'unknown',
+            source: payload.source || "unknown",
             usage: extended.usage,
             estimatedTokens: extended.estimatedTokens,
           },
         });
         logger.debug(
-          `[Bootstrap] Logged RUN_ENDED event for run ${payload.runId} with status ${payload.status}`
+          `[Bootstrap] Logged RUN_ENDED event for run ${payload.runId} with status ${payload.status}`,
         );
       } catch (error) {
         logger.error(`[Bootstrap] Failed to log RUN_ENDED event: ${error}`);
@@ -391,11 +429,13 @@ const events: PluginEvents = {
   [EventType.RUN_TIMEOUT]: [
     async (payload: RunEventPayload) => {
       try {
-        const extended = payload as RunEventPayload & { estimatedTokens?: number };
+        const extended = payload as RunEventPayload & {
+          estimatedTokens?: number;
+        };
         await payload.runtime.log({
           entityId: payload.entityId,
           roomId: payload.roomId,
-          type: 'run_event',
+          type: "run_event",
           body: {
             runId: payload.runId,
             status: payload.status,
@@ -406,11 +446,13 @@ const events: PluginEvents = {
             endTime: payload.endTime,
             duration: payload.duration,
             error: payload.error,
-            source: payload.source || 'unknown',
+            source: payload.source || "unknown",
             estimatedTokens: extended.estimatedTokens,
           },
         });
-        logger.debug(`[Bootstrap] Logged RUN_TIMEOUT event for run ${payload.runId}`);
+        logger.debug(
+          `[Bootstrap] Logged RUN_TIMEOUT event for run ${payload.runId}`,
+        );
       } catch (error) {
         logger.error(`[Bootstrap] Failed to log RUN_TIMEOUT event: ${error}`);
       }
@@ -422,27 +464,32 @@ const events: PluginEvents = {
 
 /**
  * Service that installs OtakuMessageService after runtime.initialize() completes.
- * 
+ *
  * IMPORTANT: This must be a service (not plugin.init) because:
  * - Plugin.init runs during runtime.initialize()
  * - runtime.initialize() overwrites messageService with DefaultMessageService AFTER all plugins init
  * - Service.start() runs AFTER runtime.initialize() completes
- * 
+ *
  * This ensures our custom message service is the final assignment and isn't overwritten.
  */
 class MessageServiceInstaller extends Service {
-  static serviceType = 'otaku-message-installer';
-  capabilityDescription = 'Installs the custom OtakuMessageService after runtime initialization';
+  static serviceType = "otaku-message-installer";
+  capabilityDescription =
+    "Installs the custom OtakuMessageService after runtime initialization";
 
   static async start(runtime: IAgentRuntime): Promise<Service> {
     const service = new MessageServiceInstaller(runtime);
-    
+
     // Replace DefaultMessageService with our custom implementation
     // This runs AFTER runtime.initialize() so it won't be overwritten
-    runtime.logger.info('[Bootstrap] Installing OtakuMessageService (post-initialization)');
+    runtime.logger.info(
+      "[Bootstrap] Installing OtakuMessageService (post-initialization)",
+    );
     runtime.messageService = new OtakuMessageService();
-    runtime.logger.info('[Bootstrap] OtakuMessageService installed successfully');
-    
+    runtime.logger.info(
+      "[Bootstrap] OtakuMessageService installed successfully",
+    );
+
     return service;
   }
 
@@ -457,9 +504,9 @@ class MessageServiceInstaller extends Service {
 }
 
 export const bootstrapPlugin: Plugin = {
-  name: 'bootstrap',
-  description: 'Agent bootstrap with basic actions and evaluators',
-  
+  name: "bootstrap",
+  description: "Agent bootstrap with basic actions and evaluators",
+
   actions: [
     // actions.replyAction,
     // actions.ignoreAction,

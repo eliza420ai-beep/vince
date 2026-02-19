@@ -44,7 +44,10 @@ export const solusPositionAssessAction: Action = {
   description:
     "Interprets Hypersurface position from message (notional, premium, collateral, expiry); states invalidation and hold/roll/adjust; if details missing, asks for strike/notional/premium/expiry.",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     if (!isSolus(runtime)) return false;
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsPositionAssess(text);
@@ -78,7 +81,7 @@ Reply with assessment and one call only.`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's the position assessment—\n\n" + text.trim();
       await callback({ text: out, actions: ["SOLUS_POSITION_ASSESS"] });
       return { success: true };
@@ -87,7 +90,10 @@ Reply with assessment and one call only.`;
       await callback({
         text: "Paste your position details: strike, notional, premium, collateral, expiry. Then I'll give you invalidation and hold/roll/adjust.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

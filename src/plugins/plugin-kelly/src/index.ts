@@ -70,7 +70,10 @@ export const kellyPlugin: Plugin = {
         const { getKellyHealth } = await import("./health");
         const health = await getKellyHealth(runtime);
         if (!health.ok) {
-          logger.warn("[Kelly] Health check: " + (health.message ?? "curated schedule missing"));
+          logger.warn(
+            "[Kelly] Health check: " +
+              (health.message ?? "curated schedule missing"),
+          );
         } else {
           logger.debug("[Kelly] Health check OK");
         }

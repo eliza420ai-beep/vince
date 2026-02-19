@@ -4,11 +4,11 @@ Eliza is connected to **ikigaistudio.substack.com** for context and content prod
 
 ## What’s connected
 
-| Piece | How |
-|:---|:---|
-| **Recent posts** | RSS feed (`SUBSTACK_FEED_URL`, default `https://ikigaistudio.substack.com/feed`). Fetched and cached by the `SUBSTACK_CONTEXT` provider in plugin-eliza; injected into Eliza’s state so she can reference “our latest post” or recent essays. |
+| Piece             | How                                                                                                                                                                                                                                                                                       |
+| :---------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Recent posts**  | RSS feed (`SUBSTACK_FEED_URL`, default `https://ikigaistudio.substack.com/feed`). Fetched and cached by the `SUBSTACK_CONTEXT` provider in plugin-eliza; injected into Eliza’s state so she can reference “our latest post” or recent essays.                                             |
 | **Profile stats** | Optional. [Substack Developer API](https://support.substack.com/hc/en-us/articles/45099095296916-Substack-Developer-API) (profile search by LinkedIn handle). Set `ELIZA_SUBSTACK_LINKEDIN_HANDLE` if you’ve agreed to the API ToS and want follower count, leaderboard, etc. in context. |
-| **Publishing** | **Not automated.** WRITE_ESSAY generates drafts in `knowledge/drafts/`; you publish manually on Substack. The official API is read-only (no publish endpoint). |
+| **Publishing**    | **Not automated.** WRITE_ESSAY generates drafts in `knowledge/drafts/`; you publish manually on Substack. The official API is read-only (no publish endpoint).                                                                                                                            |
 
 ## Config
 

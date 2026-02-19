@@ -23,7 +23,10 @@ if (fs.existsSync(envPath)) {
       if (eq > 0) {
         const key = trimmed.slice(0, eq).trim();
         let val = trimmed.slice(eq + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        )
           val = val.slice(1, -1);
         process.env[key] = val;
       }
@@ -32,9 +35,13 @@ if (fs.existsSync(envPath)) {
 }
 
 const postgresUrl = process.env.POSTGRES_URL?.trim();
-const sslReject = process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
+const sslReject =
+  process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
 const sslRelax =
-  sslReject === "false" || sslReject === "0" || sslReject === "no" || sslReject === "off";
+  sslReject === "false" ||
+  sslReject === "0" ||
+  sslReject === "no" ||
+  sslReject === "off";
 
 async function runBootstrap() {
   if (!postgresUrl) return;

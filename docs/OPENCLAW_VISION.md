@@ -20,7 +20,7 @@ When we called it **ClawdBot** (and later **MoltBot**), we meant the local piece
 
 ## Original vision (Jan 24, 2024)
 
-*Vision as written Jan 24, 2024.*
+_Vision as written Jan 24, 2024._
 
 Look, IKIGAI isn't some polished LinkedIn influencer peddling the next "10x your portfolio" course. The guy straight-up calls himself an "unemployable misfit who somehow became a startup sugar daddy," and if you've spent any time lurking his X feed, you know he's not capping. Dude pioneered webTV back in the day with livethelifetv, got actual props from Apple, and has been knee-deep in crypto since 2007—through multiple cycles that would've broken lesser mortals.
 

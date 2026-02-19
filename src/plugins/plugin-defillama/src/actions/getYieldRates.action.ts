@@ -9,7 +9,11 @@ import {
   logger,
 } from "@elizaos/core";
 import { DefiLlamaService } from "../services/defillama.service";
-import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateDefiLlamaService,
+  getDefiLlamaService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 
 export const getYieldRatesAction: Action = {
   name: "GET_YIELD_RATES",
@@ -28,7 +32,8 @@ export const getYieldRatesAction: Action = {
   parameters: {
     protocol: {
       type: "string",
-      description: "DeFi protocol name (e.g., 'Aave', 'Morpho', 'Compound'). Optional.",
+      description:
+        "DeFi protocol name (e.g., 'Aave', 'Morpho', 'Compound'). Optional.",
       required: false,
     },
     token: {
@@ -38,7 +43,8 @@ export const getYieldRatesAction: Action = {
     },
     chain: {
       type: "string",
-      description: "Blockchain name (e.g., 'Ethereum', 'Base', 'Arbitrum'). Optional.",
+      description:
+        "Blockchain name (e.g., 'Ethereum', 'Base', 'Arbitrum'). Optional.",
       required: false,
     },
     minApy: {
@@ -58,7 +64,11 @@ export const getYieldRatesAction: Action = {
     },
   },
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     return validateDefiLlamaService(runtime, "GET_YIELD_RATES", state, message);
   },
 
@@ -89,9 +99,15 @@ export const getYieldRatesAction: Action = {
       const protocol = params?.protocol?.trim() || undefined;
       const token = params?.token?.trim() || undefined;
       const chain = params?.chain?.trim() || undefined;
-      const minApy = typeof params?.minApy === "number" && Number.isFinite(params.minApy) ? params.minApy : undefined;
+      const minApy =
+        typeof params?.minApy === "number" && Number.isFinite(params.minApy)
+          ? params.minApy
+          : undefined;
       const stablecoinOnly = params?.stablecoinOnly === true;
-      const limitParam = typeof params?.limit === "number" && params.limit > 0 ? params.limit : undefined;
+      const limitParam =
+        typeof params?.limit === "number" && params.limit > 0
+          ? params.limit
+          : undefined;
       const limit = limitParam ?? 10;
 
       // Log what we're searching for
@@ -102,15 +118,21 @@ export const getYieldRatesAction: Action = {
       if (minApy !== undefined) searchCriteria.push(`minApy: ${minApy}%`);
       if (stablecoinOnly) searchCriteria.push("stablecoinOnly");
       searchCriteria.push(`limit: ${limit}`);
-      
-      const searchDesc = searchCriteria.length > 0 
-        ? searchCriteria.join(", ") 
-        : "all yields";
-      
+
+      const searchDesc =
+        searchCriteria.length > 0 ? searchCriteria.join(", ") : "all yields";
+
       logger.info(`[GET_YIELD_RATES] Searching for yields: ${searchDesc}`);
 
       // Store input parameters for return
-      const inputParams = { protocol, token, chain, minApy, stablecoinOnly, limit };
+      const inputParams = {
+        protocol,
+        token,
+        chain,
+        minApy,
+        stablecoinOnly,
+        limit,
+      };
 
       // Search for yields
       const results = await svc.searchYields({
@@ -158,7 +180,7 @@ export const getYieldRatesAction: Action = {
         apyMean30d: pool.apyMean30d,
       }));
 
-      const messageText = `Found ${results.length} yield opportunit${results.length === 1 ? 'y' : 'ies'} for ${searchDesc}`;
+      const messageText = `Found ${results.length} yield opportunit${results.length === 1 ? "y" : "ies"} for ${searchDesc}`;
 
       if (callback) {
         await callback({
@@ -179,9 +201,16 @@ export const getYieldRatesAction: Action = {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_YIELD_RATES] Action failed: ${msg}`);
-      
+
       // Try to capture input params even in failure
-      const params = await extractActionParams<{ protocol?: string; token?: string; chain?: string; minApy?: number; stablecoinOnly?: boolean; limit?: number }>(runtime, message);
+      const params = await extractActionParams<{
+        protocol?: string;
+        token?: string;
+        chain?: string;
+        minApy?: number;
+        stablecoinOnly?: boolean;
+        limit?: number;
+      }>(runtime, message);
       const failureInputParams = {
         protocol: params?.protocol,
         token: params?.token,
@@ -190,14 +219,14 @@ export const getYieldRatesAction: Action = {
         stablecoinOnly: params?.stablecoinOnly,
         limit: params?.limit,
       };
-      
+
       const errorResult: ActionResult = {
         text: `Failed to fetch yield rates: ${msg}`,
         success: false,
         error: msg,
         input: failureInputParams,
       } as ActionResult & { input: typeof failureInputParams };
-      
+
       if (callback) {
         await callback({
           text: errorResult.text,
@@ -276,4 +305,3 @@ export const getYieldRatesAction: Action = {
     ],
   ],
 };
-

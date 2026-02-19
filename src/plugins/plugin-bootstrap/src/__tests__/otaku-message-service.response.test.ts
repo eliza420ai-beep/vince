@@ -23,7 +23,9 @@ const FIXED_XML_RESPONSE = `<response>
   <text>I can help you with token swaps, cross-chain bridges, portfolio analysis, token transfers, and market data insights. Let me know if you'd like to proceed with any of these!</text>
 </response>`;
 
-function createMockRuntime(overrides?: Partial<Record<string, unknown>>): IAgentRuntime {
+function createMockRuntime(
+  overrides?: Partial<Record<string, unknown>>,
+): IAgentRuntime {
   const agentId = uuidv4() as UUID;
 
   const useModel = mock((modelType: string, _params: { prompt?: string }) => {
@@ -32,7 +34,7 @@ function createMockRuntime(overrides?: Partial<Record<string, unknown>>): IAgent
     }
     if (modelType === ModelType.TEXT_SMALL) {
       return Promise.resolve(
-        '<response><name>Otaku</name><reasoning>User asked</reasoning><action>RESPOND</action></response>'
+        "<response><name>Otaku</name><reasoning>User asked</reasoning><action>RESPOND</action></response>",
       );
     }
     return Promise.resolve("");
@@ -43,7 +45,7 @@ function createMockRuntime(overrides?: Partial<Record<string, unknown>>): IAgent
       _message: Memory,
       _responseMessages: Memory[],
       _state: State,
-      callback?: (content: Content) => Promise<void>
+      callback?: (content: Content) => Promise<void>,
     ) => {
       if (callback) {
         const content: Content = {
@@ -53,7 +55,7 @@ function createMockRuntime(overrides?: Partial<Record<string, unknown>>): IAgent
         };
         await callback(content);
       }
-    }
+    },
   );
 
   const evaluate = mock(async () => {});
@@ -76,7 +78,7 @@ function createMockRuntime(overrides?: Partial<Record<string, unknown>>): IAgent
         id: rid ?? (uuidv4() as UUID),
         type: ChannelType.DM,
         worldId: rid ?? (uuidv4() as UUID),
-      })
+      }),
     ),
     getMemoryById: mock(() => Promise.resolve(null)),
     createMemory: mock(() => Promise.resolve(uuidv4() as UUID)),
@@ -94,7 +96,7 @@ function createMockRuntime(overrides?: Partial<Record<string, unknown>>): IAgent
           },
         },
         text: "",
-      } as State)
+      } as State),
     ),
     useModel,
     processActions,
@@ -102,9 +104,13 @@ function createMockRuntime(overrides?: Partial<Record<string, unknown>>): IAgent
     emitEvent: mock(() => Promise.resolve()),
     startRun: mock((rid?: UUID) => rid ?? (uuidv4() as UUID)),
     getRoomsByIds: mock((ids: UUID[]) =>
-      Promise.resolve((ids ?? []).map((id) => ({ id, name: "test", worldId: id })))
+      Promise.resolve(
+        (ids ?? []).map((id) => ({ id, name: "test", worldId: id })),
+      ),
     ),
-    getWorld: mock((wid?: UUID) => Promise.resolve({ id: wid ?? (uuidv4() as UUID), name: "test" })),
+    getWorld: mock((wid?: UUID) =>
+      Promise.resolve({ id: wid ?? (uuidv4() as UUID), name: "test" }),
+    ),
     ensureConnection: mock(() => Promise.resolve()),
     addParticipant: mock(() => Promise.resolve(true)),
     getEntityById: mock(() => Promise.resolve(null)),
@@ -174,7 +180,7 @@ describe("OtakuMessageService response path", () => {
     });
 
     (runtime as any).getRoom = mock(() =>
-      Promise.resolve({ id: roomId, type: ChannelType.DM, worldId: roomId })
+      Promise.resolve({ id: roomId, type: ChannelType.DM, worldId: roomId }),
     );
     (runtime as any).startRun = mock(() => roomId);
 
@@ -211,7 +217,9 @@ describe("OtakuMessageService response path", () => {
     expect(result.didRespond).toBe(true);
     expect(result.responseContent?.text?.length).toBeGreaterThan(0);
     expect(callback).toHaveBeenCalled();
-    const lastContent = (callback as any).mock.calls[(callback as any).mock.calls.length - 1]?.[0];
+    const lastContent = (callback as any).mock.calls[
+      (callback as any).mock.calls.length - 1
+    ]?.[0];
     expect(lastContent?.text?.length).toBeGreaterThan(0);
   });
 });

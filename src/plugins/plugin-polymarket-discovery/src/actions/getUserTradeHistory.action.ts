@@ -33,7 +33,9 @@ type GetUserTradeHistoryInput = {
   limit?: number;
 };
 
-type GetUserTradeHistoryActionResult = ActionResult & { input: GetUserTradeHistoryInput };
+type GetUserTradeHistoryActionResult = ActionResult & {
+  input: GetUserTradeHistoryInput;
+};
 
 export const getUserTradeHistoryAction: Action = {
   name: "GET_POLYMARKET_TRADE_HISTORY",
@@ -63,7 +65,12 @@ export const getUserTradeHistoryAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_TRADE_HISTORY", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_TRADE_HISTORY",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -71,13 +78,16 @@ export const getUserTradeHistoryAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_TRADE_HISTORY] Getting user trade history");
 
       // Read parameters from state
-      const params = await extractActionParams<GetUserTradeHistoryParams>(runtime, message);
+      const params = await extractActionParams<GetUserTradeHistoryParams>(
+        runtime,
+        message,
+      );
 
       // Extract wallet address
       const walletAddress = params.walletAddress?.trim();
@@ -119,7 +129,9 @@ export const getUserTradeHistoryAction: Action = {
       let limit = 20; // default
       if (params.limit) {
         const parsedLimit =
-          typeof params.limit === "string" ? parseInt(params.limit, 10) : params.limit;
+          typeof params.limit === "string"
+            ? parseInt(params.limit, 10)
+            : params.limit;
         if (!isNaN(parsedLimit) && parsedLimit > 0) {
           limit = Math.min(parsedLimit, 100); // cap at 100
         }
@@ -147,7 +159,9 @@ export const getUserTradeHistoryAction: Action = {
       }
 
       // Fetch user trade history
-      logger.info(`[GET_POLYMARKET_TRADE_HISTORY] Fetching ${limit} trades for ${walletAddress}`);
+      logger.info(
+        `[GET_POLYMARKET_TRADE_HISTORY] Fetching ${limit} trades for ${walletAddress}`,
+      );
       const trades = await service.getUserTrades(walletAddress, limit);
 
       if (trades.length === 0) {
@@ -178,7 +192,6 @@ export const getUserTradeHistoryAction: Action = {
 
         text += "\n";
       });
-
 
       // Calculate summary stats
       const buyTrades = trades.filter((t: Trade) => t.side === "BUY");
@@ -217,7 +230,7 @@ export const getUserTradeHistoryAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_TRADE_HISTORY] Successfully fetched ${trades.length} trades`
+        `[GET_POLYMARKET_TRADE_HISTORY] Successfully fetched ${trades.length} trades`,
       );
       return result;
     } catch (error) {

@@ -46,7 +46,9 @@ function walkDir(
     } else if (EXTENSIONS.has(path.extname(e.name).toLowerCase())) {
       try {
         const stat = fs.statSync(full);
-        const folder = relative.includes(path.sep) ? path.dirname(relative) : "root";
+        const folder = relative.includes(path.sep)
+          ? path.dirname(relative)
+          : "root";
         out.push({
           path: full,
           name: e.name,

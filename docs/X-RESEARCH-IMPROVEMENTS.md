@@ -5,6 +5,7 @@ Analysis of current `plugin-vince` X research capabilities and improvement oppor
 ## Current Capabilities
 
 ### What's Working
+
 - **VinceXResearchService**: Full X API v2 wrapper (search, profile, thread, lists)
 - **VinceXSentimentService**: Trading sentiment (bullish/bearish/neutral + confidence)
 - **Quality filtering**: 5K+ followers OR 50+ likes OR 5K+ impressions
@@ -15,6 +16,7 @@ Analysis of current `plugin-vince` X research capabilities and improvement oppor
 - **24hr deduplication**: Same posts don't double-charge
 
 ### Config Knobs
+
 - `X_SENTIMENT_ASSETS`: Which tickers to track (default: BTC,ETH,SOL,HYPE)
 - `X_SENTIMENT_SINCE`: Time window (6h, 1d, 2d)
 - `X_SENTIMENT_SORT_ORDER`: relevancy or recency
@@ -27,14 +29,15 @@ Analysis of current `plugin-vince` X research capabilities and improvement oppor
 ## Improvement Ideas
 
 ### 1. **Thread Detection & Deep Dive** (High Impact)
+
 **Problem**: Current search returns individual tweets, but alpha often lives in threads.
 
 **Solution**:
+
 ```typescript
 // After search, detect high-engagement tweets that are thread starters
-const threadStarters = tweets.filter(t => 
-  t.metrics.replies > 10 && 
-  t.conversation_id === t.id
+const threadStarters = tweets.filter(
+  (t) => t.metrics.replies > 10 && t.conversation_id === t.id,
 );
 // Auto-fetch full thread for top 2-3 thread starters
 for (const starter of threadStarters.slice(0, 3)) {
@@ -42,31 +45,38 @@ for (const starter of threadStarters.slice(0, 3)) {
   // Include thread summary in briefing
 }
 ```
+
 **Benefit**: Capture multi-tweet alpha that gets missed by single-tweet search.
 
 ---
 
 ### 2. **Engagement Velocity Scoring** (Medium Impact)
+
 **Problem**: A tweet with 1000 likes from yesterday is less actionable than one with 100 likes from 1 hour ago.
 
 **Solution**:
+
 ```typescript
 function engagementVelocity(tweet: XTweet): number {
-  const ageHours = (Date.now() - new Date(tweet.created_at).getTime()) / 3_600_000;
+  const ageHours =
+    (Date.now() - new Date(tweet.created_at).getTime()) / 3_600_000;
   const likes = tweet.metrics.likes;
   return likes / Math.max(1, ageHours); // likes per hour
 }
 // Sort by velocity, not raw likes
 tweets.sort((a, b) => engagementVelocity(b) - engagementVelocity(a));
 ```
+
 **Benefit**: Surface breaking/viral content faster.
 
 ---
 
 ### 3. **Account Reputation Tiers** (Medium Impact)
+
 **Problem**: Quality filter is binary (5K followers = quality). Reality is more nuanced.
 
 **Solution**:
+
 ```typescript
 const REPUTATION_TIERS = {
   whale: { minFollowers: 100_000, weight: 3.0 },
@@ -81,14 +91,17 @@ function weightedSentiment(tweet: XTweet): number {
   return baseSentiment * tier.weight;
 }
 ```
+
 **Benefit**: Whale accounts move markets; weight accordingly.
 
 ---
 
 ### 4. **Topic Clustering** (High Impact)
+
 **Problem**: Search for "$BTC" returns diverse topics. Hard to spot emerging narratives.
 
 **Solution**:
+
 ```typescript
 // Group tweets by common phrases/hashtags
 function clusterByTopic(tweets: XTweet[]): Map<string, XTweet[]> {
@@ -101,14 +114,17 @@ function clusterByTopic(tweets: XTweet[]): Map<string, XTweet[]> {
 }
 // Report: "3 emerging narratives: ETF flows (12 posts), Saylor buy (8 posts), whale alert (5 posts)"
 ```
+
 **Benefit**: Identify emerging narratives before they're mainstream.
 
 ---
 
 ### 5. **Historical Comparison** (Medium Impact)
+
 **Problem**: "Sentiment is 0.3 bullish" means nothing without context.
 
 **Solution**:
+
 ```typescript
 // Store daily sentiment snapshots
 interface SentimentSnapshot {
@@ -120,16 +136,22 @@ interface SentimentSnapshot {
 }
 // Compare: "BTC sentiment +0.15 vs 7-day avg. Highest since Jan 28."
 ```
+
 **Benefit**: "Higher than usual" is more actionable than raw numbers.
 
 ---
 
 ### 6. **Contrarian Signal Detection** (High Impact)
+
 **Problem**: Extreme bullish sentiment often precedes corrections.
 
 **Solution**:
+
 ```typescript
-function detectContrarian(sentiment: number, confidence: number): string | null {
+function detectContrarian(
+  sentiment: number,
+  confidence: number,
+): string | null {
   if (sentiment > 0.6 && confidence > 70) {
     return "⚠️ Extreme bullish sentiment — historically precedes pullbacks";
   }
@@ -139,14 +161,17 @@ function detectContrarian(sentiment: number, confidence: number): string | null 
   return null;
 }
 ```
+
 **Benefit**: Warn when sentiment is at extremes (mean reversion).
 
 ---
 
 ### 7. **Smart Account Discovery** (Low Effort, High Value)
+
 **Problem**: Quality list is static. New alpha accounts emerge constantly.
 
 **Solution**:
+
 ```typescript
 // Track accounts that appear in multiple high-engagement threads
 function discoverQualityAccounts(tweets: XTweet[]): string[] {
@@ -155,7 +180,7 @@ function discoverQualityAccounts(tweets: XTweet[]): string[] {
     const total = t.metrics.likes + t.metrics.retweets * 2;
     accountEngagement.set(
       t.username,
-      (accountEngagement.get(t.username) || 0) + total
+      (accountEngagement.get(t.username) || 0) + total,
     );
   }
   // Surface accounts with high cumulative engagement but not in quality list
@@ -165,14 +190,17 @@ function discoverQualityAccounts(tweets: XTweet[]): string[] {
 }
 // Report: "Emerging accounts to consider adding: @trader_xyz (1.2K engagement this week)"
 ```
+
 **Benefit**: Quality list grows organically.
 
 ---
 
 ### 8. **Real-Time Alert Mode** (Future)
+
 **Problem**: Daily research misses intraday moves.
 
 **Solution**:
+
 - Use X API streaming (filtered stream) when available
 - Alert on: sudden sentiment shift, whale account posts, risk keywords spike
 - Push to Discord/Telegram immediately
@@ -190,22 +218,23 @@ function discoverQualityAccounts(tweets: XTweet[]): string[] {
 
 ## Recommended Priority
 
-| # | Improvement | Effort | Impact |
-|---|-------------|--------|--------|
-| 1 | Engagement velocity scoring | S | High |
-| 2 | Contrarian signal detection | S | High |
-| 3 | Thread detection & deep dive | M | High |
-| 4 | Topic clustering | M | High |
-| 5 | Account reputation tiers | M | Medium |
-| 6 | Historical comparison | M | Medium |
-| 7 | Smart account discovery | S | Medium |
-| 8 | Real-time alerts | L | High (future) |
+| #   | Improvement                  | Effort | Impact        |
+| --- | ---------------------------- | ------ | ------------- |
+| 1   | Engagement velocity scoring  | S      | High          |
+| 2   | Contrarian signal detection  | S      | High          |
+| 3   | Thread detection & deep dive | M      | High          |
+| 4   | Topic clustering             | M      | High          |
+| 5   | Account reputation tiers     | M      | Medium        |
+| 6   | Historical comparison        | M      | Medium        |
+| 7   | Smart account discovery      | S      | Medium        |
+| 8   | Real-time alerts             | L      | High (future) |
 
 ---
 
 ## Implementation Notes
 
 All improvements should:
+
 - Respect X API rate limits (stagger, cache, dedup)
 - Work with current `VinceXResearchService` / `VinceXSentimentService`
 - Feed into signal aggregator where appropriate

@@ -19,7 +19,8 @@ interface StatusParams {
 
 export const relayStatusAction: Action = {
   name: "CHECK_RELAY_STATUS",
-  description: "Use this action when you need to check the status of a Relay transaction.",
+  description:
+    "Use this action when you need to check the status of a Relay transaction.",
   similes: [
     "GET_RELAY_STATUS",
     "CHECK_BRIDGE_STATUS",
@@ -56,23 +57,32 @@ export const relayStatusAction: Action = {
     message: Memory,
     state?: State,
     options?: { [key: string]: unknown },
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     logger.info("[CHECK_RELAY_STATUS] Handler invoked");
-    
+
     try {
       // Get Relay service
-      const relayService = runtime.getService<RelayService>(RelayService.serviceType);
+      const relayService = runtime.getService<RelayService>(
+        RelayService.serviceType,
+      );
 
       if (!relayService) {
         const errorMsg = "Relay service not initialized";
         logger.error(`[CHECK_RELAY_STATUS] ${errorMsg}`);
-        
+
         // Try to capture input params even in early failure
         let earlyFailureInput = {};
         try {
-          const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-          const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+          const composedState = await runtime.composeState(
+            message,
+            ["ACTION_STATE"],
+            true,
+          );
+          const params = (composedState?.data?.actionParams || {}) as Record<
+            string,
+            any
+          >;
           earlyFailureInput = {
             requestId: params?.requestId,
             txHash: params?.txHash,
@@ -81,16 +91,16 @@ export const relayStatusAction: Action = {
         } catch (e) {
           // If we can't get params, just use empty object
         }
-        
+
         const errorResult: ActionResult = {
           text: ` ${errorMsg}`,
           success: false,
           error: "service_unavailable",
           input: earlyFailureInput,
         } as ActionResult & { input: typeof earlyFailureInput };
-        callback?.({ 
+        callback?.({
           text: errorResult.text,
-          content: { error: "service_unavailable", details: errorMsg }
+          content: { error: "service_unavailable", details: errorMsg },
         });
         return errorResult;
       }
@@ -99,31 +109,41 @@ export const relayStatusAction: Action = {
 
       // First, check if requestId and txHashes are available from previous action (bridge completion)
       // Check multiple possible locations where the data might be passed
-      const bridgeData = options?.data || 
-                         message.content?.data || 
-                         (state as any)?.lastActionResult?.data ||
-                         (state as any)?.recentMessages?.[0]?.content?.data;
-                         
-      if (bridgeData && typeof bridgeData === 'object') {
+      const bridgeData =
+        options?.data ||
+        message.content?.data ||
+        (state as any)?.lastActionResult?.data ||
+        (state as any)?.recentMessages?.[0]?.content?.data;
+
+      if (bridgeData && typeof bridgeData === "object") {
         const requestId = bridgeData.requestId as string;
-        const txHashes = bridgeData.txHashes as Array<{ txHash: string; chainId: number }>;
-        
+        const txHashes = bridgeData.txHashes as Array<{
+          txHash: string;
+          chainId: number;
+        }>;
+
         // If requestId is "pending" or not available, try using transaction hash
-        if (requestId && requestId !== 'pending') {
-          logger.info(`[CHECK_RELAY_STATUS] Using requestId from bridge action: ${requestId}`);
+        if (requestId && requestId !== "pending") {
+          logger.info(
+            `[CHECK_RELAY_STATUS] Using requestId from bridge action: ${requestId}`,
+          );
           statusParams = {
             requestId,
           };
         } else if (txHashes && txHashes.length > 0) {
           // Use the first transaction hash (origin chain)
-          logger.info(`[CHECK_RELAY_STATUS] RequestId is pending, using tx hash: ${txHashes[0].txHash}`);
+          logger.info(
+            `[CHECK_RELAY_STATUS] RequestId is pending, using tx hash: ${txHashes[0].txHash}`,
+          );
           statusParams = {
             txHash: txHashes[0].txHash,
           };
-        } else if (requestId === 'pending') {
-          logger.warn('[CHECK_RELAY_STATUS] RequestId is pending and no transaction hashes available');
+        } else if (requestId === "pending") {
+          logger.warn(
+            "[CHECK_RELAY_STATUS] RequestId is pending and no transaction hashes available",
+          );
           statusParams = {
-            requestId: 'pending',
+            requestId: "pending",
           };
         }
       }
@@ -132,16 +152,26 @@ export const relayStatusAction: Action = {
       if (!statusParams) {
         const recentMessages = (state as any)?.recentMessages || [];
         for (const msg of recentMessages) {
-          if (msg?.content?.data?.requestId && msg.content.data.requestId !== 'pending') {
-            logger.info(`[CHECK_RELAY_STATUS] Found requestId in recent message: ${msg.content.data.requestId}`);
+          if (
+            msg?.content?.data?.requestId &&
+            msg.content.data.requestId !== "pending"
+          ) {
+            logger.info(
+              `[CHECK_RELAY_STATUS] Found requestId in recent message: ${msg.content.data.requestId}`,
+            );
             statusParams = {
               requestId: msg.content.data.requestId as string,
             };
             break;
           }
           // Also check for tx hashes
-          if (msg?.content?.data?.txHashes && msg.content.data.txHashes.length > 0) {
-            logger.info(`[CHECK_RELAY_STATUS] Found tx hash in recent message: ${msg.content.data.txHashes[0].txHash}`);
+          if (
+            msg?.content?.data?.txHashes &&
+            msg.content.data.txHashes.length > 0
+          ) {
+            logger.info(
+              `[CHECK_RELAY_STATUS] Found tx hash in recent message: ${msg.content.data.txHashes[0].txHash}`,
+            );
             statusParams = {
               txHash: msg.content.data.txHashes[0].txHash,
             };
@@ -152,8 +182,15 @@ export const relayStatusAction: Action = {
 
       // If no direct data found, try to extract from actionParams
       if (!statusParams) {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams || {}) as Record<
+          string,
+          any
+        >;
 
         statusParams = {
           requestId: params?.requestId?.trim(),
@@ -161,10 +198,14 @@ export const relayStatusAction: Action = {
           user: params?.user?.trim(),
         };
       }
-      
+
       // Validate that at least one identifier is provided
-      if (!statusParams || (!statusParams.requestId && !statusParams.txHash && !statusParams.user)) {
-        const errorMsg = "Missing status identifiers. Please provide at least one of: request ID, transaction hash, or user address.";
+      if (
+        !statusParams ||
+        (!statusParams.requestId && !statusParams.txHash && !statusParams.user)
+      ) {
+        const errorMsg =
+          "Missing status identifiers. Please provide at least one of: request ID, transaction hash, or user address.";
         logger.error(`[CHECK_RELAY_STATUS] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: ` ${errorMsg}`,
@@ -172,9 +213,9 @@ export const relayStatusAction: Action = {
           error: "missing_required_parameter",
           input: statusParams || {},
         } as ActionResult & { input: typeof statusParams };
-        callback?.({ 
+        callback?.({
           text: errorResult.text,
-          content: { error: "missing_required_parameter", details: errorMsg }
+          content: { error: "missing_required_parameter", details: errorMsg },
         });
         return errorResult;
       }
@@ -186,10 +227,14 @@ export const relayStatusAction: Action = {
         user: statusParams.user,
       };
 
-      logger.info(`[CHECK_RELAY_STATUS] Status parameters: ${JSON.stringify(statusParams)}`);
+      logger.info(
+        `[CHECK_RELAY_STATUS] Status parameters: ${JSON.stringify(statusParams)}`,
+      );
 
       // Get status from Relay
-      const statuses = await relayService.getStatus(statusParams as StatusRequest);
+      const statuses = await relayService.getStatus(
+        statusParams as StatusRequest,
+      );
 
       if (statuses.length === 0) {
         const errorMsg = "No transactions found matching your request";
@@ -232,12 +277,19 @@ export const relayStatusAction: Action = {
     } catch (error: unknown) {
       const errorMessage = (error as Error).message;
       logger.error(`[CHECK_RELAY_STATUS] Action failed: ${errorMessage}`);
-      
+
       // Try to capture input params even in failure
       let catchFailureInput = {};
       try {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams || {}) as Record<
+          string,
+          any
+        >;
         catchFailureInput = {
           requestId: params?.requestId,
           txHash: params?.txHash,
@@ -246,7 +298,7 @@ export const relayStatusAction: Action = {
       } catch (e) {
         // If we can't get params, just use empty object
       }
-      
+
       const errorText = ` Failed to get transaction status: ${errorMessage}`;
       const errorResponse: ActionResult = {
         text: errorText,
@@ -353,12 +405,14 @@ ${statusIndicator} **Transaction Status: ${status.status.toUpperCase()}**
   }
 
   if (status.data?.fees) {
-    const gasFeeWei = typeof status.data.fees.gas === "string"
-      ? status.data.fees.gas
-      : status.data.fees.gas ?? "0";
-    const relayerFeeWei = typeof status.data.fees.relayer === "string"
-      ? status.data.fees.relayer
-      : status.data.fees.relayer ?? "0";
+    const gasFeeWei =
+      typeof status.data.fees.gas === "string"
+        ? status.data.fees.gas
+        : (status.data.fees.gas ?? "0");
+    const relayerFeeWei =
+      typeof status.data.fees.relayer === "string"
+        ? status.data.fees.relayer
+        : (status.data.fees.relayer ?? "0");
     const totalFees = BigInt(gasFeeWei) + BigInt(relayerFeeWei);
     response += `\n\n**Fees:**`;
     response += `\n- Gas: ${(Number(gasFeeWei) / 1e18).toFixed(6)} ETH`;

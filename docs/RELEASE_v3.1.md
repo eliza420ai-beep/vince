@@ -25,11 +25,11 @@ VinceBench helps ML automatically: per-decision bench scores on every closed tra
 
 ## Summary
 
-| Area | Change |
-|:---|:---|
+| Area                | Change                                                                                                 |
+| :------------------ | :----------------------------------------------------------------------------------------------------- |
 | **VinceBench + ML** | benchScore on labels; --bench-score-weight, --min-bench-score, --bench-score-quantile; backfill script |
-| **README** | VinceBench explanation, re-run training command, no-copy note |
-| **train_models.py** | Smarter final log (copy vs in-place); fewer dtype/RuntimeWarnings |
+| **README**          | VinceBench explanation, re-run training command, no-copy note                                          |
+| **train_models.py** | Smarter final log (copy vs in-place); fewer dtype/RuntimeWarnings                                      |
 
 ---
 

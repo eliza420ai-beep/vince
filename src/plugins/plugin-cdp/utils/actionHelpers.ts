@@ -4,7 +4,12 @@
  * Shared utilities for CDP plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
 import { CdpService } from "../services/cdp.service";
 
 /**
@@ -24,14 +29,12 @@ export function validateCdpService(
   runtime: IAgentRuntime,
   actionName: string,
   _state?: State,
-  _message?: Memory
+  _message?: Memory,
 ): boolean {
   try {
     // CDP plugin always active when service exists - no context matching required
 
-    const service = runtime.getService(
-      CdpService.serviceType
-    ) as CdpService;
+    const service = runtime.getService(CdpService.serviceType) as CdpService;
 
     if (!service) {
       logger.warn(`[${actionName}] CDP service not available`);
@@ -42,7 +45,7 @@ export function validateCdpService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -60,7 +63,7 @@ export function validateCdpService(
 export function validateCdpPluginContext(
   _actionName: string,
   _state?: State,
-  _message?: Memory
+  _message?: Memory,
 ): boolean {
   // CDP plugin always active - no context matching required
   return true;
@@ -72,12 +75,8 @@ export function validateCdpPluginContext(
  * @param runtime - Agent runtime
  * @returns CDP service instance or null
  */
-export function getCdpService(
-  runtime: IAgentRuntime
-): CdpService | null {
-  return runtime.getService(
-    CdpService.serviceType
-  ) as CdpService | null;
+export function getCdpService(runtime: IAgentRuntime): CdpService | null {
+  return runtime.getService(CdpService.serviceType) as CdpService | null;
 }
 
 /**
@@ -89,12 +88,12 @@ export function getCdpService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }

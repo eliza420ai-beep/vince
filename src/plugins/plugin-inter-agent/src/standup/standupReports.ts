@@ -15,17 +15,32 @@ export const AGENT_ROLES = {
   Eliza: {
     title: "CEO",
     focus: "Knowledge & Research",
-    reportSections: ["research_highlights", "knowledge_gaps", "content_pipeline", "strategic_patterns"],
+    reportSections: [
+      "research_highlights",
+      "knowledge_gaps",
+      "content_pipeline",
+      "strategic_patterns",
+    ],
   },
   VINCE: {
     title: "CDO",
     focus: "Market Intelligence",
-    reportSections: ["market_snapshot", "paper_bot", "options_context", "signals"],
+    reportSections: [
+      "market_snapshot",
+      "paper_bot",
+      "options_context",
+      "signals",
+    ],
   },
   ECHO: {
     title: "CSO",
     focus: "CT Sentiment",
-    reportSections: ["sentiment_pulse", "trending_topics", "influencer_takes", "narrative_shifts"],
+    reportSections: [
+      "sentiment_pulse",
+      "trending_topics",
+      "influencer_takes",
+      "narrative_shifts",
+    ],
   },
   Oracle: {
     title: "CPO",
@@ -46,18 +61,33 @@ export const AGENT_ROLES = {
   Kelly: {
     title: "CVO",
     focus: "Chief Vibes Officer & Standup Facilitator",
-    reportSections: ["standup_facilitation", "daily_rhythm", "health_check", "team_energy", "action_synthesis"],
+    reportSections: [
+      "standup_facilitation",
+      "daily_rhythm",
+      "health_check",
+      "team_energy",
+      "action_synthesis",
+    ],
     isStandupFacilitator: true,
   },
   Sentinel: {
     title: "CTO",
     focus: "Ops & Infrastructure",
-    reportSections: ["system_status", "cost_tracking", "security_alerts", "pending_updates"],
+    reportSections: [
+      "system_status",
+      "cost_tracking",
+      "security_alerts",
+      "pending_updates",
+    ],
   },
   Clawterm: {
     title: "AI Terminal",
     focus: "OpenClaw Skills, Setup & Trending",
-    reportSections: ["openclaw_skills_trending", "setup_tips", "gateway_status"],
+    reportSections: [
+      "openclaw_skills_trending",
+      "setup_tips",
+      "gateway_status",
+    ],
   },
   Naval: {
     title: "Philosophy & Synthesis",
@@ -217,9 +247,9 @@ Speak as Naval: clear, benefit-led, no status games.`,
 export function getReportTemplate(agentName: string): string | null {
   const normalized = agentName.trim();
   const key = Object.keys(AGENT_ROLES).find(
-    (k) => k.toLowerCase() === normalized.toLowerCase()
+    (k) => k.toLowerCase() === normalized.toLowerCase(),
   ) as AgentName | undefined;
-  
+
   if (!key) return null;
   return REPORT_TEMPLATES[key];
 }
@@ -227,12 +257,14 @@ export function getReportTemplate(agentName: string): string | null {
 /**
  * Get agent role info
  */
-export function getAgentRole(agentName: string): typeof AGENT_ROLES[AgentName] | null {
+export function getAgentRole(
+  agentName: string,
+): (typeof AGENT_ROLES)[AgentName] | null {
   const normalized = agentName.trim();
   const key = Object.keys(AGENT_ROLES).find(
-    (k) => k.toLowerCase() === normalized.toLowerCase()
+    (k) => k.toLowerCase() === normalized.toLowerCase(),
   ) as AgentName | undefined;
-  
+
   if (!key) return null;
   return AGENT_ROLES[key];
 }
@@ -242,18 +274,18 @@ export function getAgentRole(agentName: string): typeof AGENT_ROLES[AgentName] |
  */
 export function isHumanMessage(memory: Memory): boolean {
   const senderName = (
-    (memory.content?.name ||
-    memory.content?.userName ||
-    "") as string
+    (memory.content?.name || memory.content?.userName || "") as string
   ).toLowerCase();
 
   // Check if sender is a known agent
-  const isKnownAgent = Object.keys(AGENT_ROLES).some(
-    (agent) => senderName.includes(agent.toLowerCase())
+  const isKnownAgent = Object.keys(AGENT_ROLES).some((agent) =>
+    senderName.includes(agent.toLowerCase()),
   );
 
   // Check metadata for bot flag
-  const metadata = memory.content?.metadata as Record<string, unknown> | undefined;
+  const metadata = memory.content?.metadata as
+    | Record<string, unknown>
+    | undefined;
   const isBot = metadata?.isBot === true || metadata?.fromBot === true;
 
   return !isKnownAgent && !isBot;
@@ -265,7 +297,7 @@ export function isHumanMessage(memory: Memory): boolean {
 export function buildStandupContext(
   agentName: string,
   isHumanPresent: boolean,
-  humanName: string = getStandupHumanName()
+  humanName: string = getStandupHumanName(),
 ): string {
   const role = getAgentRole(agentName);
   if (!role) return "";
@@ -287,14 +319,16 @@ Focus on: ${role.reportSections.join(", ")}
 5. If you disagree with another agent, explain why with evidence
 `;
 
-  const humanContext = isHumanPresent ? `
+  const humanContext = isHumanPresent
+    ? `
 ### ⭐ HUMAN IN CHANNEL
 **${humanName} (Co-Founder) is present.**
 - If ${humanName} asks you something, respond IMMEDIATELY with priority
 - If ${humanName} gives feedback, acknowledge and adapt
 - ${humanName}'s messages override agent-to-agent loop limits
 - When ${humanName} speaks, other agents should pause and listen
-` : "";
+`
+    : "";
 
   return baseContext + humanContext;
 }
@@ -310,6 +344,14 @@ export function formatReportDate(): string {
  * Get day of week for Kelly's rhythm reports
  */
 export function getDayOfWeek(): string {
-  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
   return days[new Date().getDay()];
 }

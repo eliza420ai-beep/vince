@@ -179,24 +179,28 @@ export const registerTrainOnnxTask = async (
         }
 
         const lastTrain = getLastTrainTime();
-        const inCooldown = lastTrain > 0 && Date.now() - lastTrain < TRAIN_COOLDOWN_MS;
+        const inCooldown =
+          lastTrain > 0 && Date.now() - lastTrain < TRAIN_COOLDOWN_MS;
         if (inCooldown) {
           const records = await featureStore.loadRecords(30);
           const complete = records.filter((r) => r.outcome && r.labels);
           const recent = complete.slice(-RETRAIN_RECENT_LOOKBACK);
           const recentWinRate =
             recent.length >= RETRAIN_RECENT_MIN_TRADES
-              ? recent.filter((r) => r.labels!.profitable).length / recent.length
+              ? recent.filter((r) => r.labels!.profitable).length /
+                recent.length
               : null;
           if (
             recentWinRate !== null &&
             recentWinRate < RETRAIN_RECENT_WIN_RATE_THRESHOLD
           ) {
             logger.info(
-              `[TrainONNX] Allowing retrain despite cooldown: recent win rate ${(recentWinRate * 100).toFixed(0)}% (last ${recent.length} trades) < ${RETRAIN_RECENT_WIN_RATE_THRESHOLD * 100}%`
+              `[TrainONNX] Allowing retrain despite cooldown: recent win rate ${(recentWinRate * 100).toFixed(0)}% (last ${recent.length} trades) < ${RETRAIN_RECENT_WIN_RATE_THRESHOLD * 100}%`,
             );
           } else {
-            logger.debug("[TrainONNX] Skipping: last training was < 24h ago (cooldown)");
+            logger.debug(
+              "[TrainONNX] Skipping: last training was < 24h ago (cooldown)",
+            );
             return;
           }
         }

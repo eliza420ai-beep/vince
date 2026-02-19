@@ -45,8 +45,20 @@ const ENTERTAINMENT_TRIGGERS = [
 ];
 
 const ENTERTAINMENT_KEYWORDS = [
-  "book", "movie", "film", "series", "show", "album", "song",
-  "watch", "read", "listen", "netflix", "tv", "music", "playlist",
+  "book",
+  "movie",
+  "film",
+  "series",
+  "show",
+  "album",
+  "song",
+  "watch",
+  "read",
+  "listen",
+  "netflix",
+  "tv",
+  "music",
+  "playlist",
 ];
 
 function wantsEntertainment(text: string): boolean {
@@ -69,18 +81,21 @@ function detectCategory(text: string): EntertainmentCategory {
     lower.includes("album") ||
     lower.includes("song") ||
     lower.includes("track")
-  ) return "music";
+  )
+    return "music";
   if (
     lower.includes("series") ||
     lower.includes("netflix") ||
     lower.includes("show") ||
     lower.includes("tv show")
-  ) return "series";
+  )
+    return "series";
   if (
     lower.includes("movie") ||
     lower.includes("film") ||
     lower.includes("apple tv")
-  ) return "movie";
+  )
+    return "movie";
   return "general";
 }
 
@@ -142,7 +157,9 @@ export const kellyRecommendEntertainmentAction: Action = {
       const knowledgeSnippet = contextBlock.slice(0, 10000);
 
       // Detect "something like X" pattern
-      const likMatch = userAsk.match(/(?:something like|similar to|like|more of)\s+["']?([^"'?.]+)/i);
+      const likMatch = userAsk.match(
+        /(?:something like|similar to|like|more of)\s+["']?([^"'?.]+)/i,
+      );
       const likeReference = likMatch?.[1]?.trim() ?? null;
       const likeHint = likeReference
         ? `The user wants something **like "${likeReference}"**. Match the tone, genre, or vibe of that reference. If the knowledge doesn't have enough, note that WEB_SEARCH could help find more options.`
@@ -181,7 +198,11 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       const text = String(response).trim();
 
       const categoryLabel =
-        category === "general" ? "entertainment" : category === "series" ? "series" : `${category}`;
+        category === "general"
+          ? "entertainment"
+          : category === "series"
+            ? "series"
+            : `${category}`;
       const out = text
         ? `Here's a ${categoryLabel} pick—\n\n` + text
         : `I don't have a specific ${categoryLabel} pick for that right now. Try being more specific about genre or mood.`;
@@ -212,7 +233,10 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Something to watch on Netflix tonight" } },
+      {
+        name: "{{user}}",
+        content: { text: "Something to watch on Netflix tonight" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -222,7 +246,10 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Music for the Taycan — something like Bonobo" } },
+      {
+        name: "{{user}}",
+        content: { text: "Music for the Taycan — something like Bonobo" },
+      },
       {
         name: "{{agent}}",
         content: {

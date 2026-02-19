@@ -33,7 +33,11 @@ function extractFeedbackText(text: string): string {
   return text.slice(match.index! + match[0].length).trim();
 }
 
-function buildStructuredRequest(agentTested: string, feedback: string, context?: string): string {
+function buildStructuredRequest(
+  agentTested: string,
+  feedback: string,
+  context?: string,
+): string {
   let body = `${FEEDBACK_DELIVERABLE_REQUEST_PREFIX}\nagentTested: ${agentTested}\nfeedback: ${feedback}`;
   if (context && context.length > 0) {
     body += `\ncontext: ${context.slice(0, 1500)}`;
@@ -47,7 +51,10 @@ export const feedbackAction: Action = {
   description:
     "Sends user feedback to Sentinel to produce a PRD (code/behavior fix) or Eliza task (knowledge gap). Use when the user says FEEDBACK: ... to improve an agent's behavior.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").trim();
     return wantsFeedback(text);
   },
@@ -99,10 +106,7 @@ export const feedbackAction: Action = {
       if (recent.length > 0) {
         context = recent
           .slice(0, 3)
-          .map(
-            (m) =>
-              `${(m.content?.text ?? "").slice(0, 300)}`,
-          )
+          .map((m) => `${(m.content?.text ?? "").slice(0, 300)}`)
           .filter(Boolean)
           .join("\n---\n");
       }
@@ -110,7 +114,11 @@ export const feedbackAction: Action = {
       // optional context
     }
 
-    const structuredRequest = buildStructuredRequest(fromName, feedbackText, context);
+    const structuredRequest = buildStructuredRequest(
+      fromName,
+      feedbackText,
+      context,
+    );
     const userMsg = {
       id: (message as { id?: string }).id ?? crypto.randomUUID(),
       entityId: message.entityId,
@@ -181,7 +189,9 @@ export const feedbackAction: Action = {
     [
       {
         name: "{{user1}}",
-        content: { text: "FEEDBACK: Kelly should recommend Biarritz restaurants when I ask for Biarritz" },
+        content: {
+          text: "FEEDBACK: Kelly should recommend Biarritz restaurants when I ask for Biarritz",
+        },
       },
       {
         name: "Kelly",

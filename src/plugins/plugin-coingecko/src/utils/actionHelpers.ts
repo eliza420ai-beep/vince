@@ -4,7 +4,12 @@
  * Shared utilities for CoinGecko plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
 import { CoinGeckoService } from "../services/coingecko.service";
 import { shouldCoingeckoPluginBeInContext } from "../../matcher";
 
@@ -21,7 +26,7 @@ export function validateCoingeckoService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   try {
     // Check plugin context first
@@ -30,7 +35,7 @@ export function validateCoingeckoService(
     }
 
     const service = runtime.getService(
-      CoinGeckoService.serviceType
+      CoinGeckoService.serviceType,
     ) as CoinGeckoService;
 
     if (!service) {
@@ -42,7 +47,7 @@ export function validateCoingeckoService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -55,10 +60,10 @@ export function validateCoingeckoService(
  * @returns CoinGecko service instance or null
  */
 export function getCoingeckoService(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): CoinGeckoService | null {
   return runtime.getService(
-    CoinGeckoService.serviceType
+    CoinGeckoService.serviceType,
   ) as CoinGeckoService | null;
 }
 
@@ -71,12 +76,12 @@ export function getCoingeckoService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }
@@ -103,7 +108,7 @@ export function formatMarketCap(value: number): string {
  */
 export function formatNumber(
   value: number | string,
-  decimals: number = 0
+  decimals: number = 0,
 ): string {
   const numValue = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(numValue)) return "0";
@@ -125,7 +130,7 @@ export function formatNumber(
 export function formatPercentage(
   value: number,
   decimals: number = 2,
-  isDecimal: boolean = true
+  isDecimal: boolean = true,
 ): string {
   if (isNaN(value)) return "0.00%";
 
@@ -152,9 +157,9 @@ export function parseDateToApiFormat(dateStr: string): string {
   let date: Date;
 
   // Parse common formats
-  if (normalized === 'today') {
+  if (normalized === "today") {
     date = new Date();
-  } else if (normalized === 'yesterday') {
+  } else if (normalized === "yesterday") {
     date = new Date();
     date.setDate(date.getDate() - 1);
   } else if (/^(\d+)\s*days?\s*ago$/.test(normalized)) {
@@ -166,7 +171,7 @@ export function parseDateToApiFormat(dateStr: string): string {
     const weeksMatch = normalized.match(/^(\d+)\s*weeks?\s*ago$/);
     const weeks = weeksMatch ? parseInt(weeksMatch[1]) : 0;
     date = new Date();
-    date.setDate(date.getDate() - (weeks * 7));
+    date.setDate(date.getDate() - weeks * 7);
   } else if (/^(\d+)\s*months?\s*ago$/.test(normalized)) {
     const monthsMatch = normalized.match(/^(\d+)\s*months?\s*ago$/);
     const months = monthsMatch ? parseInt(monthsMatch[1]) : 0;
@@ -186,8 +191,8 @@ export function parseDateToApiFormat(dateStr: string): string {
   }
 
   // Convert to dd-mm-yyyy format
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
 
   return `${day}-${month}-${year}`;

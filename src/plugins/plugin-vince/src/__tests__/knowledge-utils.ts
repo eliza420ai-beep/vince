@@ -717,7 +717,9 @@ export async function runDomainTest(
       : testCase.agent === "solus"
         ? SOLUS_SYSTEM_PROMPT
         : VINCE_SYSTEM_PROMPT;
-  console.log(`\n   Testing: ${testCase.domain} [${testCase.agent ?? "vince"}]`);
+  console.log(
+    `\n   Testing: ${testCase.domain} [${testCase.agent ?? "vince"}]`,
+  );
   console.log(`   Query: "${testCase.query.slice(0, 60)}..."`);
 
   // Load relevant knowledge (agent-specific paths)

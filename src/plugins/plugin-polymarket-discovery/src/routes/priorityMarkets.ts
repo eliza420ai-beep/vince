@@ -20,13 +20,23 @@ const INTENT_SUMMARY =
   "These odds are a signal of what the market thinks; they inform the paper bot (perps, Hyperliquid), Hypersurface strike selection (weekly predictions most important), and macro vibe check.";
 
 /** Derive YES outcome probability (0–1) from market tokens or outcomePrices. */
-function getYesPrice(m: PolymarketMarket & { outcomePrices?: string | string[] }): number | undefined {
-  const yesToken = m.tokens?.find((t: { outcome?: string }) => t.outcome?.toLowerCase() === "yes");
-  if (yesToken != null && typeof (yesToken as { price?: number }).price === "number") {
+function getYesPrice(
+  m: PolymarketMarket & { outcomePrices?: string | string[] },
+): number | undefined {
+  const yesToken = m.tokens?.find(
+    (t: { outcome?: string }) => t.outcome?.toLowerCase() === "yes",
+  );
+  if (
+    yesToken != null &&
+    typeof (yesToken as { price?: number }).price === "number"
+  ) {
     return (yesToken as { price: number }).price;
   }
   try {
-    const prices = typeof m.outcomePrices === "string" ? JSON.parse(m.outcomePrices) : m.outcomePrices;
+    const prices =
+      typeof m.outcomePrices === "string"
+        ? JSON.parse(m.outcomePrices)
+        : m.outcomePrices;
     if (Array.isArray(prices) && prices.length > 0) {
       const p = parseFloat(prices[0]);
       if (!Number.isNaN(p)) return p;
@@ -71,7 +81,10 @@ export interface PriorityMarketsResponse {
     markets: PriorityMarketItem[];
     updatedAt: number;
   };
-  tagSections?: Record<string, { label: string; markets: PriorityMarketItem[] }>;
+  tagSections?: Record<
+    string,
+    { label: string; markets: PriorityMarketItem[] }
+  >;
 }
 
 export function buildPriorityMarketsHandler() {
@@ -81,7 +94,7 @@ export function buildPriorityMarketsHandler() {
       status: (n: number) => { json: (o: object) => void };
       json: (o: object) => void;
     },
-    runtime?: IAgentRuntime
+    runtime?: IAgentRuntime,
   ): Promise<void> => {
     const agentRuntime =
       runtime ??
@@ -98,7 +111,7 @@ export function buildPriorityMarketsHandler() {
     }
 
     const service = agentRuntime.getService(
-      PolymarketService.serviceType
+      PolymarketService.serviceType,
     ) as PolymarketService | null;
 
     if (!service) {
@@ -114,10 +127,14 @@ export function buildPriorityMarketsHandler() {
       conditionId: m.conditionId ?? (m as any).condition_id ?? "",
       volume: m.volume,
       liquidity: m.liquidity,
-      yesTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "yes")?.token_id,
-      noTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "no")?.token_id,
+      yesTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "yes")
+        ?.token_id,
+      noTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "no")
+        ?.token_id,
       slug: m.slug ?? (m as any).market_slug,
-      yesPrice: getYesPrice(m as PolymarketMarket & { outcomePrices?: string | string[] }),
+      yesPrice: getYesPrice(
+        m as PolymarketMarket & { outcomePrices?: string | string[] },
+      ),
       category: m.category,
       endDateIso: m.endDateIso ?? m.end_date_iso,
       eventSlug: m.eventSlug,
@@ -125,24 +142,31 @@ export function buildPriorityMarketsHandler() {
     });
 
     const getLabelForSlug = (slug: string): string => {
-      const found = VINCE_POLYMARKET_PREFERRED_LABELS.find((e) => e.slug === slug);
+      const found = VINCE_POLYMARKET_PREFERRED_LABELS.find(
+        (e) => e.slug === slug,
+      );
       if (found) return found.label;
       return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     };
 
     try {
       const limitPerTag = 10;
-      const [markets, weeklyCryptoMarkets, cryptoEtfMarketsRaw, ...tagResults] = await Promise.all([
-        service.getMarketsByPreferredTags({
-          tagSlugs: VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
-          totalLimit: 30,
-        }),
-        service.getWeeklyCryptoMarkets(15),
-        service.getEventsByTag("crypto-etf", 15).catch(() => [] as PolymarketMarket[]),
-        ...POLYMARKET_TAG_SECTION_SLUGS.map((slug) =>
-          service.getEventsByTag(slug, limitPerTag).catch(() => [] as PolymarketMarket[])
-        ),
-      ]);
+      const [markets, weeklyCryptoMarkets, cryptoEtfMarketsRaw, ...tagResults] =
+        await Promise.all([
+          service.getMarketsByPreferredTags({
+            tagSlugs: VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
+            totalLimit: 30,
+          }),
+          service.getWeeklyCryptoMarkets(15),
+          service
+            .getEventsByTag("crypto-etf", 15)
+            .catch(() => [] as PolymarketMarket[]),
+          ...POLYMARKET_TAG_SECTION_SLUGS.map((slug) =>
+            service
+              .getEventsByTag(slug, limitPerTag)
+              .catch(() => [] as PolymarketMarket[]),
+          ),
+        ]);
 
       const now = Date.now();
       const openMarkets = markets.filter((m) => {
@@ -151,18 +175,27 @@ export function buildPriorityMarketsHandler() {
       });
       const cryptoEtfItems = cryptoEtfMarketsRaw.map(mapMarketToItem);
       const cryptoEtfOpen = cryptoEtfItems.filter(
-        (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now
+        (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now,
       );
 
-      const tagSections: Record<string, { label: string; markets: PriorityMarketItem[] }> = {};
+      const tagSections: Record<
+        string,
+        { label: string; markets: PriorityMarketItem[] }
+      > = {};
       POLYMARKET_TAG_SECTION_SLUGS.forEach((slug, i) => {
         const raw = tagResults[i] as PolymarketMarket[] | undefined;
         let items = Array.isArray(raw)
           ? raw
               .map(mapMarketToItem)
-              .filter((m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now)
+              .filter(
+                (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now,
+              )
           : [];
-        items = items.sort((a, b) => Number(b.volume ?? b.liquidity ?? 0) - Number(a.volume ?? a.liquidity ?? 0));
+        items = items.sort(
+          (a, b) =>
+            Number(b.volume ?? b.liquidity ?? 0) -
+            Number(a.volume ?? a.liquidity ?? 0),
+        );
         tagSections[slug] = { label: getLabelForSlug(slug), markets: items };
       });
 
@@ -174,7 +207,8 @@ export function buildPriorityMarketsHandler() {
         weeklyCrypto:
           weeklyCryptoMarkets.length > 0
             ? {
-                oneLiner: "Weekly crypto odds — vibe check for Hypersurface weekly options.",
+                oneLiner:
+                  "Weekly crypto odds — vibe check for Hypersurface weekly options.",
                 link: "https://polymarket.com/crypto/weekly",
                 markets: weeklyCryptoMarkets.map(mapMarketToItem),
                 updatedAt: now,
@@ -183,7 +217,8 @@ export function buildPriorityMarketsHandler() {
         cryptoEtf:
           cryptoEtfOpen.length > 0
             ? {
-                oneLiner: "Crypto ETF flows and related markets — same view as polymarket.com/crypto/etf.",
+                oneLiner:
+                  "Crypto ETF flows and related markets — same view as polymarket.com/crypto/etf.",
                 link: "https://polymarket.com/crypto/etf",
                 markets: cryptoEtfOpen,
                 updatedAt: now,

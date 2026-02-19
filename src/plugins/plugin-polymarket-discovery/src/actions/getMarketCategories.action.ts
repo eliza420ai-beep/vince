@@ -44,11 +44,13 @@ export const getMarketCategoriesAction: Action = {
       }
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
-        logger.warn("[GET_POLYMARKET_CATEGORIES] Polymarket service not available");
+        logger.warn(
+          "[GET_POLYMARKET_CATEGORIES] Polymarket service not available",
+        );
         return false;
       }
 
@@ -56,7 +58,7 @@ export const getMarketCategoriesAction: Action = {
     } catch (error) {
       logger.error(
         "[GET_POLYMARKET_CATEGORIES] Error validating action:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -67,7 +69,7 @@ export const getMarketCategoriesAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_CATEGORIES] Fetching market categories");
@@ -76,7 +78,7 @@ export const getMarketCategoriesAction: Action = {
 
       // Get service
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -136,7 +138,7 @@ export const getMarketCategoriesAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_CATEGORIES] Successfully fetched ${categories.length} categories`
+        `[GET_POLYMARKET_CATEGORIES] Successfully fetched ${categories.length} categories`,
       );
       // Send the category list to the user (action only returns result; callback delivers the message)
       callback?.({

@@ -14,18 +14,18 @@ Bankr Agent API and External Orders API integration for ElizaOS. **Used only by 
 
 ## Actions
 
-| Action | Description |
-|--------|-------------|
-| **BANKR_AGENT_PROMPT** | Send a natural-language prompt to the Bankr AI agent. Covers portfolio & balances, transfers, swaps, limit/stop/DCA/TWAP creation, leveraged (Avantis), token launch, NFTs, Polymarket, automations. Submit → poll until complete → return response and any transaction details. |
-| **BANKR_USER_INFO** | Get authenticated account info: wallets (EVM, Solana), social accounts, Bankr Club status, ref code, leaderboard score/rank. Use for "what wallets?", "am I in Bankr Club?", etc. |
-| **BANKR_JOB_STATUS** | Get status of a Bankr prompt job by jobId (pending, processing, completed, failed, cancelled). jobId in message or `actionParams.jobId`. |
-| **BANKR_AGENT_CANCEL_JOB** | Cancel a pending or processing Bankr prompt job by jobId. jobId in message or `actionParams.jobId`. |
-| **BANKR_AGENT_SIGN** | Sign synchronously (no job): `personal_sign`, `eth_signTypedData_v4` (EIP-712), or `eth_signTransaction`. Requires `actionParams.signatureType` and `actionParams.payload`. Use for permits, order signatures, cancel signatures. |
-| **BANKR_AGENT_SUBMIT** | Submit a raw/signed transaction synchronously. Requires `actionParams.transaction` (hex or object). Optional `actionParams.waitForConfirmation`, `actionParams.description`. |
-| **BANKR_ORDER_QUOTE** | Get a quote for a limit/stop/DCA/TWAP order. Returns quoteId and actions (approval + EIP-712 signature). Does not sign or submit. |
-| **BANKR_ORDER_LIST** | List External Orders for a maker address. |
-| **BANKR_ORDER_STATUS** | Get status and details of one order by orderId. |
-| **BANKR_ORDER_CANCEL** | Cancel an open order. Requires `actionParams.orderId` and `actionParams.signature` (EIP-712 cancel signature; obtain cancel typed data from Bankr if needed, sign via BANKR_AGENT_SIGN, then call this). |
+| Action                     | Description                                                                                                                                                                                                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **BANKR_AGENT_PROMPT**     | Send a natural-language prompt to the Bankr AI agent. Covers portfolio & balances, transfers, swaps, limit/stop/DCA/TWAP creation, leveraged (Avantis), token launch, NFTs, Polymarket, automations. Submit → poll until complete → return response and any transaction details. |
+| **BANKR_USER_INFO**        | Get authenticated account info: wallets (EVM, Solana), social accounts, Bankr Club status, ref code, leaderboard score/rank. Use for "what wallets?", "am I in Bankr Club?", etc.                                                                                                |
+| **BANKR_JOB_STATUS**       | Get status of a Bankr prompt job by jobId (pending, processing, completed, failed, cancelled). jobId in message or `actionParams.jobId`.                                                                                                                                         |
+| **BANKR_AGENT_CANCEL_JOB** | Cancel a pending or processing Bankr prompt job by jobId. jobId in message or `actionParams.jobId`.                                                                                                                                                                              |
+| **BANKR_AGENT_SIGN**       | Sign synchronously (no job): `personal_sign`, `eth_signTypedData_v4` (EIP-712), or `eth_signTransaction`. Requires `actionParams.signatureType` and `actionParams.payload`. Use for permits, order signatures, cancel signatures.                                                |
+| **BANKR_AGENT_SUBMIT**     | Submit a raw/signed transaction synchronously. Requires `actionParams.transaction` (hex or object). Optional `actionParams.waitForConfirmation`, `actionParams.description`.                                                                                                     |
+| **BANKR_ORDER_QUOTE**      | Get a quote for a limit/stop/DCA/TWAP order. Returns quoteId and actions (approval + EIP-712 signature). Does not sign or submit.                                                                                                                                                |
+| **BANKR_ORDER_LIST**       | List External Orders for a maker address.                                                                                                                                                                                                                                        |
+| **BANKR_ORDER_STATUS**     | Get status and details of one order by orderId.                                                                                                                                                                                                                                  |
+| **BANKR_ORDER_CANCEL**     | Cancel an open order. Requires `actionParams.orderId` and `actionParams.signature` (EIP-712 cancel signature; obtain cancel typed data from Bankr if needed, sign via BANKR_AGENT_SIGN, then call this).                                                                         |
 
 ## Features (via prompts)
 
@@ -50,7 +50,7 @@ Exact phrasings are in `knowledge/bankr/docs-features-prompts.md`.
 Bankr skill and docs are ingested into the repo for RAG/knowledge:
 
 - **OpenClaw Bankr skill:** [knowledge/bankr/](knowledge/bankr/) — from [openclaw-skills/bankr](https://github.com/BankrBot/openclaw-skills) (SKILL.md and capabilities)
-- **Bankr docs:** [knowledge/bankr/docs-*.md](knowledge/bankr/) — from [docs.bankr.bot](https://docs.bankr.bot/) (overview, token launching, Agent API)
+- **Bankr docs:** [knowledge/bankr/docs-\*.md](knowledge/bankr/) — from [docs.bankr.bot](https://docs.bankr.bot/) (overview, token launching, Agent API)
 - **Feature prompts:** [knowledge/bankr/docs-features-prompts.md](knowledge/bankr/docs-features-prompts.md) — portfolio, transfers, NFTs, swaps, limit/stop/DCA/TWAP, leveraged, and a features-table reference (exact phrasings for BANKR_AGENT_PROMPT)
 - **Features table:** [knowledge/bankr/docs-features-table.md](knowledge/bankr/docs-features-table.md) — capability matrix by feature and chain (what can Bankr do?, which chains for X?)
 - **LLM Gateway:** [knowledge/bankr/docs-llm-gateway.md](knowledge/bankr/docs-llm-gateway.md) — overview, models, routing, quick start

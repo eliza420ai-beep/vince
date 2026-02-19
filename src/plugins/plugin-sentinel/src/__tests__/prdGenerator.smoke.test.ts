@@ -29,7 +29,7 @@ describe("PRD Generator Smoke Test", () => {
   describe("generatePRDFromRequest", () => {
     it("generates a PRD from natural language request", () => {
       const prd = generatePRDFromRequest(
-        "Create automated release notes generator for v2.1.0 that scans merged PRs, extracts key changes from plugin-sentinel and plugin-eliza, and outputs a GitHub-ready CHANGELOG entry"
+        "Create automated release notes generator for v2.1.0 that scans merged PRs, extracts key changes from plugin-sentinel and plugin-eliza, and outputs a GitHub-ready CHANGELOG entry",
       );
 
       expect(prd).toBeDefined();
@@ -50,10 +50,14 @@ describe("PRD Generator Smoke Test", () => {
     });
 
     it("detects priority keywords", () => {
-      const urgentPRD = generatePRDFromRequest("urgent fix for critical bug blocking deployment");
+      const urgentPRD = generatePRDFromRequest(
+        "urgent fix for critical bug blocking deployment",
+      );
       expect(urgentPRD.priority).toBe("P0");
 
-      const laterPRD = generatePRDFromRequest("nice to have feature for later consideration");
+      const laterPRD = generatePRDFromRequest(
+        "nice to have feature for later consideration",
+      );
       expect(laterPRD.priority).toBe("P2");
     });
 
@@ -61,7 +65,9 @@ describe("PRD Generator Smoke Test", () => {
       const smallPRD = generatePRDFromRequest("quick simple fix for typo");
       expect(smallPRD.effort).toBe("S");
 
-      const largePRD = generatePRDFromRequest("large complex rewrite of the entire module");
+      const largePRD = generatePRDFromRequest(
+        "large complex rewrite of the entire module",
+      );
       expect(largePRD.effort).toBe("L");
     });
   });
@@ -70,7 +76,8 @@ describe("PRD Generator Smoke Test", () => {
     it("generates a structured PRD from input", () => {
       const input: PRDInput = {
         title: "v2.1.0 Release Notes Generator",
-        description: "Automated changelog generation by scanning merged PRs and extracting key changes from plugin-sentinel and plugin-eliza upgrades",
+        description:
+          "Automated changelog generation by scanning merged PRs and extracting key changes from plugin-sentinel and plugin-eliza upgrades",
         plugin: "plugin-sentinel",
         priority: "P1",
         estimatedEffort: "M",
@@ -82,15 +89,17 @@ describe("PRD Generator Smoke Test", () => {
       expect(prd.title).toBe("v2.1.0 Release Notes Generator");
       expect(prd.priority).toBe("P1");
       expect(prd.effort).toBe("M");
-      
+
       // Check all required sections exist
-      const sectionHeadings = prd.sections.map(s => s.heading);
+      const sectionHeadings = prd.sections.map((s) => s.heading);
       expect(sectionHeadings).toContain("🎯 North Star");
       expect(sectionHeadings).toContain("📋 Goal & Scope");
       expect(sectionHeadings).toContain("👤 User Story");
       expect(sectionHeadings).toContain("✅ Success Criteria");
       expect(sectionHeadings).toContain("🔧 Technical Specification");
-      expect(sectionHeadings).toContain("🛠 Implementation Guide (for Claude Code)");
+      expect(sectionHeadings).toContain(
+        "🛠 Implementation Guide (for Claude Code)",
+      );
       expect(sectionHeadings).toContain("🧪 Testing & Validation");
       expect(sectionHeadings).toContain("🚫 Out of Scope");
 
@@ -103,8 +112,10 @@ describe("PRD Generator Smoke Test", () => {
 
   describe("savePRD", () => {
     it("saves PRD to standup-deliverables/prds/", () => {
-      const prd = generatePRDFromRequest("Test PRD for v2.1.0 release notes smoke test");
-      
+      const prd = generatePRDFromRequest(
+        "Test PRD for v2.1.0 release notes smoke test",
+      );
+
       generatedPRDPath = savePRD(prd);
 
       expect(fs.existsSync(generatedPRDPath)).toBe(true);
@@ -124,7 +135,7 @@ describe("PRD Generator Smoke Test", () => {
       savePRD(prd);
 
       const prds = listPRDs();
-      
+
       expect(Array.isArray(prds)).toBe(true);
       expect(prds.length).toBeGreaterThan(0);
       expect(prds[0]).toHaveProperty("filename");
@@ -138,7 +149,7 @@ describe("PRD Generator Smoke Test", () => {
       const brief = generateTaskBrief(
         "Add release notes action",
         "New action to generate changelog from PRs",
-        "plugin-sentinel"
+        "plugin-sentinel",
       );
 
       expect(brief).toContain("Add release notes action");

@@ -182,7 +182,9 @@ export async function registerKellyLifestyleDailyTask(
         ) as KellyLifestyleService | null;
       }
       if (!lifestyleService) {
-        logger.warn("[KellyLifestyleDaily] KellyLifestyleService not available after retries");
+        logger.warn(
+          "[KellyLifestyleDaily] KellyLifestyleService not available after retries",
+        );
         return;
       }
 
@@ -193,18 +195,30 @@ export async function registerKellyLifestyleDailyTask(
           roomId: ZERO_UUID,
         } as Parameters<IAgentRuntime["composeState"]>[0];
         const state = await rt.composeState(minimalMessage);
-        const surfSummary = state.values?.surfBiarritzSummary as string | undefined;
+        const surfSummary = state.values?.surfBiarritzSummary as
+          | string
+          | undefined;
         const surfBiarritzLine = surfSummary
           ? surfSummary.replace(/\.\s*When the user asks.*$/i, ".").trim()
           : undefined;
-        const wBdx = state.values?.weatherBordeaux as { condition: string; temp: number } | undefined;
-        const wBiarritz = state.values?.weatherBiarritz as { condition: string; temp: number } | undefined;
+        const wBdx = state.values?.weatherBordeaux as
+          | { condition: string; temp: number }
+          | undefined;
+        const wBiarritz = state.values?.weatherBiarritz as
+          | { condition: string; temp: number }
+          | undefined;
         const weatherParts: string[] = [];
-        if (wBdx) weatherParts.push(`Bordeaux: ${wBdx.condition}, ${wBdx.temp}°C`);
-        if (wBiarritz) weatherParts.push(`Biarritz: ${wBiarritz.condition}, ${wBiarritz.temp}°C`);
+        if (wBdx)
+          weatherParts.push(`Bordeaux: ${wBdx.condition}, ${wBdx.temp}°C`);
+        if (wBiarritz)
+          weatherParts.push(
+            `Biarritz: ${wBiarritz.condition}, ${wBiarritz.temp}°C`,
+          );
         const weatherBordeauxBiarritzLine =
           weatherParts.length > 0 ? weatherParts.join(". ") + "." : undefined;
-        const wHome = state.values?.weatherHome as { condition: string; temp: number } | undefined;
+        const wHome = state.values?.weatherHome as
+          | { condition: string; temp: number }
+          | undefined;
         const weatherHomeLine = wHome
           ? `Local: ${wHome.condition}, ${wHome.temp}°C`
           : undefined;
@@ -212,7 +226,9 @@ export async function registerKellyLifestyleDailyTask(
         const briefing = lifestyleService.getDailyBriefing();
         const season = lifestyleService.getCurrentSeason();
         const contextRetries = [2000, 4000];
-        let curated: ReturnType<KellyLifestyleService["getCuratedOpenContext"]> = null;
+        let curated: ReturnType<
+          KellyLifestyleService["getCuratedOpenContext"]
+        > = null;
         for (let c = 0; c <= contextRetries.length; c++) {
           curated = lifestyleService.getCuratedOpenContext?.() ?? null;
           if (curated !== null || c === contextRetries.length) break;
@@ -225,7 +241,8 @@ export async function registerKellyLifestyleDailyTask(
         const dayLower = briefing.day.toLowerCase();
         const isFriday = dayLower === "friday";
         const isSaturday = dayLower === "saturday";
-        const day = briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1);
+        const day =
+          briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1);
         const { currentTimeParis, pastLunch } = getParisTimeAndPastLunch(day);
 
         const ctx: LifestyleDataContext = {
@@ -260,7 +277,10 @@ export async function registerKellyLifestyleDailyTask(
               ? "If it's been a heavy week, add one sentence encouraging a weekend rebalance—dinner at home, pool, or a walk—without mentioning work or markets."
               : "",
           wineOfTheDay: lifestyleService.getWineOfTheDay?.() ?? "",
-          travelIdeaOfTheWeek: lifestyleService.getDayTripIdeaOfTheWeek?.() ?? lifestyleService.getTravelIdeaOfTheWeek?.() ?? "",
+          travelIdeaOfTheWeek:
+            lifestyleService.getDayTripIdeaOfTheWeek?.() ??
+            lifestyleService.getTravelIdeaOfTheWeek?.() ??
+            "",
           surfBiarritzLine,
           weatherBordeauxBiarritzLine,
           weatherHomeLine,
@@ -271,7 +291,10 @@ export async function registerKellyLifestyleDailyTask(
         let lastErr: unknown;
         for (let r = 0; r < maxRetries; r++) {
           try {
-            humanBriefing = await generateLifestyleHumanBriefing(rt, dataContext);
+            humanBriefing = await generateLifestyleHumanBriefing(
+              rt,
+              dataContext,
+            );
             break;
           } catch (genErr) {
             lastErr = genErr;
@@ -284,8 +307,11 @@ export async function registerKellyLifestyleDailyTask(
           }
         }
         if (!humanBriefing?.trim()) {
-          logger.error(`[KellyLifestyleDaily] Briefing failed after ${maxRetries} attempts: ${lastErr}`);
-          humanBriefing = "Lifestyle data's glitching. Check knowledge/the-good-life for recommendations.";
+          logger.error(
+            `[KellyLifestyleDaily] Briefing failed after ${maxRetries} attempts: ${lastErr}`,
+          );
+          humanBriefing =
+            "Lifestyle data's glitching. Check knowledge/the-good-life for recommendations.";
         }
 
         const message = [
@@ -352,10 +378,14 @@ export async function registerKellyNudgeTask(
     return;
   }
 
-  const nudgeDay = (process.env.KELLY_NUDGE_DAY ?? DEFAULT_NUDGE_DAY).toLowerCase();
+  const nudgeDay = (
+    process.env.KELLY_NUDGE_DAY ?? DEFAULT_NUDGE_DAY
+  ).toLowerCase();
   const nudgeHour =
-    parseInt(process.env.KELLY_NUDGE_HOUR ?? String(DEFAULT_NUDGE_HOUR_UTC), 10) ||
-    DEFAULT_NUDGE_HOUR_UTC;
+    parseInt(
+      process.env.KELLY_NUDGE_HOUR ?? String(DEFAULT_NUDGE_HOUR_UTC),
+      10,
+    ) || DEFAULT_NUDGE_HOUR_UTC;
   const taskWorldId = runtime.agentId as UUID;
 
   runtime.registerTaskWorker({
@@ -427,13 +457,16 @@ export async function registerKellyWeeklyDigestTask(
     process.env.KELLY_WEEKLY_DIGEST_ENABLED === "true" ||
     process.env.KELLY_WEEKLY_DIGEST_ENABLED === "1";
   if (!enabled) {
-    logger.debug("[KellyWeeklyDigest] Disabled (KELLY_WEEKLY_DIGEST_ENABLED not true)");
+    logger.debug(
+      "[KellyWeeklyDigest] Disabled (KELLY_WEEKLY_DIGEST_ENABLED not true)",
+    );
     return;
   }
 
   const digestHour =
     parseInt(
-      process.env.KELLY_WEEKLY_DIGEST_HOUR ?? String(DEFAULT_WEEKLY_DIGEST_HOUR_UTC),
+      process.env.KELLY_WEEKLY_DIGEST_HOUR ??
+        String(DEFAULT_WEEKLY_DIGEST_HOUR_UTC),
       10,
     ) || DEFAULT_WEEKLY_DIGEST_HOUR_UTC;
   const taskWorldId = runtime.agentId as UUID;
@@ -475,7 +508,7 @@ export async function registerKellyWeeklyDigestTask(
           : "See curated schedule.";
       const season = service.getCurrentSeason?.() ?? "pool";
       const palaceLine =
-        season === "gym" ? service.getPalacePoolStatusLine?.() ?? "" : "";
+        season === "gym" ? (service.getPalacePoolStatusLine?.() ?? "") : "";
 
       const prompt = `You are Kelly, a concierge. In one short paragraph (3–5 sentences), suggest the week ahead: dining (lunch only), one hotel idea, and wellness. We are in Southwest France (Landes, Bordeaux–Biarritz). Dining options this week: ${restLine}. Hotels: ${hotelLine}.${palaceLine ? ` Palace pools: ${palaceLine}.` : ""} Be specific; no jargon. Output only the paragraph.`;
 
@@ -546,7 +579,8 @@ export async function registerKellyWinterSwimReminderTask(
 
   const reminderWeek =
     parseInt(
-      process.env.KELLY_WINTER_SWIM_REMINDER_WEEK ?? String(DEFAULT_WINTER_SWIM_WEEK),
+      process.env.KELLY_WINTER_SWIM_REMINDER_WEEK ??
+        String(DEFAULT_WINTER_SWIM_WEEK),
       10,
     ) || DEFAULT_WINTER_SWIM_WEEK;
   const taskWorldId = runtime.agentId as UUID;
@@ -579,7 +613,9 @@ export async function registerKellyWinterSwimReminderTask(
         return;
       }
 
-      const statusLine = service.getPalacePoolStatusLine?.() ?? "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6.";
+      const statusLine =
+        service.getPalacePoolStatusLine?.() ??
+        "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6.";
       const message = [
         "**Winter swim reminder**",
         "",
@@ -598,7 +634,8 @@ export async function registerKellyWinterSwimReminderTask(
 
   await runtime.createTask({
     name: "KELLY_WINTER_SWIM_REMINDER",
-    description: "Optional winter swim reminder (Jan/Feb) with palace pool reopen dates",
+    description:
+      "Optional winter swim reminder (Jan/Feb) with palace pool reopen dates",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["kelly", "winter-swim", "repeat"],

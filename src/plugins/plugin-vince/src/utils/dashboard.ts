@@ -47,8 +47,8 @@ const STARTUP_SERVICE_LABELS: [string, string][] = [
  * Builds a single-line summary of which data services are available (for optional aggregated startup dashboard).
  */
 export function getStartupSummaryLine(runtime: IAgentRuntime): string {
-  const parts = STARTUP_SERVICE_LABELS.filter(([type]) => !!runtime.getService(type)).map(
-    ([, label]) => `${label} ✓`,
-  );
+  const parts = STARTUP_SERVICE_LABELS.filter(
+    ([type]) => !!runtime.getService(type),
+  ).map(([, label]) => `${label} ✓`);
   return parts.length ? parts.join(" | ") : "—";
 }

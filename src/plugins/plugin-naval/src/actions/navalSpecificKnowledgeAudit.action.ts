@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "specific knowledge audit",
@@ -44,7 +48,10 @@ export const navalSpecificKnowledgeAuditAction: Action = {
   description:
     "Naval-style audit: find specific knowledge that can't be trained, from experience, what you'd do for free, where you're authentic. Be ruthless.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsAudit(text);
   },
@@ -79,7 +86,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -87,14 +94,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Specific knowledge is what you find by following curiosity — intersections no one else has. If you don't have it yet, build it where you're willing to do the work for free.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Run the specific knowledge audit. About me: 10 years fintech, design + code, love systems." } },
-      { name: "{{agent}}", content: { text: "1. Specific knowledge: fintech + design + systems — few have that combo. 2. From experience: how compliance and UX collide. 3. For free: you'd design better dashboards. 4. Authentic: you care about clarity; others fake the polish. Build: write and ship one product in public." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Run the specific knowledge audit. About me: 10 years fintech, design + code, love systems.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "1. Specific knowledge: fintech + design + systems — few have that combo. 2. From experience: how compliance and UX collide. 3. For free: you'd design better dashboards. 4. Authentic: you care about clarity; others fake the polish. Build: write and ship one product in public.",
+        },
+      },
     ],
   ],
 };

@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "agents as leverage",
@@ -49,11 +54,19 @@ Direct. Benefit-led: what they get is leverage — more output without more hour
 
 export const navalAgentsAsLeverageAction: Action = {
   name: "NAVAL_AGENTS_AS_LEVERAGE",
-  similes: ["AGENTS_AS_LEVERAGE", "AGENTS_ARE_LEVERAGE", "LEVERAGE_THROUGH_AGENTS", "WHO_DOES_WHAT_WITHOUT_ME"],
+  similes: [
+    "AGENTS_AS_LEVERAGE",
+    "AGENTS_ARE_LEVERAGE",
+    "LEVERAGE_THROUGH_AGENTS",
+    "WHO_DOES_WHAT_WITHOUT_ME",
+  ],
   description:
     "Agents are leverage: they do the job without you. One job to assign and one rule so they get more output per unit of their time.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsAgentsAsLeverage(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Agents are leverage. One job: assign something you do by hand to an agent or script (intel push, size/skip/watch, brief). Rule: I don't do that job; I read the result. You get more output without more hours.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I want to use agents as leverage but I'm not sure what to hand off." } },
-      { name: "{{agent}}", content: { text: "What do you do every day that's repeatable? Daily intel, weekly plan, lifestyle digest — pick one. Shift: that job goes to an agent; you get the push or the summary. Rule: I don't check raw data; the agent does. I read the result. That's leverage." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I want to use agents as leverage but I'm not sure what to hand off.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "What do you do every day that's repeatable? Daily intel, weekly plan, lifestyle digest — pick one. Shift: that job goes to an agent; you get the push or the summary. Rule: I don't check raw data; the agent does. I read the result. That's leverage.",
+        },
+      },
     ],
   ],
 };

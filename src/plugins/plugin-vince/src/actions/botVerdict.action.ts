@@ -30,9 +30,7 @@ function buildDataContext(
   const lines: string[] = [];
   lines.push("=== PAPER BOT OPEN POSITIONS ===");
   lines.push(
-    positionLines.length > 0
-      ? positionLines.join("\n")
-      : "No open positions.",
+    positionLines.length > 0 ? positionLines.join("\n") : "No open positions.",
   );
   lines.push("");
   lines.push("=== CURRENT SIGNALS (aggregated) ===");
@@ -119,7 +117,10 @@ export const vinceBotVerdictAction: Action = {
   description:
     "Why the paper bot is long/short/flat today — one paragraph with 2–3 factors plus optional tweet",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("bot verdict") ||
@@ -182,11 +183,7 @@ export const vinceBotVerdictAction: Action = {
 
       let dataContext = buildDataContext(positionLines, signalLines);
       dataContext += getGrokMarketReadSection();
-      const briefing = await generateHumanBriefing(
-        runtime,
-        dataContext,
-        date,
-      );
+      const briefing = await generateHumanBriefing(runtime, dataContext, date);
       const tweet = await generateTweet(runtime, dataContext, date);
 
       const sections: string[] = [];

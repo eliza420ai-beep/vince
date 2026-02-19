@@ -16,16 +16,14 @@ import { getVoiceAvoidPromptFragment } from "../constants/voice";
 
 export const kellyItineraryAction: Action = {
   name: "KELLY_ITINERARY",
-  similes: [
-    "ITINERARY",
-    "TRIP_PLAN",
-    "MULTI_DAY_PLAN",
-    "WEEKEND_PLAN",
-  ],
+  similes: ["ITINERARY", "TRIP_PLAN", "MULTI_DAY_PLAN", "WEEKEND_PLAN"],
   description:
     "Create a structured multi-day itinerary (hotel, lunch, dinner, activities) for a place using only the-good-life knowledge and experience-prioritization rules.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
       text.includes("itinerary") ||
@@ -34,7 +32,10 @@ export const kellyItineraryAction: Action = {
       text.includes("3 days") ||
       text.includes("weekend in") ||
       (text.includes("trip to") && text.includes("plan")) ||
-      (text.includes("days in") && (text.includes("hotel") || text.includes("eat") || text.includes("food"))) ||
+      (text.includes("days in") &&
+        (text.includes("hotel") ||
+          text.includes("eat") ||
+          text.includes("food"))) ||
       /plan\s+(?:me\s+)?(?:a\s+)?\d+\s*day/i.test(text) ||
       /weekend\s+(?:in|to)\s+/i.test(text)
     );
@@ -57,7 +58,10 @@ export const kellyItineraryAction: Action = {
       const knowledgeSnippet = contextBlock.slice(0, 14000);
 
       const userAsk = (message.content?.text ?? "").trim();
-      const wantCalendarFormat = /calendar|ical|copy-paste|copy paste|for notes|paste into/i.test(userAsk);
+      const wantCalendarFormat =
+        /calendar|ical|copy-paste|copy paste|for notes|paste into/i.test(
+          userAsk,
+        );
       const formatInstruction = wantCalendarFormat
         ? " Format so it can be copy-pasted into a calendar or notes: short lines, times optional (e.g. 12:00 Lunch, 19:30 Dinner), place names clear."
         : "";
@@ -122,7 +126,10 @@ Output only the itinerary, no XML or preamble. Voice: avoid jargon and filler. $
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Weekend in Paris with great food" } },
+      {
+        name: "{{user}}",
+        content: { text: "Weekend in Paris with great food" },
+      },
       {
         name: "{{agent}}",
         content: {

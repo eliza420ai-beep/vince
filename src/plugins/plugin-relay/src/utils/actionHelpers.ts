@@ -4,7 +4,12 @@
  * Shared utilities for Relay plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
 import { RelayService } from "../services/relay.service";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
 import { shouldRelayPluginBeInContext } from "../../matcher";
@@ -22,7 +27,7 @@ export function validateRelayService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   try {
     // Check plugin context first
@@ -31,7 +36,7 @@ export function validateRelayService(
     }
 
     const service = runtime.getService(
-      RelayService.serviceType
+      RelayService.serviceType,
     ) as RelayService;
 
     if (!service) {
@@ -39,9 +44,7 @@ export function validateRelayService(
       return false;
     }
 
-    const cdpService = runtime.getService(
-      CdpService.serviceType
-    ) as CdpService;
+    const cdpService = runtime.getService(CdpService.serviceType) as CdpService;
 
     if (!cdpService) {
       logger.warn(`[${actionName}] CDP service not available`);
@@ -52,7 +55,7 @@ export function validateRelayService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -64,12 +67,8 @@ export function validateRelayService(
  * @param runtime - Agent runtime
  * @returns Relay service instance or null
  */
-export function getRelayService(
-  runtime: IAgentRuntime
-): RelayService | null {
-  return runtime.getService(
-    RelayService.serviceType
-  ) as RelayService | null;
+export function getRelayService(runtime: IAgentRuntime): RelayService | null {
+  return runtime.getService(RelayService.serviceType) as RelayService | null;
 }
 
 /**
@@ -81,12 +80,12 @@ export function getRelayService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }
@@ -99,9 +98,9 @@ export async function extractActionParams<T>(
  */
 export function serializeBigInt(obj: any): any {
   if (obj === null || obj === undefined) return obj;
-  if (typeof obj === 'bigint') return obj.toString();
+  if (typeof obj === "bigint") return obj.toString();
   if (Array.isArray(obj)) return obj.map(serializeBigInt);
-  if (typeof obj === 'object') {
+  if (typeof obj === "object") {
     const serialized: any = {};
     for (const key in obj) {
       serialized[key] = serializeBigInt(obj[key]);
@@ -139,7 +138,11 @@ export function getChainName(chainId: number): string {
  * @returns Formatted amount string
  */
 export function formatAmount(amount: string, currency: string): string {
-  const decimals = currency.toLowerCase().includes("usdc") || currency.toLowerCase().includes("usdt") ? 6 : 18;
+  const decimals =
+    currency.toLowerCase().includes("usdc") ||
+    currency.toLowerCase().includes("usdt")
+      ? 6
+      : 18;
   const value = Number(amount) / Math.pow(10, decimals);
   return `${value.toFixed(6)} ${currency.toUpperCase()}`;
 }

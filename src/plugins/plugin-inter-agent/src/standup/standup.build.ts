@@ -29,7 +29,9 @@ export interface BuildActionResult {
   message?: string;
 }
 
-export function isNorthStarType(type: StandupActionItemType | undefined): boolean {
+export function isNorthStarType(
+  type: StandupActionItemType | undefined,
+): boolean {
   return type !== undefined && NORTH_STAR_TYPES.includes(type);
 }
 
@@ -41,13 +43,16 @@ function getDeliverablesDir(): string {
 
 function sanitizeFilename(description: string, assignee: string): string {
   const date = new Date().toISOString().slice(0, 10);
-  const safe = description
-    .slice(0, 40)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase() || "deliverable";
-  const assigneeSafe = (assignee || "agent").replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+  const safe =
+    description
+      .slice(0, 40)
+      .replace(/[^a-zA-Z0-9-_]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase() || "deliverable";
+  const assigneeSafe = (assignee || "agent")
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .toLowerCase();
   return `${date}-${assigneeSafe}-${safe}.ts`;
 }
 
@@ -72,14 +77,24 @@ async function tryMilaidyGateway(
       }),
     });
     if (!res.ok) {
-      logger.debug({ status: res.status, url }, "[Standup] Milaidy Gateway returned non-OK");
+      logger.debug(
+        { status: res.status, url },
+        "[Standup] Milaidy Gateway returned non-OK",
+      );
       return null;
     }
-    const data = (await res.json()) as { deliverablePath?: string; message?: string; accepted?: boolean };
+    const data = (await res.json()) as {
+      deliverablePath?: string;
+      message?: string;
+      accepted?: boolean;
+    };
     if (data.deliverablePath || data.message) {
       return { path: data.deliverablePath, message: data.message };
     }
-    if (data.accepted) return { message: "Accepted by Milaidy (deliverable path not returned)." };
+    if (data.accepted)
+      return {
+        message: "Accepted by Milaidy (deliverable path not returned).",
+      };
     return null;
   } catch (err) {
     logger.debug({ err, url }, "[Standup] Milaidy Gateway request failed");
@@ -95,7 +110,8 @@ async function fallbackCodeGen(
   description: string,
   assigneeAgentName: string,
 ): Promise<BuildActionResult | null> {
-  const fallbackEnabled = process.env.STANDUP_BUILD_FALLBACK_TO_VINCE !== "false";
+  const fallbackEnabled =
+    process.env.STANDUP_BUILD_FALLBACK_TO_VINCE !== "false";
   if (!fallbackEnabled) return null;
 
   const dir = getDeliverablesDir();
@@ -115,13 +131,18 @@ Requirements: one file, runnable or composable (function or small module). Keep 
 
   try {
     const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
-    const raw = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    const raw =
+      typeof response === "string"
+        ? response
+        : ((response as { text?: string })?.text ?? "");
     const code = raw
       .replace(/^```(?:ts|typescript|js|javascript)?\s*\n?/i, "")
       .replace(/\n?```\s*$/i, "")
       .trim();
     if (!code || code.length < 10) {
-      logger.debug("[Standup] Fallback code gen produced empty or too short output");
+      logger.debug(
+        "[Standup] Fallback code gen produced empty or too short output",
+      );
       return null;
     }
 
@@ -174,18 +195,26 @@ function northStarSubdir(type: StandupActionItemType): string {
 }
 
 function slugFromDescription(description: string): string {
-  return description
-    .slice(0, 30)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase() || "deliverable";
+  return (
+    description
+      .slice(0, 30)
+      .replace(/[^a-zA-Z0-9-_]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase() || "deliverable"
+  );
 }
 
-function northStarFilename(type: StandupActionItemType, description: string, assignee: string): string {
+function northStarFilename(
+  type: StandupActionItemType,
+  description: string,
+  assignee: string,
+): string {
   const date = new Date().toISOString().slice(0, 10);
   const slug = slugFromDescription(description);
-  const assigneeSafe = (assignee || "agent").replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+  const assigneeSafe = (assignee || "agent")
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .toLowerCase();
   return `${date}-${assigneeSafe}-${slug}.md`;
 }
 
@@ -231,7 +260,10 @@ export async function executeNorthStarDeliverable(
   try {
     await fs.mkdir(dir, { recursive: true });
   } catch (e) {
-    logger.warn({ err: e, dir }, "[Standup] Could not create north-star subdir");
+    logger.warn(
+      { err: e, dir },
+      "[Standup] Could not create north-star subdir",
+    );
     return null;
   }
 
@@ -242,13 +274,18 @@ export async function executeNorthStarDeliverable(
 
   try {
     const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
-    const raw = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    const raw =
+      typeof response === "string"
+        ? response
+        : ((response as { text?: string })?.text ?? "");
     const content = raw
       .replace(/^```(?:markdown|md)?\s*\n?/i, "")
       .replace(/\n?```\s*$/i, "")
       .trim();
     if (!content || content.length < 20) {
-      logger.debug("[Standup] North-star gen produced empty or too short output");
+      logger.debug(
+        "[Standup] North-star gen produced empty or too short output",
+      );
       return null;
     }
 

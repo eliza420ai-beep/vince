@@ -7,6 +7,13 @@
  * Or:    bun run start:custom-ui
  */
 
+// Multi-agent setups add more than 10 new_message listeners to InternalMessageBus; raise limit to avoid warning.
+import { EventEmitter } from "node:events";
+EventEmitter.defaultMaxListeners = Math.max(
+  EventEmitter.defaultMaxListeners || 0,
+  20,
+);
+
 import { AgentServer } from "@elizaos/server";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -27,7 +34,10 @@ if (fs.existsSync(envPath)) {
       if (eq > 0) {
         const key = trimmed.slice(0, eq).trim();
         let val = trimmed.slice(eq + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        )
           val = val.slice(1, -1);
         process.env[key] = val;
       }
@@ -36,15 +46,24 @@ if (fs.existsSync(envPath)) {
 }
 
 // Log when local-only messaging is active (agent replies stay on local server/socket)
-const useLocalMessaging = process.env.ELIZAOS_USE_LOCAL_MESSAGING === "true" || !process.env.ELIZAOS_API_KEY?.trim();
+const useLocalMessaging =
+  process.env.ELIZAOS_USE_LOCAL_MESSAGING === "true" ||
+  !process.env.ELIZAOS_API_KEY?.trim();
 if (useLocalMessaging) {
-  console.log("[start] Messaging: local-only (replies delivered via local server/socket)");
+  console.log(
+    "[start] Messaging: local-only (replies delivered via local server/socket)",
+  );
 }
 
 // Optional: run Postgres bootstrap when POSTGRES_URL is set (same as start-with-db.js)
 const postgresUrl = process.env.POSTGRES_URL?.trim();
-const sslReject = process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
-const sslRelax = sslReject === "false" || sslReject === "0" || sslReject === "no" || sslReject === "off";
+const sslReject =
+  process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
+const sslRelax =
+  sslReject === "false" ||
+  sslReject === "0" ||
+  sslReject === "no" ||
+  sslReject === "off";
 
 async function runBootstrap() {
   if (!postgresUrl) return;
@@ -79,7 +98,11 @@ function runBuildFrontend() {
       cwd: rootDir,
       stdio: "inherit",
     });
-    child.on("close", (code) => (code === 0 ? resolve() : reject(new Error("build:frontend exited with " + code))));
+    child.on("close", (code) =>
+      code === 0
+        ? resolve()
+        : reject(new Error("build:frontend exited with " + code)),
+    );
     child.on("error", reject);
   });
 }
@@ -91,7 +114,9 @@ function runBuildBackend() {
       cwd: rootDir,
       stdio: "inherit",
     });
-    child.on("close", (code) => (code === 0 ? resolve() : reject(new Error("build exited with " + code))));
+    child.on("close", (code) =>
+      code === 0 ? resolve() : reject(new Error("build exited with " + code)),
+    );
     child.on("error", reject);
   });
 }
@@ -132,7 +157,8 @@ async function main() {
   }));
 
   const port = parseInt(process.env.SERVER_PORT || "3000", 10);
-  const dataDir = process.env.PGLITE_DATA_DIR || path.resolve(rootDir, ".eliza/.elizadb");
+  const dataDir =
+    process.env.PGLITE_DATA_DIR || path.resolve(rootDir, ".eliza/.elizadb");
 
   // Start server with single start(): HTTP server is brought up first, then agents.
   // This order is required so MessageBusService fetch to localhost succeeds when using central/cloud messaging.

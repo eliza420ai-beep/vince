@@ -11,7 +11,10 @@ import { MorphoService } from "../services";
 import { CdpService } from "../../../plugin-cdp/services/cdp.service";
 import { getEntityWallet } from "../../../../utils/entity";
 import { getTxExplorerUrl } from "../../../../constants/chains";
-import { validateMorphoService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateMorphoService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 
 interface VaultTransferParams {
   intent: "deposit" | "withdraw";
@@ -68,7 +71,12 @@ export const vaultTransferAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validateMorphoService(runtime, "MORPHO_VAULT_TRANSFER", state, message);
+    return validateMorphoService(
+      runtime,
+      "MORPHO_VAULT_TRANSFER",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -82,8 +90,13 @@ export const vaultTransferAction: Action = {
 
     try {
       // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<VaultTransferParams>;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as Partial<VaultTransferParams>;
 
       // Store input parameters for return
       const inputParams: VaultTransferInput = {
@@ -99,7 +112,8 @@ export const vaultTransferAction: Action = {
 
       // Validate intent
       if (!inputParams.intent) {
-        const errorMsg = 'Missing intent. Please specify "deposit" or "withdraw".';
+        const errorMsg =
+          'Missing intent. Please specify "deposit" or "withdraw".';
         logger.error(`[MORPHO_VAULT_TRANSFER] ${errorMsg}`);
         const errorResult: VaultTransferActionResult = {
           text: ` ${errorMsg}`,
@@ -118,7 +132,10 @@ export const vaultTransferAction: Action = {
         return errorResult;
       }
 
-      if (inputParams.intent !== "deposit" && inputParams.intent !== "withdraw") {
+      if (
+        inputParams.intent !== "deposit" &&
+        inputParams.intent !== "withdraw"
+      ) {
         const errorMsg = `Invalid intent "${inputParams.intent}". Use "deposit" or "withdraw".`;
         logger.error(`[MORPHO_VAULT_TRANSFER] ${errorMsg}`);
         const errorResult: VaultTransferActionResult = {
@@ -140,7 +157,8 @@ export const vaultTransferAction: Action = {
 
       // Validate vault
       if (!inputParams.vault) {
-        const errorMsg = 'Missing vault. Provide a vault name (e.g., "Spark USDC Vault") or a 0x-address.';
+        const errorMsg =
+          'Missing vault. Provide a vault name (e.g., "Spark USDC Vault") or a 0x-address.';
         logger.error(`[MORPHO_VAULT_TRANSFER] ${errorMsg}`);
         const errorResult: VaultTransferActionResult = {
           text: ` ${errorMsg}`,
@@ -161,7 +179,8 @@ export const vaultTransferAction: Action = {
 
       // Validate assets
       if (!inputParams.assets) {
-        const errorMsg = 'Missing amount. Provide a pure number without units (e.g., "1", "0.5", "100").';
+        const errorMsg =
+          'Missing amount. Provide a pure number without units (e.g., "1", "0.5", "100").';
         logger.error(`[MORPHO_VAULT_TRANSFER] ${errorMsg}`);
         const errorResult: VaultTransferActionResult = {
           text: ` ${errorMsg}`,
@@ -202,10 +221,12 @@ export const vaultTransferAction: Action = {
       }
 
       // Determine chain - default to 'base' if not provided
-      const chain = (inputParams.chain as any) || 'base';
+      const chain = (inputParams.chain as any) || "base";
 
       // Get services
-      const service = runtime.getService(MorphoService.serviceType) as MorphoService;
+      const service = runtime.getService(
+        MorphoService.serviceType,
+      ) as MorphoService;
       const cdp = runtime.getService(CdpService.serviceType) as CdpService;
 
       if (!cdp || typeof cdp.getViemClientsForAccount !== "function") {
@@ -237,7 +258,9 @@ export const vaultTransferAction: Action = {
       );
 
       if (wallet.success === false) {
-        logger.warn("[MORPHO_VAULT_TRANSFER] Entity wallet verification failed");
+        logger.warn(
+          "[MORPHO_VAULT_TRANSFER] Entity wallet verification failed",
+        );
         return {
           ...wallet.result,
           input: inputParams,
@@ -291,7 +314,10 @@ export const vaultTransferAction: Action = {
         if (callback) {
           await callback({
             text: errorResult.text,
-            content: { error: "wallet_initialization_failed", details: errorMsg },
+            content: {
+              error: "wallet_initialization_failed",
+              details: errorMsg,
+            },
           });
         }
         return errorResult;
@@ -368,8 +394,13 @@ export const vaultTransferAction: Action = {
       // Try to capture input params even in failure
       let failureInputParams: VaultTransferInput = {};
       try {
-        const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = (composedState?.data?.actionParams ?? {}) as Partial<VaultTransferParams>;
+        const composedState = await runtime.composeState(
+          message,
+          ["ACTION_STATE"],
+          true,
+        );
+        const params = (composedState?.data?.actionParams ??
+          {}) as Partial<VaultTransferParams>;
         failureInputParams = {
           intent: params.intent,
           vault: params.vault?.trim(),

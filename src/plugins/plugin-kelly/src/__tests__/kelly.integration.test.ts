@@ -36,7 +36,11 @@ describe("Kelly integration", () => {
         fitnessNote: "Gym season",
         rawSection: "Wed: Maison Devaux",
       }),
-      getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
+      getPalacePoolReopenDates: () => ({
+        Palais: "Feb 12",
+        Caudalie: "Feb 5",
+        Eugenie: "Mar 6",
+      }),
       getPalacePoolStatusLine: () =>
         "Caudalie: back open (reopened Feb 5), Palais reopens Feb 12, Eugenie reopens Mar 6",
     } as unknown as KellyLifestyleService;
@@ -60,7 +64,13 @@ describe("Kelly integration", () => {
 
     const state = createMockState();
     const callback = createMockCallback();
-    await kellyDailyBriefingAction.handler(runtime, message, state, {}, callback);
+    await kellyDailyBriefingAction.handler(
+      runtime,
+      message,
+      state,
+      {},
+      callback,
+    );
 
     expect(callback.calls.length).toBeGreaterThanOrEqual(1);
     const text = callback.calls[0]?.text ?? "";
@@ -71,7 +81,10 @@ describe("Kelly integration", () => {
   });
 
   it("Flow 2: where to eat in Landes → kellyContext has restaurants open today, recommendPlace recommends one of curated", async () => {
-    const curatedRestaurants = ["Maison Devaux | Rion", "Auberge du Lavoir | Garrosse"];
+    const curatedRestaurants = [
+      "Maison Devaux | Rion",
+      "Auberge du Lavoir | Garrosse",
+    ];
     const mockService = {
       getCuratedOpenContext: () => ({
         restaurants: curatedRestaurants,
@@ -80,7 +93,12 @@ describe("Kelly integration", () => {
         rawSection: "Wed: Maison Devaux; Auberge du Lavoir",
       }),
       getWellnessTipOfTheDay: () => "",
-      getDailyBriefing: () => ({ day: "wednesday", date: "2025-02-05", suggestions: [], specialNotes: [] }),
+      getDailyBriefing: () => ({
+        day: "wednesday",
+        date: "2025-02-05",
+        suggestions: [],
+        specialNotes: [],
+      }),
       getCurrentSeason: () => "pool" as const,
       getPalacePoolReopenDates: () => ({}),
       getPalacePoolStatusLine: () => "",
@@ -104,11 +122,19 @@ describe("Kelly integration", () => {
 
     const message = createMockMessage("where to eat in Landes");
     const callback = createMockCallback();
-    await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
+    await kellyRecommendPlaceAction.handler(
+      runtime,
+      message,
+      createMockState(),
+      {},
+      callback,
+    );
 
     expect(callback.calls.length).toBeGreaterThanOrEqual(1);
     const text = (callback.calls[0]?.text ?? "").toLowerCase();
-    const hasCurated = curatedRestaurants.some((r) => text.includes(r.split("|")[0].toLowerCase().trim()));
+    const hasCurated = curatedRestaurants.some((r) =>
+      text.includes(r.split("|")[0].toLowerCase().trim()),
+    );
     expect(hasCurated).toBe(true);
   });
 
@@ -119,8 +145,22 @@ describe("Kelly integration", () => {
       getMemories: async (params: { roomId?: string }) => {
         if (params?.roomId === roomId) {
           return [
-            { id: "m1", entityId: "u1", roomId, agentId: "a1", content: { text: "We tried that place you suggested" }, createdAt: Date.now() },
-            { id: "m2", entityId: "u1", roomId, agentId: "a1", content: { text: "that place was too loud" }, createdAt: Date.now() },
+            {
+              id: "m1",
+              entityId: "u1",
+              roomId,
+              agentId: "a1",
+              content: { text: "We tried that place you suggested" },
+              createdAt: Date.now(),
+            },
+            {
+              id: "m2",
+              entityId: "u1",
+              roomId,
+              agentId: "a1",
+              content: { text: "that place was too loud" },
+              createdAt: Date.now(),
+            },
           ] as any;
         }
         return [];
@@ -136,10 +176,22 @@ describe("Kelly integration", () => {
     __clearWeatherCacheForTesting();
     globalThis.fetch = async (url: string) => {
       if (String(url).includes("marine-api")) {
-        return Response.json({ current: { wave_height: 2, wave_period: 8, wave_direction: 225, sea_surface_temperature: 15 } });
+        return Response.json({
+          current: {
+            wave_height: 2,
+            wave_period: 8,
+            wave_direction: 225,
+            sea_surface_temperature: 15,
+          },
+        });
       }
       return Response.json({
-        current: { weather_code: 61, temperature_2m: 14, precipitation: 5, wind_speed_10m: 10 },
+        current: {
+          weather_code: 61,
+          temperature_2m: 14,
+          precipitation: 5,
+          wind_speed_10m: 10,
+        },
       });
     };
 
@@ -147,8 +199,15 @@ describe("Kelly integration", () => {
       getService: () => null,
       getMemories: async () => [],
       composeState: async () => {
-        const w = await weatherProvider.get(runtime as any, createMockMessage("surf"));
-        return createMockState({ values: w?.values ?? {}, text: w?.text ?? "", data: {} });
+        const w = await weatherProvider.get(
+          runtime as any,
+          createMockMessage("surf"),
+        );
+        return createMockState({
+          values: w?.values ?? {},
+          text: w?.text ?? "",
+          data: {},
+        });
       },
       useModel: async () =>
         "Rain and wind today—not ideal for the beach. Consider indoor yoga or check conditions tomorrow.",
@@ -156,7 +215,13 @@ describe("Kelly integration", () => {
 
     const message = createMockMessage("surf forecast Biarritz");
     const callback = createMockCallback();
-    await kellySurfForecastAction.handler(runtime, message, createMockState(), {}, callback);
+    await kellySurfForecastAction.handler(
+      runtime,
+      message,
+      createMockState(),
+      {},
+      callback,
+    );
 
     globalThis.fetch = originalFetch;
     expect(callback.calls.length).toBeGreaterThanOrEqual(1);

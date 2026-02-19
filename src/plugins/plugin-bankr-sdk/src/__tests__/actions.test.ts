@@ -51,7 +51,9 @@ describe("Bankr SDK Plugin", () => {
   });
 
   it("should have BANKR_SDK_PROMPT action", () => {
-    const action = bankrSdkPlugin.actions.find((a) => a.name === "BANKR_SDK_PROMPT");
+    const action = bankrSdkPlugin.actions.find(
+      (a) => a.name === "BANKR_SDK_PROMPT",
+    );
     expect(action).toBeDefined();
     expect(action?.description).toContain("SDK");
     expect(action?.description).toContain("x402");
@@ -59,7 +61,9 @@ describe("Bankr SDK Plugin", () => {
 });
 
 describe("BANKR_SDK_PROMPT", () => {
-  const action = bankrSdkPlugin.actions.find((a) => a.name === "BANKR_SDK_PROMPT")!;
+  const action = bankrSdkPlugin.actions.find(
+    (a) => a.name === "BANKR_SDK_PROMPT",
+  )!;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -106,11 +110,17 @@ describe("BANKR_SDK_PROMPT", () => {
         calls.push(content);
       };
 
-      const result = await action.handler!(runtime, memory, undefined, undefined, callback);
+      const result = await action.handler!(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(result.success).toBe(true);
       expect(mockSdkService.promptAndWait).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: "what is the price of ETH?" })
+        expect.objectContaining({ prompt: "what is the price of ETH?" }),
       );
       // Last callback should have the response
       const lastCall = calls[calls.length - 1];
@@ -121,9 +131,7 @@ describe("BANKR_SDK_PROMPT", () => {
       mockSdkService.promptAndWait.mockResolvedValueOnce({
         response: "Swap ready",
         status: "completed",
-        transactions: [
-          { type: "swap", metadata: { chainId: 8453 } },
-        ],
+        transactions: [{ type: "swap", metadata: { chainId: 8453 } }],
       });
 
       const runtime = createMockRuntime(true);
@@ -133,7 +141,13 @@ describe("BANKR_SDK_PROMPT", () => {
         calls.push(content);
       };
 
-      const result = await action.handler!(runtime, memory, undefined, undefined, callback);
+      const result = await action.handler!(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(result.success).toBe(true);
       expect(result.data?.transactionCount).toBe(1);
@@ -155,7 +169,13 @@ describe("BANKR_SDK_PROMPT", () => {
         calls.push(content);
       };
 
-      const result = await action.handler!(runtime, memory, undefined, undefined, callback);
+      const result = await action.handler!(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(result.success).toBe(false);
       expect(result.text).toContain("Insufficient USDC");
@@ -173,7 +193,13 @@ describe("BANKR_SDK_PROMPT", () => {
         calls.push(content);
       };
 
-      const result = await action.handler!(runtime, memory, undefined, undefined, callback);
+      const result = await action.handler!(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(result.success).toBe(true);
       expect(result.data?.status).toBe("cancelled");
@@ -181,7 +207,7 @@ describe("BANKR_SDK_PROMPT", () => {
 
     it("should handle service errors", async () => {
       mockSdkService.promptAndWait.mockRejectedValueOnce(
-        new Error("Payment required - insufficient USDC")
+        new Error("Payment required - insufficient USDC"),
       );
 
       const runtime = createMockRuntime(true);
@@ -191,7 +217,13 @@ describe("BANKR_SDK_PROMPT", () => {
         calls.push(content);
       };
 
-      const result = await action.handler!(runtime, memory, undefined, undefined, callback);
+      const result = await action.handler!(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(result.success).toBe(false);
       expect(result.text).toContain("USDC");
@@ -205,7 +237,13 @@ describe("BANKR_SDK_PROMPT", () => {
         calls.push(content);
       };
 
-      const result = await action.handler!(runtime, memory, undefined, undefined, callback);
+      const result = await action.handler!(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(result.success).toBe(false);
       expect(result.text).toContain("No prompt");
@@ -222,7 +260,13 @@ describe("BANKR_SDK_PROMPT", () => {
         calls.push(content);
       };
 
-      const result = await action.handler!(runtime, memory, undefined, undefined, callback);
+      const result = await action.handler!(
+        runtime,
+        memory,
+        undefined,
+        undefined,
+        callback,
+      );
 
       expect(result.success).toBe(false);
       expect(result.text).toContain("not available");

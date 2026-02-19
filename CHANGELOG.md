@@ -32,7 +32,7 @@ All notable changes to the VINCE project will be documented in this file.
 
 - **docs/standup/** — New folder; standup deliverables reorganized under docs/standup/
 - **IDEAS.md, SEARCH.md** — Moved to docs/IDEAS.md, docs/SEARCH.md
-- Obsolete standup-deliverables-build-test-* folders and legacy standup files removed
+- Obsolete standup-deliverables-build-test-\* folders and legacy standup files removed
 - Sync script and vault templates updated for new layout
 
 ### Env & dev experience
@@ -97,18 +97,19 @@ All notable changes to the VINCE project will be documented in this file.
 
 The full roster is now live. Clear lanes, no overlap.
 
-| Role | Agent | Lane |
-|------|-------|------|
-| CEO | Eliza | Knowledge base, research |
-| CDO | VINCE | Objective data: options, perps, prices |
-| **CSO** | **ECHO** | **CT sentiment, X research, social alpha** |
+| Role    | Agent      | Lane                                           |
+| ------- | ---------- | ---------------------------------------------- |
+| CEO     | Eliza      | Knowledge base, research                       |
+| CDO     | VINCE      | Objective data: options, perps, prices         |
+| **CSO** | **ECHO**   | **CT sentiment, X research, social alpha**     |
 | **CPO** | **Oracle** | **Prediction markets: Polymarket (read-only)** |
-| CFO | Solus | Trading execution, strike selection |
-| COO | Otaku | DeFi ops, wallet, yields |
-| CVO | Kelly | Lifestyle: travel, dining, health |
-| CTO | Sentinel | Ops, code, infra |
+| CFO     | Solus      | Trading execution, strike selection            |
+| COO     | Otaku      | DeFi ops, wallet, yields                       |
+| CVO     | Kelly      | Lifestyle: travel, dining, health              |
+| CTO     | Sentinel   | Ops, code, infra                               |
 
 **Design Principle:**
+
 - Data agents (VINCE, ECHO, Oracle) → inform, don't execute
 - Execution agents (Solus, Otaku) → trade, execute
 - Support agents (Eliza, Kelly, Sentinel) → knowledge, lifestyle, ops
@@ -122,11 +123,13 @@ Prediction markets specialist — Polymarket-first, read-only.
 **Why it matters:** Priority markets are "a palantir into market belief."
 
 **Three use cases:**
+
 1. **Paper bot** — Price predictions improve perps algo on Hyperliquid
 2. **Hypersurface strike selection** — Weekly predictions → options strikes (most important)
 3. **Vibe check** — Macro sentiment overlay
 
 **Actions:**
+
 - `GET_ACTIVE_POLYMARKETS` — Trending markets
 - `GET_VINCE_POLYMARKET_MARKETS` — Priority markets only
 - `SEARCH_POLYMARKETS` — Keyword search
@@ -141,6 +144,7 @@ Prediction markets specialist — Polymarket-first, read-only.
 Chief Sentiment Officer — CT vibes, social alpha.
 
 **Separation of concerns:**
+
 - VINCE = objective data (prices, funding, options)
 - ECHO = subjective sentiment (CT says, whale takes, contrarian warnings)
 
@@ -177,6 +181,7 @@ Chief Sentiment Officer — CT vibes, social alpha.
 ### 🧹 VINCE Cleanup
 
 X research fully migrated to ECHO:
+
 - **Deleted** `xResearch.action.ts` (1,102 lines)
 - **Deleted** `ctVibe.action.ts`
 - VINCE now pure objective data
@@ -231,23 +236,23 @@ X research fully migrated to ECHO:
 
 #### New Actions (15 total)
 
-| Action | Description |
-|--------|-------------|
-| `SENTINEL_PRD` | Generate world-class PRDs |
-| `SENTINEL_SUGGEST` | Impact-scored suggestions |
-| `SENTINEL_SHIP` | What to ship for max impact |
-| `SENTINEL_MULTI_AGENT` | Multi-agent architecture expert |
-| `SENTINEL_TRADING_INTEL` | Paper bot + options expert |
-| `SENTINEL_OPENCLAW_GUIDE` | OpenClaw knowledge research setup |
-| `SENTINEL_ONNX_STATUS` | ML/ONNX health check |
-| `SENTINEL_DOC_IMPROVE` | Documentation improvements |
-| `SENTINEL_COST_STATUS` | Cost and treasury status |
-| `SENTINEL_SETTINGS_SUGGEST` | Settings recommendations |
-| `SENTINEL_ART_GEMS` | ElizaOS examples/art gems |
-| `SENTINEL_ART_PITCH` | Gen art pitch |
-| `SENTINEL_INVESTOR_REPORT` | VC/investor pitch |
-| `SENTINEL_HOW_DID_WE_DO` | Outcome review |
-| `SENTINEL_SECURITY_CHECKLIST` | Security hygiene |
+| Action                        | Description                       |
+| ----------------------------- | --------------------------------- |
+| `SENTINEL_PRD`                | Generate world-class PRDs         |
+| `SENTINEL_SUGGEST`            | Impact-scored suggestions         |
+| `SENTINEL_SHIP`               | What to ship for max impact       |
+| `SENTINEL_MULTI_AGENT`        | Multi-agent architecture expert   |
+| `SENTINEL_TRADING_INTEL`      | Paper bot + options expert        |
+| `SENTINEL_OPENCLAW_GUIDE`     | OpenClaw knowledge research setup |
+| `SENTINEL_ONNX_STATUS`        | ML/ONNX health check              |
+| `SENTINEL_DOC_IMPROVE`        | Documentation improvements        |
+| `SENTINEL_COST_STATUS`        | Cost and treasury status          |
+| `SENTINEL_SETTINGS_SUGGEST`   | Settings recommendations          |
+| `SENTINEL_ART_GEMS`           | ElizaOS examples/art gems         |
+| `SENTINEL_ART_PITCH`          | Gen art pitch                     |
+| `SENTINEL_INVESTOR_REPORT`    | VC/investor pitch                 |
+| `SENTINEL_HOW_DID_WE_DO`      | Outcome review                    |
+| `SENTINEL_SECURITY_CHECKLIST` | Security hygiene                  |
 
 #### New Services (6 total)
 
@@ -288,22 +293,22 @@ X research fully migrated to ECHO:
 
 #### New Actions (14 total)
 
-| Action | Description |
-|--------|-------------|
-| `UPLOAD` | Ingest text, URLs, YouTube |
-| `ADD_MICHELIN_RESTAURANT` | Michelin Guide to knowledge |
-| `KNOWLEDGE_STATUS` | Knowledge base health check |
-| `WRITE_ESSAY` | Substack essay generation |
-| `DRAFT_TWEETS` | X/Twitter suggestions |
-| `REPURPOSE` | Transform between formats |
-| `RESEARCH_QUEUE` | Batch ingestion queue |
-| `SUGGEST_TOPICS` | AI-powered topic suggestions |
-| `RESEARCH_BRIEF` | Concise research briefs |
-| `TREND_CONNECTION` | Connect to VINCE's market trends |
-| `KNOWLEDGE_INTEL` | Unified intelligence dashboard |
-| `STYLE_CHECK` | Brand style enforcement |
-| `POLISH` | Transform to premium content |
-| `AUTO_RESEARCH` | Autonomous knowledge expansion |
+| Action                    | Description                      |
+| ------------------------- | -------------------------------- |
+| `UPLOAD`                  | Ingest text, URLs, YouTube       |
+| `ADD_MICHELIN_RESTAURANT` | Michelin Guide to knowledge      |
+| `KNOWLEDGE_STATUS`        | Knowledge base health check      |
+| `WRITE_ESSAY`             | Substack essay generation        |
+| `DRAFT_TWEETS`            | X/Twitter suggestions            |
+| `REPURPOSE`               | Transform between formats        |
+| `RESEARCH_QUEUE`          | Batch ingestion queue            |
+| `SUGGEST_TOPICS`          | AI-powered topic suggestions     |
+| `RESEARCH_BRIEF`          | Concise research briefs          |
+| `TREND_CONNECTION`        | Connect to VINCE's market trends |
+| `KNOWLEDGE_INTEL`         | Unified intelligence dashboard   |
+| `STYLE_CHECK`             | Brand style enforcement          |
+| `POLISH`                  | Transform to premium content     |
+| `AUTO_RESEARCH`           | Autonomous knowledge expansion   |
 
 #### New Services (7 total)
 
@@ -319,12 +324,12 @@ X research fully migrated to ECHO:
 
 ### 📊 Summary
 
-| Metric | Before | After |
-|--------|--------|-------|
-| **Plugins** | 18 | 20 |
-| **Actions** | ~130 | 162 |
-| **Services** | ~40 | ~53 |
-| **Lines added** | — | +15,900 |
+| Metric          | Before | After   |
+| --------------- | ------ | ------- |
+| **Plugins**     | 18     | 20      |
+| **Actions**     | ~130   | 162     |
+| **Services**    | ~40    | ~53     |
+| **Lines added** | —      | +15,900 |
 
 **North star:** Push, not pull. 24/7 market research. Self-improving paper trading bot. One team, one dream.
 

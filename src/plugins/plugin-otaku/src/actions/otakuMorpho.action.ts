@@ -37,23 +37,26 @@ interface MorphoRequest {
 }
 
 // Popular Morpho Blue vaults on Base mainnet (app.morpho.org/base)
-const POPULAR_VAULTS: Record<string, { name: string; address: string; asset: string }> = {
-  "usdc": {
+const POPULAR_VAULTS: Record<
+  string,
+  { name: string; address: string; asset: string }
+> = {
+  usdc: {
     name: "Blue Chip USDC Vault (Prime)",
     address: "0x8A034f069D59d62a4643ad42E49b846d036468D7",
     asset: "USDC",
   },
-  "eth": {
+  eth: {
     name: "Morpho Base Vault",
     address: "0xbEefc4aDBE58173FCa2C042097Fe33095E68C3D6",
     asset: "WETH",
   },
-  "weth": {
+  weth: {
     name: "Morpho Base Vault",
     address: "0xbEefc4aDBE58173FCa2C042097Fe33095E68C3D6",
     asset: "WETH",
   },
-  "cbeth": {
+  cbeth: {
     name: "Morpho cbETH Vault",
     address: "0xbEefc4aDBE58173FCa2C042097Fe33095E68C3D6",
     asset: "cbETH",
@@ -94,7 +97,9 @@ function parseMorphoRequest(text: string): MorphoRequest | null {
 
   // Check for vault specification
   let vault: string | undefined;
-  const vaultMatch = text.match(/(?:to|from|in|into)\s+(\w+(?:\s+\w+)*)\s+vault/i);
+  const vaultMatch = text.match(
+    /(?:to|from|in|into)\s+(\w+(?:\s+\w+)*)\s+vault/i,
+  );
   if (vaultMatch) {
     vault = vaultMatch[1];
   } else {
@@ -133,7 +138,7 @@ export const otakuMorphoAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Morpho Supply:**\n- Deposit: 100 USDC\n- Vault: Moonwell USDC\n- Est. APY: ~5.2%\n\nType \"confirm\" to deposit.",
+          text: '**Morpho Supply:**\n- Deposit: 100 USDC\n- Vault: Moonwell USDC\n- Est. APY: ~5.2%\n\nType "confirm" to deposit.',
           actions: ["OTAKU_MORPHO"],
         },
       },
@@ -146,14 +151,17 @@ export const otakuMorphoAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Morpho Withdrawal:**\n- Withdraw: 50 USDC\n- From: Moonwell USDC vault\n\nType \"confirm\" to withdraw.",
+          text: '**Morpho Withdrawal:**\n- Withdraw: 50 USDC\n- From: Moonwell USDC vault\n\nType "confirm" to withdraw.',
           actions: ["OTAKU_MORPHO"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     if (isConfirmation(text)) {
@@ -180,7 +188,7 @@ export const otakuMorphoAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
@@ -209,20 +217,32 @@ export const otakuMorphoAction: Action = {
           '- "Withdraw 50 USDC from Morpho vault"',
         ].join("\n"),
       });
-      return { success: false, error: new Error("Could not parse Morpho request") };
+      return {
+        success: false,
+        error: new Error("Could not parse Morpho request"),
+      };
     }
 
-    const pendingMorpho = await getPending<MorphoRequest>(runtime, message, "morpho");
+    const pendingMorpho = await getPending<MorphoRequest>(
+      runtime,
+      message,
+      "morpho",
+    );
 
     if (isConfirmation(text) && pendingMorpho) {
       await clearPending(runtime, message, "morpho");
-      const morphoService = runtime.getService("morpho") as MorphoService | null;
+      const morphoService = runtime.getService(
+        "morpho",
+      ) as MorphoService | null;
 
       if (!morphoService) {
         await callback?.({
           text: "Morpho service not available. Check plugin configuration.",
         });
-        return { success: false, error: new Error("Morpho service not available") };
+        return {
+          success: false,
+          error: new Error("Morpho service not available"),
+        };
       }
 
       await callback?.({
@@ -233,7 +253,9 @@ export const otakuMorphoAction: Action = {
         // Get vault info
         let vaultAddress = pendingMorpho.vault;
         if (morphoService.getVaultByAsset && !vaultAddress?.startsWith("0x")) {
-          const vault = await morphoService.getVaultByAsset(pendingMorpho.asset);
+          const vault = await morphoService.getVaultByAsset(
+            pendingMorpho.asset,
+          );
           vaultAddress = vault?.address || pendingMorpho.vault;
         }
 
@@ -261,25 +283,37 @@ export const otakuMorphoAction: Action = {
             await callback?.({
               text: "Here's the Morpho result—\n\n" + morphoLines,
             });
-            await appendNotificationEvent(runtime, {
-              action: pendingMorpho.intent === "supply" ? "morpho_deposit" : "morpho_withdraw",
-              title: pendingMorpho.intent === "supply" ? "Morpho deposit" : "Morpho withdrawal",
-              subtitle: `${pendingMorpho.amount} ${pendingMorpho.asset}`,
-              metadata: { txHash: result?.txHash },
-            }, message.entityId);
+            await appendNotificationEvent(
+              runtime,
+              {
+                action:
+                  pendingMorpho.intent === "supply"
+                    ? "morpho_deposit"
+                    : "morpho_withdraw",
+                title:
+                  pendingMorpho.intent === "supply"
+                    ? "Morpho deposit"
+                    : "Morpho withdrawal",
+                subtitle: `${pendingMorpho.amount} ${pendingMorpho.asset}`,
+                metadata: { txHash: result?.txHash },
+              },
+              message.entityId,
+            );
             return { success: true };
           }
         }
 
         // Fallback: try via runtime action execution
         const actionResult = await (runtime as any).executeAction(
-          pendingMorpho.intent === "supply" ? "MORPHO_VAULT_TRANSFER" : "MORPHO_VAULT_TRANSFER",
+          pendingMorpho.intent === "supply"
+            ? "MORPHO_VAULT_TRANSFER"
+            : "MORPHO_VAULT_TRANSFER",
           {
             intent: pendingMorpho.intent === "supply" ? "deposit" : "withdraw",
             vault: vaultAddress,
             assets: pendingMorpho.amount,
             chain: pendingMorpho.chain,
-          }
+          },
         );
 
         if (actionResult) {
@@ -287,11 +321,21 @@ export const otakuMorphoAction: Action = {
           await callback?.({
             text: "Here's the Morpho result—\n\n" + fallbackText,
           });
-          await appendNotificationEvent(runtime, {
-            action: pendingMorpho.intent === "supply" ? "morpho_deposit" : "morpho_withdraw",
-            title: pendingMorpho.intent === "supply" ? "Morpho deposit" : "Morpho withdrawal",
-            subtitle: `${pendingMorpho.amount} ${pendingMorpho.asset}`,
-          }, message.entityId);
+          await appendNotificationEvent(
+            runtime,
+            {
+              action:
+                pendingMorpho.intent === "supply"
+                  ? "morpho_deposit"
+                  : "morpho_withdraw",
+              title:
+                pendingMorpho.intent === "supply"
+                  ? "Morpho deposit"
+                  : "Morpho withdrawal",
+              subtitle: `${pendingMorpho.amount} ${pendingMorpho.asset}`,
+            },
+            message.entityId,
+          );
           return { success: true };
         }
 
@@ -300,7 +344,10 @@ export const otakuMorphoAction: Action = {
         await callback?.({
           text: `❌ Morpho ${pendingMorpho.intent} failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
+        return {
+          success: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        };
       }
     }
 
@@ -330,7 +377,9 @@ export const otakuMorphoAction: Action = {
     }
 
     lines.push("");
-    lines.push(`⚠️ This will ${request.intent === "supply" ? "lock your tokens in the vault" : "remove tokens from the vault"}.`);
+    lines.push(
+      `⚠️ This will ${request.intent === "supply" ? "lock your tokens in the vault" : "remove tokens from the vault"}.`,
+    );
     lines.push("");
     lines.push('Type "confirm" to proceed.');
 

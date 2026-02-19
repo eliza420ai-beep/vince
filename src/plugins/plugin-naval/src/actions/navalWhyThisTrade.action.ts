@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "why this trade",
@@ -49,11 +54,19 @@ Direct. Give them the two lines (why + invalidation) and the rule.`;
 
 export const navalWhyThisTradeAction: Action = {
   name: "NAVAL_WHY_THIS_TRADE",
-  similes: ["WHY_THIS_TRADE", "INVALIDATION_LEVEL", "KNOW_WHY_YOURE_IN", "NO_BLACK_BOX"],
+  similes: [
+    "WHY_THIS_TRADE",
+    "INVALIDATION_LEVEL",
+    "KNOW_WHY_YOURE_IN",
+    "NO_BLACK_BOX",
+  ],
   description:
     "Know why you're in and when you're wrong. One-line why, one-line invalidation. No black box. One rule.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsWhyThisTrade(text);
   },
@@ -90,7 +103,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -98,14 +111,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Why this trade: one line why you're in, one line when you're wrong (invalidation). No position without both. Rule: if you can't state them, you don't size.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I'm in a position but I didn't write down when I'm wrong." } },
-      { name: "{{agent}}", content: { text: "That's a gap. Step: write now. Why: one line (e.g. 'structure holds, targeting X'). Invalidation: one line (e.g. 'below Y we're wrong'). Rule: no new position without both written before size. You cut when the level hits; you don't drift." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I'm in a position but I didn't write down when I'm wrong.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "That's a gap. Step: write now. Why: one line (e.g. 'structure holds, targeting X'). Invalidation: one line (e.g. 'below Y we're wrong'). Rule: no new position without both written before size. You cut when the level hits; you don't drift.",
+        },
+      },
     ],
   ],
 };

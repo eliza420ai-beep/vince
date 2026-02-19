@@ -9,7 +9,11 @@ import {
   logger,
 } from "@elizaos/core";
 import { DefiLlamaService } from "../services/defillama.service";
-import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateDefiLlamaService,
+  getDefiLlamaService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 
 export const getYieldHistoryAction: Action = {
   name: "GET_YIELD_HISTORY",
@@ -38,13 +42,23 @@ export const getYieldHistoryAction: Action = {
     },
     chain: {
       type: "string",
-      description: "Blockchain name (e.g., 'Ethereum', 'Base', 'Arbitrum'). Optional.",
+      description:
+        "Blockchain name (e.g., 'Ethereum', 'Base', 'Arbitrum'). Optional.",
       required: false,
     },
   },
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefiLlamaService(runtime, "GET_YIELD_HISTORY", state, message);
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
+    return validateDefiLlamaService(
+      runtime,
+      "GET_YIELD_HISTORY",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -61,7 +75,11 @@ export const getYieldHistoryAction: Action = {
       }
 
       // Read parameters from state (extracted by multiStepDecisionTemplate)
-      const params = await extractActionParams<{ protocol?: string; token?: string; chain?: string }>(runtime, message);
+      const params = await extractActionParams<{
+        protocol?: string;
+        token?: string;
+        chain?: string;
+      }>(runtime, message);
 
       // Extract and validate required parameters
       const protocol = params?.protocol?.trim();
@@ -69,7 +87,8 @@ export const getYieldHistoryAction: Action = {
       const chain = params?.chain?.trim() || undefined;
 
       if (!protocol || !token) {
-        const errorMsg = "Missing required parameters. Please specify both 'protocol' (e.g., 'Aave') and 'token' (e.g., 'USDC').";
+        const errorMsg =
+          "Missing required parameters. Please specify both 'protocol' (e.g., 'Aave') and 'token' (e.g., 'USDC').";
         logger.error(`[GET_YIELD_HISTORY] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
@@ -79,7 +98,10 @@ export const getYieldHistoryAction: Action = {
         if (callback) {
           await callback({
             text: errorResult.text,
-            content: { error: "missing_required_parameters", details: errorMsg },
+            content: {
+              error: "missing_required_parameters",
+              details: errorMsg,
+            },
           });
         }
         return errorResult;
@@ -89,8 +111,10 @@ export const getYieldHistoryAction: Action = {
       const inputParams = { protocol, token, chain };
 
       // First, find the pool ID by searching for matching yields
-      logger.info(`[GET_YIELD_HISTORY] Finding pool for: protocol=${protocol}, token=${token}${chain ? `, chain=${chain}` : ''}`);
-      
+      logger.info(
+        `[GET_YIELD_HISTORY] Finding pool for: protocol=${protocol}, token=${token}${chain ? `, chain=${chain}` : ""}`,
+      );
+
       const pools = await svc.searchYields({
         protocol,
         token,
@@ -99,7 +123,7 @@ export const getYieldHistoryAction: Action = {
       });
 
       if (!pools || pools.length === 0) {
-        const errorMsg = `No pool found for ${protocol} ${token}${chain ? ` on ${chain}` : ''}`;
+        const errorMsg = `No pool found for ${protocol} ${token}${chain ? ` on ${chain}` : ""}`;
         logger.error(`[GET_YIELD_HISTORY] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
@@ -119,20 +143,29 @@ export const getYieldHistoryAction: Action = {
       const pool = pools[0];
       const poolId = pool.pool;
 
-      logger.info(`[GET_YIELD_HISTORY] Fetching historical data for pool: ${poolId}`);
+      logger.info(
+        `[GET_YIELD_HISTORY] Fetching historical data for pool: ${poolId}`,
+      );
 
       // Fetch historical yield data
       const chartData = await svc.getPoolChart(poolId);
 
       if (!chartData || chartData.length === 0) {
-        const errorMsg = `No historical data available for ${protocol} ${token}${chain ? ` on ${chain}` : ''}`;
+        const errorMsg = `No historical data available for ${protocol} ${token}${chain ? ` on ${chain}` : ""}`;
         logger.warn(`[GET_YIELD_HISTORY] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
           success: false,
           error: "no_historical_data",
           input: inputParams,
-          data: { pool: { protocol: pool.project, token: pool.symbol, chain: pool.chain, poolId } },
+          data: {
+            pool: {
+              protocol: pool.project,
+              token: pool.symbol,
+              chain: pool.chain,
+              poolId,
+            },
+          },
         } as ActionResult & { input: typeof inputParams };
         if (callback) {
           await callback({
@@ -144,18 +177,21 @@ export const getYieldHistoryAction: Action = {
       }
 
       // Calculate some statistics from the historical data
-      const apyValues = chartData.map(d => d.apy).filter(apy => apy !== null) as number[];
+      const apyValues = chartData
+        .map((d) => d.apy)
+        .filter((apy) => apy !== null) as number[];
       const currentApy = apyValues[apyValues.length - 1] || 0;
-      const avgApy = apyValues.length > 0 
-        ? apyValues.reduce((sum, apy) => sum + apy, 0) / apyValues.length 
-        : 0;
+      const avgApy =
+        apyValues.length > 0
+          ? apyValues.reduce((sum, apy) => sum + apy, 0) / apyValues.length
+          : 0;
       const minApy = apyValues.length > 0 ? Math.min(...apyValues) : 0;
       const maxApy = apyValues.length > 0 ? Math.max(...apyValues) : 0;
 
       // Get recent data (last 30 days if available)
       const recentData = chartData.slice(-30);
 
-      const messageText = `Retrieved ${chartData.length} days of yield history for ${pool.project} ${pool.symbol}${pool.chain ? ` on ${pool.chain}` : ''}`;
+      const messageText = `Retrieved ${chartData.length} days of yield history for ${pool.project} ${pool.symbol}${pool.chain ? ` on ${pool.chain}` : ""}`;
 
       const result = {
         pool: {
@@ -195,22 +231,26 @@ export const getYieldHistoryAction: Action = {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_YIELD_HISTORY] Action failed: ${msg}`);
-      
+
       // Try to capture input params even in failure
-      const params = await extractActionParams<{ protocol?: string; token?: string; chain?: string }>(runtime, message);
+      const params = await extractActionParams<{
+        protocol?: string;
+        token?: string;
+        chain?: string;
+      }>(runtime, message);
       const failureInputParams = {
         protocol: params?.protocol,
         token: params?.token,
         chain: params?.chain,
       };
-      
+
       const errorResult: ActionResult = {
         text: `Failed to fetch yield history: ${msg}`,
         success: false,
         error: msg,
         input: failureInputParams,
       } as ActionResult & { input: typeof failureInputParams };
-      
+
       if (callback) {
         await callback({
           text: errorResult.text,
@@ -251,7 +291,9 @@ export const getYieldHistoryAction: Action = {
     [
       {
         name: "{{user}}",
-        content: { text: "What's the yield trend for Compound USDC on Ethereum?" },
+        content: {
+          text: "What's the yield trend for Compound USDC on Ethereum?",
+        },
       },
       {
         name: "{{agent}}",
@@ -276,4 +318,3 @@ export const getYieldHistoryAction: Action = {
     ],
   ],
 };
-

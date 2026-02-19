@@ -11,7 +11,8 @@ const MAX_SNIPPETS = 3;
 
 function getTavilyApiKey(runtime?: IAgentRuntime): string | null {
   const fromRuntime = runtime?.getSetting?.("TAVILY_API_KEY");
-  if (typeof fromRuntime === "string" && fromRuntime.trim()) return fromRuntime.trim();
+  if (typeof fromRuntime === "string" && fromRuntime.trim())
+    return fromRuntime.trim();
   const fromEnv = process.env.TAVILY_API_KEY;
   if (typeof fromEnv === "string" && fromEnv.trim()) return fromEnv.trim();
   return null;
@@ -57,7 +58,10 @@ export async function search(
     });
 
     if (!res.ok) {
-      logger.warn({ status: res.status, query }, "Tavily search request failed");
+      logger.warn(
+        { status: res.status, query },
+        "Tavily search request failed",
+      );
       return [];
     }
 

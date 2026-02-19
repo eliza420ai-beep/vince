@@ -523,14 +523,18 @@ export class VinceDexScreenerService extends Service {
             `https://api.dexscreener.com/latest/dex/pairs/base/${pairId}`,
           );
           if (!res.ok) continue;
-          const data = (await res.json()) as { pairs?: Array<{ baseToken?: { address?: string } }> };
+          const data = (await res.json()) as {
+            pairs?: Array<{ baseToken?: { address?: string } }>;
+          };
           const pair = data.pairs?.[0];
           const tokenAddress = pair?.baseToken?.address;
           if (tokenAddress) {
             await this.processToken({ tokenAddress }, "base");
           }
         } catch (e) {
-          logger.debug(`[VinceDexScreener] Base priority pair ${pairId.slice(0, 10)}…: ${e}`);
+          logger.debug(
+            `[VinceDexScreener] Base priority pair ${pairId.slice(0, 10)}…: ${e}`,
+          );
         }
       }
 
@@ -1003,7 +1007,10 @@ export class VinceDexScreenerService extends Service {
   /**
    * Get market mood for a specific token list (e.g. BASE-only for leaderboard).
    */
-  getMarketMoodForTokens(tokens: MemeToken[]): { mood: MarketMood; summary: string } {
+  getMarketMoodForTokens(tokens: MemeToken[]): {
+    mood: MarketMood;
+    summary: string;
+  } {
     if (tokens.length === 0) {
       return { mood: "quiet", summary: "No data available" };
     }

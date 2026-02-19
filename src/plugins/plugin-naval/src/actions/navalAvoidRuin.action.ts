@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "avoid ruin naval",
@@ -47,7 +51,10 @@ export const navalAvoidRuinAction: Action = {
   description:
     "For a decision or bet: are they risking ruin? Size the bet so one bad outcome doesn't wipe them out. Kelly / avoid ruin. One adjustment.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsAvoidRuin(text);
   },
@@ -82,7 +89,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -90,14 +97,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Avoid ruin: don't bet so much that one bad outcome ends the game. What's your worst case? If that's unrecoverable, size down — keep runway, diversify, or set a walk-away line. Judgment is the decisive skill.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Avoid ruin naval: I'm thinking of quitting my job and going all-in on my startup. 6 months runway, no other income." } },
-      { name: "{{agent}}", content: { text: "Worst case: 6 months pass, no revenue, you're out of cash and need a job under pressure. That's close to ruin — you lose negotiating power and peace. One adjustment: extend runway to 12 months (save, part-time, or a small round) or get a clear milestone that triggers 'get a job' so you're not betting everything with no exit." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Avoid ruin naval: I'm thinking of quitting my job and going all-in on my startup. 6 months runway, no other income.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Worst case: 6 months pass, no revenue, you're out of cash and need a job under pressure. That's close to ruin — you lose negotiating power and peace. One adjustment: extend runway to 12 months (save, part-time, or a small round) or get a clear milestone that triggers 'get a job' so you're not betting everything with no exit.",
+        },
+      },
     ],
   ],
 };

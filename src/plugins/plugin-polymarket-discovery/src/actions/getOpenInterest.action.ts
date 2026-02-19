@@ -15,7 +15,10 @@ import {
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
-import { validatePolymarketService, getPolymarketService } from "../utils/actionHelpers";
+import {
+  validatePolymarketService,
+  getPolymarketService,
+} from "../utils/actionHelpers";
 
 type GetOpenInterestInput = Record<string, never>;
 
@@ -38,7 +41,12 @@ export const getOpenInterestAction: Action = {
   parameters: {},
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_OPEN_INTEREST", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_OPEN_INTEREST",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -46,7 +54,7 @@ export const getOpenInterestAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_OPEN_INTEREST] Fetching open interest");
@@ -107,7 +115,7 @@ export const getOpenInterestAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_OPEN_INTEREST] Successfully fetched open interest: ${formattedValue}`
+        `[GET_POLYMARKET_OPEN_INTEREST] Successfully fetched open interest: ${formattedValue}`,
       );
       return result;
     } catch (error) {

@@ -16,7 +16,9 @@ import { BankrSdkService } from "../services/bankr-sdk.service";
 import { BankrClient } from "@bankr/sdk";
 
 // Mock runtime factory
-const createMockRuntime = (settings: Record<string, string> = {}): IAgentRuntime =>
+const createMockRuntime = (
+  settings: Record<string, string> = {},
+): IAgentRuntime =>
   ({
     getSetting: (key: string) => settings[key],
   }) as unknown as IAgentRuntime;
@@ -67,9 +69,11 @@ describe("BankrSdkService", () => {
         transactions: [],
       });
 
-      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        promptAndWait: mockPromptAndWait,
-      }));
+      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+        () => ({
+          promptAndWait: mockPromptAndWait,
+        }),
+      );
 
       const runtime = createMockRuntime({ BANKR_PRIVATE_KEY: "0xtest123" });
       const service = new BankrSdkService(runtime);
@@ -83,7 +87,7 @@ describe("BankrSdkService", () => {
       expect(mockPromptAndWait).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: "what is the price of ETH?",
-        })
+        }),
       );
     });
 
@@ -93,9 +97,11 @@ describe("BankrSdkService", () => {
         error: "Insufficient balance",
       });
 
-      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        promptAndWait: mockPromptAndWait,
-      }));
+      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+        () => ({
+          promptAndWait: mockPromptAndWait,
+        }),
+      );
 
       const runtime = createMockRuntime({ BANKR_PRIVATE_KEY: "0xtest123" });
       const service = new BankrSdkService(runtime);
@@ -107,9 +113,7 @@ describe("BankrSdkService", () => {
     });
 
     it("should include transactions in response", async () => {
-      const mockTransactions = [
-        { type: "swap", metadata: { chainId: 8453 } },
-      ];
+      const mockTransactions = [{ type: "swap", metadata: { chainId: 8453 } }];
 
       const mockPromptAndWait = vi.fn().mockResolvedValue({
         response: "Swap ready",
@@ -117,14 +121,18 @@ describe("BankrSdkService", () => {
         transactions: mockTransactions,
       });
 
-      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        promptAndWait: mockPromptAndWait,
-      }));
+      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+        () => ({
+          promptAndWait: mockPromptAndWait,
+        }),
+      );
 
       const runtime = createMockRuntime({ BANKR_PRIVATE_KEY: "0xtest123" });
       const service = new BankrSdkService(runtime);
 
-      const result = await service.promptAndWait({ prompt: "swap 1 ETH to USDC" });
+      const result = await service.promptAndWait({
+        prompt: "swap 1 ETH to USDC",
+      });
 
       expect(result.transactions).toHaveLength(1);
       expect(result.transactions![0].type).toBe("swap");
@@ -135,7 +143,7 @@ describe("BankrSdkService", () => {
       const service = new BankrSdkService(runtime);
 
       await expect(service.promptAndWait({ prompt: "test" })).rejects.toThrow(
-        "BANKR_PRIVATE_KEY is not set"
+        "BANKR_PRIVATE_KEY is not set",
       );
     });
 
@@ -145,9 +153,11 @@ describe("BankrSdkService", () => {
         status: "completed",
       });
 
-      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        promptAndWait: mockPromptAndWait,
-      }));
+      (BankrClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+        () => ({
+          promptAndWait: mockPromptAndWait,
+        }),
+      );
 
       const runtime = createMockRuntime({
         BANKR_PRIVATE_KEY: "0xtest123",
@@ -160,7 +170,7 @@ describe("BankrSdkService", () => {
       expect(mockPromptAndWait).toHaveBeenCalledWith(
         expect.objectContaining({
           walletAddress: "0xwallet456",
-        })
+        }),
       );
     });
   });

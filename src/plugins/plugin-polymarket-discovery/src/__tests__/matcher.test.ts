@@ -5,7 +5,12 @@ import { createMockMessage, createMockState } from "./test-utils";
 describe("shouldPolymarketPluginBeInContext", () => {
   it("returns true when state is undefined (fallback)", () => {
     expect(shouldPolymarketPluginBeInContext(undefined, undefined)).toBe(true);
-    expect(shouldPolymarketPluginBeInContext(undefined, createMockMessage("anything"))).toBe(true);
+    expect(
+      shouldPolymarketPluginBeInContext(
+        undefined,
+        createMockMessage("anything"),
+      ),
+    ).toBe(true);
   });
 
   it("returns true when message contains polymarket keyword", () => {
@@ -25,7 +30,11 @@ describe("shouldPolymarketPluginBeInContext", () => {
   it("returns true when recentMessagesData contains polymarket", () => {
     const state = createMockState({
       recentMessagesData: [
-        { id: "1", content: { text: "I want to check polymarket" }, createdAt: 0 } as any,
+        {
+          id: "1",
+          content: { text: "I want to check polymarket" },
+          createdAt: 0,
+        } as any,
       ],
     });
     expect(shouldPolymarketPluginBeInContext(state, undefined)).toBe(true);
@@ -40,7 +49,11 @@ describe("shouldPolymarketPluginBeInContext", () => {
   it("returns false when state has no matching context", () => {
     const state = createMockState({
       recentMessagesData: [
-        { id: "1", content: { text: "What is the weather today" }, createdAt: 0 } as any,
+        {
+          id: "1",
+          content: { text: "What is the weather today" },
+          createdAt: 0,
+        } as any,
       ],
     });
     const message = createMockMessage("Tell me a joke");

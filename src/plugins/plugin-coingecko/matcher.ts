@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for CoinGecko plugin context activation
@@ -50,7 +53,10 @@ export const coingeckoKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldCoingeckoPluginBeInContext(state?: State, message?: Memory): boolean {
+export function shouldCoingeckoPluginBeInContext(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, coingeckoKeywordPatterns, message);
 }

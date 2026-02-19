@@ -35,7 +35,10 @@ export const sentinelOpenclawGuideAction: Action = {
   description:
     "Returns a short actionable guide to spin up OpenClaw for knowledge research: daily cron job using official X API (pay-as-you-go, TOS compliant), targeted searches, pipeline into knowledge/. Suggests one next step.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsGuide(text);
   },
@@ -62,8 +65,10 @@ Context:\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
-      const out = "Here's how to spin up OpenClaw for knowledge research—\n\n" + text.trim();
+          : ((response as { text?: string })?.text ?? String(response));
+      const out =
+        "Here's how to spin up OpenClaw for knowledge research—\n\n" +
+        text.trim();
       await callback({ text: out });
       return { success: true };
     } catch (error) {
@@ -78,13 +83,19 @@ Context:\n${contextBlock}`;
 
 **Next step:** Get your X_BEARER_TOKEN from developer.x.com and set spending limit.`,
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "How do we spin up OpenClaw for knowledge research?" } },
+      {
+        name: "{{user}}",
+        content: { text: "How do we spin up OpenClaw for knowledge research?" },
+      },
       {
         name: "{{agent}}",
         content: {

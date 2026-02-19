@@ -24,7 +24,7 @@ describe("Clawterm–OpenClaw alignment", () => {
   it("Clawterm agent plugins include openclaw plugin", () => {
     const plugins = clawtermAgent.plugins ?? [];
     const hasOpenclaw = plugins.some(
-      (p: any) => (p?.name ?? p) === "plugin-openclaw" || p === openclawPlugin
+      (p: any) => (p?.name ?? p) === "plugin-openclaw" || p === openclawPlugin,
     );
     expect(hasOpenclaw).toBe(true);
   });
@@ -43,7 +43,9 @@ describe("Clawterm–OpenClaw alignment", () => {
       actionToExample.set(name, false);
     }
     for (const pair of examples) {
-      const assistant = Array.isArray(pair) ? pair[1] : (pair as any).assistant ?? pair[1];
+      const assistant = Array.isArray(pair)
+        ? pair[1]
+        : ((pair as any).assistant ?? pair[1]);
       const actions = assistant?.content?.actions ?? assistant?.actions ?? [];
       for (const a of actions) {
         if (actionToExample.has(a)) {

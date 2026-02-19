@@ -40,12 +40,23 @@ const OPENCLAW_TIPS_MD = `# OpenClaw tips and tricks
 
 export const openclawTipsAction: Action = {
   name: "OPENCLAW_TIPS",
-  similes: ["OPENCLAW_TIPS", "OPENCLAW_TRICKS", "FRESH_MAC_SETUP", "BEST_SKILLS"],
+  similes: [
+    "OPENCLAW_TIPS",
+    "OPENCLAW_TRICKS",
+    "FRESH_MAC_SETUP",
+    "BEST_SKILLS",
+  ],
   description:
     "Return OpenClaw tips from docs.openclaw.ai and openclaw-agents READMEs (fresh Mac setup, best skills). Use when the user asks for tips, tricks, fresh mac setup, best skills.",
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
-    const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();
+    const text =
+      (message?.content?.text ?? "").toLowerCase() +
+      (state?.text ?? "").toLowerCase();
     return (
       /openclaw\s+(tips|tricks)/i.test(text) ||
       /tips\s+(for\s+)?openclaw/i.test(text) ||
@@ -68,11 +79,26 @@ export const openclawTipsAction: Action = {
   examples: [
     [
       { name: "{{user}}", content: { text: "Tips for OpenClaw?" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_TIPS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_TIPS"] } },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_TIPS_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_TIPS"],
+        },
+      },
     ],
     [
-      { name: "{{user}}", content: { text: "Fresh MacBook Pro setup for OpenClaw" } },
-      { name: "{{agent}}", content: { text: OPENCLAW_TIPS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_TIPS"] } },
+      {
+        name: "{{user}}",
+        content: { text: "Fresh MacBook Pro setup for OpenClaw" },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: OPENCLAW_TIPS_MD.slice(0, 400) + "...",
+          actions: ["OPENCLAW_TIPS"],
+        },
+      },
     ],
   ],
 };

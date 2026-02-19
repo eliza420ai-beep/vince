@@ -6,30 +6,30 @@
 
 ## Executive summary (one page)
 
-| Goal | What we do | Success = |
-|------|------------|-----------|
-| **Slack & Discord** | Configure bots, create channels, set env; use existing push routing for research. | Daily report (18:00 UTC), news (16:00), lifestyle (08:00) land in correct channels; research digests can go to `#vince-research`. |
-| **Step one: Knowledge tests & improvement** | Extensive tests for current knowledge (structure, coverage, methodology); script to automate health report and safe improvements. | CI passes; health report clean or review-queue defined; new content meets same bar. |
-| **Knowledge quality** | Enforce methodology-over-data; frontmatter; clawdbot as playbooks; prompt templates for research/X. | Every ingested doc has source/category; agents cite frameworks, not stale numbers. |
-| **Deep research** | Re-enable Grok Expert; add research-daily task; optional research-queue processor. | One research brief or Grok pulse per day → channel and/or `knowledge/`. |
-| **X → knowledge** | **No X API** (too expensive). **Clawdbot is the key:** dedicated X account + curated follow list (decade of curation) + Birdy → surface threads/URLs → VINCE knowledge pipeline. | Thread/link URLs from OpenClaw feed into `knowledge/`; X remains main source without API cost. |
-| **Curated YouTube** | Paste links in `#vince-upload-youtube`; VINCE ingests (transcript + summary). Manual curation, no watching. | YouTube backlog becomes knowledge without watching. |
-| **Expansion loop** | UPLOAD + curated YouTube channel + queue + (later) X → ingest → categorize → write → notify. | New content in `knowledge/` with optional “Added: …” in `#vince-research`. |
+| Goal                                        | What we do                                                                                                                                                                       | Success =                                                                                                                         |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Slack & Discord**                         | Configure bots, create channels, set env; use existing push routing for research.                                                                                                | Daily report (18:00 UTC), news (16:00), lifestyle (08:00) land in correct channels; research digests can go to `#vince-research`. |
+| **Step one: Knowledge tests & improvement** | Extensive tests for current knowledge (structure, coverage, methodology); script to automate health report and safe improvements.                                                | CI passes; health report clean or review-queue defined; new content meets same bar.                                               |
+| **Knowledge quality**                       | Enforce methodology-over-data; frontmatter; clawdbot as playbooks; prompt templates for research/X.                                                                              | Every ingested doc has source/category; agents cite frameworks, not stale numbers.                                                |
+| **Deep research**                           | Re-enable Grok Expert; add research-daily task; optional research-queue processor.                                                                                               | One research brief or Grok pulse per day → channel and/or `knowledge/`.                                                           |
+| **X → knowledge**                           | **No X API** (too expensive). **Clawdbot is the key:** dedicated X account + curated follow list (decade of curation) + Birdy → surface threads/URLs → VINCE knowledge pipeline. | Thread/link URLs from OpenClaw feed into `knowledge/`; X remains main source without API cost.                                    |
+| **Curated YouTube**                         | Paste links in `#vince-upload-youtube`; VINCE ingests (transcript + summary). Manual curation, no watching.                                                                      | YouTube backlog becomes knowledge without watching.                                                                               |
+| **Expansion loop**                          | UPLOAD + curated YouTube channel + queue + (later) X → ingest → categorize → write → notify.                                                                                     | New content in `knowledge/` with optional “Added: …” in `#vince-research`.                                                        |
 
 **Key insight:** `VinceNotificationService` already supports any keyword via `roomNameContains`. Create a channel whose name contains `research` (e.g. `#vince-research`) and call `push(text, { roomNameContains: "research" })` — no service code change needed.
 
 **Code touchpoints (when implementing):**
 
-| Change | Files |
-|--------|--------|
-| **Step one: Knowledge tests** | Extend `src/plugins/plugin-vince/src/__tests__/knowledge.integration.test.ts`; add `knowledge.structure.test.ts` (frontmatter, knowledge note, quality rules). Run `knowledgeQuality.e2e.test.ts` for A/B. |
-| **Step one: Automate improvement** | New: `scripts/knowledge-health.ts` — scan `knowledge/**/*.md`, report + optional safe auto-fix; optional `knowledge/internal-docs/knowledge-review-queue.md`. |
-| Register new task | `src/plugins/plugin-vince/src/index.ts` (add `registerResearchDailyTask` / `registerGrokExpertTask` in init). |
-| Research daily task | New: `src/plugins/plugin-vince/src/tasks/researchDaily.tasks.ts`. |
-| Grok → knowledge file | `src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts` (add file write + push with `roomNameContains: "research"`). |
-| Research queue processor | New script or task: read `knowledge/internal-docs/research-queue.txt`, call ingest, mark done. |
-| Document research channel | `NOTIFICATIONS.md`, `DISCORD.md` (add “research” keyword). |
-| **X layer (no API)** | **OpenClaw + Birdy + curated follows** — see `knowledge/clawdbot/x-research-agent-curated-follows.md`. Pipeline: OpenClaw → URLs → VINCE queue/UPLOAD. |
+| Change                             | Files                                                                                                                                                                                                      |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Step one: Knowledge tests**      | Extend `src/plugins/plugin-vince/src/__tests__/knowledge.integration.test.ts`; add `knowledge.structure.test.ts` (frontmatter, knowledge note, quality rules). Run `knowledgeQuality.e2e.test.ts` for A/B. |
+| **Step one: Automate improvement** | New: `scripts/knowledge-health.ts` — scan `knowledge/**/*.md`, report + optional safe auto-fix; optional `knowledge/internal-docs/knowledge-review-queue.md`.                                              |
+| Register new task                  | `src/plugins/plugin-vince/src/index.ts` (add `registerResearchDailyTask` / `registerGrokExpertTask` in init).                                                                                              |
+| Research daily task                | New: `src/plugins/plugin-vince/src/tasks/researchDaily.tasks.ts`.                                                                                                                                          |
+| Grok → knowledge file              | `src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts` (add file write + push with `roomNameContains: "research"`).                                                                                      |
+| Research queue processor           | New script or task: read `knowledge/internal-docs/research-queue.txt`, call ingest, mark done.                                                                                                             |
+| Document research channel          | `NOTIFICATIONS.md`, `DISCORD.md` (add “research” keyword).                                                                                                                                                 |
+| **X layer (no API)**               | **OpenClaw + Birdy + curated follows** — see `knowledge/clawdbot/x-research-agent-curated-follows.md`. Pipeline: OpenClaw → URLs → VINCE queue/UPLOAD.                                                     |
 
 ---
 
@@ -67,28 +67,28 @@ flowchart LR
 
 ### 1.2 Discord setup steps
 
-| Step | Action |
-|------|--------|
-| 1 | Create app at [Discord Developer Portal](https://discord.com/developers/applications) → Bot → copy **Token** and **Application ID**. |
-| 2 | In Bot settings: enable **Message Content Intent** (required for reading commands). |
-| 3 | OAuth2 → URL Generator: scopes `bot`, `applications.commands`; permissions: Send Messages, Read Message History, Embed Links, Attach Files, Use Slash Commands (or minimal needed). |
-| 4 | Invite bot to server using generated URL. |
-| 5 | Create channels per DISCORD.md: e.g. `#vince-daily-reports`, `#vince-news`, `#vince-lifestyle`, `#vince-alerts`, `#general-gm`. |
-| 6 | In `.env`: `DISCORD_APPLICATION_ID=<id>`, `DISCORD_API_TOKEN=<token>`. |
-| 7 | Restart: `bun start`; confirm bot online and push to channels with matching names. |
+| Step | Action                                                                                                                                                                              |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Create app at [Discord Developer Portal](https://discord.com/developers/applications) → Bot → copy **Token** and **Application ID**.                                                |
+| 2    | In Bot settings: enable **Message Content Intent** (required for reading commands).                                                                                                 |
+| 3    | OAuth2 → URL Generator: scopes `bot`, `applications.commands`; permissions: Send Messages, Read Message History, Embed Links, Attach Files, Use Slash Commands (or minimal needed). |
+| 4    | Invite bot to server using generated URL.                                                                                                                                           |
+| 5    | Create channels per DISCORD.md: e.g. `#vince-daily-reports`, `#vince-news`, `#vince-lifestyle`, `#vince-alerts`, `#general-gm`.                                                     |
+| 6    | In `.env`: `DISCORD_APPLICATION_ID=<id>`, `DISCORD_API_TOKEN=<token>`.                                                                                                              |
+| 7    | Restart: `bun start`; confirm bot online and push to channels with matching names.                                                                                                  |
 
 ### 1.3 Slack setup steps
 
-| Step | Action |
-|------|--------|
-| 1 | [Slack API](https://api.slack.com/apps) → Create New App → From scratch; pick workspace. |
-| 2 | **OAuth & Permissions:** Bot Token Scopes: `chat:write`, `channels:read`, `channels:join`, `groups:read`, `im:read`, `im:history`, `channels:history`, `app_mentions:read`, `users:read`. |
-| 3 | **Socket Mode** (recommended): Enable; create **App-Level Token** with `connections:write`; save as `SLACK_APP_TOKEN`. |
-| 4 | Install to workspace; copy **Bot User OAuth Token** → `SLACK_BOT_TOKEN`. |
-| 5 | Create channels: e.g. `#vince-daily-reports`, `#vince-news`, `#vince-alerts`, `#vince-research` (for research/knowledge feeds). |
-| 6 | Invite bot to those channels (`/invite @VINCE`). |
-| 7 | In `.env`: `SLACK_BOT_TOKEN=xoxb-...`, `SLACK_APP_TOKEN=xapp-...`. |
-| 8 | Restart; verify bot in channels and that scheduled pushes (daily, news, lifestyle) land in correct channels. |
+| Step | Action                                                                                                                                                                                    |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | [Slack API](https://api.slack.com/apps) → Create New App → From scratch; pick workspace.                                                                                                  |
+| 2    | **OAuth & Permissions:** Bot Token Scopes: `chat:write`, `channels:read`, `channels:join`, `groups:read`, `im:read`, `im:history`, `channels:history`, `app_mentions:read`, `users:read`. |
+| 3    | **Socket Mode** (recommended): Enable; create **App-Level Token** with `connections:write`; save as `SLACK_APP_TOKEN`.                                                                    |
+| 4    | Install to workspace; copy **Bot User OAuth Token** → `SLACK_BOT_TOKEN`.                                                                                                                  |
+| 5    | Create channels: e.g. `#vince-daily-reports`, `#vince-news`, `#vince-alerts`, `#vince-research` (for research/knowledge feeds).                                                           |
+| 6    | Invite bot to those channels (`/invite @VINCE`).                                                                                                                                          |
+| 7    | In `.env`: `SLACK_BOT_TOKEN=xoxb-...`, `SLACK_APP_TOKEN=xapp-...`.                                                                                                                        |
+| 8    | Restart; verify bot in channels and that scheduled pushes (daily, news, lifestyle) land in correct channels.                                                                              |
 
 ### 1.4 Add a research/knowledge channel
 
@@ -98,12 +98,12 @@ flowchart LR
 
 ### 1.5 Environment variables (consolidated)
 
-| Variable | Required | Used by | Notes |
-|----------|----------|---------|--------|
-| `DISCORD_APPLICATION_ID` | For Discord | ElizaOS Discord plugin | Developer Portal → Application ID |
-| `DISCORD_API_TOKEN` | For Discord | ElizaOS Discord plugin | Bot token; enable Message Content Intent |
-| `SLACK_BOT_TOKEN` | For Slack | client-slack | `xoxb-...` from OAuth |
-| `SLACK_APP_TOKEN` | For Slack (Socket Mode) | client-slack | `xapp-...`; scope `connections:write` |
+| Variable                 | Required                | Used by                | Notes                                    |
+| ------------------------ | ----------------------- | ---------------------- | ---------------------------------------- |
+| `DISCORD_APPLICATION_ID` | For Discord             | ElizaOS Discord plugin | Developer Portal → Application ID        |
+| `DISCORD_API_TOKEN`      | For Discord             | ElizaOS Discord plugin | Bot token; enable Message Content Intent |
+| `SLACK_BOT_TOKEN`        | For Slack               | client-slack           | `xoxb-...` from OAuth                    |
+| `SLACK_APP_TOKEN`        | For Slack (Socket Mode) | client-slack           | `xapp-...`; scope `connections:write`    |
 
 Agent loads Discord/Slack only when the corresponding token is set (`src/agents/vince.ts` ~L58–60).
 
@@ -165,14 +165,14 @@ Agent loads Discord/Slack only when the corresponding token is set (`src/agents/
 
 ### 2.2 Structural improvements
 
-| Area | Action |
-|------|--------|
-| **Directory map** | Keep `knowledge/README.md` and KNOWLEDGE-USAGE-GUIDELINES.md as single source of truth; ensure every new category (e.g. from ingest) is listed. |
-| **Clawdbot context** | Treat `knowledge/clawdbot/` as **operational playbooks** (OpenClaw setup, security, one-click install, practical tips). Use for automation design, not for live market data. |
-| **Frontmatter** | All ingested files: `source`, `category`, `ingestedWith`, `created`, `tags`. Scripts and UPLOAD already do this; enforce in batch ingest. |
-| **Knowledge note block** | Keep the standard block (historical data, methodology focus) at top of ingested content; already in `ingest-urls.ts` and upload fallback. |
-| **Deduplication** | Periodically (manual or script): same URL or same title across categories; merge or tag duplicate. |
-| **Prompt templates** | `knowledge/prompt-templates/` — keep tier structure; add templates for “deep research brief” and “X thread → summary” for automation. |
+| Area                     | Action                                                                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Directory map**        | Keep `knowledge/README.md` and KNOWLEDGE-USAGE-GUIDELINES.md as single source of truth; ensure every new category (e.g. from ingest) is listed.                              |
+| **Clawdbot context**     | Treat `knowledge/clawdbot/` as **operational playbooks** (OpenClaw setup, security, one-click install, practical tips). Use for automation design, not for live market data. |
+| **Frontmatter**          | All ingested files: `source`, `category`, `ingestedWith`, `created`, `tags`. Scripts and UPLOAD already do this; enforce in batch ingest.                                    |
+| **Knowledge note block** | Keep the standard block (historical data, methodology focus) at top of ingested content; already in `ingest-urls.ts` and upload fallback.                                    |
+| **Deduplication**        | Periodically (manual or script): same URL or same title across categories; merge or tag duplicate.                                                                           |
+| **Prompt templates**     | `knowledge/prompt-templates/` — keep tier structure; add templates for “deep research brief” and “X thread → summary” for automation.                                        |
 
 ### 2.3 Quality and coverage
 
@@ -227,43 +227,43 @@ Clawdbot/OpenClaw patterns to adopt (from `knowledge/clawdbot/`):
 
 ### 4.1 Why not the X API
 
-| Option | Verdict | Reason |
-|--------|---------|--------|
-| **X API (v2)** | **Not used** | Too expensive; our main need is “read timeline of curated follows,” not full search. |
-| **Grok API (XAI)** | Use for summarization only | Good for “summarize this thread” when we already have a URL (e.g. from OpenClaw). Not a replacement for timeline access. |
-| **Third-party (Apify, Firecrawl, etc.)** | Optional for single-URL fetch | Cost and dependency; use only when we have a specific thread URL to turn into markdown. |
+| Option                                   | Verdict                       | Reason                                                                                                                   |
+| ---------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **X API (v2)**                           | **Not used**                  | Too expensive; our main need is “read timeline of curated follows,” not full search.                                     |
+| **Grok API (XAI)**                       | Use for summarization only    | Good for “summarize this thread” when we already have a URL (e.g. from OpenClaw). Not a replacement for timeline access. |
+| **Third-party (Apify, Firecrawl, etc.)** | Optional for single-URL fetch | Cost and dependency; use only when we have a specific thread URL to turn into markdown.                                  |
 
 ### 4.2 Primary strategy: OpenClaw + dedicated X account + curated follows
 
-| Step | What |
-|------|------|
-| **1. Dedicated X account** | One account used only for this agent. Follow the curated list; no personal or main brand account (security: [instructions-clawdbot.md](knowledge/clawdbot/instructions-clawdbot.md)). |
-| **2. Curated follow list** | The **key asset**: accounts we’ve curated on X over the past decade. Export or recreate that list; the bot account follows those accounts. Timeline = stream from trusted sources. |
-| **3. OpenClaw + Birdy** | Run OpenClaw (VPS or Pi per [instructions-clawdbot.md](knowledge/clawdbot/instructions-clawdbot.md)); install Birdy (Twitter/X plugin). Configure with the dedicated X account. Birdy: “add follows and RSS”; we use it for **research and knowledge**, not lead gen. |
-| **4. Pipeline to VINCE** | OpenClaw is prompted (e.g. daily) to review timeline, pick top threads/links that are methodology- or insight-heavy, and output URLs. Those URLs are posted to a Discord channel (or Matrix, or written to a file). VINCE’s research queue or UPLOAD ingests them → `knowledge/<category>/`. |
+| Step                       | What                                                                                                                                                                                                                                                                                         |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Dedicated X account** | One account used only for this agent. Follow the curated list; no personal or main brand account (security: [instructions-clawdbot.md](knowledge/clawdbot/instructions-clawdbot.md)).                                                                                                        |
+| **2. Curated follow list** | The **key asset**: accounts we’ve curated on X over the past decade. Export or recreate that list; the bot account follows those accounts. Timeline = stream from trusted sources.                                                                                                           |
+| **3. OpenClaw + Birdy**    | Run OpenClaw (VPS or Pi per [instructions-clawdbot.md](knowledge/clawdbot/instructions-clawdbot.md)); install Birdy (Twitter/X plugin). Configure with the dedicated X account. Birdy: “add follows and RSS”; we use it for **research and knowledge**, not lead gen.                        |
+| **4. Pipeline to VINCE**   | OpenClaw is prompted (e.g. daily) to review timeline, pick top threads/links that are methodology- or insight-heavy, and output URLs. Those URLs are posted to a Discord channel (or Matrix, or written to a file). VINCE’s research queue or UPLOAD ingests them → `knowledge/<category>/`. |
 
 So: **Clawdbot is the key feature** — it gives us “X as primary source” without paying for the X API.
 
 ### 4.3 Phased approach (Clawdbot-first)
 
-- **Phase 1 (manual fallback):**  
-  - In Discord/Slack, users paste **thread URLs**. VINCE_UPLOAD handles them (summarize/Firecrawl) → `knowledge/`.  
+- **Phase 1 (manual fallback):**
+  - In Discord/Slack, users paste **thread URLs**. VINCE_UPLOAD handles them (summarize/Firecrawl) → `knowledge/`.
   - Prompt template `knowledge/prompt-templates/x-thread-to-methodology.md` keeps output methodology-oriented.
 
-- **Phase 2 (Clawdbot X agent — primary):**  
-  - Set up OpenClaw + Birdy with **dedicated X account**.  
-  - Load **curated follow list** (decade of curation) onto that account.  
-  - Define pipeline: OpenClaw surfaces thread/link URLs → Discord/Matrix or `research-queue.txt` → VINCE ingest.  
+- **Phase 2 (Clawdbot X agent — primary):**
+  - Set up OpenClaw + Birdy with **dedicated X account**.
+  - Load **curated follow list** (decade of curation) onto that account.
+  - Define pipeline: OpenClaw surfaces thread/link URLs → Discord/Matrix or `research-queue.txt` → VINCE ingest.
   - Optional: OpenClaw posts “top 3–5 threads today” into a shared channel; human or VINCE queues them for ingest.
 
-- **Phase 3 (full automation):**  
-  - OpenClaw runs on a schedule (e.g. daily); selects threads/links from timeline; appends URLs to research queue or posts to channel.  
+- **Phase 3 (full automation):**
+  - OpenClaw runs on a schedule (e.g. daily); selects threads/links from timeline; appends URLs to research queue or posts to channel.
   - VINCE’s research-queue processor (or human approval) ingests → `knowledge/` + optional “Added: …” in `#vince-research`.
 
 ### 4.4 Curated follow list
 
-- **Asset:** The list of X accounts you’ve followed over the years = pre-filtered signal. No API search needed.  
-- **Maintenance:** Keep the list in a doc or export (e.g. `knowledge/internal-docs/x-curated-follows.txt`) so you can re-apply if the bot account is recreated.  
+- **Asset:** The list of X accounts you’ve followed over the years = pre-filtered signal. No API search needed.
+- **Maintenance:** Keep the list in a doc or export (e.g. `knowledge/internal-docs/x-curated-follows.txt`) so you can re-apply if the bot account is recreated.
 - **Scope:** Start with a subset (e.g. 50–200 high-value accounts); expand as needed. The bot’s timeline is the input.
 
 ---
@@ -287,14 +287,14 @@ So: **Clawdbot is the key feature** — it gives us “X as primary source” wi
 
 ### 5.2 New automation ideas
 
-| Automation | Description | Owner |
-|------------|-------------|--------|
-| **Research queue processor** | File or DB table of URLs (e.g. `knowledge/internal-docs/research-queue.txt` or a small DB). Task runs daily/weekly; for each new URL, run ingest and append to knowledge; mark URL as processed. | New task + script or existing ingest-urls. |
-| **Deep research task** | Section 3.1: generates research brief and/or list of URLs to ingest; optionally triggers ingest for those URLs. | New `researchDaily.tasks.ts`. |
-| **Grok pulse → knowledge** | Re-enable Grok Expert; write output to `knowledge/.../grok-pulse-<date>.md` and optionally push summary to Slack/Discord. | Re-enable + small file write in grokExpert.tasks. |
-| **X thread → knowledge** | Phase 1: UPLOAD handles pasted thread URLs. Phase 2 (primary): **OpenClaw + Birdy + curated follows** → surface URLs → research queue / Discord → VINCE ingest. No X API. | UPLOAD + Clawdbot X agent (see knowledge/clawdbot/x-research-agent-curated-follows.md). |
-| **RSS → queue** | Script or task: parse RSS feeds (e.g. key Substacks), append new article URLs to research-queue; another task processes queue. | New script `scripts/rss-to-queue.ts` + research-queue processor. |
-| **Curated YouTube → channel** | Manually curate YouTube links; paste in `#vince-upload-youtube` (or `#youtube-knowledge`). VINCE_UPLOAD ingests (transcript + summary) so we don’t have to watch. Batch: `ingest-urls.ts --file youtube-queue.txt --youtube`. | UPLOAD (existing); channel + docs. |
+| Automation                    | Description                                                                                                                                                                                                                   | Owner                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Research queue processor**  | File or DB table of URLs (e.g. `knowledge/internal-docs/research-queue.txt` or a small DB). Task runs daily/weekly; for each new URL, run ingest and append to knowledge; mark URL as processed.                              | New task + script or existing ingest-urls.                                              |
+| **Deep research task**        | Section 3.1: generates research brief and/or list of URLs to ingest; optionally triggers ingest for those URLs.                                                                                                               | New `researchDaily.tasks.ts`.                                                           |
+| **Grok pulse → knowledge**    | Re-enable Grok Expert; write output to `knowledge/.../grok-pulse-<date>.md` and optionally push summary to Slack/Discord.                                                                                                     | Re-enable + small file write in grokExpert.tasks.                                       |
+| **X thread → knowledge**      | Phase 1: UPLOAD handles pasted thread URLs. Phase 2 (primary): **OpenClaw + Birdy + curated follows** → surface URLs → research queue / Discord → VINCE ingest. No X API.                                                     | UPLOAD + Clawdbot X agent (see knowledge/clawdbot/x-research-agent-curated-follows.md). |
+| **RSS → queue**               | Script or task: parse RSS feeds (e.g. key Substacks), append new article URLs to research-queue; another task processes queue.                                                                                                | New script `scripts/rss-to-queue.ts` + research-queue processor.                        |
+| **Curated YouTube → channel** | Manually curate YouTube links; paste in `#vince-upload-youtube` (or `#youtube-knowledge`). VINCE_UPLOAD ingests (transcript + summary) so we don’t have to watch. Batch: `ingest-urls.ts --file youtube-queue.txt --youtube`. | UPLOAD (existing); channel + docs.                                                      |
 
 ### 5.3 Knowledge expansion “loop”
 
@@ -392,12 +392,12 @@ flowchart LR
 
 ### 7.1 Rate limits & ToS
 
-| System | Risk | Mitigation |
-|--------|------|------------|
-| **Discord** | Rate limits on messages (e.g. 5/5s per channel). | Our pushes are low frequency (daily, news, lifestyle); burst only if many channels. If needed, add 1–2s delay between `sendMessageToTarget` calls. |
-| **Slack** | Tier limits (Tier 2: 20/min). | Same; scheduled pushes are well under limit. |
-| **X API** | **Not used** — too expensive. We use **OpenClaw + dedicated X account + curated follows** instead (no API cost). |
-| **Summarize / LLM** | Token cost per URL. | Use `VINCE_UPLOAD_EXTRACT_ONLY=true` or `--extract` for cheap extract-only ingest where appropriate. |
+| System              | Risk                                                                                                             | Mitigation                                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discord**         | Rate limits on messages (e.g. 5/5s per channel).                                                                 | Our pushes are low frequency (daily, news, lifestyle); burst only if many channels. If needed, add 1–2s delay between `sendMessageToTarget` calls. |
+| **Slack**           | Tier limits (Tier 2: 20/min).                                                                                    | Same; scheduled pushes are well under limit.                                                                                                       |
+| **X API**           | **Not used** — too expensive. We use **OpenClaw + dedicated X account + curated follows** instead (no API cost). |
+| **Summarize / LLM** | Token cost per URL.                                                                                              | Use `VINCE_UPLOAD_EXTRACT_ONLY=true` or `--extract` for cheap extract-only ingest where appropriate.                                               |
 
 ### 7.2 Cost notes
 
@@ -408,13 +408,13 @@ flowchart LR
 
 ### 7.3 Disable flags (rollback / pause)
 
-| Feature | Env var | Effect |
-|---------|---------|--------|
-| Daily report | `VINCE_DAILY_REPORT_ENABLED=false` | Stops scheduled daily report push. |
-| News daily | `VINCE_NEWS_DAILY_ENABLED=false` | Stops news briefing push. |
-| Lifestyle daily | `VINCE_LIFESTYLE_DAILY_ENABLED=false` | Stops lifestyle push. |
-| Research task | (proposed) `VINCE_RESEARCH_DAILY_ENABLED=false` | Skip research daily task. |
-| Grok Expert | Don’t register task, or (proposed) `VINCE_GROK_EXPERT_ENABLED=false` | No Grok pulse. |
+| Feature         | Env var                                                              | Effect                             |
+| --------------- | -------------------------------------------------------------------- | ---------------------------------- |
+| Daily report    | `VINCE_DAILY_REPORT_ENABLED=false`                                   | Stops scheduled daily report push. |
+| News daily      | `VINCE_NEWS_DAILY_ENABLED=false`                                     | Stops news briefing push.          |
+| Lifestyle daily | `VINCE_LIFESTYLE_DAILY_ENABLED=false`                                | Stops lifestyle push.              |
+| Research task   | (proposed) `VINCE_RESEARCH_DAILY_ENABLED=false`                      | Skip research daily task.          |
+| Grok Expert     | Don’t register task, or (proposed) `VINCE_GROK_EXPERT_ENABLED=false` | No Grok pulse.                     |
 
 ### 7.4 Rollback checklist
 
@@ -449,6 +449,7 @@ Add to `knowledge/prompt-templates/` (e.g. `x-thread-to-methodology.md`) for use
 # X thread → methodology summary
 
 When turning an X (Twitter) thread into knowledge:
+
 1. Extract the **argument or framework** (how to think about X), not just facts.
 2. State **methodology**: what to look for, how to interpret, what to avoid.
 3. Strip ephemeral details (exact prices, “as of today”); keep structure (e.g. "funding > X% suggests …").
@@ -469,39 +470,39 @@ For `researchDaily.tasks.ts` or Grok pulse, target output shape:
 
 ## References
 
-| Doc / path | Purpose |
-|------------|---------|
-| **DISCORD.md** | Channel structure (IKIGAI, LiveTheLifeTV, Slack). |
-| **NOTIFICATIONS.md** | Push behavior, channel names, env vars. |
-| **knowledge/KNOWLEDGE-USAGE-GUIDELINES.md** | How agents use knowledge (methodology vs data). |
-| **knowledge/clawdbot/** | OpenClaw setup, security, Birdy/X, RSS, channel layout. |
-| **knowledge/clawdbot/x-research-agent-curated-follows.md** | **Key feature:** X research agent — dedicated account, curated follow list (decade), Birdy, pipeline to VINCE (no X API). |
-| **scripts/ingest-urls.ts** | Batch URL → knowledge with summarize; categories, frontmatter. |
-| **src/plugins/plugin-vince/src/actions/upload.action.ts** | VINCE_UPLOAD; URLs/YouTube → knowledge. |
-| **src/plugins/plugin-vince/src/services/notification.service.ts** | `push(text, { roomNameContains })`; L82–88 name filter. |
-| **src/plugins/plugin-vince/src/tasks/newsDaily.tasks.ts** | Pattern for scheduled push (hour check, notif.push with roomNameContains). |
-| **src/plugins/plugin-vince/src/index.ts** | Task registration ~L509–537 (daily, lifestyle, news); add research/Grok here. |
-| **knowledge/prompt-templates/x-thread-to-methodology.md** | Prompt template for X thread → methodology summary (§8.3). |
-| **knowledge/internal-docs/RESEARCH-QUEUE-AND-RSS.md** | Format and flow for research-queue.txt and rss-feeds.txt. |
-| **knowledge/internal-docs/KNOWLEDGE-QUALITY-CHECKLIST.md** | Pre-flight and domain checks; automatable vs manual. |
-| **knowledge/internal-docs/KNOWLEDGE-QUALITY-GUIDE.md** | Methodology over data; structure; essay-aware chunking. |
-| **src/plugins/plugin-vince/src/__tests__/knowledge.integration.test.ts** | Domain coverage, structure, retrieval tests. |
-| **src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts** | A/B with/without knowledge; Knowledge Integration score. |
-| **FEATURE-STORE.md** | Paper bot features; separate from knowledge. |
+| Doc / path                                                               | Purpose                                                                                                                   |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| **DISCORD.md**                                                           | Channel structure (IKIGAI, LiveTheLifeTV, Slack).                                                                         |
+| **NOTIFICATIONS.md**                                                     | Push behavior, channel names, env vars.                                                                                   |
+| **knowledge/KNOWLEDGE-USAGE-GUIDELINES.md**                              | How agents use knowledge (methodology vs data).                                                                           |
+| **knowledge/clawdbot/**                                                  | OpenClaw setup, security, Birdy/X, RSS, channel layout.                                                                   |
+| **knowledge/clawdbot/x-research-agent-curated-follows.md**               | **Key feature:** X research agent — dedicated account, curated follow list (decade), Birdy, pipeline to VINCE (no X API). |
+| **scripts/ingest-urls.ts**                                               | Batch URL → knowledge with summarize; categories, frontmatter.                                                            |
+| **src/plugins/plugin-vince/src/actions/upload.action.ts**                | VINCE_UPLOAD; URLs/YouTube → knowledge.                                                                                   |
+| **src/plugins/plugin-vince/src/services/notification.service.ts**        | `push(text, { roomNameContains })`; L82–88 name filter.                                                                   |
+| **src/plugins/plugin-vince/src/tasks/newsDaily.tasks.ts**                | Pattern for scheduled push (hour check, notif.push with roomNameContains).                                                |
+| **src/plugins/plugin-vince/src/index.ts**                                | Task registration ~L509–537 (daily, lifestyle, news); add research/Grok here.                                             |
+| **knowledge/prompt-templates/x-thread-to-methodology.md**                | Prompt template for X thread → methodology summary (§8.3).                                                                |
+| **knowledge/internal-docs/RESEARCH-QUEUE-AND-RSS.md**                    | Format and flow for research-queue.txt and rss-feeds.txt.                                                                 |
+| **knowledge/internal-docs/KNOWLEDGE-QUALITY-CHECKLIST.md**               | Pre-flight and domain checks; automatable vs manual.                                                                      |
+| **knowledge/internal-docs/KNOWLEDGE-QUALITY-GUIDE.md**                   | Methodology over data; structure; essay-aware chunking.                                                                   |
+| **src/plugins/plugin-vince/src/**tests**/knowledge.integration.test.ts** | Domain coverage, structure, retrieval tests.                                                                              |
+| **src/plugins/plugin-vince/src/**tests**/knowledgeQuality.e2e.test.ts**  | A/B with/without knowledge; Knowledge Integration score.                                                                  |
+| **FEATURE-STORE.md**                                                     | Paper bot features; separate from knowledge.                                                                              |
 
 ---
 
 ## Quick reference
 
-| What | Where / how |
-|------|--------------|
-| **Step one: Knowledge** | Run `bun test` (knowledge.integration + knowledge.structure + knowledgeQuality.e2e); run `scripts/knowledge-health.ts` for report and optional auto-fix. |
-| Add a push target | Create channel whose name contains keyword; use `push(text, { roomNameContains: "keyword" })`. |
-| Disable scheduled push | `VINCE_DAILY_REPORT_ENABLED=false` etc.; or remove task registration in plugin index. |
-| Ingest a URL to knowledge | `bun run scripts/ingest-urls.ts <url>` or UPLOAD in Slack/Discord. |
-| Research queue | `knowledge/internal-docs/research-queue.txt` (one URL per line); processor marks done. |
-| X → knowledge | **No X API.** Phase 1: paste URL + UPLOAD. Phase 2 (primary): **Clawdbot** — dedicated X account + curated follows + Birdy → surface URLs → queue/Discord → VINCE ingest. See knowledge/clawdbot/x-research-agent-curated-follows.md. |
+| What                      | Where / how                                                                                                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Step one: Knowledge**   | Run `bun test` (knowledge.integration + knowledge.structure + knowledgeQuality.e2e); run `scripts/knowledge-health.ts` for report and optional auto-fix.                                                                              |
+| Add a push target         | Create channel whose name contains keyword; use `push(text, { roomNameContains: "keyword" })`.                                                                                                                                        |
+| Disable scheduled push    | `VINCE_DAILY_REPORT_ENABLED=false` etc.; or remove task registration in plugin index.                                                                                                                                                 |
+| Ingest a URL to knowledge | `bun run scripts/ingest-urls.ts <url>` or UPLOAD in Slack/Discord.                                                                                                                                                                    |
+| Research queue            | `knowledge/internal-docs/research-queue.txt` (one URL per line); processor marks done.                                                                                                                                                |
+| X → knowledge             | **No X API.** Phase 1: paste URL + UPLOAD. Phase 2 (primary): **Clawdbot** — dedicated X account + curated follows + Birdy → surface URLs → queue/Discord → VINCE ingest. See knowledge/clawdbot/x-research-agent-curated-follows.md. |
 
 ---
 
-*This plan is the single reference for: Slack/Discord setup, knowledge improvement, clawdbot-style deep research, X automation, and automated knowledge expansion. Update this doc as items are completed or priorities change.*
+_This plan is the single reference for: Slack/Discord setup, knowledge improvement, clawdbot-style deep research, X automation, and automated knowledge expansion. Update this doc as items are completed or priorities change._

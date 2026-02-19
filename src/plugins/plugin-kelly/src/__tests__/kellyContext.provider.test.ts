@@ -71,7 +71,9 @@ describe("KELLY_CONTEXT Provider", () => {
     const result = await kellyContextProvider.get(runtime, message);
 
     expect(result?.values).toBeDefined();
-    expect((result?.values as Record<string, unknown>)?.kellyRestaurantsOpenToday).toBeDefined();
+    expect(
+      (result?.values as Record<string, unknown>)?.kellyRestaurantsOpenToday,
+    ).toBeDefined();
     const text = result?.text ?? "";
     expect(text).toMatch(/Restaurants open|Maison Devaux|Auberge du Lavoir/i);
   });
@@ -87,7 +89,11 @@ describe("KELLY_CONTEXT Provider", () => {
       }),
       getCurrentSeason: () => "gym" as const,
       getCuratedOpenContext: () => null,
-      getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
+      getPalacePoolReopenDates: () => ({
+        Palais: "Feb 12",
+        Caudalie: "Feb 5",
+        Eugenie: "Mar 6",
+      }),
       getPalacePoolStatusLine: () =>
         "Palais reopens Feb 12, Caudalie reopens Feb 5, Eugenie reopens Mar 6",
     } as unknown as KellyLifestyleService;
@@ -115,9 +121,10 @@ describe("KELLY_CONTEXT Provider", () => {
       }),
       getCurrentSeason: () => "pool" as const,
       getCuratedOpenContext: (day?: string) => ({
-        restaurants: day === "monday"
-          ? ["Maison Devaux | Rion"]
-          : ["Auberge du Lavoir | Garrosse"],
+        restaurants:
+          day === "monday"
+            ? ["Maison Devaux | Rion"]
+            : ["Auberge du Lavoir | Garrosse"],
         hotels: [],
         fitnessNote: "Pool",
         rawSection: "restaurants",
@@ -141,7 +148,10 @@ describe("KELLY_CONTEXT Provider", () => {
   });
 
   it("when service is missing, returns gracefully with kellyDay and no throw", async () => {
-    const runtime = createMockRuntime({ getService: () => null, getMemories: async () => [] });
+    const runtime = createMockRuntime({
+      getService: () => null,
+      getMemories: async () => [],
+    });
     const message = createMockMessage("what should I do today");
     const result = await kellyContextProvider.get(runtime, message);
 

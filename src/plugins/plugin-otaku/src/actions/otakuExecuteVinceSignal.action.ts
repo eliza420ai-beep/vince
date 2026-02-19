@@ -76,14 +76,17 @@ export const otakuExecuteVinceSignalAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Swap (from Vince):** 0.5 ETH → USDC on base. Type \"confirm\" to proceed.",
+          text: '**Swap (from Vince):** 0.5 ETH → USDC on base. Type "confirm" to proceed.',
           actions: ["OTAKU_EXECUTE_VINCE_SIGNAL"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     if (isConfirmation(text)) {
       return hasPending(runtime, message, "vinceSignal");
@@ -102,17 +105,24 @@ export const otakuExecuteVinceSignalAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
-    const pending = await getPending<SwapSignal | BridgeSignal>(runtime, message, "vinceSignal");
+    const pending = await getPending<SwapSignal | BridgeSignal>(
+      runtime,
+      message,
+      "vinceSignal",
+    );
 
     if (isConfirmation(text) && pending) {
       await clearPending(runtime, message, "vinceSignal");
       const otaku = runtime.getService("otaku") as OtakuService | null;
       if (!otaku) {
         await callback?.({ text: "Otaku service not available." });
-        return { success: false, error: new Error("Otaku service not available") };
+        return {
+          success: false,
+          error: new Error("Otaku service not available"),
+        };
       }
 
       if (pending.action === "swap" && otaku.executeSwap) {
@@ -129,11 +139,16 @@ export const otakuExecuteVinceSignalAction: Action = {
           return { success: true };
         }
         await callback?.({ text: `❌ Swap failed: ${result.error}` });
-        return { success: false, error: new Error(result.error ?? "Swap failed") };
+        return {
+          success: false,
+          error: new Error(result.error ?? "Swap failed"),
+        };
       }
 
       if (pending.action === "bridge") {
-        const relay = runtime.getService("relay") as { executeBridge?: (p: any) => Promise<any> } | null;
+        const relay = runtime.getService("relay") as {
+          executeBridge?: (p: any) => Promise<any>;
+        } | null;
         if (relay?.executeBridge) {
           const result = await relay.executeBridge({
             token: pending.token,
@@ -145,12 +160,16 @@ export const otakuExecuteVinceSignalAction: Action = {
             await callback?.({
               text: `✅ Vince’s bridge done: ${pending.amount} ${pending.token} ${pending.fromChain} → ${pending.toChain}. ${result.txHash ? `TX: ${result.txHash.slice(0, 24)}...` : ""}`,
             });
-            await appendNotificationEvent(runtime, {
-              action: "vince_signal_completed",
-              title: "Vince signal: bridge completed",
-              subtitle: `${pending.amount} ${pending.token} ${pending.fromChain} → ${pending.toChain}`,
-              metadata: { txHash: result.txHash },
-            }, message.entityId);
+            await appendNotificationEvent(
+              runtime,
+              {
+                action: "vince_signal_completed",
+                title: "Vince signal: bridge completed",
+                subtitle: `${pending.amount} ${pending.token} ${pending.fromChain} → ${pending.toChain}`,
+                metadata: { txHash: result.txHash },
+              },
+              message.entityId,
+            );
             return { success: true };
           }
         }
@@ -167,19 +186,23 @@ export const otakuExecuteVinceSignalAction: Action = {
     const signal = await runtime.getCache<unknown>(VINCE_SIGNAL_CACHE_KEY);
     if (!signal || (typeof signal === "object" && !(signal as any).action)) {
       await callback?.({
-        text: "There’s no Vince trade suggestion in the loop right now. Ask Vince for a trade idea first, then say \"execute Vince's suggestion\".",
+        text: 'There’s no Vince trade suggestion in the loop right now. Ask Vince for a trade idea first, then say "execute Vince\'s suggestion".',
       });
       return { success: true };
     }
 
     if (isSwapSignal(signal)) {
       await setPending(runtime, message, "vinceSignal", signal);
-      const summary = (runtime.getService("otaku") as OtakuService)?.formatSwapConfirmation?.({
-        sellToken: signal.sellToken,
-        buyToken: signal.buyToken,
-        amount: signal.amount,
-        chain: signal.chain,
-      }) ?? `**Swap (from Vince):** ${signal.amount} ${signal.sellToken} → ${signal.buyToken}${signal.chain ? ` on ${signal.chain}` : ""}. Type "confirm" to proceed.`;
+      const summary =
+        (runtime.getService("otaku") as OtakuService)?.formatSwapConfirmation?.(
+          {
+            sellToken: signal.sellToken,
+            buyToken: signal.buyToken,
+            amount: signal.amount,
+            chain: signal.chain,
+          },
+        ) ??
+        `**Swap (from Vince):** ${signal.amount} ${signal.sellToken} → ${signal.buyToken}${signal.chain ? ` on ${signal.chain}` : ""}. Type "confirm" to proceed.`;
       await callback?.({ text: summary });
       return { success: true };
     }

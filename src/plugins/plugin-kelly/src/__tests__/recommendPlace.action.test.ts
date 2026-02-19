@@ -122,7 +122,13 @@ describe("KELLY_RECOMMEND_PLACE Action", () => {
       });
       const message = createMockMessage("where to eat in Landes");
       const callback = createMockCallback();
-      await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendPlaceAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBeGreaterThan(0);
       expect(callback.calls[0]?.text).toBeDefined();
     });

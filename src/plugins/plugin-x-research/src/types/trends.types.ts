@@ -10,10 +10,10 @@ export interface XTrend {
 }
 
 export interface TrendingTopicStatus {
-  topic: string;                   // BTC, ETH, ElizaOS, etc.
+  topic: string; // BTC, ETH, ElizaOS, etc.
   isTrending: boolean;
   postCount?: number;
-  rank?: number;                   // Position in trends
+  rank?: number; // Position in trends
 }
 
 export interface TrendVolume {

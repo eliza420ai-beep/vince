@@ -7,11 +7,7 @@
  * - Validation Registry - Trust verification
  */
 
-import {
-  type IAgentRuntime,
-  type Service,
-  logger,
-} from "@elizaos/core";
+import { type IAgentRuntime, type Service, logger } from "@elizaos/core";
 import { createPublicClient, createWalletClient, http, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia, base } from "viem/chains";
@@ -68,7 +64,8 @@ export class ERC8004Service {
     });
 
     // Create wallet client if private key available
-    const privateKey = process.env.ERC8004_PRIVATE_KEY || process.env.CDP_WALLET_SECRET;
+    const privateKey =
+      process.env.ERC8004_PRIVATE_KEY || process.env.CDP_WALLET_SECRET;
     if (privateKey) {
       try {
         this.account = privateKeyToAccount(privateKey as `0x${string}`);
@@ -77,7 +74,9 @@ export class ERC8004Service {
           chain,
           transport: http(this._config.rpcUrl || chain.rpcUrls.default.http[0]),
         });
-        logger.info(`[ERC-8004] Wallet configured: ${this.account.address.slice(0, 10)}...`);
+        logger.info(
+          `[ERC-8004] Wallet configured: ${this.account.address.slice(0, 10)}...`,
+        );
       } catch (err) {
         logger.warn(`[ERC-8004] Wallet not configured: ${err}`);
       }
@@ -87,15 +86,19 @@ export class ERC8004Service {
   }
 
   private loadConfig(): ERC8004Config {
-    const network = (process.env.ERC8004_NETWORK || "base-sepolia") as ERC8004Config["network"];
+    const network = (process.env.ERC8004_NETWORK ||
+      "base-sepolia") as ERC8004Config["network"];
     return {
       network,
       identityRegistryAddress:
-        process.env.ERC8004_IDENTITY_REGISTRY || DEFAULT_CONFIG.identityRegistryAddress,
+        process.env.ERC8004_IDENTITY_REGISTRY ||
+        DEFAULT_CONFIG.identityRegistryAddress,
       reputationRegistryAddress:
-        process.env.ERC8004_REPUTATION_REGISTRY || DEFAULT_CONFIG.reputationRegistryAddress,
+        process.env.ERC8004_REPUTATION_REGISTRY ||
+        DEFAULT_CONFIG.reputationRegistryAddress,
       validationRegistryAddress:
-        process.env.ERC8004_VALIDATION_REGISTRY || DEFAULT_CONFIG.validationRegistryAddress,
+        process.env.ERC8004_VALIDATION_REGISTRY ||
+        DEFAULT_CONFIG.validationRegistryAddress,
       rpcUrl: process.env.ERC8004_RPC_URL,
     };
   }
@@ -105,8 +108,8 @@ export class ERC8004Service {
    */
   isConfigured(): boolean {
     return (
-      this._config.identityRegistryAddress !== "0x0000000000000000000000000000000000000000" &&
-      !!this.publicClient
+      this._config.identityRegistryAddress !==
+        "0x0000000000000000000000000000000000000000" && !!this.publicClient
     );
   }
 
@@ -131,7 +134,10 @@ export class ERC8004Service {
     error?: string;
   }> {
     if (!this.canWrite()) {
-      return { success: false, error: "Wallet not configured for write operations" };
+      return {
+        success: false,
+        error: "Wallet not configured for write operations",
+      };
     }
 
     if (!this.isConfigured()) {
@@ -151,7 +157,7 @@ export class ERC8004Service {
 
       // Upload metadata to IPFS or return as data URI
       const tokenURI = `data:application/json;base64,${Buffer.from(
-        JSON.stringify(registration)
+        JSON.stringify(registration),
       ).toString("base64")}`;
 
       // Call register function
@@ -163,15 +169,19 @@ export class ERC8004Service {
       });
 
       // Wait for confirmation
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash,
+      });
 
       // Extract agentId from Transfer event
       const transferLog = receipt.logs.find(
-        (log: any) => log.topics[0] === "0xddf252ad..." // Transfer topic
+        (log: any) => log.topics[0] === "0xddf252ad...", // Transfer topic
       );
       const agentId = transferLog ? BigInt(transferLog.topics[3]) : undefined;
 
-      logger.info(`[ERC-8004] Agent registered: ${params.name} (ID: ${agentId})`);
+      logger.info(
+        `[ERC-8004] Agent registered: ${params.name} (ID: ${agentId})`,
+      );
 
       return { success: true, agentId, txHash: hash };
     } catch (err) {
@@ -191,13 +201,17 @@ export class ERC8004Service {
       const [owner, tokenURI] = await Promise.all([
         this.publicClient.readContract({
           address: this._config.identityRegistryAddress as `0x${string}`,
-          abi: parseAbi(["function ownerOf(uint256 tokenId) view returns (address)"]),
+          abi: parseAbi([
+            "function ownerOf(uint256 tokenId) view returns (address)",
+          ]),
           functionName: "ownerOf",
           args: [agentId],
         }),
         this.publicClient.readContract({
           address: this._config.identityRegistryAddress as `0x${string}`,
-          abi: parseAbi(["function tokenURI(uint256 tokenId) view returns (string)"]),
+          abi: parseAbi([
+            "function tokenURI(uint256 tokenId) view returns (string)",
+          ]),
           functionName: "tokenURI",
           args: [agentId],
         }),
@@ -273,13 +287,16 @@ export class ERC8004Service {
           params.agentId,
           params.score,
           params.tags || [],
-          "0x" + Buffer.from(JSON.stringify(params.metadata || {})).toString("hex"),
+          "0x" +
+            Buffer.from(JSON.stringify(params.metadata || {})).toString("hex"),
         ],
       });
 
       await this.publicClient.waitForTransactionReceipt({ hash });
 
-      logger.info(`[ERC-8004] Rated agent ${params.agentId}: ${params.score}/100`);
+      logger.info(
+        `[ERC-8004] Rated agent ${params.agentId}: ${params.score}/100`,
+      );
 
       return { success: true, txHash: hash };
     } catch (err) {
@@ -325,7 +342,9 @@ export class ERC8004Service {
   /**
    * Validate an agent
    */
-  async validateAgent(params: ValidateAgentParams): Promise<ValidationResult | null> {
+  async validateAgent(
+    params: ValidateAgentParams,
+  ): Promise<ValidationResult | null> {
     if (!this.isConfigured()) return null;
 
     try {
@@ -377,7 +396,9 @@ export class ERC8004Service {
     try {
       const balance = await this.publicClient.readContract({
         address: this._config.identityRegistryAddress as `0x${string}`,
-        abi: parseAbi(["function balanceOf(address owner) view returns (uint256)"]),
+        abi: parseAbi([
+          "function balanceOf(address owner) view returns (uint256)",
+        ]),
         functionName: "balanceOf",
         args: [this.account.address],
       });

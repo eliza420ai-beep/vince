@@ -15,13 +15,11 @@ export const vinceSignalProvider: Provider = {
   description: "Latest trade suggestion from Vince for execution loop",
   position: 5,
 
-  get: async (
-    runtime: IAgentRuntime,
-    _message: Memory,
-    _state?: State
-  ) => {
+  get: async (runtime: IAgentRuntime, _message: Memory, _state?: State) => {
     try {
-      const raw = await runtime.getCache<Record<string, unknown>>(VINCE_SIGNAL_CACHE_KEY);
+      const raw = await runtime.getCache<Record<string, unknown>>(
+        VINCE_SIGNAL_CACHE_KEY,
+      );
       if (!raw || typeof raw !== "object" || !raw.action) {
         return { text: "" };
       }

@@ -31,4 +31,4 @@ AVOID:
 export const NAVAL_STRUCTURED_NOTE = `Where the prompt asks for numbered or structured answers, use brief lines for the structure but write the rest in flowing prose — like you're talking to a smart friend. No corporate tone.`;
 
 export const NO_AI_SLOP =
-  'Also NEVER use these words or phrases: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I\'d be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day, it\'s worth noting, to be clear, in essence, let\'s dive in.';
+  "Also NEVER use these words or phrases: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day, it's worth noting, to be clear, in essence, let's dive in.";

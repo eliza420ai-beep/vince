@@ -1,9 +1,5 @@
 import { Service, IAgentRuntime, logger } from "@elizaos/core";
-import {
-  WalletClient,
-  type PublicClient,
-  parseUnits,
-} from "viem";
+import { WalletClient, type PublicClient, parseUnits } from "viem";
 import { AccrualPosition, MarketParams } from "@morpho-org/blue-sdk";
 import { Time } from "@morpho-org/morpho-ts";
 import BigNumber from "bignumber.js";
@@ -36,11 +32,11 @@ const MORPHO_ADDRESS = "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb"; // Morpho B
 
 // Chain ID mapping for supported networks
 const CHAIN_ID_MAP: Record<SupportedNetwork, number> = {
-  'base': 8453,
-  'base-sepolia': 84532,
-  'ethereum': 1,
-  'ethereum-sepolia': 11155111,
-  'arbitrum': 42161,
+  base: 8453,
+  "base-sepolia": 84532,
+  ethereum: 1,
+  "ethereum-sepolia": 11155111,
+  arbitrum: 42161,
 };
 
 export class MorphoService extends Service {
@@ -53,8 +49,7 @@ export class MorphoService extends Service {
     super(runtime);
   }
 
-
-  private getChainId(chain: SupportedNetwork = 'base'): number {
+  private getChainId(chain: SupportedNetwork = "base"): number {
     const chainId = CHAIN_ID_MAP[chain];
     if (!chainId) {
       throw new Error(`Unsupported chain: ${chain}`);
@@ -112,8 +107,10 @@ export class MorphoService extends Service {
       console.log("Account:", wallet.account?.address);
       console.log("Input -> market:", cfg.market, "assets:", cfg.assets);
 
-      const { requests, marketParams, assetsBase } =
-        await this.buildSupplyTx(cfg, pc);
+      const { requests, marketParams, assetsBase } = await this.buildSupplyTx(
+        cfg,
+        pc,
+      );
 
       console.log("Prepared", requests.length, "request(s) for supply.");
       console.log("Market:", marketParams.loanToken);
@@ -284,8 +281,10 @@ export class MorphoService extends Service {
       console.log("Account:", wallet.account?.address);
       console.log("Input -> market:", cfg.market, "assets:", cfg.assets);
 
-      const { requests, marketParams, assetsBase } =
-        await this.buildBorrowTx(cfg, pc);
+      const { requests, marketParams, assetsBase } = await this.buildBorrowTx(
+        cfg,
+        pc,
+      );
 
       console.log("Prepared", requests.length, "request(s) for borrow.");
       console.log("Market loan token:", marketParams.loanToken);
@@ -624,10 +623,10 @@ export class MorphoService extends Service {
 
   public async buildSupplyTx(
     params: {
-    market: string;
-    assets: string | number | bigint;
-    onBehalf: `0x${string}`;
-    chain: SupportedNetwork;
+      market: string;
+      assets: string | number | bigint;
+      onBehalf: `0x${string}`;
+      chain: SupportedNetwork;
     },
     pc: PublicClient,
   ): Promise<{
@@ -698,10 +697,10 @@ export class MorphoService extends Service {
 
   public async buildSupplyCollateralTx(
     params: {
-    market: string;
-    assets: string | number | bigint;
-    onBehalf: `0x${string}`;
-    chain: SupportedNetwork;
+      market: string;
+      assets: string | number | bigint;
+      onBehalf: `0x${string}`;
+      chain: SupportedNetwork;
     },
     pc: PublicClient,
   ): Promise<{
@@ -772,11 +771,11 @@ export class MorphoService extends Service {
 
   public async buildBorrowTx(
     params: {
-    market: string;
-    assets: string | number | bigint;
-    receiver: `0x${string}`;
-    onBehalf: `0x${string}`;
-    chain: SupportedNetwork;
+      market: string;
+      assets: string | number | bigint;
+      receiver: `0x${string}`;
+      onBehalf: `0x${string}`;
+      chain: SupportedNetwork;
     },
     pc: PublicClient,
   ): Promise<{
@@ -812,12 +811,12 @@ export class MorphoService extends Service {
 
   public async buildRepayTx(
     params: {
-    market: string;
-    assets?: string | number | bigint;
-    shares?: string | number | bigint;
-    onBehalf: `0x${string}`;
-    fullRepayment?: boolean;
-    chain: SupportedNetwork;
+      market: string;
+      assets?: string | number | bigint;
+      shares?: string | number | bigint;
+      onBehalf: `0x${string}`;
+      fullRepayment?: boolean;
+      chain: SupportedNetwork;
     },
     pc: PublicClient,
   ): Promise<{
@@ -974,12 +973,12 @@ export class MorphoService extends Service {
 
   public async buildWithdrawTx(
     params: {
-    market: string;
-    assets?: string | number | bigint;
-    shares?: string | number | bigint;
-    receiver: `0x${string}`;
-    onBehalf: `0x${string}`;
-    chain: SupportedNetwork;
+      market: string;
+      assets?: string | number | bigint;
+      shares?: string | number | bigint;
+      receiver: `0x${string}`;
+      onBehalf: `0x${string}`;
+      chain: SupportedNetwork;
     },
     pc: PublicClient,
   ): Promise<{
@@ -1040,11 +1039,11 @@ export class MorphoService extends Service {
 
   public async buildWithdrawCollateralTx(
     params: {
-    market: string;
-    assets: string | number | bigint;
-    receiver: `0x${string}`;
-    onBehalf: `0x${string}`;
-    chain: SupportedNetwork;
+      market: string;
+      assets: string | number | bigint;
+      receiver: `0x${string}`;
+      onBehalf: `0x${string}`;
+      chain: SupportedNetwork;
     },
     pc: PublicClient,
   ): Promise<{
@@ -1082,11 +1081,19 @@ export class MorphoService extends Service {
   // Helper methods (original functionality needs to be added here)
   // ----------------------------
 
-  private async getMarketId(input: string, chain: SupportedNetwork): Promise<string> {
-    return isMarketId(input) ? input : this.resolveMarketIdFromPair(input, chain);
+  private async getMarketId(
+    input: string,
+    chain: SupportedNetwork,
+  ): Promise<string> {
+    return isMarketId(input)
+      ? input
+      : this.resolveMarketIdFromPair(input, chain);
   }
 
-  private async resolveMarketIdFromPair(pair: string, chain: SupportedNetwork): Promise<string> {
+  private async resolveMarketIdFromPair(
+    pair: string,
+    chain: SupportedNetwork,
+  ): Promise<string> {
     const parts = pair
       .split("/")
       .map((s) => s?.trim())
@@ -1239,7 +1246,10 @@ export class MorphoService extends Service {
   // ----------------------------
   // Resolvers
   // ----------------------------
-  private async resolveVaultAddress(vault: string, chain: SupportedNetwork): Promise<`0x${string}`> {
+  private async resolveVaultAddress(
+    vault: string,
+    chain: SupportedNetwork,
+  ): Promise<`0x${string}`> {
     const q = vault.trim().toLowerCase();
     const chainId = this.getChainId(chain);
     const items = await this.fetchVaultsFromApi(chainId);
@@ -1374,7 +1384,9 @@ export class MorphoService extends Service {
     for (let i = 0; i < positions.length; i += BATCH_SIZE) {
       const batch = positions.slice(i, i + BATCH_SIZE);
       const out = await Promise.all(
-        batch.map((id) => this.buildUserPosition(address, id, chain, pc).catch(() => null)),
+        batch.map((id) =>
+          this.buildUserPosition(address, id, chain, pc).catch(() => null),
+        ),
       );
       for (const r of out) if (r?.hasPosition) results.push(r);
     }
@@ -1382,7 +1394,10 @@ export class MorphoService extends Service {
     return results;
   }
 
-  public async getVaultData(vault: string | undefined, chain: SupportedNetwork): Promise<MorphoVaultData[]> {
+  public async getVaultData(
+    vault: string | undefined,
+    chain: SupportedNetwork,
+  ): Promise<MorphoVaultData[]> {
     const chainId = this.getChainId(chain);
 
     // Single vault
@@ -1436,7 +1451,10 @@ export class MorphoService extends Service {
     }));
   }
 
-  public async getMarketSummary(market: string, chain: SupportedNetwork): Promise<MarketSummary> {
+  public async getMarketSummary(
+    market: string,
+    chain: SupportedNetwork,
+  ): Promise<MarketSummary> {
     const uniqueKey = await this.getMarketId(market, chain);
     return this.fetchMarketSummaryById(uniqueKey, chain);
   }
@@ -1808,8 +1826,10 @@ export class MorphoService extends Service {
       console.log("Account:", wallet.account?.address);
       console.log("Input -> vault:", cfg.vault, "assets:", cfg.assets);
 
-      const { requests, vault, assetsBase } =
-        await this.buildVaultWithdrawTx(cfg, pc);
+      const { requests, vault, assetsBase } = await this.buildVaultWithdrawTx(
+        cfg,
+        pc,
+      );
 
       console.log("Prepared", requests.length, "request(s) for withdraw.");
       console.log("Vault:", vault);
@@ -1882,10 +1902,15 @@ export class MorphoService extends Service {
     // pc provided by caller (CDP)
 
     const receiver = params.receiver;
-    const vaultAddr = await this.resolveVaultAddress(params.vault, params.chain);
+    const vaultAddr = await this.resolveVaultAddress(
+      params.vault,
+      params.chain,
+    );
 
-    const { asset, assetDecimals, shareDecimals } =
-      await this.readVaultMeta(vaultAddr, pc);
+    const { asset, assetDecimals, shareDecimals } = await this.readVaultMeta(
+      vaultAddr,
+      pc,
+    );
 
     const assetsBase = parseUnits(String(params.assets), assetDecimals);
 
@@ -1985,7 +2010,10 @@ export class MorphoService extends Service {
 
     const receiver = params.receiver;
     const owner = params.owner;
-    const vaultAddr = await this.resolveVaultAddress(params.vault, params.chain);
+    const vaultAddr = await this.resolveVaultAddress(
+      params.vault,
+      params.chain,
+    );
 
     const data = await this.gql.query<{ vaultByAddress?: any }>(
       Q_VAULT_BY_ADDRESS,

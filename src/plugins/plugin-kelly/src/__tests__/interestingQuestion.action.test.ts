@@ -77,7 +77,13 @@ describe("KELLY_INTERESTING_QUESTION", () => {
       "What would you paint if you had no fear of it being bad? You keep talking about starting — I think the canvas is waiting.";
     const msg = createMockMessage("ask me something");
     const cb = createMockCallback();
-    await kellyInterestingQuestionAction.handler(runtime, msg, createMockState(), {}, cb);
+    await kellyInterestingQuestionAction.handler(
+      runtime,
+      msg,
+      createMockState(),
+      {},
+      cb,
+    );
 
     expect(cb.calls[0]?.text).toContain("?");
   });
@@ -88,7 +94,13 @@ describe("KELLY_INTERESTING_QUESTION", () => {
       "If you could only surf one wave for the rest of your life — same break, same conditions — what would it look like? I'm curious what your perfect wave actually is.";
     const msg = createMockMessage("ask me something interesting");
     const cb = createMockCallback();
-    await kellyInterestingQuestionAction.handler(runtime, msg, createMockState(), {}, cb);
+    await kellyInterestingQuestionAction.handler(
+      runtime,
+      msg,
+      createMockState(),
+      {},
+      cb,
+    );
 
     const text = cb.calls[0]?.text ?? "";
     expect(findBannedJargon(text)).toEqual([]);

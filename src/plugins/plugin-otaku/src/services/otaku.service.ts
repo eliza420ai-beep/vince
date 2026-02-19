@@ -8,11 +8,7 @@
  * - Formatted responses
  */
 
-import {
-  type IAgentRuntime,
-  Service,
-  logger,
-} from "@elizaos/core";
+import { type IAgentRuntime, Service, logger } from "@elizaos/core";
 import type { BankrAgentService, BankrOrdersService } from "../types/services";
 
 export interface SwapRequest {
@@ -96,7 +92,9 @@ export class OtakuService extends Service {
    * Check if BANKR is available
    */
   isBankrAvailable(): boolean {
-    const bankrSvc = this.runtime.getService("bankr_agent") as BankrAgentService | null;
+    const bankrSvc = this.runtime.getService(
+      "bankr_agent",
+    ) as BankrAgentService | null;
     return bankrSvc?.isConfigured?.() ?? false;
   }
 
@@ -124,7 +122,11 @@ export class OtakuService extends Service {
     response?: string;
   }> {
     const bankr = this.getBankrAgent();
-    if (!bankr?.isConfigured?.() || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
+    if (
+      !bankr?.isConfigured?.() ||
+      !bankr.submitPrompt ||
+      !bankr.pollJobUntilComplete
+    ) {
       return { success: false, error: "BANKR not configured" };
     }
 
@@ -169,7 +171,11 @@ export class OtakuService extends Service {
     response?: string;
   }> {
     const bankr = this.getBankrAgent();
-    if (!bankr?.isConfigured?.() || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
+    if (
+      !bankr?.isConfigured?.() ||
+      !bankr.submitPrompt ||
+      !bankr.pollJobUntilComplete
+    ) {
       return { success: false, error: "BANKR not configured" };
     }
 
@@ -216,7 +222,11 @@ export class OtakuService extends Service {
     response?: string;
   }> {
     const bankr = this.getBankrAgent();
-    if (!bankr?.isConfigured?.() || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
+    if (
+      !bankr?.isConfigured?.() ||
+      !bankr.submitPrompt ||
+      !bankr.pollJobUntilComplete
+    ) {
       return { success: false, error: "BANKR not configured" };
     }
 
@@ -273,7 +283,11 @@ export class OtakuService extends Service {
     if (!bankr?.isConfigured?.()) {
       return result;
     }
-    if (!bankr.getAccountInfo || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
+    if (
+      !bankr.getAccountInfo ||
+      !bankr.submitPrompt ||
+      !bankr.pollJobUntilComplete
+    ) {
       return result;
     }
 
@@ -293,7 +307,7 @@ export class OtakuService extends Service {
           // Real implementation would parse structured data
           result.positions = this.parsePositions(
             portfolioResult.response,
-            accountInfo.wallets
+            accountInfo.wallets,
           );
         }
       }
@@ -301,9 +315,7 @@ export class OtakuService extends Service {
       // Get active orders
       if (orders?.isConfigured?.()) {
         const accountInfo = await bankr.getAccountInfo!();
-        const evmWallet = accountInfo.wallets?.find(
-          (w) => w.chain === "evm"
-        );
+        const evmWallet = accountInfo.wallets?.find((w) => w.chain === "evm");
         if (evmWallet?.address) {
           const orderResult = await orders.listOrders!({
             maker: evmWallet.address,
@@ -312,7 +324,11 @@ export class OtakuService extends Service {
           if (orderResult.orders) {
             result.orders = orderResult.orders.map((o) => ({
               orderId: o.orderId,
-              type: (o.orderType ?? o.type ?? "limit") as "stop" | "limit" | "dca" | "twap",
+              type: (o.orderType ?? o.type ?? "limit") as
+                | "stop"
+                | "limit"
+                | "dca"
+                | "twap",
               status: o.status as "active" | "filled" | "cancelled" | "expired",
               sellToken: o.sellToken,
               buyToken: o.buyToken,
@@ -339,7 +355,8 @@ export class OtakuService extends Service {
     const positions: Position[] = [];
 
     // Look for token balance patterns like "0.5 ETH ($1,250)"
-    const tokenPattern = /(\d+\.?\d*)\s+([A-Z]+)\s*\(?~?\$?([\d,]+\.?\d*)?\)?/gi;
+    const tokenPattern =
+      /(\d+\.?\d*)\s+([A-Z]+)\s*\(?~?\$?([\d,]+\.?\d*)?\)?/gi;
     let match;
 
     while ((match = tokenPattern.exec(response)) !== null) {
@@ -397,8 +414,7 @@ export class OtakuService extends Service {
    */
   formatDcaConfirmation(request: DcaRequest): string {
     const chain = request.chain ?? "base";
-    const perOrder =
-      parseFloat(request.totalAmount) / request.numOrders;
+    const perOrder = parseFloat(request.totalAmount) / request.numOrders;
     return [
       `**DCA Schedule Summary:**`,
       `- Total: ${request.totalAmount} ${request.sellToken}`,

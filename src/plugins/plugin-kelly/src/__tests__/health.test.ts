@@ -46,7 +46,9 @@ describe("getKellyHealth", () => {
     expect(health.ok).toBe(false);
     expect(health.curatedSchedule).toBe(false);
     expect(health.serviceReady).toBe(true);
-    expect(health.message?.toLowerCase()).toMatch(/schedule|missing|empty|curated/);
+    expect(health.message?.toLowerCase()).toMatch(
+      /schedule|missing|empty|curated/,
+    );
   });
 
   it("returns health.ok false when KELLY_LIFESTYLE_SERVICE is not registered", async () => {

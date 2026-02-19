@@ -44,7 +44,13 @@ export interface EnrichedMarketContext {
   longShortRatio: number;
   fearGreedValue: number | null;
   fearGreedLabel: string | null;
-  marketRegime: "bullish" | "bearish" | "neutral" | "volatile" | "ranging" | "extreme";
+  marketRegime:
+    | "bullish"
+    | "bearish"
+    | "neutral"
+    | "volatile"
+    | "ranging"
+    | "extreme";
   timestamp: number;
 
   // V2: Added for Open Window Trend Spotting

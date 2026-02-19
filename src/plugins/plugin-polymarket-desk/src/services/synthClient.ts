@@ -25,10 +25,11 @@ export async function getSynthForecast(
   baseUrl?: string | null,
 ): Promise<SynthForecast> {
   const key = apiKey ?? process.env.SYNTH_API_KEY;
-  const url = (baseUrl ?? process.env.SYNTH_API_URL ?? DEFAULT_SYNTH_API_URL).replace(
-    /\/$/,
-    "",
-  );
+  const url = (
+    baseUrl ??
+    process.env.SYNTH_API_URL ??
+    DEFAULT_SYNTH_API_URL
+  ).replace(/\/$/, "");
 
   if (!key?.trim()) {
     logger.debug("[SynthClient] No SYNTH_API_KEY; returning mock forecast");
@@ -44,7 +45,9 @@ export async function getSynthForecast(
     );
     if (!res.ok) {
       const text = await res.text();
-      logger.warn(`[SynthClient] Synth API error ${res.status}: ${text.slice(0, 200)}`);
+      logger.warn(
+        `[SynthClient] Synth API error ${res.status}: ${text.slice(0, 200)}`,
+      );
       return mockForecast(asset);
     }
     const data = (await res.json()) as Record<string, unknown>;
@@ -62,11 +65,17 @@ export async function getSynthForecast(
 }
 
 function parseProbability(data: Record<string, unknown>): number {
-  if (typeof data.probability === "number" && data.probability >= 0 && data.probability <= 1)
+  if (
+    typeof data.probability === "number" &&
+    data.probability >= 0 &&
+    data.probability <= 1
+  )
     return data.probability;
   if (typeof data.percentile50 === "number") return data.percentile50;
   if (Array.isArray(data.percentiles) && data.percentiles.length > 0) {
-    const mid = (data.percentiles as number[])[Math.floor((data.percentiles as number[]).length / 2)];
+    const mid = (data.percentiles as number[])[
+      Math.floor((data.percentiles as number[]).length / 2)
+    ];
     if (typeof mid === "number") return mid;
   }
   return 0.5;

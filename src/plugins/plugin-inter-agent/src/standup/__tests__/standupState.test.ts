@@ -31,7 +31,10 @@ describe("standupState", () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = path.join(os.tmpdir(), `standup-state-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tempDir = path.join(
+      os.tmpdir(),
+      `standup-state-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     await fs.mkdir(tempDir, { recursive: true });
     process.env.STANDUP_DELIVERABLES_DIR = tempDir;
     await endStandupSession();
@@ -59,7 +62,9 @@ describe("standupState", () => {
       const stats = getSessionStats();
       expect(stats.active).toBe(true);
       expect(stats.reported).toEqual([]);
-      expect(stats.remaining).toEqual(STANDUP_REPORT_ORDER.map((n) => n.toLowerCase()));
+      expect(stats.remaining).toEqual(
+        STANDUP_REPORT_ORDER.map((n) => n.toLowerCase()),
+      );
       expect(stats.durationSec).toBeGreaterThanOrEqual(0);
       await endStandupSession();
     });

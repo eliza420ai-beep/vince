@@ -8,7 +8,10 @@ import * as fs from "node:fs/promises";
 import { appendLearning } from "../standupLearnings";
 import type { ActionItem } from "../actionItemTracker";
 
-const TEST_DIR = path.join(process.cwd(), "standup-learnings-test-" + Date.now());
+const TEST_DIR = path.join(
+  process.cwd(),
+  "standup-learnings-test-" + Date.now(),
+);
 
 function item(overrides: Partial<ActionItem> = {}): ActionItem {
   const now = new Date().toISOString();
@@ -54,7 +57,11 @@ describe("standupLearnings", () => {
     });
 
     it("appends second entry without overwriting", async () => {
-      const actionItem = item({ id: "ai-2", what: "Second item", owner: "Kelly" });
+      const actionItem = item({
+        id: "ai-2",
+        what: "Second item",
+        owner: "Kelly",
+      });
       await appendLearning(item({ id: "ai-1" }), "First outcome");
       await appendLearning(actionItem, "Second outcome");
       const filepath = path.join(TEST_DIR, "standup-learnings.md");

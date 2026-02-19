@@ -43,21 +43,33 @@ const PRD_TRIGGERS = [
 
 function wantsPRD(text: string): boolean {
   const lower = text.toLowerCase();
-  return PRD_TRIGGERS.some(t => lower.includes(t));
+  return PRD_TRIGGERS.some((t) => lower.includes(t));
 }
 
 function wantsListPRDs(text: string): boolean {
   const lower = text.toLowerCase();
-  return lower.includes("list prd") || lower.includes("show prd") || lower.includes("recent prd");
+  return (
+    lower.includes("list prd") ||
+    lower.includes("show prd") ||
+    lower.includes("recent prd")
+  );
 }
 
 export const sentinelPrdAction: Action = {
   name: "SENTINEL_PRD",
-  similes: ["GENERATE_PRD", "PRODUCT_REQUIREMENTS", "SPEC_FOR_CURSOR", "WRITE_PRD"],
+  similes: [
+    "GENERATE_PRD",
+    "PRODUCT_REQUIREMENTS",
+    "SPEC_FOR_CURSOR",
+    "WRITE_PRD",
+  ],
   description:
     "Generates world-class PRDs (Product Requirement Documents) for implementation in Cursor/Claude Code. Includes north star alignment, acceptance criteria, architecture rules, and implementation guide.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsPRD(text) || wantsListPRDs(text);
   },
@@ -78,14 +90,19 @@ export const sentinelPrdAction: Action = {
       if (wantsListPRDs(userText)) {
         const prds = listPRDs();
         if (prds.length === 0) {
-          const msg = "📋 **No PRDs found**\n\nGenerate one with: *\"PRD for <feature description>\"*";
+          const msg =
+            '📋 **No PRDs found**\n\nGenerate one with: *"PRD for <feature description>"*';
           await callback({ text: "Quick answer—\n\n" + msg });
           return { success: true };
         }
 
-        const list = prds.slice(0, 10).map((p, i) => 
-          `${i + 1}. **${p.filename}** — ${p.created.toISOString().slice(0, 10)}`
-        ).join("\n");
+        const list = prds
+          .slice(0, 10)
+          .map(
+            (p, i) =>
+              `${i + 1}. **${p.filename}** — ${p.created.toISOString().slice(0, 10)}`,
+          )
+          .join("\n");
 
         const listText = `📋 **Recent PRDs (${prds.length} total)**\n\n${list}\n\n*Generate a new one with: \"PRD for <feature>\"*`;
         await callback({ text: "Here are recent PRDs—\n\n" + listText });
@@ -107,27 +124,28 @@ export const sentinelPrdAction: Action = {
       if (!featureRequest || featureRequest.length < 10) {
         // Get project context for smart suggestions
         const projectState = scanProject();
-        
+
         const suggestions: string[] = [];
-        
+
         // Suggest based on blockers
         if (projectState.criticalBlockers.length > 0) {
           suggestions.push(`Fix: ${projectState.criticalBlockers[0]}`);
         }
-        
+
         // Suggest based on in-progress items
         if (projectState.inProgress.length > 0) {
           suggestions.push(`Complete: ${projectState.inProgress[0].title}`);
         }
-        
+
         // Suggest based on knowledge gaps
         if (projectState.knowledgeGaps.length > 0) {
           suggestions.push(`Address: ${projectState.knowledgeGaps[0]}`);
         }
 
-        const suggestionText = suggestions.length > 0
-          ? `\n\n**Suggestions based on project state:**\n${suggestions.map((s, i) => `${i + 1}. "${s}"`).join("\n")}`
-          : "";
+        const suggestionText =
+          suggestions.length > 0
+            ? `\n\n**Suggestions based on project state:**\n${suggestions.map((s, i) => `${i + 1}. "${s}"`).join("\n")}`
+            : "";
 
         const askText = `📋 **What should I write a PRD for?**
 
@@ -143,11 +161,11 @@ Give me a feature description and I'll generate a world-class PRD.
 
       // Get project state for context
       const projectState = scanProject();
-      
+
       // Enhance the request with project context using LLM
       const state = await runtime.composeState(message);
       const contextBlock = typeof state.text === "string" ? state.text : "";
-      
+
       const enhancementPrompt = `You are Sentinel, the core dev. The user wants a PRD for: "${featureRequest}"
 
 Using the project context below, extract:
@@ -158,8 +176,13 @@ Using the project context below, extract:
 5. Effort (XS=hours, S=1 day, M=2-3 days, L=1 week, XL=2+ weeks)
 
 Project state:
-- Plugins: ${projectState.plugins.map(p => p.name).join(", ")}
-- In progress: ${projectState.inProgress.map(i => i.title).slice(0, 3).join(", ") || "none"}
+- Plugins: ${projectState.plugins.map((p) => p.name).join(", ")}
+- In progress: ${
+        projectState.inProgress
+          .map((i) => i.title)
+          .slice(0, 3)
+          .join(", ") || "none"
+      }
 - Blockers: ${projectState.criticalBlockers.slice(0, 3).join(", ") || "none"}
 
 Context from knowledge:
@@ -177,10 +200,12 @@ Respond in this exact JSON format:
       const enhancementResponse = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt: enhancementPrompt,
       });
-      
-      const enhancementText = typeof enhancementResponse === "string"
-        ? enhancementResponse
-        : (enhancementResponse as { text?: string })?.text ?? String(enhancementResponse);
+
+      const enhancementText =
+        typeof enhancementResponse === "string"
+          ? enhancementResponse
+          : ((enhancementResponse as { text?: string })?.text ??
+            String(enhancementResponse));
 
       // Parse the enhanced input
       let prdInput: PRDInput;
@@ -234,20 +259,26 @@ ${prd.markdown.slice(0, 3500)}${prd.markdown.length > 3500 ? "\n\n*[truncated �
 
 **Next:** Open the PRD in Cursor and let Claude Code implement it. Keep the architecture as good as it gets.`;
       await callback({ text: "Here's your PRD—\n\n" + prdText });
-      
+
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_PRD] Failed:", error);
       await callback({
-        text: "Failed to generate PRD. Try again with a clearer feature description, e.g. *\"PRD for adding whale tracking to plugin-vince\"*",
+        text: 'Failed to generate PRD. Try again with a clearer feature description, e.g. *"PRD for adding whale tracking to plugin-vince"*',
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "PRD for adding a leaderboard endpoint" } },
+      {
+        name: "{{user}}",
+        content: { text: "PRD for adding a leaderboard endpoint" },
+      },
       {
         name: "{{agent}}",
         content: {

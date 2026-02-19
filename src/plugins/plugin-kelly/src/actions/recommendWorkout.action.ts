@@ -34,7 +34,10 @@ export const kellyRecommendWorkoutAction: Action = {
   description:
     "Recommend one concrete workout for today: pool session, gym, surfer yoga, or swim. Uses pool/gym season and swimming/surf context.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsWorkout(text);
   },
@@ -59,7 +62,7 @@ export const kellyRecommendWorkoutAction: Action = {
       const dayCap = day.charAt(0).toUpperCase() + day.slice(1);
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const palacePoolLine =
-        season === "gym" ? service?.getPalacePoolStatusLine?.() ?? "" : "";
+        season === "gym" ? (service?.getPalacePoolStatusLine?.() ?? "") : "";
       const weatherHome = state.values?.weatherHome as
         | { condition: string; temp: number }
         | undefined;

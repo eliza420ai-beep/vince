@@ -16,11 +16,11 @@ Renaissance Fund 3.0 represents the evolution of quantitative investing, inspire
 
 ### Core Innovation: Layered Architecture
 
-| Layer | Name | Description |
-|-------|------|-------------|
-| **1.0** | Pure Human Discretion | Gut-feel insights from scattered sources, manually structured into trades. |
-| **2.0** | Systematic Screening | Human-guided routines scale the process but remain bandwidth-limited. |
-| **3.0** | AI-Native Autonomy | An autonomous belief-router extracts directional theses, detects deep claims, sweeps instruments across traditional and crypto markets, and outputs high-upside expressions in precise formats (e.g., P&L cards, invalidation conditions). |
+| Layer   | Name                  | Description                                                                                                                                                                                                                                |
+| ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1.0** | Pure Human Discretion | Gut-feel insights from scattered sources, manually structured into trades.                                                                                                                                                                 |
+| **2.0** | Systematic Screening  | Human-guided routines scale the process but remain bandwidth-limited.                                                                                                                                                                      |
+| **3.0** | AI-Native Autonomy    | An autonomous belief-router extracts directional theses, detects deep claims, sweeps instruments across traditional and crypto markets, and outputs high-upside expressions in precise formats (e.g., P&L cards, invalidation conditions). |
 
 ### Mechanics
 

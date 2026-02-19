@@ -29,7 +29,10 @@ if (fs.existsSync(envPath)) {
       if (eq > 0) {
         const key = trimmed.slice(0, eq).trim();
         let val = trimmed.slice(eq + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        )
           val = val.slice(1, -1);
         process.env[key] = val;
       }
@@ -50,7 +53,7 @@ function waitFor(url, maxAttempts = 30) {
           attempts++;
           if (attempts >= maxAttempts) return resolve(false);
           setTimeout(tryFetch, 500);
-        }
+        },
       );
     };
     tryFetch();
@@ -62,19 +65,30 @@ async function main() {
   const clientPath = path.resolve(rootDir, "dist/frontend");
   if (!fs.existsSync(path.join(clientPath, "index.html"))) {
     console.log("[dev] Building frontend (dist/frontend missing)...");
-    const build = spawn("bun", ["run", "build:frontend"], { cwd: rootDir, stdio: "inherit" });
+    const build = spawn("bun", ["run", "build:frontend"], {
+      cwd: rootDir,
+      stdio: "inherit",
+    });
     await new Promise((resolve, reject) => {
-      build.on("close", (code) => (code === 0 ? resolve() : reject(new Error("build:frontend exited " + code))));
+      build.on("close", (code) =>
+        code === 0
+          ? resolve()
+          : reject(new Error("build:frontend exited " + code)),
+      );
       build.on("error", reject);
     });
   }
 
   // 2) Start backend (same as start-with-custom-ui)
-  const backend = spawn("node", [path.join(__dirname, "start-with-custom-ui.js")], {
-    cwd: rootDir,
-    stdio: "inherit",
-    env: { ...process.env, SERVER_PORT: String(API_PORT) },
-  });
+  const backend = spawn(
+    "node",
+    [path.join(__dirname, "start-with-custom-ui.js")],
+    {
+      cwd: rootDir,
+      stdio: "inherit",
+      env: { ...process.env, SERVER_PORT: String(API_PORT) },
+    },
+  );
   backend.on("error", (err) => {
     console.error("[dev] Backend failed:", err);
     process.exit(1);
@@ -128,25 +142,52 @@ async function main() {
     if (ready) {
       resolvedUrl = url;
       if (port !== VITE_PORT) {
-        console.log("[dev] Port", VITE_PORT, "was in use; Vite started on", resolvedUrl);
+        console.log(
+          "[dev] Port",
+          VITE_PORT,
+          "was in use; Vite started on",
+          resolvedUrl,
+        );
       }
       break;
     }
   }
   const openCmd =
-    process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    process.platform === "darwin"
+      ? "open"
+      : process.platform === "win32"
+        ? "start"
+        : "xdg-open";
   spawn(openCmd, [resolvedUrl], { stdio: "ignore", shell: false }).unref();
 
   console.log("\n");
-  console.log("  ╔════════════════════════════════════════════════════════════╗");
-  console.log("  ║  Otaku-style UI (VINCE chat + Alpha):                      ║");
-  console.log("  ║                                                            ║");
-  console.log("  ║  http://localhost:" + API_PORT + "  (built UI from this process)           ║");
+  console.log(
+    "  ╔════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "  ║  Otaku-style UI (VINCE chat + Alpha):                      ║",
+  );
+  console.log(
+    "  ║                                                            ║",
+  );
+  console.log(
+    "  ║  http://localhost:" +
+      API_PORT +
+      "  (built UI from this process)           ║",
+  );
   console.log("  ║  " + resolvedUrl + "  (Vite dev server)   ║");
-  console.log("  ║                                                            ║");
-  console.log("  ║  Use either URL. If you see \"Invite code\" / old dashboard,   ║");
-  console.log("  ║  you may have run `elizaos start` — use `bun start` instead.║");
-  console.log("  ╚════════════════════════════════════════════════════════════╝");
+  console.log(
+    "  ║                                                            ║",
+  );
+  console.log(
+    '  ║  Use either URL. If you see "Invite code" / old dashboard,   ║',
+  );
+  console.log(
+    "  ║  you may have run `elizaos start` — use `bun start` instead.║",
+  );
+  console.log(
+    "  ╚════════════════════════════════════════════════════════════╝",
+  );
   console.log("\n");
 }
 

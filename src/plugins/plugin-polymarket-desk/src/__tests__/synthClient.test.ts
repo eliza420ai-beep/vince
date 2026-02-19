@@ -47,8 +47,16 @@ describe("plugin-polymarket-desk: synthClient", () => {
     it("calls Synth API when SYNTH_API_KEY is set and returns parsed probability", async () => {
       let fetchUrl = "";
       let fetchOpts: RequestInit = {};
-      globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-        fetchUrl = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      globalThis.fetch = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ) => {
+        fetchUrl =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : (input as Request).url;
         fetchOpts = init ?? {};
         return new Response(JSON.stringify({ probability: 0.62 }), {
           status: 200,
@@ -62,7 +70,9 @@ describe("plugin-polymarket-desk: synthClient", () => {
       expect(result.asset).toBe("BTC");
       expect(fetchUrl).toContain("prediction-percentiles");
       expect(fetchUrl).toContain("asset=BTC");
-      expect((fetchOpts.headers as Record<string, string>)?.Authorization).toBe("Apikey test-key");
+      expect((fetchOpts.headers as Record<string, string>)?.Authorization).toBe(
+        "Apikey test-key",
+      );
     });
 
     it("falls back to mock when Synth API returns non-OK", async () => {
@@ -88,7 +98,9 @@ describe("plugin-polymarket-desk: synthClient", () => {
       let fetchUrl = "";
       globalThis.fetch = async (input: RequestInfo | URL) => {
         fetchUrl = typeof input === "string" ? input : (input as Request).url;
-        return new Response(JSON.stringify({ probability: 0.5 }), { status: 200 });
+        return new Response(JSON.stringify({ probability: 0.5 }), {
+          status: 200,
+        });
       };
 
       await getSynthForecast("BTC", "key", "https://custom.synth.api");

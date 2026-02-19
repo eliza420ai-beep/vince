@@ -4,7 +4,12 @@
  * Shared utilities for Etherscan plugin actions to reduce code duplication
  */
 
-import { type IAgentRuntime, type Memory, type State, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  logger,
+} from "@elizaos/core";
 import { EtherscanService } from "../services/etherscan.service";
 import { shouldEtherscanPluginBeInContext } from "../../matcher";
 
@@ -21,7 +26,7 @@ export function validateEtherscanService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   try {
     // Check plugin context first
@@ -30,7 +35,7 @@ export function validateEtherscanService(
     }
 
     const service = runtime.getService(
-      EtherscanService.serviceType
+      EtherscanService.serviceType,
     ) as EtherscanService;
 
     if (!service) {
@@ -49,7 +54,7 @@ export function validateEtherscanService(
   } catch (error) {
     logger.error(
       `[${actionName}] Error validating action:`,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }
@@ -62,10 +67,10 @@ export function validateEtherscanService(
  * @returns Etherscan service instance or null
  */
 export function getEtherscanService(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): EtherscanService | null {
   return runtime.getService(
-    EtherscanService.serviceType
+    EtherscanService.serviceType,
   ) as EtherscanService | null;
 }
 
@@ -78,12 +83,12 @@ export function getEtherscanService(
  */
 export async function extractActionParams<T>(
   runtime: IAgentRuntime,
-  message: Memory
+  message: Memory,
 ): Promise<Partial<T>> {
   const composedState = await runtime.composeState(
     message,
     ["ACTION_STATE"],
-    true
+    true,
   );
   return (composedState?.data?.actionParams ?? {}) as Partial<T>;
 }
@@ -138,13 +143,21 @@ export function extractEthereumAddress(text: string): string | null {
  */
 export function extractChainName(text: string): string | null {
   const chainKeywords = [
-    "ethereum", "eth", "mainnet",
-    "arbitrum", "arb",
+    "ethereum",
+    "eth",
+    "mainnet",
+    "arbitrum",
+    "arb",
     "base",
-    "bsc", "binance",
-    "avalanche", "avax",
-    "fantom", "ftm",
-    "sepolia", "goerli", "holesky"
+    "bsc",
+    "binance",
+    "avalanche",
+    "avax",
+    "fantom",
+    "ftm",
+    "sepolia",
+    "goerli",
+    "holesky",
   ];
 
   const lowerText = text.toLowerCase();
@@ -167,7 +180,7 @@ export function extractChainName(text: string): string | null {
 export function truncateHash(
   hash: string,
   prefixLength: number = 6,
-  suffixLength: number = 4
+  suffixLength: number = 4,
 ): string {
   if (!hash || hash.length <= prefixLength + suffixLength + 2) {
     return hash;
@@ -186,7 +199,7 @@ export function truncateHash(
  */
 export function formatNumber(
   value: number | string,
-  decimals: number = 0
+  decimals: number = 0,
 ): string {
   const numValue = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(numValue)) return "0";
@@ -206,11 +219,9 @@ export function formatNumber(
  */
 export function formatGasInGwei(
   gasWei: number | string,
-  decimals: number = 4
+  decimals: number = 4,
 ): string {
-  const gasValue = typeof gasWei === "string"
-    ? parseInt(gasWei, 16)
-    : gasWei;
+  const gasValue = typeof gasWei === "string" ? parseInt(gasWei, 16) : gasWei;
   const gwei = gasValue / 1e9;
   return gwei.toFixed(decimals);
 }

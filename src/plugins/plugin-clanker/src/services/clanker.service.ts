@@ -1,10 +1,6 @@
 import { Service, IAgentRuntime, logger } from "@elizaos/core";
 import { Clanker } from "clanker-sdk/v4";
-import {
-  TokenDeployParams,
-  DeployResult,
-  ErrorCode,
-} from "../types";
+import { TokenDeployParams, DeployResult, ErrorCode } from "../types";
 import { ClankerError } from "../utils/errors";
 import { retryTransaction } from "../utils/transactions";
 import { CdpTransactionManager } from "@/managers/cdp-transaction-manager";
@@ -55,18 +51,20 @@ function sanitizeError(error: any): any {
 // Helper function to detect platform from URL
 function detectPlatform(url: string): string {
   const lowerUrl = url.toLowerCase();
-  if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) return 'x';
-  if (lowerUrl.includes('telegram') || lowerUrl.includes('t.me')) return 'telegram';
-  if (lowerUrl.includes('discord')) return 'discord';
-  if (lowerUrl.includes('github')) return 'github';
-  if (lowerUrl.includes('reddit')) return 'reddit';
-  if (lowerUrl.includes('medium')) return 'medium';
-  if (lowerUrl.includes('youtube')) return 'youtube';
-  if (lowerUrl.includes('instagram')) return 'instagram';
-  if (lowerUrl.includes('tiktok')) return 'tiktok';
-  if (lowerUrl.includes('linkedin')) return 'linkedin';
-  if (lowerUrl.includes('facebook')) return 'facebook';
-  return 'other'; // fallback
+  if (lowerUrl.includes("twitter.com") || lowerUrl.includes("x.com"))
+    return "x";
+  if (lowerUrl.includes("telegram") || lowerUrl.includes("t.me"))
+    return "telegram";
+  if (lowerUrl.includes("discord")) return "discord";
+  if (lowerUrl.includes("github")) return "github";
+  if (lowerUrl.includes("reddit")) return "reddit";
+  if (lowerUrl.includes("medium")) return "medium";
+  if (lowerUrl.includes("youtube")) return "youtube";
+  if (lowerUrl.includes("instagram")) return "instagram";
+  if (lowerUrl.includes("tiktok")) return "tiktok";
+  if (lowerUrl.includes("linkedin")) return "linkedin";
+  if (lowerUrl.includes("facebook")) return "facebook";
+  return "other"; // fallback
 }
 
 export class ClankerService extends Service {
@@ -79,7 +77,9 @@ export class ClankerService extends Service {
     this.transactionManager = CdpTransactionManager.getInstance();
   }
 
-  async getOrCreateWallet(accountName: string): Promise<{ address: string; accountName: string }> {
+  async getOrCreateWallet(
+    accountName: string,
+  ): Promise<{ address: string; accountName: string }> {
     return this.transactionManager.getOrCreateWallet(accountName);
   }
 
@@ -104,7 +104,10 @@ export class ClankerService extends Service {
     const walletClient = viemClient.walletClient;
     const publicClient = viemClient.publicClient;
 
-    const clanker = new Clanker({ wallet: walletClient as any, publicClient: publicClient as any });
+    const clanker = new Clanker({
+      wallet: walletClient as any,
+      publicClient: publicClient as any,
+    });
 
     // Test connections
     await publicClient.getChainId();
@@ -137,7 +140,7 @@ export class ClankerService extends Service {
         tokenConfig.metadata = {
           description: params.metadata.description || "",
           // Transform string URLs to objects with platform and url
-          socialMediaUrls: params.metadata.socialMediaUrls 
+          socialMediaUrls: params.metadata.socialMediaUrls
             ? params.metadata.socialMediaUrls.map((url: string) => ({
                 platform: detectPlatform(url),
                 url: url,
@@ -156,7 +159,8 @@ export class ClankerService extends Service {
       if (params.fees) tokenConfig.fees = params.fees;
       if (params.rewards) tokenConfig.rewards = params.rewards;
       if (params.vault) tokenConfig.vault = params.vault;
-      if (params.devBuy) tokenConfig.devBuy = { ethAmount: params.devBuy.ethAmount };
+      if (params.devBuy)
+        tokenConfig.devBuy = { ethAmount: params.devBuy.ethAmount };
 
       const deployResult = await retryTransaction(async () => {
         logger.info(
@@ -164,14 +168,20 @@ export class ClankerService extends Service {
           JSON.stringify(tokenConfig, null, 2),
         );
 
-        const { txHash, waitForTransaction, error } = await clanker!.deploy(tokenConfig);
+        const { txHash, waitForTransaction, error } =
+          await clanker!.deploy(tokenConfig);
         if (error) {
           // Sanitize error to remove BigInt before logging/throwing
           const sanitizedError = sanitizeError(error);
           logger.error(`Clanker deploy error:`, sanitizedError);
-          throw new Error(typeof sanitizedError === 'string' ? sanitizedError : (sanitizedError?.message || String(sanitizedError)));
+          throw new Error(
+            typeof sanitizedError === "string"
+              ? sanitizedError
+              : sanitizedError?.message || String(sanitizedError),
+          );
         }
-        if (!txHash) throw new Error("No transaction hash returned from deployment");
+        if (!txHash)
+          throw new Error("No transaction hash returned from deployment");
         logger.info("Token deployment transaction submitted:", txHash);
 
         const { address, error: waitError } = await waitForTransaction();
@@ -179,26 +189,38 @@ export class ClankerService extends Service {
           // Sanitize error to remove BigInt before logging/throwing
           const sanitizedWaitError = sanitizeError(waitError);
           logger.error(`Clanker waitForTransaction error:`, sanitizedWaitError);
-          throw new Error(typeof sanitizedWaitError === 'string' ? sanitizedWaitError : (sanitizedWaitError?.message || String(sanitizedWaitError)));
+          throw new Error(
+            typeof sanitizedWaitError === "string"
+              ? sanitizedWaitError
+              : sanitizedWaitError?.message || String(sanitizedWaitError),
+          );
         }
-        if (!address) throw new Error("No contract address returned from deployment");
+        if (!address)
+          throw new Error("No contract address returned from deployment");
         logger.info("Token deployed successfully to address:", address);
-        
+
         // Fetch transaction receipt to get actual deployment cost
         let deploymentCost = BigInt(0);
         try {
-          const receipt = await publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
+          const receipt = await publicClient.getTransactionReceipt({
+            hash: txHash as `0x${string}`,
+          });
           if (receipt) {
             deploymentCost = receipt.gasUsed * receipt.effectiveGasPrice;
-            logger.info(`Deployment cost: ${deploymentCost.toString()} wei (${Number(deploymentCost) / 1e18} ETH)`);
+            logger.info(
+              `Deployment cost: ${deploymentCost.toString()} wei (${Number(deploymentCost) / 1e18} ETH)`,
+            );
           }
         } catch (receiptError) {
-          logger.warn("Failed to fetch deployment cost from transaction receipt:", 
-            receiptError instanceof Error ? receiptError.message : String(receiptError)
+          logger.warn(
+            "Failed to fetch deployment cost from transaction receipt:",
+            receiptError instanceof Error
+              ? receiptError.message
+              : String(receiptError),
           );
           // Keep deploymentCost as 0 if we can't fetch it
         }
-        
+
         return {
           contractAddress: address,
           transactionHash: txHash,
@@ -211,12 +233,15 @@ export class ClankerService extends Service {
     } catch (error) {
       // Sanitize error to remove BigInt before logging/throwing
       const sanitizedError = sanitizeError(error);
-      const errorMessage = sanitizedError instanceof Error 
-        ? sanitizedError.message 
-        : (typeof sanitizedError === 'string' ? sanitizedError : String(sanitizedError));
-      
+      const errorMessage =
+        sanitizedError instanceof Error
+          ? sanitizedError.message
+          : typeof sanitizedError === "string"
+            ? sanitizedError
+            : String(sanitizedError);
+
       logger.error("Token deployment failed:", errorMessage);
-      
+
       if (error instanceof ClankerError) throw error;
       throw new ClankerError(
         ErrorCode.PROTOCOL_ERROR,

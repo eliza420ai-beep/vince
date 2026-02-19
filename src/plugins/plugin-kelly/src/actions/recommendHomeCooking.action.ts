@@ -87,17 +87,33 @@ export const kellyRecommendHomeCookingAction: Action = {
 
       // Detect cooking method preference from the message
       const lower = userAsk.toLowerCase();
-      const wantsBBQ = lower.includes("bbq") || lower.includes("green egg") || lower.includes("grill");
+      const wantsBBQ =
+        lower.includes("bbq") ||
+        lower.includes("green egg") ||
+        lower.includes("grill");
       const wantsThermomix = lower.includes("thermomix");
-      const wantsOven = lower.includes("oven") || lower.includes("slow cook") || lower.includes("slow-cook");
+      const wantsOven =
+        lower.includes("oven") ||
+        lower.includes("slow cook") ||
+        lower.includes("slow-cook");
 
       let methodHint = "";
-      if (wantsBBQ) methodHint = "The user wants to use the **Green Egg BBQ**. Focus on BBQ and grilling.";
-      else if (wantsThermomix) methodHint = "The user wants to use the **Thermomix TM7**. Focus on dishes that shine with Thermomix (risotto, soups, sauces, slow cooks).";
-      else if (wantsOven) methodHint = "The user wants a **long oven cook**. Focus on slow-roasted, braised, or baked dishes.";
-      else methodHint = "Suggest the best method for tonight: Green Egg BBQ (at least once a week), Thermomix TM7, or long oven cook.";
+      if (wantsBBQ)
+        methodHint =
+          "The user wants to use the **Green Egg BBQ**. Focus on BBQ and grilling.";
+      else if (wantsThermomix)
+        methodHint =
+          "The user wants to use the **Thermomix TM7**. Focus on dishes that shine with Thermomix (risotto, soups, sauces, slow cooks).";
+      else if (wantsOven)
+        methodHint =
+          "The user wants a **long oven cook**. Focus on slow-roasted, braised, or baked dishes.";
+      else
+        methodHint =
+          "Suggest the best method for tonight: Green Egg BBQ (at least once a week), Thermomix TM7, or long oven cook.";
 
-      const weatherHome = state.values?.weatherHome as { condition: string; temp: number } | undefined;
+      const weatherHome = state.values?.weatherHome as
+        | { condition: string; temp: number }
+        | undefined;
       const weatherHint = weatherHome
         ? `Local weather: ${weatherHome.condition}, ${weatherHome.temp}°C. Use this — e.g. cold evening favors oven or Thermomix; warm clear evening is perfect for the Green Egg outside.`
         : "";
@@ -164,7 +180,10 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Green Egg tonight — what should I grill?" } },
+      {
+        name: "{{user}}",
+        content: { text: "Green Egg tonight — what should I grill?" },
+      },
       {
         name: "{{agent}}",
         content: {

@@ -60,7 +60,10 @@ export function parseWttInvalidateCondition(
   const raw = condition.trim().toUpperCase();
   const assetUpper = asset.toUpperCase();
   const parseNum = (s: string): number | null => {
-    const m = s.replace(/\$/g, "").trim().match(/^([\d.]+)([KMB])?$/i);
+    const m = s
+      .replace(/\$/g, "")
+      .trim()
+      .match(/^([\d.]+)([KMB])?$/i);
     if (!m) return null;
     let n = parseFloat(m[1]);
     if (m[2] === "K") n *= 1e3;
@@ -68,12 +71,22 @@ export function parseWttInvalidateCondition(
     else if (m[2] === "B") n *= 1e9;
     return n;
   };
-  const ltMatch = raw.match(new RegExp(`${assetUpper.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*<\\s*([\\d.$KMB]+)`, "i"));
+  const ltMatch = raw.match(
+    new RegExp(
+      `${assetUpper.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*<\\s*([\\d.$KMB]+)`,
+      "i",
+    ),
+  );
   if (ltMatch) {
     const threshold = parseNum(ltMatch[1].replace(/\$/g, ""));
     return threshold != null && exitPrice < threshold;
   }
-  const gtMatch = raw.match(new RegExp(`${assetUpper.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*>\\s*([\\d.$KMB]+)`, "i"));
+  const gtMatch = raw.match(
+    new RegExp(
+      `${assetUpper.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*>\\s*([\\d.$KMB]+)`,
+      "i",
+    ),
+  );
   if (gtMatch) {
     const threshold = parseNum(gtMatch[1].replace(/\$/g, ""));
     return threshold != null && exitPrice > threshold;
@@ -467,9 +480,14 @@ export class VinceFeatureStoreService extends Service {
     }
 
     try {
-      const overrideDataDir = this.runtime.getSetting?.("VINCE_FEATURE_STORE_DATA_DIR") as string | undefined;
+      const overrideDataDir = this.runtime.getSetting?.(
+        "VINCE_FEATURE_STORE_DATA_DIR",
+      ) as string | undefined;
       if (overrideDataDir?.trim()) {
-        this.storeConfig = { ...this.storeConfig, dataDir: overrideDataDir.trim() };
+        this.storeConfig = {
+          ...this.storeConfig,
+          dataDir: overrideDataDir.trim(),
+        };
       }
       if (!fs.existsSync(this.storeConfig.dataDir)) {
         fs.mkdirSync(this.storeConfig.dataDir, { recursive: true });
@@ -623,9 +641,12 @@ export class VinceFeatureStoreService extends Service {
           : undefined,
         execution: params.execution as TradeExecutionFeatures | undefined,
         ...(grokPulse &&
-          (grokPulse.fearGreed != null || grokPulse.topTradersLongPct != null) && {
+          (grokPulse.fearGreed != null ||
+            grokPulse.topTradersLongPct != null) && {
             grokPulse: {
-              ...(grokPulse.fearGreed != null && { fearGreed: grokPulse.fearGreed }),
+              ...(grokPulse.fearGreed != null && {
+                fearGreed: grokPulse.fearGreed,
+              }),
               ...(grokPulse.topTradersLongPct != null && {
                 topTradersLongPct: grokPulse.topTradersLongPct,
               }),
@@ -696,12 +717,17 @@ export class VinceFeatureStoreService extends Service {
         signal: signalFeatures,
         regime,
         news,
-        decisionDrivers: params.signal.factors?.length ? params.signal.factors.slice(0, 15) : undefined,
+        decisionDrivers: params.signal.factors?.length
+          ? params.signal.factors.slice(0, 15)
+          : undefined,
         avoided: { reason: params.reason, timestamp: Date.now() },
         ...(grokPulse &&
-          (grokPulse.fearGreed != null || grokPulse.topTradersLongPct != null) && {
+          (grokPulse.fearGreed != null ||
+            grokPulse.topTradersLongPct != null) && {
             grokPulse: {
-              ...(grokPulse.fearGreed != null && { fearGreed: grokPulse.fearGreed }),
+              ...(grokPulse.fearGreed != null && {
+                fearGreed: grokPulse.fearGreed,
+              }),
               ...(grokPulse.topTradersLongPct != null && {
                 topTradersLongPct: grokPulse.topTradersLongPct,
               }),
@@ -716,12 +742,14 @@ export class VinceFeatureStoreService extends Service {
       }
 
       logger.debug(
-        `[VinceFeatureStore] Avoided decision recorded: ${params.asset} (${params.reason.substring(0, 40)})`
+        `[VinceFeatureStore] Avoided decision recorded: ${params.asset} (${params.reason.substring(0, 40)})`,
       );
 
       return recordId;
     } catch (error) {
-      logger.debug(`[VinceFeatureStore] Error recording avoided decision: ${error}`);
+      logger.debug(
+        `[VinceFeatureStore] Error recording avoided decision: ${error}`,
+      );
       return "";
     }
   }
@@ -1506,7 +1534,8 @@ export class VinceFeatureStoreService extends Service {
     try {
       if (!this.benchConfig) {
         const configPath =
-          (this.runtime.getSetting?.("VINCE_BENCH_CONFIG_PATH") as string) || undefined;
+          (this.runtime.getSetting?.("VINCE_BENCH_CONFIG_PATH") as string) ||
+          undefined;
         this.benchConfig = loadConfig(configPath);
       }
       const signatures = normalize(record);

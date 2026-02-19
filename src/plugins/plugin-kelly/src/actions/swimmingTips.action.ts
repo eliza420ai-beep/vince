@@ -35,7 +35,10 @@ export const kellySwimmingTipsAction: Action = {
   description:
     "Tips for daily lap swim (e.g. 1000m), winter indoor pools, and swimmer yoga. Uses swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSwimmingTips(text);
   },
@@ -57,7 +60,8 @@ export const kellySwimmingTipsAction: Action = {
       const season = service?.getCurrentSeason() ?? "pool";
       const datesLine =
         season === "gym"
-          ? (service?.getPalacePoolStatusLine?.() ?? "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6")
+          ? (service?.getPalacePoolStatusLine?.() ??
+            "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6")
           : "—";
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const weatherHome = state.values?.weatherHome as

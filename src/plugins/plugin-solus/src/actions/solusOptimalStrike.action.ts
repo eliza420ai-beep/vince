@@ -42,7 +42,10 @@ export const solusOptimalStrikeAction: Action = {
   description:
     "When user has pasted context (or state has it), gives strike call: asset, OTM %, size/skip, invalidation. If no data, tells user to paste VINCE options output and ask again.",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     if (!isSolus(runtime)) return false;
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsOptimalStrike(text);
@@ -76,7 +79,7 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       const out = "Here's the strike call—\n\n" + text.trim();
       await callback({ text: out, actions: ["SOLUS_OPTIMAL_STRIKE"] });
       return { success: true };
@@ -85,7 +88,10 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
       await callback({
         text: "We don't have a pulse on where price lands by Friday—say 'options' to VINCE, paste his output here, and I'll give you the strike call (asset, OTM %, size/skip, invalidation).",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
@@ -93,7 +99,9 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
     [
       {
         name: "{{user}}",
-        content: { text: "What's the optimal strike for BTC covered calls this week?" },
+        content: {
+          text: "What's the optimal strike for BTC covered calls this week?",
+        },
       },
       {
         name: "{{agent}}",

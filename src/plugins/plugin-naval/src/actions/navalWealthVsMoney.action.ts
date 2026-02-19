@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "wealth vs money",
@@ -41,11 +45,18 @@ Cite "Seek Wealth, Not Money or Status" where relevant. Be direct.`;
 
 export const navalWealthVsMoneyAction: Action = {
   name: "NAVAL_WEALTH_VS_MONEY",
-  similes: ["WEALTH_VS_MONEY", "EARN_WHILE_YOU_SLEEP", "WEALTH_DEFINITION_NAVAL"],
+  similes: [
+    "WEALTH_VS_MONEY",
+    "EARN_WHILE_YOU_SLEEP",
+    "WEALTH_DEFINITION_NAVAL",
+  ],
   description:
     "Wealth = assets that earn while you sleep. Money = claim on future labor. Analyze their situation and give one concrete step to shift toward wealth.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsWealthVsMoney(text);
   },
@@ -80,7 +91,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -88,14 +99,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Wealth is assets that earn while you sleep. Money is a claim on future labor. You want to shift from trading time for money toward owning things that work for you. One step: what can you build or buy that pays you when you're not in the room?",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Wealth vs money: I'm a senior dev, high salary, no side projects or investments." } },
-      { name: "{{agent}}", content: { text: "You're earning money — if you stop coding, the income stops. Wealth would be something that pays you when you're not trading hours: product, content, equity, or assets. One step: ship one small thing that can earn without your direct time (course, tool, stake in a project) and see what sticks." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Wealth vs money: I'm a senior dev, high salary, no side projects or investments.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're earning money — if you stop coding, the income stops. Wealth would be something that pays you when you're not trading hours: product, content, equity, or assets. One step: ship one small thing that can earn without your direct time (course, tool, stake in a project) and see what sticks.",
+        },
+      },
     ],
   ],
 };

@@ -86,13 +86,22 @@ describe("KELLY_SWIMMING_TIPS Action", () => {
     it("handler output can mention Palais or reopen when palace dates provided", async () => {
       const mockService = {
         getCurrentSeason: () => "gym" as const,
-        getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
-        getPalacePoolStatusLine: () => "Palais reopens Feb 12, Caudalie Feb 5, Eugenie reopens Mar 6",
+        getPalacePoolReopenDates: () => ({
+          Palais: "Feb 12",
+          Caudalie: "Feb 5",
+          Eugenie: "Mar 6",
+        }),
+        getPalacePoolStatusLine: () =>
+          "Palais reopens Feb 12, Caudalie Feb 5, Eugenie reopens Mar 6",
       } as unknown as KellyLifestyleService;
       const runtime = createMockRuntime({
         getService: (name: string) =>
           name === "KELLY_LIFESTYLE_SERVICE" ? mockService : null,
-        composeState: async () => ({ values: {}, data: {}, text: "Winter pools." }),
+        composeState: async () => ({
+          values: {},
+          data: {},
+          text: "Winter pools.",
+        }),
         useModel: async () => "Palais reopens Feb 12. Caudalie Feb 5.",
       });
       const callback = createMockCallback();
@@ -113,13 +122,21 @@ describe("KELLY_SWIMMING_TIPS Action", () => {
     it("callback references pool, yoga, or winter indoor pools when season is gym", async () => {
       const mockService = {
         getCurrentSeason: () => "gym" as const,
-        getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
+        getPalacePoolReopenDates: () => ({
+          Palais: "Feb 12",
+          Caudalie: "Feb 5",
+          Eugenie: "Mar 6",
+        }),
         getPalacePoolStatusLine: () => "Palais reopens Feb 12, Caudalie Feb 5.",
       } as unknown as KellyLifestyleService;
       const runtime = createMockRuntime({
         getService: (name: string) =>
           name === "KELLY_LIFESTYLE_SERVICE" ? mockService : null,
-        composeState: async () => ({ values: {}, data: {}, text: "Winter pools, yoga." }),
+        composeState: async () => ({
+          values: {},
+          data: {},
+          text: "Winter pools, yoga.",
+        }),
         useModel: async () =>
           "Winter: indoor pool at Palais (reopens Feb 12) or Caudalie. Add swimmer yoga for shoulders and hips.",
       });
@@ -132,7 +149,9 @@ describe("KELLY_SWIMMING_TIPS Action", () => {
         callback,
       );
       const text = callback.calls[0]?.text ?? "";
-      expect(text.toLowerCase()).toMatch(/pool|yoga|indoor|winter|palais|caudalie/);
+      expect(text.toLowerCase()).toMatch(
+        /pool|yoga|indoor|winter|palais|caudalie/,
+      );
     });
   });
 });

@@ -305,10 +305,7 @@ export const vinceNftFloorAction: Action = {
 
       let text: string;
       try {
-        const narrative = await generateNftFloorNarrative(
-          runtime,
-          dataContext,
-        );
+        const narrative = await generateNftFloorNarrative(runtime, dataContext);
         text = narrative + NFT_FLOOR_FOOTER;
       } catch {
         text = sections.join("\n");

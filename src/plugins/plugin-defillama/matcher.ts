@@ -1,5 +1,8 @@
 import type { Memory, State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "@/utils/plugin-context-matcher";
 
 /**
  * Keyword patterns for DefiLlama plugin context activation
@@ -7,15 +10,36 @@ import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin
 export const defiLlamaKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
     // TVL queries
-    "tvl", "total value locked", "defi", "protocol", "llama",
+    "tvl",
+    "total value locked",
+    "defi",
+    "protocol",
+    "llama",
     // Liquidity
-    "liquidity", "yields", "yield", "apy", "apr",
+    "liquidity",
+    "yields",
+    "yield",
+    "apy",
+    "apr",
     // DeFi protocols
-    "aave", "curve", "lido", "uniswap", "compound", "morpho", "eigen",
+    "aave",
+    "curve",
+    "lido",
+    "uniswap",
+    "compound",
+    "morpho",
+    "eigen",
     // Chain data
-    "chain", "chains", "ethereum", "arbitrum",
+    "chain",
+    "chains",
+    "ethereum",
+    "arbitrum",
     // Market data
-    "volume", "fees", "revenue", "ranking", "top protocols",
+    "volume",
+    "fees",
+    "revenue",
+    "ranking",
+    "top protocols",
   ],
   regexPatterns: [
     /tvl.*of/i,
@@ -45,7 +69,10 @@ export const defiLlamaKeywordPatterns: PluginKeywordPatterns = {
  * }
  * ```
  */
-export function shouldDefiLlamaPluginBeActive(state?: State, message?: Memory): boolean {
+export function shouldDefiLlamaPluginBeActive(
+  state?: State,
+  message?: Memory,
+): boolean {
   if (!state) return true; // If no state, always active (fallback)
   return matchesPluginContext(state, defiLlamaKeywordPatterns, message);
 }

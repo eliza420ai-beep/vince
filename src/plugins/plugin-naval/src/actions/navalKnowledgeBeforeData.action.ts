@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "knowledge before data",
@@ -48,11 +53,19 @@ Direct. Benefit-led: what they get is interpretation, not overload.`;
 
 export const navalKnowledgeBeforeDataAction: Action = {
   name: "NAVAL_KNOWLEDGE_BEFORE_DATA",
-  similes: ["KNOWLEDGE_BEFORE_DATA", "FRAMEWORK_BEFORE_NUMBERS", "TRENCH_FRAMEWORK", "LENS_THEN_DATA"],
+  similes: [
+    "KNOWLEDGE_BEFORE_DATA",
+    "FRAMEWORK_BEFORE_NUMBERS",
+    "TRENCH_FRAMEWORK",
+    "LENS_THEN_DATA",
+  ],
   description:
     "Knowledge = how to think; data = what's happening. One framework to adopt and one rule so they interpret, not overload.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsKnowledgeBeforeData(text);
   },
@@ -89,7 +102,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -97,14 +110,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Knowledge is how to think; data is what's happening. Pick one framework — invalidation before size, signal not hype, size/skip/watch — and run the next 10 data points through it. Rule: no data dive without a lens.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I have so many data sources I don't know how to use them." } },
-      { name: "{{agent}}", content: { text: "You're data-heavy, framework-light. Step: name one lens — e.g. 'size/skip/watch with invalidation.' Run the next 10 inputs through that. Rule: one framework per decision. You get interpretation, not overload." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I have so many data sources I don't know how to use them.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're data-heavy, framework-light. Step: name one lens — e.g. 'size/skip/watch with invalidation.' Run the next 10 inputs through that. Rule: one framework per decision. You get interpretation, not overload.",
+        },
+      },
     ],
   ],
 };

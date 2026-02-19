@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "signal not hype",
@@ -48,11 +53,19 @@ Direct. No meta-commentary. Give them the rule and the shift.`;
 
 export const navalSignalNotHypeAction: Action = {
   name: "NAVAL_SIGNAL_NOT_HYPE",
-  similes: ["SIGNAL_NOT_HYPE", "BATTLE_TESTED_SIGNAL", "SCAR_TISSUE_SIGNAL", "NO_HYPE_NO_SHILLING"],
+  similes: [
+    "SIGNAL_NOT_HYPE",
+    "BATTLE_TESTED_SIGNAL",
+    "SCAR_TISSUE_SIGNAL",
+    "NO_HYPE_NO_SHILLING",
+  ],
   description:
     "Battle-tested signal from the trenches. Scar tissue into signal. No hype, no shilling, no timing the market. One shift and one rule.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSignalNotHype(text);
   },
@@ -89,7 +102,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -97,14 +110,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Signal = what you've lived. Early, wrong, hurt, still standing. No hype, no shilling, no timing the market. One rule: only share what you've done or would do yourself. No price targets — only framework.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "How do I turn scar tissue into signal? I've been early and wrong a bunch, don't want to shill." } },
-      { name: "{{agent}}", content: { text: "Signal is pattern recognition from experience. You're not selling the next trade — you're sharing what you learned when you were early or wrong. Shift: frame every take as 'here's what happened to me, here's what I'd do differently.' Rule: no price targets, no 'this is the call.' Only framework and story. That's battle-tested." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "How do I turn scar tissue into signal? I've been early and wrong a bunch, don't want to shill.",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Signal is pattern recognition from experience. You're not selling the next trade — you're sharing what you learned when you were early or wrong. Shift: frame every take as 'here's what happened to me, here's what I'd do differently.' Rule: no price targets, no 'this is the call.' Only framework and story. That's battle-tested.",
+        },
+      },
     ],
   ],
 };

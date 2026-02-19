@@ -28,7 +28,10 @@ interface RiskApproveParams {
   wallet_address?: string;
 }
 
-type RiskApproveActionResult = ActionResult & { sized_order_id?: string; signal_id?: string };
+type RiskApproveActionResult = ActionResult & {
+  sized_order_id?: string;
+  signal_id?: string;
+};
 
 export const polymarketRiskApproveAction: Action = {
   name: "POLYMARKET_RISK_APPROVE",
@@ -39,16 +42,20 @@ export const polymarketRiskApproveAction: Action = {
   parameters: {
     signal_id: {
       type: "string",
-      description: "UUID of the signal to approve. If omitted, next pending signal is used.",
+      description:
+        "UUID of the signal to approve. If omitted, next pending signal is used.",
     },
     wallet_address: {
       type: "string",
-      description: "Wallet address for Polymarket balance and exposure (optional if set in settings).",
+      description:
+        "Wallet address for Polymarket balance and exposure (optional if set in settings).",
     },
   },
 
   validate: async (runtime: IAgentRuntime) => {
-    const conn = await (runtime as { getConnection?: () => Promise<unknown> }).getConnection?.();
+    const conn = await (
+      runtime as { getConnection?: () => Promise<unknown> }
+    ).getConnection?.();
     return !!conn && typeof (conn as { query: unknown }).query === "function";
   },
 
@@ -60,21 +67,40 @@ export const polymarketRiskApproveAction: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as RiskApproveParams;
+      const composedState = await runtime.composeState(
+        message,
+        ["ACTION_STATE"],
+        true,
+      );
+      const params = (composedState?.data?.actionParams ??
+        {}) as RiskApproveParams;
       let signalId = params.signal_id?.trim();
       const walletAddress =
         params.wallet_address?.trim() ||
-        (runtime.getSetting?.("POLYMARKET_DESK_WALLET_ADDRESS") as string)?.trim();
+        (
+          runtime.getSetting?.("POLYMARKET_DESK_WALLET_ADDRESS") as string
+        )?.trim();
 
-      const conn = await (runtime as { getConnection?: () => Promise<unknown> }).getConnection?.();
-      if (!conn || typeof (conn as { query: (s: string, v?: unknown[]) => Promise<{ rows: unknown[] }> }).query !== "function") {
+      const conn = await (
+        runtime as { getConnection?: () => Promise<unknown> }
+      ).getConnection?.();
+      if (
+        !conn ||
+        typeof (
+          conn as {
+            query: (s: string, v?: unknown[]) => Promise<{ rows: unknown[] }>;
+          }
+        ).query !== "function"
+      ) {
         const text = " Database connection not available for risk approve.";
         if (callback) await callback({ text });
         return { text, success: false };
       }
       const client = conn as {
-        query: (text: string, values?: unknown[]) => Promise<{ rows: unknown[] }>;
+        query: (
+          text: string,
+          values?: unknown[],
+        ) => Promise<{ rows: unknown[] }>;
       };
 
       interface SignalRow {
@@ -112,17 +138,28 @@ export const polymarketRiskApproveAction: Action = {
       }
 
       const bankrollUsd =
-        Number(runtime.getSetting?.("POLYMARKET_DESK_BANKROLL_USD") ?? 0) || 1000;
+        Number(runtime.getSetting?.("POLYMARKET_DESK_BANKROLL_USD") ?? 0) ||
+        1000;
       const kellyFraction =
-        Number(runtime.getSetting?.("POLYMARKET_DESK_KELLY_FRACTION") ?? DEFAULT_KELLY_FRACTION) ||
-        DEFAULT_KELLY_FRACTION;
+        Number(
+          runtime.getSetting?.("POLYMARKET_DESK_KELLY_FRACTION") ??
+            DEFAULT_KELLY_FRACTION,
+        ) || DEFAULT_KELLY_FRACTION;
       const maxPositionPct =
-        Number(runtime.getSetting?.("POLYMARKET_DESK_MAX_POSITION_PCT") ?? DEFAULT_MAX_POSITION_PCT) ||
-        DEFAULT_MAX_POSITION_PCT;
+        Number(
+          runtime.getSetting?.("POLYMARKET_DESK_MAX_POSITION_PCT") ??
+            DEFAULT_MAX_POSITION_PCT,
+        ) || DEFAULT_MAX_POSITION_PCT;
       const minSizeUsd =
-        Number(runtime.getSetting?.("POLYMARKET_DESK_MIN_SIZE_USD") ?? DEFAULT_MIN_SIZE_USD) || DEFAULT_MIN_SIZE_USD;
+        Number(
+          runtime.getSetting?.("POLYMARKET_DESK_MIN_SIZE_USD") ??
+            DEFAULT_MIN_SIZE_USD,
+        ) || DEFAULT_MIN_SIZE_USD;
       const maxSizeUsd =
-        Number(runtime.getSetting?.("POLYMARKET_DESK_MAX_SIZE_USD") ?? DEFAULT_MAX_SIZE_USD) || DEFAULT_MAX_SIZE_USD;
+        Number(
+          runtime.getSetting?.("POLYMARKET_DESK_MAX_SIZE_USD") ??
+            DEFAULT_MAX_SIZE_USD,
+        ) || DEFAULT_MAX_SIZE_USD;
 
       let sizeUsd = signal.suggested_size_usd ?? bankrollUsd * maxPositionPct;
       const edgeBps = signal.edge_bps ?? 0;
@@ -130,7 +167,10 @@ export const polymarketRiskApproveAction: Action = {
       if (kellyFraction > 0 && Math.abs(edgeBps) > 0) {
         const edgePct = Math.abs(edgeBps) / 10000;
         const kellyPct = edgePct * kellyFraction * confidence;
-        sizeUsd = Math.min(bankrollUsd * kellyPct, bankrollUsd * maxPositionPct);
+        sizeUsd = Math.min(
+          bankrollUsd * kellyPct,
+          bankrollUsd * maxPositionPct,
+        );
       }
       sizeUsd = Math.max(minSizeUsd, Math.min(maxSizeUsd, sizeUsd));
 
@@ -140,7 +180,17 @@ export const polymarketRiskApproveAction: Action = {
       await client.query(
         `INSERT INTO ${SIZED_ORDERS_TABLE} (id, created_at, signal_id, market_id, side, size_usd, max_price, slippage_bps, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [sizedOrderId, now, signal.id, signal.market_id, signal.side, sizeUsd, null, 50, "pending"],
+        [
+          sizedOrderId,
+          now,
+          signal.id,
+          signal.market_id,
+          signal.side,
+          sizeUsd,
+          null,
+          50,
+          "pending",
+        ],
       );
       await client.query(
         `UPDATE ${SIGNALS_TABLE} SET status = 'approved' WHERE id = $1`,

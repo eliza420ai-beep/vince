@@ -13,7 +13,11 @@ import {
   type ChainTvlHistoryOptions,
   type ChainTvlPoint,
 } from "../services/defillama.service";
-import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
+import {
+  validateDefiLlamaService,
+  getDefiLlamaService,
+  extractActionParams,
+} from "../utils/actionHelpers";
 import {
   limitSeries,
   parsePositiveInteger,
@@ -26,12 +30,9 @@ const DEFAULT_CHAIN_HISTORY_WINDOW = 365;
 
 export const getChainTvlHistoryAction: Action = {
   name: "GET_CHAIN_TVL_HISTORY",
-  similes: [
-    "CHAIN_TVL_HISTORY",
-    "CHAIN_TVL_TREND",
-    "CHAIN_TVL_CHART",
-  ],
-  description: "Fetch historical TVL data for a specific blockchain, optionally filtered by segment (e.g., staking).",
+  similes: ["CHAIN_TVL_HISTORY", "CHAIN_TVL_TREND", "CHAIN_TVL_CHART"],
+  description:
+    "Fetch historical TVL data for a specific blockchain, optionally filtered by segment (e.g., staking).",
   parameters: {
     chain: {
       type: "string",
@@ -40,17 +41,28 @@ export const getChainTvlHistoryAction: Action = {
     },
     filter: {
       type: "string",
-      description: "Optional DefiLlama filter (e.g., 'staking', 'borrowed', 'pool2').",
+      description:
+        "Optional DefiLlama filter (e.g., 'staking', 'borrowed', 'pool2').",
       required: false,
     },
     days: {
       type: "number",
-      description: "Optional number of most recent days to include (default 365).",
+      description:
+        "Optional number of most recent days to include (default 365).",
       required: false,
     },
   },
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefiLlamaService(runtime, "GET_CHAIN_TVL_HISTORY", state, message);
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+  ): Promise<boolean> => {
+    return validateDefiLlamaService(
+      runtime,
+      "GET_CHAIN_TVL_HISTORY",
+      state,
+      message,
+    );
   },
   handler: async (
     runtime: IAgentRuntime,
@@ -65,24 +77,38 @@ export const getChainTvlHistoryAction: Action = {
         throw new Error("DefiLlamaService not available");
       }
 
-      const params = await extractActionParams<{ chain?: string; filter?: string; days?: number }>(runtime, message);
+      const params = await extractActionParams<{
+        chain?: string;
+        filter?: string;
+        days?: number;
+      }>(runtime, message);
 
-      const chainParamRaw = typeof params?.chain === "string" ? params.chain.trim() : "";
+      const chainParamRaw =
+        typeof params?.chain === "string" ? params.chain.trim() : "";
       const chainParam = sanitizeChainName(chainParamRaw);
       if (!chainParamRaw || !chainParam) {
         const errorMsg = "Missing required parameter 'chain'.";
         logger.error(`[GET_CHAIN_TVL_HISTORY] ${errorMsg}`);
-        return await respondWithError(callback, errorMsg, chainParamRaw ? "invalid_parameter" : "missing_required_parameter", {
-          chain: chainParamRaw,
-        });
+        return await respondWithError(
+          callback,
+          errorMsg,
+          chainParamRaw ? "invalid_parameter" : "missing_required_parameter",
+          {
+            chain: chainParamRaw,
+          },
+        );
       }
 
-      const filterParamRaw = typeof params?.filter === "string" ? params.filter.trim() : "";
+      const filterParamRaw =
+        typeof params?.filter === "string" ? params.filter.trim() : "";
       const filterParam = sanitizeFilterSegment(filterParamRaw);
       if (filterParamRaw && !filterParam) {
-        const errorMsg = "Invalid 'filter' parameter. Use lowercase letters or hyphen (e.g., staking).";
+        const errorMsg =
+          "Invalid 'filter' parameter. Use lowercase letters or hyphen (e.g., staking).";
         logger.error(`[GET_CHAIN_TVL_HISTORY] ${errorMsg}`);
-        return await respondWithError(callback, errorMsg, "invalid_parameter", { filter: filterParamRaw });
+        return await respondWithError(callback, errorMsg, "invalid_parameter", {
+          filter: filterParamRaw,
+        });
       }
 
       const daysParamRaw = params?.days;
@@ -106,7 +132,9 @@ export const getChainTvlHistoryAction: Action = {
       if (limitedSeries.length === 0) {
         const errorMsg = `No TVL history data returned for chain '${chainParam}'.`;
         logger.warn(`[GET_CHAIN_TVL_HISTORY] ${errorMsg}`);
-        return await respondWithError(callback, errorMsg, "empty_series", { chain: chainParam });
+        return await respondWithError(callback, errorMsg, "empty_series", {
+          chain: chainParam,
+        });
       }
 
       const messageText = filterParam
@@ -149,9 +177,14 @@ export const getChainTvlHistoryAction: Action = {
         };
       };
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : String(error);
+      const messageText =
+        error instanceof Error ? error.message : String(error);
       logger.error(`[GET_CHAIN_TVL_HISTORY] Action failed: ${messageText}`);
-      return await respondWithError(callback, `Failed to fetch chain TVL history: ${messageText}`, "action_failed");
+      return await respondWithError(
+        callback,
+        `Failed to fetch chain TVL history: ${messageText}`,
+        "action_failed",
+      );
     }
   },
   examples: [
@@ -193,5 +226,3 @@ type ChainHistoryResponse = {
     requestedDays?: number | null;
   };
 };
-
-

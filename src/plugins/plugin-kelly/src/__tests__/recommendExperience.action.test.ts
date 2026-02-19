@@ -15,36 +15,53 @@ describe("KELLY_RECOMMEND_EXPERIENCE Action", () => {
   describe("validate", () => {
     it("returns true for 'wine tasting experience'", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("recommend a wine tasting experience near Bordeaux");
-      const result = await kellyRecommendExperienceAction.validate(runtime, message);
+      const message = createMockMessage(
+        "recommend a wine tasting experience near Bordeaux",
+      );
+      const result = await kellyRecommendExperienceAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(true);
     });
 
     it("returns true for 'spa day'", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("I want a spa day");
-      const result = await kellyRecommendExperienceAction.validate(runtime, message);
+      const result = await kellyRecommendExperienceAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(true);
     });
 
     it("returns true for 'something special to do'", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("something special to do this weekend");
-      const result = await kellyRecommendExperienceAction.validate(runtime, message);
+      const result = await kellyRecommendExperienceAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(true);
     });
 
     it("returns true for 'cooking class'", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("recommend a cooking class");
-      const result = await kellyRecommendExperienceAction.validate(runtime, message);
+      const result = await kellyRecommendExperienceAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(true);
     });
 
     it("returns false for unrelated message", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("best hotel in Paris");
-      const result = await kellyRecommendExperienceAction.validate(runtime, message);
+      const result = await kellyRecommendExperienceAction.validate(
+        runtime,
+        message,
+      );
       expect(result).toBe(false);
     });
   });
@@ -86,7 +103,13 @@ describe("KELLY_RECOMMEND_EXPERIENCE Action", () => {
       });
       const message = createMockMessage("spa day");
       const callback = createMockCallback();
-      await kellyRecommendExperienceAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendExperienceAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       expect(callback.calls.length).toBe(1);
       const text = callback.calls[0]?.text ?? "";
       expect(text).toContain("MICHELIN Guide or James Edition");
@@ -104,7 +127,13 @@ describe("KELLY_RECOMMEND_EXPERIENCE Action", () => {
       });
       const message = createMockMessage("something special to do");
       const callback = createMockCallback();
-      await kellyRecommendExperienceAction.handler(runtime, message, createMockState(), {}, callback);
+      await kellyRecommendExperienceAction.handler(
+        runtime,
+        message,
+        createMockState(),
+        {},
+        callback,
+      );
       const text = callback.calls[0]?.text ?? "";
       expect(text).toContain("MICHELIN Guide or James Edition");
     });

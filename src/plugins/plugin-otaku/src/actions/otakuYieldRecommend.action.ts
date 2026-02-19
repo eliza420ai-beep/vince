@@ -29,7 +29,7 @@ interface YieldRow {
 async function fetchYieldOpportunities(
   runtime: IAgentRuntime,
   tokenFilter?: string,
-  chainFilter?: string
+  chainFilter?: string,
 ): Promise<YieldRow[]> {
   const opportunities: YieldRow[] = [];
   const tokenUpper = tokenFilter?.toUpperCase();
@@ -46,7 +46,8 @@ async function fetchYieldOpportunities(
         .filter((p: any) => {
           if (p.apy < 1) return false;
           if (chainLower && p.chain?.toLowerCase() !== chainLower) return false;
-          if (tokenUpper && !p.symbol?.toUpperCase().includes(tokenUpper)) return false;
+          if (tokenUpper && !p.symbol?.toUpperCase().includes(tokenUpper))
+            return false;
           if (p.tvlUsd < 100000) return false;
           return true;
         })
@@ -57,7 +58,12 @@ async function fetchYieldOpportunities(
           chain: p.chain || "",
           apy: Math.round(p.apy * 100) / 100,
           tvl: Math.round(p.tvlUsd || 0),
-          risk: p.ilRisk === "no" && p.apy < 20 ? "low" : p.apy > 50 ? "high" : "medium",
+          risk:
+            p.ilRisk === "no" && p.apy < 20
+              ? "low"
+              : p.apy > 50
+                ? "high"
+                : "medium",
         }));
       opportunities.push(...filtered);
     }
@@ -68,7 +74,8 @@ async function fetchYieldOpportunities(
   const morpho = runtime.getService("morpho") as MorphoService | null;
   if (morpho?.getVaultApy) {
     for (const asset of ["USDC", "WETH", "ETH"]) {
-      if (tokenUpper && asset !== tokenUpper && !tokenUpper.includes(asset)) continue;
+      if (tokenUpper && asset !== tokenUpper && !tokenUpper.includes(asset))
+        continue;
       try {
         const apy = await morpho.getVaultApy(asset);
         if (apy > 0) {
@@ -95,7 +102,12 @@ export const otakuYieldRecommendAction: Action = {
   name: "OTAKU_YIELD_RECOMMEND",
   description:
     "Get AI-powered, risk-adjusted yield recommendations combining DefiLlama and Morpho APYs. Use when the user asks for yield opportunities, where to put stables, or best APY.",
-  similes: ["YIELD_OPTIMIZER", "BEST_YIELD", "WHERE_TO_EARN", "YIELD_RECOMMENDATION"],
+  similes: [
+    "YIELD_OPTIMIZER",
+    "BEST_YIELD",
+    "WHERE_TO_EARN",
+    "YIELD_RECOMMENDATION",
+  ],
   examples: [
     [
       {
@@ -112,7 +124,10 @@ export const otakuYieldRecommendAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
       text.includes("yield") ||
@@ -129,7 +144,7 @@ export const otakuYieldRecommendAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const tokenMatch = text.match(/(?:usdc|usdt|eth|weth|stables?)/i);
@@ -137,7 +152,11 @@ export const otakuYieldRecommendAction: Action = {
     const tokenFilter = tokenMatch ? tokenMatch[0] : undefined;
     const chainFilter = chainMatch ? chainMatch[0] : undefined;
 
-    const opportunities = await fetchYieldOpportunities(runtime, tokenFilter, chainFilter);
+    const opportunities = await fetchYieldOpportunities(
+      runtime,
+      tokenFilter,
+      chainFilter,
+    );
     if (opportunities.length === 0) {
       await callback?.({
         text: "I couldn’t load yield data right now (DefiLlama or Morpho may be unavailable). Try again in a moment or ask for “yields” with a token (e.g. USDC) or chain (e.g. Base).",
@@ -146,7 +165,10 @@ export const otakuYieldRecommendAction: Action = {
     }
 
     const summary = opportunities
-      .map((o) => `${o.protocol} ${o.token} ${o.chain}: ${o.apy}% APY, ${o.risk} risk${o.tvl ? `, TVL $${(o.tvl / 1e6).toFixed(1)}M` : ""}`)
+      .map(
+        (o) =>
+          `${o.protocol} ${o.token} ${o.chain}: ${o.apy}% APY, ${o.risk} risk${o.tvl ? `, TVL $${(o.tvl / 1e6).toFixed(1)}M` : ""}`,
+      )
       .join("\n");
 
     if (!runtime.useModel) {
@@ -154,7 +176,10 @@ export const otakuYieldRecommendAction: Action = {
       const lines = [
         "**Yield opportunities (risk-adjusted):**",
         "",
-        ...top.map((o) => `- **${o.protocol}** ${o.token} on ${o.chain}: ${o.apy}% APY (${o.risk} risk)${o.tvl ? `, TVL $${(o.tvl / 1e6).toFixed(1)}M` : ""}`),
+        ...top.map(
+          (o) =>
+            `- **${o.protocol}** ${o.token} on ${o.chain}: ${o.apy}% APY (${o.risk} risk)${o.tvl ? `, TVL $${(o.tvl / 1e6).toFixed(1)}M` : ""}`,
+        ),
         "",
         "For stability, prefer low-risk options with high TVL. Morpho Blue is often a solid choice for stables.",
       ];
@@ -175,8 +200,11 @@ Recommendation:`;
         maxTokens: 220,
         temperature: 0.4,
       });
-      const out = typeof response === "string" ? response : String(response ?? "").trim();
-      const recommendation = out || "Consider Morpho for stables (low risk) and check DefiLlama for other chains.";
+      const out =
+        typeof response === "string" ? response : String(response ?? "").trim();
+      const recommendation =
+        out ||
+        "Consider Morpho for stables (low risk) and check DefiLlama for other chains.";
       await callback?.({
         text: `**Yield recommendation:** ${recommendation}`,
       });

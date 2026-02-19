@@ -8,10 +8,7 @@ import * as path from "path";
 
 /** Knowledge base root directory (resolved). Reads process.env.KNOWLEDGE_ROOT at call time. */
 export function getKnowledgeRoot(): string {
-  return path.resolve(
-    process.cwd(),
-    process.env.KNOWLEDGE_ROOT ?? "knowledge",
-  );
+  return path.resolve(process.cwd(), process.env.KNOWLEDGE_ROOT ?? "knowledge");
 }
 
 /** Cache root for plugin state (monitor, agenda, graph, etc.). Uses ELIZA_CACHE_DIR or defaults to .openclaw-cache under cwd. */
@@ -28,6 +25,10 @@ export const BRIEFS_DIR = path.join(_root(), "briefs");
 export const DATA_DIR = path.join(_root(), ".eliza");
 export const SUBSTACK_DIR = path.join(_root(), "substack-essays");
 export const MARKETING_DIR = path.join(_root(), "marketing-gtm");
-export const VOICE_CACHE_FILE = path.join(_root(), ".eliza", "voice-profile.json");
+export const VOICE_CACHE_FILE = path.join(
+  _root(),
+  ".eliza",
+  "voice-profile.json",
+);
 export const STYLE_GUIDE_PATH = path.join(_root(), "brand", "style-guide.md");
 export const ARCHIVE_DIR = path.join(_root(), ".archive");

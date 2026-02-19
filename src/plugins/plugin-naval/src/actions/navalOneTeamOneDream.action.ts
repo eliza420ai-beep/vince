@@ -12,7 +12,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, BRAND_VOICE, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  BRAND_VOICE,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "one team one dream",
@@ -48,11 +53,19 @@ Direct. Benefit-led: what they get is focus and handoffs that compound.`;
 
 export const navalOneTeamOneDreamAction: Action = {
   name: "NAVAL_ONE_TEAM_ONE_DREAM",
-  similes: ["ONE_TEAM_ONE_DREAM", "CLEAR_LANES", "TEAM_LANES", "DREAM_TEAM_LANES"],
+  similes: [
+    "ONE_TEAM_ONE_DREAM",
+    "CLEAR_LANES",
+    "TEAM_LANES",
+    "DREAM_TEAM_LANES",
+  ],
   description:
     "Clear lanes, no overlap: data → plan → call → lifestyle → infra. One lane to assign or automate so the team compounds.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsOneTeamOneDream(text);
   },
@@ -89,7 +102,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -97,14 +110,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "One team one dream: clear lanes. Data. Plan. Call. Lifestyle. Infra. Assign one lane you're still doing yourself to a person, tool, or agent. Rule: I don't do X; the lane does.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "I'm doing intel, plan, and execution myself. How do I get to one team one dream?" } },
-      { name: "{{agent}}", content: { text: "You're the bottleneck. Lane 1: intel — push daily, you just read. Lane 2: plan/call — once a week, size/skip/watch, invalidation. Lane 3: you execute or delegate execution. Rule: I don't refresh for data; the push does. One shift: automate the daily intel first." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "I'm doing intel, plan, and execution myself. How do I get to one team one dream?",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "You're the bottleneck. Lane 1: intel — push daily, you just read. Lane 2: plan/call — once a week, size/skip/watch, invalidation. Lane 3: you execute or delegate execution. Rule: I don't refresh for data; the push does. One shift: automate the daily intel first.",
+        },
+      },
     ],
   ],
 };

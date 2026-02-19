@@ -38,11 +38,16 @@ function isRainOrStorm(weatherCode: number | undefined): boolean {
 
 function formatInterpretation(surf: SurfBiarritzValue): string {
   const { waveHeight, wavePeriod } = surf;
-  if (waveHeight <= 0.5 && wavePeriod >= 8) return "Small and clean—walk before you run; good for beginners or longboard.";
-  if (waveHeight <= 1 && wavePeriod >= 7) return "There's a flow to it; small and clean, good for beginners.";
-  if (waveHeight <= 1.5 && wavePeriod >= 6) return "Time slows down when it's like this—fun size, most levels.";
-  if (waveHeight <= 2.5) return "Solid. Intermediate and up; put yourself in the right part of it.";
-  if (waveHeight > 2.5) return "Powerful—experienced only. Life-and-death thoughts on the face of it.";
+  if (waveHeight <= 0.5 && wavePeriod >= 8)
+    return "Small and clean—walk before you run; good for beginners or longboard.";
+  if (waveHeight <= 1 && wavePeriod >= 7)
+    return "There's a flow to it; small and clean, good for beginners.";
+  if (waveHeight <= 1.5 && wavePeriod >= 6)
+    return "Time slows down when it's like this—fun size, most levels.";
+  if (waveHeight <= 2.5)
+    return "Solid. Intermediate and up; put yourself in the right part of it.";
+  if (waveHeight > 2.5)
+    return "Powerful—experienced only. Life-and-death thoughts on the face of it.";
   return "Check conditions on the spot.";
 }
 
@@ -52,7 +57,10 @@ export const kellySurfForecastAction: Action = {
   description:
     "Surf forecast for Biarritz: wave height, period, direction, sea temp. Use when the user asks about surf or waves in Biarritz.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsSurfForecast(text);
   },
@@ -85,10 +93,17 @@ export const kellySurfForecastAction: Action = {
         `**Surf Biarritz** — ${surf.waveHeight} m, ${surf.wavePeriod} s, ${surf.waveDirection}, sea ${surf.seaTemp} °C.`,
         interpretation,
       ];
-      lines.push("Best window: wind is often lighter in the morning; if you can, check conditions early and go then.");
+      lines.push(
+        "Best window: wind is often lighter in the morning; if you can, check conditions early and go then.",
+      );
 
-      if (weatherBiarritz?.code !== undefined && isRainOrStorm(weatherBiarritz.code)) {
-        lines.push("Rain or storm expected — consider indoor options or surfer yoga instead.");
+      if (
+        weatherBiarritz?.code !== undefined &&
+        isRainOrStorm(weatherBiarritz.code)
+      ) {
+        lines.push(
+          "Rain or storm expected — consider indoor options or surfer yoga instead.",
+        );
       }
 
       const out = "Here's the surf forecast—\n\n" + lines.join(" ");

@@ -23,7 +23,9 @@ describe("KELLY_RECOMMEND_CREATIVE", () => {
   });
 
   it("validates on 'ableton push 3'", async () => {
-    const msg = createMockMessage("How to use Push 3 with Ableton for house music?");
+    const msg = createMockMessage(
+      "How to use Push 3 with Ableton for house music?",
+    );
     const result = await kellyRecommendCreativeAction.validate!(
       createMockRuntimeWithComposeState(),
       msg,
@@ -32,7 +34,9 @@ describe("KELLY_RECOMMEND_CREATIVE", () => {
   });
 
   it("validates on 'blender mcp'", async () => {
-    const msg = createMockMessage("Blender with Claude MCP — how does that work?");
+    const msg = createMockMessage(
+      "Blender with Claude MCP — how does that work?",
+    );
     const result = await kellyRecommendCreativeAction.validate!(
       createMockRuntimeWithComposeState(),
       msg,

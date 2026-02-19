@@ -94,7 +94,9 @@ function computePenalty(
 }
 
 /** Collect all signatures and count occurrences. */
-function countSignatures(perDecision: DecisionEvaluation[]): Record<string, number> {
+function countSignatures(
+  perDecision: DecisionEvaluation[],
+): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const d of perDecision) {
     for (const sig of d.signatures) {
@@ -171,11 +173,20 @@ function computeOutcomeCorrelation(
   const scores = withOutcome.map((d) => d.decisionScore ?? 0);
   const pnls = withOutcome.map((d) => d.outcome!.realizedPnlPct);
   const wins = withOutcome.map((d) => (d.outcome!.profitable ? 1 : 0));
-  const median = [...scores].sort((a, b) => a - b)[Math.floor(scores.length / 2)] ?? 0;
-  const highIdx = scores.map((s, i) => (s >= median ? i : -1)).filter((i) => i >= 0);
-  const lowIdx = scores.map((s, i) => (s < median ? i : -1)).filter((i) => i >= 0);
-  const highWins = highIdx.length ? highIdx.reduce((a, i) => a + wins[i], 0) / highIdx.length : 0;
-  const lowWins = lowIdx.length ? lowIdx.reduce((a, i) => a + wins[i], 0) / lowIdx.length : 0;
+  const median =
+    [...scores].sort((a, b) => a - b)[Math.floor(scores.length / 2)] ?? 0;
+  const highIdx = scores
+    .map((s, i) => (s >= median ? i : -1))
+    .filter((i) => i >= 0);
+  const lowIdx = scores
+    .map((s, i) => (s < median ? i : -1))
+    .filter((i) => i >= 0);
+  const highWins = highIdx.length
+    ? highIdx.reduce((a, i) => a + wins[i], 0) / highIdx.length
+    : 0;
+  const lowWins = lowIdx.length
+    ? lowIdx.reduce((a, i) => a + wins[i], 0) / lowIdx.length
+    : 0;
   const correlation = pearson(scores, pnls);
   return {
     highScoreWinRate: highWins,

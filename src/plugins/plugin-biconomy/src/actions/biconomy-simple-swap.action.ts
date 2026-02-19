@@ -80,8 +80,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
     },
     srcChain: {
       type: "string",
-      description:
-        "Source chain name (ethereum, base, arbitrum)",
+      description: "Source chain name (ethereum, base, arbitrum)",
       required: true,
     },
     dstToken: {
@@ -92,8 +91,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
     },
     dstChain: {
       type: "string",
-      description:
-        "Destination chain name (ethereum, base, arbitrum)",
+      description: "Destination chain name (ethereum, base, arbitrum)",
       required: true,
     },
     amount: {
@@ -168,7 +166,10 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Validate required parameters
       const srcToken = params?.srcToken?.toLowerCase().trim();
@@ -457,7 +458,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
           userAddress,
         );
         composeFlows.push(withdrawalFlow);
-        
+
         // Build and execute quote request
         const quoteRequest: QuoteRequest = {
           mode: "eoa",
@@ -490,9 +491,9 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
         logger.info(
           `[MEE_FUSION_SWAP] Native token output - using two-step quote process`,
         );
-        
+
         callback?.({ text: `🔄 Getting quote from MEE...` });
-        
+
         // Step 1: Get quote WITHOUT withdrawal to determine output
         const initialQuoteRequest: QuoteRequest = {
           mode: "eoa",
@@ -506,38 +507,43 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
             },
           ],
         };
-        
-        const quoteResponse = await biconomyService.getQuote(initialQuoteRequest);
-        
+
+        const quoteResponse =
+          await biconomyService.getQuote(initialQuoteRequest);
+
         // Extract minimum output amount
         minOutputAmount = quoteResponse.returnedData[0]?.minOutputAmount;
         if (!minOutputAmount) {
           throw new Error("Could not determine output amount from quote");
         }
-        
-        logger.info(`[MEE_FUSION_SWAP] Min output: ${minOutputAmount} wei native token`);
-        
+
+        logger.info(
+          `[MEE_FUSION_SWAP] Min output: ${minOutputAmount} wei native token`,
+        );
+
         // Calculate withdrawal amount: leave dynamic buffer for gas
         // Use 15% of output as buffer, with min 0.0001 ETH and max 0.002 ETH
         const minOutputBigInt = BigInt(minOutputAmount);
         const percentageBuffer = (minOutputBigInt * BigInt(15)) / BigInt(100); // 15%
         const minBufferWei = BigInt("100000000000000"); // 0.0001 ETH
         const maxBufferWei = BigInt("2000000000000000"); // 0.002 ETH
-        
+
         gasBufferWei = percentageBuffer;
         if (gasBufferWei < minBufferWei) gasBufferWei = minBufferWei;
         if (gasBufferWei > maxBufferWei) gasBufferWei = maxBufferWei;
-        
+
         // Ensure we have enough to withdraw after buffer
         const minWithdrawableWei = BigInt("50000000000000"); // 0.00005 ETH minimum to make withdrawal worthwhile
-        
+
         if (minOutputBigInt <= gasBufferWei + minWithdrawableWei) {
           // Output too small to auto-withdraw
-          logger.warn(`[MEE_FUSION_SWAP] Output amount ${minOutputAmount} wei too small for auto-withdrawal (need >${gasBufferWei + minWithdrawableWei} wei)`);
+          logger.warn(
+            `[MEE_FUSION_SWAP] Output amount ${minOutputAmount} wei too small for auto-withdrawal (need >${gasBufferWei + minWithdrawableWei} wei)`,
+          );
           callback?.({
             text: `⚠️ Output amount too small for auto-withdrawal. Swap will execute but you'll need to manually withdraw from Biconomy after.`,
           });
-          
+
           // Execute without withdrawal
           var result = await biconomyService.executeIntent(
             initialQuoteRequest,
@@ -551,16 +557,19 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
           const withdrawAmountWei = (minOutputBigInt - gasBufferWei).toString();
           const bufferEth = Number(gasBufferWei) / 1e18;
           const withdrawEth = Number(withdrawAmountWei) / 1e18;
-          logger.info(`[MEE_FUSION_SWAP] Withdrawing ${withdrawEth.toFixed(6)} ETH (leaving ${bufferEth.toFixed(6)} for gas)`);
-          
-          // Step 2: Add native withdrawal with fixed amount
-          const nativeWithdrawalFlow = biconomyService.buildNativeWithdrawalInstruction(
-            dstChainId,
-            userAddress,
-            withdrawAmountWei,
+          logger.info(
+            `[MEE_FUSION_SWAP] Withdrawing ${withdrawEth.toFixed(6)} ETH (leaving ${bufferEth.toFixed(6)} for gas)`,
           );
+
+          // Step 2: Add native withdrawal with fixed amount
+          const nativeWithdrawalFlow =
+            biconomyService.buildNativeWithdrawalInstruction(
+              dstChainId,
+              userAddress,
+              withdrawAmountWei,
+            );
           composeFlows.push(nativeWithdrawalFlow);
-          
+
           // Build final quote request with withdrawal
           const finalQuoteRequest: QuoteRequest = {
             mode: "eoa",
@@ -574,9 +583,9 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
               },
             ],
           };
-          
+
           callback?.({ text: `🔄 Re-quoting with auto-withdrawal...` });
-          
+
           // Execute with withdrawal
           var result = await biconomyService.executeIntent(
             finalQuoteRequest,
@@ -597,9 +606,10 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
           : `${srcToken.toUpperCase()} on ${srcChain}`;
 
         // Add native token buffer note if applicable
-        const nativeTokenNote = isNativeOutput && minOutputAmount
-          ? `\n\n_Note: A small gas buffer (~${(Number(gasBufferWei) / 1e18).toFixed(4)} ETH) remains in your Biconomy Nexus for future transactions._`
-          : '';
+        const nativeTokenNote =
+          isNativeOutput && minOutputAmount
+            ? `\n\n_Note: A small gas buffer (~${(Number(gasBufferWei) / 1e18).toFixed(4)} ETH) remains in your Biconomy Nexus for future transactions._`
+            : "";
 
         const responseText = `
 ✅ **MEE Fusion Swap Executed**
@@ -659,7 +669,10 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
           ["ACTION_STATE"],
           true,
         );
-        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+        const params = (composedState?.data?.actionParams || {}) as Record<
+          string,
+          any
+        >;
         failureInputParams = {
           srcToken: params?.srcToken,
           srcChain: params?.srcChain,

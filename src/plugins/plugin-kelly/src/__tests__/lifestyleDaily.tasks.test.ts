@@ -24,7 +24,10 @@ describe("Kelly lifestyle daily tasks", () => {
   describe("registerKellyLifestyleDailyTask", () => {
     it("calls createTask with name KELLY_LIFESTYLE_DAILY and metadata updateInterval when enabled", async () => {
       delete process.env.KELLY_LIFESTYLE_DAILY_ENABLED;
-      const createTaskCalls: Array<{ name: string; metadata?: { updateInterval?: number } }> = [];
+      const createTaskCalls: Array<{
+        name: string;
+        metadata?: { updateInterval?: number };
+      }> = [];
       const runtime = createMockRuntime({
         createTask: async (task: any) => {
           createTaskCalls.push({
@@ -39,7 +42,9 @@ describe("Kelly lifestyle daily tasks", () => {
       await registerKellyLifestyleDailyTask(runtime);
 
       expect(createTaskCalls.length).toBeGreaterThanOrEqual(1);
-      const dailyTask = createTaskCalls.find((c) => c.name === "KELLY_LIFESTYLE_DAILY");
+      const dailyTask = createTaskCalls.find(
+        (c) => c.name === "KELLY_LIFESTYLE_DAILY",
+      );
       expect(dailyTask).toBeDefined();
       expect(dailyTask?.metadata?.updateInterval).toBeDefined();
       expect(typeof dailyTask?.metadata?.updateInterval).toBe("number");
@@ -65,7 +70,10 @@ describe("Kelly lifestyle daily tasks", () => {
   describe("registerKellyNudgeTask", () => {
     it("calls createTask with name KELLY_NUDGE_WEDNESDAY when KELLY_NUDGE_ENABLED=true", async () => {
       process.env.KELLY_NUDGE_ENABLED = "true";
-      const createTaskCalls: Array<{ name: string; metadata?: { updateInterval?: number } }> = [];
+      const createTaskCalls: Array<{
+        name: string;
+        metadata?: { updateInterval?: number };
+      }> = [];
       const runtime = createMockRuntime({
         createTask: async (task: any) => {
           createTaskCalls.push({
@@ -80,7 +88,9 @@ describe("Kelly lifestyle daily tasks", () => {
       await registerKellyNudgeTask(runtime);
 
       expect(createTaskCalls.length).toBeGreaterThanOrEqual(1);
-      const nudgeTask = createTaskCalls.find((c) => c.name === "KELLY_NUDGE_WEDNESDAY");
+      const nudgeTask = createTaskCalls.find(
+        (c) => c.name === "KELLY_NUDGE_WEDNESDAY",
+      );
       expect(nudgeTask).toBeDefined();
       expect(nudgeTask?.metadata?.updateInterval).toBeDefined();
     });

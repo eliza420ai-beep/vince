@@ -59,7 +59,9 @@ function isRecordLike(obj: unknown): obj is FeatureRecord {
 /**
  * Load all feature records from the data directory matching patterns.
  */
-export function loadScenarios(options: LoadScenariosOptions = {}): FeatureRecord[] {
+export function loadScenarios(
+  options: LoadScenariosOptions = {},
+): FeatureRecord[] {
   const dataDir = resolveDataDir(options.dataDir);
   if (!fs.existsSync(dataDir)) return [];
 
@@ -83,7 +85,8 @@ export function loadScenarios(options: LoadScenariosOptions = {}): FeatureRecord
       try {
         const obj = JSON.parse(line) as unknown;
         if (!isRecordLike(obj)) continue;
-        if (options.completeOnly && (!obj.execution?.executed || !obj.outcome)) continue;
+        if (options.completeOnly && (!obj.execution?.executed || !obj.outcome))
+          continue;
         if (options.avoidedOnly && !obj.avoided) continue;
         records.push(obj as FeatureRecord);
       } catch {
@@ -102,7 +105,9 @@ export function loadScenarios(options: LoadScenariosOptions = {}): FeatureRecord
 /**
  * Convert loaded FeatureRecords into DecisionEvaluation[] (with signatures and optional outcome).
  */
-export function recordsToEvaluations(records: FeatureRecord[]): DecisionEvaluation[] {
+export function recordsToEvaluations(
+  records: FeatureRecord[],
+): DecisionEvaluation[] {
   return records.map((rec) => {
     const signatures = normalize(rec);
     const ev: DecisionEvaluation = {

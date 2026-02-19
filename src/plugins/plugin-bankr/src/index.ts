@@ -49,5 +49,9 @@ export const bankrPlugin: Plugin = {
 
 export default bankrPlugin;
 export { BankrAgentService, BankrOrdersService } from "./services";
-export { bankrProvider, getBankrData, type BankrProviderData } from "./providers";
+export {
+  bankrProvider,
+  getBankrData,
+  type BankrProviderData,
+} from "./providers";
 export * from "./types";

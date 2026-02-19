@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Transaction } from "@elizaos/api-client";
 import { elizaClient } from "@/frontend/lib/elizaClient";
-import { fetchOtakuAlerts, type AlertItem } from "@/frontend/lib/otakuAlertsApi";
+import {
+  fetchOtakuAlerts,
+  type AlertItem,
+} from "@/frontend/lib/otakuAlertsApi";
 import {
   fetchOtakuNotifications,
   type NotificationEvent,
@@ -130,7 +133,9 @@ export function useWalletNotifications(
       const [historyRes, alertsList, eventsList] = await Promise.all([
         elizaClient.cdp.getHistory(),
         agentId ? fetchOtakuAlerts(agentId) : Promise.resolve(null),
-        agentId ? fetchOtakuNotifications(agentId, userId) : Promise.resolve(null),
+        agentId
+          ? fetchOtakuNotifications(agentId, userId)
+          : Promise.resolve(null),
       ]);
       const txs = historyRes.transactions || [];
       const walletItems = txs.map(mapTransactionToItem);

@@ -3,15 +3,25 @@
  * Child_process is mocked so getStatus/runAgent do not run real CLI; gateway is imported after mock.
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock, beforeAll } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  beforeAll,
+} from "bun:test";
 import { withEnv } from "./test-utils";
 
 // Mock child_process so getStatus (exec fallback) and runAgent don't hang or run real CLI.
 mock.module("child_process", () => ({
   exec: (
     cmd: string,
-    opts: Record<string, unknown> | ((err: Error | null, stdout?: string, stderr?: string) => void),
-    callback?: (err: Error | null, stdout?: string, stderr?: string) => void
+    opts:
+      | Record<string, unknown>
+      | ((err: Error | null, stdout?: string, stderr?: string) => void),
+    callback?: (err: Error | null, stdout?: string, stderr?: string) => void,
   ) => {
     const cb = typeof opts === "function" ? opts : callback!;
     const resolved = (err: Error | null, stdout?: string, stderr?: string) => {
@@ -82,20 +92,24 @@ describe("getHealth", () => {
 
   it("returns blocked when URL is remote and OPENCLAW_ALLOW_REMOTE_GATEWAY is not true", async () => {
     await withEnv(
-      { OPENCLAW_GATEWAY_URL: REMOTE_URL, OPENCLAW_ALLOW_REMOTE_GATEWAY: undefined },
+      {
+        OPENCLAW_GATEWAY_URL: REMOTE_URL,
+        OPENCLAW_ALLOW_REMOTE_GATEWAY: undefined,
+      },
       async () => {
         const result = await getHealth();
         expect(result.ok).toBe(false);
         expect(result.status).toBe("blocked");
         expect(result.message).toContain("remote host");
         expect(result.message).toContain("OPENCLAW_ALLOW_REMOTE_GATEWAY");
-      }
+      },
     );
   });
 
   it("returns ok when loopback URL and fetch returns 200", async () => {
     await withEnv({ OPENCLAW_GATEWAY_URL: LOOPBACK_URL }, async () => {
-      globalThis.fetch = () => Promise.resolve(new Response("", { status: 200 })) as any;
+      globalThis.fetch = () =>
+        Promise.resolve(new Response("", { status: 200 })) as any;
       const result = await getHealth();
       expect(result.ok).toBe(true);
       expect(result.status).toBe("ok");
@@ -106,7 +120,9 @@ describe("getHealth", () => {
   it("returns error when loopback URL and fetch returns 500", async () => {
     await withEnv({ OPENCLAW_GATEWAY_URL: LOOPBACK_URL }, async () => {
       globalThis.fetch = () =>
-        Promise.resolve(new Response("Internal Server Error", { status: 500 })) as any;
+        Promise.resolve(
+          new Response("Internal Server Error", { status: 500 }),
+        ) as any;
       const result = await getHealth();
       expect(result.ok).toBe(false);
       expect(result.status).toBe("error");
@@ -138,7 +154,8 @@ describe("getStatus", () => {
 
   it("returns ok when getHealth returns ok", async () => {
     await withEnv({ OPENCLAW_GATEWAY_URL: LOOPBACK_URL }, async () => {
-      globalThis.fetch = () => Promise.resolve(new Response("", { status: 200 })) as any;
+      globalThis.fetch = () =>
+        Promise.resolve(new Response("", { status: 200 })) as any;
       const result = await getStatus();
       expect(result.ok).toBe(true);
       expect(result.status).toBe("ok");

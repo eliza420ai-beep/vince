@@ -4,7 +4,13 @@
  * Only the coordinator runtime (e.g. Sentinel) registers and runs this task.
  */
 
-import { type IAgentRuntime, type UUID, logger, ChannelType, ModelType } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type UUID,
+  logger,
+  ChannelType,
+  ModelType,
+} from "@elizaos/core";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { v4 as uuidv4 } from "uuid";
@@ -24,8 +30,15 @@ import {
   getStandupAgentTurnTimeoutMs,
 } from "./standup.constants";
 import { buildShortStandupKickoff } from "./standup.context";
-import { parseStandupTranscript, countCrossAgentLinks, type StandupActionItem } from "./standup.parse";
-import { parseStructuredBlockFromText, type ParsedStructuredBlock } from "./crossAgentValidation";
+import {
+  parseStandupTranscript,
+  countCrossAgentLinks,
+  type StandupActionItem,
+} from "./standup.parse";
+import {
+  parseStructuredBlockFromText,
+  type ParsedStructuredBlock,
+} from "./crossAgentValidation";
 import { getElizaOS, type IElizaOSRegistry } from "../types";
 import { executeBuildActionItem, isNorthStarType } from "./standup.build";
 import { generateAndSaveDayReport } from "./standupDayReport";
@@ -33,9 +46,19 @@ import { getPendingActionItems, updateActionItem } from "./actionItemTracker";
 import type { ActionItem } from "./actionItemTracker";
 import { verifyActionItem } from "./standupVerifier";
 import { appendLearning } from "./standupLearnings";
-import { saveSharedDailyInsights, loadSharedDailyInsights } from "./dayReportPersistence";
-import { fetchAgentData, extractKeyEventsFromVinceData } from "./standupDataFetcher";
-import { AGENT_ROLES, getReportTemplate, formatReportDate } from "./standupReports";
+import {
+  saveSharedDailyInsights,
+  loadSharedDailyInsights,
+} from "./dayReportPersistence";
+import {
+  fetchAgentData,
+  extractKeyEventsFromVinceData,
+} from "./standupDataFetcher";
+import {
+  AGENT_ROLES,
+  getReportTemplate,
+  formatReportDate,
+} from "./standupReports";
 import { buildKickoffWithSharedInsights } from "./standup.context";
 import { isStandupRunning, markAgentReported } from "./standupState";
 import { validatePredictions } from "./predictionTracker";
@@ -162,7 +185,10 @@ export async function ensureStandupWorldAndRoom(
           userName: name,
         });
       } catch (err) {
-        logger.debug({ agentId, roomId, err }, "[Standup] ensureConnection skip");
+        logger.debug(
+          { agentId, roomId, err },
+          "[Standup] ensureConnection skip",
+        );
       }
     }
     try {
@@ -209,13 +235,20 @@ export async function buildAndSaveSharedDailyInsights(
     const raw = eliza.getAgents.call(eliza);
     agents = Array.isArray(raw) ? raw : [];
   } catch (err) {
-    logger.warn({ err }, "[Standup] eliza.getAgents() failed — skip shared insights (if err mentions 'runtimes', in-process registry may not be attached; standup continues with short kickoff)");
+    logger.warn(
+      { err },
+      "[Standup] eliza.getAgents() failed — skip shared insights (if err mentions 'runtimes', in-process registry may not be attached; standup continues with short kickoff)",
+    );
     return;
   }
   const byName = new Map<string, { agentId: string; displayName: string }>();
   for (const a of agents) {
     const name = a?.character?.name?.trim();
-    if (name && a?.agentId) byName.set(name.toLowerCase(), { agentId: a.agentId, displayName: a.character?.name ?? name });
+    if (name && a?.agentId)
+      byName.set(name.toLowerCase(), {
+        agentId: a.agentId,
+        displayName: a.character?.name ?? name,
+      });
   }
   const sections: string[] = [];
   const date = new Date().toISOString().slice(0, 10);
@@ -231,7 +264,10 @@ export async function buildAndSaveSharedDailyInsights(
     try {
       agentRuntime = getAgent(entry.agentId);
     } catch (err) {
-      logger.warn({ err, agent: displayName }, "[Standup] getAgent() failed for shared insights");
+      logger.warn(
+        { err, agent: displayName },
+        "[Standup] getAgent() failed for shared insights",
+      );
       sections.push(`## ${displayName}\n(runtime unavailable)\n`);
       continue;
     }
@@ -240,9 +276,16 @@ export async function buildAndSaveSharedDailyInsights(
       continue;
     }
     const normalized = displayName.toLowerCase();
-    const contextHints = normalized === "echo" || normalized === "clawterm" ? vinceContextHints : undefined;
+    const contextHints =
+      normalized === "echo" || normalized === "clawterm"
+        ? vinceContextHints
+        : undefined;
     try {
-      let data = await fetchAgentData(agentRuntime, entry.displayName, contextHints);
+      let data = await fetchAgentData(
+        agentRuntime,
+        entry.displayName,
+        contextHints,
+      );
       if (!data) data = "(no data)";
       if (normalized === "vince") {
         vinceContextHints = extractKeyEventsFromVinceData(data);
@@ -253,7 +296,10 @@ export async function buildAndSaveSharedDailyInsights(
       }
       sections.push(`## ${displayName}\n${data}\n`);
     } catch (err) {
-      logger.warn({ err, agent: displayName }, "[Standup] fetchAgentData failed for shared insights");
+      logger.warn(
+        { err, agent: displayName },
+        "[Standup] fetchAgentData failed for shared insights",
+      );
       sections.push(`## ${displayName}\n(fetch failed)\n`);
     }
   }
@@ -263,30 +309,69 @@ export async function buildAndSaveSharedDailyInsights(
 
 function extractReplyFromResponse(resp: unknown): string | null {
   if (!resp || typeof resp !== "object") return null;
-  const c = (resp as { content?: typeof resp }).content ?? (resp as { text?: string; message?: string; thought?: string; actions?: string[]; actionCallbacks?: unknown[] });
-  const obj = c as { text?: string; message?: string; thought?: string; actions?: string[]; actionCallbacks?: unknown[] };
+  const c =
+    (resp as { content?: typeof resp }).content ??
+    (resp as {
+      text?: string;
+      message?: string;
+      thought?: string;
+      actions?: string[];
+      actionCallbacks?: unknown[];
+    });
+  const obj = c as {
+    text?: string;
+    message?: string;
+    thought?: string;
+    actions?: string[];
+    actionCallbacks?: unknown[];
+  };
 
   // Reject IGNORE/NONE actions — these are "agent decided not to respond" placeholders, not real replies
   if (Array.isArray(obj?.actions)) {
-    const actions = obj.actions.map((a) => (typeof a === "string" ? a.toUpperCase() : ""));
+    const actions = obj.actions.map((a) =>
+      typeof a === "string" ? a.toUpperCase() : "",
+    );
     if (actions.includes("IGNORE") || actions.includes("NONE")) {
-      logger.info("[Standup] extractReplyFromResponse: agent returned IGNORE/NONE — treating as no reply");
+      logger.info(
+        "[Standup] extractReplyFromResponse: agent returned IGNORE/NONE — treating as no reply",
+      );
       return null;
     }
   }
 
-  let text = typeof obj?.text === "string" ? obj.text : typeof obj?.message === "string" ? obj.message : "";
-  if (!text.trim() && typeof obj?.thought === "string" && obj.thought.trim()) text = obj.thought;
-  if (!text.trim() && Array.isArray(obj?.actionCallbacks) && obj.actionCallbacks.length > 0) {
-    const last = obj.actionCallbacks[obj.actionCallbacks.length - 1] as { text?: string } | undefined;
+  let text =
+    typeof obj?.text === "string"
+      ? obj.text
+      : typeof obj?.message === "string"
+        ? obj.message
+        : "";
+  if (!text.trim() && typeof obj?.thought === "string" && obj.thought.trim())
+    text = obj.thought;
+  if (
+    !text.trim() &&
+    Array.isArray(obj?.actionCallbacks) &&
+    obj.actionCallbacks.length > 0
+  ) {
+    const last = obj.actionCallbacks[obj.actionCallbacks.length - 1] as
+      | { text?: string }
+      | undefined;
     if (typeof last?.text === "string" && last.text.trim()) text = last.text;
   }
   const out = text.trim() ? text.trim() : null;
   if (!out && (obj?.thought || obj?.text !== undefined)) {
-    logger.debug({ thoughtLen: (obj.thought ?? "").length, textLen: (obj.text ?? "").length }, "[Standup] extractReplyFromResponse: got response but no usable text/thought");
+    logger.debug(
+      {
+        thoughtLen: (obj.thought ?? "").length,
+        textLen: (obj.text ?? "").length,
+      },
+      "[Standup] extractReplyFromResponse: got response but no usable text/thought",
+    );
   }
   if (out && out.length < 100) {
-    logger.info({ len: out.length, preview: out.slice(0, 80) }, "[Standup] extractReplyFromResponse: short reply (possibly canned)");
+    logger.info(
+      { len: out.length, preview: out.slice(0, 80) },
+      "[Standup] extractReplyFromResponse: short reply (possibly canned)",
+    );
   }
   return out;
 }
@@ -316,8 +401,10 @@ async function runOneStandupTurn(
   const agentRuntime = getAgent?.(agentId);
   if (agentRuntime?.useModel) {
     try {
-      const template =
-        (getReportTemplate(agentName) || "").replace(/\{\{date\}\}/g, formatReportDate());
+      const template = (getReportTemplate(agentName) || "").replace(
+        /\{\{date\}\}/g,
+        formatReportDate(),
+      );
       const systemPrompt = agentRuntime.character?.system || "";
       const reportInstruction = isConclusionTurn
         ? "Synthesize the standup into a short conclusion (2-4 sentences)."
@@ -401,11 +488,18 @@ export async function runStandupRoundRobin(
   kickoffText: string,
 ): Promise<{
   transcript: string;
-  replies: { agentId: string; agentName: string; text: string; structuredSignals?: ParsedStructuredBlock }[];
+  replies: {
+    agentId: string;
+    agentName: string;
+    text: string;
+    structuredSignals?: ParsedStructuredBlock;
+  }[];
 }> {
   const eliza = getElizaOS(runtime);
   if (!eliza?.getAgents || !eliza?.handleMessage) {
-    logger.warn("[Standup] elizaOS or handleMessage not available; skipping round-robin.");
+    logger.warn(
+      "[Standup] elizaOS or handleMessage not available; skipping round-robin.",
+    );
     return { transcript: kickoffText, replies: [] };
   }
   const agents = eliza.getAgents();
@@ -417,9 +511,18 @@ export async function runStandupRoundRobin(
   const ordered: { agentId: string; agentName: string }[] = [];
   for (const name of STANDUP_REPORT_ORDER) {
     const a = byName.get(name.toLowerCase());
-    if (a?.agentId) ordered.push({ agentId: a.agentId, agentName: a.character?.name ?? name });
+    if (a?.agentId)
+      ordered.push({
+        agentId: a.agentId,
+        agentName: a.character?.name ?? name,
+      });
   }
-  const replies: { agentId: string; agentName: string; text: string; structuredSignals?: ParsedStructuredBlock }[] = [];
+  const replies: {
+    agentId: string;
+    agentName: string;
+    text: string;
+    structuredSignals?: ParsedStructuredBlock;
+  }[] = [];
   let transcript = `[Standup kickoff]\n${kickoffText}`;
   for (const { agentId, agentName } of ordered) {
     try {
@@ -432,14 +535,20 @@ export async function runStandupRoundRobin(
         facilitatorEntityId,
         transcript,
       );
-      const structuredSignals = reply ? parseStructuredBlockFromText(reply) ?? undefined : undefined;
-      const line = reply ? `${agentName}: ${reply}` : `${agentName}: (no reply)`;
+      const structuredSignals = reply
+        ? (parseStructuredBlockFromText(reply) ?? undefined)
+        : undefined;
+      const line = reply
+        ? `${agentName}: ${reply}`
+        : `${agentName}: (no reply)`;
       transcript += `\n\n${line}`;
       if (reply) {
         replies.push({ agentId, agentName, text: reply, structuredSignals });
         markAgentReported(agentName);
       }
-      logger.info(`[Standup] ${agentName} replied (${reply?.length ?? 0} chars).`);
+      logger.info(
+        `[Standup] ${agentName} replied (${reply?.length ?? 0} chars).`,
+      );
     } catch (err) {
       logger.warn({ err, agentName }, "[Standup] Turn failed");
       transcript += `\n\n${agentName}: (error)`;
@@ -468,7 +577,9 @@ export async function persistStandupLessons(
     if (!lesson?.trim()) continue;
     const agentId = nameToId.get(agentName);
     if (!agentId) {
-      logger.debug(`[Standup] No agentId for name "${agentName}", skip lesson.`);
+      logger.debug(
+        `[Standup] No agentId for name "${agentName}", skip lesson.`,
+      );
       continue;
     }
     const targetRuntime = eliza.getAgent(agentId);
@@ -510,36 +621,60 @@ export async function persistStandupDisagreements(
     if (!idA || !idB || idA === idB) continue;
     const entityIdA = idA as UUID;
     const entityIdB = idB as UUID;
-    for (const [source, target] of [[entityIdA, entityIdB], [entityIdB, entityIdA]] as const) {
+    for (const [source, target] of [
+      [entityIdA, entityIdB],
+      [entityIdB, entityIdA],
+    ] as const) {
       try {
-        let rel = await runtime.getRelationship({ sourceEntityId: source, targetEntityId: target });
-        const existingOpinion = (rel?.metadata?.opinion as number | undefined) ?? 0;
-        const existingDisagreements = (rel?.metadata?.disagreements as number | undefined) ?? 0;
+        let rel = await runtime.getRelationship({
+          sourceEntityId: source,
+          targetEntityId: target,
+        });
+        const existingOpinion =
+          (rel?.metadata?.opinion as number | undefined) ?? 0;
+        const existingDisagreements =
+          (rel?.metadata?.disagreements as number | undefined) ?? 0;
         if (!rel) {
           await runtime.createRelationship({
             sourceEntityId: source,
             targetEntityId: target,
             tags: ["standup"],
-            metadata: { opinion: existingOpinion - OPINION_DECAY, disagreements: existingDisagreements + 1 },
+            metadata: {
+              opinion: existingOpinion - OPINION_DECAY,
+              disagreements: existingDisagreements + 1,
+            },
           });
         } else {
           await runtime.updateRelationship({
             ...rel,
-            metadata: { ...rel.metadata, opinion: existingOpinion - OPINION_DECAY, disagreements: existingDisagreements + 1 },
+            metadata: {
+              ...rel.metadata,
+              opinion: existingOpinion - OPINION_DECAY,
+              disagreements: existingDisagreements + 1,
+            },
           });
         }
       } catch (err) {
-        logger.warn({ err, source, target }, "[Standup] Failed to update relationship opinion");
+        logger.warn(
+          { err, source, target },
+          "[Standup] Failed to update relationship opinion",
+        );
       }
     }
-    logger.info(`[Standup] Updated relationship opinion for ${agentA} <-> ${agentB}.`);
+    logger.info(
+      `[Standup] Updated relationship opinion for ${agentA} <-> ${agentB}.`,
+    );
   }
 }
 
 /** Resolve deliverables dir for suggestions file (same as standup.build). */
 function getStandupDeliverablesDir(): string {
   const dir = process.env.STANDUP_DELIVERABLES_DIR?.trim();
-  const base = dir ? (path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir)) : path.join(process.cwd(), "docs/standup");
+  const base = dir
+    ? path.isAbsolute(dir)
+      ? dir
+      : path.join(process.cwd(), dir)
+    : path.join(process.cwd(), "docs/standup");
   return base;
 }
 
@@ -547,7 +682,10 @@ function getStandupDeliverablesDir(): string {
  * Append an action item to STANDUP_DELIVERABLES_DIR/pending-approval.ndjson when its type is in STANDUP_REQUIRE_APPROVAL_TYPES.
  * Human (or an approve command) can move it back to executable status.
  */
-function writePendingApprovalItem(item: ActionItem, standupItem: StandupActionItem): void {
+function writePendingApprovalItem(
+  item: ActionItem,
+  standupItem: StandupActionItem,
+): void {
   const dir = getStandupDeliverablesDir();
   const filepath = path.join(dir, "pending-approval.ndjson");
   try {
@@ -562,9 +700,15 @@ function writePendingApprovalItem(item: ActionItem, standupItem: StandupActionIt
         createdAt: new Date().toISOString(),
       }) + "\n";
     fs.appendFileSync(filepath, line, "utf-8");
-    logger.info({ itemId: item.id, type: standupItem.type }, "[Standup] Appended item to pending approval");
+    logger.info(
+      { itemId: item.id, type: standupItem.type },
+      "[Standup] Appended item to pending approval",
+    );
   } catch (err) {
-    logger.warn({ err, filepath }, "[Standup] Failed to write pending approval item");
+    logger.warn(
+      { err, filepath },
+      "[Standup] Failed to write pending approval item",
+    );
   }
 }
 
@@ -578,9 +722,16 @@ function persistStandupSuggestions(suggestions: string[] | undefined): void {
   try {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     const date = new Date().toISOString().slice(0, 10);
-    const block = [`## ${date}`, "", ...suggestions.map((s) => `- ${s}`), ""].join("\n");
+    const block = [
+      `## ${date}`,
+      "",
+      ...suggestions.map((s) => `- ${s}`),
+      "",
+    ].join("\n");
     fs.appendFileSync(filepath, block, "utf-8");
-    logger.info(`[Standup] Appended ${suggestions.length} suggestion(s) to ${filepath}`);
+    logger.info(
+      `[Standup] Appended ${suggestions.length} suggestion(s) to ${filepath}`,
+    );
   } catch (err) {
     logger.warn({ err, filepath }, "[Standup] Failed to persist suggestions");
   }
@@ -630,7 +781,12 @@ export async function pushStandupSummaryToChannels(
     return STANDUP_CHANNEL_NAME_PARTS.some((part) => name.includes(part));
   };
   const seenRoomIds = new Set<string>();
-  const addTarget = (room: { id?: UUID; source?: string; channelId?: string; name?: string }) => {
+  const addTarget = (room: {
+    id?: UUID;
+    source?: string;
+    channelId?: string;
+    name?: string;
+  }) => {
     const rid = room.id as string | undefined;
     if (!rid || seenRoomIds.has(rid)) return;
     const src = (room.source ?? "").toLowerCase();
@@ -660,7 +816,8 @@ export async function pushStandupSummaryToChannels(
       for (const room of rooms) {
         totalRoomCount++;
         const src = (room.source ?? "").toLowerCase();
-        if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number])) continue;
+        if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]))
+          continue;
         if (!room.id) continue;
         if (nameMatches(room)) {
           matchedByName++;
@@ -673,7 +830,8 @@ export async function pushStandupSummaryToChannels(
       for (const room of fallbackRooms) {
         totalRoomCount++;
         const src = (room.source ?? "").toLowerCase();
-        if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number])) continue;
+        if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]))
+          continue;
         if (nameMatches(room)) {
           matchedByName++;
           addTarget(room);
@@ -688,7 +846,11 @@ export async function pushStandupSummaryToChannels(
         if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number])) {
           addTarget(prefRoom);
           logger.info(
-            { roomId: options.preferredRoomId, source: src, name: prefRoom.name },
+            {
+              roomId: options.preferredRoomId,
+              source: src,
+              name: prefRoom.name,
+            },
             "[Standup] Added preferred room to push targets",
           );
         }
@@ -710,7 +872,12 @@ export async function pushStandupSummaryToChannels(
   logger.info(
     {
       targetCount: targets.length,
-      targets: targets.map((t) => ({ roomId: t.roomId, source: t.source, name: t.name, channelId: t.channelId })),
+      targets: targets.map((t) => ({
+        roomId: t.roomId,
+        source: t.source,
+        name: t.name,
+        channelId: t.channelId,
+      })),
     },
     "[Standup] Push targets resolved",
   );
@@ -719,14 +886,27 @@ export async function pushStandupSummaryToChannels(
   // instead of serviceDef.registerSendHandlers, so the real Discord send handler is never registered.
   // We bypass sendMessageToTarget and call the Discord service's handleSendMessage directly.
   const discordSvc = runtime.getService("discord") as {
-    handleSendMessage?: (r: IAgentRuntime, t: { source: string; roomId?: UUID; channelId?: string; serverId?: string | null }, c: { text: string }) => Promise<void>;
+    handleSendMessage?: (
+      r: IAgentRuntime,
+      t: {
+        source: string;
+        roomId?: UUID;
+        channelId?: string;
+        serverId?: string | null;
+      },
+      c: { text: string },
+    ) => Promise<void>;
   } | null;
 
   const sendToTarget = async (
     target: PushTarget,
     content: { text: string },
   ): Promise<void> => {
-    if (target.source === "discord" && discordSvc && typeof discordSvc.handleSendMessage === "function") {
+    if (
+      target.source === "discord" &&
+      discordSvc &&
+      typeof discordSvc.handleSendMessage === "function"
+    ) {
       await discordSvc.handleSendMessage(runtime, target, content);
     } else {
       await runtime.sendMessageToTarget(target, content);
@@ -746,7 +926,12 @@ export async function pushStandupSummaryToChannels(
       sent++;
       if (chunks.length > 1) {
         logger.info(
-          { roomId: target.roomId, source: target.source, name: target.name, chunkCount: chunks.length },
+          {
+            roomId: target.roomId,
+            source: target.source,
+            name: target.name,
+            chunkCount: chunks.length,
+          },
           "[Standup] Pushed chunked summary to target",
         );
       }
@@ -819,7 +1004,10 @@ function registerStandupRalphLoopWorker(runtime: IAgentRuntime): void {
 
       const standupItem = toStandupActionItem(item);
       const requireApprovalTypes = getStandupRequireApprovalTypes();
-      if (requireApprovalTypes.size > 0 && requireApprovalTypes.has((standupItem.type ?? "").toLowerCase())) {
+      if (
+        requireApprovalTypes.size > 0 &&
+        requireApprovalTypes.has((standupItem.type ?? "").toLowerCase())
+      ) {
         writePendingApprovalItem(item, standupItem);
         await pushStandupSummaryToChannels(
           rt,
@@ -834,19 +1022,25 @@ function registerStandupRalphLoopWorker(runtime: IAgentRuntime): void {
 
       try {
         if (standupItem.type === "remind") {
-          const { roomId, facilitatorEntityId } = await ensureStandupWorldAndRoom(rt);
+          const { roomId, facilitatorEntityId } =
+            await ensureStandupWorldAndRoom(rt);
           const eliza = getElizaOS(rt);
           if (eliza?.getAgents && eliza?.handleMessage) {
             const agents = eliza.getAgents();
             const agent = agents.find(
-              (a) => (a?.character?.name ?? "").trim().toLowerCase() === (item.owner || "").trim().toLowerCase(),
+              (a) =>
+                (a?.character?.name ?? "").trim().toLowerCase() ===
+                (item.owner || "").trim().toLowerCase(),
             );
             if (agent?.agentId) {
               const msg = {
                 id: uuidv4(),
                 entityId: facilitatorEntityId,
                 roomId,
-                content: { text: `[Standup action item] ${item.what}`, source: STANDUP_SOURCE },
+                content: {
+                  text: `[Standup action item] ${item.what}`,
+                  source: STANDUP_SOURCE,
+                },
                 createdAt: Date.now(),
               };
               await eliza.handleMessage(agent.agentId, msg);
@@ -869,7 +1063,10 @@ function registerStandupRalphLoopWorker(runtime: IAgentRuntime): void {
         if (verify.ok) {
           await updateActionItem(item.id, { status: "done", outcome });
         } else {
-          await updateActionItem(item.id, { status: "failed", outcome: verify.message || outcome });
+          await updateActionItem(item.id, {
+            status: "failed",
+            outcome: verify.message || outcome,
+          });
           outcome = verify.message || outcome;
         }
         await appendLearning(item, outcome);
@@ -881,7 +1078,10 @@ function registerStandupRalphLoopWorker(runtime: IAgentRuntime): void {
         }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        logger.warn({ err, itemId: item.id }, "[Standup] Ralph loop execution failed");
+        logger.warn(
+          { err, itemId: item.id },
+          "[Standup] Ralph loop execution failed",
+        );
         await updateActionItem(item.id, { status: "failed", outcome: errMsg });
         await appendLearning(item, errMsg);
       }
@@ -901,8 +1101,15 @@ function registerStandupActionItemWorker(runtime: IAgentRuntime): void {
       const description = String(options.description ?? "").trim();
       const type = (options.type as string | undefined) ?? "remind";
       const standupRoomId = options.standupRoomId as UUID | undefined;
-      const facilitatorEntityId = options.facilitatorEntityId as UUID | undefined;
-      if (!assigneeAgentName || !description || !standupRoomId || !facilitatorEntityId) {
+      const facilitatorEntityId = options.facilitatorEntityId as
+        | UUID
+        | undefined;
+      if (
+        !assigneeAgentName ||
+        !description ||
+        !standupRoomId ||
+        !facilitatorEntityId
+      ) {
         logger.debug("[Standup] ACTION_ITEM missing metadata, skip.");
         return;
       }
@@ -914,7 +1121,10 @@ function registerStandupActionItemWorker(runtime: IAgentRuntime): void {
       };
       if (type === "build" || isNorthStarType(item.type)) {
         const requireApprovalTypes = getStandupRequireApprovalTypes();
-        if (requireApprovalTypes.size > 0 && requireApprovalTypes.has((item.type ?? "").toLowerCase())) {
+        if (
+          requireApprovalTypes.size > 0 &&
+          requireApprovalTypes.has((item.type ?? "").toLowerCase())
+        ) {
           const pseudoItem: ActionItem = {
             id: `immediate-${Date.now()}`,
             date: new Date().toISOString().slice(0, 10),
@@ -948,24 +1158,36 @@ function registerStandupActionItemWorker(runtime: IAgentRuntime): void {
       if (!eliza?.getAgents || !eliza?.handleMessage) return;
       const agents = eliza.getAgents();
       const agent = agents.find(
-        (a) => (a?.character?.name ?? "").trim().toLowerCase() === assigneeAgentName.toLowerCase(),
+        (a) =>
+          (a?.character?.name ?? "").trim().toLowerCase() ===
+          assigneeAgentName.toLowerCase(),
       );
       if (!agent?.agentId) {
-        logger.debug(`[Standup] No agent found for "${assigneeAgentName}", skip reminder.`);
+        logger.debug(
+          `[Standup] No agent found for "${assigneeAgentName}", skip reminder.`,
+        );
         return;
       }
       const msg = {
         id: uuidv4(),
         entityId: facilitatorEntityId,
         roomId: standupRoomId,
-        content: { text: `[Standup action item for you] ${description}`, source: STANDUP_SOURCE },
+        content: {
+          text: `[Standup action item for you] ${description}`,
+          source: STANDUP_SOURCE,
+        },
         createdAt: Date.now(),
       };
       try {
         await eliza.handleMessage(agent.agentId, msg);
-        logger.info(`[Standup] Sent action item reminder to ${assigneeAgentName}.`);
+        logger.info(
+          `[Standup] Sent action item reminder to ${assigneeAgentName}.`,
+        );
       } catch (err) {
-        logger.warn({ err, assigneeAgentName }, "[Standup] Action item handleMessage failed");
+        logger.warn(
+          { err, assigneeAgentName },
+          "[Standup] Action item handleMessage failed",
+        );
       }
     },
   });
@@ -980,7 +1202,9 @@ let lastStandupHour: number | null = null;
  *
  * Schedule: STANDUP_UTC_HOURS (default: "9" for 09:00 UTC daily)
  */
-export async function registerStandupTask(runtime: IAgentRuntime): Promise<void> {
+export async function registerStandupTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
   registerStandupActionItemWorker(runtime);
   registerStandupRalphLoopWorker(runtime);
   runtime.registerTaskWorker({
@@ -992,26 +1216,35 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
       // Check if it's standup time
       const currentHour = new Date().getUTCHours();
       if (!isStandupTime()) {
-        logger.debug(`[Standup] Not standup time (current: ${currentHour}:00 UTC, scheduled: ${getStandupHours().join(",")}:00 UTC)`);
+        logger.debug(
+          `[Standup] Not standup time (current: ${currentHour}:00 UTC, scheduled: ${getStandupHours().join(",")}:00 UTC)`,
+        );
         return;
       }
 
       // Prevent duplicate runs in the same hour
       if (lastStandupHour === currentHour) {
-        logger.debug(`[Standup] Already ran standup at ${currentHour}:00 UTC this hour, skipping`);
+        logger.debug(
+          `[Standup] Already ran standup at ${currentHour}:00 UTC this hour, skipping`,
+        );
         return;
       }
 
       // Skip if a manual standup is already running
       if (isStandupRunning()) {
-        logger.info("[Standup] Manual standup in progress — skipping scheduled run");
+        logger.info(
+          "[Standup] Manual standup in progress — skipping scheduled run",
+        );
         return;
       }
 
       lastStandupHour = currentHour;
-      logger.info(`[Standup] 🎬 Starting scheduled standup (${currentHour}:00 UTC)...`);
+      logger.info(
+        `[Standup] 🎬 Starting scheduled standup (${currentHour}:00 UTC)...`,
+      );
       try {
-        const { roomId, facilitatorEntityId } = await ensureStandupWorldAndRoom(rt);
+        const { roomId, facilitatorEntityId } =
+          await ensureStandupWorldAndRoom(rt);
         const eliza = getElizaOS(rt);
         if (eliza?.getAgent) {
           await buildAndSaveSharedDailyInsights(rt, eliza);
@@ -1049,7 +1282,9 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
         const parsed = await parseStandupTranscript(rt, transcript);
         const crossAgentLinks = countCrossAgentLinks(transcript);
         if (crossAgentLinks > 0) {
-          logger.info(`[Standup] North star: ${crossAgentLinks} cross-agent link(s) detected`);
+          logger.info(
+            `[Standup] North star: ${crossAgentLinks} cross-agent link(s) detected`,
+          );
         }
         await persistStandupLessons(rt, roomId, parsed.lessonsByAgentName);
         if (!useRalphLoop()) {
@@ -1061,8 +1296,12 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           );
         }
         await persistStandupDisagreements(rt, parsed.disagreements);
-        const buildCount = parsed.actionItems.filter((i) => i.type === "build").length;
-        const northStarCount = parsed.actionItems.filter((i) => isNorthStarType(i.type)).length;
+        const buildCount = parsed.actionItems.filter(
+          (i) => i.type === "build",
+        ).length;
+        const northStarCount = parsed.actionItems.filter((i) =>
+          isNorthStarType(i.type),
+        ).length;
         const deliverableCount = buildCount + northStarCount;
         const remindCount = parsed.actionItems.length - deliverableCount;
         logger.info(
@@ -1074,7 +1313,10 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
         let reportText: string | null = null;
         try {
           const result = await generateAndSaveDayReport(rt, transcript, {
-            replies: replies.map((r) => ({ agentName: r.agentName, structuredSignals: r.structuredSignals })),
+            replies: replies.map((r) => ({
+              agentName: r.agentName,
+              structuredSignals: r.structuredSignals,
+            })),
           });
           dayReportPath = result.savedPath;
           reportText = result.reportText ?? null;
@@ -1082,26 +1324,47 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
             logger.info(`[Standup] Day Report saved to ${dayReportPath}`);
           }
         } catch (dayReportErr) {
-          logger.warn({ err: dayReportErr }, "[Standup] Day Report generation failed; continuing with summary only");
+          logger.warn(
+            { err: dayReportErr },
+            "[Standup] Day Report generation failed; continuing with summary only",
+          );
         }
 
         // Token estimation (~4 chars per token) — logs and metrics only, not pushed to Discord
-        const estimateTokens = (text: string) => Math.ceil((text?.length ?? 0) / 4);
+        const estimateTokens = (text: string) =>
+          Math.ceil((text?.length ?? 0) / 4);
         let totalInputTokens = estimateTokens(kickoffText);
         for (let i = 0; i < replies.length; i++) {
-          const priorLen = kickoffText.length + replies.slice(0, i).reduce((s, r) => s + r.text.length + r.agentName.length + 5, 0);
-          totalInputTokens += estimateTokens(Math.min(priorLen, 48000).toString().length > 0 ? transcript.slice(0, priorLen) : transcript);
+          const priorLen =
+            kickoffText.length +
+            replies
+              .slice(0, i)
+              .reduce((s, r) => s + r.text.length + r.agentName.length + 5, 0);
+          totalInputTokens += estimateTokens(
+            Math.min(priorLen, 48000).toString().length > 0
+              ? transcript.slice(0, priorLen)
+              : transcript,
+          );
         }
-        const totalOutputTokens = replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 1200; // 1200 = Day Report cap
+        const totalOutputTokens =
+          replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 2800; // 2800 = Day Report cap (800-1200 word narrative + structured block)
         const totalEstimatedTokens = totalInputTokens + totalOutputTokens;
-        const costPer1K = parseFloat(process.env.VINCE_USAGE_COST_PER_1K_TOKENS || "0.006");
+        const costPer1K = parseFloat(
+          process.env.VINCE_USAGE_COST_PER_1K_TOKENS || "0.006",
+        );
         const estimatedCost = (totalEstimatedTokens / 1000) * costPer1K;
-        logger.info(`[Standup] Token estimate: ~${totalEstimatedTokens} tokens (~$${estimatedCost.toFixed(3)})`);
+        logger.info(
+          `[Standup] Token estimate: ~${totalEstimatedTokens} tokens (~$${estimatedCost.toFixed(3)})`,
+        );
 
         // Persist metrics to JSONL
         try {
-          const metricsDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
-          if (!fs.existsSync(metricsDir)) fs.mkdirSync(metricsDir, { recursive: true });
+          const metricsDir = path.join(
+            process.cwd(),
+            process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
+          );
+          if (!fs.existsSync(metricsDir))
+            fs.mkdirSync(metricsDir, { recursive: true });
           const metricsLine = JSON.stringify({
             date: dateStr,
             type: "scheduled",
@@ -1113,11 +1376,18 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
             lessons: Object.keys(parsed.lessonsByAgentName).length,
             disagreements: parsed.disagreements.length,
           });
-          fs.appendFileSync(path.join(metricsDir, "standup-metrics.jsonl"), metricsLine + "\n");
-        } catch { /* non-fatal */ }
+          fs.appendFileSync(
+            path.join(metricsDir, "standup-metrics.jsonl"),
+            metricsLine + "\n",
+          );
+        } catch {
+          /* non-fatal */
+        }
 
         // Who did not report this round (participation visibility)
-        const reportedNames = new Set(replies.map((r) => r.agentName.trim().toLowerCase()));
+        const reportedNames = new Set(
+          replies.map((r) => r.agentName.trim().toLowerCase()),
+        );
         const noReportAgents = STANDUP_REPORT_ORDER.filter(
           (name) => !reportedNames.has(name.trim().toLowerCase()),
         );
@@ -1129,7 +1399,9 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
         // Push one fluent message: Day Report (ALOHA-style) or short fallback; optional footer; optional participation line
         let messageToPush: string;
         if (reportText?.trim()) {
-          const footer = dayReportPath ? `\n\n*Saved to \`${dayReportPath}\`*` : "";
+          const footer = dayReportPath
+            ? `\n\n*Saved to \`${dayReportPath}\`*`
+            : "";
           messageToPush = reportText.trim() + footer + noReportLine;
         } else {
           messageToPush =
@@ -1158,14 +1430,17 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
     tags: ["queue", "repeat", "standup"],
     metadata: {
       updatedAt: Date.now(),
-      updateInterval: Number.isFinite(intervalMs) ? intervalMs : STANDUP_INTERVAL_MS,
+      updateInterval: Number.isFinite(intervalMs)
+        ? intervalMs
+        : STANDUP_INTERVAL_MS,
     },
   });
 
   const ralphIntervalMs = getStandupRalphIntervalMs();
   await runtime.createTask({
     name: STANDUP_RALPH_LOOP_TASK_NAME,
-    description: "Ralph loop: process next standup action item from file store (priority order).",
+    description:
+      "Ralph loop: process next standup action item from file store (priority order).",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["queue", "repeat", "standup"],
@@ -1184,17 +1459,23 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
       try {
         const { validated, correct, incorrect } = await validatePredictions();
         if (validated > 0) {
-          logger.info(`[Standup] Predictions validated: ${validated} (${correct} correct, ${incorrect} incorrect)`);
+          logger.info(
+            `[Standup] Predictions validated: ${validated} (${correct} correct, ${incorrect} incorrect)`,
+          );
         }
       } catch (e) {
-        logger.warn({ err: e }, "[Standup] Prediction validation failed (non-fatal)");
+        logger.warn(
+          { err: e },
+          "[Standup] Prediction validation failed (non-fatal)",
+        );
       }
     },
   });
   const predictionsIntervalMs = 86400000; // 24h
   await runtime.createTask({
     name: STANDUP_VALIDATE_PREDICTIONS,
-    description: "Validate expired Solus predictions vs actual price; update accuracy.",
+    description:
+      "Validate expired Solus predictions vs actual price; update accuracy.",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["queue", "repeat", "standup", "predictions"],
@@ -1205,7 +1486,9 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
   });
 
   const scheduledHours = getStandupHours();
-  const hoursStr = scheduledHours.map((h) => `${h.toString().padStart(2, "0")}:00`).join(", ");
+  const hoursStr = scheduledHours
+    .map((h) => `${h.toString().padStart(2, "0")}:00`)
+    .join(", ");
   logger.info(
     `[Standup] ✅ Task registered — scheduled at ${hoursStr} UTC (check every ${intervalMs / 60000} min). Set STANDUP_ENABLED=true to activate.`,
   );

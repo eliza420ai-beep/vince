@@ -83,7 +83,11 @@ const defaultLifestyleServiceMock: KellyLifestyleServiceMock = {
     hotels: ["Relais de la Poste | Magescq"],
     fitnessNote: "Pool Apr-Nov",
     rawSection: "Wed: Maison Devaux",
-    palacePoolReopenDates: { Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" },
+    palacePoolReopenDates: {
+      Palais: "Feb 12",
+      Caudalie: "Feb 5",
+      Eugenie: "Mar 6",
+    },
   }),
   getWellnessTipOfTheDay: () => "5-min breathwork.",
   getDailyBriefing: () => ({
@@ -93,7 +97,11 @@ const defaultLifestyleServiceMock: KellyLifestyleServiceMock = {
     specialNotes: ["Restaurants open today: Maison Devaux."],
   }),
   getCurrentSeason: () => "pool",
-  getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
+  getPalacePoolReopenDates: () => ({
+    Palais: "Feb 12",
+    Caudalie: "Feb 5",
+    Eugenie: "Mar 6",
+  }),
   getPalacePoolStatusLine: () =>
     "Caudalie: back open (reopened Feb 5), Palais reopens Feb 12, Eugenie reopens Mar 6",
   getWineOfTheDay: () => "Margaux.",
@@ -118,7 +126,12 @@ export function createMockRuntimeWithService(
 export interface KellyComposeStateValues {
   kellyDay?: string;
   restaurantsOpenToday?: string[];
-  surfBiarritz?: { waveHeight: number; wavePeriod: number; waveDirection: string; seaTemp: number };
+  surfBiarritz?: {
+    waveHeight: number;
+    wavePeriod: number;
+    waveDirection: string;
+    seaTemp: number;
+  };
   weatherBordeaux?: { condition: string; temp: number };
   weatherBiarritz?: { condition: string; temp: number };
   weatherHome?: { condition: string; temp: number };
@@ -132,17 +145,25 @@ export interface KellyComposeStateValues {
  * Create a runtime whose composeState returns kellyContext + weather-shaped values
  * for tests that assert "recommendation respects open today" or "no beach in storm".
  */
-export function createMockRuntimeWithComposeState(
-  stateOverrides?: { values?: KellyComposeStateValues; data?: State["data"]; text?: string },
-): IAgentRuntime {
+export function createMockRuntimeWithComposeState(stateOverrides?: {
+  values?: KellyComposeStateValues;
+  data?: State["data"];
+  text?: string;
+}): IAgentRuntime {
   const values: KellyComposeStateValues = {
     kellyDay: "Wednesday",
     restaurantsOpenToday: ["Maison Devaux", "Auberge du Lavoir"],
     weatherBordeaux: { condition: "clear", temp: 18 },
     weatherBiarritz: { condition: "clear", temp: 16 },
     weatherHome: { condition: "clear", temp: 14 },
-    weatherBordeauxBiarritzLine: "Bordeaux: clear, 18°C. Biarritz: clear, 16°C.",
-    surfBiarritz: { waveHeight: 1.2, wavePeriod: 8, waveDirection: "SW", seaTemp: 15.5 },
+    weatherBordeauxBiarritzLine:
+      "Bordeaux: clear, 18°C. Biarritz: clear, 16°C.",
+    surfBiarritz: {
+      waveHeight: 1.2,
+      wavePeriod: 8,
+      waveDirection: "SW",
+      seaTemp: 15.5,
+    },
     surfBiarritzSummary: "1.2 m, 8 s, SW, sea 15.5 °C.",
     pastLunch: false,
     ...stateOverrides?.values,
@@ -150,7 +171,9 @@ export function createMockRuntimeWithComposeState(
   const state: State = {
     values,
     data: stateOverrides?.data ?? {},
-    text: stateOverrides?.text ?? "Wednesday. Restaurants open: Maison Devaux. Landes.",
+    text:
+      stateOverrides?.text ??
+      "Wednesday. Restaurants open: Maison Devaux. Landes.",
   };
   return createMockRuntime({
     composeState: async () => state,
@@ -166,7 +189,8 @@ const FIXTURES_DIR = path.join(__dirname, "fixtures");
 export function loadAllowlistFromKnowledge(
   category: "places" | "wines" | "hotels",
 ): string[] {
-  const file = category === "wines" ? "allowlist-wines.txt" : "allowlist-places.txt";
+  const file =
+    category === "wines" ? "allowlist-wines.txt" : "allowlist-places.txt";
   const filePath = path.join(FIXTURES_DIR, file);
   if (!fs.existsSync(filePath)) return [];
   const content = fs.readFileSync(filePath, "utf-8");
@@ -176,7 +200,9 @@ export function loadAllowlistFromKnowledge(
     .filter(Boolean);
 }
 
-export function createMockRuntime(overrides?: Partial<IAgentRuntime>): IAgentRuntime {
+export function createMockRuntime(
+  overrides?: Partial<IAgentRuntime>,
+): IAgentRuntime {
   return {
     agentId: uuidv4() as UUID,
     character: { name: "Kelly", bio: "Test" },

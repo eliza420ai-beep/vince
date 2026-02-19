@@ -6,11 +6,11 @@ import {
   ModelType,
   type EmbeddingGenerationPayload,
   logger,
-} from '@elizaos/core';
+} from "@elizaos/core";
 
 interface EmbeddingQueueItem {
   memory: Memory;
-  priority: 'high' | 'normal' | 'low';
+  priority: "high" | "normal" | "low";
   retryCount: number;
   maxRetries: number;
   addedAt: number;
@@ -26,8 +26,8 @@ const EMBEDDING_MAX_TEXT_LENGTH = 8000;
  */
 function sanitizeTextForEmbedding(text: string): string {
   const trimmed = text.trim();
-  if (trimmed.length === 0) return '';
-  const noControl = trimmed.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
+  if (trimmed.length === 0) return "";
+  const noControl = trimmed.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
   return noControl.length > EMBEDDING_MAX_TEXT_LENGTH
     ? noControl.slice(0, EMBEDDING_MAX_TEXT_LENGTH)
     : noControl;
@@ -35,7 +35,7 @@ function sanitizeTextForEmbedding(text: string): string {
 
 function isBadRequestError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
-  return msg.includes('400') || msg.includes('Bad Request');
+  return msg.includes("400") || msg.includes("Bad Request");
 }
 
 /**
@@ -44,8 +44,9 @@ function isBadRequestError(error: unknown): boolean {
  * and processes them in a queue to avoid blocking the main runtime
  */
 export class EmbeddingGenerationService extends Service {
-  static serviceType = 'embedding-generation';
-  capabilityDescription = 'Handles asynchronous embedding generation for memories';
+  static serviceType = "embedding-generation";
+  capabilityDescription =
+    "Handles asynchronous embedding generation for memories";
 
   private queue: EmbeddingQueueItem[] = [];
   private isProcessing = false;
@@ -55,38 +56,48 @@ export class EmbeddingGenerationService extends Service {
   private processingIntervalMs = 100; // Check queue every 100ms
 
   static async start(runtime: IAgentRuntime): Promise<Service> {
-    logger.info('[EmbeddingService] Starting embedding generation service');
+    logger.info("[EmbeddingService] Starting embedding generation service");
     const service = new EmbeddingGenerationService(runtime);
     await service.initialize();
     return service;
   }
 
   async initialize(): Promise<void> {
-    logger.info('[EmbeddingService] Initializing embedding generation service');
+    logger.info("[EmbeddingService] Initializing embedding generation service");
 
     // Register event handlers
     this.runtime.registerEvent(
       EventType.EMBEDDING_GENERATION_REQUESTED,
-      this.handleEmbeddingRequest.bind(this)
+      this.handleEmbeddingRequest.bind(this),
     );
 
     // Start the processing loop
     this.startProcessing();
   }
 
-  private async handleEmbeddingRequest(payload: EmbeddingGenerationPayload): Promise<void> {
-    const { memory, priority = 'normal', retryCount = 0, maxRetries = 3, runId } = payload;
+  private async handleEmbeddingRequest(
+    payload: EmbeddingGenerationPayload,
+  ): Promise<void> {
+    const {
+      memory,
+      priority = "normal",
+      retryCount = 0,
+      maxRetries = 3,
+      runId,
+    } = payload;
 
     // Skip if memory already has embeddings
     if (memory.embedding) {
-      logger.debug('[EmbeddingService] Memory already has embeddings, skipping');
+      logger.debug(
+        "[EmbeddingService] Memory already has embeddings, skipping",
+      );
       return;
     }
 
     // Check queue size and make room if needed
     if (this.queue.length >= this.maxQueueSize) {
       logger.warn(
-        `[EmbeddingService] Queue is full (${this.queue.length}/${this.maxQueueSize}), making room`
+        `[EmbeddingService] Queue is full (${this.queue.length}/${this.maxQueueSize}), making room`,
       );
       this.makeRoomInQueue();
     }
@@ -104,7 +115,9 @@ export class EmbeddingGenerationService extends Service {
     // Insert based on priority
     this.insertItemByPriority(queueItem);
 
-    logger.debug(`[EmbeddingService] Added memory to queue. Queue size: ${this.queue.length}`);
+    logger.debug(
+      `[EmbeddingService] Added memory to queue. Queue size: ${this.queue.length}`,
+    );
   }
 
   /**
@@ -117,13 +130,17 @@ export class EmbeddingGenerationService extends Service {
     const itemsToRemove = Math.min(10, Math.max(1, tenPercent));
 
     // Create array with items and their original indices
-    const itemsWithIndex = this.queue.map((item, index) => ({ item, originalIndex: index }));
+    const itemsWithIndex = this.queue.map((item, index) => ({
+      item,
+      originalIndex: index,
+    }));
 
     // Sort by priority (low first for removal) and age (oldest first)
     itemsWithIndex.sort((a, b) => {
       // Priority order for removal: low > normal > high
       const priorityOrder = { low: 0, normal: 1, high: 2 };
-      const priorityDiff = priorityOrder[a.item.priority] - priorityOrder[b.item.priority];
+      const priorityDiff =
+        priorityOrder[a.item.priority] - priorityOrder[b.item.priority];
 
       if (priorityDiff !== 0) return priorityDiff;
 
@@ -135,17 +152,19 @@ export class EmbeddingGenerationService extends Service {
     const indicesToRemove = new Set(
       itemsWithIndex
         .slice(0, Math.min(itemsToRemove, itemsWithIndex.length))
-        .map(({ originalIndex }) => originalIndex)
+        .map(({ originalIndex }) => originalIndex),
     );
 
     // Keep items that are not in the removal set
-    const newQueue = this.queue.filter((_, index) => !indicesToRemove.has(index));
+    const newQueue = this.queue.filter(
+      (_, index) => !indicesToRemove.has(index),
+    );
     const removedCount = this.queue.length - newQueue.length;
 
     this.queue = newQueue;
 
     logger.info(
-      `[EmbeddingService] Removed ${removedCount} items from queue. New size: ${this.queue.length}`
+      `[EmbeddingService] Removed ${removedCount} items from queue. New size: ${this.queue.length}`,
     );
   }
 
@@ -154,15 +173,15 @@ export class EmbeddingGenerationService extends Service {
    * High priority items go to the front, normal in the middle, low at the end
    */
   private insertItemByPriority(queueItem: EmbeddingQueueItem): void {
-    if (queueItem.priority === 'high') {
+    if (queueItem.priority === "high") {
       // Find the position after the last high priority item
       let insertIndex = 0;
       for (let i = 0; i < this.queue.length; i++) {
-        if (this.queue[i].priority !== 'high') break;
+        if (this.queue[i].priority !== "high") break;
         insertIndex = i + 1;
       }
       this.queue.splice(insertIndex, 0, queueItem);
-    } else if (queueItem.priority === 'low') {
+    } else if (queueItem.priority === "low") {
       // Add to end of queue
       this.queue.push(queueItem);
     } else {
@@ -171,7 +190,7 @@ export class EmbeddingGenerationService extends Service {
 
       // First, skip all high priority items
       for (let i = 0; i < this.queue.length; i++) {
-        if (this.queue[i].priority !== 'high') {
+        if (this.queue[i].priority !== "high") {
           insertIndex = i;
           break;
         }
@@ -180,7 +199,7 @@ export class EmbeddingGenerationService extends Service {
 
       // Then find where low priority items start
       for (let i = insertIndex; i < this.queue.length; i++) {
-        if (this.queue[i].priority === 'low') {
+        if (this.queue[i].priority === "low") {
           insertIndex = i;
           break;
         }
@@ -202,7 +221,7 @@ export class EmbeddingGenerationService extends Service {
       }
     }, this.processingIntervalMs);
 
-    logger.info('[EmbeddingService] Started processing loop');
+    logger.info("[EmbeddingService] Started processing loop");
   }
 
   private async processQueue(): Promise<void> {
@@ -214,10 +233,13 @@ export class EmbeddingGenerationService extends Service {
 
     try {
       // Process a batch of items
-      const batch = this.queue.splice(0, Math.min(this.batchSize, this.queue.length));
+      const batch = this.queue.splice(
+        0,
+        Math.min(this.batchSize, this.queue.length),
+      );
 
       logger.debug(
-        `[EmbeddingService] Processing batch of ${batch.length} items. Remaining in queue: ${this.queue.length}`
+        `[EmbeddingService] Processing batch of ${batch.length} items. Remaining in queue: ${this.queue.length}`,
       );
 
       // Process items in parallel
@@ -227,40 +249,42 @@ export class EmbeddingGenerationService extends Service {
         } catch (error) {
           const is400 = isBadRequestError(error);
           // Do not retry 400 Bad Request (invalid/empty content) to avoid log spam
-          const shouldRetry =
-            !is400 && item.retryCount < item.maxRetries;
+          const shouldRetry = !is400 && item.retryCount < item.maxRetries;
 
           if (shouldRetry) {
             item.retryCount++;
             this.insertItemByPriority(item);
             logger.debug(
-              `[EmbeddingService] Re-queued item for retry (${item.retryCount}/${item.maxRetries})`
+              `[EmbeddingService] Re-queued item for retry (${item.retryCount}/${item.maxRetries})`,
             );
           } else {
             if (!is400) {
               logger.error(
                 { error, memoryId: item.memory.id },
-                '[EmbeddingService] Error processing item:'
+                "[EmbeddingService] Error processing item:",
               );
             }
             await this.runtime.log({
               entityId: this.runtime.agentId,
               roomId: item.memory.roomId || this.runtime.agentId,
-              type: 'embedding_event',
+              type: "embedding_event",
               body: {
                 runId: item.runId,
                 memoryId: item.memory.id,
-                status: 'failed',
+                status: "failed",
                 error: error instanceof Error ? error.message : String(error),
-                source: 'embeddingService',
+                source: "embeddingService",
               },
             });
-            await this.runtime.emitEvent(EventType.EMBEDDING_GENERATION_FAILED, {
-              runtime: this.runtime,
-              memory: item.memory,
-              error: error instanceof Error ? error.message : String(error),
-              source: 'embeddingService',
-            });
+            await this.runtime.emitEvent(
+              EventType.EMBEDDING_GENERATION_FAILED,
+              {
+                runtime: this.runtime,
+                memory: item.memory,
+                error: error instanceof Error ? error.message : String(error),
+                source: "embeddingService",
+              },
+            );
           }
         }
       });
@@ -275,7 +299,10 @@ export class EmbeddingGenerationService extends Service {
     const { memory } = item;
 
     if (!memory.content?.text) {
-      logger.warn({ memoryId: memory.id }, '[EmbeddingService] Memory has no text content');
+      logger.warn(
+        { memoryId: memory.id },
+        "[EmbeddingService] Memory has no text content",
+      );
       return;
     }
 
@@ -283,7 +310,7 @@ export class EmbeddingGenerationService extends Service {
     if (sanitized.length === 0) {
       logger.warn(
         { memoryId: memory.id },
-        '[EmbeddingService] Memory text empty after sanitization, skipping'
+        "[EmbeddingService] Memory text empty after sanitization, skipping",
       );
       return;
     }
@@ -298,7 +325,7 @@ export class EmbeddingGenerationService extends Service {
 
       const duration = Date.now() - startTime;
       logger.debug(
-        `[EmbeddingService] Generated embedding in ${duration}ms for memory ${memory.id}`
+        `[EmbeddingService] Generated embedding in ${duration}ms for memory ${memory.id}`,
       );
 
       // Update memory with embedding
@@ -312,13 +339,13 @@ export class EmbeddingGenerationService extends Service {
         await this.runtime.log({
           entityId: this.runtime.agentId,
           roomId: memory.roomId || this.runtime.agentId,
-          type: 'embedding_event',
+          type: "embedding_event",
           body: {
             runId: item.runId,
             memoryId: memory.id,
-            status: 'completed',
+            status: "completed",
             duration,
-            source: 'embeddingService',
+            source: "embeddingService",
           },
         });
 
@@ -326,21 +353,21 @@ export class EmbeddingGenerationService extends Service {
         await this.runtime.emitEvent(EventType.EMBEDDING_GENERATION_COMPLETED, {
           runtime: this.runtime,
           memory: { ...memory, embedding },
-          source: 'embeddingService',
+          source: "embeddingService",
         });
       }
     } catch (error) {
       const is400 = isBadRequestError(error);
-      const preview = sanitized.slice(0, 80).replace(/\s+/g, ' ');
+      const preview = sanitized.slice(0, 80).replace(/\s+/g, " ");
       if (is400) {
         logger.warn(
           { memoryId: memory.id, preview },
-          '[EmbeddingService] Embedding rejected (400), skipping retries'
+          "[EmbeddingService] Embedding rejected (400), skipping retries",
         );
       } else {
         logger.error(
           { error, memoryId: memory.id },
-          '[EmbeddingService] Failed to generate embedding:'
+          "[EmbeddingService] Failed to generate embedding:",
         );
       }
       throw error; // Re-throw so processQueue can decide retry vs drop
@@ -348,7 +375,7 @@ export class EmbeddingGenerationService extends Service {
   }
 
   async stop(): Promise<void> {
-    logger.info('[EmbeddingService] Stopping embedding generation service');
+    logger.info("[EmbeddingService] Stopping embedding generation service");
 
     if (this.processingInterval) {
       clearInterval(this.processingInterval);
@@ -356,21 +383,28 @@ export class EmbeddingGenerationService extends Service {
     }
 
     // Process remaining high priority items before shutdown
-    const highPriorityItems = this.queue.filter((item) => item.priority === 'high');
+    const highPriorityItems = this.queue.filter(
+      (item) => item.priority === "high",
+    );
     if (highPriorityItems.length > 0) {
       logger.info(
-        `[EmbeddingService] Processing ${highPriorityItems.length} high priority items before shutdown`
+        `[EmbeddingService] Processing ${highPriorityItems.length} high priority items before shutdown`,
       );
       for (const item of highPriorityItems) {
         try {
           await this.generateEmbedding(item);
         } catch (error) {
-          logger.error({ error }, '[EmbeddingService] Error during shutdown processing:');
+          logger.error(
+            { error },
+            "[EmbeddingService] Error during shutdown processing:",
+          );
         }
       }
     }
 
-    logger.info(`[EmbeddingService] Stopped. ${this.queue.length} items remaining in queue`);
+    logger.info(
+      `[EmbeddingService] Stopped. ${this.queue.length} items remaining in queue`,
+    );
   }
 
   // Public methods for monitoring
@@ -378,7 +412,12 @@ export class EmbeddingGenerationService extends Service {
     return this.queue.length;
   }
 
-  getQueueStats(): { high: number; normal: number; low: number; total: number } {
+  getQueueStats(): {
+    high: number;
+    normal: number;
+    low: number;
+    total: number;
+  } {
     const stats = {
       high: 0,
       normal: 0,

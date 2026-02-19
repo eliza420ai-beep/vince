@@ -22,7 +22,10 @@ import {
   type ActionItem,
 } from "../actionItemTracker";
 
-const TEST_DIR = path.join(os.tmpdir(), "standup-deliverables-test-" + Date.now());
+const TEST_DIR = path.join(
+  os.tmpdir(),
+  "standup-deliverables-test-" + Date.now(),
+);
 
 describe("actionItemTracker", () => {
   beforeEach(() => {
@@ -141,7 +144,10 @@ describe("actionItemTracker", () => {
         owner: "VINCE",
         urgency: "today",
       });
-      const updated = await updateActionItem(added.id, { status: "done", outcome: "Done." });
+      const updated = await updateActionItem(added.id, {
+        status: "done",
+        outcome: "Done.",
+      });
       expect(updated).not.toBeNull();
       expect(updated!.status).toBe("done");
       expect(updated!.outcome).toBe("Done.");
@@ -149,7 +155,9 @@ describe("actionItemTracker", () => {
     });
 
     it("returns null for unknown id", async () => {
-      expect(await updateActionItem("ai-nonexistent", { status: "done" })).toBe(null);
+      expect(await updateActionItem("ai-nonexistent", { status: "done" })).toBe(
+        null,
+      );
     });
 
     it("updates priority", async () => {

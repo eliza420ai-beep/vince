@@ -97,7 +97,12 @@ export interface ApprovalAction {
 export interface OrderSignatureAction {
   type: "orderSignature";
   typedData: {
-    domain: { name?: string; version?: string; chainId?: number; verifyingContract?: string };
+    domain: {
+      name?: string;
+      version?: string;
+      chainId?: number;
+      verifyingContract?: string;
+    };
     types: Record<string, Array<{ name: string; type: string }>>;
     primaryType: string;
     message: Record<string, unknown>;
@@ -186,7 +191,10 @@ export interface UserInfoResponse {
 }
 
 /** POST /agent/sign — synchronous signing (no job polling). API expects message | typedData | transaction per type. */
-export type SignSignatureType = "personal_sign" | "eth_signTypedData_v4" | "eth_signTransaction";
+export type SignSignatureType =
+  | "personal_sign"
+  | "eth_signTypedData_v4"
+  | "eth_signTransaction";
 
 export interface SignRequest {
   signatureType: SignSignatureType;

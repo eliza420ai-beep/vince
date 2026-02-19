@@ -35,7 +35,7 @@ export function isRainOrStormCode(code: number): boolean {
   return (
     (code >= 51 && code <= 67) || // drizzle (51–55) + rain (61–65) + freezing rain (66–67)
     (code >= 80 && code <= 82) || // showers
-    code >= 95                    // thunderstorms (95, 96, 99)
+    code >= 95 // thunderstorms (95, 96, 99)
   );
 }
 

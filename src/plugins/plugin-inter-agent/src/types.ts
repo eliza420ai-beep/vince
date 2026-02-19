@@ -32,6 +32,8 @@ export interface IElizaOSRegistry {
  * Use this instead of inline casts in ASK_AGENT and standup code.
  * When absent, ASK_AGENT and standup flows fall back to the job API or skip cross-agent calls.
  */
-export function getElizaOS(runtime: IAgentRuntime): IElizaOSRegistry | undefined {
+export function getElizaOS(
+  runtime: IAgentRuntime,
+): IElizaOSRegistry | undefined {
   return (runtime as { elizaOS?: IElizaOSRegistry }).elizaOS;
 }

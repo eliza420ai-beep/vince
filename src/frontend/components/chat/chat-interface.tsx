@@ -144,6 +144,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Perps", message: "perps" },
     { label: "Trading Bot", message: "bot status" },
     { label: "News", message: "news" },
+    { label: "Mando Minutes", message: "mando minutes" },
     { label: "HIP3", message: "hip3" },
     { label: "Memes", message: "meme scanner" },
     { label: "NFT Floor", message: "nft floor" },
@@ -159,14 +160,14 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Our research", message: "what does our research say" },
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
-    { label: "Draft essay", message: "write an essay" },
+    { label: "Substack draft", message: "write a Substack essay" },
     { label: "Draft tweets", message: "draft tweets" },
     { label: "Positioning", message: "what's our positioning?" },
     { label: "Research agenda", message: "research agenda" },
   ],
   // Kelly (CVO): lifestyle concierge — benefit-led, concrete, evocative. Live the life.
   kelly: [
-    { label: "Live the life", message: "What can you do?" },
+    { label: "What can you do?", message: "What can you do?" },
     { label: "Today's move", message: "What should I do today?" },
     {
       label: "Best table",
@@ -225,9 +226,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "$100K Plan", message: "full $100K plan" },
     { label: "What's Your Call?", message: "what's your call?" },
   ],
-  // Sentinel (CTO): core dev, ops, cost, ONNX, clawdbot.
+  // Sentinel (CTO): core dev, ops, cost, ONNX, clawdbot, project radar.
   sentinel: [
     { label: "What can the CTO do?", message: "What can you do?" },
+    { label: "Project radar", message: "project radar" },
     { label: "Task Brief", message: "task brief for Claude 4.6" },
     { label: "Cost Status", message: "cost status" },
     { label: "ONNX Status", message: "ONNX status" },
@@ -240,15 +242,16 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Security Checklist", message: "security checklist" },
     { label: "Investor Report", message: "investor report" },
   ],
-  // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/token launch/orders).
+  // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/bridge/DCA/orders).
   otaku: [
     { label: "What can the COO do?", message: "What can you do?" },
     { label: "Smart Money", message: "smart money flows" },
     { label: "Token Discovery", message: "token discovery screener" },
     { label: "Morpho", message: "Morpho vault APY" },
+    { label: "Bridge", message: "Bridge 0.1 ETH to Arbitrum" },
+    { label: "DCA", message: "Set up a DCA: $50 into ETH over 5 days on Base" },
     { label: "PnL Leaderboard", message: "PnL leaderboard" },
     { label: "Yield Rates", message: "best DeFi yield rates" },
-    { label: "Token Flows", message: "token flows" },
     { label: "Portfolio", message: "Show my portfolio" },
     {
       label: "Bankr: Balance",
@@ -285,7 +288,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "X News", message: "What's the crypto news on X?" },
     { label: "CT Headlines", message: "Headlines from crypto Twitter" },
   ],
-  // Oracle: Polymarket discovery, priority markets (palantir → paper bot, Hypersurface strikes, vibe check).
+  // Oracle: Polymarket discovery + desk (edge check, risk snapshot, perf report). One agent for all.
   oracle: [
     { label: "What can you do?", message: "What can you do?" },
     {
@@ -299,6 +302,14 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     {
       label: "Search: Bitcoin",
       message: "Search polymarket for bitcoin predictions",
+    },
+    {
+      label: "Edge check",
+      message: "Run Polymarket edge check for BTC",
+    },
+    {
+      label: "Desk report",
+      message: "Polymarket desk report for the last 7 days",
     },
     {
       label: "Why we care",
@@ -361,8 +372,11 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Knowledge and research only. For live data, bot status, or execution, ask VINCE.",
   kelly:
     "Hotels, dining, wine, surf, wellness, creative. No trading advice—Kelly asks the team for you.",
+  solus: "Plan and call only. Data from VINCE; no execution—ask Otaku.",
   echo: "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
   sentinel: "Core dev and ops only. No trading—ask VINCE or Solus.",
+  otaku:
+    "Only executor with a funded wallet. For data, plan, or strike—ask VINCE or Solus.",
   oracle:
     "Read-only. For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
   clawterm:

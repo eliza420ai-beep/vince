@@ -11,7 +11,13 @@
  * - "vince trends" — Get VINCE's trend analysis
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
@@ -51,44 +57,55 @@ interface TrendReport {
  */
 function extractKnowledgeTopics(): KnowledgeTopic[] {
   const topics: KnowledgeTopic[] = [];
-  
+
   if (!fs.existsSync(KNOWLEDGE_ROOT)) return topics;
-  
-  const categories = fs.readdirSync(KNOWLEDGE_ROOT, { withFileTypes: true })
-    .filter(d => d.isDirectory() && !d.name.startsWith(".") && !["drafts", "briefs"].includes(d.name));
-  
+
+  const categories = fs
+    .readdirSync(KNOWLEDGE_ROOT, { withFileTypes: true })
+    .filter(
+      (d) =>
+        d.isDirectory() &&
+        !d.name.startsWith(".") &&
+        !["drafts", "briefs"].includes(d.name),
+    );
+
   for (const cat of categories) {
     const catPath = path.join(KNOWLEDGE_ROOT, cat.name);
-    const files = fs.readdirSync(catPath).filter(f => f.endsWith(".md"));
-    
+    const files = fs.readdirSync(catPath).filter((f) => f.endsWith(".md"));
+
     // Extract keywords from filenames and content
     const keywords = new Set<string>();
     let lastModified = 0;
-    
+
     for (const file of files) {
       // Add filename words as keywords
       const nameWords = file.replace(".md", "").split(/[-_\s]+/);
-      nameWords.forEach(w => {
+      nameWords.forEach((w) => {
         if (w.length > 2) keywords.add(w.toLowerCase());
       });
-      
+
       // Check file modification time
       const stat = fs.statSync(path.join(catPath, file));
       if (stat.mtimeMs > lastModified) lastModified = stat.mtimeMs;
-      
+
       // Sample content for keywords
       try {
-        const content = fs.readFileSync(path.join(catPath, file), "utf-8").slice(0, 2000);
-        const contentWords = content.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/g) || [];
-        contentWords.slice(0, 20).forEach(w => keywords.add(w.toLowerCase()));
+        const content = fs
+          .readFileSync(path.join(catPath, file), "utf-8")
+          .slice(0, 2000);
+        const contentWords =
+          content.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/g) || [];
+        contentWords.slice(0, 20).forEach((w) => keywords.add(w.toLowerCase()));
       } catch (e) {
         // Skip
       }
     }
-    
+
     if (files.length > 0) {
       topics.push({
-        topic: cat.name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+        topic: cat.name
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase()),
         category: cat.name,
         fileCount: files.length,
         lastUpdated: new Date(lastModified).toISOString(),
@@ -96,11 +113,16 @@ function extractKnowledgeTopics(): KnowledgeTopic[] {
       });
     }
   }
-  
+
   return topics;
 }
 
-export type TrendItem = { topic: string; momentum: number; sentiment: string; context: string };
+export type TrendItem = {
+  topic: string;
+  momentum: number;
+  sentiment: string;
+  context: string;
+};
 
 /**
  * Integration point for trend data. Currently returns static data.
@@ -161,23 +183,27 @@ function getVinceTrendsStatic(): TrendItem[] {
 /**
  * Match knowledge topics to trends
  */
-function findConnections(topics: KnowledgeTopic[], trends: TrendItem[]): TrendConnection[] {
+function findConnections(
+  topics: KnowledgeTopic[],
+  trends: TrendItem[],
+): TrendConnection[] {
   const connections: TrendConnection[] = [];
-  
+
   for (const topic of topics) {
     const topicLower = topic.topic.toLowerCase();
     const keywordSet = new Set(topic.keywords);
-    
+
     for (const trend of trends) {
       const trendLower = trend.topic.toLowerCase();
-      
+
       // Check for matches
-      const directMatch = topicLower.includes(trendLower) || trendLower.includes(topicLower);
-      const keywordMatch = topic.keywords.some(k => trendLower.includes(k));
-      
+      const directMatch =
+        topicLower.includes(trendLower) || trendLower.includes(topicLower);
+      const keywordMatch = topic.keywords.some((k) => trendLower.includes(k));
+
       if (directMatch || keywordMatch) {
         const relevanceScore = directMatch ? 0.9 : 0.6;
-        
+
         connections.push({
           knowledgeTopic: topic.topic,
           trendingNow: trend.momentum > 0.7,
@@ -189,7 +215,7 @@ function findConnections(topics: KnowledgeTopic[], trends: TrendItem[]): TrendCo
       }
     }
   }
-  
+
   return connections.sort((a, b) => b.relevanceScore - a.relevanceScore);
 }
 
@@ -201,25 +227,34 @@ function generateActionables(
   trend: { topic: string; momentum: number; sentiment: string },
 ): string[] {
   const actions: string[] = [];
-  
+
   if (trend.momentum > 0.7 && topic.fileCount < 5) {
-    actions.push(`Expand ${topic.topic} knowledge — high momentum but limited content (${topic.fileCount} files)`);
+    actions.push(
+      `Expand ${topic.topic} knowledge — high momentum but limited content (${topic.fileCount} files)`,
+    );
   }
-  
+
   if (trend.sentiment === "bullish") {
-    actions.push(`Consider essay on ${topic.topic} — bullish sentiment = audience interest`);
+    actions.push(
+      `Consider essay on ${topic.topic} — bullish sentiment = audience interest`,
+    );
   }
-  
+
   if (trend.momentum > 0.8) {
-    actions.push(`Draft tweets on ${topic.topic} — trending topic, high engagement potential`);
+    actions.push(
+      `Draft tweets on ${topic.topic} — trending topic, high engagement potential`,
+    );
   }
-  
+
   // Check freshness
-  const daysSinceUpdate = (Date.now() - new Date(topic.lastUpdated).getTime()) / 86400000;
+  const daysSinceUpdate =
+    (Date.now() - new Date(topic.lastUpdated).getTime()) / 86400000;
   if (daysSinceUpdate > 7 && trend.momentum > 0.6) {
-    actions.push(`Update ${topic.topic} content — last updated ${Math.round(daysSinceUpdate)} days ago`);
+    actions.push(
+      `Update ${topic.topic} content — last updated ${Math.round(daysSinceUpdate)} days ago`,
+    );
   }
-  
+
   return actions.length > 0 ? actions : ["Monitor for developments"];
 }
 
@@ -233,27 +268,36 @@ function analyzeGapsAndOpportunities(
 ): { gaps: string[]; opportunities: string[] } {
   const gaps: string[] = [];
   const opportunities: string[] = [];
-  
-  const connectedTrends = new Set(connections.map(c => c.vinceInsight.split(":")[0]));
-  
+
+  const connectedTrends = new Set(
+    connections.map((c) => c.vinceInsight.split(":")[0]),
+  );
+
   // Find trending topics not in knowledge base
   for (const trend of trends) {
     if (!connectedTrends.has(trend.topic) && trend.momentum > 0.6) {
-      gaps.push(`No knowledge on "${trend.topic}" (momentum: ${Math.round(trend.momentum * 100)}%)`);
+      gaps.push(
+        `No knowledge on "${trend.topic}" (momentum: ${Math.round(trend.momentum * 100)}%)`,
+      );
       if (trend.momentum > 0.75) {
-        opportunities.push(`Research ${trend.topic} — high momentum, no existing content`);
+        opportunities.push(
+          `Research ${trend.topic} — high momentum, no existing content`,
+        );
       }
     }
   }
-  
+
   // Find stale high-value topics
   for (const topic of topics) {
-    const daysSinceUpdate = (Date.now() - new Date(topic.lastUpdated).getTime()) / 86400000;
+    const daysSinceUpdate =
+      (Date.now() - new Date(topic.lastUpdated).getTime()) / 86400000;
     if (daysSinceUpdate > 14 && topic.fileCount > 3) {
-      gaps.push(`${topic.topic} content is ${Math.round(daysSinceUpdate)} days stale`);
+      gaps.push(
+        `${topic.topic} content is ${Math.round(daysSinceUpdate)} days stale`,
+      );
     }
   }
-  
+
   return { gaps, opportunities };
 }
 
@@ -304,7 +348,7 @@ Uses VINCE's market research to prioritize content production.`,
       {
         name: "{{agent}}",
         content: {
-          text: "🔗 **Trend Connection Report**\n\n**Your Knowledge × Market Trends:**\n\n🟢 **AI Agents** (92% relevance)\n• Your content: 8 files in knowledge/ai-agents/\n• VINCE: Explosive growth in autonomous AI agent frameworks\n• Sentiment: Bullish, Momentum: 85%\n• Action: Draft tweets — trending topic, high engagement\n\n🟡 **DeFi** (65% relevance)\n• Your content: 12 files in knowledge/defi/\n• VINCE: Steady TVL growth, focus on real yield\n• Action: Update content — last updated 9 days ago\n\n**Knowledge Gaps:**\n⚠️ No content on \"RWA\" (momentum: 81%)\n\n**Opportunities:**\n💡 Research RWA — high momentum, no existing content",
+          text: '🔗 **Trend Connection Report**\n\n**Your Knowledge × Market Trends:**\n\n🟢 **AI Agents** (92% relevance)\n• Your content: 8 files in knowledge/ai-agents/\n• VINCE: Explosive growth in autonomous AI agent frameworks\n• Sentiment: Bullish, Momentum: 85%\n• Action: Draft tweets — trending topic, high engagement\n\n🟡 **DeFi** (65% relevance)\n• Your content: 12 files in knowledge/defi/\n• VINCE: Steady TVL growth, focus on real yield\n• Action: Update content — last updated 9 days ago\n\n**Knowledge Gaps:**\n⚠️ No content on "RWA" (momentum: 81%)\n\n**Opportunities:**\n💡 Research RWA — high momentum, no existing content',
         },
       },
     ],
@@ -314,7 +358,7 @@ Uses VINCE's market research to prioritize content production.`,
     const text = (message.content?.text || "").toLowerCase();
     return (
       text.includes("trend") ||
-      text.includes("vince") && text.includes("research") ||
+      (text.includes("vince") && text.includes("research")) ||
       text.includes("what's trending")
     );
   },
@@ -330,7 +374,7 @@ Uses VINCE's market research to prioritize content production.`,
 
     // Extract knowledge topics
     const topics = extractKnowledgeTopics();
-    
+
     if (topics.length === 0) {
       callback?.({
         text: `🔗 **Trend Connection**\n\n⚠️ **No knowledge categories found.**\n\nCreate folders in \`knowledge/\` and add content first:\n\`\`\`\nknowledge/\n├── ai-agents/\n├── defi/\n├── nfts/\n└── ...\n\`\`\`\n\nThen use UPLOAD to add content, and retry.`,
@@ -340,11 +384,15 @@ Uses VINCE's market research to prioritize content production.`,
 
     // Get trends (static by default; use ELIZA_TREND_SOURCE for future live source)
     const trends = await getTrends();
-    
+
     // Find connections
     const connections = findConnections(topics, trends);
-    const { gaps, opportunities } = analyzeGapsAndOpportunities(topics, trends, connections);
-    
+    const { gaps, opportunities } = analyzeGapsAndOpportunities(
+      topics,
+      trends,
+      connections,
+    );
+
     // Build report
     const report: TrendReport = {
       generatedAt: new Date().toISOString(),
@@ -353,7 +401,7 @@ Uses VINCE's market research to prioritize content production.`,
       gaps,
       opportunities,
     };
-    
+
     saveTrendReport(report);
 
     // Format response
@@ -362,11 +410,16 @@ Uses VINCE's market research to prioritize content production.`,
 
     if (connections.length > 0) {
       response += `**Your Knowledge × Market Trends:**\n\n`;
-      
+
       for (const conn of connections.slice(0, 5)) {
-        const emoji = conn.relevanceScore > 0.7 ? "🟢" : conn.relevanceScore > 0.4 ? "🟡" : "🔴";
-        const topic = topics.find(t => t.topic === conn.knowledgeTopic);
-        
+        const emoji =
+          conn.relevanceScore > 0.7
+            ? "🟢"
+            : conn.relevanceScore > 0.4
+              ? "🟡"
+              : "🔴";
+        const topic = topics.find((t) => t.topic === conn.knowledgeTopic);
+
         response += `${emoji} **${conn.knowledgeTopic}** (${Math.round(conn.relevanceScore * 100)}% relevance)\n`;
         response += `• Your content: ${topic?.fileCount || 0} files in \`knowledge/${topic?.category}/\`\n`;
         response += `• VINCE: ${conn.vinceInsight}\n`;
@@ -382,13 +435,19 @@ Uses VINCE's market research to prioritize content production.`,
 
     if (gaps.length > 0) {
       response += `**Knowledge Gaps:**\n`;
-      response += gaps.slice(0, 3).map(g => `⚠️ ${g}`).join("\n");
+      response += gaps
+        .slice(0, 3)
+        .map((g) => `⚠️ ${g}`)
+        .join("\n");
       response += `\n\n`;
     }
 
     if (opportunities.length > 0) {
       response += `**Opportunities:**\n`;
-      response += opportunities.slice(0, 3).map(o => `💡 ${o}`).join("\n");
+      response += opportunities
+        .slice(0, 3)
+        .map((o) => `💡 ${o}`)
+        .join("\n");
       response += `\n`;
     }
 
@@ -396,8 +455,10 @@ Uses VINCE's market research to prioritize content production.`,
 
     const out = "Here's the trend connection—\n\n" + response;
     callback?.({ text: out });
-    logger.info(`[Trend Connection] Found ${connections.length} connections, ${gaps.length} gaps`);
-    
+    logger.info(
+      `[Trend Connection] Found ${connections.length} connections, ${gaps.length} gaps`,
+    );
+
     return true;
   },
 } as unknown as Action;

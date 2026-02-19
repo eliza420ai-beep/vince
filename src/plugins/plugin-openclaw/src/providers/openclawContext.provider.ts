@@ -7,13 +7,27 @@ import type { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";
 import { isGatewayConfigured } from "../services/gatewayClient.service";
 
 const OPENCLAW_KEYWORDS = [
-  "openclaw", "open claw", "claw", "gateway", "setup", "install", "configure",
-  "clawdbot", "moltbot",
+  "openclaw",
+  "open claw",
+  "claw",
+  "gateway",
+  "setup",
+  "install",
+  "configure",
+  "clawdbot",
+  "moltbot",
 ];
 
 const AI_KEYWORDS = [
-  "ai 2027", "ai-2027", "agi", "alignment", "takeoff", "research agent",
-  "openbrain", "superhuman ai", "coding agent",
+  "ai 2027",
+  "ai-2027",
+  "agi",
+  "alignment",
+  "takeoff",
+  "research agent",
+  "openbrain",
+  "superhuman ai",
+  "coding agent",
 ];
 
 function hasKeyword(text: string, keywords: string[]): boolean {
@@ -23,7 +37,8 @@ function hasKeyword(text: string, keywords: string[]): boolean {
 
 export const openclawContextProvider: Provider = {
   name: "openclawContext",
-  description: "OpenClaw and AI context when the user talks about OpenClaw, gateway, setup, AI 2027, AGI, or research agents.",
+  description:
+    "OpenClaw and AI context when the user talks about OpenClaw, gateway, setup, AI 2027, AGI, or research agents.",
   get: async (
     _runtime: IAgentRuntime,
     message: Memory,
@@ -36,24 +51,38 @@ export const openclawContextProvider: Provider = {
     const hasAi = hasKeyword(combined, AI_KEYWORDS);
     if (!hasOpenClaw && !hasAi) return {};
     const gatewaySet = isGatewayConfigured();
-    let paragraph = "OpenClaw is a self-hosted gateway (default port 18789) that connects chat apps to AI agents. ";
+    let paragraph =
+      "OpenClaw is a self-hosted gateway (default port 18789) that connects chat apps to AI agents. ";
     if (hasAi) {
-      paragraph += "AI 2027 describes research agents that scour the Internet; OpenClaw + openclaw-agents enable that today. ";
+      paragraph +=
+        "AI 2027 describes research agents that scour the Internet; OpenClaw + openclaw-agents enable that today. ";
     }
     if (hasOpenClaw) {
-      paragraph += "When OPENCLAW_GATEWAY_URL is set, the plugin uses the OpenClaw Gateway. ";
-      paragraph += gatewaySet ? "Gateway URL is set; ask for \"gateway status\" to check health. " : "Gateway URL is not set. ";
-      paragraph += "Ask for \"OpenClaw setup\" or \"OpenClaw setup guide\" for step-by-step install. ";
+      paragraph +=
+        "When OPENCLAW_GATEWAY_URL is set, the plugin uses the OpenClaw Gateway. ";
+      paragraph += gatewaySet
+        ? 'Gateway URL is set; ask for "gateway status" to check health. '
+        : "Gateway URL is not set. ";
+      paragraph +=
+        'Ask for "OpenClaw setup" or "OpenClaw setup guide" for step-by-step install. ';
     } else if (hasAi) {
-      paragraph += "Ask for \"AI 2027\" or \"research agents\" for more. Ask for \"OpenClaw setup\" for install.";
+      paragraph +=
+        'Ask for "AI 2027" or "research agents" for more. Ask for "OpenClaw setup" for install.';
     }
-    paragraph += "OpenClaw releases and changelog: https://github.com/openclaw/openclaw/releases. Point users there for latest version or release notes. ";
-    paragraph += "ClawIndex (ecosystem directory): https://clawindex.org/. Point users there to discover projects, tools, verified listings, and ecosystem news. ";
-    paragraph += "OpenClaw is led by steipete (Peter Steinberger): https://github.com/steipete. Point users there when they ask about maintainer or author. ";
-    paragraph += "Only report action output. Never invent Gateway status, prices, or search results.";
+    paragraph +=
+      "OpenClaw releases and changelog: https://github.com/openclaw/openclaw/releases. Point users there for latest version or release notes. ";
+    paragraph +=
+      "ClawIndex (ecosystem directory): https://clawindex.org/. Point users there to discover projects, tools, verified listings, and ecosystem news. ";
+    paragraph +=
+      "OpenClaw is led by steipete (Peter Steinberger): https://github.com/steipete. Point users there when they ask about maintainer or author. ";
+    paragraph +=
+      "Only report action output. Never invent Gateway status, prices, or search results.";
     return {
       text: paragraph,
-      values: { openclawContext: paragraph, openclawGatewayConfigured: gatewaySet },
+      values: {
+        openclawContext: paragraph,
+        openclawGatewayConfigured: gatewaySet,
+      },
     };
   },
 };

@@ -2,9 +2,11 @@ import { describe, it, expect } from "bun:test";
 import { polymarketDeskReportAction } from "../actions/polymarketDeskReport.action";
 import type { IAgentRuntime, Memory } from "@elizaos/core";
 
-function createMockRuntime(overrides: Partial<{
-  getConnection: () => Promise<unknown>;
-}> = {}): IAgentRuntime {
+function createMockRuntime(
+  overrides: Partial<{
+    getConnection: () => Promise<unknown>;
+  }> = {},
+): IAgentRuntime {
   return {
     getConnection: overrides.getConnection ?? (async () => null),
     agentId: "perf-agent",
@@ -30,17 +32,52 @@ describe("plugin-polymarket-desk: POLYMARKET_DESK_REPORT", () => {
 
   it("validate returns true for desk report / performance phrases", async () => {
     const runtime = createMockRuntime();
-    expect(await polymarketDeskReportAction.validate!(runtime, createMessage("desk report"))).toBe(true);
-    expect(await polymarketDeskReportAction.validate!(runtime, createMessage("polymarket report"))).toBe(true);
-    expect(await polymarketDeskReportAction.validate!(runtime, createMessage("show me TCA"))).toBe(true);
-    expect(await polymarketDeskReportAction.validate!(runtime, createMessage("fill rate"))).toBe(true);
-    expect(await polymarketDeskReportAction.validate!(runtime, createMessage("how did the desk do"))).toBe(true);
-    expect(await polymarketDeskReportAction.validate!(runtime, createMessage("performance report"))).toBe(true);
+    expect(
+      await polymarketDeskReportAction.validate!(
+        runtime,
+        createMessage("desk report"),
+      ),
+    ).toBe(true);
+    expect(
+      await polymarketDeskReportAction.validate!(
+        runtime,
+        createMessage("polymarket report"),
+      ),
+    ).toBe(true);
+    expect(
+      await polymarketDeskReportAction.validate!(
+        runtime,
+        createMessage("show me TCA"),
+      ),
+    ).toBe(true);
+    expect(
+      await polymarketDeskReportAction.validate!(
+        runtime,
+        createMessage("fill rate"),
+      ),
+    ).toBe(true);
+    expect(
+      await polymarketDeskReportAction.validate!(
+        runtime,
+        createMessage("how did the desk do"),
+      ),
+    ).toBe(true);
+    expect(
+      await polymarketDeskReportAction.validate!(
+        runtime,
+        createMessage("performance report"),
+      ),
+    ).toBe(true);
   });
 
   it("validate returns false for unrelated message", async () => {
     const runtime = createMockRuntime();
-    expect(await polymarketDeskReportAction.validate!(runtime, createMessage("hello world"))).toBe(false);
+    expect(
+      await polymarketDeskReportAction.validate!(
+        runtime,
+        createMessage("hello world"),
+      ),
+    ).toBe(false);
   });
 
   it("handler reports error when database connection not available", async () => {
@@ -85,8 +122,7 @@ describe("plugin-polymarket-desk: POLYMARKET_DESK_REPORT", () => {
                 { status: "pending", cnt: "1" },
               ],
             };
-          if (sql.includes("signals"))
-            return { rows: [{ cnt: "3" }] };
+          if (sql.includes("signals")) return { rows: [{ cnt: "3" }] };
           return { rows: [] };
         },
       }),

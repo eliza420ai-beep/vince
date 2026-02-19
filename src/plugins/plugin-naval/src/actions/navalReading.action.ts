@@ -35,7 +35,10 @@ export const navalReadingAction: Action = {
   description:
     "Recommends books or a short reading list in Naval's spirit: foundational, understanding over volume, long-term. Can tailor to topic (wealth, happiness, history, science).",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsReading(text);
   },
@@ -69,7 +72,7 @@ Context (knowledge/naval if any):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -77,13 +80,19 @@ Context (knowledge/naval if any):\n${contextBlock}`;
       await callback({
         text: "Read what you love until you love to read. Then: Sapiens (Harari), Meditations (Aurelius), Antifragile (Taleb), The Almanack of Naval Ravikant. One at a time. For understanding.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "What should I read for wealth and happiness?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What should I read for wealth and happiness?" },
+      },
       {
         name: "{{agent}}",
         content: {

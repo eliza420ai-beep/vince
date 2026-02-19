@@ -13,14 +13,11 @@ import { getAlerts } from "../lib/getAlerts";
 
 export const proactiveAlertsProvider: Provider = {
   name: "OTAKU_PROACTIVE_ALERTS",
-  description: "Liquidation risk, stop-loss proximity, DCA progress, and gas context",
+  description:
+    "Liquidation risk, stop-loss proximity, DCA progress, and gas context",
   position: 10,
 
-  get: async (
-    runtime: IAgentRuntime,
-    _message: Memory,
-    _state?: State
-  ) => {
+  get: async (runtime: IAgentRuntime, _message: Memory, _state?: State) => {
     const alerts = await getAlerts(runtime);
     if (alerts.length === 0) {
       return { text: "" };

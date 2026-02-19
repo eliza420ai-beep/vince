@@ -2,7 +2,7 @@
 
 **TL;DR** — This plugin turns your multi-agent stack into **one team**: any agent can ask any other by name (ASK_AGENT), and a **Kelly-led standup** runs a real round-robin (VINCE → Eliza → ECHO → … → Clawterm), synthesizes a **Day Report** (TL;DR, essential question, signals, action table), and feeds a **Ralph loop** that executes action items one-by-one with verify-and-learn.
 
-**1+1=3 in practice:** Standup isn't just eight agents talking — it's **structured signal extraction** (each report ends with a parseable JSON block so cross-agent validation uses real numbers, not regex), **prediction tracking** (Solus's calls are saved to `predictions.json`, validated at expiry against live price, and accuracy is fed back into the next kickoff and Day Report), **dynamic ECHO** (X search adapts to what VINCE found — e.g. "SOL funding flipped" → ECHO searches SOL sentiment), **per-agent insight caps** (VINCE gets 1200 chars, Oracle 800, so data-rich reports aren't truncated mid-table), **Eliza as delta reporter** (yesterday's Day Report vs today's shared insights so the room sees what changed and whether yesterday's call is tracking), and a **feedback loop** (prediction scoreboard in the kickoff, "adjust your confidence" in Solus's template, and "historical accuracy: X%" in the Day Report prompt). That's how the team gets smarter than the sum of parts — and how you *prove* it (accuracy >55% with real calibration).
+**1+1=3 in practice:** Standup isn't just eight agents talking — it's **structured signal extraction** (each report ends with a parseable JSON block so cross-agent validation uses real numbers, not regex), **prediction tracking** (Solus's calls are saved to `predictions.json`, validated at expiry against live price, and accuracy is fed back into the next kickoff and Day Report), **dynamic ECHO** (X search adapts to what VINCE found — e.g. "SOL funding flipped" → ECHO searches SOL sentiment), **per-agent insight caps** (VINCE gets 1200 chars, Oracle 800, so data-rich reports aren't truncated mid-table), **Eliza as delta reporter** (yesterday's Day Report vs today's shared insights so the room sees what changed and whether yesterday's call is tracking), and a **feedback loop** (prediction scoreboard in the kickoff, "adjust your confidence" in Solus's template, and "historical accuracy: X%" in the Day Report prompt). That's how the team gets smarter than the sum of parts — and how you _prove_ it (accuracy >55% with real calibration).
 
 Why it's reliable: **single-responder** in standup (only Kelly answers the human → no PGLite deadlock); **round-robin passthrough** so coordinator messages reach each agent; **entity-ID human detection** when Discord omits names; **kickoff-first** so the channel isn't stuck on "typing"; **shared daily insights** before the meeting; **A2A loop guard** so agents don't ping-pong forever. One human says "let's do a new standup kelly" and the whole team reports, gets a report, and gets a backlog that actually runs.
 
@@ -134,17 +134,17 @@ One agent asks another by name; the answer is relayed back. Resolution: in-proce
 
 Standup is turn-based. **Kelly** kicks off and acts only as coordinator (very short; transitions like "@VINCE, go."). Turn order is fixed: **VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Clawterm** → Kelly synthesizes the **Day Report**. The **scheduled** standup uses a short Kelly-style kickoff; the **manual** path is triggered by "wrap up" / "day report" etc.
 
-| Agent   | Role during standup |
-|--------|----------------------|
-| **Kelly**   | Coordinator only. Keeps it very short; no commentary or summaries between agents. |
-| **VINCE**   | Most accurate data and recent news. Reports paper trading bot results for perps on Hyperliquid. |
-| **Eliza**   | Mostly listening. Reports knowledge gaps, essay ideas (Ikigai Studio Substack), research to upload to `knowledge/`. |
-| **ECHO**    | Insights from X (plugin-x-research): sentiment, key voices, narrative. |
-| **Oracle**  | Live Polymarket priority markets (YES%, condition_id). Real-time odds via GET_POLYMARKET_PRICE. |
-| **Solus**   | Does most of the thinking. Answers the **essential question** (e.g. BTC above $70K by next Friday?) using prior reports; Grok-style: data, sentiment, Polymarket, clear Yes/No, short-term path. Options settle Friday 08:00 UTC (Hypersurface). |
-| **Otaku**   | Under construction. Brief status; agent with wallet (Bankr, Coinbase) and DeFi skills. |
-| **Sentinel**| What's next in coding and what's been pushed to the repo. |
-| **Clawterm**| OpenClaw/AI/AGI: X and web sentiment, gateway status, one clear take. |
+| Agent        | Role during standup                                                                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Kelly**    | Coordinator only. Keeps it very short; no commentary or summaries between agents.                                                                                                                                                                |
+| **VINCE**    | Most accurate data and recent news. Reports paper trading bot results for perps on Hyperliquid.                                                                                                                                                  |
+| **Eliza**    | Mostly listening. Reports knowledge gaps, essay ideas (Ikigai Studio Substack), research to upload to `knowledge/`.                                                                                                                              |
+| **ECHO**     | Insights from X (plugin-x-research): sentiment, key voices, narrative.                                                                                                                                                                           |
+| **Oracle**   | Live Polymarket priority markets (YES%, condition_id). Real-time odds via GET_POLYMARKET_PRICE.                                                                                                                                                  |
+| **Solus**    | Does most of the thinking. Answers the **essential question** (e.g. BTC above $70K by next Friday?) using prior reports; Grok-style: data, sentiment, Polymarket, clear Yes/No, short-term path. Options settle Friday 08:00 UTC (Hypersurface). |
+| **Otaku**    | Under construction. Brief status; agent with wallet (Bankr, Coinbase) and DeFi skills.                                                                                                                                                           |
+| **Sentinel** | What's next in coding and what's been pushed to the repo.                                                                                                                                                                                        |
+| **Clawterm** | OpenClaw/AI/AGI: X and web sentiment, gateway status, one clear take.                                                                                                                                                                            |
 
 The **Day Report** includes: **Essential question**, **Solus's call** (Above/Below/Uncertain + one sentence), TL;DR, signals table, and an action plan table (WHAT / HOW / WHY / OWNER). Full behavior and quality bar are in `docs/standup/prds/` (e.g. 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md).
 
@@ -164,13 +164,13 @@ Core idea: each agent has certain skills; by making them collaborate in a struct
 
 The strongest case is **cross-domain signal convergence and divergence**. Each agent taps a different data source that a single agent can’t hold in context at once:
 
-| Agent | Data source | What it uniquely contributes |
-|-------|-------------|------------------------------|
-| **VINCE** | Hyperliquid API | Funding rates, open interest, liquidation data — hard numbers, not vibes |
-| **ECHO** | X/Twitter (plugin-x-research) | Narrative shifts, key-voice sentiment, CT mood |
-| **Oracle** | Polymarket API | Prediction market odds — the market’s probabilistic view |
-| **Solus** | All of the above + prior reports | Synthesis into a binary call with confidence |
-| **Sentinel** | Git repo / code | What’s actually shipping (execution reality check) |
+| Agent        | Data source                      | What it uniquely contributes                                             |
+| ------------ | -------------------------------- | ------------------------------------------------------------------------ |
+| **VINCE**    | Hyperliquid API                  | Funding rates, open interest, liquidation data — hard numbers, not vibes |
+| **ECHO**     | X/Twitter (plugin-x-research)    | Narrative shifts, key-voice sentiment, CT mood                           |
+| **Oracle**   | Polymarket API                   | Prediction market odds — the market’s probabilistic view                 |
+| **Solus**    | All of the above + prior reports | Synthesis into a binary call with confidence                             |
+| **Sentinel** | Git repo / code                  | What’s actually shipping (execution reality check)                       |
 
 The multiplication happens when **synthesis crosses domains that don’t normally talk**. Example: VINCE reports “SOL funding just flipped negative”; ECHO reports “CT sentiment shifted from bullish to uncertain”; Oracle reports “SOL above $150 dropped from 65% to 42%.” No single agent sees all three. Solus can say: “Three independent signals align bearish short-term. Below, 70% confidence.” That’s a concrete, actionable insight no single agent could produce. When signals **diverge** (e.g. VINCE bullish on funding but ECHO says CT is souring), that tension is the most valuable output — the “something doesn’t add up” signal. The **cross-agent validation** (already in the plugin) is where that edge lives: it extracts bullish/bearish per asset, flags divergence, and adjusts confidence.
 
@@ -211,14 +211,14 @@ Action items from the Day Report (WHAT/HOW/WHY/OWNER table) are the single backl
 ### Ralph loop task
 
 - **Task name:** `STANDUP_RALPH_LOOP`. Registered only on the standup coordinator (e.g. Kelly). Runs on an interval (default 5 min).
-- **Each run:**  
-  1. `getPendingActionItems()` (status `new` or `in_progress`).  
-  2. Sort by `priority` (asc), then `createdAt`. Take the first item.  
-  3. Set status `in_progress`.  
-  4. **Execute:** Build/north-star → `executeBuildActionItem` (Milaidy Gateway or in-VINCE fallback); Remind → `handleMessage` to assignee agent. Type is inferred from item text (e.g. "remind", "ping", "follow up" → remind).  
-  5. **Verify:** For build/north-star, deliverable path must exist and be non-empty; for remind, success after message sent.  
-  6. Update item: `done` (with outcome) or `failed` (with message).  
-  7. **Learnings:** Append one entry to `docs/standup/standup-learnings.md` (date, status, owner, what, outcome, optional learning sentence).  
+- **Each run:**
+  1. `getPendingActionItems()` (status `new` or `in_progress`).
+  2. Sort by `priority` (asc), then `createdAt`. Take the first item.
+  3. Set status `in_progress`.
+  4. **Execute:** Build/north-star → `executeBuildActionItem` (Milaidy Gateway or in-VINCE fallback); Remind → `handleMessage` to assignee agent. Type is inferred from item text (e.g. "remind", "ping", "follow up" → remind).
+  5. **Verify:** For build/north-star, deliverable path must exist and be non-empty; for remind, success after message sent.
+  6. Update item: `done` (with outcome) or `failed` (with message).
+  7. **Learnings:** Append one entry to `docs/standup/standup-learnings.md` (date, status, owner, what, outcome, optional learning sentence).
   8. Optionally push a one-line summary to standup channels (Discord/Slack/Telegram).
 
 So: one item per run, in priority order, with verification and a persistent "what we learned" log.
@@ -236,33 +236,33 @@ When **STANDUP_USE_RALPH_LOOP** is `false`, the plugin creates one ElizaOS queue
 
 ## Standup schedule and env
 
-| Env | Default | Description |
-|-----|--------|--------------|
-| `STANDUP_ENABLED` | — | Set to `"true"` to enable standup. |
-| `STANDUP_COORDINATOR_AGENT` | `Kelly` | Agent that registers the task and facilitates. |
-| `STANDUP_UTC_HOURS` | `9` | Comma-separated UTC hours (e.g. `"9"` = 09:00 daily, `"9,21"` = twice daily). **Runs every day including weekend** — no weekday-only filter. |
-| `STANDUP_INTERVAL_MS` | `3600000` | Interval (ms) between schedule checks for the main standup task (1h). |
-| `STANDUP_SCHEDULE` | `0 8 * * *` | Cron expression for scheduler (minute hour * * *). Used when STANDUP_AUTO_START is true. |
-| `STANDUP_AUTO_START` | `false` | Set to `"true"` to enable cron-style auto kickoff at STANDUP_SCHEDULE. |
-| `STANDUP_TIMEZONE` | `UTC` | Timezone for schedule (scheduler). |
-| `STANDUP_DELIVERABLES_DIR` | `docs/standup` | Root dir for day reports, action-items.json, standup-learnings.md, north-star deliverables (prds/, essays/, etc.). |
-| `STANDUP_RALPH_INTERVAL_MS` | `300000` | Ralph loop interval (ms). Process one action item per run (default 5 min). |
-| `STANDUP_USE_RALPH_LOOP` | `true` | When true, backlog is processed only by the Ralph loop; when false, legacy per-item queue tasks are created. |
-| `STANDUP_BUILD_FALLBACK_TO_VINCE` | `true` | When Milaidy Gateway is not set, generate code/deliverables in-VINCE and write to deliverables dir. |
-| `MILAIDY_GATEWAY_URL` | — | Optional. When set, build action items are POSTed to `{url}/api/standup-action`. |
-| `STANDUP_TRANSCRIPT_LIMIT` | `8000` | Max chars of transcript sent to LLM for parse (action items, lessons, disagreements). |
-| `STANDUP_SESSION_TIMEOUT_MS` | `1800000` | Session timeout (30 min). Inactivity/skip: `STANDUP_INACTIVITY_TIMEOUT_MS`, `STANDUP_SKIP_TIMEOUT_MS`. |
-| `STANDUP_AGENT_TURN_TIMEOUT_MS` | `90000` | Agent turn timeout for round-robin (90s). |
-| `STANDUP_RESPONSE_DELAY_MS` | `2000` | Delay (ms) between agent turns to reduce rate limits. |
-| `STANDUP_INACTIVITY_TIMEOUT_MS` | `300000` | Skip agent if no response within this (5 min). |
-| `STANDUP_SKIP_TIMEOUT_MS` | (same as inactivity) | Timeout before marking agent skipped. |
-| `STANDUP_TRACKED_ASSETS` | `BTC,SOL,HYPE` | Comma-separated assets for cross-agent signal validation. |
-| `STANDUP_SNIPPET_LEN` | `120` | Max snippet length for X/tweet context. |
-| `ESSENTIAL_STANDUP_BTC_LEVEL` | `70K` | Level for essential question (e.g. "BTC above $70K by next Friday?"). |
-| `STANDUP_HUMAN_NAME` | `livethelifetv` | Human display name in standup prompts and review context. |
-| `STANDUP_HUMAN_DISCORD_ID` | `711974052322869322` | Discord user ID for @mention pings (e.g. wrap-up fallback). |
-| `A2A_KNOWN_HUMANS` | `livethelifetv,ikigai` | Comma-separated usernames that get priority response in standup/A2A. |
-| `A2A_STANDUP_DISCORD_MENTION_IDS` | — | Optional. JSON or `name:id,name:id` for @mention in standup (e.g. `vince:123,clawterm:456`). Per-agent `VINCE_DISCORD_BOT_USER_ID` etc. also supported. |
+| Env                               | Default                | Description                                                                                                                                             |
+| --------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STANDUP_ENABLED`                 | —                      | Set to `"true"` to enable standup.                                                                                                                      |
+| `STANDUP_COORDINATOR_AGENT`       | `Kelly`                | Agent that registers the task and facilitates.                                                                                                          |
+| `STANDUP_UTC_HOURS`               | `9`                    | Comma-separated UTC hours (e.g. `"9"` = 09:00 daily, `"9,21"` = twice daily). **Runs every day including weekend** — no weekday-only filter.            |
+| `STANDUP_INTERVAL_MS`             | `3600000`              | Interval (ms) between schedule checks for the main standup task (1h).                                                                                   |
+| `STANDUP_SCHEDULE`                | `0 8 * * *`            | Cron expression for scheduler (minute hour \* \* \*). Used when STANDUP_AUTO_START is true.                                                             |
+| `STANDUP_AUTO_START`              | `false`                | Set to `"true"` to enable cron-style auto kickoff at STANDUP_SCHEDULE.                                                                                  |
+| `STANDUP_TIMEZONE`                | `UTC`                  | Timezone for schedule (scheduler).                                                                                                                      |
+| `STANDUP_DELIVERABLES_DIR`        | `docs/standup`         | Root dir for day reports, action-items.json, standup-learnings.md, north-star deliverables (prds/, essays/, etc.).                                      |
+| `STANDUP_RALPH_INTERVAL_MS`       | `300000`               | Ralph loop interval (ms). Process one action item per run (default 5 min).                                                                              |
+| `STANDUP_USE_RALPH_LOOP`          | `true`                 | When true, backlog is processed only by the Ralph loop; when false, legacy per-item queue tasks are created.                                            |
+| `STANDUP_BUILD_FALLBACK_TO_VINCE` | `true`                 | When Milaidy Gateway is not set, generate code/deliverables in-VINCE and write to deliverables dir.                                                     |
+| `MILAIDY_GATEWAY_URL`             | —                      | Optional. When set, build action items are POSTed to `{url}/api/standup-action`.                                                                        |
+| `STANDUP_TRANSCRIPT_LIMIT`        | `8000`                 | Max chars of transcript sent to LLM for parse (action items, lessons, disagreements).                                                                   |
+| `STANDUP_SESSION_TIMEOUT_MS`      | `1800000`              | Session timeout (30 min). Inactivity/skip: `STANDUP_INACTIVITY_TIMEOUT_MS`, `STANDUP_SKIP_TIMEOUT_MS`.                                                  |
+| `STANDUP_AGENT_TURN_TIMEOUT_MS`   | `90000`                | Agent turn timeout for round-robin (90s).                                                                                                               |
+| `STANDUP_RESPONSE_DELAY_MS`       | `2000`                 | Delay (ms) between agent turns to reduce rate limits.                                                                                                   |
+| `STANDUP_INACTIVITY_TIMEOUT_MS`   | `300000`               | Skip agent if no response within this (5 min).                                                                                                          |
+| `STANDUP_SKIP_TIMEOUT_MS`         | (same as inactivity)   | Timeout before marking agent skipped.                                                                                                                   |
+| `STANDUP_TRACKED_ASSETS`          | `BTC,SOL,HYPE`         | Comma-separated assets for cross-agent signal validation.                                                                                               |
+| `STANDUP_SNIPPET_LEN`             | `120`                  | Max snippet length for X/tweet context.                                                                                                                 |
+| `ESSENTIAL_STANDUP_BTC_LEVEL`     | `70K`                  | Level for essential question (e.g. "BTC above $70K by next Friday?").                                                                                   |
+| `STANDUP_HUMAN_NAME`              | `livethelifetv`        | Human display name in standup prompts and review context.                                                                                               |
+| `STANDUP_HUMAN_DISCORD_ID`        | `711974052322869322`   | Discord user ID for @mention pings (e.g. wrap-up fallback).                                                                                             |
+| `A2A_KNOWN_HUMANS`                | `livethelifetv,ikigai` | Comma-separated usernames that get priority response in standup/A2A.                                                                                    |
+| `A2A_STANDUP_DISCORD_MENTION_IDS` | —                      | Optional. JSON or `name:id,name:id` for @mention in standup (e.g. `vince:123,clawterm:456`). Per-agent `VINCE_DISCORD_BOT_USER_ID` etc. also supported. |
 
 Day reports are written to `{STANDUP_DELIVERABLES_DIR}/day-reports/YYYY-MM-DD-day-report.md`. Manifest and metrics: `manifest.md`, `standup-metrics.jsonl` in the same dir.
 
@@ -270,15 +270,15 @@ Day reports are written to `{STANDUP_DELIVERABLES_DIR}/day-reports/YYYY-MM-DD-da
 
 **Optional schedule (cron-style):** Besides `STANDUP_UTC_HOURS` + `STANDUP_INTERVAL_MS`, you can use **STANDUP_SCHEDULE** (cron, e.g. `0 8 * * *` = 8 AM UTC daily), **STANDUP_AUTO_START** (`true` to enable), and **STANDUP_TIMEZONE** (default `UTC`). The scheduler uses a ±1 minute window so triggers are not missed.
 
-**Testing a standup:** In Discord (or your standup channel), the human (e.g. livethelifetv) can trigger manually: *"let's do a new standup kelly"* or *"day report"* / *"wrap up"*. Kelly should reply with STANDUP_FACILITATE: kickoff, round-robin (VINCE → Eliza → … → Clawterm), then Day Report + action items. Check: (1) only Kelly responds to the human in the standup channel (single-responder), (2) Day Report appears in `docs/standup/day-reports/YYYY-MM-DD-day-report.md`, (3) action items in `action-items.json` and Ralph loop processes them when enabled.
+**Testing a standup:** In Discord (or your standup channel), the human (e.g. livethelifetv) can trigger manually: _"let's do a new standup kelly"_ or _"day report"_ / _"wrap up"_. Kelly should reply with STANDUP_FACILITATE: kickoff, round-robin (VINCE → Eliza → … → Clawterm), then Day Report + action items. Check: (1) only Kelly responds to the human in the standup channel (single-responder), (2) Day Report appears in `docs/standup/day-reports/YYYY-MM-DD-day-report.md`, (3) action items in `action-items.json` and Ralph loop processes them when enabled.
 
 ---
 
 ## Manual standup trigger: implementation notes
 
-The following fixes were applied so that a human saying *"let's do a new standup kelly"* in `#daily-standup` reliably triggers Kelly to run **STANDUP_FACILITATE** (kickoff → round-robin → Day Report). Documented for maintainers and debugging.
+The following fixes were applied so that a human saying _"let's do a new standup kelly"_ in `#daily-standup` reliably triggers Kelly to run **STANDUP_FACILITATE** (kickoff → round-robin → Day Report). Documented for maintainers and debugging.
 
-### 1. PGLite deadlock (only Kelly processes *external* standup messages)
+### 1. PGLite deadlock (only Kelly processes _external_ standup messages)
 
 **Problem:** When a message hits `#daily-standup`, every agent (VINCE, Eliza, Kelly, etc.) receives it. Each runs `processMessage`: `createMemory`, `ensureAllAgentsInRoom`, `ensureMessageSendersInRoom`. With 7+ agents doing concurrent DB writes against a single PGLite instance, they deadlock — all show "typing", none complete.
 
@@ -310,7 +310,7 @@ The following fixes were applied so that a human saying *"let's do a new standup
 
 ### 5. A2A prompt + message override for standup kickoff
 
-The provider returns a strong instruction when a human asks to start the standup: *"Regardless of time of day, day of week, or how many times they asked: the user explicitly requested a standup. You MUST use action STANDUP_FACILITATE and NO other action..."* In addition, **Kelly's handleMessage wrapper** replaces the user's message text with a short imperative (*"Run the daily standup now. Use only action STANDUP_FACILITATE. Do not use REPLY."*) when the message is in a standup channel and matches a kickoff phrase (e.g. "let's do a new standup kelly"). That way the LLM doesn't see the original wording and reason about "weekend" or "18th request" and output REPLY instead of STANDUP_FACILITATE.
+The provider returns a strong instruction when a human asks to start the standup: _"Regardless of time of day, day of week, or how many times they asked: the user explicitly requested a standup. You MUST use action STANDUP_FACILITATE and NO other action..."_ In addition, **Kelly's handleMessage wrapper** replaces the user's message text with a short imperative (_"Run the daily standup now. Use only action STANDUP_FACILITATE. Do not use REPLY."_) when the message is in a standup channel and matches a kickoff phrase (e.g. "let's do a new standup kelly"). That way the LLM doesn't see the original wording and reason about "weekend" or "18th request" and output REPLY instead of STANDUP_FACILITATE.
 
 ### 6. Kelly timeout wrapper
 
@@ -318,7 +318,7 @@ Kelly's `handleMessage` wrapper applies a timeout so a stuck run fails visibly. 
 
 ### 7. Round-robin: agents must process coordinator messages
 
-**Problem:** With the standup skip patch, non-Kelly agents were dropping *all* messages in standup rooms. That included the **round-robin** messages Kelly sends via `eliza.handleMessage(agentId, userMsg)` with the transcript. So VINCE, Eliza, ECHO, etc. never processed the "your turn" message and replied with 0 chars.
+**Problem:** With the standup skip patch, non-Kelly agents were dropping _all_ messages in standup rooms. That included the **round-robin** messages Kelly sends via `eliza.handleMessage(agentId, userMsg)` with the transcript. So VINCE, Eliza, ECHO, etc. never processed the "your turn" message and replied with 0 chars.
 
 **Fix:** The skip patch only skips when the message is **not** from the coordinator. Round-robin messages use `content.source = "standup"`. If `message.content.source === "standup"`, the patch allows the message through so the agent runs its REPLY and the standup gets real report text.
 
@@ -332,21 +332,21 @@ Kelly's `handleMessage` wrapper applies a timeout so a stuck run fails visibly. 
 
 **Problem:** `buildAndSaveSharedDailyInsights` calls `eliza.getAgents()`; in core, that does `Array.from(this.runtimes.values())`. If the object attached to `runtime.elizaOS` doesn't have `runtimes` (stub or wrong binding), it throws "Cannot read properties of undefined (reading 'runtimes')".
 
-**Fix:** Before calling `getAgents()`, we check that `eliza.runtimes` exists and has a `.values` function; if not, we skip shared insights with a debug log. We call `eliza.getAgents.call(eliza)` for correct `this`. **.env:** Each agent must have its **own** Discord app (e.g. `CLAWTERM_DISCORD_APPLICATION_ID` / `CLAWTERM_DISCORD_API_TOKEN` for Clawterm). Reusing another agent's vars (e.g. SENTINEL_* for Clawterm) can leave the in-process registry in a bad state. Standup continues with the short kickoff when shared insights are skipped.
+**Fix:** Before calling `getAgents()`, we check that `eliza.runtimes` exists and has a `.values` function; if not, we skip shared insights with a debug log. We call `eliza.getAgents.call(eliza)` for correct `this`. **.env:** Each agent must have its **own** Discord app (e.g. `CLAWTERM_DISCORD_APPLICATION_ID` / `CLAWTERM_DISCORD_API_TOKEN` for Clawterm). Reusing another agent's vars (e.g. SENTINEL\_\* for Clawterm) can leave the in-process registry in a bad state. Standup continues with the short kickoff when shared insights are skipped.
 
 ### Summary
 
-| Layer | Issue | Fix |
-|-------|--------|-----|
-| Concurrency | All agents process external msg → PGLite deadlock | Non-Kelly: skip only *external* standup-room messages; allow `source: "standup"` (round-robin) |
-| Core shouldRespond | GROUP + no mention → LLM eval → IGNORE | Kelly: inject isMention for standup channel messages |
-| A2A classification | Empty sender name → treated as agent | Entity-ID check: not in agent set → human |
-| Kickoff timing | Shared insights before callback → typing forever | Send short kickoff first, then build shared insights |
-| LLM choice | REPLY instead of STANDUP_FACILITATE | Strong A2A prompt + kickoff message text override (imperative) |
-| Kelly timeout | 120s killed full standup | Standup channel: use STANDUP_SESSION_TIMEOUT_MS (30 min); else 120s |
-| Round-robin 0 chars | Skip patch blocked coordinator messages | Passthrough when `message.content.source === "standup"` |
-| Reply extraction | First callback had no text; missed REPLY callback | Accumulate last extracted; thought fallback; nested content; resolve on timeout with last |
-| Shared insights | getAgents() → runtimes undefined | Guard on eliza.runtimes; skip cleanly; per-agent Discord in .env |
+| Layer               | Issue                                             | Fix                                                                                            |
+| ------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Concurrency         | All agents process external msg → PGLite deadlock | Non-Kelly: skip only _external_ standup-room messages; allow `source: "standup"` (round-robin) |
+| Core shouldRespond  | GROUP + no mention → LLM eval → IGNORE            | Kelly: inject isMention for standup channel messages                                           |
+| A2A classification  | Empty sender name → treated as agent              | Entity-ID check: not in agent set → human                                                      |
+| Kickoff timing      | Shared insights before callback → typing forever  | Send short kickoff first, then build shared insights                                           |
+| LLM choice          | REPLY instead of STANDUP_FACILITATE               | Strong A2A prompt + kickoff message text override (imperative)                                 |
+| Kelly timeout       | 120s killed full standup                          | Standup channel: use STANDUP_SESSION_TIMEOUT_MS (30 min); else 120s                            |
+| Round-robin 0 chars | Skip patch blocked coordinator messages           | Passthrough when `message.content.source === "standup"`                                        |
+| Reply extraction    | First callback had no text; missed REPLY callback | Accumulate last extracted; thought fallback; nested content; resolve on timeout with last      |
+| Shared insights     | getAgents() → runtimes undefined                  | Guard on eliza.runtimes; skip cleanly; per-agent Discord in .env                               |
 
 ---
 
@@ -357,15 +357,15 @@ Two pieces work together to control agent-to-agent chat:
 1. **A2A_LOOP_GUARD** evaluator (`src/evaluators/a2aLoopGuard.evaluator.ts`) — Prevents infinite loops when agents reply to each other (e.g. in Discord). Runs only on messages from known agents/bots. Enforces: (a) **Reply-to-self (ping-pong):** do not respond to a reply to our own message; (b) **Max exchanges:** do not respond if we have already replied to this sender N times in the last `A2A_LOOKBACK_MESSAGES` messages.
 2. **A2A_CONTEXT** provider (`src/providers/a2aContext.provider.ts`) — Injects context into the agent's state so the LLM knows: standup turn-taking (only respond when called), human priority (known humans get immediate response), exchange limits, and when to IGNORE (e.g. non-facilitator in standup when a human speaks). In standup channels only the **single responder** (e.g. Kelly) replies to human messages; others get "IGNORE".
 
-| Env | Default | Description |
-|-----|--------|--------------|
-| `A2A_ENABLED` | `true` | Set to `"false"` to disable the loop guard. |
-| `A2A_MAX_EXCHANGES` | `2` | Max replies to the same agent in recent history (non-standup). |
-| `A2A_LOOKBACK_MESSAGES` | `10` | How many messages to look back when counting exchanges. |
-| `A2A_STANDUP_MAX_EXCHANGES` | `1` | In standup channels, max exchanges (stricter cap). |
-| `A2A_STANDUP_CHANNEL_NAMES` | `standup,daily-standup` | Comma-separated channel name substrings that identify standup rooms. |
-| `A2A_STANDUP_SINGLE_RESPONDER` | `Kelly` | Only this agent responds to human messages in standup channels (or use `STANDUP_COORDINATOR_AGENT`). |
-| `A2A_KNOWLEDGE_CHANNEL_NAMES` | `knowledge` | In these channels, A2A exchange limits are not applied; UPLOAD always allowed. |
+| Env                            | Default                 | Description                                                                                          |
+| ------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| `A2A_ENABLED`                  | `true`                  | Set to `"false"` to disable the loop guard.                                                          |
+| `A2A_MAX_EXCHANGES`            | `2`                     | Max replies to the same agent in recent history (non-standup).                                       |
+| `A2A_LOOKBACK_MESSAGES`        | `10`                    | How many messages to look back when counting exchanges.                                              |
+| `A2A_STANDUP_MAX_EXCHANGES`    | `1`                     | In standup channels, max exchanges (stricter cap).                                                   |
+| `A2A_STANDUP_CHANNEL_NAMES`    | `standup,daily-standup` | Comma-separated channel name substrings that identify standup rooms.                                 |
+| `A2A_STANDUP_SINGLE_RESPONDER` | `Kelly`                 | Only this agent responds to human messages in standup channels (or use `STANDUP_COORDINATOR_AGENT`). |
+| `A2A_KNOWLEDGE_CHANNEL_NAMES`  | `knowledge`             | In these channels, A2A exchange limits are not applied; UPLOAD always allowed.                       |
 
 ---
 
@@ -421,13 +421,13 @@ If the reply is emitted with a different channel, the job’s responseHandler wi
 
 ## Plugin structure (for maintainers)
 
-| Area | Location | Purpose |
-|------|----------|---------|
-| **Actions** | `src/actions/` | `askAgent.action.ts`, `dailyReport.action.ts`, `standupFacilitator.action.ts` |
-| **Evaluators** | `src/evaluators/` | `a2aLoopGuard.evaluator.ts` |
-| **Providers** | `src/providers/` | `a2aContext.provider.ts` (standup turn-taking, human priority, exchange limits) |
-| **Standup core** | `src/standup/` | `standup.constants.ts`, `standupState.ts`, `standupOrchestrator.ts`, `standup.tasks.ts`, `standupScheduler.ts` |
-| **Day Report** | `src/standup/` | `standupDayReport.ts`, `standup.parse.ts`, `dayReportPersistence.ts`, `standupReports.ts` |
-| **Action items** | `src/standup/` | `actionItemTracker.ts`, `standupPlanner.ts`, `standupVerifier.ts`, `standupLearnings.ts`, `standup.build.ts` |
-| **Data / validation** | `src/standup/` | `standupDataFetcher.ts`, `standupData.service.ts`, `crossAgentValidation.ts` |
-| **Predictions** | `src/standup/` | `predictionTracker.ts` (save/validate Solus calls, scoreboard, accuracy) |
+| Area                  | Location          | Purpose                                                                                                        |
+| --------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Actions**           | `src/actions/`    | `askAgent.action.ts`, `dailyReport.action.ts`, `standupFacilitator.action.ts`                                  |
+| **Evaluators**        | `src/evaluators/` | `a2aLoopGuard.evaluator.ts`                                                                                    |
+| **Providers**         | `src/providers/`  | `a2aContext.provider.ts` (standup turn-taking, human priority, exchange limits)                                |
+| **Standup core**      | `src/standup/`    | `standup.constants.ts`, `standupState.ts`, `standupOrchestrator.ts`, `standup.tasks.ts`, `standupScheduler.ts` |
+| **Day Report**        | `src/standup/`    | `standupDayReport.ts`, `standup.parse.ts`, `dayReportPersistence.ts`, `standupReports.ts`                      |
+| **Action items**      | `src/standup/`    | `actionItemTracker.ts`, `standupPlanner.ts`, `standupVerifier.ts`, `standupLearnings.ts`, `standup.build.ts`   |
+| **Data / validation** | `src/standup/`    | `standupDataFetcher.ts`, `standupData.service.ts`, `crossAgentValidation.ts`                                   |
+| **Predictions**       | `src/standup/`    | `predictionTracker.ts` (save/validate Solus calls, scoreboard, accuracy)                                       |

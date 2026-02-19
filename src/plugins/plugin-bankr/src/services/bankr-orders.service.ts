@@ -16,7 +16,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
-  timeoutMs: number = REQUEST_TIMEOUT_MS
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -27,7 +27,9 @@ async function fetchWithTimeout(
   } catch (e) {
     clearTimeout(id);
     if (e instanceof Error && e.name === "AbortError") {
-      throw new Error(`Bankr Orders API request timed out after ${timeoutMs}ms`);
+      throw new Error(
+        `Bankr Orders API request timed out after ${timeoutMs}ms`,
+      );
     }
     throw e;
   }
@@ -41,8 +43,14 @@ export class BankrOrdersService extends Service {
 
   constructor(runtime: IAgentRuntime) {
     super(runtime);
-    this.apiUrl = (runtime.getSetting("BANKR_ORDER_URL") as string) || process.env.BANKR_ORDER_URL || DEFAULT_ORDER_URL;
-    this.apiKey = (runtime.getSetting("BANKR_API_KEY") as string)?.trim() || (process.env.BANKR_API_KEY as string)?.trim() || "";
+    this.apiUrl =
+      (runtime.getSetting("BANKR_ORDER_URL") as string) ||
+      process.env.BANKR_ORDER_URL ||
+      DEFAULT_ORDER_URL;
+    this.apiKey =
+      (runtime.getSetting("BANKR_API_KEY") as string)?.trim() ||
+      (process.env.BANKR_API_KEY as string)?.trim() ||
+      "";
   }
 
   get capabilityDescription(): string {
@@ -64,22 +72,24 @@ export class BankrOrdersService extends Service {
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const url = `${this.apiUrl.replace(/\/$/, "")}${path}`;
-    const res = await fetchWithTimeout(
-      url,
-      {
-        ...init,
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": this.apiKey,
-          ...(init.headers as Record<string, string>),
-        },
-      }
-    );
-    const data = (await res.json()) as T & { error?: { message?: string }; message?: string };
+    const res = await fetchWithTimeout(url, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": this.apiKey,
+        ...(init.headers as Record<string, string>),
+      },
+    });
+    const data = (await res.json()) as T & {
+      error?: { message?: string };
+      message?: string;
+    };
     if (!res.ok) {
-      const err = (data as { error?: { message?: string }; message?: string }).error?.message
-        ?? (data as { message?: string }).message
-        ?? "Bankr Orders API error";
+      const err =
+        (data as { error?: { message?: string }; message?: string }).error
+          ?.message ??
+        (data as { message?: string }).message ??
+        "Bankr Orders API error";
       throw new Error(String(err));
     }
     return data as T;
@@ -87,12 +97,17 @@ export class BankrOrdersService extends Service {
 
   async createQuote(request: QuoteRequest): Promise<QuoteResponse> {
     if (!this.isConfigured()) throw new Error("BANKR_API_KEY is not set");
-    return this.request<QuoteResponse>("/quote", { method: "POST", body: JSON.stringify(request) });
+    return this.request<QuoteResponse>("/quote", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
   }
 
   async submitOrder(req: SubmitRequest): Promise<ExternalOrder> {
     if (!this.isConfigured()) throw new Error("BANKR_API_KEY is not set");
-    const data = await this.request<{ order?: ExternalOrder } & Record<string, unknown>>("/submit", {
+    const data = await this.request<
+      { order?: ExternalOrder } & Record<string, unknown>
+    >("/submit", {
       method: "POST",
       body: JSON.stringify(req),
     });
@@ -102,13 +117,18 @@ export class BankrOrdersService extends Service {
 
   async listOrders(req: ListOrdersRequest): Promise<ListOrdersResponse> {
     if (!this.isConfigured()) throw new Error("BANKR_API_KEY is not set");
-    return this.request<ListOrdersResponse>("/list", { method: "POST", body: JSON.stringify(req) });
+    return this.request<ListOrdersResponse>("/list", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
   }
 
   async getOrder(orderId: string): Promise<ExternalOrder | null> {
     if (!this.isConfigured()) throw new Error("BANKR_API_KEY is not set");
     try {
-      const data = await this.request<GetOrderResponse>(`/${orderId}`, { method: "GET" });
+      const data = await this.request<GetOrderResponse>(`/${orderId}`, {
+        method: "GET",
+      });
       return data.order ?? null;
     } catch (e) {
       if (String(e).includes("not found")) return null;
@@ -116,7 +136,10 @@ export class BankrOrdersService extends Service {
     }
   }
 
-  async cancelOrder(orderId: string, signature: string): Promise<CancelOrderResponse> {
+  async cancelOrder(
+    orderId: string,
+    signature: string,
+  ): Promise<CancelOrderResponse> {
     if (!this.isConfigured()) throw new Error("BANKR_API_KEY is not set");
     return this.request<CancelOrderResponse>(`/cancel/${orderId}`, {
       method: "POST",

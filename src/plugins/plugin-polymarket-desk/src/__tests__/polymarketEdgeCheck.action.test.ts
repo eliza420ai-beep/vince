@@ -2,19 +2,26 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { polymarketEdgeCheckAction } from "../actions/polymarketEdgeCheck.action";
 import type { IAgentRuntime, Memory, State } from "@elizaos/core";
 
-const CONDITION_ID = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+const CONDITION_ID =
+  "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-function createMockRuntime(overrides: Partial<{
-  getService: (name: string) => unknown;
-  getConnection: () => Promise<unknown>;
-  composeState: (msg: Memory, list: string[] | null, flag: boolean) => Promise<State>;
-}> = {}): IAgentRuntime {
+function createMockRuntime(
+  overrides: Partial<{
+    getService: (name: string) => unknown;
+    getConnection: () => Promise<unknown>;
+    composeState: (
+      msg: Memory,
+      list: string[] | null,
+      flag: boolean,
+    ) => Promise<State>;
+  }> = {},
+): IAgentRuntime {
   const queryLog: Array<{ sql: string; values: unknown[] }> = [];
   return {
     getService: (name: string) =>
       overrides.getService ? overrides.getService(name) : null,
     getConnection: overrides.getConnection
-      ? overrides.getConnection as any
+      ? (overrides.getConnection as any)
       : async () => ({
           query: (sql: string, values?: unknown[]) => {
             queryLog.push({ sql, values: values ?? [] });
@@ -22,10 +29,16 @@ function createMockRuntime(overrides: Partial<{
           },
         }),
     composeState: overrides.composeState
-      ? overrides.composeState as any
+      ? (overrides.composeState as any)
       : async () =>
           ({
-            data: { actionParams: { condition_id: CONDITION_ID, asset: "BTC", edge_threshold_bps: 200 } },
+            data: {
+              actionParams: {
+                condition_id: CONDITION_ID,
+                asset: "BTC",
+                edge_threshold_bps: 200,
+              },
+            },
           }) as State,
     agentId: "test-oracle",
   } as unknown as IAgentRuntime;
@@ -56,21 +69,32 @@ describe("plugin-polymarket-desk: POLYMARKET_EDGE_CHECK", () => {
 
   it("validate returns false when Polymarket service is not available", async () => {
     const runtime = createMockRuntime({ getService: () => null });
-    const valid = await polymarketEdgeCheckAction.validate!(runtime, createMessage());
+    const valid = await polymarketEdgeCheckAction.validate!(
+      runtime,
+      createMessage(),
+    );
     expect(valid).toBe(false);
   });
 
   it("validate returns true when Polymarket service is available", async () => {
     const runtime = createMockRuntime({
-      getService: (name) => (name === "POLYMARKET_DISCOVERY_SERVICE" ? { getMarketPrices: async () => ({}) } : null),
+      getService: (name) =>
+        name === "POLYMARKET_DISCOVERY_SERVICE"
+          ? { getMarketPrices: async () => ({}) }
+          : null,
     });
-    const valid = await polymarketEdgeCheckAction.validate!(runtime, createMessage());
+    const valid = await polymarketEdgeCheckAction.validate!(
+      runtime,
+      createMessage(),
+    );
     expect(valid).toBe(true);
   });
 
   it("handler returns failure when condition_id is missing", async () => {
     const runtime = createMockRuntime({
-      getService: () => ({ getMarketPrices: async () => ({ yes_price: "0.5", no_price: "0.5" }) }),
+      getService: () => ({
+        getMarketPrices: async () => ({ yes_price: "0.5", no_price: "0.5" }),
+      }),
       composeState: async () => ({ data: { actionParams: {} } }) as State,
     });
     const result = await polymarketEdgeCheckAction.handler!(
@@ -137,7 +161,11 @@ describe("plugin-polymarket-desk: POLYMARKET_EDGE_CHECK", () => {
       composeState: async () =>
         ({
           data: {
-            actionParams: { condition_id: CONDITION_ID, asset: "BTC", edge_threshold_bps: 100 },
+            actionParams: {
+              condition_id: CONDITION_ID,
+              asset: "BTC",
+              edge_threshold_bps: 100,
+            },
           },
         }) as State,
       getConnection: async () => ({
@@ -169,7 +197,11 @@ describe("plugin-polymarket-desk: POLYMARKET_EDGE_CHECK", () => {
       composeState: async () =>
         ({
           data: {
-            actionParams: { condition_id: CONDITION_ID, asset: "BTC", edge_threshold_bps: 50 },
+            actionParams: {
+              condition_id: CONDITION_ID,
+              asset: "BTC",
+              edge_threshold_bps: 50,
+            },
           },
         }) as State,
       getConnection: async () => ({
@@ -187,7 +219,9 @@ describe("plugin-polymarket-desk: POLYMARKET_EDGE_CHECK", () => {
       undefined,
     );
     expect((result as any).success).toBe(true);
-    const insert = queries.find((q) => q.sql.includes("INSERT INTO") && q.sql.includes("signals"));
+    const insert = queries.find(
+      (q) => q.sql.includes("INSERT INTO") && q.sql.includes("signals"),
+    );
     expect(insert).toBeDefined();
     expect(insert!.values[0]).toBeDefined();
     expect(insert!.values[3]).toBe(CONDITION_ID);

@@ -283,7 +283,9 @@ export const registerGrokExpertTask = async (
       }
     }
   } catch (e) {
-    logger.debug("[GROK_TASK] Failed to clear existing tasks (expected if DB not ready yet)");
+    logger.debug(
+      "[GROK_TASK] Failed to clear existing tasks (expected if DB not ready yet)",
+    );
   }
 
   // Register the task worker
@@ -329,7 +331,10 @@ export const registerGrokExpertTask = async (
           try {
             await runCryptoIntelPostReport(runtime, memoryDir, report);
           } catch (e) {
-            logger.warn({ err: e }, "[GROK_TASK] Post-report memory update failed");
+            logger.warn(
+              { err: e },
+              "[GROK_TASK] Post-report memory update failed",
+            );
           }
         } else {
           const formattedContext = formatTaskContext(ctx);
@@ -365,14 +370,14 @@ export const registerGrokExpertTask = async (
                 metadata: { knowledgeGap, date: ctx.date },
               });
             } catch (e) {
-              logger.debug(`[GROK_TASK] Knowledge gap task create skipped: ${e}`);
+              logger.debug(
+                `[GROK_TASK] Knowledge gap task create skipped: ${e}`,
+              );
             }
           }
         }
 
-        logger.info(
-          "[GROK_TASK] Daily pulse completed",
-        );
+        logger.info("[GROK_TASK] Daily pulse completed");
       } catch (error) {
         logger.error(`[GROK_TASK] Failed: ${error}`);
       }
@@ -392,7 +397,6 @@ export const registerGrokExpertTask = async (
     },
     tags: ["grok-expert", "vince", "queue", "repeat", "daily"],
   });
-
 };
 
 export default registerGrokExpertTask;

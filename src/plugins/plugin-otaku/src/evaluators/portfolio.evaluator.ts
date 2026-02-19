@@ -38,13 +38,20 @@ function extractTxFact(agentText: string): string | null {
 function concentrationFromPositions(positions: Position[]): string | null {
   if (!positions.length) return null;
   const totalUsd = positions.reduce(
-    (sum, p) => sum + (typeof p.usdValue === "string" ? parseFloat(p.usdValue) : p.usdValue ?? 0),
-    0
+    (sum, p) =>
+      sum +
+      (typeof p.usdValue === "string"
+        ? parseFloat(p.usdValue)
+        : (p.usdValue ?? 0)),
+    0,
   );
   if (totalUsd <= 0) return null;
   const byToken: Record<string, number> = {};
   for (const p of positions) {
-    const v = typeof p.usdValue === "string" ? parseFloat(p.usdValue) : p.usdValue ?? 0;
+    const v =
+      typeof p.usdValue === "string"
+        ? parseFloat(p.usdValue)
+        : (p.usdValue ?? 0);
     const token = (p.token ?? "unknown").toUpperCase();
     byToken[token] = (byToken[token] ?? 0) + v;
   }
@@ -68,7 +75,10 @@ export const portfolioEvaluator: Evaluator = {
     "Tracks DeFi transactions and portfolio composition after Otaku actions; stores facts for drift and concentration risk.",
   similes: ["PORTFOLIO_TRACKER", "DEFI_LEARNING"],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     if (!message.roomId || !runtime.agentId) return false;
     const otaku = runtime.getService("otaku") as OtakuService | null;
     if (!otaku) return false;
@@ -91,7 +101,7 @@ export const portfolioEvaluator: Evaluator = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    state?: State
+    state?: State,
   ): Promise<void> => {
     const { agentId, roomId } = message;
     if (!agentId || !roomId) return;
@@ -115,7 +125,9 @@ export const portfolioEvaluator: Evaluator = {
           createdAt: Date.now(),
         };
         await runtime.createMemory(factMemory, "facts", true);
-        logger.debug(`[OTAKU_PORTFOLIO] Stored fact: ${factClaim.slice(0, 60)}...`);
+        logger.debug(
+          `[OTAKU_PORTFOLIO] Stored fact: ${factClaim.slice(0, 60)}...`,
+        );
       }
 
       const otaku = runtime.getService("otaku") as OtakuService | null;

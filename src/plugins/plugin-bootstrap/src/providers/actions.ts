@@ -1,6 +1,16 @@
-import type { Action, IAgentRuntime, Memory, Provider, State } from '@elizaos/core';
-import { addHeader, composeActionExamples, formatActionNames } from '@elizaos/core';
-
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  Provider,
+  State,
+} from "@elizaos/core";
+import {
+  addHeader,
+  composeActionExamples,
+  formatActionNames,
+  logger,
+} from "@elizaos/core";
 
 interface ActionParameter {
   type: string;
@@ -12,9 +22,11 @@ interface ActionParameter {
  * Use this for a simpler view of available actions.
  */
 function formatActionsWithoutParams(actions: Action[]): string {
-  return actions.map(action => {
-    return `## ${action.name}\n${action.description}`;
-  }).join('\n\n---\n\n');
+  return actions
+    .map((action) => {
+      return `## ${action.name}\n${action.description}`;
+    })
+    .join("\n\n---\n\n");
 }
 
 /**
@@ -22,28 +34,33 @@ function formatActionsWithoutParams(actions: Action[]): string {
  * This is an enhanced version that includes parameter information.
  */
 function formatActionsWithParams(actions: Action[]): string {
-  return actions.map((action: Action) => {
-    let formatted = `## ${action.name}\n${action.description}`;
-    
-    // Check if action has parameters defined
-    if (action.parameters !== undefined) {
-      const paramEntries = Object.entries(action.parameters as ActionParameter);
-      
-      if (paramEntries.length === 0) {
-        // Action explicitly has no parameters
-        formatted += '\n\n**Parameters:** None (can be called directly without parameters)';
-      } else {
-        // Action has parameters - list them
-        formatted += '\n\n**Parameters:**';
-        for (const [paramName, paramDef] of paramEntries) {
-          const required = paramDef.required ? '(required)' : '(optional)';
-          formatted += `\n- \`${paramName}\` ${required}: ${paramDef.type} - ${paramDef.description}`;
+  return actions
+    .map((action: Action) => {
+      let formatted = `## ${action.name}\n${action.description}`;
+
+      // Check if action has parameters defined
+      if (action.parameters !== undefined) {
+        const paramEntries = Object.entries(
+          action.parameters as ActionParameter,
+        );
+
+        if (paramEntries.length === 0) {
+          // Action explicitly has no parameters
+          formatted +=
+            "\n\n**Parameters:** None (can be called directly without parameters)";
+        } else {
+          // Action has parameters - list them
+          formatted += "\n\n**Parameters:**";
+          for (const [paramName, paramDef] of paramEntries) {
+            const required = paramDef.required ? "(required)" : "(optional)";
+            formatted += `\n- \`${paramName}\` ${required}: ${paramDef.type} - ${paramDef.description}`;
+          }
         }
       }
-    }
-    
-    return formatted;
-  }).join('\n\n---\n\n');
+
+      return formatted;
+    })
+    .join("\n\n---\n\n");
 }
 
 /**
@@ -79,8 +96,8 @@ function formatActionsWithParams(actions: Action[]): string {
  * @returns {Object} Object containing data, values, and text related to actions
  */
 export const actionsProvider: Provider = {
-  name: 'ACTIONS',
-  description: 'Possible response actions',
+  name: "ACTIONS",
+  description: "Possible response actions",
   position: -1,
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     // Get actions that validate for this message
@@ -91,7 +108,10 @@ export const actionsProvider: Provider = {
           return action;
         }
       } catch (e) {
-        console.error('ACTIONS GET -> validate err', action, e);
+        logger.error(
+          { action: action?.name, err: e },
+          "ACTIONS GET -> validate err",
+        );
       }
       return null;
     });
@@ -105,26 +125,26 @@ export const actionsProvider: Provider = {
 
     // Actions with only descriptions (no parameters)
     const actionsWithDescriptions =
-      actionsData.length > 0 
+      actionsData.length > 0
         ? addHeader(
-            '# Available Actions', 
-            formatActionsWithoutParams(actionsData)
-          ) 
-        : '';
+            "# Available Actions",
+            formatActionsWithoutParams(actionsData),
+          )
+        : "";
 
     // Actions with full parameter schemas
     const actionsWithParams =
-      actionsData.length > 0 
+      actionsData.length > 0
         ? addHeader(
-            '# Available Actions (List of callable tools/functions the assistant can execute)', 
-            formatActionsWithParams(actionsData)
-          ) 
-        : '';
+            "# Available Actions (List of callable tools/functions the assistant can execute)",
+            formatActionsWithParams(actionsData),
+          )
+        : "";
 
     const actionExamples =
       actionsData.length > 0
-        ? addHeader('# Action Examples', composeActionExamples(actionsData, 10))
-        : '';
+        ? addHeader("# Action Examples", composeActionExamples(actionsData, 10))
+        : "";
 
     const data = {
       actionsData,
@@ -140,7 +160,7 @@ export const actionsProvider: Provider = {
     // Combine all text sections - now including actionsWithDescriptions
     const text = [actionNames, actionsWithDescriptions, actionExamples]
       .filter(Boolean)
-      .join('\n\n');
+      .join("\n\n");
 
     return {
       data,

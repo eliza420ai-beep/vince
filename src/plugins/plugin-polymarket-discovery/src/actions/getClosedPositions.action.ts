@@ -32,7 +32,9 @@ type GetClosedPositionsInput = {
   walletAddress?: string;
 };
 
-type GetClosedPositionsActionResult = ActionResult & { input: GetClosedPositionsInput };
+type GetClosedPositionsActionResult = ActionResult & {
+  input: GetClosedPositionsInput;
+};
 
 export const getClosedPositionsAction: Action = {
   name: "GET_POLYMARKET_CLOSED_POSITIONS",
@@ -50,13 +52,19 @@ export const getClosedPositionsAction: Action = {
   parameters: {
     walletAddress: {
       type: "string",
-      description: "Wallet address (EOA or proxy) to check closed positions for",
+      description:
+        "Wallet address (EOA or proxy) to check closed positions for",
       required: false,
     },
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_CLOSED_POSITIONS", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_CLOSED_POSITIONS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -64,13 +72,16 @@ export const getClosedPositionsAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_CLOSED_POSITIONS] Getting closed positions");
 
       // Read parameters from state
-      const params = await extractActionParams<GetClosedPositionsParams>(runtime, message);
+      const params = await extractActionParams<GetClosedPositionsParams>(
+        runtime,
+        message,
+      );
 
       // Extract wallet address
       const walletAddress = params.walletAddress?.trim();
@@ -130,7 +141,9 @@ export const getClosedPositionsAction: Action = {
       }
 
       // Fetch closed positions
-      logger.info(`[GET_POLYMARKET_CLOSED_POSITIONS] Fetching closed positions for ${walletAddress}`);
+      logger.info(
+        `[GET_POLYMARKET_CLOSED_POSITIONS] Fetching closed positions for ${walletAddress}`,
+      );
       const closedPositions = await service.getClosedPositions(walletAddress);
 
       if (closedPositions.length === 0) {
@@ -172,7 +185,9 @@ export const getClosedPositionsAction: Action = {
         const pnlPercent = position.pnl_percentage;
         text += `   PnL: ${pnlSign}$${pnl.toFixed(2)} (${pnlSign}${pnlPercent}%)\n`;
 
-        const closedDate = new Date(position.closed_at * 1000).toLocaleDateString();
+        const closedDate = new Date(
+          position.closed_at * 1000,
+        ).toLocaleDateString();
         text += `   Closed: ${closedDate}\n`;
         text += "\n";
       });
@@ -212,7 +227,7 @@ export const getClosedPositionsAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_CLOSED_POSITIONS] Successfully fetched ${closedPositions.length} closed positions`
+        `[GET_POLYMARKET_CLOSED_POSITIONS] Successfully fetched ${closedPositions.length} closed positions`,
       );
       return result;
     } catch (error) {

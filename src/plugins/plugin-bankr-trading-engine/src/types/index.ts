@@ -1,9 +1,9 @@
 /**
  * BANKR Trading Engine API Types
- * 
+ *
  * Direct programmatic trading without AI overhead.
  * Use for DCA, TWAP, scheduled orders, and high-frequency operations.
- * 
+ *
  * API: https://api.bankr.bot/external-orders/v1
  */
 
@@ -29,8 +29,8 @@ export interface StopOrderConfig {
 }
 
 export interface TimeIntervalOrderConfig {
-  interval: number;       // Seconds (min 300 = 5 minutes)
-  maxExecutions: number;  // Number of executions
+  interval: number; // Seconds (min 300 = 5 minutes)
+  maxExecutions: number; // Number of executions
 }
 
 export type OrderConfig =
@@ -43,16 +43,16 @@ export type OrderConfig =
 // ============================================================================
 
 export interface QuoteRequest {
-  maker: string;          // Wallet address placing the order
+  maker: string; // Wallet address placing the order
   orderType: OrderType;
   config: OrderConfig;
-  chainId: number;        // 8453 = Base, 1 = Ethereum
-  sellToken: string;      // Token address to sell
-  buyToken: string;       // Token address to buy
-  sellAmount: string;     // Raw units bigint string
-  slippageBps: number;    // e.g., 100 = 1%
+  chainId: number; // 8453 = Base, 1 = Ethereum
+  sellToken: string; // Token address to sell
+  buyToken: string; // Token address to buy
+  sellAmount: string; // Raw units bigint string
+  slippageBps: number; // e.g., 100 = 1%
   expirationDate: number; // Unix timestamp
-  appFeeBps?: number;     // Partner fee (e.g., 50 = 0.5%)
+  appFeeBps?: number; // Partner fee (e.g., 50 = 0.5%)
   appFeeRecipient?: string;
   allowPartial?: boolean;
 }
@@ -231,8 +231,8 @@ export interface LimitOrderParams {
   orderType: "limit-buy" | "limit-sell";
   sellToken: string;
   buyToken: string;
-  amount: string;         // Human-readable (e.g., "1000")
-  triggerPrice: string;   // Price at which order triggers
+  amount: string; // Human-readable (e.g., "1000")
+  triggerPrice: string; // Price at which order triggers
   expirationHours?: number;
   slippageBps?: number;
 }
@@ -240,9 +240,9 @@ export interface LimitOrderParams {
 export interface DCAOrderParams {
   sellToken: string;
   buyToken: string;
-  totalAmount: string;      // Total to invest
-  executionCount: number;   // Number of buys
-  intervalMinutes: number;  // Time between buys (min 5)
+  totalAmount: string; // Total to invest
+  executionCount: number; // Number of buys
+  intervalMinutes: number; // Time between buys (min 5)
   expirationHours?: number;
   slippageBps?: number;
 }
@@ -251,8 +251,8 @@ export interface TWAPOrderParams {
   sellToken: string;
   buyToken: string;
   totalAmount: string;
-  durationMinutes: number;  // Total time to execute
-  sliceCount: number;       // Number of slices
+  durationMinutes: number; // Total time to execute
+  sliceCount: number; // Number of slices
   expirationHours?: number;
   slippageBps?: number;
 }

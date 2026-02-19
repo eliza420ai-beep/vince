@@ -14,7 +14,13 @@
  * - "make this premium" — Same as polish
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
@@ -34,7 +40,8 @@ const TRANSFORMATION_RULES: Array<{
 }> = [
   // AI-slop intros
   {
-    pattern: /in (?:the |today's )?(?:ever-evolving|fast-paced|dynamic|current|modern)\s+(?:landscape|world|market|space|ecosystem)/gi,
+    pattern:
+      /in (?:the |today's )?(?:ever-evolving|fast-paced|dynamic|current|modern)\s+(?:landscape|world|market|space|ecosystem)/gi,
     issue: "Generic AI intro",
     technique: "Delete entirely. Start with the point.",
     example: {
@@ -44,7 +51,8 @@ const TRANSFORMATION_RULES: Array<{
   },
   // Weak hedging
   {
-    pattern: /(?:it's important to note that|it should be noted that|it's worth mentioning that)/gi,
+    pattern:
+      /(?:it's important to note that|it should be noted that|it's worth mentioning that)/gi,
     issue: "Weak hedging phrase",
     technique: "Delete. Just state the thing.",
     example: {
@@ -54,7 +62,8 @@ const TRANSFORMATION_RULES: Array<{
   },
   // Excited announcements
   {
-    pattern: /(?:we're |we are )?(?:excited|thrilled|pleased|proud|happy) to (?:announce|share|introduce|present)/gi,
+    pattern:
+      /(?:we're |we are )?(?:excited|thrilled|pleased|proud|happy) to (?:announce|share|introduce|present)/gi,
     issue: "Generic announcement",
     technique: "Skip the preamble. Announce directly.",
     example: {
@@ -84,7 +93,8 @@ const TRANSFORMATION_RULES: Array<{
   },
   // Revolutionary/cutting-edge
   {
-    pattern: /\b(?:revolutionary|groundbreaking|cutting-edge|innovative|game-changing|next-generation)\b/gi,
+    pattern:
+      /\b(?:revolutionary|groundbreaking|cutting-edge|innovative|game-changing|next-generation)\b/gi,
     issue: "Self-proclaimed greatness",
     technique: "Show the innovation. Let readers conclude it's revolutionary.",
     example: {
@@ -94,7 +104,8 @@ const TRANSFORMATION_RULES: Array<{
   },
   // Unlock/empower
   {
-    pattern: /\b(?:unlock|empower|enable|supercharge)\b(?:\s+(?:the\s+)?(?:power|potential|ability))?/gi,
+    pattern:
+      /\b(?:unlock|empower|enable|supercharge)\b(?:\s+(?:the\s+)?(?:power|potential|ability))?/gi,
     issue: "Vague promise",
     technique: "State the specific benefit.",
     example: {
@@ -114,7 +125,8 @@ const TRANSFORMATION_RULES: Array<{
   },
   // Dive in/dive deep/unpack
   {
-    pattern: /(?:let's\s+)?(?:dive\s+(?:in|deep)|unpack|explore|delve\s+into)/gi,
+    pattern:
+      /(?:let's\s+)?(?:dive\s+(?:in|deep)|unpack|explore|delve\s+into)/gi,
     issue: "AI-slop transition",
     technique: "Just start. No throat-clearing.",
     example: {
@@ -124,7 +136,8 @@ const TRANSFORMATION_RULES: Array<{
   },
   // Users/customers (impersonal)
   {
-    pattern: /\b(?:users|customers|clients)\b(?:\s+can\s+|\s+are\s+able\s+to\s+)/gi,
+    pattern:
+      /\b(?:users|customers|clients)\b(?:\s+can\s+|\s+are\s+able\s+to\s+)/gi,
     issue: "Impersonal language",
     technique: "Speak directly: 'you' not 'users'",
     example: {
@@ -134,7 +147,8 @@ const TRANSFORMATION_RULES: Array<{
   },
   // Provides/offers/allows
   {
-    pattern: /(?:this\s+)?(?:platform|product|feature|tool)\s+(?:provides|offers|allows|enables|gives)\s+(?:you\s+)?(?:the\s+ability\s+to|access\s+to)?/gi,
+    pattern:
+      /(?:this\s+)?(?:platform|product|feature|tool)\s+(?:provides|offers|allows|enables|gives)\s+(?:you\s+)?(?:the\s+ability\s+to|access\s+to)?/gi,
     issue: "Feature-speak instead of benefit",
     technique: "Lead with what the person gets.",
     example: {
@@ -148,7 +162,8 @@ const TRANSFORMATION_RULES: Array<{
     issue: "Sentence too long",
     technique: "Break into shorter punches. Vary rhythm.",
     example: {
-      before: "The platform enables traders to access a wide range of markets and execute trades with minimal fees while maintaining full custody of their assets.",
+      before:
+        "The platform enables traders to access a wide range of markets and execute trades with minimal fees while maintaining full custody of their assets.",
       after: "Access any market. Pay minimal fees. Keep your keys.",
     },
   },
@@ -167,43 +182,74 @@ const POLISH_PRINCIPLES = [
 ];
 
 // Emotional architecture check
-const EMOTIONAL_TRIGGERS = ["aspiration", "belonging", "trust", "curiosity", "relief"] as const;
+const EMOTIONAL_TRIGGERS = [
+  "aspiration",
+  "belonging",
+  "trust",
+  "curiosity",
+  "relief",
+] as const;
 
 // Structure check patterns
 const STRUCTURE_CHECKS = {
   hasHook: (content: string) => {
-    const firstLine = content.split("\n").find(l => l.trim() && !l.startsWith("#"))?.trim() || "";
+    const firstLine =
+      content
+        .split("\n")
+        .find((l) => l.trim() && !l.startsWith("#"))
+        ?.trim() || "";
     // Good hooks are short and provocative
-    return firstLine.length < 100 && !firstLine.toLowerCase().includes("in this");
+    return (
+      firstLine.length < 100 && !firstLine.toLowerCase().includes("in this")
+    );
   },
   hasColdOpen: (content: string) => {
     const firstPara = content.split("\n\n")[0] || "";
     const warmOpeners = [
-      "in this article", "welcome to", "today we", "let me explain",
-      "i want to", "we're going to", "this guide will"
+      "in this article",
+      "welcome to",
+      "today we",
+      "let me explain",
+      "i want to",
+      "we're going to",
+      "this guide will",
     ];
-    return !warmOpeners.some(w => firstPara.toLowerCase().includes(w));
+    return !warmOpeners.some((w) => firstPara.toLowerCase().includes(w));
   },
   hasSpecifics: (content: string) => {
     // Look for numbers, percentages, timeframes
-    const specifics = content.match(/\d+(?:\.\d+)?(?:%|ms|s|x|k|m|b|\s*(?:days?|hours?|minutes?|seconds?|years?|users?|traders?))/gi);
+    const specifics = content.match(
+      /\d+(?:\.\d+)?(?:%|ms|s|x|k|m|b|\s*(?:days?|hours?|minutes?|seconds?|years?|users?|traders?))/gi,
+    );
     return (specifics?.length || 0) >= 2;
   },
   hasRhythm: (content: string) => {
     // Check for varied sentence lengths
     const sentences = content.match(/[^.!?]+[.!?]+/g) || [];
     if (sentences.length < 3) return true;
-    const lengths = sentences.slice(0, 10).map(s => s.trim().length);
-    const hasShort = lengths.some(l => l < 40);
-    const hasLong = lengths.some(l => l > 80);
+    const lengths = sentences.slice(0, 10).map((s) => s.trim().length);
+    const hasShort = lengths.some((l) => l < 40);
+    const hasLong = lengths.some((l) => l > 80);
     return hasShort && hasLong;
   },
   hasStrongEnding: (content: string) => {
-    const lines = content.trim().split("\n").filter(l => l.trim());
+    const lines = content
+      .trim()
+      .split("\n")
+      .filter((l) => l.trim());
     const lastLine = lines[lines.length - 1]?.trim() || "";
     // Strong endings are short and declarative
-    const weakEndings = ["thank you", "let us know", "feel free", "don't hesitate", "happy to help"];
-    return lastLine.length < 80 && !weakEndings.some(w => lastLine.toLowerCase().includes(w));
+    const weakEndings = [
+      "thank you",
+      "let us know",
+      "feel free",
+      "don't hesitate",
+      "happy to help",
+    ];
+    return (
+      lastLine.length < 80 &&
+      !weakEndings.some((w) => lastLine.toLowerCase().includes(w))
+    );
   },
 };
 
@@ -218,16 +264,16 @@ interface PolishSuggestion {
 function analyzeForPolishing(content: string): PolishSuggestion[] {
   const suggestions: PolishSuggestion[] = [];
   const lines = content.split("\n");
-  
+
   for (const rule of TRANSFORMATION_RULES) {
     let match;
     const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
-    
+
     while ((match = regex.exec(content)) !== null) {
       // Find line number
       const beforeMatch = content.slice(0, match.index);
       const lineNum = beforeMatch.split("\n").length;
-      
+
       suggestions.push({
         original: match[0],
         issue: rule.issue,
@@ -237,53 +283,59 @@ function analyzeForPolishing(content: string): PolishSuggestion[] {
       });
     }
   }
-  
+
   return suggestions;
 }
 
-function analyzeStructure(content: string): { passed: string[]; failed: string[] } {
+function analyzeStructure(content: string): {
+  passed: string[];
+  failed: string[];
+} {
   const passed: string[] = [];
   const failed: string[] = [];
-  
+
   if (STRUCTURE_CHECKS.hasHook(content)) {
     passed.push("Strong hook");
   } else {
     failed.push("Weak opening — first line should hook immediately");
   }
-  
+
   if (STRUCTURE_CHECKS.hasColdOpen(content)) {
     passed.push("Cold open");
   } else {
     failed.push("Warm open detected — skip the preamble, start with substance");
   }
-  
+
   if (STRUCTURE_CHECKS.hasSpecifics(content)) {
     passed.push("Specific proof points");
   } else {
     failed.push("Lacks specificity — add numbers, timeframes, proof points");
   }
-  
+
   if (STRUCTURE_CHECKS.hasRhythm(content)) {
     passed.push("Good sentence rhythm");
   } else {
     failed.push("Monotonous rhythm — vary sentence lengths");
   }
-  
+
   if (STRUCTURE_CHECKS.hasStrongEnding(content)) {
     passed.push("Strong ending");
   } else {
     failed.push("Weak ending — close with weight, not a whimper");
   }
-  
+
   return { passed, failed };
 }
 
-function formatPolishReport(content: string, suggestions: PolishSuggestion[]): string {
+function formatPolishReport(
+  content: string,
+  suggestions: PolishSuggestion[],
+): string {
   let response = `✨ **Polish Report**\n\n`;
-  
+
   // Structure analysis
   const structure = analyzeStructure(content);
-  
+
   if (suggestions.length === 0 && structure.failed.length === 0) {
     response += `🏆 **Premium quality!** This copy passes the luxury test.\n\n`;
     response += `**Structural wins:**\n`;
@@ -296,10 +348,10 @@ function formatPolishReport(content: string, suggestions: PolishSuggestion[]): s
     response += `• Does it *feel* right?\n`;
     return response;
   }
-  
+
   const totalIssues = suggestions.length + structure.failed.length;
   response += `Found **${totalIssues} opportunities** to elevate this copy:\n\n`;
-  
+
   // Group by issue type
   const byIssue = new Map<string, PolishSuggestion[]>();
   for (const s of suggestions) {
@@ -307,34 +359,40 @@ function formatPolishReport(content: string, suggestions: PolishSuggestion[]): s
     existing.push(s);
     byIssue.set(s.issue, existing);
   }
-  
+
   for (const [issue, items] of byIssue) {
     response += `### ${issue} (${items.length}x)\n\n`;
-    
+
     // Show first instance with full detail
     const first = items[0];
     response += `**Found:** \`${first.original}\``;
     if (first.line) response += ` (line ${first.line})`;
     response += `\n`;
     response += `**Technique:** ${first.technique}\n`;
-    
+
     if (first.example) {
       response += `\n**Example transformation:**\n`;
       response += `> ❌ ${first.example.before}\n`;
       response += `> ✅ ${first.example.after}\n`;
     }
-    
+
     // List other instances briefly
     if (items.length > 1) {
       response += `\n**Also found:** `;
-      response += items.slice(1, 4).map(i => `\`${i.original.slice(0, 30)}${i.original.length > 30 ? "..." : ""}\``).join(", ");
+      response += items
+        .slice(1, 4)
+        .map(
+          (i) =>
+            `\`${i.original.slice(0, 30)}${i.original.length > 30 ? "..." : ""}\``,
+        )
+        .join(", ");
       if (items.length > 4) response += ` +${items.length - 4} more`;
       response += `\n`;
     }
-    
+
     response += `\n`;
   }
-  
+
   // Structure analysis section
   if (structure.failed.length > 0) {
     response += `### Structure Issues\n\n`;
@@ -343,55 +401,56 @@ function formatPolishReport(content: string, suggestions: PolishSuggestion[]): s
     }
     response += `\n`;
   }
-  
+
   if (structure.passed.length > 0) {
     response += `**Structural wins:** ${structure.passed.join(", ")}\n\n`;
   }
-  
+
   // Add principles
   response += `---\n\n`;
   response += `**Luxury Copy Principles:**\n`;
   for (const principle of POLISH_PRINCIPLES.slice(0, 4)) {
     response += `• ${principle}\n`;
   }
-  
+
   // The final questions
   response += `\n**Before publishing, ask:**\n`;
   response += `1. Would I pay to read this?\n`;
   response += `2. Does this sound like *us*?\n`;
   response += `3. How does it *feel*?\n`;
-  
+
   return response;
 }
 
 function findFile(target: string): string | null {
   if (fs.existsSync(target)) return target;
-  
+
   const inKnowledge = path.join(KNOWLEDGE_ROOT, target);
   if (fs.existsSync(inKnowledge)) return inKnowledge;
-  
+
   const inDrafts = path.join(DRAFTS_DIR, target);
   if (fs.existsSync(inDrafts)) return inDrafts;
-  
+
   if (!target.endsWith(".md")) {
     return findFile(target + ".md");
   }
-  
+
   return null;
 }
 
 function getLatestDraft(): string | null {
   if (!fs.existsSync(DRAFTS_DIR)) return null;
-  
-  const files = fs.readdirSync(DRAFTS_DIR)
-    .filter(f => f.endsWith(".md"))
-    .map(f => ({
+
+  const files = fs
+    .readdirSync(DRAFTS_DIR)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => ({
       name: f,
       path: path.join(DRAFTS_DIR, f),
       mtime: fs.statSync(path.join(DRAFTS_DIR, f)).mtimeMs,
     }))
     .sort((a, b) => b.mtime - a.mtime);
-  
+
   return files[0]?.path || null;
 }
 
@@ -484,14 +543,16 @@ Found **4 opportunities** to elevate this copy:
     callback?: HandlerCallback,
   ) => {
     const text = message.content?.text || "";
-    
+
     logger.info("[Polish] Analyzing content for premium transformation");
 
     let content: string | null = null;
     let filename: string | undefined;
-    
+
     // Check for file reference
-    const fileMatch = text.match(/(?:polish|rewrite|elevate)\s+(?:file\s+)?["']?([^\s"']+\.md)["']?/i);
+    const fileMatch = text.match(
+      /(?:polish|rewrite|elevate)\s+(?:file\s+)?["']?([^\s"']+\.md)["']?/i,
+    );
     if (fileMatch) {
       const filePath = findFile(fileMatch[1]);
       if (filePath) {
@@ -504,16 +565,18 @@ Found **4 opportunities** to elevate this copy:
         return true;
       }
     }
-    
+
     // Check for inline content
     if (!content) {
-      const contentMatch = text.match(/(?:polish|rewrite|make\s+(?:this\s+)?premium|elevate)[:\s]+(.+)/is);
+      const contentMatch = text.match(
+        /(?:polish|rewrite|make\s+(?:this\s+)?premium|elevate)[:\s]+(.+)/is,
+      );
       if (contentMatch && contentMatch[1].trim().length > 50) {
         content = contentMatch[1].trim();
         filename = "pasted content";
       }
     }
-    
+
     // Fall back to latest draft
     if (!content) {
       const latestDraft = getLatestDraft();
@@ -522,7 +585,7 @@ Found **4 opportunities** to elevate this copy:
         filename = path.basename(latestDraft);
       }
     }
-    
+
     if (!content) {
       callback?.({
         text: `✨ **Polish Content**
@@ -547,13 +610,13 @@ Transform generic copy into premium, brand-elevating content.
 
     // Analyze content
     const suggestions = analyzeForPolishing(content);
-    
+
     // Also run style check for additional issues
     const styleResult = checkStyle(content);
-    
+
     // Format report
     let response = formatPolishReport(content, suggestions);
-    
+
     // Add style violations summary if significant
     if (styleResult.summary.errors > 0 || styleResult.summary.warnings > 3) {
       response += `\n---\n\n`;
@@ -566,9 +629,12 @@ Transform generic copy into premium, brand-elevating content.
       }
       response += `\nRun \`style check\` for full details.\n`;
     }
-    
+
     if (filename) {
-      response = response.replace("**Polish Report**", `**Polish Report: ${filename}**`);
+      response = response.replace(
+        "**Polish Report**",
+        `**Polish Report: ${filename}**`,
+      );
     }
 
     const out = "Here's the polish report—\n\n" + response;

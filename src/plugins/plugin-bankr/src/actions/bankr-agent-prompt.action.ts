@@ -9,10 +9,15 @@ import {
 } from "@elizaos/core";
 import { BankrAgentService } from "../services/bankr-agent.service";
 
-function getPromptFromMessageOrState(message: Memory, state?: State): string | null {
+function getPromptFromMessageOrState(
+  message: Memory,
+  state?: State,
+): string | null {
   const text = message?.content?.text?.trim();
   if (text) return text;
-  const actionParams = state?.data?.actionParams as Record<string, unknown> | undefined;
+  const actionParams = state?.data?.actionParams as
+    | Record<string, unknown>
+    | undefined;
   const prompt = actionParams?.prompt ?? actionParams?.text;
   if (typeof prompt === "string" && prompt.trim()) return prompt.trim();
   return null;
@@ -25,7 +30,9 @@ export const bankrAgentPromptAction: Action = {
   similes: ["ASK_BANKR", "RUN_BANKR", "BANKR_EXECUTE", "BANKR_CHAT"],
 
   validate: async (runtime: IAgentRuntime, message: Memory) => {
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service?.isConfigured()) return false;
     const prompt = getPromptFromMessageOrState(message);
     return !!prompt;
@@ -36,7 +43,7 @@ export const bankrAgentPromptAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     const prompt = getPromptFromMessageOrState(message, state);
     if (!prompt) {
@@ -45,7 +52,9 @@ export const bankrAgentPromptAction: Action = {
       return { success: false, text: err };
     }
 
-    const service = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
+    const service = runtime.getService<BankrAgentService>(
+      BankrAgentService.serviceType,
+    );
     if (!service) {
       const err = "Bankr Agent service not available.";
       callback?.({ text: err });
@@ -57,7 +66,11 @@ export const bankrAgentPromptAction: Action = {
       const { jobId } = await service.submitPrompt(prompt);
 
       let result = await service.getJobStatus(jobId);
-      if (result.status !== "completed" && result.status !== "failed" && result.status !== "cancelled") {
+      if (
+        result.status !== "completed" &&
+        result.status !== "failed" &&
+        result.status !== "cancelled"
+      ) {
         callback?.({
           text: `Bankr job \`${jobId}\` started. Waiting for result…`,
           actions: ["BANKR_AGENT_PROMPT"],
@@ -67,20 +80,29 @@ export const bankrAgentPromptAction: Action = {
           maxAttempts: 120,
           onStatus: (status, msg) => {
             if (status === "pending" || status === "processing") {
-              callback?.({ text: `Bankr: ${msg}`, actions: ["BANKR_AGENT_PROMPT"] });
+              callback?.({
+                text: `Bankr: ${msg}`,
+                actions: ["BANKR_AGENT_PROMPT"],
+              });
             }
           },
         });
       }
 
       if (result.status === "cancelled") {
-        callback?.({ text: "Bankr job was cancelled.", actions: ["BANKR_AGENT_PROMPT"] });
+        callback?.({
+          text: "Bankr job was cancelled.",
+          actions: ["BANKR_AGENT_PROMPT"],
+        });
         return { success: true, text: "Cancelled" };
       }
 
       if (result.status === "failed") {
         const errMsg = result.error || "Bankr job failed.";
-        callback?.({ text: `Bankr failed: ${errMsg}`, actions: ["BANKR_AGENT_PROMPT"] });
+        callback?.({
+          text: `Bankr failed: ${errMsg}`,
+          actions: ["BANKR_AGENT_PROMPT"],
+        });
         return { success: false, text: errMsg };
       }
 
@@ -90,8 +112,14 @@ export const bankrAgentPromptAction: Action = {
         for (const tx of result.transactions) {
           const meta = tx.metadata;
           const human = meta?.humanReadableMessage;
-          const inT = meta?.inputTokenTicker && meta?.inputTokenAmount ? ` ${meta.inputTokenAmount} ${meta.inputTokenTicker}` : "";
-          const outT = meta?.outputTokenTicker && meta?.outputTokenAmount ? ` → ${meta.outputTokenAmount} ${meta.outputTokenTicker}` : "";
+          const inT =
+            meta?.inputTokenTicker && meta?.inputTokenAmount
+              ? ` ${meta.inputTokenAmount} ${meta.inputTokenTicker}`
+              : "";
+          const outT =
+            meta?.outputTokenTicker && meta?.outputTokenAmount
+              ? ` → ${meta.outputTokenAmount} ${meta.outputTokenTicker}`
+              : "";
           reply += `\n- ${human || tx.type || "tx"}${inT}${outT}`;
         }
       }
@@ -105,31 +133,59 @@ export const bankrAgentPromptAction: Action = {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error("[BANKR_AGENT_PROMPT] " + message);
-      callback?.({ text: `Bankr error: ${message}`, actions: ["BANKR_AGENT_PROMPT"] });
-      return { success: false, text: message, error: err instanceof Error ? err : new Error(message) };
+      callback?.({
+        text: `Bankr error: ${message}`,
+        actions: ["BANKR_AGENT_PROMPT"],
+      });
+      return {
+        success: false,
+        text: message,
+        error: err instanceof Error ? err : new Error(message),
+      };
     }
   },
 
   examples: [
     [
       { name: "user", content: { text: "Ask Bankr what my Base balance is" } },
-      { name: "Otaku", content: { text: "Checking with Bankr…", actions: ["BANKR_AGENT_PROMPT"] } },
+      {
+        name: "Otaku",
+        content: {
+          text: "Checking with Bankr…",
+          actions: ["BANKR_AGENT_PROMPT"],
+        },
+      },
     ],
     [
-      { name: "user", content: { text: "Run a swap of 10 USDC for ETH on Base via Bankr" } },
-      { name: "Otaku", content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] } },
+      {
+        name: "user",
+        content: { text: "Run a swap of 10 USDC for ETH on Base via Bankr" },
+      },
+      {
+        name: "Otaku",
+        content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] },
+      },
     ],
     [
       { name: "user", content: { text: "Show my portfolio" } },
-      { name: "Otaku", content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] } },
+      {
+        name: "Otaku",
+        content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] },
+      },
     ],
     [
       { name: "user", content: { text: "DCA $100 into BNKR every day" } },
-      { name: "Otaku", content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] } },
+      {
+        name: "Otaku",
+        content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] },
+      },
     ],
     [
       { name: "user", content: { text: "Send 0.1 ETH to vitalik.eth" } },
-      { name: "Otaku", content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] } },
+      {
+        name: "Otaku",
+        content: { text: "Sending to Bankr…", actions: ["BANKR_AGENT_PROMPT"] },
+      },
     ],
   ],
 };

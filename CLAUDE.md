@@ -10,30 +10,30 @@ This repository is the **VINCE** project: a unified data-intelligence **multi-ag
 
 ### Agent map (Dream Team)
 
-| Agent | Role | Where | One-line |
-|-------|------|--------|----------|
-| **Eliza** | CEO | `src/agents/eliza.ts` | Knowledge, research, content production; handoffs for live data to VINCE. |
-| **VINCE** | CDO | `src/agents/vince.ts` | Data and paper trading bot; ALOHA, options, perps, memes; no execution. |
-| **ECHO** | CSO | `src/agents/echo.ts` | Crypto Twitter sentiment, X pulse/vibe, watchlist; handoffs for price/TA to VINCE. |
-| **Oracle** | CPO | `src/agents/oracle.ts` | Polymarket read-only: discovery, odds, portfolio; handoffs to VINCE, Solus, Otaku. |
-| **Solus** | CFO | `src/agents/solus.ts` | Hypersurface options: strike ritual, mechanics, optimal strike; spot + pasted context; no execution. |
-| **Otaku** | COO | `src/agents/otaku.ts` | **Only agent with a funded wallet**; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution. |
-| **Kelly** | CVO | `src/agents/kelly.ts` | Lifestyle concierge; one team one dream; plugin-discovery, plugin-todo, **plugin-personality** (self-modification). |
-| **Sentinel** | CTO | `src/agents/sentinel.ts` | Core dev: PRDs, project radar, OpenClaw guide, cost status, ART; weekly + optional daily tasks. |
-| **Clawterm** | — | `src/agents/clawterm.ts` | OpenClaw research terminal: research, gateway, HIP-3 AI assets. |
+| Agent        | Role | Where                    | One-line                                                                                                            |
+| ------------ | ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **Eliza**    | CEO  | `src/agents/eliza.ts`    | Knowledge, research, content production; handoffs for live data to VINCE.                                           |
+| **VINCE**    | CDO  | `src/agents/vince.ts`    | Data and paper trading bot; ALOHA, options, perps, memes; no execution.                                             |
+| **ECHO**     | CSO  | `src/agents/echo.ts`     | Crypto Twitter sentiment, X pulse/vibe, watchlist; handoffs for price/TA to VINCE.                                  |
+| **Oracle**   | CPO  | `src/agents/oracle.ts`   | Polymarket read-only: discovery, odds, portfolio; handoffs to VINCE, Solus, Otaku.                                  |
+| **Solus**    | CFO  | `src/agents/solus.ts`    | Hypersurface options: strike ritual, mechanics, optimal strike; spot + pasted context; no execution.                |
+| **Otaku**    | COO  | `src/agents/otaku.ts`    | **Only agent with a funded wallet**; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution.        |
+| **Kelly**    | CVO  | `src/agents/kelly.ts`    | Lifestyle concierge; one team one dream; plugin-discovery, plugin-todo, **plugin-personality** (self-modification). |
+| **Sentinel** | CTO  | `src/agents/sentinel.ts` | Core dev: PRDs, project radar, OpenClaw guide, cost status, ART; weekly + optional daily tasks.                     |
+| **Clawterm** | —    | `src/agents/clawterm.ts` | OpenClaw research terminal: research, gateway, HIP-3 AI assets.                                                     |
 
 ### Key concepts
 
-| What | Where |
-|------|--------|
-| **Three curves** | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot + stack sats. Right = Hypersurface options + ship code (Solus + Sentinel). [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) |
-| **Paper bot, ML, actions** | `src/plugins/plugin-vince/` — [WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
-| **Feature store (ML)** | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) |
-| **Multi-agent (ASK_AGENT, Discord, A2A)** | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md) |
-| **Agent briefs (OpenClaw / PRD)** | [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) — one doc per agent (can/cannot, key files, PRD focus). Use to brief OpenClaw or draft next-iteration PRDs. |
-| **Deploy** | [docs/DEPLOY.md](docs/DEPLOY.md) |
-| **Trading runtime contract** | [docs/TRADING_RUNTIME_CONTRACT.md](docs/TRADING_RUNTIME_CONTRACT.md) — CRON vs MANUAL, producer/executor flow. |
-| **Project overview** | [README.md](README.md) |
+| What                                      | Where                                                                                                                                                                                                            |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Three curves**                          | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot + stack sats. Right = Hypersurface options + ship code (Solus + Sentinel). [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md)           |
+| **Paper bot, ML, actions**                | `src/plugins/plugin-vince/` — [WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
+| **Feature store (ML)**                    | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md)                                                                                                                                                                   |
+| **Multi-agent (ASK_AGENT, Discord, A2A)** | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md)                                                                                                                                                                       |
+| **Agent briefs (OpenClaw / PRD)**         | [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) — one doc per agent (can/cannot, key files, PRD focus). Use to brief OpenClaw or draft next-iteration PRDs.                                                         |
+| **Deploy**                                | [docs/DEPLOY.md](docs/DEPLOY.md)                                                                                                                                                                                 |
+| **Trading runtime contract**              | [docs/TRADING_RUNTIME_CONTRACT.md](docs/TRADING_RUNTIME_CONTRACT.md) — CRON vs MANUAL, producer/executor flow.                                                                                                   |
+| **Project overview**                      | [README.md](README.md)                                                                                                                                                                                           |
 
 **Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution). **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
 
@@ -41,13 +41,13 @@ This repository is the **VINCE** project: a unified data-intelligence **multi-ag
 
 ## 📋 Project Overview
 
-| Property | Value |
-|----------|--------|
-| **Project Type** | ElizaOS multi-agent project (VINCE) |
-| **Package Manager** | `bun` (REQUIRED) |
-| **Runtime** | ElizaOS with plugin ecosystem |
-| **Configuration** | Character-based agents in code (`src/agents/*.ts`) |
-| **Architecture** | Plugin composition; one Discord app per agent (or fallback) |
+| Property            | Value                                                       |
+| ------------------- | ----------------------------------------------------------- |
+| **Project Type**    | ElizaOS multi-agent project (VINCE)                         |
+| **Package Manager** | `bun` (REQUIRED)                                            |
+| **Runtime**         | ElizaOS with plugin ecosystem                               |
+| **Configuration**   | Character-based agents in code (`src/agents/*.ts`)          |
+| **Architecture**    | Plugin composition; one Discord app per agent (or fallback) |
 
 ## 📁 Project Structure (VINCE)
 
@@ -144,31 +144,31 @@ This repo uses **one file per agent** in `src/agents/` and exports a **project**
 
 ### Required (ElizaOS)
 
-| Plugin | Purpose |
-|--------|--------|
-| `@elizaos/plugin-bootstrap` | Core actions, message handling |
-| `@elizaos/plugin-sql` | Memory, database (PGLite or Postgres) |
+| Plugin                      | Purpose                               |
+| --------------------------- | ------------------------------------- |
+| `@elizaos/plugin-bootstrap` | Core actions, message handling        |
+| `@elizaos/plugin-sql`       | Memory, database (PGLite or Postgres) |
 
 ### Model providers (choose one or more)
 
-| Plugin | Use case |
-|--------|----------|
-| `@elizaos/plugin-openai` | GPT-4, embeddings |
+| Plugin                      | Use case                                                                           |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `@elizaos/plugin-openai`    | GPT-4, embeddings                                                                  |
 | `@elizaos/plugin-anthropic` | Claude (VINCE, Kelly, Solus, Oracle, Sentinel, ECHO default to Anthropic when set) |
 
 ### VINCE project plugins (in repo)
 
-| Plugin | Agent(s) | Purpose |
-|--------|----------|---------|
-| plugin-vince | VINCE | Paper bot, ALOHA, options, perps, memes, ML |
-| plugin-eliza | Eliza | UPLOAD, knowledge, content production |
-| plugin-kelly | Kelly | Lifestyle, daily briefing, plugin-personality |
-| plugin-otaku | Otaku | DeFi execution, CDP, BANKR, Relay, Morpho, x402 |
-| plugin-sentinel | Sentinel | PRDs, project radar, OpenClaw guide, cost, ART |
-| plugin-solus | Solus | Hypersurface strike ritual, mechanics, spot prices |
-| plugin-polymarket-discovery | Oracle | Polymarket discovery, odds, portfolio |
-| plugin-x-research | ECHO, Eliza, Clawterm | X pulse, vibe, watchlist, search |
-| plugin-inter-agent | All | ASK_AGENT, standup |
+| Plugin                      | Agent(s)              | Purpose                                            |
+| --------------------------- | --------------------- | -------------------------------------------------- |
+| plugin-vince                | VINCE                 | Paper bot, ALOHA, options, perps, memes, ML        |
+| plugin-eliza                | Eliza                 | UPLOAD, knowledge, content production              |
+| plugin-kelly                | Kelly                 | Lifestyle, daily briefing, plugin-personality      |
+| plugin-otaku                | Otaku                 | DeFi execution, CDP, BANKR, Relay, Morpho, x402    |
+| plugin-sentinel             | Sentinel              | PRDs, project radar, OpenClaw guide, cost, ART     |
+| plugin-solus                | Solus                 | Hypersurface strike ritual, mechanics, spot prices |
+| plugin-polymarket-discovery | Oracle                | Polymarket discovery, odds, portfolio              |
+| plugin-x-research           | ECHO, Eliza, Clawterm | X pulse, vibe, watchlist, search                   |
+| plugin-inter-agent          | All                   | ASK_AGENT, standup                                 |
 
 ---
 
@@ -178,14 +178,14 @@ This repo uses **one file per agent** in `src/agents/` and exports a **project**
 
 `.env.example` is **clean and grouped**: CORE → DATABASE → SHARED APIs → X/Twitter → **per-agent sections** (ELIZA, VINCE, ECHO, ORACLE, SOLUS, OTAKU, KELLY, SENTINEL, CLAWTERM) → FALLBACK DISCORD → STANDUP & A2A → OPENCLAW → MISC. Copy to `.env` and fill values.
 
-| Section | Contents |
-|---------|----------|
-| **CORE** | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ELIZAOS_USE_LOCAL_MESSAGING`, `LOG_LEVEL`, Sentry |
-| **DATABASE** | `POSTGRES_URL` (optional), `PGLITE_DATA_DIR`, `SUPABASE_*` (optional) |
-| **SHARED APIs** | Tavily, CoinGecko, Nansen, Dune, OpenRouter, etc. |
-| **X / TWITTER** | `X_BEARER_TOKEN`, `ELIZA_X_BEARER_TOKEN`, `X_SENTIMENT_*`, `XAI_*` |
-| **Per-agent** | `ELIZA_DISCORD_*`, `VINCE_DISCORD_*`, `VINCE_DAILY_REPORT_*`, `OTAKU_*`, `CDP_*`, `BANKR_*`, etc. |
-| **STANDUP & A2A** | `STANDUP_*`, `A2A_*`, `REFLECTION_*` |
+| Section           | Contents                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| **CORE**          | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ELIZAOS_USE_LOCAL_MESSAGING`, `LOG_LEVEL`, Sentry         |
+| **DATABASE**      | `POSTGRES_URL` (optional), `PGLITE_DATA_DIR`, `SUPABASE_*` (optional)                             |
+| **SHARED APIs**   | Tavily, CoinGecko, Nansen, Dune, OpenRouter, etc.                                                 |
+| **X / TWITTER**   | `X_BEARER_TOKEN`, `ELIZA_X_BEARER_TOKEN`, `X_SENTIMENT_*`, `XAI_*`                                |
+| **Per-agent**     | `ELIZA_DISCORD_*`, `VINCE_DISCORD_*`, `VINCE_DAILY_REPORT_*`, `OTAKU_*`, `CDP_*`, `BANKR_*`, etc. |
+| **STANDUP & A2A** | `STANDUP_*`, `A2A_*`, `REFLECTION_*`                                                              |
 
 **Reordering .env:** Run `node scripts/reorder-env.js` to sort your `.env` into the same section order as `.env.example` (preserves values, dedupes keys). See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for full env reference.
 
@@ -241,12 +241,12 @@ elizaos test
 
 ## 🐛 Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Agent won't start | `bun install`; check plugin deps and env |
-| No responses | Verify API keys in `.env` (CORE section) |
-| Database errors | Check `POSTGRES_URL` or `PGLITE_DATA_DIR`; run migrations if using Postgres |
-| Rate limits (X) | Use separate tokens per agent (e.g. `ELIZA_X_BEARER_TOKEN`, `X_BEARER_TOKEN` for ECHO) |
+| Issue             | Solution                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| Agent won't start | `bun install`; check plugin deps and env                                               |
+| No responses      | Verify API keys in `.env` (CORE section)                                               |
+| Database errors   | Check `POSTGRES_URL` or `PGLITE_DATA_DIR`; run migrations if using Postgres            |
+| Rate limits (X)   | Use separate tokens per agent (e.g. `ELIZA_X_BEARER_TOKEN`, `X_BEARER_TOKEN` for ECHO) |
 
 **Debug:** `LOG_LEVEL=debug bun start` — see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) and [docs/LOG-WARNINGS-EXPLAINED.md](docs/LOG-WARNINGS-EXPLAINED.md).
 
@@ -289,21 +289,21 @@ elizaos test
 
 ## Related docs (VINCE)
 
-| Doc | Purpose |
-|-----|---------|
-| [README.md](README.md) | Project overview, quick start |
-| [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) | Agent briefing index (OpenClaw / PRD) |
-| [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md) | ASK_AGENT, Discord, A2A, standups |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Env and config reference |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
-| [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) | Solus north star and roadmap |
-| [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) | Paper bot feature storage and ML |
-| [docs/TREASURY.md](docs/TREASURY.md) | Cost and Sentinel cost steward |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy to Eliza Cloud |
-| [docs/OTAKU.md](docs/OTAKU.md) | Otaku DeFi execution (reference agent brief) |
-| [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md) | Why 24/7 research, knowledge, ONNX matter |
-| [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) | Left/mid/right curves |
-| [src/plugins/plugin-vince/](src/plugins/plugin-vince/) | WHAT, WHY, HOW, CLAUDE, README |
+| Doc                                                                      | Purpose                                      |
+| ------------------------------------------------------------------------ | -------------------------------------------- |
+| [README.md](README.md)                                                   | Project overview, quick start                |
+| [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md)                             | Agent briefing index (OpenClaw / PRD)        |
+| [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md)                               | ASK_AGENT, Discord, A2A, standups            |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md)                           | Env and config reference                     |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                       | Common issues and fixes                      |
+| [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md)                     | Solus north star and roadmap                 |
+| [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md)                           | Paper bot feature storage and ML             |
+| [docs/TREASURY.md](docs/TREASURY.md)                                     | Cost and Sentinel cost steward               |
+| [docs/DEPLOY.md](docs/DEPLOY.md)                                         | Deploy to Eliza Cloud                        |
+| [docs/OTAKU.md](docs/OTAKU.md)                                           | Otaku DeFi execution (reference agent brief) |
+| [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md)                         | Why 24/7 research, knowledge, ONNX matter    |
+| [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) | Left/mid/right curves                        |
+| [src/plugins/plugin-vince/](src/plugins/plugin-vince/)                   | WHAT, WHY, HOW, CLAUDE, README               |
 
 ---
 

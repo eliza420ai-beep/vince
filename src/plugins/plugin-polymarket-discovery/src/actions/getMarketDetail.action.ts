@@ -28,7 +28,9 @@ type GetMarketDetailInput = {
   conditionId?: string;
 };
 
-type GetMarketDetailActionResult = ActionResult & { input: GetMarketDetailInput };
+type GetMarketDetailActionResult = ActionResult & {
+  input: GetMarketDetailInput;
+};
 
 export const getMarketDetailAction: Action = {
   name: "GET_POLYMARKET_DETAIL",
@@ -46,7 +48,8 @@ export const getMarketDetailAction: Action = {
   parameters: {
     conditionId: {
       type: "string",
-      description: "Market condition ID (hex string starting with 0x, typically 66 characters). Get this from GET_ACTIVE_POLYMARKETS or SEARCH_POLYMARKETS results.",
+      description:
+        "Market condition ID (hex string starting with 0x, typically 66 characters). Get this from GET_ACTIVE_POLYMARKETS or SEARCH_POLYMARKETS results.",
       required: true,
     },
   },
@@ -59,7 +62,7 @@ export const getMarketDetailAction: Action = {
       }
 
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -71,7 +74,7 @@ export const getMarketDetailAction: Action = {
     } catch (error) {
       logger.error(
         "[GET_POLYMARKET_DETAIL] Error validating action:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       return false;
     }
@@ -82,19 +85,33 @@ export const getMarketDetailAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_DETAIL] Getting market details");
 
-      let params = (await runtime.composeState(message, ["ACTION_STATE"], true))?.data?.actionParams as Partial<GetMarketDetailParams> | undefined;
-      let conditionId = (params?.conditionId || params?.condition_id || params?.marketId)?.trim();
+      let params = (await runtime.composeState(message, ["ACTION_STATE"], true))
+        ?.data?.actionParams as Partial<GetMarketDetailParams> | undefined;
+      let conditionId = (
+        params?.conditionId ||
+        params?.condition_id ||
+        params?.marketId
+      )?.trim();
       if (!conditionId) {
-        const extracted = await extractPolymarketParams(runtime, message, _state, {
-          requiredKeys: [],
-          useLlm: true,
-        });
-        conditionId = (extracted.conditionId ?? extracted.condition_id ?? extracted.tokenId)?.trim();
+        const extracted = await extractPolymarketParams(
+          runtime,
+          message,
+          _state,
+          {
+            requiredKeys: [],
+            useLlm: true,
+          },
+        );
+        conditionId = (
+          extracted.conditionId ??
+          extracted.condition_id ??
+          extracted.tokenId
+        )?.trim();
       }
 
       if (!conditionId) {
@@ -116,10 +133,12 @@ export const getMarketDetailAction: Action = {
       // Validate condition ID format (should be hex string starting with 0x)
       // Accept any valid hex ID with length between 40-70 chars to handle various API formats
       const isValidHex = /^0x[a-fA-F0-9]+$/.test(conditionId);
-      const isValidLength = conditionId.length >= 40 && conditionId.length <= 70;
+      const isValidLength =
+        conditionId.length >= 40 && conditionId.length <= 70;
 
       if (!isValidHex || !isValidLength) {
-        const errorMsg = "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
+        const errorMsg =
+          "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
         logger.error(`[GET_POLYMARKET_DETAIL] ${errorMsg}`);
         const errorResult: GetMarketDetailActionResult = {
           text: ` ${errorMsg}. Please provide a valid market condition ID.`,
@@ -138,7 +157,7 @@ export const getMarketDetailAction: Action = {
 
       // Get service
       const service = runtime.getService(
-        PolymarketService.serviceType
+        PolymarketService.serviceType,
       ) as PolymarketService;
 
       if (!service) {
@@ -160,7 +179,9 @@ export const getMarketDetailAction: Action = {
       callback?.({ text: " Fetching market details and prices..." });
 
       // Fetch market details and prices in parallel
-      logger.info(`[GET_POLYMARKET_DETAIL] Fetching details for ${conditionId}`);
+      logger.info(
+        `[GET_POLYMARKET_DETAIL] Fetching details for ${conditionId}`,
+      );
       const [market, prices] = await Promise.all([
         service.getMarketDetail(conditionId),
         service.getMarketPrices(conditionId),
@@ -218,8 +239,12 @@ export const getMarketDetailAction: Action = {
       text += `\n_I can get orderbook depth for this market if you want._`;
 
       const tokens = market.tokens || [];
-      const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
-      const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
+      const yesToken = tokens.find(
+        (t: any) => t.outcome?.toLowerCase() === "yes",
+      );
+      const noToken = tokens.find(
+        (t: any) => t.outcome?.toLowerCase() === "no",
+      );
 
       const result: GetMarketDetailActionResult = {
         text,
@@ -259,7 +284,9 @@ export const getMarketDetailAction: Action = {
         input: inputParams,
       };
 
-      logger.info(`[GET_POLYMARKET_DETAIL] Successfully fetched details for ${market.question}`);
+      logger.info(
+        `[GET_POLYMARKET_DETAIL] Successfully fetched details for ${market.question}`,
+      );
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);

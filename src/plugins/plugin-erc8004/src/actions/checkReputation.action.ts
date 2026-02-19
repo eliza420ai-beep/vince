@@ -42,11 +42,19 @@ export const erc8004ReputationAction: Action = {
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return (
-      (text.includes("reputation") || text.includes("trust") || text.includes("rating")) &&
-      (text.includes("agent") || text.includes("erc-8004") || text.includes("erc8004") || text.includes("#"))
+      (text.includes("reputation") ||
+        text.includes("trust") ||
+        text.includes("rating")) &&
+      (text.includes("agent") ||
+        text.includes("erc-8004") ||
+        text.includes("erc8004") ||
+        text.includes("#"))
     );
   },
 
@@ -55,7 +63,7 @@ export const erc8004ReputationAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const erc8004 = runtime.getService("erc8004") as unknown as ERC8004Service;
 
@@ -63,7 +71,10 @@ export const erc8004ReputationAction: Action = {
       await callback?.({
         text: "ERC-8004 service not available.",
       });
-      return { success: false, error: new Error("ERC-8004 service not available") };
+      return {
+        success: false,
+        error: new Error("ERC-8004 service not available"),
+      };
     }
 
     // Extract agent ID from message
@@ -78,7 +89,7 @@ export const erc8004ReputationAction: Action = {
       const ownId = await erc8004.getOwnAgentId();
       if (!ownId) {
         await callback?.({
-          text: "Please specify an agent ID (e.g., \"reputation for agent #42\") or register first.",
+          text: 'Please specify an agent ID (e.g., "reputation for agent #42") or register first.',
         });
         return { success: false, error: new Error("Agent ID required") };
       }
@@ -98,8 +109,8 @@ export const erc8004ReputationAction: Action = {
       reputation.averageScore >= 80
         ? "🟢"
         : reputation.averageScore >= 50
-        ? "🟡"
-        : "🔴";
+          ? "🟡"
+          : "🔴";
 
     const lines = [
       `**Agent #${agentId} Reputation:**`,

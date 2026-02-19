@@ -65,7 +65,10 @@ export const cdpCheckTxConfirmation: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
+      const params = (composedState?.data?.actionParams || {}) as Record<
+        string,
+        any
+      >;
 
       // Extract and validate parameters
       const txHash = params?.hash?.trim();

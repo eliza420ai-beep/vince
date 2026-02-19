@@ -38,19 +38,21 @@ interface TopicSuggestion {
 
 function analyzeKnowledgeGaps(): CategoryAnalysis[] {
   const categories: CategoryAnalysis[] = [];
-  
+
   const knowledgeBase = getKnowledgeRoot();
   if (!fs.existsSync(knowledgeBase)) return categories;
 
-  const dirs = fs.readdirSync(knowledgeBase, { withFileTypes: true })
+  const dirs = fs
+    .readdirSync(knowledgeBase, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith("."));
 
   for (const dir of dirs) {
     const categoryPath = path.join(knowledgeBase, dir.name);
     const files = fs.readdirSync(categoryPath).filter((f) => f.endsWith(".md"));
-    
+
     let lastUpdated: Date | null = null;
-    for (const file of files.slice(0, 20)) { // Sample for performance
+    for (const file of files.slice(0, 20)) {
+      // Sample for performance
       try {
         const stat = fs.statSync(path.join(categoryPath, file));
         if (!lastUpdated || stat.mtime > lastUpdated) {
@@ -59,11 +61,12 @@ function analyzeKnowledgeGaps(): CategoryAnalysis[] {
       } catch {}
     }
 
-    const daysStale = lastUpdated 
+    const daysStale = lastUpdated
       ? Math.floor((Date.now() - lastUpdated.getTime()) / (24 * 60 * 60 * 1000))
       : 999;
 
-    const coverage = files.length >= 20 ? "strong" : files.length >= 10 ? "moderate" : "weak";
+    const coverage =
+      files.length >= 20 ? "strong" : files.length >= 10 ? "moderate" : "weak";
 
     categories.push({
       name: dir.name,
@@ -79,15 +82,17 @@ function analyzeKnowledgeGaps(): CategoryAnalysis[] {
 
 function getExistingEssayTopics(): string[] {
   const topics: string[] = [];
-  
+
   if (!fs.existsSync(SUBSTACK_DIR)) return topics;
 
   const files = fs.readdirSync(SUBSTACK_DIR).filter((f) => f.endsWith(".md"));
-  
+
   for (const file of files) {
     try {
       const content = fs.readFileSync(path.join(SUBSTACK_DIR, file), "utf-8");
-      const titleMatch = content.match(/^#\s+(.+)$/m) || content.match(/title:\s*"?([^"\n]+)"?/i);
+      const titleMatch =
+        content.match(/^#\s+(.+)$/m) ||
+        content.match(/title:\s*"?([^"\n]+)"?/i);
       if (titleMatch) {
         topics.push(titleMatch[1].trim());
       }
@@ -97,9 +102,11 @@ function getExistingEssayTopics(): string[] {
   return topics;
 }
 
-function generateGapBasedSuggestions(categories: CategoryAnalysis[]): TopicSuggestion[] {
+function generateGapBasedSuggestions(
+  categories: CategoryAnalysis[],
+): TopicSuggestion[] {
   const suggestions: TopicSuggestion[] = [];
-  
+
   // Weak coverage categories
   const weakCategories = categories.filter((c) => c.coverage === "weak");
   for (const cat of weakCategories.slice(0, 3)) {
@@ -113,7 +120,9 @@ function generateGapBasedSuggestions(categories: CategoryAnalysis[]): TopicSugge
   }
 
   // Stale categories (> 30 days)
-  const staleCategories = categories.filter((c) => c.daysStale > 30 && c.fileCount > 5);
+  const staleCategories = categories.filter(
+    (c) => c.daysStale > 30 && c.fileCount > 5,
+  );
   for (const cat of staleCategories.slice(0, 2)) {
     suggestions.push({
       topic: `${cat.name.replace(/-/g, " ")} - 2024/2025 update`,
@@ -127,15 +136,41 @@ function generateGapBasedSuggestions(categories: CategoryAnalysis[]): TopicSugge
   return suggestions;
 }
 
-function generateSynthesisSuggestions(categories: CategoryAnalysis[]): TopicSuggestion[] {
+function generateSynthesisSuggestions(
+  categories: CategoryAnalysis[],
+): TopicSuggestion[] {
   // Cross-domain synthesis opportunities
   const synthesisPairs = [
-    { a: "options", b: "perps-trading", topic: "Options vs Perps: When to use each" },
-    { a: "bitcoin-maxi", b: "defi-metrics", topic: "Bitcoin DeFi: The emerging landscape" },
-    { a: "the-good-life", b: "grinding-the-trenches", topic: "The trader's lifestyle balance" },
-    { a: "macro-economy", b: "bitcoin-maxi", topic: "Macro cycles and Bitcoin correlation" },
-    { a: "solana", b: "grinding-the-trenches", topic: "Solana memecoin alpha strategies" },
-    { a: "art-collections", b: "the-good-life", topic: "Art as lifestyle investment" },
+    {
+      a: "options",
+      b: "perps-trading",
+      topic: "Options vs Perps: When to use each",
+    },
+    {
+      a: "bitcoin-maxi",
+      b: "defi-metrics",
+      topic: "Bitcoin DeFi: The emerging landscape",
+    },
+    {
+      a: "the-good-life",
+      b: "grinding-the-trenches",
+      topic: "The trader's lifestyle balance",
+    },
+    {
+      a: "macro-economy",
+      b: "bitcoin-maxi",
+      topic: "Macro cycles and Bitcoin correlation",
+    },
+    {
+      a: "solana",
+      b: "grinding-the-trenches",
+      topic: "Solana memecoin alpha strategies",
+    },
+    {
+      a: "art-collections",
+      b: "the-good-life",
+      topic: "Art as lifestyle investment",
+    },
   ];
 
   const categoryNames = new Set(categories.map((c) => c.name));
@@ -187,7 +222,7 @@ function generateTrendSuggestions(): TopicSuggestion[] {
 function formatSuggestions(
   suggestions: TopicSuggestion[],
   categories: CategoryAnalysis[],
-  existingTopics: string[]
+  existingTopics: string[],
 ): string {
   const typeIcons: Record<string, string> = {
     gap: "📭",
@@ -246,7 +281,7 @@ function formatSuggestions(
   // Knowledge stats
   const weakCount = categories.filter((c) => c.coverage === "weak").length;
   const staleCount = categories.filter((c) => c.daysStale > 30).length;
-  
+
   output += `---\n**Corpus Stats:**\n`;
   output += `• ${categories.length} categories\n`;
   output += `• ${weakCount} need expansion (< 10 files)\n`;
@@ -263,12 +298,7 @@ function formatSuggestions(
 
 export const suggestTopicsAction: Action = {
   name: "SUGGEST_TOPICS",
-  similes: [
-    "TOPIC_IDEAS",
-    "WHAT_TO_WRITE",
-    "CONTENT_IDEAS",
-    "SUGGEST_CONTENT",
-  ],
+  similes: ["TOPIC_IDEAS", "WHAT_TO_WRITE", "CONTENT_IDEAS", "SUGGEST_CONTENT"],
   description: `Suggest content topics based on knowledge gaps, trends, and synthesis opportunities.
 
 TRIGGERS:
@@ -300,7 +330,9 @@ Analyzes the knowledge base and suggests:
       text.includes("what should i write") ||
       text.includes("what should we write") ||
       text.includes("suggest content") ||
-      (text.includes("what") && text.includes("missing") && text.includes("knowledge")) ||
+      (text.includes("what") &&
+        text.includes("missing") &&
+        text.includes("knowledge")) ||
       text.includes("what needs writing")
     );
   },
@@ -313,7 +345,9 @@ Analyzes the knowledge base and suggests:
     callback?: HandlerCallback,
   ): Promise<void> => {
     try {
-      logger.info("[SUGGEST_TOPICS] Analyzing knowledge base for suggestions...");
+      logger.info(
+        "[SUGGEST_TOPICS] Analyzing knowledge base for suggestions...",
+      );
 
       if (callback) {
         await callback({
@@ -343,7 +377,11 @@ Analyzes the knowledge base and suggests:
         return order[a.priority] - order[b.priority];
       });
 
-      const formatted = formatSuggestions(allSuggestions, categories, existingTopics);
+      const formatted = formatSuggestions(
+        allSuggestions,
+        categories,
+        existingTopics,
+      );
 
       if (callback) {
         const out = "Here are topic suggestions—\n\n" + formatted;
@@ -352,7 +390,6 @@ Analyzes the knowledge base and suggests:
           actions: ["SUGGEST_TOPICS"],
         });
       }
-
     } catch (error) {
       logger.error({ error }, "[SUGGEST_TOPICS] Error");
       if (callback) {

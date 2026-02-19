@@ -13,11 +13,17 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { logger } from "@elizaos/core";
-import { STANDUP_REPORT_ORDER, getStandupSessionTimeoutMs, getStandupInactivityTimeoutMs } from "./standup.constants";
+import {
+  STANDUP_REPORT_ORDER,
+  getStandupSessionTimeoutMs,
+  getStandupInactivityTimeoutMs,
+} from "./standup.constants";
 import { withLock } from "./fileLock";
 
 /** Standup turn order (lowercase); derived dynamically from canonical STANDUP_REPORT_ORDER */
-const STANDUP_ORDER: readonly string[] = STANDUP_REPORT_ORDER.map((n) => n.toLowerCase());
+const STANDUP_ORDER: readonly string[] = STANDUP_REPORT_ORDER.map((n) =>
+  n.toLowerCase(),
+);
 
 type StandupAgent = string;
 
@@ -46,7 +52,10 @@ let currentSession: StandupSession | null = null;
 function getSessionFilePath(): string {
   const dir =
     process.env.STANDUP_DELIVERABLES_DIR?.trim() ||
-    path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
+    path.join(
+      process.cwd(),
+      process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
+    );
   return path.join(dir, "standup-session.json");
 }
 
@@ -58,15 +67,21 @@ async function loadPersistedSession(): Promise<StandupSession | null> {
   try {
     const raw = await fs.readFile(filepath, "utf-8");
     const data = JSON.parse(raw) as PersistedSession;
-    if (!data || typeof data.startedAt !== "number" || !data.roomId) return null;
+    if (!data || typeof data.startedAt !== "number" || !data.roomId)
+      return null;
     const now = Date.now();
     if (now - data.startedAt > getStandupSessionTimeoutMs()) return null;
     const session: StandupSession = {
       startedAt: data.startedAt,
       roomId: data.roomId,
       currentAgent: data.currentAgent ?? null,
-      reportedAgents: new Set(Array.isArray(data.reportedAgents) ? data.reportedAgents : []),
-      lastActivityAt: typeof data.lastActivityAt === "number" ? data.lastActivityAt : data.startedAt,
+      reportedAgents: new Set(
+        Array.isArray(data.reportedAgents) ? data.reportedAgents : [],
+      ),
+      lastActivityAt:
+        typeof data.lastActivityAt === "number"
+          ? data.lastActivityAt
+          : data.startedAt,
       isWrappingUp: Boolean(data.isWrappingUp),
     };
     return session;
@@ -110,7 +125,9 @@ export async function startStandupSession(roomId: string): Promise<void> {
   const restored = await loadPersistedSession();
   if (restored && restored.roomId === roomId) {
     currentSession = restored;
-    logger.info(`[STANDUP_STATE] Session restored in room ${roomId} (${currentSession.reportedAgents.size} already reported)`);
+    logger.info(
+      `[STANDUP_STATE] Session restored in room ${roomId} (${currentSession.reportedAgents.size} already reported)`,
+    );
   } else {
     currentSession = {
       startedAt: Date.now(),
@@ -130,7 +147,7 @@ export async function startStandupSession(roomId: string): Promise<void> {
  */
 export function isStandupActive(roomId?: string): boolean {
   if (!currentSession) return false;
-  
+
   // Check for timeout
   const now = Date.now();
   if (now - currentSession.startedAt > getStandupSessionTimeoutMs()) {
@@ -138,12 +155,12 @@ export function isStandupActive(roomId?: string): boolean {
     currentSession = null;
     return false;
   }
-  
+
   // Optional room check
   if (roomId && currentSession.roomId !== roomId) {
     return false;
   }
-  
+
   return true;
 }
 
@@ -171,7 +188,9 @@ export function markAgentReported(agentName: string): void {
   if (STANDUP_ORDER.includes(normalized)) {
     currentSession.reportedAgents.add(normalized);
     currentSession.lastActivityAt = Date.now();
-    logger.info(`[STANDUP_STATE] ${agentName} marked as reported (${currentSession.reportedAgents.size}/${STANDUP_ORDER.length})`);
+    logger.info(
+      `[STANDUP_STATE] ${agentName} marked as reported (${currentSession.reportedAgents.size}/${STANDUP_ORDER.length})`,
+    );
     void persistSession();
   }
 }
@@ -190,7 +209,7 @@ export function hasAgentReported(agentName: string): boolean {
  */
 export function getNextUnreportedAgent(): string | null {
   if (!currentSession) return null;
-  
+
   for (const agent of STANDUP_ORDER) {
     if (!currentSession.reportedAgents.has(agent)) {
       return agent;
@@ -212,7 +231,7 @@ export function haveAllAgentsReported(): boolean {
  */
 export function shouldSkipCurrentAgent(): boolean {
   if (!currentSession) return false;
-  
+
   const timeSinceActivity = Date.now() - currentSession.lastActivityAt;
   return timeSinceActivity > getStandupInactivityTimeoutMs();
 }
@@ -248,7 +267,9 @@ export function isWrappingUp(): boolean {
 export async function endStandupSession(): Promise<void> {
   if (currentSession) {
     const duration = Math.round((Date.now() - currentSession.startedAt) / 1000);
-    logger.info(`[STANDUP_STATE] Session ended after ${duration}s, ${currentSession.reportedAgents.size} agents reported`);
+    logger.info(
+      `[STANDUP_STATE] Session ended after ${duration}s, ${currentSession.reportedAgents.size} agents reported`,
+    );
   }
   currentSession = null;
   await persistSession();
@@ -264,13 +285,22 @@ export function getSessionStats(): {
   durationSec: number;
 } {
   if (!currentSession) {
-    return { active: false, reported: [], remaining: [...STANDUP_ORDER], durationSec: 0 };
+    return {
+      active: false,
+      reported: [],
+      remaining: [...STANDUP_ORDER],
+      durationSec: 0,
+    };
   }
-  
+
   const reported = [...currentSession.reportedAgents];
-  const remaining = STANDUP_ORDER.filter((a) => !currentSession!.reportedAgents.has(a));
-  const durationSec = Math.round((Date.now() - currentSession.startedAt) / 1000);
-  
+  const remaining = STANDUP_ORDER.filter(
+    (a) => !currentSession!.reportedAgents.has(a),
+  );
+  const durationSec = Math.round(
+    (Date.now() - currentSession.startedAt) / 1000,
+  );
+
   return { active: true, reported, remaining, durationSec };
 }
 

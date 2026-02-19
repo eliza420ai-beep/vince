@@ -1,6 +1,6 @@
 # Multi-Agent Setup (VINCE)
 
-**North star:** A Discord (or other channel) where your agents have names and profile images, talk to you and to each other, and run heartbeat-style check-ins that sometimes spark small conversations between them. When you're all collaborating, it feels genuinely *alive* — like you're building together. You have to remind yourself it's you and a bunch of AIs. That feeling is what we're optimizing for.
+**North star:** A Discord (or other channel) where your agents have names and profile images, talk to you and to each other, and run heartbeat-style check-ins that sometimes spark small conversations between them. When you're all collaborating, it feels genuinely _alive_ — like you're building together. You have to remind yourself it's you and a bunch of AIs. That feeling is what we're optimizing for.
 
 This doc is the **reference for our use case**: how we get there with VINCE. It covers ASK_AGENT (one agent asking another and relaying the answer), elizaOS attachment, Discord Option C (one bot identity per agent), A2A policy, standups (Kelly-coordinated 2×/day), and subagent-style options. One team, one dream—implemented here.
 
@@ -80,11 +80,11 @@ The `A2A_LOOP_GUARD` evaluator automatically:
 
 ### Env Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `A2A_ENABLED` | `true` | Set to `"false"` to disable loop guard (not recommended) |
-| `A2A_MAX_EXCHANGES` | `3` | Max responses to same bot in recent history |
-| `A2A_LOOKBACK_MESSAGES` | `10` | How many messages to look back for counting exchanges |
+| Variable                | Default | Description                                              |
+| ----------------------- | ------- | -------------------------------------------------------- |
+| `A2A_ENABLED`           | `true`  | Set to `"false"` to disable loop guard (not recommended) |
+| `A2A_MAX_EXCHANGES`     | `3`     | Max responses to same bot in recent history              |
+| `A2A_LOOKBACK_MESSAGES` | `10`    | How many messages to look back for counting exchanges    |
 
 ### Example Flow
 
@@ -147,11 +147,11 @@ When enabled, agents meet **twice per day** in a dedicated standup without you i
 
 ### Standup: shared daily insights and north star
 
-The **north star** for standup is: *shared knowledge of the team is greater than the sum of each agent's individual knowledge*. To get there, the **scheduled** standup is **synthesis-first**: linking across domains, fact-checking, and actionable synthesis instead of each agent reporting their data in isolation.
+The **north star** for standup is: _shared knowledge of the team is greater than the sum of each agent's individual knowledge_. To get there, the **scheduled** standup is **synthesis-first**: linking across domains, fact-checking, and actionable synthesis instead of each agent reporting their data in isolation.
 
 - **Shared daily insights:** Before the meeting, the coordinator writes a **shared daily insights** file that merges each agent's live data (same sources as today's fetch) into one document—one section per agent (e.g. `## VINCE`, `## Eliza`, …). Path: **`docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md`** (same root as Day Reports; see `STANDUP_DELIVERABLES_DIR`).
 - **VINCE report-for-standup:** Set `STANDUP_VINCE_USE_REPORT=true` to use the **Report of the Day** (standup-length narrative, 400–600 words + signals JSON) as VINCE's section in shared daily insights instead of the default 13-source fetch. This lowers what VINCE has to do in the meeting: one pre-built narrative from the same data (ALOHA, options, perps, HIP-3, news), so his turn can summarize and link rather than re-fetch. Consider `STANDUP_INSIGHTS_CAP_VINCE=3500` so the standup report is not truncated (default cap is 1200 chars).
-- **Kickoff:** The first message in the room **includes** that shared document plus a short instruction: *"Above: shared daily insights. Link, fact-check, brainstorm — then we get to the Day Report. Standup {date}. @VINCE, go."*
+- **Kickoff:** The first message in the room **includes** that shared document plus a short instruction: _"Above: shared daily insights. Link, fact-check, brainstorm — then we get to the Day Report. Standup {date}. @VINCE, go."_
 - **Turn semantics:** When the shared-insights sentinel is present, each agent's turn is **not** "report your data" but: add (1) one **link** between your domain and another agent's insight, (2) one **fact-check** or clarification if needed, (3) one **brainstorm or risk**, (4) one **actionable take**. So the conversation is linking/fact-check/brainstorm first; the Day Report is then built from this richer transcript.
 - **Manual standup:** Unchanged unless "gather insights" is added later; manual standup uses the current flow (short kickoff, report-your-data turns).
 - **North star KPI (informational):** After standup, the transcript is scanned for cross-agent links (e.g. an agent mentioning another by name and a linking phrase like "aligns with", "Oracle's data"). The count is logged (`[Standup] North star: N cross-agent link(s) detected`) and optionally included in the pushed summary. Non-blocking; for visibility into whether standups are improving on the 1+1=3 goal.
@@ -195,10 +195,10 @@ Not every feedback is a code change. Sometimes the gap is **knowledge** (e.g. "K
 
 ### Deliverables (when implemented)
 
-| Type        | Owner   | Path                               | Purpose |
-|------------|---------|------------------------------------|---------|
-| PRD        | Sentinel| `docs/standup/prds/`       | Code/behavior change; paste into Cursor. |
-| Eliza task | Sentinel| `docs/standup/eliza-tasks/`| Knowledge gap; what to add/update where for Eliza or human. |
+| Type       | Owner    | Path                        | Purpose                                                     |
+| ---------- | -------- | --------------------------- | ----------------------------------------------------------- |
+| PRD        | Sentinel | `docs/standup/prds/`        | Code/behavior change; paste into Cursor.                    |
+| Eliza task | Sentinel | `docs/standup/eliza-tasks/` | Knowledge gap; what to add/update where for Eliza or human. |
 
 ### Implementation notes (for later)
 
@@ -227,7 +227,7 @@ The current setup (ElizaOS, ASK_AGENT, in-process `elizaOS.handleMessage`, stand
 
 ### Strategy: OpenClaw as dev worker?
 
-A different way to get “where we need to be” is to **run [OpenClaw](https://github.com/openclaw/openclaw) with access to this repo and instructions to keep working on it**—i.e. use OpenClaw as the *executor* that turns our deliverables into code and knowledge, rather than (or in addition to) humans and Cursor.
+A different way to get “where we need to be” is to **run [OpenClaw](https://github.com/openclaw/openclaw) with access to this repo and instructions to keep working on it**—i.e. use OpenClaw as the _executor_ that turns our deliverables into code and knowledge, rather than (or in addition to) humans and Cursor.
 
 **Two interpretations:**
 
@@ -271,7 +271,7 @@ A different way to get “where we need to be” is to **run [OpenClaw](https://
 3. **What this means in practice**  
    Our agents (Vince, Kelly, Sentinel, etc.) are powerful **tools** for synthesis, routing, and deliverables within well-defined domains. They are not "true AGI": they can't guarantee correct interventional reasoning in novel, safety-critical, or open-ended environments. Design and review should assume human oversight for high-stakes or novel cases.
 
-*Summary derived from validated research (Nature, Anthropic, DeepMind, causal identifiability theory) as of Feb 2026; see full analysis in "Artificial General Intelligence Limitations: A Mathematical and Scientific Analysis" (kardashevscale1, 17 Feb 2026).*
+_Summary derived from validated research (Nature, Anthropic, DeepMind, causal identifiability theory) as of Feb 2026; see full analysis in "Artificial General Intelligence Limitations: A Mathematical and Scientific Analysis" (kardashevscale1, 17 Feb 2026)._
 
 ### High-stakes boundary
 

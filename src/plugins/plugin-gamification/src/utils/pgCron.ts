@@ -1,12 +1,12 @@
 /**
  * Drizzle-compatible pg_cron helper utilities
- * 
+ *
  * Provides typed wrappers for pg_cron extension operations.
  * Requires pg_cron extension to be enabled in PostgreSQL.
  */
 
-import { sql } from 'drizzle-orm';
-import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
+import { sql } from "drizzle-orm";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 export interface CronJob {
   jobid: number;
@@ -24,7 +24,13 @@ export interface CronJobRunDetail {
   runid: number;
   jobid: number;
   jobname: string;
-  status: 'starting' | 'running' | 'sending' | 'connecting' | 'succeeded' | 'failed';
+  status:
+    | "starting"
+    | "running"
+    | "sending"
+    | "connecting"
+    | "succeeded"
+    | "failed";
   return_message: string;
   start_time: Date;
   end_time: Date | null;
@@ -68,10 +74,15 @@ export const pgCron = {
    * @param schedule - Cron expression (e.g., "every 5 min" = asterisk-slash-5 asterisk asterisk asterisk asterisk)
    * @param command - SQL command to execute
    */
-  async schedule(db: Db, name: string, schedule: string, command: string): Promise<number | null> {
+  async schedule(
+    db: Db,
+    name: string,
+    schedule: string,
+    command: string,
+  ): Promise<number | null> {
     try {
       const rows = await db.execute(
-        sql`SELECT cron.schedule(${name}, ${schedule}, ${command}) as schedule`
+        sql`SELECT cron.schedule(${name}, ${schedule}, ${command}) as schedule`,
       );
       const result = (rows as unknown as Array<{ schedule: number }>)[0];
       return result?.schedule ?? null;
@@ -159,7 +170,11 @@ export const pgCron = {
   /**
    * Get run history for a specific job
    */
-  async getJobRunHistory(db: Db, name: string, limit = 20): Promise<CronJobRunDetail[]> {
+  async getJobRunHistory(
+    db: Db,
+    name: string,
+    limit = 20,
+  ): Promise<CronJobRunDetail[]> {
     try {
       const history = await db.execute(sql`
         SELECT runid, jobid, job_run_details.jobname, status, return_message, start_time, end_time 
@@ -193,7 +208,11 @@ export const pgCron = {
   /**
    * Update a job's schedule
    */
-  async updateSchedule(db: Db, name: string, newSchedule: string): Promise<boolean> {
+  async updateSchedule(
+    db: Db,
+    name: string,
+    newSchedule: string,
+  ): Promise<boolean> {
     try {
       await db.execute(sql`
         UPDATE cron.job 
@@ -211,26 +230,27 @@ export const pgCron = {
    * Returns 'created' | 'updated' | 'unchanged' | 'error'
    */
   async upsert(
-    db: Db, 
-    name: string, 
-    schedule: string, 
-    command: string
-  ): Promise<'created' | 'updated' | 'unchanged' | 'error'> {
+    db: Db,
+    name: string,
+    schedule: string,
+    command: string,
+  ): Promise<"created" | "updated" | "unchanged" | "error"> {
     try {
       const existing = await pgCron.getJob(db, name);
-      
+
       if (!existing) {
         const jobId = await pgCron.schedule(db, name, schedule, command);
-        return jobId ? 'created' : 'error';
+        return jobId ? "created" : "error";
       }
 
       // Compare to see if update needed
-      const normalizeSQL = (s: string) => s.replace(/\s+/g, ' ').trim();
+      const normalizeSQL = (s: string) => s.replace(/\s+/g, " ").trim();
       const scheduleMatch = existing.schedule === schedule;
-      const commandMatch = normalizeSQL(existing.command) === normalizeSQL(command);
+      const commandMatch =
+        normalizeSQL(existing.command) === normalizeSQL(command);
 
       if (scheduleMatch && commandMatch) {
-        return 'unchanged';
+        return "unchanged";
       }
 
       // Need to unschedule and reschedule (pg_cron doesn't support direct update of command)
@@ -239,11 +259,11 @@ export const pgCron = {
         await pgCron.unschedule(db, name);
         const jobId = await pgCron.schedule(db, name, schedule, command);
         if (jobId) {
-          return 'updated';
+          return "updated";
         }
         // Schedule returned null - try to restore old job
         await pgCron.schedule(db, name, existing.schedule, existing.command);
-        return 'error';
+        return "error";
       } catch {
         // Schedule failed - try to restore old job to prevent job loss
         try {
@@ -251,10 +271,10 @@ export const pgCron = {
         } catch {
           // Restore also failed - job is lost
         }
-        return 'error';
+        return "error";
       }
     } catch {
-      return 'error';
+      return "error";
     }
   },
 };

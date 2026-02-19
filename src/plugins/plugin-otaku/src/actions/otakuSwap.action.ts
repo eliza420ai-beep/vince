@@ -66,7 +66,9 @@ function parseSwapRequest(text: string): SwapRequest | null {
   }
 
   // Check for chain specification
-  const chainMatch = text.match(/on\s+(base|ethereum|arbitrum|polygon|solana)/i);
+  const chainMatch = text.match(
+    /on\s+(base|ethereum|arbitrum|polygon|solana)/i,
+  );
 
   return null;
 }
@@ -75,7 +77,9 @@ function parseSwapRequest(text: string): SwapRequest | null {
  * Extract chain from text
  */
 function extractChain(text: string): string | undefined {
-  const match = text.match(/on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic|solana|sol)/i);
+  const match = text.match(
+    /on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic|solana|sol)/i,
+  );
   if (!match) return undefined;
 
   const chainMap: Record<string, string> = {
@@ -97,12 +101,7 @@ export const otakuSwapAction: Action = {
   name: "OTAKU_SWAP",
   description:
     "Execute a token swap with confirmation. Use for quick swaps between tokens on supported chains (Base, Ethereum, Arbitrum, Polygon, Solana).",
-  similes: [
-    "SWAP_TOKENS",
-    "QUICK_SWAP",
-    "TOKEN_SWAP",
-    "EXCHANGE_TOKENS",
-  ],
+  similes: ["SWAP_TOKENS", "QUICK_SWAP", "TOKEN_SWAP", "EXCHANGE_TOKENS"],
   examples: [
     [
       {
@@ -112,7 +111,7 @@ export const otakuSwapAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Swap Summary:**\n- Sell: 0.5 ETH\n- Buy: USDC\n- Chain: base\n- Slippage: 0.5%\n\n⚠️ This swap is IRREVERSIBLE.\n\nType \"confirm\" to proceed.",
+          text: '**Swap Summary:**\n- Sell: 0.5 ETH\n- Buy: USDC\n- Chain: base\n- Slippage: 0.5%\n\n⚠️ This swap is IRREVERSIBLE.\n\nType "confirm" to proceed.',
           actions: ["OTAKU_SWAP"],
         },
       },
@@ -125,14 +124,17 @@ export const otakuSwapAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Swap Summary:**\n- Sell: $100 worth of ETH\n- Buy: USDC\n- Chain: base\n- Slippage: 0.5%\n\n⚠️ This swap is IRREVERSIBLE.\n\nType \"confirm\" to proceed.",
+          text: '**Swap Summary:**\n- Sell: $100 worth of ETH\n- Buy: USDC\n- Chain: base\n- Slippage: 0.5%\n\n⚠️ This swap is IRREVERSIBLE.\n\nType "confirm" to proceed.',
           actions: ["OTAKU_SWAP"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     // Allow "confirm" when there is a pending swap in cache
@@ -145,7 +147,8 @@ export const otakuSwapAction: Action = {
       text.includes("swap") ||
       text.includes("exchange") ||
       text.includes("convert") ||
-      (text.includes("sell") && (text.includes(" for ") || text.includes(" to ")));
+      (text.includes("sell") &&
+        (text.includes(" for ") || text.includes(" to ")));
     if (!swapLike) return false;
 
     // Token pair or amount indication so we have something to parse
@@ -170,7 +173,7 @@ export const otakuSwapAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const otakuSvc = runtime.getService("otaku") as OtakuService;
@@ -179,7 +182,10 @@ export const otakuSwapAction: Action = {
       await callback?.({
         text: "Otaku service not available. Please check configuration.",
       });
-      return { success: false, error: new Error("Otaku service not available") };
+      return {
+        success: false,
+        error: new Error("Otaku service not available"),
+      };
     }
 
     // Parse swap request: regex first, then LLM fallback for natural language
@@ -197,9 +203,12 @@ export const otakuSwapAction: Action = {
     }
     if (!request) {
       await callback?.({
-        text: "I couldn't parse the swap details. Please specify:\n- Amount (e.g., 0.5 or $100)\n- Sell token (e.g., ETH)\n- Buy token (e.g., USDC)\n\nExample: \"swap 0.5 ETH to USDC on Base\"",
+        text: 'I couldn\'t parse the swap details. Please specify:\n- Amount (e.g., 0.5 or $100)\n- Sell token (e.g., ETH)\n- Buy token (e.g., USDC)\n\nExample: "swap 0.5 ETH to USDC on Base"',
       });
-      return { success: false, error: new Error("Could not parse swap request") };
+      return {
+        success: false,
+        error: new Error("Could not parse swap request"),
+      };
     }
 
     // Add chain if specified (from text or LLM)
@@ -229,18 +238,25 @@ export const otakuSwapAction: Action = {
         await callback?.({
           text: "Here's the swap result—\n\n" + swapOut,
         });
-        await appendNotificationEvent(runtime, {
-          action: "swap_completed",
-          title: "Swap completed",
-          subtitle: `${pendingSwap.amount} ${pendingSwap.sellToken} → ${pendingSwap.buyToken}`,
-          metadata: { txHash: result.txHash },
-        }, message.entityId);
+        await appendNotificationEvent(
+          runtime,
+          {
+            action: "swap_completed",
+            title: "Swap completed",
+            subtitle: `${pendingSwap.amount} ${pendingSwap.sellToken} → ${pendingSwap.buyToken}`,
+            metadata: { txHash: result.txHash },
+          },
+          message.entityId,
+        );
         return { success: true };
       } else {
         await callback?.({
           text: `❌ Swap failed: ${result.error}`,
         });
-        return { success: false, error: new Error(result.error ?? "Swap failed") };
+        return {
+          success: false,
+          error: new Error(result.error ?? "Swap failed"),
+        };
       }
     }
 

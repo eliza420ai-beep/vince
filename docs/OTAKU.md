@@ -27,21 +27,21 @@ Otaku is the **COO agent** in the VINCE multi-agent system and the **only agent 
 
 ### Actions (13)
 
-| Action | Description |
-|--------|-------------|
-| `OTAKU_SWAP` | Token swaps via BANKR; confirmation flow |
-| `OTAKU_LIMIT_ORDER` | Limit orders at target price |
-| `OTAKU_DCA` | Dollar-cost averaging schedules |
-| `OTAKU_POSITIONS` | Portfolio and active orders |
-| `OTAKU_BRIDGE` | Cross-chain bridge (Relay, fallback BANKR) |
-| `OTAKU_BALANCE` | Wallet balance check |
-| `OTAKU_STOP_LOSS` | Stop-loss, take-profit, trailing stops |
-| `OTAKU_MORPHO` | Supply/withdraw Morpho vaults |
-| `OTAKU_APPROVE` | Token approval management |
-| `OTAKU_NFT_MINT` | Mint NFTs (e.g. gen-art handoff from Sentinel) |
-| `OTAKU_YIELD_RECOMMEND` | Yield strategy suggestions |
-| `OTAKU_SET_REBALANCE` | Rebalance targets and task |
-| `OTAKU_EXECUTE_VINCE_SIGNAL` | Execute Vince signal (swap/bridge) |
+| Action                       | Description                                    |
+| ---------------------------- | ---------------------------------------------- |
+| `OTAKU_SWAP`                 | Token swaps via BANKR; confirmation flow       |
+| `OTAKU_LIMIT_ORDER`          | Limit orders at target price                   |
+| `OTAKU_DCA`                  | Dollar-cost averaging schedules                |
+| `OTAKU_POSITIONS`            | Portfolio and active orders                    |
+| `OTAKU_BRIDGE`               | Cross-chain bridge (Relay, fallback BANKR)     |
+| `OTAKU_BALANCE`              | Wallet balance check                           |
+| `OTAKU_STOP_LOSS`            | Stop-loss, take-profit, trailing stops         |
+| `OTAKU_MORPHO`               | Supply/withdraw Morpho vaults                  |
+| `OTAKU_APPROVE`              | Token approval management                      |
+| `OTAKU_NFT_MINT`             | Mint NFTs (e.g. gen-art handoff from Sentinel) |
+| `OTAKU_YIELD_RECOMMEND`      | Yield strategy suggestions                     |
+| `OTAKU_SET_REBALANCE`        | Rebalance targets and task                     |
+| `OTAKU_EXECUTE_VINCE_SIGNAL` | Execute Vince signal (swap/bridge)             |
 
 ### Routes
 
@@ -106,17 +106,17 @@ This section is for developers (e.g. Roy) doing a code review or helping get Ota
 
 ### Key Files for Code Review
 
-| Area | Path |
-|------|------|
-| Agent definition | [src/agents/otaku.ts](src/agents/otaku.ts) |
-| Plugin entry | [src/plugins/plugin-otaku/src/index.ts](src/plugins/plugin-otaku/src/index.ts) |
-| Service | [src/plugins/plugin-otaku/src/services/otaku.service.ts](src/plugins/plugin-otaku/src/services/otaku.service.ts) |
-| Actions | [src/plugins/plugin-otaku/src/actions/](src/plugins/plugin-otaku/src/actions/) |
-| Alerts (shared) | [src/plugins/plugin-otaku/src/lib/getAlerts.ts](src/plugins/plugin-otaku/src/lib/getAlerts.ts) |
+| Area                     | Path                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Agent definition         | [src/agents/otaku.ts](src/agents/otaku.ts)                                                                       |
+| Plugin entry             | [src/plugins/plugin-otaku/src/index.ts](src/plugins/plugin-otaku/src/index.ts)                                   |
+| Service                  | [src/plugins/plugin-otaku/src/services/otaku.service.ts](src/plugins/plugin-otaku/src/services/otaku.service.ts) |
+| Actions                  | [src/plugins/plugin-otaku/src/actions/](src/plugins/plugin-otaku/src/actions/)                                   |
+| Alerts (shared)          | [src/plugins/plugin-otaku/src/lib/getAlerts.ts](src/plugins/plugin-otaku/src/lib/getAlerts.ts)                   |
 | Notification events (DB) | [src/plugins/plugin-otaku/src/lib/notificationEvents.ts](src/plugins/plugin-otaku/src/lib/notificationEvents.ts) |
-| Routes | [src/plugins/plugin-otaku/src/routes/](src/plugins/plugin-otaku/src/routes/) (freeRoutes, paid*) |
-| Wallet UI | [src/frontend/components/dashboard/cdp-wallet-card/](src/frontend/components/dashboard/cdp-wallet-card/) |
-| Notifications hook | [src/frontend/hooks/useWalletNotifications.ts](src/frontend/hooks/useWalletNotifications.ts) |
+| Routes                   | [src/plugins/plugin-otaku/src/routes/](src/plugins/plugin-otaku/src/routes/) (freeRoutes, paid\*)                |
+| Wallet UI                | [src/frontend/components/dashboard/cdp-wallet-card/](src/frontend/components/dashboard/cdp-wallet-card/)         |
+| Notifications hook       | [src/frontend/hooks/useWalletNotifications.ts](src/frontend/hooks/useWalletNotifications.ts)                     |
 
 ### How to Run & Test
 
@@ -137,19 +137,19 @@ This section is for developers (e.g. Roy) doing a code review or helping get Ota
 
 ## Plugins (Summary)
 
-| Plugin | Purpose |
-|--------|--------|
-| plugin-cdp | Coinbase Developer Platform wallet, transfers, x402 |
-| plugin-bankr | BANKR Agent + Trading Engine (swaps, DCA, orders) |
-| plugin-otaku | Otaku COO layer (actions, routes, alerts, notification events) |
-| plugin-relay | Cross-chain bridge |
-| plugin-morpho | Morpho lending (Blue SDK) |
-| plugin-etherscan | Transaction confirmation (optional) |
-| plugin-biconomy | Gasless tx (optional) |
-| plugin-defillama | Protocol TVL / yields |
-| plugin-bootstrap | Core ElizaOS actions, evaluators, providers |
-| @elizaos/plugin-sql | Database |
-| Others | Discord, x402, inter-agent, ERC-8004 as configured in otaku.ts |
+| Plugin              | Purpose                                                        |
+| ------------------- | -------------------------------------------------------------- |
+| plugin-cdp          | Coinbase Developer Platform wallet, transfers, x402            |
+| plugin-bankr        | BANKR Agent + Trading Engine (swaps, DCA, orders)              |
+| plugin-otaku        | Otaku COO layer (actions, routes, alerts, notification events) |
+| plugin-relay        | Cross-chain bridge                                             |
+| plugin-morpho       | Morpho lending (Blue SDK)                                      |
+| plugin-etherscan    | Transaction confirmation (optional)                            |
+| plugin-biconomy     | Gasless tx (optional)                                          |
+| plugin-defillama    | Protocol TVL / yields                                          |
+| plugin-bootstrap    | Core ElizaOS actions, evaluators, providers                    |
+| @elizaos/plugin-sql | Database                                                       |
+| Others              | Discord, x402, inter-agent, ERC-8004 as configured in otaku.ts |
 
 ### Security Knowledge: EVMbench
 

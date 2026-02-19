@@ -34,23 +34,31 @@ describe("VINCE_POLYMARKET_PREFERRED_LABELS", () => {
   });
 
   it("groups are only crypto, finance, or other", () => {
-    const groups = new Set(VINCE_POLYMARKET_PREFERRED_LABELS.map((e) => e.group));
+    const groups = new Set(
+      VINCE_POLYMARKET_PREFERRED_LABELS.map((e) => e.group),
+    );
     expect(groups).toEqual(new Set(["crypto", "finance", "other"]));
   });
 
   it("has crypto group entries", () => {
-    const crypto = VINCE_POLYMARKET_PREFERRED_LABELS.filter((e) => e.group === "crypto");
+    const crypto = VINCE_POLYMARKET_PREFERRED_LABELS.filter(
+      (e) => e.group === "crypto",
+    );
     expect(crypto.length).toBeGreaterThan(0);
     expect(crypto.some((e) => e.slug === "bitcoin")).toBe(true);
   });
 
   it("has finance group entries", () => {
-    const finance = VINCE_POLYMARKET_PREFERRED_LABELS.filter((e) => e.group === "finance");
+    const finance = VINCE_POLYMARKET_PREFERRED_LABELS.filter(
+      (e) => e.group === "finance",
+    );
     expect(finance.length).toBeGreaterThan(0);
   });
 
   it("has other group entries", () => {
-    const other = VINCE_POLYMARKET_PREFERRED_LABELS.filter((e) => e.group === "other");
+    const other = VINCE_POLYMARKET_PREFERRED_LABELS.filter(
+      (e) => e.group === "other",
+    );
     expect(other.length).toBeGreaterThan(0);
   });
 });

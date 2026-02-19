@@ -26,9 +26,10 @@ Risk is simple: if Bitcoin rips above $70k and drags everything higher, COIN fol
 
 COIN-PERP · perp · SHORT
 100 @ $169.03 · risk $800
-$169   lose   BTC >$70k
+$169 lose BTC >$70k
 +EV above 60% · dies if CB/SOL integration
 Alt: SOL-PERP $82.44 long (pure momentum play)
 
 ---
+
 _Expressions, not advice. Do your own research._

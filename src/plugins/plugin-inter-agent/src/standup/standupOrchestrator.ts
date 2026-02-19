@@ -1,12 +1,12 @@
 /**
  * Standup Orchestrator
- * 
+ *
  * Handles the actual mechanics of standup progression:
  * - Real delays between agent calls
  * - Automatic skip for stuck agents
  * - Health monitoring
  * - Recovery from stalls
- * 
+ *
  * This is the "engine" that drives the standup forward.
  */
 
@@ -31,10 +31,11 @@ import {
 } from "./standup.constants";
 
 /** Standup turn order with display names; derived from STANDUP_REPORT_ORDER (single source of truth). */
-const AGENT_ORDER: Array<{ id: string; display: string }> = STANDUP_REPORT_ORDER.map((name) => ({
-  id: name.toLowerCase(),
-  display: name,
-}));
+const AGENT_ORDER: Array<{ id: string; display: string }> =
+  STANDUP_REPORT_ORDER.map((name) => ({
+    id: name.toLowerCase(),
+    display: name,
+  }));
 
 /** Max standup duration: 20 minutes */
 const MAX_STANDUP_DURATION_MS = 20 * 60 * 1000;
@@ -87,13 +88,17 @@ export async function getProgressionMessage(): Promise<{
     if (stuckAgent) {
       // Mark as reported (skipped) and move on
       markAgentReported(stuckAgent);
-      logger.warn(`[STANDUP_ORCHESTRATOR] Skipping ${stuckAgent} after ${Math.round(timeSinceActivity / 1000)}s of inactivity`);
-      
+      logger.warn(
+        `[STANDUP_ORCHESTRATOR] Skipping ${stuckAgent} after ${Math.round(timeSinceActivity / 1000)}s of inactivity`,
+      );
+
       const nextAgent = getNextUnreportedAgent();
       if (nextAgent) {
         const discordId = getStandupDiscordMentionId(nextAgent);
         const nextDisplay = getAgentDisplayName(nextAgent);
-        const callMsg = discordId ? `<@${discordId}> go.` : `@${nextDisplay}, go.`;
+        const callMsg = discordId
+          ? `<@${discordId}> go.`
+          : `@${nextDisplay}, go.`;
         return {
           message: `⚠️ ${getAgentDisplayName(stuckAgent)} timed out. ${callMsg}`,
           action: "skip",
@@ -122,7 +127,9 @@ export async function getProgressionMessage(): Promise<{
   // Apply ACTUAL delay
   const delay = getStandupResponseDelay();
   if (delay > 0) {
-    logger.info(`[STANDUP_ORCHESTRATOR] Waiting ${delay}ms before calling ${nextAgent}`);
+    logger.info(
+      `[STANDUP_ORCHESTRATOR] Waiting ${delay}ms before calling ${nextAgent}`,
+    );
     await sleep(delay);
   }
 
@@ -153,7 +160,9 @@ export function checkStandupHealth(): {
 
   // Check duration
   if (stats.durationSec > MAX_STANDUP_DURATION_MS / 1000) {
-    issues.push(`Standup running too long (${Math.round(stats.durationSec / 60)} min)`);
+    issues.push(
+      `Standup running too long (${Math.round(stats.durationSec / 60)} min)`,
+    );
   }
 
   // Check for stuck agent
@@ -164,7 +173,9 @@ export function checkStandupHealth(): {
 
   // Check progress
   if (stats.durationSec > 300 && stats.reported.length < 2) {
-    issues.push(`Slow progress: only ${stats.reported.length} agents after 5 min`);
+    issues.push(
+      `Slow progress: only ${stats.reported.length} agents after 5 min`,
+    );
   }
 
   return {
@@ -220,12 +231,17 @@ export function buildWrapUpMessage(): string {
  * Build the skip message for a timed-out agent.
  * Uses Discord mention for next agent when configured.
  */
-export function buildSkipMessage(skippedAgent: string, nextAgent: string | null): string {
+export function buildSkipMessage(
+  skippedAgent: string,
+  nextAgent: string | null,
+): string {
   const skippedDisplay = getAgentDisplayName(skippedAgent);
-  
+
   if (nextAgent) {
     const discordId = getStandupDiscordMentionId(nextAgent);
-    const callMsg = discordId ? `<@${discordId}> go.` : `@${getAgentDisplayName(nextAgent)}, go.`;
+    const callMsg = discordId
+      ? `<@${discordId}> go.`
+      : `@${getAgentDisplayName(nextAgent)}, go.`;
     return `⚠️ ${skippedDisplay} timed out (3 min). Skipping. ${callMsg}`;
   } else {
     return `⚠️ ${skippedDisplay} timed out (3 min). That was the last agent. Generating Day Report...`;

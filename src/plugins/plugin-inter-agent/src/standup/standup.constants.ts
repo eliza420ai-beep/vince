@@ -22,7 +22,7 @@ export const DEFAULT_STANDUP_HOUR_UTC = 9;
 /** Check interval: hourly to catch the scheduled time */
 export const STANDUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
-/** 
+/**
  * Response delay between agent turns (ms).
  * Helps avoid rate limits by staggering responses.
  * Set via STANDUP_RESPONSE_DELAY_MS env var.
@@ -34,13 +34,19 @@ export function getStandupResponseDelay(): number {
 
 /** Session timeout (ms). Env: STANDUP_SESSION_TIMEOUT_MS. Default: 30 min. */
 export function getStandupSessionTimeoutMs(): number {
-  const v = parseInt(process.env.STANDUP_SESSION_TIMEOUT_MS || String(30 * 60 * 1000), 10);
+  const v = parseInt(
+    process.env.STANDUP_SESSION_TIMEOUT_MS || String(30 * 60 * 1000),
+    10,
+  );
   return isNaN(v) || v < 60_000 ? 30 * 60 * 1000 : v;
 }
 
 /** Inactivity timeout (ms); skip agent if no response. Env: STANDUP_INACTIVITY_TIMEOUT_MS. Default: 5 min. */
 export function getStandupInactivityTimeoutMs(): number {
-  const v = parseInt(process.env.STANDUP_INACTIVITY_TIMEOUT_MS || String(5 * 60 * 1000), 10);
+  const v = parseInt(
+    process.env.STANDUP_INACTIVITY_TIMEOUT_MS || String(5 * 60 * 1000),
+    10,
+  );
   return isNaN(v) || v < 10_000 ? 5 * 60 * 1000 : v;
 }
 
@@ -58,7 +64,10 @@ export function getStandupSkipTimeoutMs(): number {
 export function getStandupTrackedAssets(): string[] {
   const raw = process.env.STANDUP_TRACKED_ASSETS?.trim();
   if (!raw) return ["BTC", "SOL", "HYPE"];
-  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** Max snippet length for X/tweet context. Env: STANDUP_SNIPPET_LEN. Default: 120. */
@@ -89,7 +98,10 @@ export const STANDUP_RALPH_LOOP_TASK_NAME = "STANDUP_RALPH_LOOP";
 
 /** Ralph loop interval (ms). Env: STANDUP_RALPH_INTERVAL_MS. Default: 5 min. */
 export function getStandupRalphIntervalMs(): number {
-  const v = parseInt(process.env.STANDUP_RALPH_INTERVAL_MS || String(5 * 60 * 1000), 10);
+  const v = parseInt(
+    process.env.STANDUP_RALPH_INTERVAL_MS || String(5 * 60 * 1000),
+    10,
+  );
   return Number.isFinite(v) && v >= 60_000 ? v : 5 * 60 * 1000;
 }
 
@@ -101,7 +113,12 @@ export function getStandupRalphIntervalMs(): number {
 export function getStandupRequireApprovalTypes(): Set<string> {
   const raw = process.env.STANDUP_REQUIRE_APPROVAL_TYPES?.trim();
   if (!raw) return new Set();
-  return new Set(raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+  );
 }
 
 /** Canonical standup report order (Kelly wraps up; not in list). Used by task round-robin and facilitator. Naval last = writes conclusion. */
@@ -176,9 +193,13 @@ export function getStandupFacilitatorId(runtime: IAgentRuntime): UUID {
   return createUniqueUuid(runtime, STANDUP_FACILITATOR_ID_SEED) as UUID;
 }
 
-export function isStandupCoordinator(runtime: { character?: { name?: string } }): boolean {
+export function isStandupCoordinator(runtime: {
+  character?: { name?: string };
+}): boolean {
   const enabled = process.env.STANDUP_ENABLED === "true";
-  const coordinatorName = (process.env.STANDUP_COORDINATOR_AGENT ?? "Kelly").trim();
+  const coordinatorName = (
+    process.env.STANDUP_COORDINATOR_AGENT ?? "Kelly"
+  ).trim();
   const name = runtime.character?.name?.trim();
   return enabled && !!name && name === coordinatorName;
 }
@@ -255,7 +276,14 @@ export const STANDUP_KICKOFF_PHRASES = [
 ] as const;
 
 /** Words near "standup" that indicate a status report, not a kickoff request. */
-const STANDUP_NEGATIVE_WORDS = ["already", "complete", "done", "finished", "locked", "delivered"];
+const STANDUP_NEGATIVE_WORDS = [
+  "already",
+  "complete",
+  "done",
+  "finished",
+  "locked",
+  "delivered",
+];
 
 /**
  * Returns true if the message is asking to start/kick off a standup.
@@ -269,11 +297,17 @@ export function isStandupKickoffRequest(text: string): boolean {
     .replace(/\s+/g, " ")
     .replace(/\bstand up\b/g, "standup");
   // Reject status messages: "standup already complete", "standup done", etc.
-  if (STANDUP_NEGATIVE_WORDS.some((w) => normalized.includes(w) && normalized.includes("standup"))) {
+  if (
+    STANDUP_NEGATIVE_WORDS.some(
+      (w) => normalized.includes(w) && normalized.includes("standup"),
+    )
+  ) {
     return false;
   }
   return STANDUP_KICKOFF_PHRASES.some((phrase) => {
-    const phraseNorm = phrase.replace(/\s+/g, " ").replace(/\bstand up\b/g, "standup");
+    const phraseNorm = phrase
+      .replace(/\s+/g, " ")
+      .replace(/\bstand up\b/g, "standup");
     return normalized.includes(phraseNorm);
   });
 }

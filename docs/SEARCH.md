@@ -76,13 +76,13 @@ Then on February 12, 2026 they shipped **Exa Instant**, pushing latency below 20
 
 Perplexity's API bundles search and LLM together. You don't just get results — you get synthesized answers with citations.
 
-| Model | Cost | Use Case |
-|-------|------|----------|
-| **Sonar** | $1/M in+out tokens + per-request fee | Fast answers |
-| **Sonar Pro** | $3/M input + $15/M output + per-request fee | Deeper reasoning |
-| **Sonar Reasoning Pro** | Separate reasoning token costs | Chain-of-thought |
-| **Sonar Deep Research** | Per search query made | Autonomous multi-step |
-| **Raw Search API** | $5/1K requests, no token costs | Just results |
+| Model                   | Cost                                        | Use Case              |
+| ----------------------- | ------------------------------------------- | --------------------- |
+| **Sonar**               | $1/M in+out tokens + per-request fee        | Fast answers          |
+| **Sonar Pro**           | $3/M input + $15/M output + per-request fee | Deeper reasoning      |
+| **Sonar Reasoning Pro** | Separate reasoning token costs              | Chain-of-thought      |
+| **Sonar Deep Research** | Per search query made                       | Autonomous multi-step |
+| **Raw Search API**      | $5/1K requests, no token costs              | Just results          |
 
 The trade-off is clear: you give up control over the LLM layer in exchange for a complete answer pipeline. If you want to use your own model (running M2.5 or Opus), Perplexity is the wrong choice. If you want the fastest path to grounded answers, it might be the right one. Citation tokens are now free on standard Sonar and Sonar Pro, which meaningfully reduces per-query costs. But total cost per query depends on model choice + context size + token volume, making it harder to predict than flat-rate APIs.
 
@@ -92,23 +92,23 @@ The trade-off is clear: you give up control over the LLM layer in exchange for a
 
 In Firecrawl's own comparison testing, they reported 77.2% coverage and 0.638 F1 quality versus Exa's 69.2% coverage and 0.508 F1. (Note: these are vendor-published benchmarks, not independently audited.)
 
-It's not a search engine — it's what you use *after* your search engine finds the right URLs. Pricing is flat and predictable: one credit per page, always. No depth multipliers, no variable consumption. At 100K pages monthly, Firecrawl costs $83 versus Tavily's $500–800 for equivalent extraction.
+It's not a search engine — it's what you use _after_ your search engine finds the right URLs. Pricing is flat and predictable: one credit per page, always. No depth multipliers, no variable consumption. At 100K pages monthly, Firecrawl costs $83 versus Tavily's $500–800 for equivalent extraction.
 
 ---
 
 ## Comparison
 
-| Feature | Brave | Tavily | Exa | Perplexity | Firecrawl |
-|---------|-------|--------|-----|------------|-----------|
-| **Type** | Search + extraction | Search + crawl | Semantic search | Search + LLM | Extraction only |
-| **Index** | Own (35B pages) | Wraps multiple | Own (neural) | Own + web | N/A (URL input) |
-| **Latency (p50)** | ~500ms | ~800ms | <200ms (Instant) | ~1-3s | ~2-5s |
-| **LLM-ready output** | Yes (smart chunks) | Yes | Yes | Yes (full answers) | Yes (markdown) |
-| **Token budget control** | Yes | No | No | Via model choice | No |
-| **Self-hostable** | No | No | No | No | Yes |
-| **Pricing model** | $5/1K requests | Credits (1-2/search) | Per request | Tokens + requests | $1/page |
-| **Independence** | Full (own index) | Partial | Full (own index) | Full | N/A |
-| **ZDR / SOC 2** | Yes | No | No | No | Self-host option |
+| Feature                  | Brave               | Tavily               | Exa              | Perplexity         | Firecrawl        |
+| ------------------------ | ------------------- | -------------------- | ---------------- | ------------------ | ---------------- |
+| **Type**                 | Search + extraction | Search + crawl       | Semantic search  | Search + LLM       | Extraction only  |
+| **Index**                | Own (35B pages)     | Wraps multiple       | Own (neural)     | Own + web          | N/A (URL input)  |
+| **Latency (p50)**        | ~500ms              | ~800ms               | <200ms (Instant) | ~1-3s              | ~2-5s            |
+| **LLM-ready output**     | Yes (smart chunks)  | Yes                  | Yes              | Yes (full answers) | Yes (markdown)   |
+| **Token budget control** | Yes                 | No                   | No               | Via model choice   | No               |
+| **Self-hostable**        | No                  | No                   | No               | No                 | Yes              |
+| **Pricing model**        | $5/1K requests      | Credits (1-2/search) | Per request      | Tokens + requests  | $1/page          |
+| **Independence**         | Full (own index)    | Partial              | Full (own index) | Full               | N/A              |
+| **ZDR / SOC 2**          | Yes                 | No                   | No               | No                 | Self-host option |
 
 ---
 
@@ -116,15 +116,15 @@ It's not a search engine — it's what you use *after* your search engine finds 
 
 The smart move isn't picking one. It's routing different query types to different APIs based on what each does best.
 
-| Use Case | Best API | Why |
-|----------|----------|-----|
-| **Factual grounding** (prices, stats, current events) | Brave | Fastest general-purpose, token-budget control, fresh index |
-| **Research discovery** ("find articles like this") | Exa | Neural embeddings understand meaning, not just keywords |
-| **Deep page extraction** (full article content, tables) | Firecrawl | Best extraction quality, handles JS/auth/pagination |
-| **Quick synthesized answers** | Perplexity Sonar | No model integration needed, citations included |
-| **Multi-step research** (automated deep dives) | Tavily `/research` or Perplexity Deep Research | Purpose-built for agentic multi-hop queries |
-| **Site mapping / crawling** | Tavily or Firecrawl | Both handle structure; Firecrawl better at scale |
-| **Regulated / enterprise** | Brave (ZDR) or Firecrawl (self-host) | Data sovereignty requirements |
+| Use Case                                                | Best API                                       | Why                                                        |
+| ------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
+| **Factual grounding** (prices, stats, current events)   | Brave                                          | Fastest general-purpose, token-budget control, fresh index |
+| **Research discovery** ("find articles like this")      | Exa                                            | Neural embeddings understand meaning, not just keywords    |
+| **Deep page extraction** (full article content, tables) | Firecrawl                                      | Best extraction quality, handles JS/auth/pagination        |
+| **Quick synthesized answers**                           | Perplexity Sonar                               | No model integration needed, citations included            |
+| **Multi-step research** (automated deep dives)          | Tavily `/research` or Perplexity Deep Research | Purpose-built for agentic multi-hop queries                |
+| **Site mapping / crawling**                             | Tavily or Firecrawl                            | Both handle structure; Firecrawl better at scale           |
+| **Regulated / enterprise**                              | Brave (ZDR) or Firecrawl (self-host)           | Data sovereignty requirements                              |
 
 ---
 

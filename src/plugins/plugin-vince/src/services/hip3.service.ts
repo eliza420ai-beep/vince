@@ -166,10 +166,10 @@ export class VinceHIP3Service extends Service {
       if (pulse) {
         this.printHIP3Dashboard(pulse);
       } else {
-        console.log(`  [VINCE] ⚠️  HIP-3 API: No data available`);
+        logger.warn("[VINCE] HIP-3 API: No data available");
       }
     } catch (e) {
-      console.log(`  [VINCE] ⚠️  HIP-3 API test failed: ${e}`);
+      logger.warn(`[VINCE] HIP-3 API test failed: ${e}`);
     }
   }
 
@@ -540,7 +540,7 @@ export class VinceHIP3Service extends Service {
   }
 
   async stop(): Promise<void> {
-      logger.debug("[VinceHIP3] Service stopped");
+    logger.debug("[VinceHIP3] Service stopped");
   }
 
   /**

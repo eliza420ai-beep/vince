@@ -34,7 +34,7 @@ export function createMockCallback(): MockCallback {
 
 export function createMockMessage(
   text: string,
-  options?: { entityId?: UUID; roomId?: UUID; agentId?: UUID }
+  options?: { entityId?: UUID; roomId?: UUID; agentId?: UUID },
 ): Memory {
   return {
     id: uuidv4() as UUID,
@@ -61,12 +61,16 @@ export interface MockPolymarketService {
     limitPerTag?: number;
     totalLimit?: number;
   }) => Promise<PolymarketMarket[]>;
-  recordActivity?: (roomId: string, type: string, data: Record<string, unknown>) => void;
+  recordActivity?: (
+    roomId: string,
+    type: string,
+    data: Record<string, unknown>,
+  ) => void;
   getCachedActivityContext?: (roomId?: string) => string;
 }
 
 export function createMockPolymarketService(
-  markets: PolymarketMarket[] = []
+  markets: PolymarketMarket[] = [],
 ): MockPolymarketService {
   return {
     getMarketsByPreferredTags: async () => markets,
@@ -88,7 +92,11 @@ export const mockPolymarketMarket: PolymarketMarket = {
 
 export interface MockRuntimeOptions {
   polymarketService?: MockPolymarketService | null;
-  composeState?: (message: Memory, includeList?: string[] | null, onlyInclude?: boolean) => Promise<State>;
+  composeState?: (
+    message: Memory,
+    includeList?: string[] | null,
+    onlyInclude?: boolean,
+  ) => Promise<State>;
 }
 
 export function createMockRuntime(options?: MockRuntimeOptions): IAgentRuntime {

@@ -15,7 +15,11 @@ import {
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
-import { extractActionParams, validatePolymarketService, getPolymarketService } from "../utils/actionHelpers";
+import {
+  extractActionParams,
+  validatePolymarketService,
+  getPolymarketService,
+} from "../utils/actionHelpers";
 
 interface GetOrderbooksParams {
   tokenIds?: string[];
@@ -43,13 +47,19 @@ export const getOrderbooksAction: Action = {
   parameters: {
     token_ids: {
       type: "array",
-      description: "Array of ERC1155 token IDs (max 100). Token IDs are large numeric strings like '15974786252393396629980467963784550802583781222733347534844974829144359265969'. Get these from SEARCH_POLYMARKETS or GET_POLYMARKET_DETAIL.",
+      description:
+        "Array of ERC1155 token IDs (max 100). Token IDs are large numeric strings like '15974786252393396629980467963784550802583781222733347534844974829144359265969'. Get these from SEARCH_POLYMARKETS or GET_POLYMARKET_DETAIL.",
       required: true,
     },
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    return validatePolymarketService(runtime, "GET_POLYMARKET_ORDERBOOKS", state, message);
+    return validatePolymarketService(
+      runtime,
+      "GET_POLYMARKET_ORDERBOOKS",
+      state,
+      message,
+    );
   },
 
   handler: async (
@@ -57,13 +67,16 @@ export const getOrderbooksAction: Action = {
     message: Memory,
     _state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
       logger.info("[GET_POLYMARKET_ORDERBOOKS] Getting orderbooks");
 
       // Extract parameters
-      const params = await extractActionParams<GetOrderbooksParams>(runtime, message);
+      const params = await extractActionParams<GetOrderbooksParams>(
+        runtime,
+        message,
+      );
 
       // Normalize token_ids (support both snake_case and camelCase)
       let tokenIds = params.token_ids || params.tokenIds;
@@ -96,7 +109,8 @@ export const getOrderbooksAction: Action = {
       };
       const invalidTokens = tokenIds.filter((id) => !isValidTokenId(id));
       if (invalidTokens.length > 0) {
-        const errorMsg = "Invalid token ID format in one or more tokens (expected large numeric or hex 0x...)";
+        const errorMsg =
+          "Invalid token ID format in one or more tokens (expected large numeric or hex 0x...)";
         logger.error(`[GET_POLYMARKET_ORDERBOOKS] ${errorMsg}`);
         const errorResult: GetOrderbooksActionResult = {
           text: ` ${errorMsg}. Get token IDs from market detail or search results.`,
@@ -113,7 +127,9 @@ export const getOrderbooksAction: Action = {
 
       // Validate max 100 tokens
       if (tokenIds.length > 100) {
-        logger.warn(`[GET_POLYMARKET_ORDERBOOKS] Token IDs exceeds max of 100, will truncate`);
+        logger.warn(
+          `[GET_POLYMARKET_ORDERBOOKS] Token IDs exceeds max of 100, will truncate`,
+        );
       }
 
       const inputParams: GetOrderbooksInput = { token_ids: tokenIds };
@@ -137,7 +153,9 @@ export const getOrderbooksAction: Action = {
       }
 
       // Fetch orderbooks
-      logger.info(`[GET_POLYMARKET_ORDERBOOKS] Fetching ${tokenIds.length} orderbooks`);
+      logger.info(
+        `[GET_POLYMARKET_ORDERBOOKS] Fetching ${tokenIds.length} orderbooks`,
+      );
       const orderbooks = await service.getOrderbooks(tokenIds);
 
       // Format response (no token_id in user-facing text; kept in result.data)
@@ -161,10 +179,10 @@ export const getOrderbooksAction: Action = {
         text += `**Liquidity:** ${liquidBooks.length}/${orderbooks.length} with liquidity.\n`;
 
         const tightest = liquidBooks.reduce((min, ob) =>
-          parseFloat(ob.spread!) < parseFloat(min.spread!) ? ob : min
+          parseFloat(ob.spread!) < parseFloat(min.spread!) ? ob : min,
         );
         const widest = liquidBooks.reduce((max, ob) =>
-          parseFloat(ob.spread!) > parseFloat(max.spread!) ? ob : max
+          parseFloat(ob.spread!) > parseFloat(max.spread!) ? ob : max,
         );
         const tightestIdx = orderbooks.indexOf(tightest) + 1;
         const widestIdx = orderbooks.indexOf(widest) + 1;
@@ -192,7 +210,7 @@ export const getOrderbooksAction: Action = {
       };
 
       logger.info(
-        `[GET_POLYMARKET_ORDERBOOKS] Successfully fetched ${orderbooks.length} orderbooks`
+        `[GET_POLYMARKET_ORDERBOOKS] Successfully fetched ${orderbooks.length} orderbooks`,
       );
       return result;
     } catch (error) {
@@ -232,7 +250,9 @@ export const getOrderbooksAction: Action = {
     [
       {
         name: "{{user}}",
-        content: { text: "show me liquidity for all YES tokens in this market" },
+        content: {
+          text: "show me liquidity for all YES tokens in this market",
+        },
       },
       {
         name: "{{agent}}",

@@ -17,7 +17,10 @@ import type {
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { logger, ModelType } from "@elizaos/core";
-import { generatePRDFromRequest, savePRD } from "../services/prdGenerator.service";
+import {
+  generatePRDFromRequest,
+  savePRD,
+} from "../services/prdGenerator.service";
 
 const FEEDBACK_REQUEST_PREFIX = "[FEEDBACK_DELIVERABLE_REQUEST]";
 
@@ -25,13 +28,21 @@ function isFeedbackDeliverableRequest(text: string): boolean {
   return text.includes(FEEDBACK_REQUEST_PREFIX);
 }
 
-function parseRequest(text: string): { agentTested: string; feedback: string; context?: string } {
+function parseRequest(text: string): {
+  agentTested: string;
+  feedback: string;
+  context?: string;
+} {
   const agentMatch = text.match(/agentTested:\s*(.+?)(?=\n|$)/i);
-  const feedbackMatch = text.match(/feedback:\s*([\s\S]+?)(?=\n(?:context:|$)|$)/i);
+  const feedbackMatch = text.match(
+    /feedback:\s*([\s\S]+?)(?=\n(?:context:|$)|$)/i,
+  );
   const contextMatch = text.match(/context:\s*([\s\S]*?)$/i);
   return {
     agentTested: (agentMatch?.[1] ?? "").trim(),
-    feedback: (feedbackMatch?.[1] ?? text.replace(FEEDBACK_REQUEST_PREFIX, "").trim()).trim(),
+    feedback: (
+      feedbackMatch?.[1] ?? text.replace(FEEDBACK_REQUEST_PREFIX, "").trim()
+    ).trim(),
     context: contextMatch?.[1]?.trim(),
   };
 }
@@ -50,7 +61,10 @@ export const sentinelFeedbackDeliverableAction: Action = {
   description:
     "Generates a deliverable from agent feedback: either a PRD for Cursor (code/behavior fix) or an Eliza task (knowledge gap). Invoked by other agents when user sends FEEDBACK: ...",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").trim();
     return isFeedbackDeliverableRequest(text);
   },
@@ -93,7 +107,8 @@ Reply with exactly one line: either "prd" or "eliza_task" (nothing else).`;
       const triageText =
         typeof triageResponse === "string"
           ? triageResponse
-          : (triageResponse as { text?: string })?.text ?? String(triageResponse);
+          : ((triageResponse as { text?: string })?.text ??
+            String(triageResponse));
       const deliverableType = triageText.toLowerCase().includes("eliza_task")
         ? "eliza_task"
         : "prd";
@@ -140,7 +155,9 @@ ${context ? `Context from conversation:\n${context.slice(0, 500)}` : "No additio
 `;
 
       fs.writeFileSync(filepath, elizaTaskContent);
-      logger.info(`[SENTINEL_FEEDBACK_DELIVERABLE] Eliza task saved to ${filepath}`);
+      logger.info(
+        `[SENTINEL_FEEDBACK_DELIVERABLE] Eliza task saved to ${filepath}`,
+      );
 
       const reply = `Eliza task written to \`${filepath}\`.`;
       await callback({

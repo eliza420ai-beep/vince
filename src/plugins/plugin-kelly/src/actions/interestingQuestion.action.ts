@@ -115,7 +115,9 @@ Output only the question and your one-line reason. ${getVoiceAvoidPromptFragment
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();
 
-      const out = text || "What's the one thing you'd do differently if you could start over tomorrow — not career, not money, just how you spend a Tuesday?";
+      const out =
+        text ||
+        "What's the one thing you'd do differently if you could start over tomorrow — not career, not money, just how you spend a Tuesday?";
       await callback({
         text: out,
         actions: ["KELLY_INTERESTING_QUESTION"],

@@ -1,3 +1,2 @@
-export { pointsProvider } from './pointsProvider';
-export { leaderboardProvider } from './leaderboardProvider';
-
+export { pointsProvider } from "./pointsProvider";
+export { leaderboardProvider } from "./leaderboardProvider";

@@ -38,11 +38,26 @@ interface ApproveRequest {
 
 // Known spender addresses (protocols)
 const KNOWN_SPENDERS: Record<string, { name: string; address: string }> = {
-  uniswap: { name: "Uniswap V3 Router", address: "0x2626664c2603336E57B271c5C0b26F421741e481" },
-  morpho: { name: "Morpho Blue", address: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb" },
-  "1inch": { name: "1inch Router", address: "0x1111111254EEB25477B68fb85Ed929f73A960582" },
-  aave: { name: "Aave V3 Pool", address: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5" },
-  compound: { name: "Compound Comet", address: "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf" },
+  uniswap: {
+    name: "Uniswap V3 Router",
+    address: "0x2626664c2603336E57B271c5C0b26F421741e481",
+  },
+  morpho: {
+    name: "Morpho Blue",
+    address: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+  },
+  "1inch": {
+    name: "1inch Router",
+    address: "0x1111111254EEB25477B68fb85Ed929f73A960582",
+  },
+  aave: {
+    name: "Aave V3 Pool",
+    address: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
+  },
+  compound: {
+    name: "Compound Comet",
+    address: "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf",
+  },
 };
 
 /**
@@ -53,9 +68,17 @@ function parseApproveRequest(text: string): ApproveRequest | null {
 
   // Determine intent
   let intent: "approve" | "revoke" | "check";
-  if (lower.includes("revoke") || lower.includes("remove approval") || lower.includes("cancel")) {
+  if (
+    lower.includes("revoke") ||
+    lower.includes("remove approval") ||
+    lower.includes("cancel")
+  ) {
     intent = "revoke";
-  } else if (lower.includes("check") || lower.includes("view") || lower.includes("show approval")) {
+  } else if (
+    lower.includes("check") ||
+    lower.includes("view") ||
+    lower.includes("show approval")
+  ) {
     intent = "check";
   } else if (lower.includes("approve") || lower.includes("allow")) {
     intent = "approve";
@@ -119,7 +142,7 @@ export const otakuApproveAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Token Approval:**\n- Token: USDC\n- Spender: Uniswap V3 Router\n- Amount: Unlimited\n\n⚠️ This grants spending permission.\n\nType \"confirm\" to approve.",
+          text: '**Token Approval:**\n- Token: USDC\n- Spender: Uniswap V3 Router\n- Amount: Unlimited\n\n⚠️ This grants spending permission.\n\nType "confirm" to approve.',
           actions: ["OTAKU_APPROVE"],
         },
       },
@@ -132,14 +155,17 @@ export const otakuApproveAction: Action = {
       {
         name: "{{agent}}",
         content: {
-          text: "**Revoke Approval:**\n- Token: USDC\n- Spender: 1inch Router\n\nThis will remove spending permission.\n\nType \"confirm\" to revoke.",
+          text: '**Revoke Approval:**\n- Token: USDC\n- Spender: 1inch Router\n\nThis will remove spending permission.\n\nType "confirm" to revoke.',
           actions: ["OTAKU_APPROVE"],
         },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     if (isConfirmation(text)) {
@@ -163,7 +189,7 @@ export const otakuApproveAction: Action = {
     message: Memory,
     state?: State,
     _options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
@@ -199,7 +225,10 @@ export const otakuApproveAction: Action = {
           '- "Check my USDC approvals"',
         ].join("\n"),
       });
-      return { success: false, error: new Error("Could not parse approval request") };
+      return {
+        success: false,
+        error: new Error("Could not parse approval request"),
+      };
     }
 
     // Handle "check" intent
@@ -218,7 +247,11 @@ export const otakuApproveAction: Action = {
       return { success: true };
     }
 
-    const pendingApproval = await getPending<ApproveRequest>(runtime, message, "approve");
+    const pendingApproval = await getPending<ApproveRequest>(
+      runtime,
+      message,
+      "approve",
+    );
 
     if (isConfirmation(text) && pendingApproval) {
       await clearPending(runtime, message, "approve");
@@ -228,7 +261,10 @@ export const otakuApproveAction: Action = {
         await callback?.({
           text: "CDP service not available for approval operations.",
         });
-        return { success: false, error: new Error("CDP service not available") };
+        return {
+          success: false,
+          error: new Error("CDP service not available"),
+        };
       }
 
       await callback?.({
@@ -239,33 +275,48 @@ export const otakuApproveAction: Action = {
         let result: any;
 
         if (pendingApproval.intent === "approve" && cdp.approve) {
-          const amount = pendingApproval.amount === "unlimited"
-            ? "115792089237316195423570985008687907853269984665640564039457584007913129639935" // max uint256
-            : pendingApproval.amount || "0";
-          result = await cdp.approve(pendingApproval.token, pendingApproval.spender!, amount);
+          const amount =
+            pendingApproval.amount === "unlimited"
+              ? "115792089237316195423570985008687907853269984665640564039457584007913129639935" // max uint256
+              : pendingApproval.amount || "0";
+          result = await cdp.approve(
+            pendingApproval.token,
+            pendingApproval.spender!,
+            amount,
+          );
         } else if (pendingApproval.intent === "revoke" && cdp.revoke) {
-          result = await cdp.revoke(pendingApproval.token, pendingApproval.spender!);
+          result = await cdp.revoke(
+            pendingApproval.token,
+            pendingApproval.spender!,
+          );
         } else if (cdp.writeContract) {
           // Fallback to direct contract call
           result = await cdp.writeContract({
             address: pendingApproval.token as `0x${string}`,
-            abi: ["function approve(address spender, uint256 amount) returns (bool)"],
+            abi: [
+              "function approve(address spender, uint256 amount) returns (bool)",
+            ],
             functionName: "approve",
             args: [
               pendingApproval.spender,
-              pendingApproval.intent === "revoke" ? "0" : pendingApproval.amount,
+              pendingApproval.intent === "revoke"
+                ? "0"
+                : pendingApproval.amount,
             ],
           });
         }
 
         if (result?.success || result?.txHash || result?.hash) {
-          const action = pendingApproval.intent === "approve" ? "Approved" : "Revoked";
+          const action =
+            pendingApproval.intent === "approve" ? "Approved" : "Revoked";
           const approveOut = [
             `✅ ${action}!`,
             "",
             `**Token:** ${pendingApproval.token}`,
             `**Spender:** ${pendingApproval.spender?.slice(0, 10)}...`,
-            result.txHash || result.hash ? `**TX:** ${(result.txHash || result.hash).slice(0, 20)}...` : "",
+            result.txHash || result.hash
+              ? `**TX:** ${(result.txHash || result.hash).slice(0, 20)}...`
+              : "",
           ].join("\n");
           await callback?.({
             text: "Here's the approval status—\n\n" + approveOut,
@@ -278,7 +329,10 @@ export const otakuApproveAction: Action = {
         await callback?.({
           text: `❌ ${pendingApproval.intent === "approve" ? "Approval" : "Revocation"} failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
+        return {
+          success: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        };
       }
     }
 
@@ -303,8 +357,8 @@ export const otakuApproveAction: Action = {
 
     // Build confirmation message
     const spenderName =
-      Object.values(KNOWN_SPENDERS).find((s) => s.address === request.spender)?.name ||
-      request.spender?.slice(0, 20) + "...";
+      Object.values(KNOWN_SPENDERS).find((s) => s.address === request.spender)
+        ?.name || request.spender?.slice(0, 20) + "...";
 
     const lines = [
       `**${request.intent === "approve" ? "Token Approval" : "Revoke Approval"}:**`,
@@ -316,7 +370,9 @@ export const otakuApproveAction: Action = {
     if (request.intent === "approve") {
       lines.push(`💰 **Amount:** ${request.amount || "Unlimited"}`);
       lines.push("");
-      lines.push("⚠️ This grants the protocol permission to spend your tokens.");
+      lines.push(
+        "⚠️ This grants the protocol permission to spend your tokens.",
+      );
     } else {
       lines.push("");
       lines.push("This will remove the protocol's spending permission.");

@@ -10,7 +10,13 @@ declare module "@radix-ui/react-slider" {
       onValueChange?: (value: number[]) => void;
     }
   >;
-  export const Track: React.ComponentType<React.HTMLAttributes<HTMLSpanElement>>;
-  export const Range: React.ComponentType<React.HTMLAttributes<HTMLSpanElement>>;
-  export const Thumb: React.ComponentType<React.HTMLAttributes<HTMLSpanElement>>;
+  export const Track: React.ComponentType<
+    React.HTMLAttributes<HTMLSpanElement>
+  >;
+  export const Range: React.ComponentType<
+    React.HTMLAttributes<HTMLSpanElement>
+  >;
+  export const Thumb: React.ComponentType<
+    React.HTMLAttributes<HTMLSpanElement>
+  >;
 }

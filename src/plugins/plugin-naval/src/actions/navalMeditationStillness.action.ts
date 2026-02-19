@@ -11,7 +11,11 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
+import {
+  ALOHA_STYLE_RULES,
+  NAVAL_STRUCTURED_NOTE,
+  NO_AI_SLOP,
+} from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "naval meditation",
@@ -45,7 +49,10 @@ export const navalMeditationStillnessAction: Action = {
   description:
     "Why meditation/stillness matters for judgment and peace. One practical way to start or deepen. No dogma.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return wantsMeditationStillness(text);
   },
@@ -80,7 +87,7 @@ Context (knowledge):\n${contextBlock}`;
       const text =
         typeof response === "string"
           ? response
-          : (response as { text?: string })?.text ?? String(response);
+          : ((response as { text?: string })?.text ?? String(response));
       await callback({ text: text.trim() });
       return { success: true };
     } catch (error) {
@@ -88,14 +95,27 @@ Context (knowledge):\n${contextBlock}`;
       await callback({
         text: "Stillness sharpens judgment — less reactivity, clearer decisions. One step: 5 minutes a day, sit and watch your thoughts without following them. Or just reduce input: less scroll, more silence.",
       });
-      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Naval meditation: I've never meditated. Why should I and how do I start?" } },
-      { name: "{{agent}}", content: { text: "In Naval's frame it's about judgment — a calm mind sees reality better and makes fewer impulsive calls. Start with 5 minutes: sit, breathe, notice thoughts without grabbing them. No app required. Do it daily; the compound effect is clarity over time." } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Naval meditation: I've never meditated. Why should I and how do I start?",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "In Naval's frame it's about judgment — a calm mind sees reality better and makes fewer impulsive calls. Start with 5 minutes: sit, breathe, notice thoughts without grabbing them. No app required. Do it daily; the compound effect is clarity over time.",
+        },
+      },
     ],
   ],
 };

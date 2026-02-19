@@ -51,31 +51,32 @@ The plugin prioritizes a fixed set of topics for market insights and hedging. Th
 
 All 20 actions are documented in the plugin [index.ts](src/index.ts) docblock. Summary:
 
-| Action | Description |
-|--------|-------------|
-| GET_ACTIVE_POLYMARKETS | Trending/active markets with odds (limit optional, default 10, max 50) |
-| SEARCH_POLYMARKETS | Search by query and/or category |
-| GET_POLYMARKET_DETAIL | Full market info by conditionId |
-| GET_POLYMARKET_PRICE | Real-time YES/NO prices by conditionId |
-| GET_POLYMARKET_PRICE_HISTORY | Historical price data for a market |
-| GET_POLYMARKET_TOKEN_INFO | One-shot: market + pricing + 24h summary + optional user position (conditionId/tokenId, optional walletAddress) |
-| GET_POLYMARKET_CATEGORIES | List categories |
-| GET_VINCE_POLYMARKET_MARKETS | Markets only from VINCE-priority topics (crypto, finance, geopolitics, economy); optional group filter, limit default 20 |
-| GET_POLYMARKET_POSITIONS | User positions (walletAddress required) |
-| GET_POLYMARKET_BALANCE | Portfolio balance and P&L (walletAddress required) |
-| GET_POLYMARKET_TRADE_HISTORY | Trade history (walletAddress, limit optional) |
-| GET_POLYMARKET_ORDERBOOK | Single token orderbook (token_id; side optional) |
-| GET_POLYMARKET_ORDERBOOKS | Batch orderbooks (token_ids) |
-| GET_POLYMARKET_OPEN_INTEREST | Market-wide open interest |
-| GET_POLYMARKET_LIVE_VOLUME | 24h volume |
-| GET_POLYMARKET_SPREADS | Bid-ask spreads (limit optional) |
-| GET_POLYMARKET_EVENTS | Browse events (filters optional) |
-| GET_POLYMARKET_EVENT_DETAIL | Event by id or slug |
-| GET_POLYMARKET_CLOSED_POSITIONS | Closed positions (walletAddress required) |
-| GET_POLYMARKET_USER_ACTIVITY | User activity log (walletAddress required) |
-| GET_POLYMARKET_TOP_HOLDERS | Top holders for a market (conditionId required) |
+| Action                          | Description                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| GET_ACTIVE_POLYMARKETS          | Trending/active markets with odds (limit optional, default 10, max 50)                                                   |
+| SEARCH_POLYMARKETS              | Search by query and/or category                                                                                          |
+| GET_POLYMARKET_DETAIL           | Full market info by conditionId                                                                                          |
+| GET_POLYMARKET_PRICE            | Real-time YES/NO prices by conditionId                                                                                   |
+| GET_POLYMARKET_PRICE_HISTORY    | Historical price data for a market                                                                                       |
+| GET_POLYMARKET_TOKEN_INFO       | One-shot: market + pricing + 24h summary + optional user position (conditionId/tokenId, optional walletAddress)          |
+| GET_POLYMARKET_CATEGORIES       | List categories                                                                                                          |
+| GET_VINCE_POLYMARKET_MARKETS    | Markets only from VINCE-priority topics (crypto, finance, geopolitics, economy); optional group filter, limit default 20 |
+| GET_POLYMARKET_POSITIONS        | User positions (walletAddress required)                                                                                  |
+| GET_POLYMARKET_BALANCE          | Portfolio balance and P&L (walletAddress required)                                                                       |
+| GET_POLYMARKET_TRADE_HISTORY    | Trade history (walletAddress, limit optional)                                                                            |
+| GET_POLYMARKET_ORDERBOOK        | Single token orderbook (token_id; side optional)                                                                         |
+| GET_POLYMARKET_ORDERBOOKS       | Batch orderbooks (token_ids)                                                                                             |
+| GET_POLYMARKET_OPEN_INTEREST    | Market-wide open interest                                                                                                |
+| GET_POLYMARKET_LIVE_VOLUME      | 24h volume                                                                                                               |
+| GET_POLYMARKET_SPREADS          | Bid-ask spreads (limit optional)                                                                                         |
+| GET_POLYMARKET_EVENTS           | Browse events (filters optional)                                                                                         |
+| GET_POLYMARKET_EVENT_DETAIL     | Event by id or slug                                                                                                      |
+| GET_POLYMARKET_CLOSED_POSITIONS | Closed positions (walletAddress required)                                                                                |
+| GET_POLYMARKET_USER_ACTIVITY    | User activity log (walletAddress required)                                                                               |
+| GET_POLYMARKET_TOP_HOLDERS      | Top holders for a market (conditionId required)                                                                          |
 
 **Examples:**
+
 - "What are the trending polymarket predictions?" → GET_ACTIVE_POLYMARKETS
 - "Search polymarket for bitcoin predictions" → SEARCH_POLYMARKETS
 - "What categories are available on polymarket?" → GET_POLYMARKET_CATEGORIES
@@ -85,10 +86,13 @@ All 20 actions are documented in the plugin [index.ts](src/index.ts) docblock. S
 ## Architecture
 
 ### Provider
+
 **POLYMARKET_DISCOVERY** (`providers/polymarketDiscovery.provider.ts`) — When Polymarket is in context, injects read-only capability, **VINCE preferred topics** (preferredTagSlugs, preferredTopicsSummary), and optional recent-activity context (e.g. "last viewed: search 'bitcoin', market detail 0x...") so the agent can choose the right action.
 
 ### Service Layer
+
 **PolymarketService** (`services/polymarket.service.ts`)
+
 - Handles API communication with Gamma API (market data) and CLOB API (pricing)
 - **Gamma public-search**: server-side keyword search via `/public-search`; **tags**: `/tags` and events-by-tag for category browse
 - **Activity log**: in-memory per-room log (`recordActivity` / `getCachedActivityContext`) for provider context
@@ -98,21 +102,25 @@ All 20 actions are documented in the plugin [index.ts](src/index.ts) docblock. S
 - No authentication required (read-only)
 
 ### Data Sources
+
 - **Gamma API**: Market metadata, categories, events, search
 - **CLOB API**: Real-time orderbook, pricing, spreads
 - **Data API**: User positions, balance, trades, activity, holders
 
 ### Data sources and real-time accuracy
+
 - **CLOB** is the source of truth for live trading prices. **GET_POLYMARKET_PRICE** and **GET_POLYMARKET_ORDERBOOK** (and the service’s `getMarketPrices()`) use the CLOB orderbook (best ask) and are appropriate when you need current odds.
 - **Gamma** provides indexed market/event data. List and search surfaces (e.g. **SEARCH_POLYMARKETS** results, **GET /polymarket/priority-markets**) use Gamma-derived prices (`outcomePrices` / `tokens[].price`) or placeholders when CLOB is not fetched—so they are not guaranteed CLOB-level real-time. For current odds on a specific market, use **GET_POLYMARKET_PRICE** with the market’s `condition_id`.
 - **getMarketDetail(conditionId)** resolves by fetching Gamma’s first 500 active markets and finding the match client-side. Markets outside that set (e.g. low volume or newer) will not be found; **getMarketPrices(conditionId)** then cannot run for them. This is a known limitation.
 
 ### Caching Strategy
+
 - Market data: 60-second TTL (configurable)
 - Price data: 15-second TTL (configurable)
 - In-memory Map-based cache for fast lookups
 
 ### Error Handling
+
 - Automatic retry with exponential backoff (1s, 2s, 4s)
 - Request timeout protection (10s default)
 - Graceful fallbacks for missing price data
@@ -142,16 +150,18 @@ POLYMARKET_REQUEST_TIMEOUT=10000   # 10 seconds
 This plugin is included in the Otaku monorepo. To use it:
 
 1. Import in your character configuration:
+
 ```typescript
 import { polymarketDiscoveryPlugin } from "./plugins/plugin-polymarket-discovery";
 
 // Add to plugins array
-plugins: [polymarketDiscoveryPlugin]
+plugins: [polymarketDiscoveryPlugin];
 ```
 
 2. No API keys required - all endpoints are public read-only
 
 3. Build and run:
+
 ```bash
 bun run build
 bun run start
@@ -160,20 +170,25 @@ bun run start
 ## Implementation Details
 
 ### Constants
+
 API URLs and limits are centralized in `src/constants.ts`: `DEFAULT_GAMMA_API_URL`, `GAMMA_PUBLIC_SEARCH_PATH`, `GAMMA_TAGS_PATH`, `GAMMA_EVENTS_PATH`, `GAMMA_MARKETS_PATH`, `DEFAULT_CLOB_API_URL`, `DEFAULT_PAGE_LIMIT`, `MAX_PAGE_LIMIT`, `ACTIVITY_HISTORY_MAX_ITEMS`. **VINCE priority:** `VINCE_POLYMARKET_PREFERRED_TAG_SLUGS`, `VINCE_POLYMARKET_PREFERRED_LABELS` (and `VincePolymarketGroup`); keep in sync with `knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md`.
 
 ### Parameter extraction (LLM + regex)
+
 When `ACTION_STATE` does not supply action params, the plugin uses `extractPolymarketParams` (`utils/llmExtract.ts`): it first checks regex on the message (condition IDs, wallet addresses, "search for X" patterns), then optionally calls the LLM to extract JSON (query, category, conditionId, tokenId, walletAddress, limit). Used by SEARCH_POLYMARKETS, GET_POLYMARKET_DETAIL, GET_POLYMARKET_PRICE, GET_POLYMARKET_POSITIONS, GET_POLYMARKET_TOKEN_INFO for natural-language param resolution.
 
 ### Type Definitions
+
 - Complete TypeScript interfaces for all API responses
 - Proper type safety with ActionResult pattern
 - Input parameter capture for all actions
 
 ### Logging
+
 All actions log with `[ACTION_NAME]` prefix for easy debugging (e.g. `[GET_ACTIVE_POLYMARKETS]`, `[SEARCH_POLYMARKETS]`, `[GET_POLYMARKET_POSITIONS]`).
 
 ### Performance
+
 - Parallel API calls where possible (market + prices)
 - Efficient caching reduces API calls
 - Timeout protection prevents hanging requests
@@ -182,6 +197,7 @@ All actions log with `[ACTION_NAME]` prefix for easy debugging (e.g. `[GET_ACTIV
 ## Future Enhancements
 
 This plugin is read-only (no trading). Future work could add:
+
 - Trading capabilities (buy/sell) via CLOB with wallet signing
 - Real-time price alerts
 - Market recommendations
@@ -189,17 +205,20 @@ This plugin is read-only (no trading). Future work could add:
 ## Development
 
 Build the plugin:
+
 ```bash
 cd src/plugins/plugin-polymarket-discovery
 bun run build
 ```
 
 Type check:
+
 ```bash
 bun run typecheck
 ```
 
 Run live API checks (optional; hits real Gamma/CLOB):
+
 ```bash
 POLYMARKET_LIVE_TEST=1 bun run scripts/polymarket-verify-live.ts
 ```

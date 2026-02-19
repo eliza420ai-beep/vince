@@ -5,6 +5,7 @@ ALOHA-style X/Twitter research for crypto sentiment and alpha.
 **Agent:** This plugin powers **ECHO**, the Chief Sentiment Officer (CSO) of the VINCE dream team.
 
 > **Separation of Concerns:**
+>
 > - **VINCE** (CDO) = Objective data (prices, options, perps, funding)
 > - **ECHO** (CSO) = Subjective sentiment (CT vibes, social alpha)
 
@@ -52,18 +53,18 @@ export X_RESEARCH_QUALITY_LIST_ID="your-list-id"
 
 ## Configuration
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `X_BEARER_TOKEN` | X API v2 Bearer Token (required for ECHO / default) | — |
-| `ELIZA_X_BEARER_TOKEN` | X token for Eliza only. When set, Eliza uses this and ECHO uses `X_BEARER_TOKEN`, avoiding shared rate limits when both agents use X. | — |
-| `X_PULSE_QUICK` | When `true`, use quick pulse (fewer topics, 10 results/topic) | `false` |
-| `X_PULSE_QUALITY` | When `true`, pulse/vibe show only whale/alpha/quality accounts | `false` |
-| `X_RESEARCH_SHOW_COST` | When `true`, append estimated X API cost to pulse/vibe responses | `false` |
-| `X_WATCHLIST_PATH` | Path to watchlist JSON (in-chat "check my watchlist") | `skills/x-research/data/watchlist.json` |
-| `X_RESEARCH_SAVE_DIR` | Directory for "save that" (last research export) | `skills/x-research/data/drafts` |
-| `X_PULSE_CACHE_TTL_MS` | Cache TTL for pulse/vibe search (ms) | `3600000` (1h) |
-| `X_RESEARCH_QUALITY_LIST_ID` | X list ID for quality-filtered results | — |
-| `X_SEARCH_MAX_RESULTS` | Posts to fetch for X_SEARCH (deeper insight) | `60` |
+| Variable                     | Description                                                                                                                           | Default                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `X_BEARER_TOKEN`             | X API v2 Bearer Token (required for ECHO / default)                                                                                   | —                                       |
+| `ELIZA_X_BEARER_TOKEN`       | X token for Eliza only. When set, Eliza uses this and ECHO uses `X_BEARER_TOKEN`, avoiding shared rate limits when both agents use X. | —                                       |
+| `X_PULSE_QUICK`              | When `true`, use quick pulse (fewer topics, 10 results/topic)                                                                         | `false`                                 |
+| `X_PULSE_QUALITY`            | When `true`, pulse/vibe show only whale/alpha/quality accounts                                                                        | `false`                                 |
+| `X_RESEARCH_SHOW_COST`       | When `true`, append estimated X API cost to pulse/vibe responses                                                                      | `false`                                 |
+| `X_WATCHLIST_PATH`           | Path to watchlist JSON (in-chat "check my watchlist")                                                                                 | `skills/x-research/data/watchlist.json` |
+| `X_RESEARCH_SAVE_DIR`        | Directory for "save that" (last research export)                                                                                      | `skills/x-research/data/drafts`         |
+| `X_PULSE_CACHE_TTL_MS`       | Cache TTL for pulse/vibe search (ms)                                                                                                  | `3600000` (1h)                          |
+| `X_RESEARCH_QUALITY_LIST_ID` | X list ID for quality-filtered results                                                                                                | —                                       |
+| `X_SEARCH_MAX_RESULTS`       | Posts to fetch for X_SEARCH (deeper insight)                                                                                          | `60`                                    |
 
 **Plugin-vince (paper-bot sentiment):** `X_SENTIMENT_SHOW_COST=true` or `LOG_LEVEL=debug` logs estimated cost after each sentiment refresh.
 
@@ -75,7 +76,7 @@ export X_RESEARCH_QUALITY_LIST_ID="your-list-id"
 ### 3. Register Plugin
 
 ```typescript
-import { xResearchPlugin } from '@vince/plugin-x-research';
+import { xResearchPlugin } from "@vince/plugin-x-research";
 
 const character = {
   plugins: [xResearchPlugin],
@@ -234,24 +235,28 @@ plugin-x-research/
 ## Topics We Track
 
 ### Core Assets
+
 - **BTC** — Primary trading asset
 - **ETH** — L2 activity, DeFi
 - **SOL** — Meme season, speed
 - **HYPE** — Ecosystem token
 
 ### Trading Intelligence
+
 - Perps & Funding
 - Options & DVOL
 - Whale Moves
 - Liquidations
 
 ### Ecosystem
+
 - ElizaOS
 - AI Agents
 - DeFi
 - Memes
 
 ### Meta
+
 - Macro (FOMC, CPI)
 - Regulatory (SEC)
 - Hacks/Exploits
@@ -259,6 +264,7 @@ plugin-x-research/
 ## API Usage
 
 X API is pay-as-you-go with 24h tweet deduplication. The plugin:
+
 - Caches responses for 1 hour
 - Respects rate limits with exponential backoff
 - Batches topic searches to minimize calls
@@ -284,6 +290,7 @@ bun run dev
 ## Roadmap
 
 **Implemented:**
+
 - ✅ `X_PULSE` - Full ALOHA-style briefing (quick mode, quality-only mode)
 - ✅ `X_VIBE` - Quick topic sentiment
 - ✅ `X_THREAD` - Thread summarization
@@ -293,6 +300,7 @@ bun run dev
 - ✅ `X_SAVE_RESEARCH` - Save last research to file
 
 **Planned:**
+
 - `X_SEARCH` - Manual search with custom filters
 - `X_ALPHA` - Alpha discovery (new accounts, emerging narratives)
 - Providers for VINCE signal aggregation

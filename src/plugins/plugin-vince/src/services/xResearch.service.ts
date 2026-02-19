@@ -24,7 +24,8 @@ const CACHE_PREFIX = "vince_x_research:";
 /** Shared with VinceXSentimentService so in-chat research respects vibe-check cooldown and vice versa. */
 export const X_RATE_LIMITED_UNTIL_CACHE_KEY = "vince_x:rate_limited_until_ms";
 /** When using X_BEARER_TOKEN_SENTIMENT, cooldown is stored here so in-chat (primary token) is not blocked. With multiple tokens, append _0, _1, … per token. */
-export const X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY = "vince_x:rate_limited_sentiment_until_ms";
+export const X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY =
+  "vince_x:rate_limited_sentiment_until_ms";
 
 export interface XTweet {
   id: string;
@@ -59,7 +60,14 @@ interface RawResponse {
 
 function parseTweets(raw: RawResponse): XTweet[] {
   if (!raw.data) return [];
-  const users: Record<string, { username?: string; name?: string; public_metrics?: { followers_count?: number } }> = {};
+  const users: Record<
+    string,
+    {
+      username?: string;
+      name?: string;
+      public_metrics?: { followers_count?: number };
+    }
+  > = {};
   for (const u of raw.includes?.users || []) {
     users[u.id] = u;
   }
@@ -68,7 +76,8 @@ function parseTweets(raw: RawResponse): XTweet[] {
     const m = t.public_metrics || {};
     const rawFollowers = u.public_metrics?.followers_count;
     let author_followers: number | undefined;
-    if (typeof rawFollowers === "number" && Number.isFinite(rawFollowers)) author_followers = rawFollowers;
+    if (typeof rawFollowers === "number" && Number.isFinite(rawFollowers))
+      author_followers = rawFollowers;
     else if (typeof rawFollowers === "string") {
       const n = parseInt(rawFollowers, 10);
       if (!Number.isNaN(n)) author_followers = n;
@@ -90,9 +99,15 @@ function parseTweets(raw: RawResponse): XTweet[] {
         impressions: m.impression_count || 0,
         bookmarks: m.bookmark_count || 0,
       },
-      urls: (t.entities?.urls || []).map((u: any) => u.expanded_url).filter(Boolean),
-      mentions: (t.entities?.mentions || []).map((m: any) => m.username).filter(Boolean),
-      hashtags: (t.entities?.hashtags || []).map((h: any) => h.tag).filter(Boolean),
+      urls: (t.entities?.urls || [])
+        .map((u: any) => u.expanded_url)
+        .filter(Boolean),
+      mentions: (t.entities?.mentions || [])
+        .map((m: any) => m.username)
+        .filter(Boolean),
+      hashtags: (t.entities?.hashtags || [])
+        .map((h: any) => h.tag)
+        .filter(Boolean),
       tweet_url: `https://x.com/${u.username || "?"}/status/${t.id}`,
     };
   });
@@ -143,37 +158,111 @@ export interface XUsageSummary {
 /** Lazy-loaded XDK Client type (official @xdevplatform/xdk: posts.*, users.*, lists.*, usage.*). */
 type XDKClient = {
   posts?: {
-    searchRecent?: (query: string, params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"]; meta?: { next_token?: string } }>;
-    getByIds?: (ids: string[], params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"] }>;
-    getCountsRecent?: (query: string, params?: Record<string, unknown>) => Promise<{ data?: Array<{ start: string; end: string; tweet_count: number }> }>;
-    getQuoted?: (postId: string, params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"]; meta?: { next_token?: string } }>;
+    searchRecent?: (
+      query: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{
+      data?: any[];
+      includes?: RawResponse["includes"];
+      meta?: { next_token?: string };
+    }>;
+    getByIds?: (
+      ids: string[],
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any[]; includes?: RawResponse["includes"] }>;
+    getCountsRecent?: (
+      query: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{
+      data?: Array<{ start: string; end: string; tweet_count: number }>;
+    }>;
+    getQuoted?: (
+      postId: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{
+      data?: any[];
+      includes?: RawResponse["includes"];
+      meta?: { next_token?: string };
+    }>;
   };
   users?: {
-    getByUsernames?: (usernames: string[], params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
-    getPosts?: (userId: string, params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"]; meta?: { next_token?: string } }>;
-    getMentions?: (userId: string, params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"]; meta?: { next_token?: string } }>;
+    getByUsernames?: (
+      usernames: string[],
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any[] }>;
+    getPosts?: (
+      userId: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{
+      data?: any[];
+      includes?: RawResponse["includes"];
+      meta?: { next_token?: string };
+    }>;
+    getMentions?: (
+      userId: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{
+      data?: any[];
+      includes?: RawResponse["includes"];
+      meta?: { next_token?: string };
+    }>;
   };
   lists?: {
-    getById?: (id: string, params?: Record<string, unknown>) => Promise<{ data?: any }>;
-    getPosts?: (id: string, params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"]; meta?: { next_token?: string } }>;
-    getMembers?: (id: string, params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
-    getOwnedLists?: (userId: string, params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
-    getListMemberships?: (userId: string, params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
+    getById?: (
+      id: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any }>;
+    getPosts?: (
+      id: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{
+      data?: any[];
+      includes?: RawResponse["includes"];
+      meta?: { next_token?: string };
+    }>;
+    getMembers?: (
+      id: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any[] }>;
+    getOwnedLists?: (
+      userId: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any[] }>;
+    getListMemberships?: (
+      userId: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any[] }>;
   };
   usage?: {
     get?: () => Promise<Record<string, unknown>>;
   };
   /** Optional XDK streaming (filtered stream). Present when XDK supports it. */
   stream?: {
-    getRules?: () => Promise<{ data?: Array<{ id: string; value: string; tag?: string }> }>;
-    updateRules?: (opts: { add?: Array<{ value: string; tag?: string }>; delete?: { ids: string[] } }) => Promise<unknown>;
-    posts?: (opts?: { tweetFields?: string[] }) => { on: (ev: string, fn: (data: unknown) => void) => void };
+    getRules?: () => Promise<{
+      data?: Array<{ id: string; value: string; tag?: string }>;
+    }>;
+    updateRules?: (opts: {
+      add?: Array<{ value: string; tag?: string }>;
+      delete?: { ids: string[] };
+    }) => Promise<unknown>;
+    posts?: (opts?: { tweetFields?: string[] }) => {
+      on: (ev: string, fn: (data: unknown) => void) => void;
+    };
     /** Legacy: AsyncIterable-style API if XDK exposes it. Prefer stream.posts + wrapper for samples alignment. */
-    filteredStream?: (params?: { expansions?: string[]; "tweet.fields"?: string[] }) => AsyncIterable<unknown>;
+    filteredStream?: (params?: {
+      expansions?: string[];
+      "tweet.fields"?: string[];
+    }) => AsyncIterable<unknown>;
   };
   spaces?: {
-    search?: (query: string, params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
-    getByIds?: (ids: string[], params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
+    search?: (
+      query: string,
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any[] }>;
+    getByIds?: (
+      ids: string[],
+      params?: Record<string, unknown>,
+    ) => Promise<{ data?: any[] }>;
   };
 };
 
@@ -209,9 +298,9 @@ async function createXDKClient(token: string): Promise<XDKClient | null> {
     const Client = mod?.Client;
     if (typeof Client !== "function") return null;
     try {
-      return new Client({ bearerToken: token }) as XDKClient;
+      return new Client({ bearerToken: token }) as unknown as XDKClient;
     } catch {
-      return new (Client as new (auth: string) => XDKClient)(token);
+      return new (Client as unknown as new (auth: string) => XDKClient)(token);
     }
   } catch {
     return null;
@@ -237,7 +326,10 @@ export class VinceXResearchService extends Service {
     loadEnvOnce();
     const raw = process.env.X_BEARER_TOKEN_SENTIMENT?.trim();
     if (raw?.includes(",")) {
-      const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
+      const list = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (list.length) return list;
     }
     const numbered: string[] = [];
@@ -262,7 +354,10 @@ export class VinceXResearchService extends Service {
   }
 
   /** Token: primary (in-chat) or background (sentiment/list). tokenIndex used for round-robin when multiple sentiment tokens. */
-  private getToken(useBackground?: boolean, tokenIndex?: number): string | null {
+  private getToken(
+    useBackground?: boolean,
+    tokenIndex?: number,
+  ): string | null {
     loadEnvOnce();
     if (useBackground) {
       const list = this.getSentimentTokenList();
@@ -281,12 +376,16 @@ export class VinceXResearchService extends Service {
   private backgroundClientsByIndex: Map<number, XDKClient> = new Map();
   private backgroundReady = false;
 
-  private async getClient(useBackground?: boolean, tokenIndex?: number): Promise<XDKClient | null> {
+  private async getClient(
+    useBackground?: boolean,
+    tokenIndex?: number,
+  ): Promise<XDKClient | null> {
     if (useBackground) {
       const n = this.getSentimentTokenCount();
       if (n > 1 && tokenIndex !== undefined) {
         const idx = tokenIndex % n;
-        let client: XDKClient | null = this.backgroundClientsByIndex.get(idx) ?? null;
+        let client: XDKClient | null =
+          this.backgroundClientsByIndex.get(idx) ?? null;
         if (!client) {
           const token = this.getToken(true, idx);
           if (!token) return null;
@@ -340,7 +439,8 @@ export class VinceXResearchService extends Service {
 
   private sentimentCooldownKey(tokenIndex?: number): string {
     const n = this.getSentimentTokenCount();
-    if (n <= 1 || tokenIndex === undefined) return X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY;
+    if (n <= 1 || tokenIndex === undefined)
+      return X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY;
     return `${X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY}_${tokenIndex % n}`;
   }
 
@@ -352,8 +452,13 @@ export class VinceXResearchService extends Service {
   /**
    * Check rate-limit cooldown for the given token. useBackground = sentiment/background; tokenIndex for per-token cooldown when multiple.
    */
-  private async ensureNotRateLimited(useBackground?: boolean, tokenIndex?: number): Promise<void> {
-    const key = useBackground ? this.sentimentCooldownKey(tokenIndex) : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+  private async ensureNotRateLimited(
+    useBackground?: boolean,
+    tokenIndex?: number,
+  ): Promise<void> {
+    const key = useBackground
+      ? this.sentimentCooldownKey(tokenIndex)
+      : X_RATE_LIMITED_UNTIL_CACHE_KEY;
     const until = await this.runtime.getCache<number>(key);
     if (!until) return;
     const now = Date.now();
@@ -364,14 +469,20 @@ export class VinceXResearchService extends Service {
     }
   }
 
-  private handle429(err: unknown, useBackground?: boolean, tokenIndex?: number): never {
+  private handle429(
+    err: unknown,
+    useBackground?: boolean,
+    tokenIndex?: number,
+  ): never {
     const msg = err instanceof Error ? err.message : String(err);
     const resetMatch = msg.match(/reset[:\s]+(\d+)/i);
     const waitSec = resetMatch
       ? Math.max(parseInt(resetMatch[1], 10) - Math.floor(Date.now() / 1000), 1)
       : 60;
     const untilMs = Date.now() + waitSec * 1000;
-    const key = useBackground ? this.sentimentCooldownKey(tokenIndex) : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+    const key = useBackground
+      ? this.sentimentCooldownKey(tokenIndex)
+      : X_RATE_LIMITED_UNTIL_CACHE_KEY;
     this.runtime.setCache(key, untilMs).catch(() => {});
     throw new Error(`X API rate limited. Resets in ${waitSec}s`);
   }
@@ -387,9 +498,18 @@ export class VinceXResearchService extends Service {
     }
   }
 
-  private async apiGet(url: string, useBackground?: boolean, tokenIndex?: number): Promise<RawResponse> {
+  private async apiGet(
+    url: string,
+    useBackground?: boolean,
+    tokenIndex?: number,
+  ): Promise<RawResponse> {
     const token = this.getToken(useBackground, tokenIndex);
-    if (!token) throw new Error(useBackground ? "X_BEARER_TOKEN_SENTIMENT (or X_BEARER_TOKEN_BACKGROUND) not set" : "X_BEARER_TOKEN not set");
+    if (!token)
+      throw new Error(
+        useBackground
+          ? "X_BEARER_TOKEN_SENTIMENT (or X_BEARER_TOKEN_BACKGROUND) not set"
+          : "X_BEARER_TOKEN not set",
+      );
     await this.ensureNotRateLimited(useBackground, tokenIndex);
     await this.ensureRequestSpacing();
     this.lastRequestTs = Date.now();
@@ -402,7 +522,9 @@ export class VinceXResearchService extends Service {
         ? Math.max(parseInt(reset, 10) - Math.floor(Date.now() / 1000), 1)
         : 60;
       const untilMs = Date.now() + waitSec * 1000;
-      const key = useBackground ? this.sentimentCooldownKey(tokenIndex) : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+      const key = useBackground
+        ? this.sentimentCooldownKey(tokenIndex)
+        : X_RATE_LIMITED_UNTIL_CACHE_KEY;
       await this.runtime.setCache(key, untilMs);
       throw new Error(`X API rate limited. Resets in ${waitSec}s`);
     }
@@ -449,7 +571,11 @@ export class VinceXResearchService extends Service {
     const tokenIdx = opts.tokenIndex;
     const parts = `${query}|${opts.sortOrder ?? "relevancy"}|${opts.since ?? ""}|${opts.pages ?? 1}|${useBg}`;
     const key = this.cacheKey("search", parts);
-    const cached = await this.runtime.getCache<{ tweets: XTweet[]; ts: number; ttlMs?: number }>(key);
+    const cached = await this.runtime.getCache<{
+      tweets: XTweet[];
+      ts: number;
+      ttlMs?: number;
+    }>(key);
     const ttl = cached?.ttlMs ?? CACHE_TTL_MS;
     if (cached?.tweets && Date.now() - cached.ts < ttl) {
       return cached.tweets;
@@ -474,7 +600,13 @@ export class VinceXResearchService extends Service {
         let nextToken: string | undefined;
         const baseParams: Record<string, unknown> = {
           maxResults,
-          tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+          tweetFields: [
+            "created_at",
+            "public_metrics",
+            "author_id",
+            "conversation_id",
+            "entities",
+          ],
           expansions: ["author_id"],
           userFields: ["username", "name", "public_metrics"],
           sortOrder: sort,
@@ -485,7 +617,11 @@ export class VinceXResearchService extends Service {
         }
         for (let page = 0; page < pages; page++) {
           const params = { ...baseParams, ...(nextToken && { nextToken }) };
-          const raw = await searchRecent.call(client.posts, q, params) as RawResponse;
+          const raw = (await searchRecent.call(
+            client.posts,
+            q,
+            params,
+          )) as RawResponse;
           const errs = raw?.errors;
           if (errs?.length && errs.length > 0) {
             throw new Error(`X API error: ${JSON.stringify(errs)}`);
@@ -502,11 +638,16 @@ export class VinceXResearchService extends Service {
           if (page < pages - 1) await sleep(RATE_DELAY_MS);
         }
         const ttlMs = opts.cacheTtlMs ?? CACHE_TTL_MS;
-        await this.runtime.setCache(key, { tweets: all, ts: Date.now(), ttlMs });
+        await this.runtime.setCache(key, {
+          tweets: all,
+          ts: Date.now(),
+          ttlMs,
+        });
         return all;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err, useBg, tokenIdx);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+          this.handle429(err, useBg, tokenIdx);
         throw err;
       }
     }
@@ -571,17 +712,41 @@ export class VinceXResearchService extends Service {
       let reset: number | string | undefined;
       if (raw?.data && typeof raw.data === "object") {
         const data = raw.data as Record<string, unknown>;
-        cap = typeof data.tweet_cap === "number" ? data.tweet_cap : typeof data.cap === "number" ? data.cap : undefined;
-        used = typeof data.tweet_count === "number" ? data.tweet_count : typeof data.used === "number" ? data.used : undefined;
-        reset = typeof data.reset === "number" ? data.reset : typeof data.reset === "string" ? data.reset : undefined;
+        cap =
+          typeof data.tweet_cap === "number"
+            ? data.tweet_cap
+            : typeof data.cap === "number"
+              ? data.cap
+              : undefined;
+        used =
+          typeof data.tweet_count === "number"
+            ? data.tweet_count
+            : typeof data.used === "number"
+              ? data.used
+              : undefined;
+        reset =
+          typeof data.reset === "number"
+            ? data.reset
+            : typeof data.reset === "string"
+              ? data.reset
+              : undefined;
       }
-      if (cap === undefined && raw?.tweet_cap != null) cap = Number((raw as any).tweet_cap);
-      if (used === undefined && raw?.tweet_count != null) used = Number((raw as any).tweet_count);
+      if (cap === undefined && raw?.tweet_cap != null)
+        cap = Number((raw as any).tweet_cap);
+      if (used === undefined && raw?.tweet_count != null)
+        used = Number((raw as any).tweet_count);
       const summary =
-        cap != null && used != null ? `X API: ${used}/${cap} this window` : cap != null ? `X API cap: ${cap}` : undefined;
+        cap != null && used != null
+          ? `X API: ${used}/${cap} this window`
+          : cap != null
+            ? `X API cap: ${cap}`
+            : undefined;
       return { cap, used, reset, summary };
     } catch (e) {
-      logger.debug({ err: String(e) }, "[VinceXResearchService] getUsage failed");
+      logger.debug(
+        { err: String(e) },
+        "[VinceXResearchService] getUsage failed",
+      );
       return null;
     }
   }
@@ -593,14 +758,23 @@ export class VinceXResearchService extends Service {
    */
   async getPostCountsRecent(
     query: string,
-    opts: { granularity?: "minute" | "hour" | "day"; startTime?: string; endTime?: string } = {},
+    opts: {
+      granularity?: "minute" | "hour" | "day";
+      startTime?: string;
+      endTime?: string;
+    } = {},
   ): Promise<Array<{ start: string; end: string; tweet_count: number }>> {
     const granularity = opts.granularity ?? "day";
-    const startTime = opts.startTime ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const startTime =
+      opts.startTime ??
+      new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const endTime = opts.endTime ?? new Date().toISOString();
     const cacheKeyStr = `${query}|${granularity}|${startTime}|${endTime}`;
     const key = this.cacheKey("counts", cacheKeyStr);
-    const cached = await this.runtime.getCache<{ data: Array<{ start: string; end: string; tweet_count: number }>; ts: number }>(key);
+    const cached = await this.runtime.getCache<{
+      data: Array<{ start: string; end: string; tweet_count: number }>;
+      ts: number;
+    }>(key);
     const ttlMs = 6 * 60 * 1000;
     if (cached?.data && Date.now() - cached.ts < ttlMs) return cached.data;
     const client = await this.getClient();
@@ -608,17 +782,26 @@ export class VinceXResearchService extends Service {
     if (!getCounts) return [];
     try {
       await this.ensureNotRateLimited();
-      const res = await getCounts(query, { granularity, start_time: startTime, end_time: endTime });
+      const res = await getCounts(query, {
+        granularity,
+        start_time: startTime,
+        end_time: endTime,
+      });
       const data = res?.data ?? [];
-      const normalized = data.map((d: { start?: string; end?: string; tweet_count?: number }) => ({
-        start: String(d?.start ?? ""),
-        end: String(d?.end ?? ""),
-        tweet_count: typeof d?.tweet_count === "number" ? d.tweet_count : 0,
-      }));
+      const normalized = data.map(
+        (d: { start?: string; end?: string; tweet_count?: number }) => ({
+          start: String(d?.start ?? ""),
+          end: String(d?.end ?? ""),
+          tweet_count: typeof d?.tweet_count === "number" ? d.tweet_count : 0,
+        }),
+      );
       await this.runtime.setCache(key, { data: normalized, ts: Date.now() });
       return normalized;
     } catch (e) {
-      logger.debug({ err: String(e) }, "[VinceXResearchService] getPostCountsRecent failed");
+      logger.debug(
+        { err: String(e) },
+        "[VinceXResearchService] getPostCountsRecent failed",
+      );
       return [];
     }
   }
@@ -647,7 +830,8 @@ export class VinceXResearchService extends Service {
   ): Promise<XTweet[]> {
     const minEng =
       opts.minEngagement ??
-      (typeof process.env.X_SENTIMENT_MIN_FAVES !== "undefined" && process.env.X_SENTIMENT_MIN_FAVES !== ""
+      (typeof process.env.X_SENTIMENT_MIN_FAVES !== "undefined" &&
+      process.env.X_SENTIMENT_MIN_FAVES !== ""
         ? parseInt(process.env.X_SENTIMENT_MIN_FAVES, 10)
         : 50);
     const minFoll = opts.minFollowers ?? 0;
@@ -666,7 +850,9 @@ export class VinceXResearchService extends Service {
       tokenIndex: tokenIdx,
       cacheTtlMs: opts.cacheTtlMs ?? 5 * 60 * 1000,
     });
-    return tweets.filter((t) => t.metrics.likes >= minEng && (t.author_followers ?? 0) >= minFoll);
+    return tweets.filter(
+      (t) => t.metrics.likes >= minEng && (t.author_followers ?? 0) >= minFoll,
+    );
   }
 
   /**
@@ -696,7 +882,13 @@ export class VinceXResearchService extends Service {
 
     const baseParams: Record<string, unknown> = {
       maxResults,
-      tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+      tweetFields: [
+        "created_at",
+        "public_metrics",
+        "author_id",
+        "conversation_id",
+        "entities",
+      ],
       expansions: ["author_id"],
       userFields: ["username", "name", "public_metrics"],
       sortOrder: sort,
@@ -716,7 +908,11 @@ export class VinceXResearchService extends Service {
         try {
           const params = { ...baseParams, ...(nextToken && { nextToken }) };
           const raw = await searchRecent.call(client!.posts!, q, params);
-          const asRaw: RawResponse = { data: raw?.data, includes: raw?.includes, meta: raw?.meta };
+          const asRaw: RawResponse = {
+            data: raw?.data,
+            includes: raw?.includes,
+            meta: raw?.meta,
+          };
           const tweets = parseTweets(asRaw);
           nextToken = raw?.meta?.next_token ?? (raw?.meta as any)?.nextToken;
           pageCount++;
@@ -725,7 +921,8 @@ export class VinceXResearchService extends Service {
           if (pageCount < maxPages) await sleep(RATE_DELAY_MS);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+          if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+            this.handle429(err);
           throw err;
         }
       } else {
@@ -802,13 +999,23 @@ export class VinceXResearchService extends Service {
       if (getPosts) {
         try {
           const res = await getPosts.call(client.lists, id, {
-            tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+            tweetFields: [
+              "created_at",
+              "public_metrics",
+              "author_id",
+              "conversation_id",
+              "entities",
+            ],
             expansions: ["author_id"],
             userFields: ["username", "name", "public_metrics"],
             maxResults,
             ...(nextToken && { paginationToken: nextToken }),
           });
-          const asRaw: RawResponse = { data: res?.data, includes: res?.includes, meta: res?.meta };
+          const asRaw: RawResponse = {
+            data: res?.data,
+            includes: res?.includes,
+            meta: res?.meta,
+          };
           const tweets = parseTweets(asRaw);
           nextToken = res?.meta?.next_token ?? (res?.meta as any)?.nextToken;
           pageCount++;
@@ -817,11 +1024,14 @@ export class VinceXResearchService extends Service {
           if (pageCount < maxPages) await sleep(RATE_DELAY_MS);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+          if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+            this.handle429(err);
           throw err;
         }
       } else {
-        const pagination = nextToken ? `&pagination_token=${encodeURIComponent(nextToken)}` : "";
+        const pagination = nextToken
+          ? `&pagination_token=${encodeURIComponent(nextToken)}`
+          : "";
         const url = `${BASE}/lists/${id}/tweets?max_results=${maxResults}&${FIELDS}${pagination}`;
         const raw = await this.apiGet(url);
         const tweets = parseTweets(raw);
@@ -852,7 +1062,13 @@ export class VinceXResearchService extends Service {
         "X filtered stream not available. The XDK may not expose stream for this tier (Pro or higher required), or @xdevplatform/xdk streaming is not loaded.",
       );
     }
-    const tweetFields = opts?.tweetFields ?? ["created_at", "public_metrics", "author_id", "conversation_id", "entities"];
+    const tweetFields = opts?.tweetFields ?? [
+      "created_at",
+      "public_metrics",
+      "author_id",
+      "conversation_id",
+      "entities",
+    ];
     if (streamApi.posts) {
       const emitter = streamApi.posts({ tweetFields });
       return this.wrapStreamPostsAsAsyncIterable(emitter);
@@ -871,7 +1087,9 @@ export class VinceXResearchService extends Service {
   /**
    * Get current filtered stream rules. Returns [] when XDK has no stream.getRules or call fails.
    */
-  async getStreamRules(): Promise<Array<{ id: string; value: string; tag?: string }>> {
+  async getStreamRules(): Promise<
+    Array<{ id: string; value: string; tag?: string }>
+  > {
     const client = await this.getClient();
     const getRules = client?.stream?.getRules;
     if (!getRules) return [];
@@ -880,7 +1098,10 @@ export class VinceXResearchService extends Service {
       const res = await getRules();
       return res?.data ?? [];
     } catch (e) {
-      logger.debug({ err: String(e) }, "[VinceXResearchService] getStreamRules failed");
+      logger.debug(
+        { err: String(e) },
+        "[VinceXResearchService] getStreamRules failed",
+      );
       return [];
     }
   }
@@ -888,7 +1109,10 @@ export class VinceXResearchService extends Service {
   /**
    * Add or delete filtered stream rules. No-op when XDK has no stream.updateRules or call fails.
    */
-  async updateStreamRules(opts: { add?: Array<{ value: string; tag?: string }>; delete?: { ids: string[] } }): Promise<boolean> {
+  async updateStreamRules(opts: {
+    add?: Array<{ value: string; tag?: string }>;
+    delete?: { ids: string[] };
+  }): Promise<boolean> {
     const client = await this.getClient();
     const updateRules = client?.stream?.updateRules;
     if (!updateRules) return false;
@@ -897,7 +1121,10 @@ export class VinceXResearchService extends Service {
       await updateRules(opts);
       return true;
     } catch (e) {
-      logger.debug({ err: String(e) }, "[VinceXResearchService] updateStreamRules failed");
+      logger.debug(
+        { err: String(e) },
+        "[VinceXResearchService] updateStreamRules failed",
+      );
       return false;
     }
   }
@@ -915,7 +1142,10 @@ export class VinceXResearchService extends Service {
     if (!search) return [];
     try {
       await this.ensureNotRateLimited();
-      const res = await search(query, { "space.fields": ["title", "state", "started_at", "scheduled_start"], state: opts?.state ?? "all" });
+      const res = await search(query, {
+        "space.fields": ["title", "state", "started_at", "scheduled_start"],
+        state: opts?.state ?? "all",
+      });
       const data = res?.data ?? [];
       return data.map((s: any) => ({
         id: String(s?.id ?? ""),
@@ -927,7 +1157,10 @@ export class VinceXResearchService extends Service {
         participant_count: s?.participant_count,
       }));
     } catch (e) {
-      logger.debug({ err: String(e), query }, "[VinceXResearchService] searchSpaces failed");
+      logger.debug(
+        { err: String(e), query },
+        "[VinceXResearchService] searchSpaces failed",
+      );
       return [];
     }
   }
@@ -942,7 +1175,9 @@ export class VinceXResearchService extends Service {
     if (!getByIds) return [];
     try {
       await this.ensureNotRateLimited();
-      const res = await getByIds(ids, { "space.fields": ["title", "state", "started_at", "scheduled_start"] });
+      const res = await getByIds(ids, {
+        "space.fields": ["title", "state", "started_at", "scheduled_start"],
+      });
       const data = res?.data ?? [];
       return data.map((s: any) => ({
         id: String(s?.id ?? ""),
@@ -953,7 +1188,10 @@ export class VinceXResearchService extends Service {
         participant_count: s?.participant_count,
       }));
     } catch (e) {
-      logger.debug({ err: String(e) }, "[VinceXResearchService] getSpacesByIds failed");
+      logger.debug(
+        { err: String(e) },
+        "[VinceXResearchService] getSpacesByIds failed",
+      );
       return [];
     }
   }
@@ -967,7 +1205,9 @@ export class VinceXResearchService extends Service {
     const getByUsernames = client?.users?.getByUsernames;
     if (!getByUsernames) {
       try {
-        const raw = await this.apiGet(`${BASE}/users/by/username/${encodeURIComponent(normalized)}`);
+        const raw = await this.apiGet(
+          `${BASE}/users/by/username/${encodeURIComponent(normalized)}`,
+        );
         const user = (raw as any)?.data;
         return user?.id ?? null;
       } catch {
@@ -981,7 +1221,10 @@ export class VinceXResearchService extends Service {
       const user = Array.isArray(users) ? users[0] : users;
       return user?.id ?? null;
     } catch (e) {
-      logger.debug({ err: String(e), username: normalized }, "[VinceXResearchService] getUserIdByUsername failed");
+      logger.debug(
+        { err: String(e), username: normalized },
+        "[VinceXResearchService] getUserIdByUsername failed",
+      );
       return null;
     }
   }
@@ -996,20 +1239,41 @@ export class VinceXResearchService extends Service {
     if (getOwned) {
       try {
         await this.ensureNotRateLimited();
-        const res = await getOwned(userId, { "list.fields": ["name", "description", "member_count"], max_results: 100 });
+        const res = await getOwned(userId, {
+          "list.fields": ["name", "description", "member_count"],
+          max_results: 100,
+        });
         const data = res?.data ?? [];
-        return data.map((l: any) => ({ id: String(l?.id ?? ""), name: l?.name, description: l?.description, member_count: l?.member_count }));
+        return data.map((l: any) => ({
+          id: String(l?.id ?? ""),
+          name: l?.name,
+          description: l?.description,
+          member_count: l?.member_count,
+        }));
       } catch (e) {
-        logger.debug({ err: String(e), userId }, "[VinceXResearchService] getOwnedLists failed");
+        logger.debug(
+          { err: String(e), userId },
+          "[VinceXResearchService] getOwnedLists failed",
+        );
         return [];
       }
     }
     try {
-      const raw = await this.apiGet(`${BASE}/users/${userId}/owned_lists?list.fields=name,description,member_count&max_results=100`);
+      const raw = await this.apiGet(
+        `${BASE}/users/${userId}/owned_lists?list.fields=name,description,member_count&max_results=100`,
+      );
       const data = (raw as any)?.data ?? [];
-      return data.map((l: any) => ({ id: String(l?.id ?? ""), name: l?.name, description: l?.description, member_count: l?.member_count }));
+      return data.map((l: any) => ({
+        id: String(l?.id ?? ""),
+        name: l?.name,
+        description: l?.description,
+        member_count: l?.member_count,
+      }));
     } catch (e) {
-      logger.debug({ err: String(e), userId }, "[VinceXResearchService] getOwnedLists (fetch) failed");
+      logger.debug(
+        { err: String(e), userId },
+        "[VinceXResearchService] getOwnedLists (fetch) failed",
+      );
       return [];
     }
   }
@@ -1023,20 +1287,41 @@ export class VinceXResearchService extends Service {
     if (getMemberships) {
       try {
         await this.ensureNotRateLimited();
-        const res = await getMemberships(userId, { "list.fields": ["name", "description", "member_count"], max_results: 100 });
+        const res = await getMemberships(userId, {
+          "list.fields": ["name", "description", "member_count"],
+          max_results: 100,
+        });
         const data = res?.data ?? [];
-        return data.map((l: any) => ({ id: String(l?.id ?? ""), name: l?.name, description: l?.description, member_count: l?.member_count }));
+        return data.map((l: any) => ({
+          id: String(l?.id ?? ""),
+          name: l?.name,
+          description: l?.description,
+          member_count: l?.member_count,
+        }));
       } catch (e) {
-        logger.debug({ err: String(e), userId }, "[VinceXResearchService] getListMemberships failed");
+        logger.debug(
+          { err: String(e), userId },
+          "[VinceXResearchService] getListMemberships failed",
+        );
         return [];
       }
     }
     try {
-      const raw = await this.apiGet(`${BASE}/users/${userId}/list_memberships?list.fields=name,description,member_count&max_results=100`);
+      const raw = await this.apiGet(
+        `${BASE}/users/${userId}/list_memberships?list.fields=name,description,member_count&max_results=100`,
+      );
       const data = (raw as any)?.data ?? [];
-      return data.map((l: any) => ({ id: String(l?.id ?? ""), name: l?.name, description: l?.description, member_count: l?.member_count }));
+      return data.map((l: any) => ({
+        id: String(l?.id ?? ""),
+        name: l?.name,
+        description: l?.description,
+        member_count: l?.member_count,
+      }));
     } catch (e) {
-      logger.debug({ err: String(e), userId }, "[VinceXResearchService] getListMemberships (fetch) failed");
+      logger.debug(
+        { err: String(e), userId },
+        "[VinceXResearchService] getListMemberships (fetch) failed",
+      );
       return [];
     }
   }
@@ -1044,7 +1329,10 @@ export class VinceXResearchService extends Service {
   /**
    * Get mentions timeline for a user (bearer if available; some tiers require OAuth). Returns [] when unavailable or call fails.
    */
-  async getMentions(userId: string, opts?: { maxResults?: number }): Promise<XTweet[]> {
+  async getMentions(
+    userId: string,
+    opts?: { maxResults?: number },
+  ): Promise<XTweet[]> {
     const client = await this.getClient();
     const getMentions = client?.users?.getMentions;
     if (!getMentions) return [];
@@ -1052,14 +1340,26 @@ export class VinceXResearchService extends Service {
       await this.ensureNotRateLimited();
       const res = await getMentions(userId, {
         max_results: opts?.maxResults ?? 10,
-        "tweet.fields": ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+        "tweet.fields": [
+          "created_at",
+          "public_metrics",
+          "author_id",
+          "conversation_id",
+          "entities",
+        ],
         expansions: ["author_id"],
         "user.fields": ["username", "name", "public_metrics"],
       });
-      const raw: RawResponse = { data: res?.data ?? [], includes: res?.includes };
+      const raw: RawResponse = {
+        data: res?.data ?? [],
+        includes: res?.includes,
+      };
       return parseTweets(raw);
     } catch (e) {
-      logger.debug({ err: String(e), userId }, "[VinceXResearchService] getMentions failed");
+      logger.debug(
+        { err: String(e), userId },
+        "[VinceXResearchService] getMentions failed",
+      );
       return [];
     }
   }
@@ -1067,7 +1367,9 @@ export class VinceXResearchService extends Service {
   /**
    * Wrap XDK stream.posts() event emitter into an AsyncIterable. Samples use on('data'|'error'|'keepAlive'|'close').
    */
-  private wrapStreamPostsAsAsyncIterable(emitter: { on: (ev: string, fn: (data: unknown) => void) => void }): AsyncIterable<unknown> {
+  private wrapStreamPostsAsAsyncIterable(emitter: {
+    on: (ev: string, fn: (data: unknown) => void) => void;
+  }): AsyncIterable<unknown> {
     const queue: unknown[] = [];
     let resolveNext: (() => void) | null = null;
     let done = false;
@@ -1100,7 +1402,10 @@ export class VinceXResearchService extends Service {
           if (err) throw err;
           if (queue.length > 0) yield queue.shift();
           else if (done) return;
-          else await new Promise<void>((r) => { resolveNext = r; });
+          else
+            await new Promise<void>((r) => {
+              resolveNext = r;
+            });
         }
       },
     };
@@ -1116,10 +1421,26 @@ export class VinceXResearchService extends Service {
   ): Promise<{ user: any; tweets: XTweet[]; pinnedTweet?: XTweet }> {
     const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
     const count = Math.min(opts.count || 20, 100);
-    const cacheKey = this.cacheKey("profile", `${normalizedUsername}|${opts.includeReplies ?? false}|${count}`);
-    const cached = await this.runtime.getCache<{ user: any; tweets: XTweet[]; pinnedTweet?: XTweet; ts: number }>(cacheKey);
-    if (cached?.user && cached.tweets && Date.now() - cached.ts < CACHE_TTL_MS) {
-      return { user: cached.user, tweets: cached.tweets, pinnedTweet: cached.pinnedTweet };
+    const cacheKey = this.cacheKey(
+      "profile",
+      `${normalizedUsername}|${opts.includeReplies ?? false}|${count}`,
+    );
+    const cached = await this.runtime.getCache<{
+      user: any;
+      tweets: XTweet[];
+      pinnedTweet?: XTweet;
+      ts: number;
+    }>(cacheKey);
+    if (
+      cached?.user &&
+      cached.tweets &&
+      Date.now() - cached.ts < CACHE_TTL_MS
+    ) {
+      return {
+        user: cached.user,
+        tweets: cached.tweets,
+        pinnedTweet: cached.pinnedTweet,
+      };
     }
 
     const client = await this.getClient();
@@ -1129,10 +1450,14 @@ export class VinceXResearchService extends Service {
       try {
         await this.ensureNotRateLimited();
         // Align with samples: https://github.com/xdevplatform/samples/blob/main/javascript/users/get_users_by_usernames.js
-        const userResponse = await getByUsernames.call(client!.users!, [username], {
-          userFields: ["public_metrics", "description", "created_at"],
-          expansions: ["pinned_tweet_id"],
-        });
+        const userResponse = await getByUsernames.call(
+          client!.users!,
+          [username],
+          {
+            userFields: ["public_metrics", "description", "created_at"],
+            expansions: ["pinned_tweet_id"],
+          },
+        );
         const users = userResponse?.data;
         const user = Array.isArray(users) ? users[0] : userResponse?.data;
         if (!user) throw new Error(`User @${username} not found`);
@@ -1146,7 +1471,13 @@ export class VinceXResearchService extends Service {
           // XDK expects exclude as array (it calls .join() to build the query string).
           const res = await getPosts.call(client!.users!, user.id, {
             maxResults: count,
-            tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+            tweetFields: [
+              "created_at",
+              "public_metrics",
+              "author_id",
+              "conversation_id",
+              "entities",
+            ],
             expansions: ["author_id"],
             userFields: ["username", "name", "public_metrics"],
             ...(opts.includeReplies ? {} : { exclude: ["replies"] }),
@@ -1156,7 +1487,10 @@ export class VinceXResearchService extends Service {
         } else {
           const replyFilter = opts.includeReplies ? "" : " -is:reply";
           const query = `from:${username} -is:retweet${replyFilter}`;
-          tweets = await this.search(query, { maxResults: count, sortOrder: "recency" });
+          tweets = await this.search(query, {
+            maxResults: count,
+            sortOrder: "recency",
+          });
         }
         let pinnedTweet: XTweet | undefined;
         const pinnedId = user?.pinned_tweet_id;
@@ -1176,7 +1510,8 @@ export class VinceXResearchService extends Service {
         return result;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+          this.handle429(err);
         throw err;
       }
     }
@@ -1237,7 +1572,13 @@ export class VinceXResearchService extends Service {
       try {
         await this.ensureNotRateLimited();
         const res = await getByIds.call(client.posts, [tweetId], {
-          tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+          tweetFields: [
+            "created_at",
+            "public_metrics",
+            "author_id",
+            "conversation_id",
+            "entities",
+          ],
           expansions: ["author_id"],
           userFields: ["username", "name", "public_metrics"],
         });
@@ -1254,7 +1595,8 @@ export class VinceXResearchService extends Service {
         return null;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+          this.handle429(err);
         throw err;
       }
     }
@@ -1276,11 +1618,18 @@ export class VinceXResearchService extends Service {
    * Cached per tweetId (short TTL). Returns [] when XDK has no getQuoted or call fails.
    * See https://github.com/xdevplatform/samples/blob/main/javascript/posts/get_quoted_posts.js
    */
-  async getQuotedPosts(tweetId: string, opts?: { maxResults?: number }): Promise<XTweet[]> {
+  async getQuotedPosts(
+    tweetId: string,
+    opts?: { maxResults?: number },
+  ): Promise<XTweet[]> {
     const maxResults = opts?.maxResults ?? 10;
     const key = this.cacheKey("quoted", `${tweetId}|${maxResults}`);
-    const cached = await this.runtime.getCache<{ tweets: XTweet[]; ts: number }>(key);
-    if (cached?.tweets && Date.now() - cached.ts < 5 * 60 * 1000) return cached.tweets;
+    const cached = await this.runtime.getCache<{
+      tweets: XTweet[];
+      ts: number;
+    }>(key);
+    if (cached?.tweets && Date.now() - cached.ts < 5 * 60 * 1000)
+      return cached.tweets;
     const client = await this.getClient();
     const getQuoted = client?.posts?.getQuoted;
     if (!getQuoted) return [];
@@ -1288,7 +1637,13 @@ export class VinceXResearchService extends Service {
       await this.ensureNotRateLimited();
       const res = await getQuoted.call(client!.posts!, tweetId, {
         max_results: maxResults,
-        "tweet.fields": ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+        "tweet.fields": [
+          "created_at",
+          "public_metrics",
+          "author_id",
+          "conversation_id",
+          "entities",
+        ],
         expansions: ["author_id"],
         "user.fields": ["username", "name", "public_metrics"],
       });
@@ -1300,7 +1655,10 @@ export class VinceXResearchService extends Service {
       await this.runtime.setCache(key, { tweets, ts: Date.now() });
       return tweets;
     } catch (e) {
-      logger.debug({ err: String(e), tweetId }, "[VinceXResearchService] getQuotedPosts failed");
+      logger.debug(
+        { err: String(e), tweetId },
+        "[VinceXResearchService] getQuotedPosts failed",
+      );
       return [];
     }
   }
@@ -1329,7 +1687,13 @@ export class VinceXResearchService extends Service {
   /**
    * Get list metadata by ID. Uses XDK when available; requires X_LIST_ID or explicit id.
    */
-  async getListById(listId?: string): Promise<{ id: string; name?: string; description?: string; member_count?: number; follower_count?: number } | null> {
+  async getListById(listId?: string): Promise<{
+    id: string;
+    name?: string;
+    description?: string;
+    member_count?: number;
+    follower_count?: number;
+  } | null> {
     const id = listId?.trim() || this.getListId();
     if (!id) return null;
     const client = await this.getClient();
@@ -1338,21 +1702,44 @@ export class VinceXResearchService extends Service {
       try {
         await this.ensureNotRateLimited();
         const res = await getById.call(client.lists, id, {
-          listFields: ["created_at", "follower_count", "member_count", "owner_id", "description", "name"],
+          listFields: [
+            "created_at",
+            "follower_count",
+            "member_count",
+            "owner_id",
+            "description",
+            "name",
+          ],
         });
         const data = res?.data as any;
-        if (data) return { id: data.id ?? id, name: data.name, description: data.description, member_count: data.member_count, follower_count: data.follower_count };
+        if (data)
+          return {
+            id: data.id ?? id,
+            name: data.name,
+            description: data.description,
+            member_count: data.member_count,
+            follower_count: data.follower_count,
+          };
         return null;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+          this.handle429(err);
         throw err;
       }
     }
     const url = `${BASE}/lists/${id}?list.fields=created_at,follower_count,member_count,owner_id,description,name`;
     const raw = await this.apiGet(url);
     const d = (raw as any).data;
-    return d ? { id: d.id ?? id, name: d.name, description: d.description, member_count: d.member_count, follower_count: d.follower_count } : null;
+    return d
+      ? {
+          id: d.id ?? id,
+          name: d.name,
+          description: d.description,
+          member_count: d.member_count,
+          follower_count: d.follower_count,
+        }
+      : null;
   }
 
   /**
@@ -1361,14 +1748,26 @@ export class VinceXResearchService extends Service {
    */
   async getListPosts(
     listId?: string,
-    opts: { maxResults?: number; nextToken?: string; useBackgroundToken?: boolean; tokenIndex?: number } = {},
+    opts: {
+      maxResults?: number;
+      nextToken?: string;
+      useBackgroundToken?: boolean;
+      tokenIndex?: number;
+    } = {},
   ): Promise<{ tweets: XTweet[]; nextToken?: string }> {
     const id = listId?.trim() || this.getListId();
     if (!id) return { tweets: [] };
     const useBg = !!opts.useBackgroundToken;
     const tokenIdx = opts.tokenIndex;
-    const cacheKey = this.cacheKey("list_posts", `${id}|${opts.nextToken ?? ""}|${useBg}`);
-    const cached = await this.runtime.getCache<{ tweets: XTweet[]; nextToken?: string; ts: number }>(cacheKey);
+    const cacheKey = this.cacheKey(
+      "list_posts",
+      `${id}|${opts.nextToken ?? ""}|${useBg}`,
+    );
+    const cached = await this.runtime.getCache<{
+      tweets: XTweet[];
+      nextToken?: string;
+      ts: number;
+    }>(cacheKey);
     if (cached?.tweets && Date.now() - cached.ts < CACHE_TTL_MS) {
       return { tweets: cached.tweets, nextToken: cached.nextToken };
     }
@@ -1378,37 +1777,62 @@ export class VinceXResearchService extends Service {
       try {
         await this.ensureNotRateLimited(useBg, tokenIdx);
         const res = await getPosts.call(client.lists, id, {
-          tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+          tweetFields: [
+            "created_at",
+            "public_metrics",
+            "author_id",
+            "conversation_id",
+            "entities",
+          ],
           expansions: ["author_id"],
           userFields: ["username", "name", "public_metrics"],
           maxResults: Math.min(opts.maxResults ?? 100, 100),
           ...(opts.nextToken && { paginationToken: opts.nextToken }),
         });
-        const asRaw: RawResponse = { data: res?.data, includes: res?.includes, meta: res?.meta };
+        const asRaw: RawResponse = {
+          data: res?.data,
+          includes: res?.includes,
+          meta: res?.meta,
+        };
         const tweets = parseTweets(asRaw);
-        const nextToken = res?.meta?.next_token ?? (res?.meta as any)?.nextToken;
-        await this.runtime.setCache(cacheKey, { tweets, nextToken, ts: Date.now() });
+        const nextToken =
+          res?.meta?.next_token ?? (res?.meta as any)?.nextToken;
+        await this.runtime.setCache(cacheKey, {
+          tweets,
+          nextToken,
+          ts: Date.now(),
+        });
         return { tweets, nextToken };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err, useBg, tokenIdx);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+          this.handle429(err, useBg, tokenIdx);
         throw err;
       }
     }
     const maxResults = Math.min(opts.maxResults ?? 100, 100);
-    const pagination = opts.nextToken ? `&pagination_token=${encodeURIComponent(opts.nextToken)}` : "";
+    const pagination = opts.nextToken
+      ? `&pagination_token=${encodeURIComponent(opts.nextToken)}`
+      : "";
     const url = `${BASE}/lists/${id}/tweets?max_results=${maxResults}&${FIELDS}${pagination}`;
     const raw = await this.apiGet(url, useBg, tokenIdx);
     const tweets = parseTweets(raw);
     const nextToken = raw.meta?.next_token;
-    await this.runtime.setCache(cacheKey, { tweets, nextToken, ts: Date.now() });
+    await this.runtime.setCache(cacheKey, {
+      tweets,
+      nextToken,
+      ts: Date.now(),
+    });
     return { tweets, nextToken };
   }
 
   /**
    * Get list members (who's on the list). Optional; uses XDK when available.
    */
-  async getListMembers(listId?: string, opts: { maxResults?: number; nextToken?: string } = {}): Promise<{ users: any[]; nextToken?: string }> {
+  async getListMembers(
+    listId?: string,
+    opts: { maxResults?: number; nextToken?: string } = {},
+  ): Promise<{ users: any[]; nextToken?: string }> {
     const id = listId?.trim() || this.getListId();
     if (!id) return { users: [] };
     const client = await this.getClient();
@@ -1417,25 +1841,38 @@ export class VinceXResearchService extends Service {
       try {
         await this.ensureNotRateLimited();
         const res = await getMembers.call(client.lists, id, {
-          userFields: ["created_at", "description", "public_metrics", "username", "name"],
+          userFields: [
+            "created_at",
+            "description",
+            "public_metrics",
+            "username",
+            "name",
+          ],
           maxResults: Math.min(opts.maxResults ?? 100, 100),
           ...(opts.nextToken && { paginationToken: opts.nextToken }),
         });
         const users = res?.data ?? [];
-        const nextToken = (res as any)?.meta?.next_token ?? (res as any)?.meta?.nextToken;
+        const nextToken =
+          (res as any)?.meta?.next_token ?? (res as any)?.meta?.nextToken;
         return { users: Array.isArray(users) ? users : [users], nextToken };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit"))
+          this.handle429(err);
         throw err;
       }
     }
     const maxResults = Math.min(opts.maxResults ?? 100, 100);
-    const pagination = opts.nextToken ? `&pagination_token=${encodeURIComponent(opts.nextToken)}` : "";
+    const pagination = opts.nextToken
+      ? `&pagination_token=${encodeURIComponent(opts.nextToken)}`
+      : "";
     const url = `${BASE}/lists/${id}/members?max_results=${maxResults}&user.fields=created_at,description,public_metrics,username,name${pagination}`;
     const raw = await this.apiGet(url);
     const data = (raw as any).data ?? [];
-    return { users: Array.isArray(data) ? data : [data], nextToken: raw.meta?.next_token };
+    return {
+      users: Array.isArray(data) ? data : [data],
+      nextToken: raw.meta?.next_token,
+    };
   }
 
   /** Sort tweets by engagement. */
@@ -1447,10 +1884,18 @@ export class VinceXResearchService extends Service {
     loadEnvOnce();
     const solusEnv = process.env.SOLUS_X_VIP_HANDLES?.trim();
     const solusRuntime = this.runtime.getSetting?.("SOLUS_X_VIP_HANDLES");
-    const solusRaw = typeof solusRuntime === "string" ? solusRuntime.trim() : solusEnv ?? "";
-    const cryptoEnv = process.env.CRYPTO_VIP_HANDLES?.trim() || process.env.X_RESEARCH_CRYPTO_VIP_HANDLES?.trim();
-    const cryptoRuntime = this.runtime.getSetting?.("CRYPTO_VIP_HANDLES") ?? this.runtime.getSetting?.("X_RESEARCH_CRYPTO_VIP_HANDLES");
-    const cryptoRaw = typeof cryptoRuntime === "string" ? cryptoRuntime.trim() : cryptoEnv ?? "";
+    const solusRaw =
+      typeof solusRuntime === "string" ? solusRuntime.trim() : (solusEnv ?? "");
+    const cryptoEnv =
+      process.env.CRYPTO_VIP_HANDLES?.trim() ||
+      process.env.X_RESEARCH_CRYPTO_VIP_HANDLES?.trim();
+    const cryptoRuntime =
+      this.runtime.getSetting?.("CRYPTO_VIP_HANDLES") ??
+      this.runtime.getSetting?.("X_RESEARCH_CRYPTO_VIP_HANDLES");
+    const cryptoRaw =
+      typeof cryptoRuntime === "string"
+        ? cryptoRuntime.trim()
+        : (cryptoEnv ?? "");
     const parse = (raw: string) =>
       raw
         .split(",")
@@ -1459,7 +1904,9 @@ export class VinceXResearchService extends Service {
     const combined = [...parse(solusRaw), ...parse(cryptoRaw)];
     const handles = [...new Set(combined)];
     if (handles.length === 0) {
-      logger.debug("[VinceXResearchService] No VIP handles configured — tweets won't be reordered by quality.");
+      logger.debug(
+        "[VinceXResearchService] No VIP handles configured — tweets won't be reordered by quality.",
+      );
     }
     return handles;
   }
@@ -1475,8 +1922,15 @@ export class VinceXResearchService extends Service {
     const listId = this.getResearchQualityListId();
     const cacheKey = listId ? `${CACHE_PREFIX}quality_handles:${listId}` : null;
     if (cacheKey) {
-      const cached = await this.runtime.getCache<{ handles: string[]; ts: number }>(cacheKey);
-      if (cached?.handles && Date.now() - cached.ts < VinceXResearchService.QUALITY_HANDLES_CACHE_TTL_MS) {
+      const cached = await this.runtime.getCache<{
+        handles: string[];
+        ts: number;
+      }>(cacheKey);
+      if (
+        cached?.handles &&
+        Date.now() - cached.ts <
+          VinceXResearchService.QUALITY_HANDLES_CACHE_TTL_MS
+      ) {
         return cached.handles;
       }
     }
@@ -1492,13 +1946,17 @@ export class VinceXResearchService extends Service {
         });
         for (const u of users) {
           const username = (u as any)?.username;
-          if (typeof username === "string" && username.trim()) usernames.push(username.trim().toLowerCase());
+          if (typeof username === "string" && username.trim())
+            usernames.push(username.trim().toLowerCase());
         }
         nextToken = next;
         if (nextToken) await sleep(RATE_DELAY_MS);
       } while (nextToken);
     } catch (err) {
-      logger.warn({ err: String(err), listId }, "[VinceXResearchService] getQualityAccountHandles list fetch failed, using manual VIP only");
+      logger.warn(
+        { err: String(err), listId },
+        "[VinceXResearchService] getQualityAccountHandles list fetch failed, using manual VIP only",
+      );
       return manual;
     }
     const set = new Set<string>(manual);

@@ -32,7 +32,11 @@ const EXPERIENCE_TRIGGERS = [
 
 function extractExperienceQuery(text: string): string {
   const lower = text.toLowerCase();
-  if (lower.includes("wine tasting") || lower.includes("vineyard") || lower.includes("winery")) {
+  if (
+    lower.includes("wine tasting") ||
+    lower.includes("vineyard") ||
+    lower.includes("winery")
+  ) {
     return "wine tasting";
   }
   if (lower.includes("spa") || lower.includes("wellness")) {
@@ -57,7 +61,10 @@ export const kellyRecommendExperienceAction: Action = {
   description:
     "Recommend exactly one best pick and one alternative for a one-off experience (wine tasting, spa, cooking class, guided tour) using only the-good-life knowledge.",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
     return EXPERIENCE_TRIGGERS.some((t) => text.includes(t));
   },
@@ -134,7 +141,10 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
   examples: [
     [
-      { name: "{{user}}", content: { text: "Recommend a wine tasting experience near Bordeaux" } },
+      {
+        name: "{{user}}",
+        content: { text: "Recommend a wine tasting experience near Bordeaux" },
+      },
       {
         name: "{{agent}}",
         content: {
@@ -144,7 +154,12 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Something special to do this weekend—spa or cooking?" } },
+      {
+        name: "{{user}}",
+        content: {
+          text: "Something special to do this weekend—spa or cooking?",
+        },
+      },
       {
         name: "{{agent}}",
         content: {
