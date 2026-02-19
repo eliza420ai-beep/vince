@@ -46,6 +46,7 @@ import {
   AGGRESSIVE_RISK_LIMITS,
   DEFAULT_STOP_LOSS_PCT,
   DEFAULT_TAKE_PROFIT_TARGETS,
+  TAKE_PROFIT_TARGETS_FAST_TP,
   TAKE_PROFIT_USD_AGGRESSIVE,
   TARGET_RR_AGGRESSIVE,
   MIN_SL_PCT_AGGRESSIVE,
@@ -65,7 +66,7 @@ import { normalizeWttTicker } from "../constants/targetAssets";
 import * as fs from "fs";
 import * as path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { formatUsd } from "../utils/tradeExplainer";
+import { formatUsd, buildWhyThisTrade } from "../utils/tradeExplainer";
 import {
   getBookImbalanceRejection,
   getAdjustedConfidence,
@@ -266,8 +267,14 @@ export class VincePaperTradingService extends Service {
     ) as VinceNewsSentimentService | null;
   }
 
-  /** TP multipliers to use (from improvement report: skip worst-performing level when applicable). */
+  /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). */
   private getTPMultipliersForReport(): number[] {
+    const fastTp =
+      this.runtime.getSetting?.("vince_paper_fast_tp") === true ||
+      this.runtime.getSetting?.("vince_paper_fast_tp") === "true";
+    if (fastTp) {
+      return [...TAKE_PROFIT_TARGETS_FAST_TP];
+    }
     const ml = this.runtime.getService(
       "VINCE_ML_INFERENCE_SERVICE",
     ) as VinceMLInferenceService | null;
@@ -917,6 +924,13 @@ Reply format: APPROVE reason or VETO reason`;
       await this.appendWttPickJsonl(pick, "rejected", "openTrade failed");
       return false;
     }
+
+    // Store WTT thesis and invalidate condition for WHY THIS TRADE (explainer + notifications)
+    position.metadata = {
+      ...position.metadata,
+      wttThesis: pick.thesis,
+      wttInvalidateCondition: pick.invalidateCondition ?? undefined,
+    };
 
     const wttBlock = wttPickToWttBlock({
       primary: true,
@@ -2213,17 +2227,14 @@ Reply format: APPROVE reason or VETO reason`;
       `[VincePaperTrading] Paper trade opened: ${direction} ${asset} @ $${entryPrice.toFixed(2)} size $${sizeUsd.toFixed(0)} ${leverage}x (dashboard has full details)`,
     );
 
-    // Push to Discord/Slack/Telegram when connected
+    // Push to Discord/Slack/Telegram when connected (conviction-style WHY)
     const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as {
       push?: (t: string) => Promise<number>;
     } | null;
-    if (notif?.push) {
+    if (notif?.push && position) {
       const dirIcon = direction === "long" ? "🟢" : "🔴";
-      const thesis =
-        totalSourceCount > 0
-          ? `${sourceCount} of ${totalSourceCount} sources agreed`
-          : `${factorCount} factors`;
-      const msg = `📈 **PAPER TRADE OPENED**\n${dirIcon} ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)}\nNotional ${formatUsd(sizeUsd)} · ${leverage}x · ${thesis}`;
+      const whyText = buildWhyThisTrade(position);
+      const msg = `📈 **PAPER TRADE OPENED**\n${dirIcon} ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)}\nNotional ${formatUsd(sizeUsd)} · ${leverage}x\n\n${whyText}`;
       notif
         .push(msg)
         .catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
@@ -2609,6 +2620,38 @@ Reply format: APPROVE reason or VETO reason`;
       logger.info(
         `[VincePaperTrading] Trigger hit: ${position.asset} ${trigger}`,
       );
+
+      if (trigger === "partial_tp") {
+        const fastTp =
+          this.runtime.getSetting?.("vince_paper_fast_tp") === true ||
+          this.runtime.getSetting?.("vince_paper_fast_tp") === "true";
+        if (fastTp) {
+          await this.closeTrade(position.id, "take_profit");
+          continue;
+        }
+        const result = positionManager.executePartialTakeProfit(
+          position.id,
+          position.markPrice,
+        );
+        if (result) {
+          const taken =
+            positionManager.getPosition(position.id)?.partialProfitsTaken ?? 1;
+          const label = taken === 1 ? "TP1" : "TP2";
+          const notif = this.runtime.getService(
+            "VINCE_NOTIFICATION_SERVICE",
+          ) as { push?: (t: string) => Promise<number> } | null;
+          if (notif?.push) {
+            const msg = `💰 **${label} hit** – ${position.asset} partial close +$${result.partialPnl.toFixed(2)}. Remaining: $${result.remainingSize.toFixed(0)}`;
+            notif
+              .push(msg)
+              .catch((e) =>
+                logger.debug(`[VincePaperTrading] Push failed: ${e}`),
+              );
+          }
+        }
+        continue;
+      }
+
       await this.closeTrade(
         position.id,
         trigger === "liquidation" ? "liquidation" : trigger,

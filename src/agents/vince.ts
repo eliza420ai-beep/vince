@@ -105,6 +105,8 @@ export const vinceCharacter: Character = {
     ragKnowledge: true,
     /** Paper trading: take profit at $210, max leverage 10 (set VINCE_PAPER_AGGRESSIVE=true or set this to true) */
     vince_paper_aggressive: process.env.VINCE_PAPER_AGGRESSIVE === "true",
+    /** Paper trading: fast TP (1R,2R,3R) and full close at TP1 + 12h max hold for more ML training data. Set VINCE_PAPER_FAST_TP=true. */
+    vince_paper_fast_tp: process.env.VINCE_PAPER_FAST_TP === "true",
     /** Paper trading: which assets to trade. "BTC" = BTC only; "BTC,ETH,SOL,HYPE" or unset = all. Set VINCE_PAPER_ASSETS=BTC to focus on BTC. */
     vince_paper_assets: process.env.VINCE_PAPER_ASSETS || "BTC,ETH,SOL,HYPE",
     /** Paper trading: trade the daily What's the Trade pick (WTT JSON sidecar). Set VINCE_PAPER_WTT_ENABLED=true to enable. */

@@ -22,7 +22,12 @@ import type { VinceTradeJournalService } from "../services/vinceTradeJournal.ser
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
 import type { VinceRiskManagerService } from "../services/vinceRiskManager.service";
 import type { VinceGoalTrackerService } from "../services/goalTracker.service";
-import { formatPnL, formatPct, formatUsd } from "../utils/tradeExplainer";
+import {
+  formatPnL,
+  formatPct,
+  formatUsd,
+  buildWhyThisTrade,
+} from "../utils/tradeExplainer";
 import { BOT_FOOTER } from "../constants/botFormat";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 
@@ -307,7 +312,7 @@ export const vinceBotStatusAction: Action = {
         lines.push("");
       }
 
-      // Open Positions
+      // Open Positions (with one-line WHY per position)
       lines.push("**Open Positions**");
       if (positions.length > 0) {
         for (const pos of positions) {
@@ -321,6 +326,10 @@ export const vinceBotStatusAction: Action = {
           lines.push(
             `   P&L ${pnlStr} (${pnlPct}) · SL $${pos.stopLossPrice.toLocaleString()} · TP $${pos.takeProfitPrices[0]?.toLocaleString() || "—"}`,
           );
+          const whyLine = buildWhyThisTrade(pos, { short: true });
+          if (whyLine) {
+            lines.push(`   WHY: ${whyLine}`);
+          }
         }
       } else {
         lines.push("_No open positions_");

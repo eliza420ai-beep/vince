@@ -169,6 +169,18 @@ export const DEFAULT_STOP_LOSS_PCT = 2;
 /** Default take profit targets (R:R ratios) */
 export const DEFAULT_TAKE_PROFIT_TARGETS = [1.5, 3, 5];
 
+/**
+ * Fast TP / learning mode: tighter TP1 (1R) so more trades close sooner for ML training data.
+ * Use with runtime setting vince_paper_fast_tp = true.
+ */
+export const TAKE_PROFIT_TARGETS_FAST_TP = [1, 2, 3];
+
+/**
+ * When fast TP is enabled, optionally close positions after this duration (12h) to generate more closed trades.
+ * Position manager uses this when vince_paper_fast_tp is true (otherwise 48h).
+ */
+export const MAX_POSITION_AGE_FAST_TP_MS = 12 * 60 * 60 * 1000;
+
 /** Default leverage */
 export const DEFAULT_LEVERAGE = 3;
 

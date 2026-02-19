@@ -191,6 +191,92 @@ export function buildTradeThesis(position: Position): string {
 }
 
 // ==========================================
+// WHY THIS TRADE (conviction-style, WTT-aware)
+// ==========================================
+
+export interface BuildWhyThisTradeOptions {
+  /** If true, return a single line for status view */
+  short?: boolean;
+}
+
+/**
+ * Build conviction-style "WHY THIS TRADE" text for open notifications and status.
+ * Prefers WTT thesis when present; otherwise names converging sources and adds
+ * "what would make this wrong" from conflicting reasons or invalidate condition.
+ */
+export function buildWhyThisTrade(
+  position: Position,
+  options?: BuildWhyThisTradeOptions,
+): string {
+  const meta = position.metadata ?? {};
+  const wttThesis = meta.wttThesis as string | undefined;
+  const wttInvalidate = meta.wttInvalidateCondition as string | undefined;
+  const contributingSources = meta.contributingSources as string[] | undefined;
+  const conflictingReasons = meta.conflictingReasons as string[] | undefined;
+  const supportingReasons = (meta.supportingReasons ??
+    position.triggerSignals) as string[];
+
+  const parts: string[] = [];
+
+  if (wttThesis && typeof wttThesis === "string" && wttThesis.trim()) {
+    parts.push(wttThesis.trim());
+  } else if (
+    (contributingSources?.length ?? 0) > 0 ||
+    (supportingReasons?.length ?? 0) > 0
+  ) {
+    const sources = contributingSources ?? [];
+    const names =
+      sources.length > 0
+        ? sources.slice(0, 5).join(", ")
+        : `${supportingReasons?.length ?? 0} factors`;
+    const conviction =
+      sources.length > 0
+        ? `${names} agree on ${position.direction} — ${(supportingReasons?.[0] ?? "").slice(0, 80)}${(supportingReasons?.[0]?.length ?? 0) > 80 ? "…" : ""}`
+        : `Multiple signals confirming ${position.direction} (${names}).`;
+    parts.push(conviction);
+  } else {
+    parts.push(buildTradeThesis(position));
+  }
+
+  const whatWouldMakeWrong: string[] = [];
+  if (
+    wttInvalidate &&
+    typeof wttInvalidate === "string" &&
+    wttInvalidate.trim()
+  ) {
+    whatWouldMakeWrong.push(`Invalidates if: ${wttInvalidate.trim()}`);
+  }
+  if (
+    conflictingReasons?.length &&
+    conflictingReasons.some((r) => typeof r === "string" && r.trim())
+  ) {
+    const first = conflictingReasons.find(
+      (r) => typeof r === "string" && (r as string).trim(),
+    ) as string;
+    whatWouldMakeWrong.push(
+      `Against us: ${first.slice(0, 60)}${first.length > 60 ? "…" : ""}`,
+    );
+  }
+
+  if (options?.short) {
+    const main = parts[0] ?? "";
+    if (whatWouldMakeWrong.length > 0) {
+      return `${main} ${whatWouldMakeWrong[0]}`;
+    }
+    return main;
+  }
+
+  if (whatWouldMakeWrong.length > 0) {
+    parts.push("");
+    parts.push(
+      `_What would make this wrong:_ ${whatWouldMakeWrong.join(". ")}`,
+    );
+  }
+
+  return parts.join("\n");
+}
+
+// ==========================================
 // Position Explanation
 // ==========================================
 
@@ -211,13 +297,13 @@ export function formatPositionExplanation(position: Position): string {
   );
   lines.push("");
 
-  // The thesis
+  // The thesis (conviction-style, WTT-aware when metadata present)
   lines.push("**THE THESIS**");
   lines.push(
     `_Why ${position.direction.toUpperCase()} ${position.asset} makes sense:_`,
   );
   lines.push("");
-  lines.push(buildTradeThesis(position));
+  lines.push(buildWhyThisTrade(position));
   lines.push("");
 
   // Signal breakdown

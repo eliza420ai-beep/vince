@@ -24,6 +24,7 @@ import {
   TAKE_PROFIT_USD,
   TAKE_PROFIT_USD_AGGRESSIVE,
   FEES,
+  MAX_POSITION_AGE_FAST_TP_MS,
 } from "../constants/paperTradingDefaults";
 import { v4 as uuidv4 } from "uuid";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
@@ -639,8 +640,13 @@ export class VincePositionManagerService extends Service {
         continue;
       }
 
-      // Check max position age (48h)
-      if (positionAge > this.MAX_POSITION_AGE_MS) {
+      // Check max position age (48h default; 12h when vince_paper_fast_tp for more closed trades)
+      const maxAgeMs =
+        this.runtime.getSetting?.("vince_paper_fast_tp") === true ||
+        this.runtime.getSetting?.("vince_paper_fast_tp") === "true"
+          ? MAX_POSITION_AGE_FAST_TP_MS
+          : this.MAX_POSITION_AGE_MS;
+      if (positionAge > maxAgeMs) {
         logger.info(
           `[VincePositionManager] ⏰ Position ${position.asset} exceeded max age (${Math.round(positionAge / 3600000)}h)`,
         );

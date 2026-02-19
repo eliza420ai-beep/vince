@@ -51,24 +51,24 @@ Our proudest result so far: ECHO runs `X_PULSE` to scan Crypto Twitter, finds a 
 
 ### 3. Paper bot trade lifecycle: better WHY, faster TP1, more training data
 
-The paper trading bot opens and closes trades, but three things are holding it back.
+The paper trading bot opens and closes trades. The following is now in place; remaining gaps are below.
 
-**Better "WHY THIS TRADE" text.** When the bot opens a position, the leaderboard shows a WHY section built from `tradeExplainer.ts`. Right now it's mechanical: "Multiple independent signals confirming long bias." We want it to read like a conviction call. If the trade came from an X_PULSE thesis, that thesis should be front and center. If three signal sources converged, name them and explain why they agree. The explainer should tell you what would make this trade wrong, not just what made it right. A contributor reading `src/plugins/plugin-vince/src/utils/tradeExplainer.ts` and the `WHY THIS TRADE` section in `vinceBotStatus.action.ts` can see the gap between what the code produces and what the leaderboard screenshots show.
+**Better "WHY THIS TRADE" (implemented).** `buildWhyThisTrade()` in `tradeExplainer.ts` produces conviction-style narrative: WTT thesis is front and center when the trade came from What's the Trade; quant trades name converging sources and include "what would make this wrong" from conflicting reasons or WTT invalidate condition. Open notifications and bot status use this; each open position in status shows a one-line WHY. WTT opens store `wttThesis` and `wttInvalidateCondition` in position metadata.
 
-**Frontend notifications for trade exits.** When a stop-loss or take-profit triggers, the logs show it (`[VincePositionManager] Closed ETH (stop_loss) @ $1929.1 - P&L: -$42.35`) but nothing surfaces to the user in Discord or the web UI. We want trade lifecycle events (open, TP hit, SL hit, manual close) to show up as notifications so you see results without checking the leaderboard manually.
+**Trade exit notifications (implemented).** Full closes (SL, TP, manual, max_age, trailing_stop) push to Discord/Slack/Telegram via `closeTrade()`. Partial TP (TP1/TP2 hit) now pushes a short message (e.g. "TP1 hit – 50% closed, +$X") after `executePartialTakeProfit`. Web UI: if the app has a frontend that should show lifecycle events, expose recent trade events from the journal or add an endpoint/SSE for open/close events.
 
-**Faster TP1 to generate training data.** This is the biggest bottleneck for the ML pipeline. The ONNX training script (`scripts/train_models.py`) needs closed trades with outcome data in the feature store. Right now TP1 is set conservatively, so trades stay open for a long time or hit SL first. We need the bot to take TP1 faster (tighter targets, partial exits, or time-based forced closes) so we accumulate closed trade records. More closed trades = more rows in `features/*.jsonl` = meaningful training for signal_quality, position_sizing, tp_optimizer, and sl_optimizer models. The current state: "ONNX MODELS (4 POSSIBLE) — None loaded (rule-based fallbacks)." We can't get past rule-based until we have enough data.
+**Faster TP1 for training data (implemented).** Set `VINCE_PAPER_FAST_TP=true` (or `vince_paper_fast_tp: true` in VINCE settings) for "fast TP" / learning mode: TP targets become 1R, 2R, 3R (`TAKE_PROFIT_TARGETS_FAST_TP`); at TP1 the position is fully closed (one trade = one feature-store row); max position age is 12h instead of 48h. This generates more closed trades for the feature store and ONNX training. Default remains 1.5R, 3R, 5R with partial closes at TP1/TP2.
 
 **Where to look:**
-- Trade explainer and WHY text: `src/plugins/plugin-vince/src/utils/tradeExplainer.ts`
+- Trade explainer and WHY text: `src/plugins/plugin-vince/src/utils/tradeExplainer.ts` (`buildWhyThisTrade`, `buildTradeThesis`)
 - Bot status and leaderboard: `src/plugins/plugin-vince/src/actions/vinceBotStatus.action.ts`
-- Paper trading service (TP/SL logic): `src/plugins/plugin-vince/src/services/vincePaperTrading.service.ts`
-- Position manager (exits): `src/plugins/plugin-vince/src/services/vincePositionManager.service.ts`
+- Paper trading service (TP/SL, notifications, fast_tp): `src/plugins/plugin-vince/src/services/vincePaperTrading.service.ts`
+- Position manager (exits, max_age, partial TP): `src/plugins/plugin-vince/src/services/vincePositionManager.service.ts`
 - Feature store (training data): `src/plugins/plugin-vince/src/services/vinceFeatureStore.service.ts`
 - ML training pipeline: `src/plugins/plugin-vince/scripts/train_models.py`
-- TP/SL defaults: `src/plugins/plugin-vince/src/constants/paperTradingDefaults.ts`
+- TP/SL and fast-TP defaults: `src/plugins/plugin-vince/src/constants/paperTradingDefaults.ts`
 
-**How to contribute:** Rewrite the trade explainer to produce richer narratives, especially for WTT-sourced trades. Add Discord/web notifications when positions close. Tune TP1 targets to close faster, or add a partial-exit mechanism that books profit early while letting the rest run. If you can get the feature store to 90+ closed trades, that unlocks the first real ONNX training run.
+**How to contribute:** Refine the WHY narrative (e.g. tone, length, or more source-specific phrasing). Ensure trade lifecycle events surface in the web UI if there is one. Run with `VINCE_PAPER_FAST_TP=true` to accumulate 90+ closed trades and unlock the first real ONNX training run; then iterate on signal quality and TP/SL models.
 
 ### 4. Automated daily briefings: push, not pull
 
@@ -177,7 +177,7 @@ VINCE started as a single data agent and grew into a **multi-agent system** on E
 
 1. **Multi-agent insight quality** — Standup and Day Report should surface connections across agents, not just concatenate individual outputs. See [above](#1-multi-agent-standup-prove-that-1--1--3).
 2. **X research to paper trade pipeline** — End-to-end loop from CT narrative discovery to automated paper trade. See [above](#2-x-research-to-paper-trade-pipeline-the-thing-that-works).
-3. **Paper bot trade lifecycle** — Better WHY narratives, trade exit notifications, and faster TP1 to generate the training data that unlocks ML. See [above](#3-paper-bot-trade-lifecycle-better-why-faster-tp1-more-training-data).
+3. **Paper bot trade lifecycle** — WHY narratives, exit notifications, and fast-TP mode are in place; run with `VINCE_PAPER_FAST_TP=true` to reach 90+ closed trades and unlock ONNX training. See [above](#3-paper-bot-trade-lifecycle-better-why-faster-tp1-more-training-data).
 4. **Automated daily briefings** — ALOHA, perps, options, news, HIP-3, and Day Report pushed to Discord and Slack every morning without prompting. See [above](#4-automated-daily-briefings-push-not-pull).
 5. **Knowledge ingestion and content production** — Eliza UPLOAD working on Slack (not just Discord), and WRITE_ESSAY drafts good enough to publish on Substack. See [above](#5-knowledge-ingestion-and-substack-content-production-by-eliza).
 6. **Solus options context** — Portfolio awareness (cost basis, current holdings, open positions) and daily monitoring instead of weekly-only. See [above](#6-solus-options-context-portfolio-awareness-and-daily-monitoring).
