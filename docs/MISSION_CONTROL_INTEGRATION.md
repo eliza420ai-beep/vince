@@ -110,103 +110,115 @@ You (Mission Control UI)
 
 ---
 
-## How to Use
+## How to Install & Connect
 
-### 1. Set Environment
+### Phase 1: Start Mission Control
+
 ```bash
-MISSION_CONTROL_TOKEN=UZa5vElWgALYR7DU0F65t0PdKJ5J8Mcv0V4RFCVh8JRvMKrnRliyI9gLfRcc4l/ntu8=
-MISSION_CONTROL_URL=http://localhost:8000/api/v1
+cd /Users/vince/openclaw-mission-control
+docker compose up -d --build
 ```
 
-### 2. Connect Gateway (Prerequisite)
+Access:
+- **Frontend:** http://localhost:3000
+- **Backend:** http://localhost:8000
+- **Health:** http://localhost:8000/healthz
+
+### Phase 2: Configure OpenClaw Gateway
+
+The Gateway must be running and reachable by Mission Control.
+
+#### Option A: LAN Mode (Recommended for local)
+
 ```bash
-# Find your gateway WebSocket URL
-openclaw gateway --help | grep ws
+# Stop current gateway
+openclaw gateway stop
 
-# Register in Mission Control UI or API
-POST /gateways {
-  "name": "OpenClaw",
-  "url": "ws://localhost:PORT",
-  "workspace_root": "/path/to/workspace",
-  "token": "your-token"
-}
+# Find your local IP
+ipconfig getifaddr en0
+
+# Start with LAN bind + token auth
+openclaw gateway start --bind lan --auth token --token satoshi123
 ```
 
-### 3. Restart VINCE
+This will output a WebSocket URL like: `ws://192.168.1.x:PORT`
+
+#### Option B: Tailscale (If you have Tailscale)
+
 ```bash
-# To pick up new service
+openclaw gateway start --bind tailnet --auth token --token satoshi123
 ```
 
-### 4. Register Satoshi
-Say: "Register Satoshi in Mission Control"
+#### Option C: Custom Port
 
-### 5. Assign Tasks
-Say: "Research TSLA" → Creates task in MC board
-
----
-
-## What's Next
-
-### Priority 1: Connect Gateway
-Need to:
-1. Find OpenClaw Gateway WebSocket URL
-2. Register gateway in Mission Control
-3. Create Satoshi Research board
-
-### Priority 2: Task Flow
-1. Create task in MC board
-2. Gateway dispatches to Satoshi
-3. Satoshi completes task
-4. Result stored in MC
-
-### Priority 3: Governance
-1. Set up approval flows for sensitive tasks
-2. Configure audit logging
-3. Define escalation rules
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│              Mission Control (Docker)                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐  │
-│  │  Frontend  │  │   Backend   │  │  PostgreSQL  │  │
-│  │  :3000     │◄─┤   :8000     │◄─┤              │  │
-│  └─────────────┘  └──────┬──────┘  └──────────────┘  │
-└──────────────────────────┼──────────────────────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │ OpenClaw    │
-                    │  Gateway    │
-                    │ (ws://..)   │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │   Satoshi   │
-                    │   Agent    │
-                    └─────────────┘
+```bash
+openclaw gateway start --bind custom --custom-bind 0.0.0.0:9000 --auth token --token satoshi123
 ```
 
+### Phase 3: Register Gateway in Mission Control
+
+1. Open **http://localhost:3000**
+2. Sign in with auth token (from .env file)
+3. Go to **Gateways** → **Add Gateway**
+4. Fill in:
+
+| Field | Value |
+|-------|-------|
+| **Name** | OpenClaw Gateway |
+| **URL** | `ws://YOUR_IP:PORT` (from Gateway startup) |
+| **Workspace Root** | `/Users/vince/.openclaw/workspace` |
+| **Token** | `satoshi123` (or whatever you set) |
+
+5. Click **Save**
+
+### Phase 4: Restart VINCE
+
+```bash
+# Set environment variables
+export MISSION_CONTROL_TOKEN=UZa5vElWgALYR7DU0F65t0PdKJ5J8Mcv0V4RFCVh8JRvMKrnRliyI9gLfRcc4l/ntu8=
+export MISSION_CONTROL_URL=http://localhost:8000/api/v1
+
+# Restart VINCE
+openclaw gateway restart
+```
+
+### Phase 5: Register Satoshi
+
+Once Gateway is connected:
+
+1. Go to **Agents** → **New Agent**
+2. Fill in:
+
+| Field | Value |
+|-------|-------|
+| **Name** | Satoshi |
+| **Board** | (select Satoshi Research board) |
+| **Status** | Active |
+| **Identity Template** | You are Satoshi, an AI research agent... |
+| **Soul Template** | Be direct, concise, helpful... |
+
+Or just say: "Register Satoshi in Mission Control" (once VINCE is restarted)
+
 ---
 
-## Related Files
+## Troubleshooting
 
-| File | Purpose |
-|------|---------|
-| `src/plugins/plugin-solus/src/services/missionControl.service.ts` | API client |
-| `src/plugins/plugin-solus/src/actions/missionControl.actions.ts` | Task actions |
-| `openclaw-mission-control/` | MC repo (cloned locally) |
+### "Connection refused" when registering gateway
 
----
+- Gateway not running: `openclaw gateway start --bind lan ...`
+- Wrong IP: Check `ipconfig getifaddr en0`
+- Wrong port: Check Gateway output for port number
 
-## Lessons Learned
+### "board_id is required" when creating agent
 
-1. **Gateway Required** - Can't create boards without registered gateway
-2. **WebSocket** - Gateway URL must be `ws://` or `wss://`
-3. **Auth Works** - Token authentication functional
-4. **Schema Strict** - Need `slug` for boards, `gateway_id` for creation
+- Gateway not connected/verified
+- Must create board AFTER gateway is registered
+- Board requires `gateway_id`
+
+### Auth token not working
+
+- Check `.env` file in openclaw-mission-control
+- Token: `UZa5vElWgALYR7DU0F65t0PdKJ5J8Mcv0V4RFCVh8JRvMKrnRliyI9gLfRcc4l/ntu8=`
 
 ---
 
