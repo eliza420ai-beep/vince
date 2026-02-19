@@ -1,110 +1,136 @@
-interface BTCCoveredCallParams {
-  spotPrice: number;
+import { PublicKey, Connection, Keypair, Transaction, SystemProgram } from '@solana/web3.js';
+import { Program, AnchorProvider, web3, BN } from '@project-serum/anchor';
+
+interface CoveredCallParams {
+  underlyingAmount: number;
   strikePrice: number;
-  premium: number;
-  expiration: Date;
-  btcAmount: number;
+  expirationDays: number;
+  premiumRate: number;
 }
 
 interface CoveredCallPosition {
   id: string;
-  btcHeld: number;
-  callSold: {
-    strike: number;
-    premium: number;
-    expiration: Date;
-  };
-  maxProfit: number;
-  breakeven: number;
-  status: 'active' | 'assigned' | 'expired' | 'closed';
+  underlyingAmount: number;
+  strikePrice: number;
+  premium: number;
+  expiration: Date;
+  status: 'active' | 'exercised' | 'expired';
+  collateral: number;
 }
 
 class BTCCoveredCallExecutor {
+  private connection: Connection;
+  private wallet: Keypair;
   private positions: Map<string, CoveredCallPosition> = new Map();
 
-  execute(params: BTCCoveredCallParams): CoveredCallPosition {
-    const { spotPrice, strikePrice, premium, expiration, btcAmount } = params;
-    
-    // Validation
-    if (btcAmount <= 0) throw new Error('BTC amount must be positive');
-    if (strikePrice <= spotPrice) throw new Error('Strike should be above spot for covered call');
-    if (premium <= 0) throw new Error('Premium must be positive');
-
-    const position: CoveredCallPosition = {
-      id: this.generateId(),
-      btcHeld: btcAmount,
-      callSold: {
-        strike: strikePrice,
-        premium,
-        expiration
-      },
-      maxProfit: (strikePrice - spotPrice) * btcAmount + premium,
-      breakeven: spotPrice - premium / btcAmount,
-      status: 'active'
-    };
-
-    this.positions.set(position.id, position);
-    return position;
+  constructor(rpcUrl: string, privateKey: Uint8Array) {
+    this.connection = new Connection(rpcUrl);
+    this.wallet = Keypair.fromSecretKey(privateKey);
   }
 
-  evaluatePosition(positionId: string, currentSpotPrice: number): {
-    position: CoveredCallPosition;
-    pnl: number;
-    recommendation: string;
-  } {
-    const position = this.positions.get(positionId);
-    if (!position) throw new Error('Position not found');
-
-    const intrinsicValue = Math.max(0, currentSpotPrice - position.callSold.strike);
-    const btcValue = currentSpotPrice * position.btcHeld;
-    const totalPnl = btcValue - intrinsicValue * position.btcHeld + position.callSold.premium;
-
-    let recommendation: string;
-    if (currentSpotPrice > position.callSold.strike) {
-      recommendation = 'Call likely to be assigned. Consider rolling up/out or prepare for assignment.';
-    } else if (currentSpotPrice < position.breakeven) {
-      recommendation = 'Position underwater. Monitor for roll down opportunity.';
-    } else {
-      recommendation = 'Position profitable. Let theta decay work.';
+  async sellCoveredCall(params: CoveredCallParams): Promise<string> {
+    const { underlyingAmount, strikePrice, expirationDays, premiumRate } = params;
+    
+    // Calculate premium
+    const premium = underlyingAmount * strikePrice * (premiumRate / 100);
+    
+    // Validate collateral
+    const requiredCollateral = underlyingAmount;
+    const balance = await this.getBalance();
+    
+    if (balance < requiredCollateral) {
+      throw new Error(`Insufficient collateral. Required: ${requiredCollateral}, Available: ${balance}`);
     }
 
-    return {
-      position,
-      pnl: totalPnl,
-      recommendation
+    // Create position
+    const positionId = this.generatePositionId();
+    const expiration = new Date();
+    expiration.setDate(expiration.getDate() + expirationDays);
+
+    const position: CoveredCallPosition = {
+      id: positionId,
+      underlyingAmount,
+      strikePrice,
+      premium,
+      expiration,
+      status: 'active',
+      collateral: requiredCollateral
     };
-  }
 
-  rollPosition(positionId: string, newStrike: number, newPremium: number, newExpiration: Date): CoveredCallPosition {
-    const position = this.positions.get(positionId);
-    if (!position) throw new Error('Position not found');
-
-    position.callSold.strike = newStrike;
-    position.callSold.premium += newPremium;
-    position.callSold.expiration = newExpiration;
-    position.maxProfit = (newStrike - position.breakeven) * position.btcHeld + position.callSold.premium;
-
-    return position;
-  }
-
-  closePosition(positionId: string, buybackPremium: number): number {
-    const position = this.positions.get(positionId);
-    if (!position) throw new Error('Position not found');
-
-    position.status = 'closed';
-    const netPremium = position.callSold.premium - buybackPremium;
+    // Lock collateral (simulate on-chain transaction)
+    await this.lockCollateral(requiredCollateral);
     
-    this.positions.delete(positionId);
-    return netPremium;
+    // Store position
+    this.positions.set(positionId, position);
+    
+    return positionId;
   }
 
-  getAllPositions(): CoveredCallPosition[] {
-    return Array.from(this.positions.values());
+  async closePosition(positionId: string): Promise<boolean> {
+    const position = this.positions.get(positionId);
+    if (!position) {
+      throw new Error('Position not found');
+    }
+
+    if (position.status !== 'active') {
+      throw new Error('Position is not active');
+    }
+
+    // Release collateral
+    await this.releaseCollateral(position.collateral);
+    
+    // Mark as expired
+    position.status = 'expired';
+    
+    return true;
   }
 
-  private generateId(): string {
+  async checkExpiration(): Promise<void> {
+    const now = new Date();
+    
+    for (const [id, position] of this.positions) {
+      if (position.status === 'active' && position.expiration <= now) {
+        position.status = 'expired';
+        await this.releaseCollateral(position.collateral);
+      }
+    }
+  }
+
+  getActivePositions(): CoveredCallPosition[] {
+    return Array.from(this.positions.values()).filter(p => p.status === 'active');
+  }
+
+  getTotalCollateralLocked(): number {
+    return this.getActivePositions().reduce((sum, pos) => sum + pos.collateral, 0);
+  }
+
+  private async getBalance(): Promise<number> {
+    const balance = await this.connection.getBalance(this.wallet.publicKey);
+    return balance / web3.LAMPORTS_PER_SOL;
+  }
+
+  private async lockCollateral(amount: number): Promise<void> {
+    // Simulate collateral lock transaction
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: this.wallet.publicKey,
+        toPubkey: this.wallet.publicKey, // Self-transfer for demo
+        lamports: amount * web3.LAMPORTS_PER_SOL,
+      })
+    );
+    
+    // In production, this would interact with options protocol
+    console.log(`Locked ${amount} BTC as collateral`);
+  }
+
+  private async releaseCollateral(amount: number): Promise<void> {
+    // Simulate collateral release
+    console.log(`Released ${amount} BTC collateral`);
+  }
+
+  private generatePositionId(): string {
     return `cc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
 
-export { BTCCoveredCallExecutor, BTCCoveredCallParams, CoveredCallPosition };
+export { BTCCoveredCallExecutor, CoveredCallParams, CoveredCallPosition };

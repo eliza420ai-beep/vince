@@ -1,39 +1,34 @@
 ---
-date: 2026-02-19T12:31:41.965Z
+date: 2026-02-19T12:46:39.128Z
 type: day-report
 generated: automated-standup
 ---
 
 ## Day Report — 2026-02-19
 
-**Essential question:** 1. Based on current market sentiment, do you think BTC will be above $70000 by next Friday? (Hypersurface options)
-2. What is the best paper trading bot perps setup on Hyperliquid right now? (direction, entry, stop, size)
+**Essential question:** 1. BTC above $70K by Friday? Uncertain - tight range with extreme fear sentiment suggests we're in wait-and-see mode. 2. Best paper bot setup: Short BTC at $66.8K, stop at $68K, 0.8x size on neutral regime signals.
 
-**Solus's call:** Above — BTC consolidating with bullish institutional inflows, target $72.5K covered call
+**Solus's call:** Uncertain — Sell covered call at $71.5K, capture premium in this tight consolidation range.
 
-**TL;DR:** BTC showing institutional support despite bearish sentiment — position defensively with tight covered calls.
+**TL;DR:** BTC stuck in neutral with extreme fear readings - we're selling premium and waiting for clearer direction.
 
 ### Daily TODO
 
 | WHAT | HOW | WHY | OWNER |
 |------|-----|-----|-------|
-| Execute $72.5K covered call | Size 30% stack, Friday expiry | Capture premium in consolidation range | @Solus |
-| Complete wallet key setup | Generate EVM/Solana keys, verify Bankr connection | Enable DeFi execution capability | @Otaku |
-| Research Pendle protocol | Deep dive yield strategies for Q2 | Fill DeFi knowledge gaps | @Eliza |
-| Monitor UAE mining developments | Track $453.6M Bitcoin mining announcement impact | Institutional narrative shift potential | @ECHO |
-| Build ClawHub skill leaderboard | Create featured skills showcase | Boost OpenClaw community engagement | @Clawterm |
-| Test standup JSON parsing | Verify agent communication protocols | Prevent reporting feedback loops | @Sentinel |
-| Track Warsh Fed chair odds | Monitor 95% probability market movements | Position for policy impact trades | @Oracle |
+| BTC covered call execution | Sell $71.5K strike, Friday expiry | Range-bound market, capture premium | @Solus |
+| Complete wallet setup | Configure EVM/Solana keys in Bankr | Need execution capability for DeFi | @Otaku |
+| Meteora DLMM research | Map liquidity band mechanics | Fill knowledge gap for yield strategies | @Eliza |
+| Monitor UAE Bitcoin mining | Track $453M infrastructure investment impact | Contrarian signal against bearish sentiment | @ECHO |
+| Cursor plugin PRD | Draft plugin architecture boundaries | Enable OpenClaw integration | @Sentinel |
+| ClawHub skill discovery | Refine one-click install process | Reduce onboarding friction | @Clawterm |
+| Iran strike probability | Watch 28% market for rapid shifts | Geopolitical risk could break BTC range | @Oracle |
 
 ### Risks
-Security incident active — reduce exposure until cleared.
+Regulatory announcement or Fed policy shift could break consolidation range in either direction.
 
 ---
 *One team, one dream. Ship it.*
 
 ### In brief
-• BTC faces bearish sentiment but UAE's $453.6M mining investment signals institutional confidence
-• Solus targets $72.5K covered call while VINCE's paper bot stays neutral with 47% short confidence  
-• Otaku finally gets wallet keys operational — DeFi execution coming online
-• Kevin Warsh Fed chair odds at 95% could shift crypto policy landscape
-• OpenClaw needs community boost through skill discovery improvements
+Market's in limbo with extreme fear but no clear direction. BTC consolidating between $70-72K while UAE drops $453M on mining infrastructure - classic mixed signals. Warsh Fed chair nomination basically locked at 95% but Iran tensions still simmering at 28%. We're selling premium and staying patient until something breaks.

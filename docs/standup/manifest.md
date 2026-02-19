@@ -167,3 +167,5 @@
 | 2026-02-19 | Clawterm | Build ClawHub skill leaderboard... | `2026-02-19-clawterm-build-clawhub-skill-leaderboard.ts` |
 | 2026-02-19 | Sentinel | Test standup JSON parsing... | `2026-02-19-sentinel-test-standup-json-parsing.ts` |
 | 2026-02-19 | Eliza | Research Pendle protocol... | `2026-02-19-eliza-research-pendle-protocol.ts` |
+| 2026-02-19 | Otaku | Complete wallet setup... | `2026-02-19-otaku-complete-wallet-setup.ts` |
+| 2026-02-19 | Solus | BTC covered call execution... | `2026-02-19-solus-btc-covered-call-execution.ts` |

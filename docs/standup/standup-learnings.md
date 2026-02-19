@@ -336,3 +336,7 @@
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-sentinel-test-standup-json-parsing.ts
 - **2026-02-19** [in_progress] @Eliza: Research Pendle protocol
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-pendle-protocol.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet setup
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-setup.ts
+- **2026-02-19** [in_progress] @Solus: BTC covered call execution
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-btc-covered-call-execution.ts

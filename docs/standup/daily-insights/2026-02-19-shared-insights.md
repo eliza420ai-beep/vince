@@ -1,5 +1,5 @@
 ---
-date: 2026-02-19T12:30:49.539Z
+date: 2026-02-19T12:45:33.486Z
 type: shared-daily-insights
 ---
 
@@ -8,13 +8,15 @@ type: shared-daily-insights
 ## VINCE
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $66,614 -1.4% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
-| SOL | $81.105 -2.4% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
-| HYPE | $28.291 -2.7% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
+| BTC | $66,581 -1.4% | F:0.004% L/S:2.24 Vol:1.0x | bearish |
+| SOL | $81.005 -2.3% | F:-0.004% L/S:3.02 Vol:1.0x | bearish |
+| HYPE | $28.278 -3.0% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
-**Signal (BTC):** short (47% conf, BinanceLongShort,NewsSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+**Fear & Greed:** 9 (extreme fear)
 
-**Paper bot:** 0W/0L (+$0) | 0 open, 0 pending
+**Signal (BTC):** short (57% conf, CoinGlass,BinanceTakerFlow,BinanceLongShort,NewsSentiment,XSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+
+**Paper bot:** 0W/0L (+$0) | 3 open, 0 pending
 
 **MandoMinutes:** Risk-on ⚠️ Risk event active security. Themes: other, institutional, regulatory, price
 News sentiment: bullish (68% conf)
@@ -26,7 +28,9 @@ Headlines:
 🔴 TON collabs with Banxa on stablecoins
 🟢 World Uncertainty Index hits ATH
 
-**Regime (BTC):** neutral ADX 22.747919812857184 | size 0.8x
+**OI (24h Δ):** BTC $5.3B (-0.4%) | SOL $817M (+0.8%)
+
+**Regime (BTC):** neutral ADX 22.719355412050476 | size 0.8x
 
 ## Eliza
 **Yesterday:** Solus's call: Below — Sell covered call at $67,500, capture premium in range-bound environment
@@ -47,7 +51,7 @@ Regulatory announcement or Fed policy shift could break range in either directio
 
 **Yesterday TL;DR:** BTC consolidating with bearish sentiment extremes — sell premium, don't chase direction.
 
-**Today (from shared insights):** | BTC | $66,557 -1.5% | F:0.004% L/S:2.24 Vol:1.0x | bearish | | SOL | $81.175 -2.4% | F:-0.004% L/S:3.02 Vol:1.0x …
+**Today (from shared insights):** | BTC | $66,614 -1.4% | F:0.000% L/S:1.00 Vol:1.0x | neutral | | SOL | $81.105 -2.4% | F:0.000% L/S:1.00 Vol:1.0x |…
 
 ## ECHO
 **CT sentiment (20 posts, last 24h) [queries: BTC crypto market sentiment, SOL crypto sentiment]:**
@@ -121,6 +125,7 @@ If uncertain (like last week), say so and explain why with data.
 
 ## Sentinel
 Recent code (git log --oneline):
+21edeb1 Add CONTRIBUTING.md, standup friend-style voice, and standup docs
 727fc07 docs/standup: 2026-02-19 reports, action items, manifests, metrics
 9168f60 standup: stricter canonical JSON, strip non-canonical multiline and single-line
 f2a3583 fix(standup): form factor cleanup — sanitize replies, shorter prompts, bullets
@@ -130,16 +135,15 @@ e8506d9 test(standup): add extractAgentSection/buildStandupPrompt tests + TESTIN
 41cab04 fix(standup): stop agent parroting — domain-locked prompts, shared-insights-only context
 e51787f Fix standup feedback loop and sync method type mismatches
 68331d7 Update README.md for v3.3: Refine project description, enhance Day Report format, and clarify team structure. Key changes include improved narrative style for daily standups, integration of strategic priorities, and fixes for duplicate trade issues and TypeScript declarations. Documentation now reflects a more cohesive team approach and streamlined reporting processes.
-b76d822 Update whats-the-trade submodule pointer
 
-**Recent PRDs:** 2026-02-12…
+**…
 
 ## Clawterm
-Daily OpenClaw Standup:
+Daily Standup Summary:
 
-@andrewnaegele highlights OpenClaw setup guides trending, but current engagement is low with 48 skills at 0 likes. The web research surfaces Kimi Claw, a browser-hosted OpenClaw agent in beta that enables scheduled automations, Telegram integration, and ClawHub skill library access—showing potential for cloud-based AI agent deployment.
+OpenClaw is gaining traction with browser-hosted agents like Kimi Claw, which enables cloud-based AI workflows and scheduled automations without local infrastructure. The ecosystem shows growing interest, but current adoption remains experimental—48 skills exist with minimal engagement. 
 
-**Tech Focus Suggestion**: Prioritize ClawHub skill discoverability and engagement. Create a leaderboard or featured skills section to incentivize builders and increase visibility of top community-developed OpenClaw skills.
+**Tech Focus Suggestion**: Prioritize ClawHub skill discoverability and one-click installation, creating a more frictionless onboarding experience for builders wanting to quickly integrate and experiment with OpenClaw agents.
 
 ## Naval
 (no data)
