@@ -54,18 +54,22 @@ if (!loaded && typeof process.stdout?.write === "function") {
 // @elizaos/plugin-anthropic <=1.5.12 hardcodes "claude-3-5-haiku-20241022" as the
 // TEXT_SMALL default. That model is deprecated and 404s on the Anthropic API.
 // Force ANTHROPIC_SMALL_MODEL so the plugin never falls back to it.
+// Valid IDs: https://platform.claude.com/docs/en/about-claude/models/overview
 if (!process.env.ANTHROPIC_SMALL_MODEL?.trim()) {
-  process.env.ANTHROPIC_SMALL_MODEL = "claude-haiku-4-20250414";
+  process.env.ANTHROPIC_SMALL_MODEL = "claude-haiku-4-5-20251001";
 }
 
-// Also normalize ANTHROPIC_LARGE_MODEL if set to a deprecated value.
-const DEPRECATED_MODELS = new Set(["claude-3-5-haiku-20241022"]);
+// Also normalize any deprecated model values.
+const DEPRECATED_MODELS = new Set([
+  "claude-3-5-haiku-20241022",
+  "claude-haiku-4-20250414",
+]);
 for (const key of ["ANTHROPIC_LARGE_MODEL", "ANTHROPIC_SMALL_MODEL"]) {
   const val = process.env[key]?.trim();
   if (val && DEPRECATED_MODELS.has(val)) {
     process.env[key] =
       key === "ANTHROPIC_SMALL_MODEL"
-        ? "claude-haiku-4-20250414"
+        ? "claude-haiku-4-5-20251001"
         : "claude-sonnet-4-20250514";
   }
 }

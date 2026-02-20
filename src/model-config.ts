@@ -8,10 +8,13 @@
  */
 
 const DEFAULT_ANTHROPIC_LARGE = "claude-sonnet-4-20250514";
-const DEFAULT_ANTHROPIC_SMALL = "claude-haiku-4-20250414";
+const DEFAULT_ANTHROPIC_SMALL = "claude-haiku-4-5-20251001";
 
 /** Model IDs known to 404 on the Anthropic API (deprecated or invalid). */
-const DEPRECATED_ANTHROPIC_MODELS = new Set(["claude-3-5-haiku-20241022"]);
+const DEPRECATED_ANTHROPIC_MODELS = new Set([
+  "claude-3-5-haiku-20241022",
+  "claude-haiku-4-20250414",
+]);
 
 /**
  * Returns the Anthropic model to use for TEXT_LARGE generation.
