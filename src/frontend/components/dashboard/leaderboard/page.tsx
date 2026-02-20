@@ -3119,11 +3119,17 @@ export default function LeaderboardPage({
                       Loading trades…
                     </p>
                   ) : (deskTradesData?.trades?.length ?? 0) === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4">
-                      No fills yet. Trades appear when Risk approves a signal
-                      and Otaku executes on the CLOB. Edge engine feeds signals
-                      → desk pipeline.
-                    </p>
+                    <div className="text-sm text-muted-foreground py-4 space-y-1">
+                      <p>
+                        No fills yet. Trades appear when the desk pipeline runs:
+                        Risk approves a signal and Otaku executes on the CLOB.
+                      </p>
+                      <p>
+                        If you see many signals but no trades, ensure Risk and
+                        Otaku (Executor) are configured and polling the desk
+                        (signals → sized orders → fills).
+                      </p>
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">

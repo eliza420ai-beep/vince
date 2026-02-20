@@ -72,7 +72,8 @@ export const polymarketRiskApproveAction: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams ??
+      const params = ((_options as RiskApproveParams | undefined) ??
+        (composedState?.data?.actionParams as RiskApproveParams | undefined) ??
         {}) as RiskApproveParams;
       let signalId = params.signal_id?.trim();
       const walletAddress =

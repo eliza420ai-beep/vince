@@ -50,8 +50,15 @@ export const DEFAULT_OVERREACTION_COOLDOWN_MS = 900_000; // 15 min
 /** Model fair value strategy */
 export const ENV_MODEL_MIN_EDGE_PCT = "EDGE_MODEL_MIN_EDGE_PCT";
 export const ENV_MODEL_TICK_INTERVAL_MS = "EDGE_MODEL_TICK_INTERVAL_MS";
+export const ENV_MODEL_MIN_FORECAST_PROB = "EDGE_MODEL_MIN_FORECAST_PROB";
+export const ENV_MODEL_MAX_FORECAST_PROB = "EDGE_MODEL_MAX_FORECAST_PROB";
+export const ENV_MODEL_COOLDOWN_MS = "EDGE_MODEL_COOLDOWN_MS";
 export const DEFAULT_MODEL_MIN_EDGE_PCT = 15;
 export const DEFAULT_MODEL_TICK_INTERVAL_MS = 5000;
+/** Only signal when model forecast is in this range (avoids "100% / 0%" flood from deep ITM/OTM) */
+export const DEFAULT_MODEL_MIN_FORECAST_PROB = 0.05;
+export const DEFAULT_MODEL_MAX_FORECAST_PROB = 0.95;
+export const DEFAULT_MODEL_COOLDOWN_MS = 600_000; // 10 min per market
 
 /** Synth forecast strategy */
 export const ENV_SYNTH_POLL_INTERVAL_MS = "EDGE_SYNTH_POLL_INTERVAL_MS";

@@ -151,6 +151,16 @@ Create these channels in your Discord server and invite the corresponding bot to
 
 Set `POLYMARKET_DESK_SCHEDULE_ENABLED=false` to disable all desk recurring tasks.
 
+When the schedule is enabled, **Risk 15m** approves one pending signal per run (invokes `POLYMARKET_RISK_APPROVE`) and writes one row to `sized_orders`. **Otaku 2m** executes one pending sized order per run (invokes `POLYMARKET_EXECUTE_PENDING_ORDER` directly, no LLM) and writes to `trade_log`. Both run via Bootstrap TaskService (tasks are tagged `queue` + `repeat`).
+
+**Otaku execution (paper or live)** requires these env vars on the Otaku agent; if any are missing, the execute action marks the order as rejected and returns:
+
+- `POLYMARKET_PRIVATE_KEY` or `EVM_PRIVATE_KEY`
+- `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`
+- `POLYMARKET_FUNDER_ADDRESS`
+
+See `.env.example` (Polymarket / Otaku sections) for all desk and execution variables.
+
 ### Tuning parameters
 
 - **Edge (Analyst):** `edge_threshold_bps` in POLYMARKET_EDGE_CHECK (default 200). Higher = fewer, higher-conviction signals.
