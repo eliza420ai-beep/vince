@@ -82,8 +82,26 @@ Reply with assessment and one call only.`;
         typeof response === "string"
           ? response
           : ((response as { text?: string })?.text ?? String(response));
-      const out = "Here's the position assessment—\n\n" + text.trim();
-      await callback({ text: out, actions: ["SOLUS_POSITION_ASSESS"] });
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
+      const sections = [
+        `**Position Assessment** _${dateStr}_`,
+        "",
+        text.trim(),
+        "",
+        "*Source: Hypersurface mechanics, CoinGecko spot*",
+        "",
+        "---",
+        "_Next steps_: `OPTIMAL STRIKE` (new strike) · `STRIKE RITUAL` (Friday process) · `OPTIONS` → VINCE (IV data)",
+      ];
+      await callback({
+        text: sections.join("\n"),
+        actions: ["SOLUS_POSITION_ASSESS"],
+      });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_POSITION_ASSESS] Failed:", error);

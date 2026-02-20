@@ -1,6 +1,7 @@
 /**
  * Solus Stock Analysis Action — Full analysis for any ticker.
  * Combines: Finnhub (quote, news, profile) + FMP (fundamentals, ratios, earnings)
+ * Output: LLM-generated prose narrative (matches VINCE output quality).
  */
 
 import {
@@ -11,36 +12,169 @@ import {
   type Memory,
   type State,
   logger,
+  ModelType,
 } from "@elizaos/core";
 import {
-  isSolusOffchainTicker,
   getSectorForTicker,
   SOLUS_OFFCHAIN_STOCKS,
 } from "../constants/solusStockWatchlist";
 import { FinnhubService } from "../services/finnhub.service";
 import { FMPService } from "../services/fmp.service";
+import { isSolus } from "../utils/solus";
+
+function buildAnalysisDataContext(
+  ticker: string,
+  quote: any | null,
+  profile: any | null,
+  news: any[] | null,
+  metrics: any | null,
+  sector: string | null,
+  sectorPeers: string[],
+): string {
+  const lines: string[] = [];
+  lines.push(`=== ${ticker} ===`);
+
+  if (quote) {
+    const change = quote.d >= 0 ? `+${quote.d.toFixed(2)}` : quote.d.toFixed(2);
+    lines.push(
+      `Price: $${quote.c.toFixed(2)} (${change}, ${quote.dp.toFixed(2)}%)`,
+    );
+    lines.push(
+      `Range: $${quote.l.toFixed(2)} - $${quote.h.toFixed(2)} | Open: $${quote.o.toFixed(2)} | Prev Close: $${quote.pc.toFixed(2)}`,
+    );
+  }
+
+  if (profile) {
+    lines.push(
+      `Company: ${profile.name} | Industry: ${profile.finnhubIndustry || "N/A"}`,
+    );
+    if (profile.marketCapitalization) {
+      lines.push(
+        `Market Cap: $${(profile.marketCapitalization / 1e9).toFixed(1)}B`,
+      );
+    }
+  }
+
+  if (metrics) {
+    const metricLines: string[] = [];
+    if (metrics.peRatio > 0)
+      metricLines.push(`P/E: ${metrics.peRatio.toFixed(1)}`);
+    if (metrics.revenueGrowth !== 0)
+      metricLines.push(
+        `Rev Growth: ${(metrics.revenueGrowth * 100).toFixed(1)}%`,
+      );
+    if (metrics.profitMargin !== 0)
+      metricLines.push(`Margin: ${(metrics.profitMargin * 100).toFixed(1)}%`);
+    if (metrics.returnOnEquity !== 0)
+      metricLines.push(`ROE: ${(metrics.returnOnEquity * 100).toFixed(1)}%`);
+    if (metrics.debtToEquity > 0)
+      metricLines.push(`D/E: ${metrics.debtToEquity.toFixed(2)}`);
+    if (metrics.beta > 0) metricLines.push(`Beta: ${metrics.beta.toFixed(2)}`);
+    if (metrics.dividendYield > 0)
+      metricLines.push(
+        `Div Yield: ${(metrics.dividendYield * 100).toFixed(2)}%`,
+      );
+    if (metricLines.length > 0)
+      lines.push(`Fundamentals: ${metricLines.join(" | ")}`);
+
+    if (metrics.lastEarnings) {
+      const le = metrics.lastEarnings;
+      const actual = le.eps?.toFixed(2) || "N/A";
+      const estimate = le.epsEstimate?.toFixed(2) || "N/A";
+      let surprise = "N/A";
+      if (le.eps && le.epsEstimate) {
+        const s = (
+          ((le.eps - le.epsEstimate) / Math.abs(le.epsEstimate)) *
+          100
+        ).toFixed(1);
+        surprise = `${Number(s) >= 0 ? "+" : ""}${s}%`;
+      }
+      lines.push(
+        `Last Earnings (${le.date}): EPS $${actual} vs est $${estimate} (${surprise} surprise)`,
+      );
+    }
+    if (metrics.nextEarnings) {
+      const ne = metrics.nextEarnings;
+      lines.push(
+        `Next Earnings: ${ne.date} | EPS Est: $${ne.epsEstimate?.toFixed(2) || "?"} | Rev Est: $${(ne.revenueEstimate / 1e9).toFixed(1)}B`,
+      );
+    }
+  }
+
+  if (news && news.length > 0) {
+    lines.push(`\nRecent headlines:`);
+    news.slice(0, 3).forEach((item) => {
+      lines.push(`- ${item.headline}`);
+    });
+  }
+
+  if (sector) {
+    lines.push(`\nSector: ${sector}`);
+    if (sectorPeers.length > 0) lines.push(`Peers: ${sectorPeers.join(", ")}`);
+  }
+
+  return lines.join("\n");
+}
+
+async function generateAnalysisNarrative(
+  runtime: IAgentRuntime,
+  ticker: string,
+  dataContext: string,
+  hasFMP: boolean,
+): Promise<string> {
+  const prompt = `You are Solus, the stock specialist for the offchain watchlist. Give a concise analysis of ${ticker}.
+
+DATA:
+${dataContext}
+
+Write a stock analysis that covers:
+1. Price action and what the numbers say — is it running, pulling back, or stuck?
+2. Fundamentals snapshot — valuation (P/E, growth, margins) and whether it's cheap or expensive for what you get
+3. Headlines — anything in the news that moves the thesis?
+4. Sector context — where this name sits relative to peers
+5. One clear call: watch, accumulate, or avoid — and your invalidation
+
+STYLE RULES:
+- Write like a sharp analyst briefing a portfolio manager, not a data dump
+- Weave the numbers into sentences naturally — "$42.50, up 3% on the day" not "Price: $42.50, Change: +3%"
+- No bullet points or section headers. Flow between topics.
+- Have an opinion. If the stock is overvalued, say so. If the setup is clean, call it.
+- Around 150-250 words. Dense with insight, no padding.
+${!hasFMP ? "\n- Note that fundamentals data isn't available (FMP not configured) — work with what you have." : ""}
+
+AVOID:
+- Emoji headers or markdown section headers (##)
+- "Interestingly", "notably", "it's worth noting", "delve"
+- Generic observations like "the stock has been volatile"
+- "Not financial advice" disclaimers
+
+Write the analysis:`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    return String(response).trim();
+  } catch (error) {
+    logger.error(`[SOLUS_ANALYZE] Failed to generate narrative: ${error}`);
+    return `${ticker} data pulled but couldn't get the narrative to click. Try again in a moment.`;
+  }
+}
 
 export const solusAnalyzeAction: Action = {
   name: "SOLUS_ANALYZE",
   description:
-    "Get comprehensive stock analysis: quote, news, profile, fundamentals, ratios, and earnings",
+    "Comprehensive stock analysis: quote, news, profile, fundamentals, ratios, and earnings — delivered as flowing prose",
   examples: [
     [
       {
-        name: "Analyze NVDA",
+        name: "{{user}}",
         content: { text: "Can you analyze NVDA for me?" },
       },
       {
-        name: "analyze AAPL",
-        content: { text: "analyze AAPL" },
-      },
-      {
-        name: "full analysis for TSLA",
-        content: { text: "Give me a full analysis of TSLA" },
-      },
-      {
-        name: "What's the fundamentals of AMD?",
-        content: { text: "What's the fundamentals of AMD?" },
+        name: "{{agent}}",
+        content: {
+          text: "**NVDA Analysis** _Tuesday, Feb 18_\n\nNVDA is sitting at $138.50, up 2.1% on the day and pushing back toward the top of its 2-week range. The $3.6T market cap still trades at 55x earnings, but when you're growing revenue at 122% year-over-year with 57% margins, the multiple has room to compress into the growth.\n\nLast earnings were a monster: $0.81 EPS against a $0.64 estimate, a 26.6% beat. The AI capex cycle is the tailwind and it's not slowing. Next report lands March 26 with Street expecting $0.89 — any guidance on Blackwell ramp will move the stock more than the print.\n\nHeadlines are mixed. Trade policy noise around chip exports to China is the risk everyone knows about but keeps ignoring. Sector-wise, NVDA leads AI Infra alongside AMD, AVGO, and SMCI, but it's the only one trading like a growth name. AMD is cheaper on a P/E basis but the execution gap is wide.\n\nWatch with accumulation bias on any pullback toward $130. Invalidation: revenue growth decelerating below 80% or a hard export ban.\n\n*Source: Finnhub, FMP*\n\n---\n_Next steps_: `STRIKE RITUAL` (options) · `EARNINGS CALENDAR` (upcoming) · Ask VINCE for live data",
+          actions: ["SOLUS_ANALYZE"],
+        },
       },
     ],
   ],
@@ -49,8 +183,8 @@ export const solusAnalyzeAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
   ): Promise<boolean> => {
+    if (!isSolus(runtime)) return false;
     const text = message.content?.text?.toLowerCase() || "";
-    // Check if message mentions "analyze" or "analysis" or "fundamentals"
     return (
       text.includes("analyze") ||
       text.includes("analysis") ||
@@ -68,15 +202,13 @@ export const solusAnalyzeAction: Action = {
     callback?: HandlerCallback,
   ): Promise<void> => {
     const text = message.content?.text || "";
-
-    // Extract ticker from message
     const ticker = extractTicker(text);
 
     if (!ticker) {
       logger.warn("[SolusAnalyze] No ticker found in message: " + text);
       if (callback) {
         await callback({
-          text: "Couldn't find a ticker in your message. Try something like: analyze NVDA",
+          text: "No ticker in that message. Try: analyze NVDA",
           actions: ["SOLUS_ANALYZE"],
         });
       }
@@ -85,178 +217,105 @@ export const solusAnalyzeAction: Action = {
 
     logger.info(`[SolusAnalyze] Analyzing ticker: ${ticker}`);
 
-    // Get services
     const finnhub = runtime.getService<FinnhubService>("FINNHUB_SERVICE");
     const fmp = runtime.getService<FMPService>("FMP_SERVICE");
+    const sources: string[] = [];
 
-    const results: string[] = [];
+    let quote: any = null;
+    let profile: any = null;
+    let news: any[] | null = null;
 
-    // 1. Finnhub data (quotes, news, profile)
     if (finnhub) {
-      const [quote, profile, news] = await Promise.all([
+      [quote, profile, news] = await Promise.all([
         finnhub.getQuote(ticker),
         finnhub.getCompanyProfile(ticker),
         finnhub.getCompanyNews(ticker, 3),
       ]);
+      if (quote || profile || (news && news.length > 0))
+        sources.push("Finnhub");
+    }
 
-      if (quote) {
-        results.push(`## 📊 ${ticker} Quote`);
-        results.push(`**Price:** $${quote.c.toFixed(2)}`);
-        results.push(
-          `**Change:** ${quote.d >= 0 ? "+" : ""}${quote.d.toFixed(2)} (${quote.dp.toFixed(2)}%)`,
-        );
-        results.push(
-          `**High:** $${quote.h.toFixed(2)} | **Low:** $${quote.l.toFixed(2)}`,
-        );
-        results.push(
-          `**Open:** $${quote.o.toFixed(2)} | **Prev Close:** $${quote.pc.toFixed(2)}`,
-        );
-      }
+    let metrics: any = null;
+    const hasFMP = !!(fmp && fmp.isConfigured());
+    if (hasFMP) {
+      metrics = await fmp.getKeyMetrics(ticker);
+      if (metrics) sources.push("FMP");
+    }
 
-      if (profile) {
-        results.push(`\n## 🏢 Company Profile`);
-        results.push(`**Name:** ${profile.name}`);
-        results.push(`**Industry:** ${profile.finnhubIndustry || "N/A"}`);
-        if (profile.weburl) results.push(`**Website:** ${profile.weburl}`);
-        if (profile.marketCapitalization) {
-          const mktCap = (profile.marketCapitalization / 1e9).toFixed(1);
-          results.push(`**Market Cap:** $${mktCap}B`);
-        }
-      }
+    const sector = getSectorForTicker(ticker);
+    const sectorPeers = sector
+      ? SOLUS_OFFCHAIN_STOCKS.filter(
+          (s) => s.sector === sector && s.ticker !== ticker,
+        ).map((s) => s.ticker)
+      : [];
 
-      if (news && news.length > 0) {
-        results.push(`\n## 📰 Recent News`);
-        news.slice(0, 3).forEach((item, i) => {
-          results.push(`${i + 1}. **${item.headline}**`);
-          results.push(`   ${item.summary.slice(0, 150)}...`);
-          results.push(`   [Read more](${item.url})`);
+    if (!quote && !metrics) {
+      if (callback) {
+        await callback({
+          text: `No data available for ${ticker}. Finnhub${hasFMP ? " and FMP" : ""} returned empty. Check that the ticker is valid.`,
+          actions: ["SOLUS_ANALYZE"],
         });
       }
+      return;
     }
 
-    // 2. FMP data (fundamentals, ratios, earnings)
-    if (fmp && fmp.isConfigured()) {
-      const metrics = await fmp.getKeyMetrics(ticker);
+    const dataContext = buildAnalysisDataContext(
+      ticker,
+      quote,
+      profile,
+      news,
+      metrics,
+      sector,
+      sectorPeers,
+    );
+    const narrative = await generateAnalysisNarrative(
+      runtime,
+      ticker,
+      dataContext,
+      hasFMP,
+    );
 
-      if (metrics) {
-        results.push(`\n## 📈 Key Metrics`);
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
 
-        if (metrics.price > 0) {
-          results.push(`**Price:** $${metrics.price.toFixed(2)}`);
-        }
-        if (metrics.marketCap > 0) {
-          results.push(
-            `**Market Cap:** $${(metrics.marketCap / 1e9).toFixed(1)}B`,
-          );
-        }
-        if (metrics.peRatio > 0) {
-          results.push(`**P/E Ratio:** ${metrics.peRatio.toFixed(2)}`);
-        }
-        if (metrics.dividendYield > 0) {
-          results.push(
-            `**Dividend Yield:** ${(metrics.dividendYield * 100).toFixed(2)}%`,
-          );
-        }
-        if (metrics.revenueGrowth !== 0) {
-          results.push(
-            `**Revenue Growth:** ${(metrics.revenueGrowth * 100).toFixed(1)}%`,
-          );
-        }
-        if (metrics.profitMargin !== 0) {
-          results.push(
-            `**Profit Margin:** ${(metrics.profitMargin * 100).toFixed(1)}%`,
-          );
-        }
-        if (metrics.debtToEquity > 0) {
-          results.push(`**Debt/Equity:** ${metrics.debtToEquity.toFixed(2)}`);
-        }
-        if (metrics.returnOnEquity !== 0) {
-          results.push(
-            `**Return on Equity:** ${(metrics.returnOnEquity * 100).toFixed(1)}%`,
-          );
-        }
-        if (metrics.beta > 0) {
-          results.push(`**Beta:** ${metrics.beta.toFixed(2)}`);
-        }
+    const output = [
+      `**${ticker} Analysis** _${dateStr}_`,
+      "",
+      narrative,
+      "",
+      sources.length > 0 ? `*Source: ${sources.join(", ")}*` : "",
+      "",
+      "---",
+      "_Next steps_: `STRIKE RITUAL` (options) · `EARNINGS CALENDAR` (upcoming) · Ask VINCE for live data",
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-        // Earnings
-        if (metrics.lastEarnings) {
-          const le = metrics.lastEarnings;
-          const actual = le.eps?.toFixed(2) || "N/A";
-          const estimate = le.epsEstimate?.toFixed(2) || "N/A";
-          const surprise =
-            le.eps && le.epsEstimate
-              ? (
-                  ((le.eps - le.epsEstimate) / Math.abs(le.epsEstimate)) *
-                  100
-                ).toFixed(1)
-              : "N/A";
-          results.push(`\n## 📅 Earnings (Last)`);
-          results.push(`**Date:** ${le.date}`);
-          results.push(`**EPS:** $${actual} (est: $${estimate})`);
-          results.push(
-            `**Surprise:** ${surprise !== "N/A" ? (Number(surprise) >= 0 ? "+" : "") + surprise + "%" : "N/A"}`,
-          );
-        }
-
-        if (metrics.nextEarnings) {
-          const ne = metrics.nextEarnings;
-          results.push(`\n## 📅 Earnings (Next)`);
-          results.push(`**Date:** ${ne.date}`);
-          results.push(`**EPS Est:** $${ne.epsEstimate?.toFixed(2) || "N/A"}`);
-          results.push(
-            `**Revenue Est:** $${(ne.revenueEstimate / 1e9).toFixed(1)}B`,
-          );
-        }
-      }
-    } else {
-      results.push(
-        `\n⚠️ *FMP not configured — set FMP_API_KEY for fundamentals*`,
-      );
-    }
-
-    // 3. Sector info
-    const sector = getSectorForTicker(ticker);
-    if (sector) {
-      results.push(`\n## 🏭 Sector`);
-      results.push(`**Sector:** ${sector}`);
-      const sectorTickers = SOLUS_OFFCHAIN_STOCKS.filter(
-        (s) => s.sector === sector,
-      ).map((s) => s.ticker);
-      results.push(
-        `**Other in sector:** ${sectorTickers.filter((t) => t !== ticker).join(", ")}`,
-      );
-    }
-
-    const response = results.join("\n");
     logger.info(`[SolusAnalyze] Analysis complete for ${ticker}`);
 
     if (callback) {
       await callback({
-        text: response,
+        text: output,
         actions: ["SOLUS_ANALYZE"],
       });
     }
-
-    return;
   },
 
   similes: ["ANALYZE_STOCK", "STOCK_ANALYSIS", "FUNDAMENTALS"],
 };
 
-/** Extract ticker symbol from message text. */
 function extractTicker(text: string): string | null {
   const upper = text.toUpperCase();
 
-  // Check for known tickers in offchain watchlist
   const watchlistTickers = SOLUS_OFFCHAIN_STOCKS.map((s) => s.ticker);
   for (const ticker of watchlistTickers) {
-    if (upper.includes(ticker)) {
-      return ticker;
-    }
+    if (upper.includes(ticker)) return ticker;
   }
 
-  // Also check for common tickers mentioned
   const commonTickers = [
     "AAPL",
     "MSFT",
@@ -274,31 +333,9 @@ function extractTicker(text: string): string | null {
     "ARM",
   ];
   for (const ticker of commonTickers) {
-    if (upper.includes(ticker)) {
-      return ticker;
-    }
+    if (upper.includes(ticker)) return ticker;
   }
 
-  // Try to extract 1-5 letter uppercase word that looks like a ticker
   const match = text.match(/\b[A-Z]{1,5}\b/);
-  if (match) {
-    return match[0];
-  }
-
-  return null;
+  return match ? match[0] : null;
 }
-
-export const solusAnalyzeExamples: ActionExample[][] = [
-  [
-    {
-      name: "Analyze NVDA",
-      content: { text: "Can you analyze NVDA for me?" },
-    },
-  ],
-  [
-    {
-      name: "full analysis for TSLA",
-      content: { text: "Give me a full analysis of TSLA" },
-    },
-  ],
-];
