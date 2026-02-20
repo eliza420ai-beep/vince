@@ -21,6 +21,7 @@ import { PriceVelocityTracker } from "./priceVelocity";
 import { modelFairValueStrategy } from "../strategies/modelFairValue";
 import { overreactionStrategy } from "../strategies/overreaction";
 import { synthForecastStrategy } from "../strategies/synthForecast";
+import { makerRebateStrategy } from "../strategies/makerRebate";
 
 const BINANCE_WS = EDGE_SERVICE_TYPES.BINANCE_WS;
 const CLOB_WS = EDGE_SERVICE_TYPES.CLOB_WS;
@@ -33,6 +34,7 @@ function getEnabledStrategies(): EdgeStrategy[] {
     modelFairValueStrategy,
     overreactionStrategy,
     synthForecastStrategy,
+    makerRebateStrategy,
   ];
   if (!env?.trim()) return all;
   const enabled = new Set(

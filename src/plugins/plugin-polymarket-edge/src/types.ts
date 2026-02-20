@@ -21,6 +21,10 @@ export interface ContractBookState {
   lastUpdateMs: number;
   bidSizeUsd?: number;
   askSizeUsd?: number;
+  /** Dynamic taker fee for this market (bps). */
+  takerFeeBps?: number;
+  /** Estimated maker rebate (bps). */
+  makerRebateBps?: number;
 }
 
 /** Discovered contract metadata (BTC threshold or generic binary) */

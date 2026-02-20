@@ -114,6 +114,29 @@ function polymarketWhyRationale(pos: PolymarketPaperPosition): string {
   if (strat === "synth") {
     return `Synth model forecasts ${pos.side} at ${forecastPct} vs market at ${entryPct}. ${Math.abs(edgeBps).toFixed(0)} bps edge.`;
   }
+  if (strat === "maker_rebate") {
+    const makerEntry = m?.makerEntryPrice as number | undefined;
+    const windowSec = m?.windowSecsRemaining as number | undefined;
+    const momentum = m?.btcMomentumPct as number | undefined;
+    const takerFeeBps = m?.takerFeeAvoidedBps as number | undefined;
+    const fillProb = m?.estimatedFillProb as number | undefined;
+    const parts: string[] = [];
+    parts.push(
+      `Maker rebate (5-min BTC): ${pos.side} at ${makerEntry != null ? (makerEntry * 100).toFixed(0) : entryPct.replace("%", "")}¢`,
+    );
+    if (windowSec != null && Number.isFinite(windowSec))
+      parts.push(`~${Math.round(windowSec)}s to expiry`);
+    if (momentum != null && Number.isFinite(momentum))
+      parts.push(
+        `BTC momentum ${momentum >= 0 ? "+" : ""}${momentum.toFixed(1)}%`,
+      );
+    if (takerFeeBps != null && Number.isFinite(takerFeeBps))
+      parts.push(`taker fee avoided ${takerFeeBps} bps`);
+    if (fillProb != null && Number.isFinite(fillProb))
+      parts.push(`est. fill ${(fillProb * 100).toFixed(0)}%`);
+    if (edgeBps !== 0) parts.push(`${Math.abs(edgeBps).toFixed(0)} bps edge`);
+    return parts.join(". ");
+  }
   if (
     strat === "POLYMARKET_EDGE_CHECK" ||
     m?.source === "POLYMARKET_EDGE_CHECK"

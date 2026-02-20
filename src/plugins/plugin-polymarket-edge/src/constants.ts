@@ -65,6 +65,21 @@ export const ENV_SYNTH_POLL_INTERVAL_MS = "EDGE_SYNTH_POLL_INTERVAL_MS";
 export const DEFAULT_SYNTH_POLL_INTERVAL_MS = 900_000; // 15 min
 export const DEFAULT_SYNTH_EDGE_BPS = 200;
 
+/** Maker Rebate strategy */
+export const ENV_MAKER_REBATE_TICK_MS = "EDGE_MAKER_REBATE_TICK_MS";
+export const ENV_MAKER_REBATE_ENTRY_WINDOW_SEC =
+  "EDGE_MAKER_REBATE_ENTRY_WINDOW_SEC";
+export const ENV_MAKER_REBATE_MIN_CONFIDENCE =
+  "EDGE_MAKER_REBATE_MIN_CONFIDENCE";
+export const ENV_MAKER_REBATE_MIN_ENTRY_PRICE =
+  "EDGE_MAKER_REBATE_MIN_ENTRY_PRICE";
+export const ENV_MAKER_REBATE_COOLDOWN_MS = "EDGE_MAKER_REBATE_COOLDOWN_MS";
+export const DEFAULT_MAKER_REBATE_TICK_MS = 2000;
+export const DEFAULT_MAKER_REBATE_ENTRY_WINDOW_SEC = 10;
+export const DEFAULT_MAKER_REBATE_MIN_CONFIDENCE = 0.8;
+export const DEFAULT_MAKER_REBATE_MIN_ENTRY_PRICE = 0.88;
+export const DEFAULT_MAKER_REBATE_COOLDOWN_MS = 300_000; // 5 min
+
 export const ENV_GAMMA_API_URL = "POLYMARKET_GAMMA_API_URL";
 
 /** Tag slugs for Gamma API (when not overridden by EDGE_DISCOVERY_TAGS) */
@@ -85,4 +100,11 @@ export const BTC_THRESHOLD_QUESTION_PATTERNS = [
   /btc\s+price\s+(?:above|reach|over)\s+\$?([\d,]+(?:k|K)?)/i,
   /btc\s+(?:above|over)\s+\$?([\d,]+(?:k|K)?)/i,
   /(?:above|over)\s+\$?([\d,]+(?:k|K)?)\s+(?:by|before|at)/i,
+] as const;
+
+/** Regex to detect 5-min BTC up/down market questions (maker rebate strategy) */
+export const BTC_5MIN_QUESTION_PATTERNS = [
+  /will\s+btc\s+(?:go\s+)?(?:up|down|increase|decrease)/i,
+  /btc\s+(?:up|down)\s+(?:in\s+)?(?:next\s+)?5\s*(?:min|minute)/i,
+  /bitcoin\s+(?:price|direction)\s+(?:in\s+)?(?:next\s+)?5/i,
 ] as const;
