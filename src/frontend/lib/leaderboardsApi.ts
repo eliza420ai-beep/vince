@@ -378,6 +378,7 @@ export interface PolymarketEdgeSignalItem {
   forecastProb: number | null;
   marketPrice: number | null;
   deskSignalId: string | null;
+  question: string | null;
 }
 
 export interface PolymarketEdgeSignalsResponse {

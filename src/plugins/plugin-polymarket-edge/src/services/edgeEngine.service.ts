@@ -225,7 +225,15 @@ export class EdgeEngineService extends Service {
     const ctx = this.buildContext();
     if (!ctx || ctx.contracts.length === 0) return;
     const signal = await strategy.tick(ctx);
-    if (signal) await this.emit(signal);
+    if (signal) {
+      if (!signal.question) {
+        const contract = this.contracts.find(
+          (c) => c.conditionId === signal.market_id,
+        );
+        if (contract?.question) signal.question = contract.question;
+      }
+      await this.emit(signal);
+    }
   }
 
   private async ensureTables(): Promise<void> {
@@ -257,9 +265,19 @@ export class EdgeEngineService extends Service {
           edge_bps REAL,
           forecast_prob REAL,
           market_price REAL,
-          desk_signal_id TEXT
+          desk_signal_id TEXT,
+          question TEXT
         );
       `);
+      // Add question column if table already exists without it
+      await client
+        .query(
+          `
+        ALTER TABLE plugin_polymarket_edge.edge_signals
+        ADD COLUMN IF NOT EXISTS question TEXT;
+      `,
+        )
+        .catch(() => {});
     } catch (e) {
       logger.warn(
         "[EdgeEngine] Failed to ensure tables: " +

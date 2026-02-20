@@ -104,8 +104,8 @@ export async function emitSignal(
 
   try {
     await client.query(
-      `INSERT INTO plugin_polymarket_edge.edge_signals (id, created_at, strategy, source, market_id, side, confidence, edge_bps, forecast_prob, market_price, desk_signal_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      `INSERT INTO plugin_polymarket_edge.edge_signals (id, created_at, strategy, source, market_id, side, confidence, edge_bps, forecast_prob, market_price, desk_signal_id, question)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         crypto.randomUUID(),
         now,
@@ -118,6 +118,7 @@ export async function emitSignal(
         signal.forecast_prob,
         signal.market_price,
         id,
+        signal.question ?? null,
       ],
     );
   } catch (e) {

@@ -38,6 +38,8 @@ export interface EdgeSignal {
   metadata: Record<string, unknown>;
   /** Optional suggested size in USD; Risk uses this with fallback to bankroll-based sizing. */
   suggested_size_usd?: number;
+  /** Market question (e.g. "Will ETH hit $5k by June?"). Set by engine from discovered contracts. */
+  question?: string;
 }
 
 /** Pluggable strategy contract */

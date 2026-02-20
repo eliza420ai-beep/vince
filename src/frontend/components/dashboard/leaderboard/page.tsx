@@ -3533,10 +3533,25 @@ export default function LeaderboardPage({
                               </td>
                               <td className="py-2 pr-3 font-mono">{s.side}</td>
                               <td
-                                className="py-2 pr-3 font-mono truncate max-w-[8rem]"
+                                className="py-2 pr-3 max-w-[20rem]"
                                 title={s.marketId}
                               >
-                                {s.marketId.slice(0, 8)}…
+                                {s.question ? (
+                                  <a
+                                    href={`https://polymarket.com/event/${s.marketId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-500 hover:text-green-400 hover:underline"
+                                  >
+                                    {s.question.length > 50
+                                      ? s.question.slice(0, 47) + "…"
+                                      : s.question}
+                                  </a>
+                                ) : (
+                                  <span className="font-mono">
+                                    {s.marketId.slice(0, 8)}…
+                                  </span>
+                                )}
                               </td>
                               <td className="py-2 pr-3 font-mono">
                                 {s.edgeBps != null

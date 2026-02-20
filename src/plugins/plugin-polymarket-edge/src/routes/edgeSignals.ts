@@ -19,6 +19,7 @@ interface EdgeSignalRow {
   forecast_prob: number | null;
   market_price: number | null;
   desk_signal_id: string | null;
+  question: string | null;
 }
 
 export function buildEdgeSignalsHandler() {
@@ -80,7 +81,7 @@ export function buildEdgeSignalsHandler() {
         ) => Promise<{ rows: EdgeSignalRow[] }>;
       };
       const result = await client.query(
-        `SELECT id, created_at, strategy, source, market_id, side, confidence, edge_bps, forecast_prob, market_price, desk_signal_id
+        `SELECT id, created_at, strategy, source, market_id, side, confidence, edge_bps, forecast_prob, market_price, desk_signal_id, question
          FROM plugin_polymarket_edge.edge_signals
          ORDER BY created_at DESC
          LIMIT $1`,
@@ -104,6 +105,7 @@ export function buildEdgeSignalsHandler() {
         forecastProb: r.forecast_prob,
         marketPrice: r.market_price,
         deskSignalId: r.desk_signal_id,
+        question: r.question ?? null,
       }));
       res.status(200).json({
         signals,
