@@ -179,9 +179,22 @@ export async function buildPaperResponse(
 
   const recentClosedTrades = paperTrading?.getRecentClosedTrades?.() ?? [];
 
-  const tradeJournal = runtime.getService(
-    "VINCE_TRADE_JOURNAL_SERVICE",
-  ) as { getRecentTrades?: (count: number) => { entry: { asset: string; direction: string; price: number; timestamp: number }; exit?: { price: number; realizedPnl?: number; closeReason?: string; timestamp: number } }[] } | null;
+  const tradeJournal = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
+    getRecentTrades?: (count: number) => {
+      entry: {
+        asset: string;
+        direction: string;
+        price: number;
+        timestamp: number;
+      };
+      exit?: {
+        price: number;
+        realizedPnl?: number;
+        closeReason?: string;
+        timestamp: number;
+      };
+    }[];
+  } | null;
   const recentTradesRaw = tradeJournal?.getRecentTrades?.(30) ?? [];
   const recentTrades: RecentTradeItem[] = recentTradesRaw.map((t) => ({
     asset: t.entry.asset,

@@ -1,16 +1,17 @@
 /**
  * Mission Control Integration Service
- * 
+ *
  * This service connects Satoshi (the agent) to Mission Control for
  * work orchestration, agent lifecycle management, and governance.
- * 
+ *
  * API Base: http://localhost:8000/api/v1
  * Auth: Bearer token
  */
 
 import { logger, Service, type IAgentRuntime } from "@elizaos/core";
 
-const MC_BASE_URL = process.env.MISSION_CONTROL_URL || "http://localhost:8000/api/v1";
+const MC_BASE_URL =
+  process.env.MISSION_CONTROL_URL || "http://localhost:8000/api/v1";
 const MC_AUTH_TOKEN = process.env.MISSION_CONTROL_TOKEN;
 
 export interface MCAgent {
@@ -83,7 +84,7 @@ export class MissionControlService extends Service {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T | null> {
     if (!this.token) {
       logger.warn("[MissionControl] Not configured - no token");
@@ -101,7 +102,9 @@ export class MissionControlService extends Service {
       });
 
       if (!res.ok) {
-        logger.warn(`[MissionControl] ${res.status} ${res.statusText}: ${endpoint}`);
+        logger.warn(
+          `[MissionControl] ${res.status} ${res.statusText}: ${endpoint}`,
+        );
         return null;
       }
 
@@ -144,7 +147,7 @@ export class MissionControlService extends Service {
   /** Update an agent */
   async updateAgent(
     id: string,
-    updates: Partial<MCAgent>
+    updates: Partial<MCAgent>,
   ): Promise<MCAgent | null> {
     return this.request<MCAgent>(`/agents/${id}`, {
       method: "PATCH",
@@ -204,17 +207,20 @@ export class MissionControlService extends Service {
   /** List tasks for a board */
   async listTasks(boardId: string): Promise<MCTask[]> {
     const result = await this.request<{ items: MCTask[] }>(
-      `/boards/${boardId}/tasks`
+      `/boards/${boardId}/tasks`,
     );
     return result?.items || [];
   }
 
   /** Create a task */
-  async createTask(boardId: string, task: {
-    title: string;
-    description?: string;
-    status?: string;
-  }): Promise<MCTask | null> {
+  async createTask(
+    boardId: string,
+    task: {
+      title: string;
+      description?: string;
+      status?: string;
+    },
+  ): Promise<MCTask | null> {
     return this.request<MCTask>(`/boards/${boardId}/tasks`, {
       method: "POST",
       body: JSON.stringify(task),
@@ -225,7 +231,7 @@ export class MissionControlService extends Service {
   async updateTask(
     boardId: string,
     taskId: string,
-    updates: Partial<MCTask>
+    updates: Partial<MCTask>,
   ): Promise<MCTask | null> {
     return this.request<MCTask>(`/boards/${boardId}/tasks/${taskId}`, {
       method: "PATCH",
@@ -258,7 +264,8 @@ export class MissionControlService extends Service {
   async createSatoshiBoard(): Promise<MCBoard | null> {
     return this.createBoard({
       name: "Satoshi Research",
-      description: "Research tasks for Satoshi agent - stock analysis, market research, and deep dives",
+      description:
+        "Research tasks for Satoshi agent - stock analysis, market research, and deep dives",
     });
   }
 

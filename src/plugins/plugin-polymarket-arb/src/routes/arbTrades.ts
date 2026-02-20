@@ -50,7 +50,11 @@ export interface ArbTradesResponse {
 
 export function buildArbTradesHandler() {
   return async (
-    _req: { params?: Record<string, string>; query?: Record<string, string>; [k: string]: unknown },
+    _req: {
+      params?: Record<string, string>;
+      query?: Record<string, string>;
+      [k: string]: unknown;
+    },
     res: {
       status: (n: number) => { json: (o: object) => void };
       json: (o: object) => void;
@@ -74,7 +78,11 @@ export function buildArbTradesHandler() {
 
     if (
       !conn ||
-      typeof (conn as { query: (s: string, v?: unknown[]) => Promise<{ rows: ArbTradeRow[] }> }).query !== "function"
+      typeof (
+        conn as {
+          query: (s: string, v?: unknown[]) => Promise<{ rows: ArbTradeRow[] }>;
+        }
+      ).query !== "function"
     ) {
       res.status(200).json({
         trades: [],
@@ -86,11 +94,15 @@ export function buildArbTradesHandler() {
 
     try {
       const limit = Math.min(
-        parseInt(String(_req.query?.limit ?? DEFAULT_LIMIT), 10) || DEFAULT_LIMIT,
+        parseInt(String(_req.query?.limit ?? DEFAULT_LIMIT), 10) ||
+          DEFAULT_LIMIT,
         100,
       );
       const client = conn as {
-        query: (text: string, values?: unknown[]) => Promise<{ rows: ArbTradeRow[] }>;
+        query: (
+          text: string,
+          values?: unknown[],
+        ) => Promise<{ rows: ArbTradeRow[] }>;
       };
       const result = await client.query(
         `SELECT id, created_at, condition_id, token_id, side, btc_spot_price, contract_price, implied_prob, edge_pct, size_usd, fill_price, pnl_usd, status, exit_price, exit_reason
