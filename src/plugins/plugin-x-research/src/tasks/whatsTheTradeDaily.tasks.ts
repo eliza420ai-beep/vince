@@ -792,12 +792,15 @@ export async function registerWhatsTheTradeDailyTask(
   runtime.registerTaskWorker({
     name: "ECHO_WHATS_THE_TRADE_DAILY",
     validate: async () => true,
-    execute: async (rt) => {
+    execute: async (rt, _opts, task) => {
       const now = new Date();
       if (now.getUTCHours() !== hourUtc) {
-        logger.debug(
-          `[ECHO WhatstheTrade] Skip: hour ${now.getUTCHours()} UTC, target ${hourUtc}`,
-        );
+        return;
+      }
+
+      const todayStr = now.toISOString().slice(0, 10);
+      const lastRanDate = task.metadata?.lastRanDate as string | undefined;
+      if (lastRanDate === todayStr) {
         return;
       }
 
@@ -812,21 +815,38 @@ export async function registerWhatsTheTradeDailyTask(
           "[ECHO WhatstheTrade] Failed: " + (error as Error).message,
         );
       }
+
+      if (task.id) {
+        await rt.updateTask(task.id, {
+          metadata: {
+            ...task.metadata,
+            updatedAt: Date.now(),
+            lastRanDate: todayStr,
+          },
+        });
+      }
     },
   });
 
-  await runtime.createTask({
-    name: "ECHO_WHATS_THE_TRADE_DAILY",
-    description:
-      "Daily belief-router report: one thesis, live adapters, ALOHA-style narrative → docs/standup/whats-the-trade/",
-    roomId: worldId,
-    worldId,
-    tags: ["echo", "whats-the-trade", "queue", "repeat"],
-    metadata: {
-      updatedAt: Date.now(),
-      updateInterval: TASK_INTERVAL_MS,
-    },
-  });
+  const existing = await runtime.getTasksByName("ECHO_WHATS_THE_TRADE_DAILY");
+  if (existing.length > 0) {
+    logger.info(
+      `[ECHO WhatstheTrade] Task already exists (${existing.length} found), skipping create`,
+    );
+  } else {
+    await runtime.createTask({
+      name: "ECHO_WHATS_THE_TRADE_DAILY",
+      description:
+        "Daily belief-router report: one thesis, live adapters, ALOHA-style narrative → docs/standup/whats-the-trade/",
+      roomId: worldId,
+      worldId,
+      tags: ["echo", "whats-the-trade", "queue", "repeat"],
+      metadata: {
+        updatedAt: Date.now(),
+        updateInterval: TASK_INTERVAL_MS,
+      },
+    });
+  }
 
   logger.info(
     `[ECHO WhatstheTrade] Task registered (runs at ${hourUtc}:00 UTC, output: docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.md)`,

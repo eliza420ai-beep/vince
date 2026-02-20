@@ -1,0 +1,23 @@
+{
+  "date": "2026-02-20",
+  "thesis": "SOL at $84 is pricing in perfection while ETH at $1968 is undervalued; fade SOL momentum via short perp as crowd capitulates on weakness",
+  "primaryTicker": "SOL",
+  "primaryDirection": "short",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 84.18,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "SOL breaks $90 convincingly",
+  "killConditions": [
+    "dies if $90 break"
+  ],
+  "rubric": {
+    "alignment": "pure_play",
+    "edge": "crowded",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "ETH",
+  "altDirection": "long",
+  "altInstrument": "spot",
+  "evThresholdPct": 60
+}

@@ -48,3 +48,7 @@
 - Develop a cross-agent knowledge sharing protocol
 - Start tracking prediction accuracy across team agents
 - Create a standardized method for capturing tactical insights from daily standups
+## 2026-02-20
+
+- Track BTC $68K rejection or breakout as inflection signal for macro shakeout vs. real weakness.
+- Pull live CLOB on Iran strike Feb 28 if desk wants to size geopolitical tail risk.

@@ -1,0 +1,25 @@
+{
+  "date": "2026-02-20",
+  "thesis": "HYPE trades like a meme but is infrastructure for Hyperliquid's perp DEX; structural undervaluation versus utility token status and COIN comparison",
+  "primaryTicker": "HYPE",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 29.35,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "below $25",
+  "killConditions": [
+    "Hyperliquid volume drops",
+    "major competitor emerges",
+    "growth stalls"
+  ],
+  "rubric": {
+    "alignment": "pure_play",
+    "edge": "undiscovered",
+    "payoffShape": "max_asymmetry",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "COIN",
+  "altDirection": "short",
+  "altInstrument": "equity",
+  "evThresholdPct": 15
+}

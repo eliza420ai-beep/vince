@@ -755,15 +755,30 @@ export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
       ? `**Current open positions:**\n${openPositionsSection.trim()}\n\n`
       : "";
 
+  const now = new Date();
+  const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" });
+  const isFriday = now.getDay() === 5;
+  const isSettlementDay = isFriday;
+  const dayContext = `**Today:** ${dayOfWeek}, ${now.toISOString().slice(0, 10)}. Hypersurface weekly options settle Friday 08:00 UTC.${isSettlementDay ? " TODAY IS SETTLEMENT DAY — old positions expire today. Focus on the NEW week's strike." : ""}`;
+
   const hasOpen = hasOpenPositions();
-  const yourJobBlock = hasOpen
-    ? `**Your job:** (1) Current position status: strike, premium, distance to strike, DTE when available. (2) Daily question: hold, close early, or adjust? (3) If relevant, this week's strike recommendation. Hypersurface settles Friday 08:00 UTC; early exercise/close possible. State your call and invalidation. Reference live spot above and VINCE's section for regime/DVOL; Oracle's odds for confidence.`
-    : `**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
+  let yourJobBlock: string;
+  if (isSettlementDay) {
+    yourJobBlock = `**Your job (FRIDAY — settlement day):** Old positions settle today at 08:00 UTC. (1) Final status of expiring position if any. (2) Propose NEXT WEEK's BTC covered call strike for Hypersurface (new weekly cycle starts now, settles next Friday 08:00 UTC). State: strike price, direction (above/below), premium target, invalidation level. Use the LIVE SPOT PRICE above, not old context. Reference VINCE's section for regime/DVOL; Oracle's odds for confidence.`;
+  } else if (hasOpen) {
+    yourJobBlock = `**Your job:** (1) Current position status: strike, premium, distance to strike, DTE when available. (2) Daily question: hold, close early, or adjust? (3) If relevant, this week's strike recommendation. Hypersurface settles Friday 08:00 UTC; early exercise/close possible. State your call and invalidation. Reference live spot above and VINCE's section for regime/DVOL; Oracle's odds for confidence.`;
+  } else {
+    yourJobBlock = `**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
 State: strike price, direction (above/below), premium target, invalidation level.
 Reference the live spot prices above when present; otherwise VINCE's DVOL, funding, and regime. Reference Oracle's odds.
 If uncertain (like last week), say so and explain why with data.`;
+  }
 
-  return `${spotBlock}${portfolioLine}${openPositionsBlock}**Last week's strategy:** ${lastWeek}
+  return `${dayContext}
+
+${spotBlock}${portfolioLine}${openPositionsBlock}**Last week's strategy:** ${lastWeek}
+
+**IMPORTANT: Use the LIVE SPOT PRICE above for your call. Never use prices from the "open positions" or "last week" context — those are stale.**
 
 **Options context (use VINCE's data from shared insights above):**
 Read VINCE's section for: BTC price, funding, L/S ratio, market regime, DVOL, best covered call strike, signal direction.
