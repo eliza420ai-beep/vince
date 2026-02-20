@@ -130,14 +130,39 @@ You'll ask about this, so:
 
 ## The ask
 
-**$2M seed.**
+Two options. Pick the one that matches your conviction.
 
-- **Live execution infrastructure** — Hyperliquid perps (Phase 2 of the [PRD](PRD_LIVE_HYPERLIQUID_PERPS.md)), Polymarket CLOB execution, testnet validation.
-- **ML depth** — Hire 1–2 ML engineers to build on the ONNX pipeline. More models, better features, regime detection, cross-asset correlation.
-- **Data** — Upgrade API tiers (Nansen, CoinGlass, Santiment) for deeper signal coverage.
-- **Six months of runway** — Prove live edge, then raise on results.
+### Option A: Proof round — $750K
 
-Projected return path: platform fees on execution, x402 API revenue, prediction market alpha, and the option value of a self-improving trading system that compounds its own edge.
+SAFE, $8M cap. Enough to answer the only question that matters: does the edge survive live execution?
+
+| Use | Allocation |
+|-----|-----------|
+| Live execution on Hyperliquid (testnet → small real capital) | $200K |
+| One ML engineer (ONNX pipeline depth, regime detection) | $300K |
+| Data API upgrades (Nansen, CoinGlass, Santiment paid tiers) | $50K |
+| Six months of runway (infra, compute, ClawRouter) | $200K |
+
+We come back in six months with live P&L, Sharpe, drawdown, and a feature store with 500+ closed trades. If the numbers work, we raise a proper seed on results. If they don't, you risked $750K instead of $2M to find out.
+
+This is the poker-correct play: call a small bet to see the flop. If we hit, we have position and a much stronger hand for the real round. If we miss, the loss is bounded.
+
+### Option B: Full seed — $2M
+
+Priced round, $12M–$15M pre-money. For when you've looked at the repo, run the validation script, and decided the architecture is worth betting on before live proof.
+
+| Use | Allocation |
+|-----|-----------|
+| Live execution (Hyperliquid perps + Polymarket CLOB) | $500K |
+| ML team (2 engineers, feature depth, cross-asset models) | $800K |
+| Data and infrastructure (APIs, compute, Supabase, monitoring) | $200K |
+| 12 months of runway | $500K |
+
+Projected return path: execution fees, x402 API revenue, prediction market alpha, and the option value of a self-improving system that compounds its own edge. The [Treasury mandate](TREASURY.md) targets 100K/year to cover costs; alpha and fees are upside.
+
+### Why we'd prefer Option A
+
+Honestly — we'd rather take less money, prove the edge is real, and come back with a hand that plays itself. "750K to prove live edge on Hyperliquid. We'll be back in six months with real numbers — or we won't be back at all." That's the founder you want to back. Not the one who raises $5M on paper results and spends 18 months figuring out the edge was never there.
 
 ---
 
