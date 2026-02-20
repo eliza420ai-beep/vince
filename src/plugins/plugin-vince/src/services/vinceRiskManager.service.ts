@@ -521,7 +521,7 @@ export class VinceRiskManagerService extends Service {
       signal.asset,
     );
     const minConfirming = !isCoreAsset
-      ? 2 // HIP-3 / HYPE: fewer signal sources available
+      ? 1 // HIP-3 / HYPE: only 3-4 sources available; primary source gate already ensures quality
       : isStrongSignal && signal.confirmingCount >= minConfirmingWhenStrong
         ? minConfirmingWhenStrong
         : this.limits.minConfirmingSignals;

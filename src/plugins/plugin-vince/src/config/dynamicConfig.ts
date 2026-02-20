@@ -169,6 +169,9 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   HIP3Momentum: 1.0, // HIP-3 24h price momentum
   HIP3OIBuild: 0.8, // HIP-3 OI/volume ratio (position buildup, contrarian)
 
+  // WTT (What's The Trade) — curated daily thesis pick
+  WTT: 1.5, // Strong weight: human-curated thesis with rubric scoring
+
   // Strong on-chain signals (1.2x)
   SanbaseExchangeFlows: 1.2,
   CrossVenueFunding: 1.2,
