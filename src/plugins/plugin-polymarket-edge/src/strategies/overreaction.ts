@@ -81,11 +81,20 @@ export const overreactionStrategy: EdgeStrategy = {
 
       lastSignalByCondition.set(cooldownKey, now);
       const edgeBps = (1 - underdogPrice - favoritePrice) * 10000; // locked spread
+      const side = underdogIsNo ? "NO" : "YES";
+      const favPct = `${(favoritePrice * 100).toFixed(1)}%`;
+      const underPct = `${(underdogPrice * 100).toFixed(1)}%`;
+      const velPct = vel?.velocityPct ?? 0;
+      const rationale =
+        `Crowd overreaction detected. Favorite spiked to ${favPct}, underdog dropped to ${underPct}. ` +
+        `Price velocity ${velPct > 0 ? "+" : ""}${velPct.toFixed(1)}%. ` +
+        `Buying ${side} (underdog) for mean reversion — locked spread ${Math.abs(edgeBps).toFixed(0)} bps.`;
+
       return {
         strategy: "overreaction",
         source: "overreaction",
         market_id: c.conditionId,
-        side: underdogIsNo ? "NO" : "YES",
+        side: side as "YES" | "NO",
         confidence: Math.min(
           1,
           (Math.abs(vel?.velocityPct ?? 0) / 10) * 0.5 + 0.5,
@@ -94,9 +103,10 @@ export const overreactionStrategy: EdgeStrategy = {
         forecast_prob: underdogPrice + 0.1, // slight mean reversion
         market_price: underdogPrice,
         metadata: {
+          rationale,
           favoritePrice,
           underdogPrice,
-          velocityPct: vel?.velocityPct ?? 0,
+          velocityPct: velPct,
         },
       };
     }

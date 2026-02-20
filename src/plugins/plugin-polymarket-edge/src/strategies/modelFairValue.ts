@@ -106,6 +106,17 @@ export const modelFairValueStrategy: EdgeStrategy = {
 
         modelFairValueCooldown.set(c.conditionId, now);
 
+        const spotStr = `$${ctx.spot.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+        const strikeStr = `$${c.strikeUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+        const modelPct = `${(forecastProb * 100).toFixed(1)}%`;
+        const mktPct = `${(marketPriceSide * 100).toFixed(1)}%`;
+        const edgeDir = edgeBps > 0 ? "underpriced" : "overpriced";
+        const rationale =
+          `BTC spot ${spotStr}, strike ${strikeStr}. ` +
+          `Black-Scholes model prices ${side} at ${modelPct} — market has it at ${mktPct}. ` +
+          `${Math.abs(edgeBps).toFixed(0)} bps ${edgeDir}. ` +
+          `Vol assumption ${(vol * 100).toFixed(0)}%.`;
+
         return {
           strategy: "model_fair_value",
           source: "model_fair_value",
@@ -116,6 +127,7 @@ export const modelFairValueStrategy: EdgeStrategy = {
           forecast_prob: forecastProb,
           market_price: marketPriceSide,
           metadata: {
+            rationale,
             spot: ctx.spot,
             strikeUsd: c.strikeUsd,
             expiryMs: c.expiryMs,

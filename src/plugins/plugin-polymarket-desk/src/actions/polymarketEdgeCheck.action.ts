@@ -149,7 +149,12 @@ export const polymarketEdgeCheckAction: Action = {
                 values?: unknown[],
               ) => Promise<{ rows?: unknown[] }>;
             };
+            const edgeDir = edgeBps > 0 ? "underpriced" : "overpriced";
+            const rationale =
+              `Edge check for ${asset}: Synth forecast ${(prob * 100).toFixed(1)}% vs market ${(marketPrice * 100).toFixed(1)}%. ` +
+              `${Math.abs(edgeBps).toFixed(0)} bps ${edgeDir}. Buying ${side}.`;
             const metadataJson = JSON.stringify({
+              rationale,
               source: "POLYMARKET_EDGE_CHECK",
               asset,
               conditionId,

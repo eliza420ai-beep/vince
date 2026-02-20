@@ -71,44 +71,60 @@ import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
 import type { PolymarketPaperPosition } from "@/frontend/lib/leaderboardsApi";
 
-/** Human-readable one-line "Why" for Polymarket paper position from known strategy metadata. */
-function polymarketWhyOneLiner(pos: PolymarketPaperPosition): string | null {
+/**
+ * Extract human-readable rationale for a Polymarket paper position.
+ * Priority: metadata.rationale (written at signal time) > constructed one-liner > fallback.
+ */
+function polymarketWhyRationale(pos: PolymarketPaperPosition): string {
   const m = pos.metadata;
-  if (!m || typeof m !== "object") return null;
-  const strat = (m.strategy ?? pos.strategy) as string | undefined;
-  const edgeBps = (m.edge_bps ?? pos.edgeBps) as number | undefined;
-  const edgeStr =
-    edgeBps != null
-      ? ` Edge ${edgeBps >= 0 ? "+" : ""}${edgeBps} bps vs market.`
-      : "";
+
+  // Best case: strategy wrote a rationale at signal time
+  if (m && typeof m === "object" && typeof m.rationale === "string")
+    return m.rationale;
+
+  // Construct from known strategy metadata
+  const strat = (m?.strategy ?? pos.strategy) as string | undefined;
+  const edgeBps = Number(m?.edge_bps ?? pos.edgeBps ?? 0);
+  const forecastPct = `${(Number(m?.forecast_prob ?? pos.forecastProb ?? 0) * 100).toFixed(1)}%`;
+  const entryPct = `${(pos.entryPrice * 100).toFixed(1)}%`;
+
   if (strat === "model_fair_value") {
-    const spot = m.spot as number | undefined;
-    const strikeUsd = m.strikeUsd as number | undefined;
-    const vol = m.volatility as number | undefined;
-    if (spot != null && strikeUsd != null)
-      return `Model fair value: spot $${Number(spot).toLocaleString()}, strike $${Number(strikeUsd).toLocaleString()}${vol != null ? `, vol ${(Number(vol) * 100).toFixed(0)}%` : ""}.${edgeStr}`;
+    const spot = m?.spot as number | undefined;
+    const strikeUsd = m?.strikeUsd as number | undefined;
+    if (spot != null && strikeUsd != null) {
+      const spotStr = `$${Number(spot).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+      const strikeStr = `$${Number(strikeUsd).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+      return (
+        `BTC spot ${spotStr}, strike ${strikeStr}. ` +
+        `Model prices ${pos.side} at ${forecastPct} — market had it at ${entryPct}. ` +
+        `${Math.abs(edgeBps).toFixed(0)} bps edge.`
+      );
+    }
   }
   if (strat === "overreaction") {
-    const fav = m.favoritePrice as number | undefined;
-    const under = m.underdogPrice as number | undefined;
-    const vel = m.velocityPct as number | undefined;
-    if (fav != null && under != null)
-      return `Overreaction: favorite ${(Number(fav) * 100).toFixed(1)}%, underdog ${(Number(under) * 100).toFixed(1)}%${vel != null ? `, velocity ${Number(vel).toFixed(1)}%` : ""}.${edgeStr}`;
+    const fav = m?.favoritePrice as number | undefined;
+    const under = m?.underdogPrice as number | undefined;
+    if (fav != null && under != null) {
+      return (
+        `Crowd overreaction: favorite at ${(Number(fav) * 100).toFixed(1)}%, underdog at ${(Number(under) * 100).toFixed(1)}%. ` +
+        `Buying ${pos.side} for mean reversion — ${Math.abs(edgeBps).toFixed(0)} bps spread.`
+      );
+    }
   }
   if (strat === "synth") {
-    const asset = m.asset as string | undefined;
-    const source = m.synthSource as string | undefined;
-    return `Synth: ${asset ?? "—"} from ${source ?? "—"}.${edgeStr}`;
+    return `Synth model forecasts ${pos.side} at ${forecastPct} vs market at ${entryPct}. ${Math.abs(edgeBps).toFixed(0)} bps edge.`;
   }
   if (
-    m.source === "POLYMARKET_EDGE_CHECK" ||
-    strat === "POLYMARKET_EDGE_CHECK"
+    strat === "POLYMARKET_EDGE_CHECK" ||
+    m?.source === "POLYMARKET_EDGE_CHECK"
   ) {
-    const asset = m.asset as string | undefined;
-    const conditionId = m.conditionId as string | undefined;
-    return `Synth vs market (edge check). Asset: ${asset ?? "—"}${conditionId ? `, condition: ${String(conditionId).slice(0, 10)}…` : ""}.${edgeStr}`;
+    return `Edge check: forecast ${forecastPct} vs market ${entryPct}. ${Math.abs(edgeBps).toFixed(0)} bps edge on ${pos.side}.`;
   }
-  return null;
+
+  // Fallback for positions with no stored rationale
+  if (edgeBps !== 0)
+    return `${pos.strategy} strategy. Entry ${entryPct}, forecast ${forecastPct}, ${Math.abs(edgeBps).toFixed(0)} bps edge on ${pos.side}.`;
+  return `${pos.strategy} strategy — entry at ${entryPct}.`;
 }
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
@@ -3107,13 +3123,26 @@ export default function LeaderboardPage({
                       {edgeStatus.strategies &&
                         Object.keys(edgeStatus.strategies).length > 0 && (
                           <span className="text-muted-foreground">
-                            Strategies:{" "}
-                            {Object.entries(edgeStatus.strategies)
-                              .map(
-                                ([name, s]) =>
-                                  `${name} (${s.signalCount ?? 0})`,
-                              )
-                              .join(", ")}
+                            {Object.entries(edgeStatus.strategies).map(
+                              ([name, s], i) => {
+                                const count = s.signalCount ?? 0;
+                                const label =
+                                  count > 0
+                                    ? `${count} signal${count !== 1 ? "s" : ""}`
+                                    : "active";
+                                return (
+                                  <span key={name}>
+                                    {i > 0 && ", "}
+                                    <span className="font-mono">
+                                      {name}
+                                    </span>{" "}
+                                    <span className="text-muted-foreground/70">
+                                      ({label})
+                                    </span>
+                                  </span>
+                                );
+                              },
+                            )}
                           </span>
                         )}
                     </div>
@@ -3244,7 +3273,7 @@ export default function LeaderboardPage({
                   ) : (
                     <div className="space-y-4">
                       {(deskPositionsData?.positions ?? []).map((pos) => {
-                        const whyOneLiner = polymarketWhyOneLiner(pos);
+                        const rationale = polymarketWhyRationale(pos);
                         return (
                           <div
                             key={pos.id}
@@ -3314,40 +3343,39 @@ export default function LeaderboardPage({
                               <p className="font-medium text-foreground mb-1">
                                 Why this position
                               </p>
-                              {whyOneLiner && (
-                                <p className="text-muted-foreground mb-1">
-                                  {whyOneLiner}
-                                </p>
-                              )}
-                              {pos.metadata?._fallback === true && (
-                                <p className="text-muted-foreground italic mb-1">
-                                  Derived from position (signal rationale not
-                                  stored).
-                                </p>
-                              )}
+                              <p className="text-muted-foreground mb-1">
+                                {rationale}
+                              </p>
                               {pos.metadata &&
-                              Object.keys(pos.metadata).length > 0 ? (
-                                <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                                  {Object.entries(pos.metadata)
-                                    .filter(([k]) => k !== "_fallback")
-                                    .map(
-                                      ([k, v]) =>
-                                        v != null &&
-                                        String(v).trim() !== "" && (
-                                          <li key={k}>
-                                            {k.replace(/_/g, " ")}:{" "}
-                                            {typeof v === "object"
-                                              ? JSON.stringify(v)
-                                              : String(v)}
-                                          </li>
-                                        ),
-                                    )}
-                                </ul>
-                              ) : (
-                                <p className="text-muted-foreground">
-                                  — (no rationale stored)
-                                </p>
-                              )}
+                                Object.keys(pos.metadata).filter(
+                                  (k) => k !== "_fallback" && k !== "rationale",
+                                ).length > 0 && (
+                                  <details className="mt-1">
+                                    <summary className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground">
+                                      Signal details
+                                    </summary>
+                                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5 mt-1">
+                                      {Object.entries(pos.metadata)
+                                        .filter(
+                                          ([k]) =>
+                                            k !== "_fallback" &&
+                                            k !== "rationale",
+                                        )
+                                        .map(
+                                          ([k, v]) =>
+                                            v != null &&
+                                            String(v).trim() !== "" && (
+                                              <li key={k}>
+                                                {k.replace(/_/g, " ")}:{" "}
+                                                {typeof v === "object"
+                                                  ? JSON.stringify(v)
+                                                  : String(v)}
+                                              </li>
+                                            ),
+                                        )}
+                                    </ul>
+                                  </details>
+                                )}
                             </div>
                             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                               <span>

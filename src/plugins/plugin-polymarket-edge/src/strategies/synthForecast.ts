@@ -57,6 +57,13 @@ export const synthForecastStrategy: EdgeStrategy = {
         const bps = useYes ? edgeBpsYes : edgeBpsNo;
         const forecastProb = useYes ? synthProb : 1 - synthProb;
 
+        const synthPct = `${(forecastProb * 100).toFixed(1)}%`;
+        const mktPct = `${(marketPriceSide * 100).toFixed(1)}%`;
+        const edgeDir = bps > 0 ? "underpriced" : "overpriced";
+        const rationale =
+          `Synth forecast for ${ASSET}: model says ${side} at ${synthPct}, market at ${mktPct}. ` +
+          `${Math.abs(bps).toFixed(0)} bps ${edgeDir}. Source: ${forecast.source}.`;
+
         return {
           strategy: "synth",
           source: "synth",
@@ -66,7 +73,7 @@ export const synthForecastStrategy: EdgeStrategy = {
           edge_bps: bps,
           forecast_prob: forecastProb,
           market_price: marketPriceSide,
-          metadata: { asset: ASSET, synthSource: forecast.source },
+          metadata: { rationale, asset: ASSET, synthSource: forecast.source },
         };
       }
     }
