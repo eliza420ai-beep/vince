@@ -318,6 +318,23 @@ const HIGH_TIER_TOTAL_YEARLY = DATA_SOURCES_COSTS.reduce(
   0,
 );
 
+/** Display value per row: high tier if set, else current (for VC "if funded" table). */
+function dataSourceDisplayMonthly(r: (typeof DATA_SOURCES_COSTS)[0]): number {
+  return r.highTierMonthly ?? r.monthly;
+}
+function dataSourceDisplayYearly(r: (typeof DATA_SOURCES_COSTS)[0]): number {
+  return r.highTierYearly ?? r.yearly;
+}
+/** Total for "if funded" table: sum of display values across all rows. */
+const DATA_SOURCES_DISPLAY_TOTAL_MONTHLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + dataSourceDisplayMonthly(r),
+  0,
+);
+const DATA_SOURCES_DISPLAY_TOTAL_YEARLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + dataSourceDisplayYearly(r),
+  0,
+);
+
 /** AI token spend (actual from invoices). Update when new invoice data is in. DRAGONFLY_PITCH / Usage tab. */
 const AI_TOKEN_SPEND_3_WEEKS_USD = 3000;
 const AI_TOKEN_SPEND_3_WEEKS_LABEL = "~$3K in 3 weeks";
@@ -4563,10 +4580,11 @@ export default function LeaderboardPage({
                   : null}
               </DashboardCard>
 
-              {/* Data sources — paid only in table; free/optional in compact list */}
-              <DashboardCard title="Data sources (monthly / yearly)">
+              {/* Data sources — high-tier (if funded) in table; free/optional in compact list */}
+              <DashboardCard title="Data sources (if funded — high tier monthly / yearly)">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Paid APIs only in the table below. See{" "}
+                  Paid APIs only; values shown are high/pro tier (what we’d
+                  spend if funded). See{" "}
                   <a
                     href="/TREASURY.md"
                     target="_blank"
@@ -4591,14 +4609,16 @@ export default function LeaderboardPage({
                         <th className="text-right py-2.5 w-24 font-medium">
                           Yearly
                         </th>
-                        <th className="text-left py-2.5 pr-3 text-muted-foreground font-normal max-w-[36ch]">
+                        <th className="text-right py-2.5 pr-3 text-muted-foreground font-normal max-w-[36ch]">
                           Notes
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       {DATA_SOURCES_COSTS.filter(
-                        (r) => r.monthly > 0 || r.yearly > 0,
+                        (r) =>
+                          dataSourceDisplayMonthly(r) > 0 ||
+                          dataSourceDisplayYearly(r) > 0,
                       ).map((row) => (
                         <tr
                           key={row.name}
@@ -4606,12 +4626,16 @@ export default function LeaderboardPage({
                         >
                           <td className="py-2 pl-3 font-medium">{row.name}</td>
                           <td className="text-right font-mono tabular-nums">
-                            {row.monthly === 0 ? "—" : `$${row.monthly}`}
+                            {dataSourceDisplayMonthly(row) === 0
+                              ? "—"
+                              : `$${dataSourceDisplayMonthly(row).toLocaleString()}`}
                           </td>
                           <td className="text-right font-mono tabular-nums">
-                            {row.yearly === 0 ? "—" : `$${row.yearly}`}
+                            {dataSourceDisplayYearly(row) === 0
+                              ? "—"
+                              : `$${dataSourceDisplayYearly(row).toLocaleString()}`}
                           </td>
-                          <td className="py-2 pr-3 text-muted-foreground text-xs max-w-[36ch]">
+                          <td className="py-2 pr-3 text-right text-muted-foreground text-xs max-w-[36ch]">
                             {row.notes}
                           </td>
                         </tr>
@@ -4619,42 +4643,40 @@ export default function LeaderboardPage({
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-border bg-muted/40 font-semibold">
-                        <td className="py-2.5 pl-3">Total</td>
+                        <td className="py-2.5 pl-3">Total (if funded)</td>
                         <td className="text-right font-mono tabular-nums">
-                          $
-                          {DATA_SOURCES_COSTS.reduce(
-                            (s, r) => s + r.monthly,
-                            0,
-                          ).toLocaleString()}
+                          ${DATA_SOURCES_DISPLAY_TOTAL_MONTHLY.toLocaleString()}
                         </td>
                         <td className="text-right font-mono tabular-nums">
-                          $
-                          {DATA_SOURCES_COSTS.reduce(
-                            (s, r) => s + r.yearly,
-                            0,
-                          ).toLocaleString()}
+                          ${DATA_SOURCES_DISPLAY_TOTAL_YEARLY.toLocaleString()}
                         </td>
-                        <td className="py-2.5 pr-3 text-muted-foreground text-xs" />
+                        <td className="py-2.5 pr-3 text-right text-muted-foreground text-xs" />
                       </tr>
                     </tfoot>
                   </table>
                 </div>
                 {DATA_SOURCES_COSTS.filter(
-                  (r) => r.monthly === 0 && r.yearly === 0,
+                  (r) =>
+                    dataSourceDisplayMonthly(r) === 0 &&
+                    dataSourceDisplayYearly(r) === 0,
                 ).length > 0 ? (
                   <details className="mt-3">
                     <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                       Free / optional (
                       {
                         DATA_SOURCES_COSTS.filter(
-                          (r) => r.monthly === 0 && r.yearly === 0,
+                          (r) =>
+                            dataSourceDisplayMonthly(r) === 0 &&
+                            dataSourceDisplayYearly(r) === 0,
                         ).length
                       }{" "}
                       APIs)
                     </summary>
                     <ul className="mt-1.5 text-xs text-muted-foreground space-y-0.5 list-disc list-inside pl-1 max-h-32 overflow-y-auto">
                       {DATA_SOURCES_COSTS.filter(
-                        (r) => r.monthly === 0 && r.yearly === 0,
+                        (r) =>
+                          dataSourceDisplayMonthly(r) === 0 &&
+                          dataSourceDisplayYearly(r) === 0,
                       ).map((row) => (
                         <li key={row.name}>
                           <span className="font-medium text-foreground/80">
@@ -4668,22 +4690,25 @@ export default function LeaderboardPage({
                   </details>
                 ) : null}
                 <p className="text-xs text-muted-foreground mt-2">
-                  <strong>All data APIs on high tier:</strong> ~$
-                  {HIGH_TIER_TOTAL_MONTHLY.toLocaleString()}/mo or ~$
-                  {HIGH_TIER_TOTAL_YEARLY.toLocaleString()}/yr (Nansen, Sanbase,
-                  CoinGlass + Pro, Glassnode, X ~$690, Helius, Supabase; Tavily,
-                  Dune, Allium, Jupiter, Alchemy, XAI/Grok, Etherscan, Solus
-                  stocks; Birdeye/OpenSea/Firecrawl not priced).
+                  <strong>All data APIs on high tier (if funded):</strong> $
+                  {DATA_SOURCES_DISPLAY_TOTAL_MONTHLY.toLocaleString()}/mo or $
+                  {DATA_SOURCES_DISPLAY_TOTAL_YEARLY.toLocaleString()}/yr (table
+                  total above). Nansen, Sanbase, CoinGlass + Pro, Glassnode, X
+                  ~$690, Helius, Supabase; Tavily, Dune, Allium, Jupiter,
+                  Alchemy, XAI/Grok, Etherscan, Solus stocks; Birdeye/OpenSea
+                  /Firecrawl not priced.
                 </p>
                 <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
                   <p className="text-xs font-semibold text-foreground uppercase tracking-wide">
                     Cost of running if we go PRO
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Pro tier ($199/mo) is included above: Volatility Dashboard,
-                    ODTE, Liquidity, Liquidations, Polymarket, 5K API calls/mo,
-                    15‑min Claude/OpenClaw integration. Data APIs with Pro ≈ $
-                    {DATA_SOURCES_COSTS.reduce((s, r) => s + r.monthly, 0)}/mo.
+                    Pro tier ($199/mo) is included in the table above:
+                    Volatility Dashboard, ODTE, Liquidity, Liquidations,
+                    Polymarket, 5K API calls/mo, 15‑min Claude/OpenClaw
+                    integration. All data APIs on high tier ≈ $
+                    {DATA_SOURCES_DISPLAY_TOTAL_MONTHLY.toLocaleString()}/mo ($
+                    {DATA_SOURCES_DISPLAY_TOTAL_YEARLY.toLocaleString()}/yr).
                     Add session token cost (Totals), Cursor, and AI invoice
                     spend for full run rate.
                   </p>
