@@ -106,7 +106,8 @@ function getDiscoveryTagSlugs(): string[] {
 
 function isAnyBinaryEnabled(): boolean {
   const v = process.env[ENV_DISCOVERY_ANY_BINARY];
-  return v?.trim().toLowerCase() === "true" || v === "1";
+  if (v?.trim().toLowerCase() === "false" || v === "0") return false;
+  return true; // enabled by default — discover all binary markets, not just BTC threshold
 }
 
 /** Build ContractMeta from Gamma row; strikeUsd 0 for non-BTC binary. */

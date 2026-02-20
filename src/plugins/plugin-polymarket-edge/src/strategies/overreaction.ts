@@ -85,10 +85,13 @@ export const overreactionStrategy: EdgeStrategy = {
       const favPct = `${(favoritePrice * 100).toFixed(1)}%`;
       const underPct = `${(underdogPrice * 100).toFixed(1)}%`;
       const velPct = vel?.velocityPct ?? 0;
+      const label =
+        c.question.length > 60 ? c.question.slice(0, 57) + "…" : c.question;
       const rationale =
-        `Crowd overreaction detected. Favorite spiked to ${favPct}, underdog dropped to ${underPct}. ` +
+        `Crowd overreaction on "${label}". ` +
+        `Favorite spiked to ${favPct}, underdog dropped to ${underPct}. ` +
         `Price velocity ${velPct > 0 ? "+" : ""}${velPct.toFixed(1)}%. ` +
-        `Buying ${side} (underdog) for mean reversion — locked spread ${Math.abs(edgeBps).toFixed(0)} bps.`;
+        `Buying ${side} (underdog) for mean reversion — ${Math.abs(edgeBps).toFixed(0)} bps spread.`;
 
       return {
         strategy: "overreaction",

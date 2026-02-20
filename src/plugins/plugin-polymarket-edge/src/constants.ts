@@ -70,6 +70,9 @@ export const ENV_GAMMA_API_URL = "POLYMARKET_GAMMA_API_URL";
 /** Tag slugs for Gamma API (when not overridden by EDGE_DISCOVERY_TAGS) */
 export const DEFAULT_DISCOVERY_TAG_SLUGS = [
   "bitcoin",
+  "ethereum",
+  "solana",
+  "crypto",
   "daily",
   "weekly",
   "monthly",
