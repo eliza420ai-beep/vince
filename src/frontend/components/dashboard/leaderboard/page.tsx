@@ -4563,10 +4563,10 @@ export default function LeaderboardPage({
                   : null}
               </DashboardCard>
 
-              {/* Data sources — monthly/yearly cost estimates (TREASURY) */}
+              {/* Data sources — paid only in table; free/optional in compact list */}
               <DashboardCard title="Data sources (monthly / yearly)">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Estimated costs for data APIs. Many have free tiers. See{" "}
+                  Paid APIs only in the table below. See{" "}
                   <a
                     href="/TREASURY.md"
                     target="_blank"
@@ -4576,46 +4576,97 @@ export default function LeaderboardPage({
                     TREASURY.md
                     <ExternalLink className="w-3 h-3" />
                   </a>{" "}
-                  for tiers.
+                  for full tier list.
                 </p>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border border-border/60">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-2 font-medium">API</th>
-                        <th className="text-right py-2 font-medium">Monthly</th>
-                        <th className="text-right py-2 font-medium">Yearly</th>
-                        <th className="text-right py-2 font-medium">Notes</th>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left py-2.5 pl-3 font-medium">
+                          API
+                        </th>
+                        <th className="text-right py-2.5 w-24 font-medium">
+                          Monthly
+                        </th>
+                        <th className="text-right py-2.5 w-24 font-medium">
+                          Yearly
+                        </th>
+                        <th className="text-left py-2.5 pr-3 text-muted-foreground font-normal max-w-[36ch]">
+                          Notes
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {DATA_SOURCES_COSTS.map((row) => (
+                      {DATA_SOURCES_COSTS.filter(
+                        (r) => r.monthly > 0 || r.yearly > 0,
+                      ).map((row) => (
                         <tr
                           key={row.name}
-                          className="border-b border-border/50"
+                          className="border-b border-border/50 hover:bg-muted/10"
                         >
-                          <td className="py-2 font-medium">{row.name}</td>
-                          <td className="text-right font-mono">
+                          <td className="py-2 pl-3 font-medium">{row.name}</td>
+                          <td className="text-right font-mono tabular-nums">
                             {row.monthly === 0 ? "—" : `$${row.monthly}`}
                           </td>
-                          <td className="text-right font-mono">
+                          <td className="text-right font-mono tabular-nums">
                             {row.yearly === 0 ? "—" : `$${row.yearly}`}
                           </td>
-                          <td className="py-2 text-right text-muted-foreground text-xs">
+                          <td className="py-2 pr-3 text-muted-foreground text-xs max-w-[36ch]">
                             {row.notes}
                           </td>
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border bg-muted/40 font-semibold">
+                        <td className="py-2.5 pl-3">Total</td>
+                        <td className="text-right font-mono tabular-nums">
+                          $
+                          {DATA_SOURCES_COSTS.reduce(
+                            (s, r) => s + r.monthly,
+                            0,
+                          ).toLocaleString()}
+                        </td>
+                        <td className="text-right font-mono tabular-nums">
+                          $
+                          {DATA_SOURCES_COSTS.reduce(
+                            (s, r) => s + r.yearly,
+                            0,
+                          ).toLocaleString()}
+                        </td>
+                        <td className="py-2.5 pr-3 text-muted-foreground text-xs" />
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Total paid: ~$
-                  {DATA_SOURCES_COSTS.reduce((s, r) => s + r.monthly, 0)}/mo or
-                  ~$
-                  {DATA_SOURCES_COSTS.reduce((s, r) => s + r.yearly, 0)}/yr
-                  (excludes free tiers).
-                </p>
+                {DATA_SOURCES_COSTS.filter(
+                  (r) => r.monthly === 0 && r.yearly === 0,
+                ).length > 0 ? (
+                  <details className="mt-3">
+                    <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                      Free / optional (
+                      {
+                        DATA_SOURCES_COSTS.filter(
+                          (r) => r.monthly === 0 && r.yearly === 0,
+                        ).length
+                      }{" "}
+                      APIs)
+                    </summary>
+                    <ul className="mt-1.5 text-xs text-muted-foreground space-y-0.5 list-disc list-inside pl-1 max-h-32 overflow-y-auto">
+                      {DATA_SOURCES_COSTS.filter(
+                        (r) => r.monthly === 0 && r.yearly === 0,
+                      ).map((row) => (
+                        <li key={row.name}>
+                          <span className="font-medium text-foreground/80">
+                            {row.name}
+                          </span>
+                          {" — "}
+                          {row.notes}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
                 <p className="text-xs text-muted-foreground mt-2">
                   <strong>All data APIs on high tier:</strong> ~$
                   {HIGH_TIER_TOTAL_MONTHLY.toLocaleString()}/mo or ~$
