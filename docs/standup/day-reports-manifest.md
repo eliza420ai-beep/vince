@@ -33,3 +33,4 @@
 | 2026-02-20 | BTC holding $67-68K in sideways chop while builders ship infrastructure—we're po | [View](day-reports/2026-02-20-day-report.md) |
 | 2026-02-20 | Extreme fear (7/10) but institutional money rotating back in—shorts getting liqu | [View](day-reports/2026-02-20-day-report.md) |
 | 2026-02-20 | Extreme fear (7/10) but prices grinding higher—classic premium harvest setup whi | [View](day-reports/2026-02-20-day-report.md) |
+| 2026-02-20 | Everything's green but fear's at 7—institutions are buying while we're selling p | [View](day-reports/2026-02-20-day-report.md) |

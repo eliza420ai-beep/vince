@@ -45,6 +45,8 @@ import {
 import type {
   PaperResponse,
   KnowledgeResponse,
+  PolymarketPaperPositionsFetchResult,
+  PolymarketPaperPosition,
 } from "@/frontend/lib/leaderboardsApi";
 import type { RebelRanking } from "@/frontend/types/dashboard";
 import type {
@@ -69,7 +71,6 @@ import {
 } from "lucide-react";
 import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
-import type { PolymarketPaperPosition } from "@/frontend/lib/leaderboardsApi";
 
 /**
  * Extract human-readable rationale for a Polymarket paper position.
@@ -601,6 +602,10 @@ export default function LeaderboardPage({
     refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
   });
   const deskPositionsData = deskPositionsResult?.data ?? null;
+  /** Response body: positions array and optional hint (fetch result is { data: body, error, status }) */
+  const deskPositionsBody =
+    (deskPositionsData as PolymarketPaperPositionsFetchResult | null)?.data ??
+    null;
 
   // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
   const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
@@ -3369,17 +3374,18 @@ export default function LeaderboardPage({
                             </>
                           )}
                         </span>
-                        {(deskPositionsData?.positions?.length ?? 0) > 0 && (
+                        {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
                           <>
                             <span className="text-muted-foreground">
                               Open positions:{" "}
-                              {deskPositionsData?.positions?.length ?? 0}
+                              {deskPositionsBody?.positions?.length ?? 0}
                             </span>
                             <span
                               className={cn(
                                 "font-mono font-medium",
-                                (deskPositionsData?.positions?.reduce(
-                                  (s, p) => s + p.unrealizedPnl,
+                                (deskPositionsBody?.positions?.reduce(
+                                  (s: number, p: PolymarketPaperPosition) =>
+                                    s + p.unrealizedPnl,
                                   0,
                                 ) ?? 0) >= 0
                                   ? "text-green-600 dark:text-green-400"
@@ -3387,16 +3393,18 @@ export default function LeaderboardPage({
                               )}
                             >
                               Paper P&L:{" "}
-                              {(deskPositionsData?.positions?.reduce(
-                                (s, p) => s + p.unrealizedPnl,
+                              {(deskPositionsBody?.positions?.reduce(
+                                (s: number, p: PolymarketPaperPosition) =>
+                                  s + p.unrealizedPnl,
                                 0,
                               ) ?? 0) >= 0
                                 ? "+"
                                 : ""}
                               $
                               {(
-                                deskPositionsData?.positions?.reduce(
-                                  (s, p) => s + p.unrealizedPnl,
+                                deskPositionsBody?.positions?.reduce(
+                                  (s: number, p: PolymarketPaperPosition) =>
+                                    s + p.unrealizedPnl,
                                   0,
                                 ) ?? 0
                               ).toFixed(2)}
@@ -3408,9 +3416,15 @@ export default function LeaderboardPage({
                             Pending signals: {deskStatus.pendingSignalsCount}
                           </span>
                         )}
+                        {(deskStatus.pendingSizedOrdersCount ?? 0) > 0 && (
+                          <span className="text-muted-foreground">
+                            Open paper orders:{" "}
+                            {deskStatus.pendingSizedOrdersCount}
+                          </span>
+                        )}
                       </div>
                       {deskStatus.tradesToday === 0 &&
-                        (deskPositionsData?.positions?.length ?? 0) === 0 && (
+                        (deskPositionsBody?.positions?.length ?? 0) === 0 && (
                           <p className="text-xs text-muted-foreground mt-2">
                             P&L is from filled trades only. Once Risk → Otaku
                             fills orders, paper gains/losses will appear here.
@@ -3433,128 +3447,174 @@ export default function LeaderboardPage({
                     <p className="text-sm text-muted-foreground">
                       Loading positions…
                     </p>
-                  ) : (deskPositionsData?.positions?.length ?? 0) === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4">
-                      No open paper positions yet.
-                    </p>
+                  ) : (deskPositionsBody?.positions?.length ?? 0) === 0 ? (
+                    <div className="text-sm text-muted-foreground py-4 space-y-2">
+                      {(deskStatus?.pendingSizedOrdersCount ?? 0) > 0 ? (
+                        <>
+                          <p>
+                            You have{" "}
+                            <strong>
+                              {deskStatus?.pendingSizedOrdersCount} open paper
+                              order(s)
+                            </strong>
+                            . The list is capped so the API doesn’t timeout. If
+                            nothing appears below, the request may have timed
+                            out—reduce the backlog by executing or cancelling
+                            old orders (Otaku / desk executor).
+                          </p>
+                          {(deskPositionsData?.error ||
+                            deskPositionsBody?.hint) && (
+                            <p className="text-xs">
+                              {deskPositionsData?.error ??
+                                deskPositionsBody?.hint}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p>No open paper positions yet.</p>
+                      )}
+                      {deskPositionsData?.error &&
+                        !(deskStatus?.pendingSizedOrdersCount ?? 0) && (
+                          <p className="text-xs">{deskPositionsData.error}</p>
+                        )}
+                    </div>
                   ) : (
                     <div className="space-y-4">
-                      {(deskPositionsData?.positions ?? []).map((pos) => {
-                        const rationale = polymarketWhyRationale(pos);
-                        return (
-                          <div
-                            key={pos.id}
-                            className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
-                          >
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={cn(
-                                  "font-semibold",
-                                  pos.side === "YES"
-                                    ? "text-green-600 dark:text-green-400"
-                                    : "text-red-600 dark:text-red-400",
-                                )}
-                              >
-                                {pos.side}{" "}
-                                {pos.question.length > 60
-                                  ? pos.question.slice(0, 60) + "…"
-                                  : pos.question}
-                              </span>
-                              <span className="text-muted-foreground text-sm">
-                                Entry {(pos.entryPrice * 100).toFixed(1)}%
-                              </span>
-                              <span
-                                className={cn(
-                                  "font-mono font-medium",
-                                  (pos.unrealizedPnl ?? 0) >= 0
-                                    ? "text-green-600 dark:text-green-400"
-                                    : "text-red-600 dark:text-red-400",
-                                )}
-                              >
-                                P&L {pos.unrealizedPnl >= 0 ? "+" : ""}$
-                                {pos.unrealizedPnl.toFixed(2)} (
-                                {pos.unrealizedPnlPct >= 0 ? "+" : ""}
-                                {pos.unrealizedPnlPct.toFixed(2)}%)
-                              </span>
+                      {((deskPositionsBody?.totalPending ?? 0) >
+                        (deskPositionsBody?.positions?.length ?? 0) ||
+                        deskPositionsBody?.livePricesSkipped) && (
+                        <p className="text-xs text-muted-foreground">
+                          Showing first{" "}
+                          {deskPositionsBody?.positions?.length ?? 0} of{" "}
+                          {deskPositionsBody?.totalPending ?? 0} open paper
+                          positions.
+                          {deskPositionsBody?.livePricesSkipped &&
+                            " Current price and P&L use entry (live prices skipped for capped list)."}
+                          {" Reduce backlog (execute or cancel) to see fewer."}
+                        </p>
+                      )}
+                      {(deskPositionsBody?.positions ?? []).map(
+                        (pos: PolymarketPaperPosition) => {
+                          const rationale = polymarketWhyRationale(pos);
+                          return (
+                            <div
+                              key={pos.id}
+                              className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "font-semibold",
+                                    pos.side === "YES"
+                                      ? "text-green-600 dark:text-green-400"
+                                      : "text-red-600 dark:text-red-400",
+                                  )}
+                                >
+                                  {pos.side}{" "}
+                                  {pos.question.length > 60
+                                    ? pos.question.slice(0, 60) + "…"
+                                    : pos.question}
+                                </span>
+                                <span className="text-muted-foreground text-sm">
+                                  Entry {(pos.entryPrice * 100).toFixed(1)}%
+                                </span>
+                                <span
+                                  className={cn(
+                                    "font-mono font-medium",
+                                    (pos.unrealizedPnl ?? 0) >= 0
+                                      ? "text-green-600 dark:text-green-400"
+                                      : "text-red-600 dark:text-red-400",
+                                  )}
+                                >
+                                  P&L {pos.unrealizedPnl >= 0 ? "+" : ""}$
+                                  {pos.unrealizedPnl.toFixed(2)} (
+                                  {pos.unrealizedPnlPct >= 0 ? "+" : ""}
+                                  {pos.unrealizedPnlPct.toFixed(2)}%)
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                                <span className="text-muted-foreground">
+                                  Opened:{" "}
+                                  {pos.openedAt
+                                    ? new Date(pos.openedAt).toLocaleString(
+                                        undefined,
+                                        {
+                                          month: "short",
+                                          day: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        },
+                                      )
+                                    : "—"}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Size: ${pos.sizeUsd.toFixed(0)}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Current: {(pos.currentPrice * 100).toFixed(1)}
+                                  %
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Edge: {pos.edgeBps >= 0 ? "+" : ""}
+                                  {pos.edgeBps} bps
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Strategy: {pos.strategy}
+                                </span>
+                              </div>
+                              <div className="text-sm">
+                                <p className="font-medium text-foreground mb-1">
+                                  Why this position
+                                </p>
+                                <p className="text-muted-foreground mb-1">
+                                  {rationale}
+                                </p>
+                                {pos.metadata &&
+                                  Object.keys(pos.metadata).filter(
+                                    (k) =>
+                                      k !== "_fallback" && k !== "rationale",
+                                  ).length > 0 && (
+                                    <details className="mt-1">
+                                      <summary className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground">
+                                        Signal details
+                                      </summary>
+                                      <ul className="list-disc list-inside text-muted-foreground space-y-0.5 mt-1">
+                                        {Object.entries(pos.metadata)
+                                          .filter(
+                                            ([k]) =>
+                                              k !== "_fallback" &&
+                                              k !== "rationale",
+                                          )
+                                          .map(
+                                            ([k, v]) =>
+                                              v != null &&
+                                              String(v).trim() !== "" && (
+                                                <li key={k}>
+                                                  {k.replace(/_/g, " ")}:{" "}
+                                                  {typeof v === "object"
+                                                    ? JSON.stringify(v)
+                                                    : String(v)}
+                                                </li>
+                                              ),
+                                          )}
+                                      </ul>
+                                    </details>
+                                  )}
+                              </div>
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                <span>
+                                  Confidence {(pos.confidence * 100).toFixed(0)}
+                                  %
+                                </span>
+                                <span>
+                                  Forecast {(pos.forecastProb * 100).toFixed(1)}
+                                  %
+                                </span>
+                              </div>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                              <span className="text-muted-foreground">
-                                Opened:{" "}
-                                {pos.openedAt
-                                  ? new Date(pos.openedAt).toLocaleString(
-                                      undefined,
-                                      {
-                                        month: "short",
-                                        day: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      },
-                                    )
-                                  : "—"}
-                              </span>
-                              <span className="text-muted-foreground">
-                                Size: ${pos.sizeUsd.toFixed(0)}
-                              </span>
-                              <span className="text-muted-foreground">
-                                Current: {(pos.currentPrice * 100).toFixed(1)}%
-                              </span>
-                              <span className="text-muted-foreground">
-                                Edge: {pos.edgeBps >= 0 ? "+" : ""}
-                                {pos.edgeBps} bps
-                              </span>
-                              <span className="text-muted-foreground">
-                                Strategy: {pos.strategy}
-                              </span>
-                            </div>
-                            <div className="text-sm">
-                              <p className="font-medium text-foreground mb-1">
-                                Why this position
-                              </p>
-                              <p className="text-muted-foreground mb-1">
-                                {rationale}
-                              </p>
-                              {pos.metadata &&
-                                Object.keys(pos.metadata).filter(
-                                  (k) => k !== "_fallback" && k !== "rationale",
-                                ).length > 0 && (
-                                  <details className="mt-1">
-                                    <summary className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground">
-                                      Signal details
-                                    </summary>
-                                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5 mt-1">
-                                      {Object.entries(pos.metadata)
-                                        .filter(
-                                          ([k]) =>
-                                            k !== "_fallback" &&
-                                            k !== "rationale",
-                                        )
-                                        .map(
-                                          ([k, v]) =>
-                                            v != null &&
-                                            String(v).trim() !== "" && (
-                                              <li key={k}>
-                                                {k.replace(/_/g, " ")}:{" "}
-                                                {typeof v === "object"
-                                                  ? JSON.stringify(v)
-                                                  : String(v)}
-                                              </li>
-                                            ),
-                                        )}
-                                    </ul>
-                                  </details>
-                                )}
-                            </div>
-                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                              <span>
-                                Confidence {(pos.confidence * 100).toFixed(0)}%
-                              </span>
-                              <span>
-                                Forecast {(pos.forecastProb * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        },
+                      )}
                     </div>
                   )}
                 </DashboardCard>

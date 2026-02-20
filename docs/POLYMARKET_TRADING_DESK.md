@@ -216,6 +216,7 @@ When Otaku does not have Polymarket CLOB credentials set, the execute action doe
 
 - **Edge (Analyst):** `edge_threshold_bps` in POLYMARKET_EDGE_CHECK (default 200). Higher = fewer, higher-conviction signals.
 - **Risk sizing:** `POLYMARKET_DESK_BANKROLL_USD`, `POLYMARKET_DESK_KELLY_FRACTION` (e.g. 0.25), `POLYMARKET_DESK_MAX_POSITION_PCT`, `POLYMARKET_DESK_MIN_SIZE_USD`, `POLYMARKET_DESK_MAX_SIZE_USD` (see Risk action and .env.example).
+- **Selectivity (backlog cap):** `POLYMARKET_DESK_MAX_PENDING_SIZED_ORDERS` (default 10). Risk will not create a new sized order when the number of pending sized orders is already at or above this limit, so the desk stays selective and the UI/Executor aren’t overloaded. Raise the cap if Otaku is filling orders quickly; leave at 10–20 if execution is slow or paper-only.
 - **Execution:** CLOB credentials and `POLYMARKET_FUNDER_ADDRESS` only on Otaku; no execution keys on other agents.
 
 EOD (e.g. 10pm) and weekly (e.g. Sunday) reports can be added as additional tasks or triggered via Orchestrator (Kelly) / ASK_AGENT.

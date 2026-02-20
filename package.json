@@ -1,14 +1,17 @@
 {
   "name": "vince",
-  "description": "Project starter for elizaOS",
+  "description": "Unified multi-agent stack on ElizaOS: paper perps (Hyperliquid), options ritual (Hypersurface), and ClawTerm-style intelligence. One team, one dream. — IKIGAI LABS",
   "version": "3.6.0",
   "type": "module",
   "main": "dist/src/index.js",
   "module": "dist/src/index.js",
   "types": "dist/index.d.ts",
   "keywords": [
-    "project",
-    "elizaos"
+    "elizaos",
+    "vince",
+    "paper-trading",
+    "multi-agent",
+    "ikigai-labs"
   ],
   "repository": {
     "type": "git",

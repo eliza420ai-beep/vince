@@ -1,30 +1,29 @@
 ---
-date: 2026-02-20T21:21:41.595Z
+date: 2026-02-20T21:56:57.615Z
 type: day-report
 generated: automated-standup
 ---
 
 Day Report — 2026-02-20
 
-Solus's call: **Above** — BTC holding 67.7K into settlement, selling 70K covered calls while funding collapses
+Solus's call: Above 70k — selling premium while fear stays extreme, spot holding 67.7k with light invalidation at 69.5k
 
-TL;DR: Extreme fear (7/10) but prices grinding higher—classic premium harvest setup while we wait for the real break.
+TL;DR: Everything's green but fear's at 7—institutions are buying while we're selling premium into consolidation.
 
 TODO
 | WHAT | WHY | OWNER |
 |------|-----|-------|
-| Finalize Bankr wallet setup | Need Base/Solana execution ready | @Otaku |
-| Ship one-click OpenClaw installer | Tech With Tim momentum hitting 1.95M subs | @Clawterm |
-| Agent infrastructure playbook | Builders shipping Telegram+voice, we need the thesis | @Eliza |
-| Iran strike CLOB odds pull | 26% Feb 28 pricing, macro hedge opportunity | @Oracle |
-| Smoke-test v2.1.0 release notes | PRD ready, need validation before ship | @Sentinel |
-| Finish meme LP substack | Fear→premium sell narrative needs the piece | @Eliza |
+| Ship verified Skills registry | Reddit blocked on "which skills are safe?" | @Clawterm |
+| Complete Bankr wallet setup | Need Base/Solana keys before DeFi execution | @Otaku |
+| Finish DLMM meme LP piece | Meteora mechanics ready to publish | @Eliza |
+| Smoke-test v2.1.0 release | Polymarket edge and workspace ready to merge | @Sentinel |
+| Pull Iran strike odds if >30% | Feb 28 tail risk positioning | @Oracle |
+| Watch ADX break above 25 | Confirms trend resumption signal | @Vince |
 
-Risk: Clear
+Risk: Iran strike Feb 28 at 26%—real tail, not noise.
 
 Wrap-up
-Fear index at 7 but funding rates collapsing tells the real story—longs shaking out, not panic selling yet. Vince's short signal conflicts with bullish institutional flow, classic range-bound confusion. The autonomous agent narrative is winning while we harvest premium in the chop. Watch 66K support and funding spike above 0.015% for the thesis break.
+Fear at 7 while institutions double down—classic premium harvest setup tracking perfectly. The real signal is builders asking "is this safe?" instead of shipping. Once Clawterm kills that friction and ADX breaks 25, we're back in business. Warsh locked at 94% removes one macro variable.
 
 ---
-
 One team, one dream.

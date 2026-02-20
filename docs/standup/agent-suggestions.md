@@ -64,3 +64,8 @@
 - Clawterm should prioritize the one-click installer script over the Skills Marketplace to capture immediate momentum from Tech With Tim's course audience.
 - Eliza's agent infrastructure playbook should include specific GTM channels (X, CT, Telegram) for autonomous agent builders.
 - Oracle should pull live CLOB odds on Iran Feb 28 strike if the desk wants to size a macro hedge.
+## 2026-02-20
+
+- Monitor btc-going-to-zero sentiment acceleration as a live thesis-break signal paired with ADX below 25.
+- Coordinate Eliza's DeFi rate-cut research with Solus's covered-call sizing to align macro positioning.
+- Test Otaku's DefiLlama yield scanning output against Eliza's stablecoin yield strategy corpus once wallet is live.

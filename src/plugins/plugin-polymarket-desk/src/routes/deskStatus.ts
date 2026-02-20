@@ -29,6 +29,7 @@ export function buildDeskStatusHandler() {
         volumeTodayUsd: 0,
         executionPnlTodayUsd: 0,
         pendingSignalsCount: 0,
+        pendingSizedOrdersCount: 0,
         hint: "Ensure the agent has plugin-polymarket-desk loaded",
       });
       return;
@@ -51,6 +52,7 @@ export function buildDeskStatusHandler() {
         volumeTodayUsd: 0,
         executionPnlTodayUsd: 0,
         pendingSignalsCount: 0,
+        pendingSizedOrdersCount: 0,
         updatedAt: Date.now(),
         hint: "Database not configured; desk tables in plugin_polymarket_desk",
       });
@@ -73,23 +75,30 @@ export function buildDeskStatusHandler() {
       };
       const since = startOfTodayUtcMs();
 
-      const [tradeSummary, pendingResult] = await Promise.all([
-        client.query(
-          `SELECT
+      const [tradeSummary, pendingSignalsResult, pendingSizedResult] =
+        await Promise.all([
+          client.query(
+            `SELECT
             COUNT(*)::int AS trades_today,
             COALESCE(SUM(size_usd), 0)::double precision AS volume_today,
             COALESCE(SUM((arrival_price - fill_price) * size_usd), 0)::double precision AS execution_pnl_today
            FROM plugin_polymarket_desk.trade_log
            WHERE created_at >= to_timestamp($1 / 1000.0) AT TIME ZONE 'UTC'`,
-          [since],
-        ),
-        client.query(
-          `SELECT COUNT(*)::int AS cnt FROM plugin_polymarket_desk.signals WHERE status = 'pending'`,
-        ),
-      ]);
+            [since],
+          ),
+          client.query(
+            `SELECT COUNT(*)::int AS cnt FROM plugin_polymarket_desk.signals WHERE status = 'pending'`,
+          ),
+          client.query(
+            `SELECT COUNT(*)::int AS cnt FROM plugin_polymarket_desk.sized_orders WHERE status = 'pending'`,
+          ),
+        ]);
 
       const row = tradeSummary?.rows?.[0];
-      const pendingRow = pendingResult?.rows?.[0] as
+      const pendingRow = pendingSignalsResult?.rows?.[0] as
+        | { cnt?: number }
+        | undefined;
+      const sizedRow = pendingSizedResult?.rows?.[0] as
         | { cnt?: number }
         | undefined;
 
@@ -98,6 +107,7 @@ export function buildDeskStatusHandler() {
         volumeTodayUsd: row?.volume_today ?? 0,
         executionPnlTodayUsd: row?.execution_pnl_today ?? 0,
         pendingSignalsCount: pendingRow?.cnt ?? 0,
+        pendingSizedOrdersCount: sizedRow?.cnt ?? 0,
         updatedAt: Date.now(),
       });
     } catch (e) {
@@ -108,6 +118,7 @@ export function buildDeskStatusHandler() {
         volumeTodayUsd: 0,
         executionPnlTodayUsd: 0,
         pendingSignalsCount: 0,
+        pendingSizedOrdersCount: 0,
         updatedAt: Date.now(),
       });
     }

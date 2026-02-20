@@ -22,6 +22,8 @@ const DEFAULT_KELLY_FRACTION = 0.25;
 const DEFAULT_MAX_POSITION_PCT = 0.05;
 const DEFAULT_MIN_SIZE_USD = 5;
 const DEFAULT_MAX_SIZE_USD = 500;
+/** Don't add new sized orders when pending backlog is already at or above this (keeps desk selective). */
+const DEFAULT_MAX_PENDING_SIZED_ORDERS = 10;
 
 interface RiskApproveParams {
   signal_id?: string;
@@ -103,6 +105,23 @@ export const polymarketRiskApproveAction: Action = {
           values?: unknown[],
         ) => Promise<{ rows: unknown[] }>;
       };
+
+      const maxPending =
+        Number(
+          runtime.getSetting?.("POLYMARKET_DESK_MAX_PENDING_SIZED_ORDERS") ?? 0,
+        ) || DEFAULT_MAX_PENDING_SIZED_ORDERS;
+      const countResult = await client.query(
+        `SELECT COUNT(*)::int AS cnt FROM ${SIZED_ORDERS_TABLE} WHERE status = 'pending'`,
+        [],
+      );
+      const pendingCount =
+        (countResult?.rows?.[0] as { cnt?: number } | undefined)?.cnt ?? 0;
+      if (pendingCount >= maxPending) {
+        const text = ` Sized order backlog at limit (${pendingCount} >= ${maxPending}). Skipping approval until Executor fills some. Set POLYMARKET_DESK_MAX_PENDING_SIZED_ORDERS to raise the cap.`;
+        logger.info(`[POLYMARKET_RISK_APPROVE] ${text}`);
+        if (callback) await callback({ text });
+        return { text, success: true };
+      }
 
       interface SignalRow {
         id: string;

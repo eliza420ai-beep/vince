@@ -1,6 +1,7 @@
 /**
  * GET /desk/positions
  * Returns open paper positions (pending sized orders) with live prices and P&L.
+ * Capped at POSITIONS_PAGE_SIZE to avoid timeouts (each row can trigger 2 Polymarket API calls).
  * Use Oracle agent ID: /api/agents/:agentId/plugins/polymarket-desk/desk/positions
  */
 
@@ -9,6 +10,10 @@ import type { IAgentRuntime } from "@elizaos/core";
 const SIZED_ORDERS_TABLE = "plugin_polymarket_desk.sized_orders";
 const SIGNALS_TABLE = "plugin_polymarket_desk.signals";
 const POLYMARKET_DISCOVERY_SERVICE = "POLYMARKET_DISCOVERY_SERVICE";
+/** Max positions returned. When total pending exceeds this, we skip live Polymarket API calls to avoid timeout. */
+const POSITIONS_PAGE_SIZE = 30;
+/** When true, skip getMarketPrices/getMarketDetail so response returns in time (use entry as current). */
+const SKIP_LIVE_PRICES_WHEN_CAPPED = true;
 
 interface PendingRow {
   id: string;
@@ -103,16 +108,27 @@ export function buildDeskPositionsHandler() {
     } | null;
 
     try {
-      const result = await client.query(
-        `SELECT so.id, so.created_at, so.signal_id, so.market_id, so.side, so.size_usd,
+      const [countResult, result] = await Promise.all([
+        client.query(
+          `SELECT COUNT(*)::int AS cnt FROM ${SIZED_ORDERS_TABLE} WHERE status = 'pending'`,
+          [],
+        ),
+        client.query(
+          `SELECT so.id, so.created_at, so.signal_id, so.market_id, so.side, so.size_usd,
                 s.market_price AS entry_price, s.confidence, s.edge_bps, s.forecast_prob, s.source, s.metadata_json
          FROM ${SIZED_ORDERS_TABLE} so
          JOIN ${SIGNALS_TABLE} s ON s.id = so.signal_id
          WHERE so.status = 'pending'
-         ORDER BY so.created_at ASC`,
-        [],
-      );
+         ORDER BY so.created_at ASC
+         LIMIT ${POSITIONS_PAGE_SIZE}`,
+          [],
+        ),
+      ]);
+      const totalPending =
+        (countResult?.rows?.[0] as { cnt?: number } | undefined)?.cnt ?? 0;
       const rows = result?.rows ?? [];
+      const skipLivePrices =
+        SKIP_LIVE_PRICES_WHEN_CAPPED && totalPending > POSITIONS_PAGE_SIZE;
 
       const positions: PolymarketPaperPosition[] = [];
       for (const r of rows) {
@@ -124,6 +140,7 @@ export function buildDeskPositionsHandler() {
         let question = r.market_id.slice(0, 14) + "…";
 
         if (
+          !skipLivePrices &&
           discoveryService?.getMarketPrices &&
           discoveryService?.getMarketDetail
         ) {
@@ -196,6 +213,8 @@ export function buildDeskPositionsHandler() {
 
       res.status(200).json({
         positions,
+        totalPending,
+        livePricesSkipped: skipLivePrices,
         updatedAt: Date.now(),
       });
     } catch (e) {

@@ -464,6 +464,8 @@ export interface PolymarketDeskStatus {
   volumeTodayUsd: number;
   executionPnlTodayUsd: number;
   pendingSignalsCount: number;
+  /** Pending sized orders (open paper positions) from Risk */
+  pendingSizedOrdersCount?: number;
   updatedAt: number;
   error?: string;
   hint?: string;
@@ -522,6 +524,10 @@ export interface PolymarketPaperPosition {
 
 export interface PolymarketPaperPositionsResponse {
   positions: PolymarketPaperPosition[];
+  /** Total pending sized orders (list may be capped to avoid timeouts) */
+  totalPending?: number;
+  /** True when list was capped and live Polymarket prices were skipped (P&L ≈ 0) */
+  livePricesSkipped?: boolean;
   updatedAt: number;
   error?: string;
   hint?: string;
