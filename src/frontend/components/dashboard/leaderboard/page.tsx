@@ -69,6 +69,47 @@ import {
 } from "lucide-react";
 import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
+import type { PolymarketPaperPosition } from "@/frontend/lib/leaderboardsApi";
+
+/** Human-readable one-line "Why" for Polymarket paper position from known strategy metadata. */
+function polymarketWhyOneLiner(pos: PolymarketPaperPosition): string | null {
+  const m = pos.metadata;
+  if (!m || typeof m !== "object") return null;
+  const strat = (m.strategy ?? pos.strategy) as string | undefined;
+  const edgeBps = (m.edge_bps ?? pos.edgeBps) as number | undefined;
+  const edgeStr =
+    edgeBps != null
+      ? ` Edge ${edgeBps >= 0 ? "+" : ""}${edgeBps} bps vs market.`
+      : "";
+  if (strat === "model_fair_value") {
+    const spot = m.spot as number | undefined;
+    const strikeUsd = m.strikeUsd as number | undefined;
+    const vol = m.volatility as number | undefined;
+    if (spot != null && strikeUsd != null)
+      return `Model fair value: spot $${Number(spot).toLocaleString()}, strike $${Number(strikeUsd).toLocaleString()}${vol != null ? `, vol ${(Number(vol) * 100).toFixed(0)}%` : ""}.${edgeStr}`;
+  }
+  if (strat === "overreaction") {
+    const fav = m.favoritePrice as number | undefined;
+    const under = m.underdogPrice as number | undefined;
+    const vel = m.velocityPct as number | undefined;
+    if (fav != null && under != null)
+      return `Overreaction: favorite ${(Number(fav) * 100).toFixed(1)}%, underdog ${(Number(under) * 100).toFixed(1)}%${vel != null ? `, velocity ${Number(vel).toFixed(1)}%` : ""}.${edgeStr}`;
+  }
+  if (strat === "synth") {
+    const asset = m.asset as string | undefined;
+    const source = m.synthSource as string | undefined;
+    return `Synth: ${asset ?? "—"} from ${source ?? "—"}.${edgeStr}`;
+  }
+  if (
+    m.source === "POLYMARKET_EDGE_CHECK" ||
+    strat === "POLYMARKET_EDGE_CHECK"
+  ) {
+    const asset = m.asset as string | undefined;
+    const conditionId = m.conditionId as string | undefined;
+    return `Synth vs market (edge check). Asset: ${asset ?? "—"}${conditionId ? `, condition: ${String(conditionId).slice(0, 10)}…` : ""}.${edgeStr}`;
+  }
+  return null;
+}
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
 
@@ -3202,107 +3243,123 @@ export default function LeaderboardPage({
                     </p>
                   ) : (
                     <div className="space-y-4">
-                      {(deskPositionsData?.positions ?? []).map((pos) => (
-                        <div
-                          key={pos.id}
-                          className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={cn(
-                                "font-semibold",
-                                pos.side === "YES"
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400",
-                              )}
-                            >
-                              {pos.side}{" "}
-                              {pos.question.length > 60
-                                ? pos.question.slice(0, 60) + "…"
-                                : pos.question}
-                            </span>
-                            <span className="text-muted-foreground text-sm">
-                              Entry {(pos.entryPrice * 100).toFixed(1)}%
-                            </span>
-                            <span
-                              className={cn(
-                                "font-mono font-medium",
-                                (pos.unrealizedPnl ?? 0) >= 0
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400",
-                              )}
-                            >
-                              P&L {pos.unrealizedPnl >= 0 ? "+" : ""}$
-                              {pos.unrealizedPnl.toFixed(2)} (
-                              {pos.unrealizedPnlPct >= 0 ? "+" : ""}
-                              {pos.unrealizedPnlPct.toFixed(2)}%)
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                            <span className="text-muted-foreground">
-                              Opened:{" "}
-                              {pos.openedAt
-                                ? new Date(pos.openedAt).toLocaleString(
-                                    undefined,
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    },
-                                  )
-                                : "—"}
-                            </span>
-                            <span className="text-muted-foreground">
-                              Size: ${pos.sizeUsd.toFixed(0)}
-                            </span>
-                            <span className="text-muted-foreground">
-                              Current: {(pos.currentPrice * 100).toFixed(1)}%
-                            </span>
-                            <span className="text-muted-foreground">
-                              Edge: {pos.edgeBps >= 0 ? "+" : ""}
-                              {pos.edgeBps} bps
-                            </span>
-                            <span className="text-muted-foreground">
-                              Strategy: {pos.strategy}
-                            </span>
-                          </div>
-                          {pos.metadata &&
-                          Object.keys(pos.metadata).length > 0 ? (
+                      {(deskPositionsData?.positions ?? []).map((pos) => {
+                        const whyOneLiner = polymarketWhyOneLiner(pos);
+                        return (
+                          <div
+                            key={pos.id}
+                            className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={cn(
+                                  "font-semibold",
+                                  pos.side === "YES"
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400",
+                                )}
+                              >
+                                {pos.side}{" "}
+                                {pos.question.length > 60
+                                  ? pos.question.slice(0, 60) + "…"
+                                  : pos.question}
+                              </span>
+                              <span className="text-muted-foreground text-sm">
+                                Entry {(pos.entryPrice * 100).toFixed(1)}%
+                              </span>
+                              <span
+                                className={cn(
+                                  "font-mono font-medium",
+                                  (pos.unrealizedPnl ?? 0) >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400",
+                                )}
+                              >
+                                P&L {pos.unrealizedPnl >= 0 ? "+" : ""}$
+                                {pos.unrealizedPnl.toFixed(2)} (
+                                {pos.unrealizedPnlPct >= 0 ? "+" : ""}
+                                {pos.unrealizedPnlPct.toFixed(2)}%)
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                              <span className="text-muted-foreground">
+                                Opened:{" "}
+                                {pos.openedAt
+                                  ? new Date(pos.openedAt).toLocaleString(
+                                      undefined,
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    )
+                                  : "—"}
+                              </span>
+                              <span className="text-muted-foreground">
+                                Size: ${pos.sizeUsd.toFixed(0)}
+                              </span>
+                              <span className="text-muted-foreground">
+                                Current: {(pos.currentPrice * 100).toFixed(1)}%
+                              </span>
+                              <span className="text-muted-foreground">
+                                Edge: {pos.edgeBps >= 0 ? "+" : ""}
+                                {pos.edgeBps} bps
+                              </span>
+                              <span className="text-muted-foreground">
+                                Strategy: {pos.strategy}
+                              </span>
+                            </div>
                             <div className="text-sm">
                               <p className="font-medium text-foreground mb-1">
                                 Why this position
                               </p>
-                              <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                                {Object.entries(pos.metadata).map(
-                                  ([k, v]) =>
-                                    v != null &&
-                                    String(v).trim() !== "" && (
-                                      <li key={k}>
-                                        {k.replace(/_/g, " ")}:{" "}
-                                        {typeof v === "object"
-                                          ? JSON.stringify(v)
-                                          : String(v)}
-                                      </li>
-                                    ),
-                                )}
-                              </ul>
+                              {whyOneLiner && (
+                                <p className="text-muted-foreground mb-1">
+                                  {whyOneLiner}
+                                </p>
+                              )}
+                              {pos.metadata?._fallback === true && (
+                                <p className="text-muted-foreground italic mb-1">
+                                  Derived from position (signal rationale not
+                                  stored).
+                                </p>
+                              )}
+                              {pos.metadata &&
+                              Object.keys(pos.metadata).length > 0 ? (
+                                <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                                  {Object.entries(pos.metadata)
+                                    .filter(([k]) => k !== "_fallback")
+                                    .map(
+                                      ([k, v]) =>
+                                        v != null &&
+                                        String(v).trim() !== "" && (
+                                          <li key={k}>
+                                            {k.replace(/_/g, " ")}:{" "}
+                                            {typeof v === "object"
+                                              ? JSON.stringify(v)
+                                              : String(v)}
+                                          </li>
+                                        ),
+                                    )}
+                                </ul>
+                              ) : (
+                                <p className="text-muted-foreground">
+                                  — (no rationale stored)
+                                </p>
+                              )}
                             </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              Why this position: — (no rationale stored)
-                            </p>
-                          )}
-                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                            <span>
-                              Confidence {(pos.confidence * 100).toFixed(0)}%
-                            </span>
-                            <span>
-                              Forecast {(pos.forecastProb * 100).toFixed(1)}%
-                            </span>
+                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                              <span>
+                                Confidence {(pos.confidence * 100).toFixed(0)}%
+                              </span>
+                              <span>
+                                Forecast {(pos.forecastProb * 100).toFixed(1)}%
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </DashboardCard>

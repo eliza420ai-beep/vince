@@ -159,6 +159,15 @@ export function buildDeskPositionsHandler() {
             // ignore
           }
         }
+        if (!metadata || Object.keys(metadata).length === 0) {
+          metadata = {
+            _fallback: true,
+            strategy: r.source ?? "unknown",
+            edge_bps: r.edge_bps,
+            forecast_prob: r.forecast_prob,
+            entry_price_pct: Math.round(entryPrice * 1000) / 10,
+          };
+        }
 
         positions.push({
           id: r.id,
