@@ -138,6 +138,22 @@ export const polymarketRiskApproveAction: Action = {
         return { text, success: true };
       }
 
+      // Dedup: skip if a pending sized_order already exists for this market
+      const dupOrder = await client.query(
+        `SELECT id FROM ${SIZED_ORDERS_TABLE} WHERE market_id = $1 AND status = 'pending' LIMIT 1`,
+        [signal.market_id],
+      );
+      if (dupOrder.rows && dupOrder.rows.length > 0) {
+        await client.query(
+          `UPDATE ${SIGNALS_TABLE} SET status = 'skipped' WHERE id = $1`,
+          [signal.id],
+        );
+        const text = ` Market ${signal.market_id.slice(0, 14)}… already has a pending order — signal ${signal.id.slice(0, 8)}… skipped.`;
+        logger.info(`[POLYMARKET_RISK_APPROVE] ${text}`);
+        if (callback) await callback({ text });
+        return { text, success: true };
+      }
+
       const bankrollUsd =
         Number(runtime.getSetting?.("POLYMARKET_DESK_BANKROLL_USD") ?? 0) ||
         1000;

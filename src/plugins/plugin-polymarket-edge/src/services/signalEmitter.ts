@@ -35,6 +35,38 @@ export async function emitSignal(
     query: (text: string, values?: unknown[]) => Promise<unknown>;
   };
 
+  // Dedup: skip if a pending/approved signal OR a pending sized_order already
+  // exists for the same market — prevents stacking duplicate positions.
+  try {
+    const dupSig = await client.query(
+      `SELECT id FROM ${DESK_SIGNALS_TABLE} WHERE market_id = $1 AND status IN ('pending','approved') LIMIT 1`,
+      [signal.market_id],
+    );
+    const sigRows = (dupSig as { rows?: { id: string }[] }).rows;
+    if (sigRows && sigRows.length > 0) {
+      logger.debug(
+        `[SignalEmitter] Skipping — pending signal exists for market ${signal.market_id.slice(0, 14)}…`,
+      );
+      return null;
+    }
+    const dupOrder = await client.query(
+      `SELECT id FROM plugin_polymarket_desk.sized_orders WHERE market_id = $1 AND status = 'pending' LIMIT 1`,
+      [signal.market_id],
+    );
+    const orderRows = (dupOrder as { rows?: { id: string }[] }).rows;
+    if (orderRows && orderRows.length > 0) {
+      logger.debug(
+        `[SignalEmitter] Skipping — pending order exists for market ${signal.market_id.slice(0, 14)}…`,
+      );
+      return null;
+    }
+  } catch (e) {
+    logger.debug(
+      "[SignalEmitter] Dedup check failed, proceeding: " +
+        (e instanceof Error ? e.message : String(e)),
+    );
+  }
+
   const metadataJson =
     signal.metadata && Object.keys(signal.metadata).length > 0
       ? JSON.stringify(signal.metadata)
