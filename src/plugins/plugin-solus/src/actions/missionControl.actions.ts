@@ -1,6 +1,6 @@
 /**
  * Mission Control Actions
- * 
+ *
  * Actions to interact with Mission Control:
  * - Register Satoshi agent
  * - Create research board
@@ -11,6 +11,7 @@
 import {
   type Action,
   type ActionExample,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -24,13 +25,16 @@ export const mcRegisterSatoshiAction: Action = {
   examples: [
     [
       {
-        user: "Register me in Mission Control",
+        name: "{{name1}}",
         content: { text: "Register Satoshi in Mission Control" },
       },
     ],
   ],
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content?.text?.toLowerCase() || "";
     return text.includes("register") && text.includes("mission control");
   },
@@ -39,13 +43,15 @@ export const mcRegisterSatoshiAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<boolean> => {
-    const mc = runtime.getService<MissionControlService>("MISSION_CONTROL_SERVICE");
+  ): Promise<void | ActionResult> => {
+    const mc = runtime.getService<MissionControlService>(
+      "MISSION_CONTROL_SERVICE",
+    );
 
     if (!mc || !mc.isConfigured()) {
       console.log("⚠️ Mission Control not configured");
       console.log("Set MISSION_CONTROL_TOKEN in environment");
-      return false;
+      return { success: false, error: "mission_control_not_configured" };
     }
 
     try {
@@ -54,7 +60,7 @@ export const mcRegisterSatoshiAction: Action = {
       if (existing) {
         console.log(`✅ Satoshi already registered: ${existing.id}`);
         console.log(`   Status: ${existing.status}`);
-        return true;
+        return { success: true };
       }
 
       // Register Satoshi
@@ -73,10 +79,10 @@ export const mcRegisterSatoshiAction: Action = {
         console.log(`   Name: ${board.name}`);
       }
 
-      return true;
+      return { success: true };
     } catch (e) {
       logger.error("[MCRegister] Error: " + (e as Error).message);
-      return false;
+      return { success: false, error: (e as Error).message };
     }
   },
 };
@@ -87,17 +93,20 @@ export const mcAssignTaskAction: Action = {
   examples: [
     [
       {
-        user: "Research NVDA",
+        name: "{{name1}}",
         content: { text: "Assign task: Research NVDA stock" },
       },
       {
-        user: "analyze TSLA",
+        name: "{{name2}}",
         content: { text: "Create task to analyze Tesla" },
       },
     ],
   ],
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content?.text?.toLowerCase() || "";
     return text.includes("task") || text.includes("assign");
   },
@@ -106,35 +115,37 @@ export const mcAssignTaskAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<boolean> => {
-    const mc = runtime.getService<MissionControlService>("MISSION_CONTROL_SERVICE");
+  ): Promise<void | ActionResult> => {
+    const mc = runtime.getService<MissionControlService>(
+      "MISSION_CONTROL_SERVICE",
+    );
 
     if (!mc || !mc.isConfigured()) {
       console.log("⚠️ Mission Control not configured");
-      return false;
+      return { success: false, error: "mission_control_not_configured" };
     }
 
     const text = message.content?.text || "";
 
     // Extract task from message
-    const taskMatch = text.match(/(?:research|analyze|investigate|deep dive)\s+(\w+)/i);
+    const taskMatch = text.match(
+      /(?:research|analyze|investigate|deep dive)\s+(\w+)/i,
+    );
     const ticker = taskMatch ? taskMatch[1].toUpperCase() : null;
 
     if (!ticker) {
       console.log("⚠️ Could not extract ticker from message");
-      return false;
+      return { success: false, error: "could_not_extract_ticker" };
     }
 
     try {
       // Find Satoshi's board
       const boards = await mc.listBoards();
-      const satoshiBoard = boards.find(
-        (b) => b.name === "Satoshi Research"
-      );
+      const satoshiBoard = boards.find((b) => b.name === "Satoshi Research");
 
       if (!satoshiBoard) {
         console.log("⚠️ Satoshi Research board not found");
-        return false;
+        return { success: false, error: "satoshi_board_not_found" };
       }
 
       // Create task
@@ -151,10 +162,10 @@ export const mcAssignTaskAction: Action = {
         console.log(`   ID: ${task.id}`);
       }
 
-      return true;
+      return { success: true };
     } catch (e) {
       logger.error("[MCAssignTask] Error: " + (e as Error).message);
-      return false;
+      return { success: false, error: (e as Error).message };
     }
   },
 };
@@ -165,13 +176,16 @@ export const mcListTasksAction: Action = {
   examples: [
     [
       {
-        user: "Show tasks",
+        name: "{{name1}}",
         content: { text: "What tasks do I have?" },
       },
     ],
   ],
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content?.text?.toLowerCase() || "";
     return text.includes("task") || text.includes("todo");
   },
@@ -180,12 +194,14 @@ export const mcListTasksAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<boolean> => {
-    const mc = runtime.getService<MissionControlService>("MISSION_CONTROL_SERVICE");
+  ): Promise<void | ActionResult> => {
+    const mc = runtime.getService<MissionControlService>(
+      "MISSION_CONTROL_SERVICE",
+    );
 
     if (!mc || !mc.isConfigured()) {
       console.log("⚠️ Mission Control not configured");
-      return false;
+      return { success: false, error: "mission_control_not_configured" };
     }
 
     try {
@@ -201,10 +217,10 @@ export const mcListTasksAction: Action = {
         }
       }
 
-      return true;
+      return { success: true };
     } catch (e) {
       logger.error("[MCListTasks] Error: " + (e as Error).message);
-      return false;
+      return { success: false, error: (e as Error).message };
     }
   },
 };

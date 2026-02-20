@@ -369,6 +369,70 @@ export interface PolymarketArbStatusFetchResult {
   status: number | null;
 }
 
+/** One Polymarket latency arb trade (paper or live) */
+export interface PolymarketArbTradeItem {
+  id: string;
+  createdAt: string;
+  conditionId: string;
+  tokenId: string;
+  side: string;
+  btcSpotPrice: number | null;
+  contractPrice: number | null;
+  edgePct: number | null;
+  sizeUsd: number | null;
+  fillPrice: number | null;
+  pnlUsd: number | null;
+  status: string;
+  exitPrice: number | null;
+  exitReason: string | null;
+}
+
+export interface PolymarketArbTradesResponse {
+  trades: PolymarketArbTradeItem[];
+  updatedAt: number;
+  hint?: string;
+  error?: string;
+}
+
+export interface PolymarketArbTradesFetchResult {
+  data: PolymarketArbTradesResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
+export async function fetchPolymarketArbTrades(
+  agentId: string,
+  limit?: number,
+): Promise<PolymarketArbTradesFetchResult> {
+  const base = window.location.origin;
+  const params = limit != null ? `?limit=${Math.min(limit, 100)}` : "";
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-arb/arb/trades${params}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketArbTradesResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
 export async function fetchPolymarketArbStatus(
   agentId: string,
 ): Promise<PolymarketArbStatusFetchResult> {
@@ -565,7 +629,20 @@ export interface PaperResponse {
   } | null;
   /** Last closed positions (contributingSources only) for "X contributed to N of K" */
   recentClosedTrades: Array<{ contributingSources?: string[] }>;
+  /** Recent closed trades with P&L (which trades, how much made) */
+  recentTrades: RecentTradeItem[];
   updatedAt: number;
+}
+
+export interface RecentTradeItem {
+  asset: string;
+  direction: string;
+  entryPrice: number;
+  exitPrice: number;
+  realizedPnl: number;
+  closeReason: string;
+  openedAt: number;
+  closedAt: number;
 }
 
 export async function fetchPaperWithError(agentId: string): Promise<{

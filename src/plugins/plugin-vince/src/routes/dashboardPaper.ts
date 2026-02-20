@@ -65,7 +65,20 @@ export interface PaperResponse {
   } | null;
   /** Last closed positions (contributingSources only) for "X contributed to N of K" */
   recentClosedTrades: Array<{ contributingSources?: string[] }>;
+  /** Recent closed trades with P&L for dashboard (which trades, how much made) */
+  recentTrades: RecentTradeItem[];
   updatedAt: number;
+}
+
+export interface RecentTradeItem {
+  asset: string;
+  direction: string;
+  entryPrice: number;
+  exitPrice: number;
+  realizedPnl: number;
+  closeReason: string;
+  openedAt: number;
+  closedAt: number;
 }
 
 const emptyPortfolio: Portfolio = {
@@ -103,6 +116,7 @@ export async function buildPaperResponse(
       signalStatus: null,
       banditSummary: null,
       recentClosedTrades: [],
+      recentTrades: [],
       updatedAt: Date.now(),
     };
   }
@@ -165,6 +179,21 @@ export async function buildPaperResponse(
 
   const recentClosedTrades = paperTrading?.getRecentClosedTrades?.() ?? [];
 
+  const tradeJournal = runtime.getService(
+    "VINCE_TRADE_JOURNAL_SERVICE",
+  ) as { getRecentTrades?: (count: number) => { entry: { asset: string; direction: string; price: number; timestamp: number }; exit?: { price: number; realizedPnl?: number; closeReason?: string; timestamp: number } }[] } | null;
+  const recentTradesRaw = tradeJournal?.getRecentTrades?.(30) ?? [];
+  const recentTrades: RecentTradeItem[] = recentTradesRaw.map((t) => ({
+    asset: t.entry.asset,
+    direction: t.entry.direction,
+    entryPrice: t.entry.price,
+    exitPrice: t.exit?.price ?? t.entry.price,
+    realizedPnl: t.exit?.realizedPnl ?? 0,
+    closeReason: t.exit?.closeReason ?? "—",
+    openedAt: t.entry.timestamp,
+    closedAt: t.exit?.timestamp ?? t.entry.timestamp,
+  }));
+
   return {
     openPositions,
     portfolio,
@@ -176,6 +205,7 @@ export async function buildPaperResponse(
     signalStatus,
     banditSummary,
     recentClosedTrades,
+    recentTrades,
     updatedAt: Date.now(),
   };
 }

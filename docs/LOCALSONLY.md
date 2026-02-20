@@ -2,7 +2,7 @@
 
 **TL;DR:** The EXO Inference Cluster runs inference locally: prefill on a DGX Spark, decode on Mac Studio and MacBook Pro, with models on NAS, all orchestrated by a Mac Mini M4 running OpenCLAW. You get low-latency, private, controllable inference with no third-party API rate limits; cost is front-loaded (hardware) instead of ongoing cloud API spend.
 
-**Contents:** [Architecture](#architecture) · [exo (local AI cluster)](#exo-local-ai-cluster) · [Use cases](#use-cases) · [WHY this setup](#why-this-setup) · [Cost](#cost) · [Caveats: mistakes in local vs API comparisons](#caveats-mistakes-in-local-vs-api-comparisons) · [Relation to VINCE](#relation-to-vince) · [Idle Mac Minis and the privacy wall](#idle-mac-minis-and-the-privacy-wall) · [Links](#links)
+**Contents:** [Architecture](#architecture) · [exo (local AI cluster)](#exo-local-ai-cluster) · [Models and OpenClaw footprint](#models-and-openclaw-footprint) · [Use cases](#use-cases) · [WHY this setup](#why-this-setup) · [Cost](#cost) · [Caveats: mistakes in local vs API comparisons](#caveats-mistakes-in-local-vs-api-comparisons) · [Relation to VINCE](#relation-to-vince) · [Idle Mac Minis and the privacy wall](#idle-mac-minis-and-the-privacy-wall) · [Links](#links)
 
 ---
 
@@ -15,12 +15,12 @@ The setup has two parts: the **EXO Inference Cluster** (compute and storage) and
 | Component        | Role          | Specs                                                         |
 | ---------------- | ------------- | ------------------------------------------------------------- |
 | **DGX SPARK**    | Prefill       | 128GB memory, ~100 TFLOPs                                     |
-| **MAC STUDIO**   | Decode        | 512GB memory, 819 GB/s bandwidth                              |
+| **MAC STUDIO**   | Decode        | 3× 512GB memory, 819 GB/s bandwidth each                     |
 | **MACBOOK PRO**  | Decode        | 128GB memory, 400 GB/s bandwidth                              |
 | **NAS**          | Model storage | Network-attached; shared model store                          |
 | **10GbE Switch** | Network       | Connects all nodes (Mac Studio 10GbE; MacBook Pro WiFi/10GbE) |
 
-**Cluster totals:** 768GB memory, ~140 TFLOPs, ~1.5 TB/s bandwidth.
+**Cluster totals:** 1.8TB+ memory (3× 512GB Studio + DGX + MBP), ~140 TFLOPs, ~1.5 TB/s bandwidth.
 
 ### Orchestrator
 
@@ -63,11 +63,34 @@ Use exo on the cluster nodes (e.g. Mac Studio, MacBook Pro) for distributed infe
 
 ---
 
+## Models and OpenClaw footprint
+
+**Orchestration:** 4 OpenClaws across 3 Mac Studios and 1 Mac Mini—coding, writing, researching, reading, 24/7.
+
+| Model                     | Footprint        | Notes                                              |
+| ------------------------- | ----------------- | -------------------------------------------------- |
+| **Kimi K2.5**             | 600GB (all 3 Studios, via EXO) | Shared across cluster                             |
+| **MiniMax 2.5**           | 120GB (one Studio) | Reddit scanning, prototype generation              |
+| **Qwen 3.5**              | 220GB (one Studio) | X API trending, vibe coding, video scripts          |
+| **GOT OSS 120B Heretic**   | 60GB (one Studio)  | Fully uncensored OSS 120B                           |
+
+No cloud APIs. No API bills. No tech executives reading your logs. Totally customizable and private. Unlimited economic power sitting on-prem.
+
+---
+
 ## Use cases
 
 ### Exported conversations → one self-hosted agent (Mac Mini)
 
 Export your conversations from ChatGPT and Claude, merge them into a single self-hosted agent running on a Mac Mini (or the cluster). **You own the data. You control the model. It evolves with you.** No vendor lock-in; fine-tune or prompt from your own history on your own hardware.
+
+### Autonomous agent workflows (OpenClaw)
+
+- **Kimi K2.5 — product manager:** Reads feature requests for Creator Buddy and builds out the feature requests autonomously. Personal product manager, no human in the loop until review.
+- **MiniMax 2.5 — Reddit → prototypes:** Reads Reddit all day for challenges to solve, then builds prototypes for review every morning. All autonomously.
+- **Qwen 3.5 — X → video scripts:** Hits the X API every hour for top trending posts in AI, vibe-codes them into video scripts for hourly review. (Already produced one script with 100k+ views on YouTube.)
+
+Three heavy models coding, writing, researching, and reading 24/7 across 4 OpenClaws on 3 Mac Studios and a Mac Mini. This is the future, running before it arrives.
 
 ### VINCE repo agents ([src/agents/](src/agents/)) on the same cluster
 

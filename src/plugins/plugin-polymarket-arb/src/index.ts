@@ -11,6 +11,7 @@ import { arbSchema } from "./schema/arb";
 import { arbStatusAction } from "./actions/arbStatus.action";
 import { arbControlAction } from "./actions/arbControl.action";
 import { buildArbStatusHandler } from "./routes/arbStatus";
+import { buildArbTradesHandler } from "./routes/arbTrades";
 import { BinanceSpotWsService } from "./services/binanceSpotWs.service";
 import { PolymarketClobWsService } from "./services/polymarketClobWs.service";
 import { ArbEngineService } from "./services/arbEngine.service";
@@ -28,6 +29,12 @@ export const pluginPolymarketArb: Plugin = {
       path: "/arb/status",
       type: "GET",
       handler: buildArbStatusHandler(),
+    },
+    {
+      name: "arb-trades",
+      path: "/arb/trades",
+      type: "GET",
+      handler: buildArbTradesHandler(),
     },
   ],
 

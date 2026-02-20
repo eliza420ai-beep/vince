@@ -35,6 +35,7 @@ import {
   submitKnowledgeUpload,
   fetchPolymarketPriorityMarkets,
   fetchPolymarketArbStatus,
+  fetchPolymarketArbTrades,
   fetchSubstackPostsWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
@@ -322,6 +323,19 @@ export default function LeaderboardPage({
     refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
   });
   const arbStatus = arbStatusResult?.data ?? null;
+
+  const {
+    data: arbTradesResult,
+    isLoading: arbTradesLoading,
+    isFetching: arbTradesFetching,
+  } = useQuery({
+    queryKey: ["polymarket-arb-trades", oracleAgentId],
+    queryFn: () => fetchPolymarketArbTrades(oracleAgentId!, 50),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const arbTradesData = arbTradesResult?.data ?? null;
 
   // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
   const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
@@ -3026,6 +3040,105 @@ export default function LeaderboardPage({
                 </DashboardCard>
               )}
 
+              {/* Polymarket trading bot — Recent trades */}
+              {oracleAgentId && (
+                <DashboardCard title="Polymarket trading bot — Recent trades">
+                  {(arbTradesLoading || arbTradesFetching) && !arbTradesData ? (
+                    <p className="text-sm text-muted-foreground">
+                      Loading trades…
+                    </p>
+                  ) : (arbTradesData?.trades?.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">
+                      No arb trades yet. Trades appear here when the latency arb
+                      bot executes (paper or live). Ensure the bot is running
+                      and DB is configured (plugin_polymarket_arb.arb_trades).
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground uppercase">
+                            <th className="pb-2 pr-3">Time</th>
+                            <th className="pb-2 pr-3">Side</th>
+                            <th className="pb-2 pr-3">BTC spot</th>
+                            <th className="pb-2 pr-3">Contract</th>
+                            <th className="pb-2 pr-3">Edge %</th>
+                            <th className="pb-2 pr-3">Size $</th>
+                            <th className="pb-2 pr-3 text-right">P&L $</th>
+                            <th className="pb-2 pr-3">Status</th>
+                            <th className="pb-2">Exit reason</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(arbTradesData?.trades ?? []).map((t) => (
+                            <tr
+                              key={t.id}
+                              className="border-b border-border/50"
+                            >
+                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                {t.createdAt
+                                  ? new Date(t.createdAt).toLocaleString(
+                                      undefined,
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    )
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">{t.side}</td>
+                              <td className="py-2 pr-3 font-mono">
+                                {t.btcSpotPrice != null
+                                  ? `$${t.btcSpotPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {t.contractPrice != null
+                                  ? (t.contractPrice * 100).toFixed(1) + "%"
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {t.edgePct != null
+                                  ? `${t.edgePct >= 0 ? "+" : ""}${t.edgePct.toFixed(1)}%`
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {t.sizeUsd != null
+                                  ? `$${t.sizeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                                  : "—"}
+                              </td>
+                              <td
+                                className={cn(
+                                  "py-2 pr-3 text-right font-mono font-medium",
+                                  (t.pnlUsd ?? 0) >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : (t.pnlUsd ?? 0) < 0
+                                      ? "text-red-600 dark:text-red-400"
+                                      : "text-muted-foreground",
+                                )}
+                              >
+                                {t.pnlUsd != null
+                                  ? `${t.pnlUsd >= 0 ? "+" : ""}$${t.pnlUsd.toFixed(2)}`
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3">{t.status}</td>
+                              <td
+                                className="py-2 text-muted-foreground max-w-[140px] truncate"
+                                title={t.exitReason ?? undefined}
+                              >
+                                {t.exitReason ?? "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </DashboardCard>
+              )}
+
               {/* Why we track — static fallback + API copy when available */}
               <DashboardCard title="Why we track these markets">
                 <p className="text-sm font-medium text-foreground/95">
@@ -4155,6 +4268,92 @@ export default function LeaderboardPage({
                           </p>
                         </div>
                       </div>
+                    </DashboardCard>
+
+                    {/* Recent trades: which trades the bot made and how much P&L */}
+                    <DashboardCard title="Recent trades">
+                      {(paperData.recentTrades?.length ?? 0) === 0 ? (
+                        <p className="text-muted-foreground py-4 text-sm">
+                          No closed trades yet. Realized P&L and trade list will
+                          appear here as the paper bot closes positions.
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground uppercase">
+                                <th className="pb-2 pr-3">Asset</th>
+                                <th className="pb-2 pr-3">Side</th>
+                                <th className="pb-2 pr-3">Entry → Exit</th>
+                                <th className="pb-2 pr-3 text-right">P&L</th>
+                                <th className="pb-2 pr-3">Close reason</th>
+                                <th className="pb-2">Closed</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(paperData.recentTrades ?? []).map((t, i) => (
+                                <tr
+                                  key={`${t.asset}-${t.closedAt}-${i}`}
+                                  className="border-b border-border/50"
+                                >
+                                  <td className="py-2 pr-3 font-mono">
+                                    {t.asset}
+                                  </td>
+                                  <td className="py-2 pr-3 capitalize">
+                                    {t.direction}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono text-muted-foreground">
+                                    $
+                                    {t.entryPrice.toLocaleString(undefined, {
+                                      maximumFractionDigits: 0,
+                                    })}{" "}
+                                    → $
+                                    {t.exitPrice.toLocaleString(undefined, {
+                                      maximumFractionDigits: 0,
+                                    })}
+                                  </td>
+                                  <td
+                                    className={cn(
+                                      "py-2 pr-3 text-right font-mono font-medium",
+                                      (t.realizedPnl ?? 0) >= 0
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    {(t.realizedPnl ?? 0) >= 0 ? "+" : ""}$
+                                    {(t.realizedPnl ?? 0).toLocaleString(
+                                      undefined,
+                                      {
+                                        maximumFractionDigits: 2,
+                                        minimumFractionDigits: 2,
+                                      },
+                                    )}
+                                  </td>
+                                  <td
+                                    className="py-2 pr-3 text-muted-foreground max-w-[120px] truncate"
+                                    title={t.closeReason}
+                                  >
+                                    {t.closeReason || "—"}
+                                  </td>
+                                  <td className="py-2 text-muted-foreground whitespace-nowrap">
+                                    {t.closedAt
+                                      ? new Date(t.closedAt).toLocaleString(
+                                          undefined,
+                                          {
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          },
+                                        )
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </DashboardCard>
 
                     {/* Goal Progress */}
