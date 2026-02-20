@@ -51,11 +51,21 @@ if (!loaded && typeof process.stdout?.write === "function") {
   );
 }
 
-// Normalize deprecated Anthropic model IDs so plugins that read ANTHROPIC_LARGE_MODEL
-// directly (e.g. @elizaos/plugin-anthropic) never send invalid model names to the API.
-const DEPRECATED_ANTHROPIC_MODELS = new Set(["claude-3-5-haiku-20241022"]);
-const DEFAULT_ANTHROPIC_LARGE = "claude-sonnet-4-20250514";
-const anthropicModel = process.env.ANTHROPIC_LARGE_MODEL?.trim();
-if (anthropicModel && DEPRECATED_ANTHROPIC_MODELS.has(anthropicModel)) {
-  process.env.ANTHROPIC_LARGE_MODEL = DEFAULT_ANTHROPIC_LARGE;
+// @elizaos/plugin-anthropic <=1.5.12 hardcodes "claude-3-5-haiku-20241022" as the
+// TEXT_SMALL default. That model is deprecated and 404s on the Anthropic API.
+// Force ANTHROPIC_SMALL_MODEL so the plugin never falls back to it.
+if (!process.env.ANTHROPIC_SMALL_MODEL?.trim()) {
+  process.env.ANTHROPIC_SMALL_MODEL = "claude-haiku-4-20250414";
+}
+
+// Also normalize ANTHROPIC_LARGE_MODEL if set to a deprecated value.
+const DEPRECATED_MODELS = new Set(["claude-3-5-haiku-20241022"]);
+for (const key of ["ANTHROPIC_LARGE_MODEL", "ANTHROPIC_SMALL_MODEL"]) {
+  const val = process.env[key]?.trim();
+  if (val && DEPRECATED_MODELS.has(val)) {
+    process.env[key] =
+      key === "ANTHROPIC_SMALL_MODEL"
+        ? "claude-haiku-4-20250414"
+        : "claude-sonnet-4-20250514";
+  }
 }
