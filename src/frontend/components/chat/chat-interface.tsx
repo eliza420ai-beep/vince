@@ -225,6 +225,13 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     },
     { label: "$100K Plan", message: "full $100K plan" },
     { label: "What's Your Call?", message: "what's your call?" },
+    // Stock research (Finnhub + FMP)
+    { label: "Analyze NVDA", message: "analyze NVDA" },
+    { label: "Analyze TSLA", message: "analyze TSLA" },
+    { label: "Analyze AMD", message: "analyze AMD" },
+    { label: "Analyze AAPL", message: "analyze AAPL" },
+    { label: "Earnings Calendar", message: "earnings calendar" },
+    { label: "Sector: AI Infra", message: "What's the latest on AI infrastructure stocks?" },
   ],
   // Sentinel (CTO): core dev, ops, cost, ONNX, clawdbot, project radar.
   sentinel: [
