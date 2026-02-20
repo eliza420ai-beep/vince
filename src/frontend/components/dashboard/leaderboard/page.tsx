@@ -38,6 +38,7 @@ import {
   fetchPolymarketEdgeSignals,
   fetchPolymarketDeskStatus,
   fetchPolymarketDeskTrades,
+  fetchPolymarketDeskPositions,
   fetchSubstackPostsWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
@@ -364,6 +365,19 @@ export default function LeaderboardPage({
     refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
   });
   const deskTradesData = deskTradesResult?.data ?? null;
+
+  const {
+    data: deskPositionsResult,
+    isLoading: deskPositionsLoading,
+    isFetching: deskPositionsFetching,
+  } = useQuery({
+    queryKey: ["polymarket-desk-positions", oracleAgentId],
+    queryFn: () => fetchPolymarketDeskPositions(oracleAgentId!),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const deskPositionsData = deskPositionsResult?.data ?? null;
 
   // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
   const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
@@ -3075,37 +3089,220 @@ export default function LeaderboardPage({
                   {(deskStatusLoading || deskStatusFetching) && !deskStatus ? (
                     <p className="text-sm text-muted-foreground">Loading…</p>
                   ) : deskStatus ? (
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                      <span className="font-medium text-foreground">
-                        Trades today: {deskStatus.tradesToday}
-                      </span>
-                      <span className="text-muted-foreground">
-                        Volume: $
-                        {deskStatus.volumeTodayUsd.toLocaleString(undefined, {
-                          maximumFractionDigits: 0,
-                        })}
-                      </span>
-                      <span
-                        className={cn(
-                          "font-mono font-medium",
-                          (deskStatus.executionPnlTodayUsd ?? 0) >= 0
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400",
-                        )}
-                      >
-                        Execution P&L: $
-                        {(deskStatus.executionPnlTodayUsd ?? 0).toFixed(2)}
-                      </span>
-                      {deskStatus.pendingSignalsCount > 0 && (
-                        <span className="text-muted-foreground">
-                          Pending signals: {deskStatus.pendingSignalsCount}
+                    <>
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <span className="font-medium text-foreground">
+                          Trades today: {deskStatus.tradesToday}
                         </span>
-                      )}
-                    </div>
+                        <span className="text-muted-foreground">
+                          Volume: $
+                          {deskStatus.volumeTodayUsd.toLocaleString(undefined, {
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
+                        <span
+                          className={cn(
+                            "font-mono font-medium",
+                            deskStatus.tradesToday === 0
+                              ? "text-muted-foreground"
+                              : (deskStatus.executionPnlTodayUsd ?? 0) >= 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400",
+                          )}
+                        >
+                          Execution P&L:{" "}
+                          {deskStatus.tradesToday === 0 ? (
+                            <>
+                              —{" "}
+                              <span className="text-xs font-normal">
+                                (no fills yet)
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              $
+                              {(deskStatus.executionPnlTodayUsd ?? 0).toFixed(
+                                2,
+                              )}
+                              <span className="text-xs font-normal text-muted-foreground ml-0.5">
+                                (paper)
+                              </span>
+                            </>
+                          )}
+                        </span>
+                        {(deskPositionsData?.positions?.length ?? 0) > 0 && (
+                          <>
+                            <span className="text-muted-foreground">
+                              Open positions:{" "}
+                              {deskPositionsData?.positions?.length ?? 0}
+                            </span>
+                            <span
+                              className={cn(
+                                "font-mono font-medium",
+                                (deskPositionsData?.positions?.reduce(
+                                  (s, p) => s + p.unrealizedPnl,
+                                  0,
+                                ) ?? 0) >= 0
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400",
+                              )}
+                            >
+                              Paper P&L:{" "}
+                              {(deskPositionsData?.positions?.reduce(
+                                (s, p) => s + p.unrealizedPnl,
+                                0,
+                              ) ?? 0) >= 0
+                                ? "+"
+                                : ""}
+                              $
+                              {(
+                                deskPositionsData?.positions?.reduce(
+                                  (s, p) => s + p.unrealizedPnl,
+                                  0,
+                                ) ?? 0
+                              ).toFixed(2)}
+                            </span>
+                          </>
+                        )}
+                        {deskStatus.pendingSignalsCount > 0 && (
+                          <span className="text-muted-foreground">
+                            Pending signals: {deskStatus.pendingSignalsCount}
+                          </span>
+                        )}
+                      </div>
+                      {deskStatus.tradesToday === 0 &&
+                        (deskPositionsData?.positions?.length ?? 0) === 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            P&L is from filled trades only. Once Risk → Otaku
+                            fills orders, paper gains/losses will appear here.
+                          </p>
+                        )}
+                    </>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       Desk not available or DB not configured.
                     </p>
+                  )}
+                </DashboardCard>
+              )}
+
+              {/* Open paper positions (pending sized orders with live P&L) */}
+              {oracleAgentId && (
+                <DashboardCard title="Open paper positions">
+                  {(deskPositionsLoading || deskPositionsFetching) &&
+                  !deskPositionsData ? (
+                    <p className="text-sm text-muted-foreground">
+                      Loading positions…
+                    </p>
+                  ) : (deskPositionsData?.positions?.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">
+                      No open paper positions. Pending sized orders appear here
+                      once Risk approves signals (signals → sized orders).
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {(deskPositionsData?.positions ?? []).map((pos) => (
+                        <div
+                          key={pos.id}
+                          className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={cn(
+                                "font-semibold",
+                                pos.side === "YES"
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400",
+                              )}
+                            >
+                              {pos.side}{" "}
+                              {pos.question.length > 60
+                                ? pos.question.slice(0, 60) + "…"
+                                : pos.question}
+                            </span>
+                            <span className="text-muted-foreground text-sm">
+                              Entry {(pos.entryPrice * 100).toFixed(1)}%
+                            </span>
+                            <span
+                              className={cn(
+                                "font-mono font-medium",
+                                (pos.unrealizedPnl ?? 0) >= 0
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400",
+                              )}
+                            >
+                              P&L {pos.unrealizedPnl >= 0 ? "+" : ""}$
+                              {pos.unrealizedPnl.toFixed(2)} (
+                              {pos.unrealizedPnlPct >= 0 ? "+" : ""}
+                              {pos.unrealizedPnlPct.toFixed(2)}%)
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                            <span className="text-muted-foreground">
+                              Opened:{" "}
+                              {pos.openedAt
+                                ? new Date(pos.openedAt).toLocaleString(
+                                    undefined,
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )
+                                : "—"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              Size: ${pos.sizeUsd.toFixed(0)}
+                            </span>
+                            <span className="text-muted-foreground">
+                              Current: {(pos.currentPrice * 100).toFixed(1)}%
+                            </span>
+                            <span className="text-muted-foreground">
+                              Edge: {pos.edgeBps >= 0 ? "+" : ""}
+                              {pos.edgeBps} bps
+                            </span>
+                            <span className="text-muted-foreground">
+                              Strategy: {pos.strategy}
+                            </span>
+                          </div>
+                          {pos.metadata &&
+                          Object.keys(pos.metadata).length > 0 ? (
+                            <div className="text-sm">
+                              <p className="font-medium text-foreground mb-1">
+                                Why this position
+                              </p>
+                              <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                                {Object.entries(pos.metadata).map(
+                                  ([k, v]) =>
+                                    v != null &&
+                                    String(v).trim() !== "" && (
+                                      <li key={k}>
+                                        {k.replace(/_/g, " ")}:{" "}
+                                        {typeof v === "object"
+                                          ? JSON.stringify(v)
+                                          : String(v)}
+                                      </li>
+                                    ),
+                                )}
+                              </ul>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Why this position: — (no rationale stored)
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                            <span>
+                              Confidence {(pos.confidence * 100).toFixed(0)}%
+                            </span>
+                            <span>
+                              Forecast {(pos.forecastProb * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </DashboardCard>
               )}

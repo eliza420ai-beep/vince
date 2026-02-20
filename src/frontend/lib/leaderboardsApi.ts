@@ -499,6 +499,39 @@ export interface PolymarketDeskTradesFetchResult {
   status: number | null;
 }
 
+/** One open paper position (pending sized order with live P&L) */
+export interface PolymarketPaperPosition {
+  id: string;
+  signalId: string;
+  marketId: string;
+  question: string;
+  side: "YES" | "NO";
+  sizeUsd: number;
+  entryPrice: number;
+  currentPrice: number;
+  unrealizedPnl: number;
+  unrealizedPnlPct: number;
+  openedAt: string;
+  strategy: string;
+  edgeBps: number;
+  confidence: number;
+  forecastProb: number;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface PolymarketPaperPositionsResponse {
+  positions: PolymarketPaperPosition[];
+  updatedAt: number;
+  error?: string;
+  hint?: string;
+}
+
+export interface PolymarketPaperPositionsFetchResult {
+  data: PolymarketPaperPositionsResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
 export async function fetchPolymarketDeskStatus(
   agentId: string,
 ): Promise<PolymarketDeskStatusFetchResult> {
@@ -554,6 +587,37 @@ export async function fetchPolymarketDeskTrades(
     }
     return {
       data: body as PolymarketDeskTradesResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchPolymarketDeskPositions(
+  agentId: string,
+): Promise<PolymarketPaperPositionsFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-desk/desk/positions`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketPaperPositionsResponse,
       error: null,
       status: res.status,
     };

@@ -35,10 +35,14 @@ export async function emitSignal(
     query: (text: string, values?: unknown[]) => Promise<unknown>;
   };
 
+  const metadataJson =
+    signal.metadata && Object.keys(signal.metadata).length > 0
+      ? JSON.stringify(signal.metadata)
+      : null;
   try {
     await client.query(
-      `INSERT INTO plugin_polymarket_desk.signals (id, created_at, source, market_id, side, confidence, forecast_prob, market_price, edge_bps, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')`,
+      `INSERT INTO plugin_polymarket_desk.signals (id, created_at, source, market_id, side, confidence, forecast_prob, market_price, edge_bps, status, metadata_json)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10)`,
       [
         id,
         now,
@@ -49,6 +53,7 @@ export async function emitSignal(
         signal.forecast_prob,
         signal.market_price,
         signal.edge_bps,
+        metadataJson,
       ],
     );
   } catch (e) {
