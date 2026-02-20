@@ -34,8 +34,8 @@ import {
   fetchKnowledgeQualityResults,
   submitKnowledgeUpload,
   fetchPolymarketPriorityMarkets,
-  fetchPolymarketArbStatus,
-  fetchPolymarketArbTrades,
+  fetchPolymarketEdgeStatus,
+  fetchPolymarketEdgeSignals,
   fetchSubstackPostsWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
@@ -312,30 +312,30 @@ export default function LeaderboardPage({
   const polymarketError = polymarketResult?.error ?? null;
 
   const {
-    data: arbStatusResult,
-    isLoading: arbStatusLoading,
-    isFetching: arbStatusFetching,
+    data: edgeStatusResult,
+    isLoading: edgeStatusLoading,
+    isFetching: edgeStatusFetching,
   } = useQuery({
-    queryKey: ["polymarket-arb-status", oracleAgentId],
-    queryFn: () => fetchPolymarketArbStatus(oracleAgentId!),
+    queryKey: ["polymarket-edge-status", oracleAgentId],
+    queryFn: () => fetchPolymarketEdgeStatus(oracleAgentId!),
     enabled: mainTab === "polymarket" && !!oracleAgentId,
     staleTime: 30 * 1000,
     refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
   });
-  const arbStatus = arbStatusResult?.data ?? null;
+  const edgeStatus = edgeStatusResult?.data ?? null;
 
   const {
-    data: arbTradesResult,
-    isLoading: arbTradesLoading,
-    isFetching: arbTradesFetching,
+    data: edgeSignalsResult,
+    isLoading: edgeSignalsLoading,
+    isFetching: edgeSignalsFetching,
   } = useQuery({
-    queryKey: ["polymarket-arb-trades", oracleAgentId],
-    queryFn: () => fetchPolymarketArbTrades(oracleAgentId!, 50),
+    queryKey: ["polymarket-edge-signals", oracleAgentId],
+    queryFn: () => fetchPolymarketEdgeSignals(oracleAgentId!, 50),
     enabled: mainTab === "polymarket" && !!oracleAgentId,
     staleTime: 30 * 1000,
     refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
   });
-  const arbTradesData = arbTradesResult?.data ?? null;
+  const edgeSignalsData = edgeSignalsResult?.data ?? null;
 
   // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
   const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
@@ -2989,69 +2989,71 @@ export default function LeaderboardPage({
             className="mt-6 flex-1 min-h-0 overflow-auto"
           >
             <div className="space-y-6">
-              {/* Paper trading (latency arb) bot status */}
+              {/* Edge engine status (multi-strategy: overreaction, model fair value, Synth) */}
               {oracleAgentId && (
-                <DashboardCard title="Paper trading bot">
-                  {(arbStatusLoading || arbStatusFetching) && !arbStatus ? (
+                <DashboardCard title="Edge engine">
+                  {(edgeStatusLoading || edgeStatusFetching) && !edgeStatus ? (
                     <p className="text-sm text-muted-foreground">
                       Checking status…
                     </p>
-                  ) : arbStatus?.running ? (
+                  ) : edgeStatus?.running ? (
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                       <span
                         className={cn(
                           "font-medium",
-                          arbStatus.paused
+                          edgeStatus.paused
                             ? "text-amber-600 dark:text-amber-400"
                             : "text-green-600 dark:text-green-400",
                         )}
                       >
-                        {arbStatus.paused ? "Paused" : "Running"}
+                        {edgeStatus.paused ? "Paused" : "Running"}
                       </span>
                       <span className="text-muted-foreground">
-                        Mode: {arbStatus.liveExecution ? "Live" : "Paper"}
+                        Contracts: {edgeStatus.contractsWatched ?? 0}
                       </span>
-                      {arbStatus.tradesToday != null &&
-                        arbStatus.tradesToday > 0 && (
+                      {edgeStatus.btcLastPrice != null &&
+                        edgeStatus.btcLastPrice > 0 && (
                           <span className="text-muted-foreground">
-                            Trades today: {arbStatus.tradesToday}
-                            {arbStatus.winCountToday != null &&
-                              ` (${arbStatus.winCountToday} wins)`}
+                            BTC: $
+                            {edgeStatus.btcLastPrice.toLocaleString(undefined, {
+                              maximumFractionDigits: 0,
+                            })}
                           </span>
                         )}
-                      {arbStatus.todayPnlUsd != null &&
-                        arbStatus.todayPnlUsd !== 0 && (
-                          <span
-                            className={cn(
-                              arbStatus.todayPnlUsd >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400",
-                            )}
-                          >
-                            Today P&amp;L: ${arbStatus.todayPnlUsd.toFixed(2)}
+                      {edgeStatus.strategies &&
+                        Object.keys(edgeStatus.strategies).length > 0 && (
+                          <span className="text-muted-foreground">
+                            Strategies:{" "}
+                            {Object.entries(edgeStatus.strategies)
+                              .map(
+                                ([name, s]) =>
+                                  `${name} (${s.signalCount ?? 0})`,
+                              )
+                              .join(", ")}
                           </span>
                         )}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Not running or arb engine not available on Oracle.
+                      Not running or edge engine not available on Oracle.
                     </p>
                   )}
                 </DashboardCard>
               )}
 
-              {/* Polymarket trading bot — Recent trades */}
+              {/* Edge engine — Recent signals */}
               {oracleAgentId && (
-                <DashboardCard title="Polymarket trading bot — Recent trades">
-                  {(arbTradesLoading || arbTradesFetching) && !arbTradesData ? (
+                <DashboardCard title="Polymarket edge — Recent signals">
+                  {(edgeSignalsLoading || edgeSignalsFetching) &&
+                  !edgeSignalsData ? (
                     <p className="text-sm text-muted-foreground">
-                      Loading trades…
+                      Loading signals…
                     </p>
-                  ) : (arbTradesData?.trades?.length ?? 0) === 0 ? (
+                  ) : (edgeSignalsData?.signals?.length ?? 0) === 0 ? (
                     <p className="text-sm text-muted-foreground py-4">
-                      No arb trades yet. Trades appear here when the latency arb
-                      bot executes (paper or live). Ensure the bot is running
-                      and DB is configured (plugin_polymarket_arb.arb_trades).
+                      No edge signals yet. Signals appear when overreaction,
+                      model fair value, or Synth strategies detect edge; they
+                      feed the desk pipeline (Risk → Executor).
                     </p>
                   ) : (
                     <div className="overflow-x-auto">
@@ -3059,25 +3061,23 @@ export default function LeaderboardPage({
                         <thead>
                           <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground uppercase">
                             <th className="pb-2 pr-3">Time</th>
+                            <th className="pb-2 pr-3">Strategy</th>
                             <th className="pb-2 pr-3">Side</th>
-                            <th className="pb-2 pr-3">BTC spot</th>
-                            <th className="pb-2 pr-3">Contract</th>
-                            <th className="pb-2 pr-3">Edge %</th>
-                            <th className="pb-2 pr-3">Size $</th>
-                            <th className="pb-2 pr-3 text-right">P&L $</th>
-                            <th className="pb-2 pr-3">Status</th>
-                            <th className="pb-2">Exit reason</th>
+                            <th className="pb-2 pr-3">Market</th>
+                            <th className="pb-2 pr-3">Edge bps</th>
+                            <th className="pb-2 pr-3">Forecast</th>
+                            <th className="pb-2">Price</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(arbTradesData?.trades ?? []).map((t) => (
+                          {(edgeSignalsData?.signals ?? []).map((s) => (
                             <tr
-                              key={t.id}
+                              key={s.id}
                               className="border-b border-border/50"
                             >
                               <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
-                                {t.createdAt
-                                  ? new Date(t.createdAt).toLocaleString(
+                                {s.createdAt
+                                  ? new Date(s.createdAt).toLocaleString(
                                       undefined,
                                       {
                                         month: "short",
@@ -3088,47 +3088,30 @@ export default function LeaderboardPage({
                                     )
                                   : "—"}
                               </td>
-                              <td className="py-2 pr-3 font-mono">{t.side}</td>
                               <td className="py-2 pr-3 font-mono">
-                                {t.btcSpotPrice != null
-                                  ? `$${t.btcSpotPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                                  : "—"}
+                                {s.strategy}
                               </td>
-                              <td className="py-2 pr-3 font-mono">
-                                {t.contractPrice != null
-                                  ? (t.contractPrice * 100).toFixed(1) + "%"
-                                  : "—"}
-                              </td>
-                              <td className="py-2 pr-3 font-mono">
-                                {t.edgePct != null
-                                  ? `${t.edgePct >= 0 ? "+" : ""}${t.edgePct.toFixed(1)}%`
-                                  : "—"}
-                              </td>
-                              <td className="py-2 pr-3 font-mono">
-                                {t.sizeUsd != null
-                                  ? `$${t.sizeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                                  : "—"}
-                              </td>
+                              <td className="py-2 pr-3 font-mono">{s.side}</td>
                               <td
-                                className={cn(
-                                  "py-2 pr-3 text-right font-mono font-medium",
-                                  (t.pnlUsd ?? 0) >= 0
-                                    ? "text-green-600 dark:text-green-400"
-                                    : (t.pnlUsd ?? 0) < 0
-                                      ? "text-red-600 dark:text-red-400"
-                                      : "text-muted-foreground",
-                                )}
+                                className="py-2 pr-3 font-mono truncate max-w-[8rem]"
+                                title={s.marketId}
                               >
-                                {t.pnlUsd != null
-                                  ? `${t.pnlUsd >= 0 ? "+" : ""}$${t.pnlUsd.toFixed(2)}`
+                                {s.marketId.slice(0, 8)}…
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {s.edgeBps != null
+                                  ? `${s.edgeBps >= 0 ? "+" : ""}${s.edgeBps.toFixed(0)} bps`
                                   : "—"}
                               </td>
-                              <td className="py-2 pr-3">{t.status}</td>
-                              <td
-                                className="py-2 text-muted-foreground max-w-[140px] truncate"
-                                title={t.exitReason ?? undefined}
-                              >
-                                {t.exitReason ?? "—"}
+                              <td className="py-2 pr-3 font-mono">
+                                {s.forecastProb != null
+                                  ? (s.forecastProb * 100).toFixed(1) + "%"
+                                  : "—"}
+                              </td>
+                              <td className="py-2 font-mono">
+                                {s.marketPrice != null
+                                  ? (s.marketPrice * 100).toFixed(1) + "%"
+                                  : "—"}
                               </td>
                             </tr>
                           ))}

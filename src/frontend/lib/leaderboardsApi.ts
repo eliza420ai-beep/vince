@@ -348,65 +348,58 @@ export interface PolymarketPriorityMarketsFetchResult {
   status: number | null;
 }
 
-/** Latency arb (paper trading) bot status for Polymarket tab */
-export interface PolymarketArbStatus {
+/** Edge engine status for Polymarket tab (plugin-polymarket-edge) */
+export interface PolymarketEdgeStatus {
   running: boolean;
-  liveExecution: boolean;
   paused: boolean;
-  tradesToday: number;
-  winCountToday: number;
-  todayPnlUsd: number;
-  bankrollUsd: number;
   contractsWatched: number;
   btcLastPrice: number | null;
+  strategies: Record<string, { lastSignalAt?: number; signalCount: number }>;
   error?: string;
   hint?: string;
 }
 
-export interface PolymarketArbStatusFetchResult {
-  data: PolymarketArbStatus | null;
+export interface PolymarketEdgeStatusFetchResult {
+  data: PolymarketEdgeStatus | null;
   error: string | null;
   status: number | null;
 }
 
-/** One Polymarket latency arb trade (paper or live) */
-export interface PolymarketArbTradeItem {
+/** One edge signal (emitted by engine, written to desk) */
+export interface PolymarketEdgeSignalItem {
   id: string;
   createdAt: string;
-  conditionId: string;
-  tokenId: string;
+  strategy: string;
+  source: string;
+  marketId: string;
   side: string;
-  btcSpotPrice: number | null;
-  contractPrice: number | null;
-  edgePct: number | null;
-  sizeUsd: number | null;
-  fillPrice: number | null;
-  pnlUsd: number | null;
-  status: string;
-  exitPrice: number | null;
-  exitReason: string | null;
+  confidence: number | null;
+  edgeBps: number | null;
+  forecastProb: number | null;
+  marketPrice: number | null;
+  deskSignalId: string | null;
 }
 
-export interface PolymarketArbTradesResponse {
-  trades: PolymarketArbTradeItem[];
+export interface PolymarketEdgeSignalsResponse {
+  signals: PolymarketEdgeSignalItem[];
   updatedAt: number;
   hint?: string;
   error?: string;
 }
 
-export interface PolymarketArbTradesFetchResult {
-  data: PolymarketArbTradesResponse | null;
+export interface PolymarketEdgeSignalsFetchResult {
+  data: PolymarketEdgeSignalsResponse | null;
   error: string | null;
   status: number | null;
 }
 
-export async function fetchPolymarketArbTrades(
+export async function fetchPolymarketEdgeSignals(
   agentId: string,
   limit?: number,
-): Promise<PolymarketArbTradesFetchResult> {
+): Promise<PolymarketEdgeSignalsFetchResult> {
   const base = window.location.origin;
   const params = limit != null ? `?limit=${Math.min(limit, 100)}` : "";
-  const url = `${base}/api/agents/${agentId}/plugins/polymarket-arb/arb/trades${params}`;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-edge/edge/signals${params}`;
   try {
     const res = await fetch(url, {
       method: "GET",
@@ -423,7 +416,7 @@ export async function fetchPolymarketArbTrades(
       return { data: null, error: msg, status: res.status };
     }
     return {
-      data: body as PolymarketArbTradesResponse,
+      data: body as PolymarketEdgeSignalsResponse,
       error: null,
       status: res.status,
     };
@@ -433,11 +426,11 @@ export async function fetchPolymarketArbTrades(
   }
 }
 
-export async function fetchPolymarketArbStatus(
+export async function fetchPolymarketEdgeStatus(
   agentId: string,
-): Promise<PolymarketArbStatusFetchResult> {
+): Promise<PolymarketEdgeStatusFetchResult> {
   const base = window.location.origin;
-  const url = `${base}/api/agents/${agentId}/plugins/polymarket-arb/arb/status`;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-edge/edge/status`;
   try {
     const res = await fetch(url, {
       method: "GET",
@@ -454,7 +447,7 @@ export async function fetchPolymarketArbStatus(
       return { data: null, error: msg, status: res.status };
     }
     return {
-      data: body as PolymarketArbStatus,
+      data: body as PolymarketEdgeStatus,
       error: null,
       status: res.status,
     };

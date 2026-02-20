@@ -22,11 +22,12 @@ Design doc for the Polymarket trading desk: agent roles, tool ownership, and sch
 
 ```
 Synth API → Analyst (Oracle) → [signal] → Risk agent → [sized order] → Executor (Otaku) → CLOB → [fill] → trade log
+Edge engine (Oracle) ──────────┘                              ↑
                                                                               ↑
 Performance agent ← trade log + positions (read) ←────────────────────────────┘
 ```
 
-- **Signals:** Emitted by Analyst when edge (e.g. Synth forecast vs Polymarket price) exceeds threshold. Stored in DB table or task queue for Risk to consume.
+- **Signals:** Emitted when edge exceeds threshold. Two sources: (1) **Edge engine** (`plugin-polymarket-edge` on Oracle): multi-strategy runner (overreaction, model fair value, Synth forecast) that writes to `plugin_polymarket_desk.signals`; (2) **Desk’s own hourly check** (e.g. POLYMARKET_EDGE_CHECK) when configured. Both feed the same Risk → Executor pipeline.
 - **Sized orders:** Produced by Risk after checking bankroll, exposure, and limits; written to approval queue. Executor is the only consumer.
 - **Trade log:** Written by Executor on each fill (market, side, size, arrival price, fill price, timestamp). Read by Performance for TCA and reports.
 
@@ -164,7 +165,7 @@ EOD (e.g. 10pm) and weekly (e.g. Sunday) reports can be added as additional task
 
 ### What we did
 
-The **Analyst (Oracle)** compares an external forecast to Polymarket’s price to decide when we have edge. We use **Synth** (synthdata.co) for that forecast:
+The **Analyst (Oracle)** compares an external forecast to Polymarket’s price to decide when we have edge. We use **Synth** (synthdata.co) for that forecast. Our edge is **forecast vs price**, not latency — Polymarket removed the 0.5s order delay on 15m BTC events (Feb 2025), which killed speed-based bots; we do not rely on that. See [Polymarket deep reference](../knowledge/macro-economy/polymarket-deep-reference.md) Part 10 for platform-regime notes.
 
 - **`plugin-polymarket-desk`** → `services/synthClient.ts`: `getSynthForecast(asset)` calls Synth’s prediction-percentiles API (e.g. BTC, ETH, SOL).
 - **POLYMARKET_EDGE_CHECK** (Oracle): Fetches Synth forecast + Polymarket YES/NO price for a `condition_id`, computes edge in bps; when edge ≥ threshold, writes a row to `plugin_polymarket_desk.signals` for Risk to approve and size.
@@ -203,5 +204,6 @@ Standard ($49/mo) only has “API access to 100 calls one time,” which is not 
 
 - [ORACLE.md](ORACLE.md) — Oracle as Analyst (Polymarket discovery).
 - [OTAKU.md](OTAKU.md) — Otaku as Executor (only wallet).
+- [knowledge/macro-economy/polymarket-deep-reference.md](../knowledge/macro-economy/polymarket-deep-reference.md) — Full Polymarket reference; Part 10 = platform changes and bot strategy (e.g. Feb 2025 delay removal).
 - [FEATURE-STORE.md](FEATURE-STORE.md) — How paper bot stores feature records (DB + JSONL pattern).
 - [MULTI_AGENT.md](MULTI_AGENT.md) — ASK_AGENT and handoffs.
