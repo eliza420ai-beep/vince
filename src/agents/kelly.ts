@@ -35,6 +35,7 @@ import openaiPlugin from "@elizaos/plugin-openai";
 import webSearchPlugin from "@elizaos/plugin-web-search";
 import personalityPlugin from "@elizaos/plugin-personality";
 import discoveryPlugin from "@elizaos/plugin-discovery";
+import { getAnthropicLargeModel } from "../model-config.ts";
 import { kellyPlugin } from "../plugins/plugin-kelly/src/index.ts";
 // Kelly is the standup facilitator — needs inter-agent plugin for STANDUP_FACILITATE action
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
@@ -92,7 +93,7 @@ export const kellyCharacter: Character = {
     discord: {
       shouldIgnoreBotMessages: false,
     },
-    model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
+    model: getAnthropicLargeModel(),
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,

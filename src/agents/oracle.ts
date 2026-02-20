@@ -19,6 +19,7 @@ import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
+import { getAnthropicLargeModel } from "../model-config.ts";
 import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discovery/src/index.ts";
 import { pluginPolymarketDesk } from "../plugins/plugin-polymarket-desk/src/index.ts";
 import { pluginPolymarketEdge } from "../plugins/plugin-polymarket-edge/src/index.ts";
@@ -74,7 +75,7 @@ export const oracleCharacter: Character = {
       shouldIgnoreBotMessages: false,
       shouldRespondOnlyToMentions: true,
     },
-    model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
+    model: getAnthropicLargeModel(),
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,

@@ -45,6 +45,7 @@ import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 
+import { getAnthropicLargeModel } from "../model-config.ts";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
@@ -99,7 +100,7 @@ export const vinceCharacter: Character = {
     discord: {
       shouldIgnoreBotMessages: false,
     },
-    model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
+    model: getAnthropicLargeModel(),
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,

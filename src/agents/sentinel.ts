@@ -35,6 +35,7 @@ import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import webSearchPlugin from "@elizaos/plugin-web-search";
+import { getAnthropicLargeModel } from "../model-config.ts";
 import { sentinelPlugin } from "../plugins/plugin-sentinel/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
@@ -100,7 +101,7 @@ export const sentinelCharacter: Character = {
       shouldIgnoreBotMessages: false,
       shouldRespondOnlyToMentions: true,
     },
-    model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
+    model: getAnthropicLargeModel(),
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,

@@ -26,6 +26,7 @@ import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import discoveryPlugin from "@elizaos/plugin-discovery";
+import { getAnthropicLargeModel } from "../model-config.ts";
 import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
@@ -296,7 +297,7 @@ PRICES — NEVER HALLUCINATE:
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     model: process.env.ANTHROPIC_API_KEY?.trim()
-      ? process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514"
+      ? getAnthropicLargeModel()
       : "gpt-4o",
     voice: {
       model: "en_US-male-medium",
