@@ -3267,8 +3267,7 @@ export default function LeaderboardPage({
                     </p>
                   ) : (deskPositionsData?.positions?.length ?? 0) === 0 ? (
                     <p className="text-sm text-muted-foreground py-4">
-                      No open paper positions. Pending sized orders appear here
-                      once Risk approves signals (signals → sized orders).
+                      No open paper positions yet.
                     </p>
                   ) : (
                     <div className="space-y-4">
@@ -3402,15 +3401,10 @@ export default function LeaderboardPage({
                       Loading trades…
                     </p>
                   ) : (deskTradesData?.trades?.length ?? 0) === 0 ? (
-                    <div className="text-sm text-muted-foreground py-4 space-y-1">
+                    <div className="text-sm text-muted-foreground py-4">
                       <p>
-                        No fills yet. Trades appear when the desk pipeline runs:
-                        Risk approves a signal and Otaku executes on the CLOB.
-                      </p>
-                      <p>
-                        If you see many signals but no trades, ensure Risk and
-                        Otaku (Executor) are configured and polling the desk
-                        (signals → sized orders → fills).
+                        No trades executed yet. Paper trades are logged here
+                        once Otaku fills a sized order on the CLOB.
                       </p>
                     </div>
                   ) : (
@@ -3498,9 +3492,8 @@ export default function LeaderboardPage({
                     </p>
                   ) : (edgeSignalsData?.signals?.length ?? 0) === 0 ? (
                     <p className="text-sm text-muted-foreground py-4">
-                      No edge signals yet. Signals appear when overreaction,
-                      model fair value, or Synth strategies detect edge; they
-                      feed the desk pipeline (Risk → Executor).
+                      No edge signals yet. Signals appear when a strategy spots
+                      a pricing gap between model forecast and market.
                     </p>
                   ) : (
                     <div className="overflow-x-auto">
