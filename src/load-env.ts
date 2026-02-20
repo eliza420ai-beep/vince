@@ -50,3 +50,12 @@ if (!loaded && typeof process.stdout?.write === "function") {
     `[load-env] No .env found (tried: ${candidates.join(", ")}) | cwd=${process.cwd()}\n`,
   );
 }
+
+// Normalize deprecated Anthropic model IDs so plugins that read ANTHROPIC_LARGE_MODEL
+// directly (e.g. @elizaos/plugin-anthropic) never send invalid model names to the API.
+const DEPRECATED_ANTHROPIC_MODELS = new Set(["claude-3-5-haiku-20241022"]);
+const DEFAULT_ANTHROPIC_LARGE = "claude-sonnet-4-20250514";
+const anthropicModel = process.env.ANTHROPIC_LARGE_MODEL?.trim();
+if (anthropicModel && DEPRECATED_ANTHROPIC_MODELS.has(anthropicModel)) {
+  process.env.ANTHROPIC_LARGE_MODEL = DEFAULT_ANTHROPIC_LARGE;
+}
