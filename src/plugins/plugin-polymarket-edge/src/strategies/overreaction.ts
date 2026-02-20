@@ -79,8 +79,13 @@ export const overreactionStrategy: EdgeStrategy = {
         (vel && Math.abs(vel.velocityPct) >= velocityPct);
       if (!spikeEnough) continue;
 
+      // Edge = mean reversion expectation: underdog should revert toward
+      // its pre-spike level, estimated as 10 pct points above current.
+      const revertTarget = Math.min(underdogPrice + 0.1, 0.3);
+      const edgeBps = (revertTarget - underdogPrice) * 10000;
+      if (edgeBps < 200) continue; // need at least 200 bps directional edge
+
       lastSignalByCondition.set(cooldownKey, now);
-      const edgeBps = (1 - underdogPrice - favoritePrice) * 10000; // locked spread
       const side = underdogIsNo ? "NO" : "YES";
       const favPct = `${(favoritePrice * 100).toFixed(1)}%`;
       const underPct = `${(underdogPrice * 100).toFixed(1)}%`;
@@ -91,7 +96,7 @@ export const overreactionStrategy: EdgeStrategy = {
         `Crowd overreaction on "${label}". ` +
         `Favorite spiked to ${favPct}, underdog dropped to ${underPct}. ` +
         `Price velocity ${velPct > 0 ? "+" : ""}${velPct.toFixed(1)}%. ` +
-        `Buying ${side} (underdog) for mean reversion — ${Math.abs(edgeBps).toFixed(0)} bps spread.`;
+        `Buying ${side} (underdog) at ${underPct} — expecting revert toward ${(revertTarget * 100).toFixed(0)}% (${edgeBps.toFixed(0)} bps edge).`;
 
       return {
         strategy: "overreaction",
