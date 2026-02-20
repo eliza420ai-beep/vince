@@ -15,6 +15,7 @@ One dashboard: market pulse and "who's doing best" **without chatting.** Open th
 | **More**        | Fear & Greed, Options (BTC/ETH DVOL + TLDR), funding, OI cap, regime, Binance intel, CoinGlass, Deribit skew                         |
 | **Trading Bot** | Paper portfolio and open positions from the self-improving bot                                                                       |
 | **Knowledge**   | Knowledge base summary, quality test results, text/YouTube upload                                                                    |
+| **Usage**       | Session token usage (TREASURY), AI token spend actual (~$3K in 3 weeks), Cursor usage, data APIs, cost if we go PRO ($199/mo), hardware savings |
 | **Polymarket**  | Priority markets from Gamma/CLOB; refetch when tab is open every 60s                                                                 |
 
 ---

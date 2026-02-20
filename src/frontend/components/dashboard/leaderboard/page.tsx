@@ -152,30 +152,47 @@ function polymarketWhyRationale(pos: PolymarketPaperPosition): string {
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
 
-/** Data API cost estimates (monthly/yearly). From TREASURY.md; update when tiers change. */
+/** Data API cost estimates (monthly/yearly). From TREASURY.md; update when tiers change. highTier* = estimate when all APIs on high/pro tier. */
 const DATA_SOURCES_COSTS: {
   name: string;
   monthly: number;
   yearly: number;
   notes: string;
+  highTierMonthly?: number;
+  highTierYearly?: number;
 }[] = [
   {
     name: "Nansen",
     monthly: 0,
     yearly: 0,
     notes: "100 credits/mo free; API Standard ~$999/mo",
+    highTierMonthly: 999,
+    highTierYearly: 11988,
   },
   {
     name: "Sanbase (Santiment)",
     monthly: 0,
     yearly: 0,
     notes: "1K calls/mo free; Pro ~$99+/mo",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
   },
   {
     name: "CoinGlass",
     monthly: 29,
     yearly: 350,
     notes: "Hobbyist $29/mo; $350/yr",
+    highTierMonthly: 199,
+    highTierYearly: 2388,
+  },
+  {
+    name: "Pro tier (high-tier APIs)",
+    monthly: 199,
+    yearly: 2388,
+    notes:
+      "Volatility Dashboard, ODTE, Liquidity, Liquidations, Polymarket; 5K API calls/mo; 15‑min Claude/OpenClaw integration. Billed monthly.",
+    highTierMonthly: 199,
+    highTierYearly: 2388,
   },
   {
     name: "Birdeye",
@@ -188,18 +205,24 @@ const DATA_SOURCES_COSTS: {
     monthly: 29,
     yearly: 0,
     notes: "Starter ~$29/mo; Advanced ~$799/mo",
+    highTierMonthly: 799,
+    highTierYearly: 9588,
   },
   {
     name: "X (Twitter) API",
-    monthly: 100,
-    yearly: 1200,
-    notes: "Basic tier; Pro $5K/mo",
+    monthly: 690,
+    yearly: 8280,
+    notes: "Pay-as-you-go; est. ~$690/mo at heavy usage",
+    highTierMonthly: 690,
+    highTierYearly: 8280,
   },
   {
     name: "Helius",
     monthly: 0,
     yearly: 0,
     notes: "Free tier; Developer $49/mo",
+    highTierMonthly: 49,
+    highTierYearly: 588,
   },
   { name: "OpenSea", monthly: 0, yearly: 0, notes: "Free tier; NFT floors" },
   { name: "Firecrawl", monthly: 0, yearly: 0, notes: "Optional; free tier" },
@@ -208,6 +231,74 @@ const DATA_SOURCES_COSTS: {
     monthly: 25,
     yearly: 300,
     notes: "Pro ~$25/mo; feature store",
+    highTierMonthly: 25,
+    highTierYearly: 300,
+  },
+  {
+    name: "Tavily",
+    monthly: 0,
+    yearly: 0,
+    notes:
+      "Agent search/research (webSearch, intel); credit-based; free trial then paid",
+    highTierMonthly: 150,
+    highTierYearly: 1800,
+  },
+  {
+    name: "Dune",
+    monthly: 0,
+    yearly: 0,
+    notes: "Analytics/SQL (DUNE_API_KEY); free tier, paid for high volume",
+    highTierMonthly: 399,
+    highTierYearly: 4788,
+  },
+  {
+    name: "Allium",
+    monthly: 0,
+    yearly: 0,
+    notes: "Data (plugin-vince VinceAlliumService); tier TBD",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
+  },
+  {
+    name: "Jupiter",
+    monthly: 0,
+    yearly: 0,
+    notes: "Solana DEX agg (Otaku); free tier",
+    highTierMonthly: 49,
+    highTierYearly: 588,
+  },
+  {
+    name: "Alchemy",
+    monthly: 0,
+    yearly: 0,
+    notes: "EVM RPC (Otaku/Base); free tier, paid at scale",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
+  },
+  {
+    name: "XAI (Grok)",
+    monthly: 0,
+    yearly: 0,
+    notes: "Grok Expert (XAI_API_KEY); usage-based",
+    highTierMonthly: 100,
+    highTierYearly: 1200,
+  },
+  {
+    name: "Etherscan",
+    monthly: 0,
+    yearly: 0,
+    notes: "EVM explorer; free tier, paid for high call volume",
+    highTierMonthly: 149,
+    highTierYearly: 1788,
+  },
+  {
+    name: "Solus / stocks (Finnhub, FMP, Alpha Vantage)",
+    monthly: 0,
+    yearly: 0,
+    notes:
+      "Finnhub 60/min free; FMP 250 req/day; Alpha Vantage 25 req/day free",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
   },
   {
     name: "Binance, Deribit, Hyperliquid, CoinGecko, DexScreener",
@@ -216,6 +307,20 @@ const DATA_SOURCES_COSTS: {
     notes: "Public/free APIs",
   },
 ];
+
+/** All data APIs on high/pro tier: estimated monthly and yearly total (only rows with highTier* set). */
+const HIGH_TIER_TOTAL_MONTHLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + (r.highTierMonthly ?? 0),
+  0,
+);
+const HIGH_TIER_TOTAL_YEARLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + (r.highTierYearly ?? 0),
+  0,
+);
+
+/** AI token spend (actual from invoices). Update when new invoice data is in. DRAGONFLY_PITCH / Usage tab. */
+const AI_TOKEN_SPEND_3_WEEKS_USD = 3000;
+const AI_TOKEN_SPEND_3_WEEKS_LABEL = "~$3K in 3 weeks";
 
 /** Hardware: 2x Mac Studio @ $5K each. LOCALSONLY.md cost model. */
 const HARDWARE_2X_MAC_STUDIO = { unitCost: 5000, units: 2, totalCapEx: 10000 };
@@ -4383,6 +4488,22 @@ export default function LeaderboardPage({
                 </div>
               ) : null}
 
+              {/* AI token spend (actual from invoices) — always shown; DRAGONFLY_PITCH / VC visibility */}
+              <DashboardCard title="AI token spend (actual)">
+                <p className="text-sm font-medium text-foreground">
+                  {AI_TOKEN_SPEND_3_WEEKS_LABEL} — almost $3K in 3 weeks
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Invoice data (Jan 25 – Feb 20, 2026). Dominated by high-tier
+                  model usage (e.g. claude-4.5-opus-high-thinking). Session
+                  tokens in &quot;Totals&quot; above are from run_event logs;
+                  this is total invoice spend.
+                </p>
+                <p className="text-lg font-semibold font-mono mt-2 text-primary">
+                  ~${AI_TOKEN_SPEND_3_WEEKS_USD.toLocaleString()} in 3 weeks
+                </p>
+              </DashboardCard>
+
               {/* Cursor usage — always shown; often highest cost */}
               <DashboardCard title="Cursor usage">
                 <p className="text-xs text-muted-foreground mb-3">
@@ -4495,6 +4616,27 @@ export default function LeaderboardPage({
                   {DATA_SOURCES_COSTS.reduce((s, r) => s + r.yearly, 0)}/yr
                   (excludes free tiers).
                 </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  <strong>All data APIs on high tier:</strong> ~$
+                  {HIGH_TIER_TOTAL_MONTHLY.toLocaleString()}/mo or ~$
+                  {HIGH_TIER_TOTAL_YEARLY.toLocaleString()}/yr (Nansen, Sanbase,
+                  CoinGlass + Pro, Glassnode, X ~$690, Helius, Supabase; Tavily,
+                  Dune, Allium, Jupiter, Alchemy, XAI/Grok, Etherscan, Solus
+                  stocks; Birdeye/OpenSea/Firecrawl not priced).
+                </p>
+                <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                  <p className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                    Cost of running if we go PRO
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Pro tier ($199/mo) is included above: Volatility Dashboard,
+                    ODTE, Liquidity, Liquidations, Polymarket, 5K API calls/mo,
+                    15‑min Claude/OpenClaw integration. Data APIs with Pro ≈ $
+                    {DATA_SOURCES_COSTS.reduce((s, r) => s + r.monthly, 0)}/mo.
+                    Add session token cost (Totals), Cursor, and AI invoice
+                    spend for full run rate.
+                  </p>
+                </div>
               </DashboardCard>
 
               {/* Hardware — 2x Mac Studio, potential savings (LOCALSONLY) */}
