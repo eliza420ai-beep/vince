@@ -175,7 +175,7 @@ openclaw gateway start --bind custom --custom-bind 0.0.0.0:9000 --auth token --t
 
 ```bash
 # Set environment variables
-export MISSION_CONTROL_TOKEN=UZa5vElWgALYR7DU0F65t0PdKJ5J8Mcv0V4RFCVh8JRvMKrnRliyI9gLfRcc4l/ntu8=
+export MISSION_CONTROL_TOKEN=
 export MISSION_CONTROL_URL=http://localhost:8000/api/v1
 
 # Restart VINCE
@@ -218,7 +218,15 @@ Or just say: "Register Satoshi in Mission Control" (once VINCE is restarted)
 ### Auth token not working
 
 - Check `.env` file in openclaw-mission-control
-- Token: `UZa5vElWgALYR7DU0F65t0PdKJ5J8Mcv0V4RFCVh8JRvMKrnRliyI9gLfRcc4l/ntu8=`
+- Token: `get from .env file`
+
+---
+
+## ⚠️ Security Note
+
+**Token was rotated on 2026-02-19** - The token in git history was exposed. Current tokens are in:
+- Mission Control `.env` file
+- `~/.openclaw/openclaw.json` for gateway
 
 ---
 
