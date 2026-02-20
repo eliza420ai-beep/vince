@@ -3114,10 +3114,13 @@ export default function LeaderboardPage({
                       {edgeStatus.btcLastPrice != null &&
                         edgeStatus.btcLastPrice > 0 && (
                           <span className="text-muted-foreground">
-                            BTC: $
+                            BTC spot: $
                             {edgeStatus.btcLastPrice.toLocaleString(undefined, {
                               maximumFractionDigits: 0,
-                            })}
+                            })}{" "}
+                            <span className="text-muted-foreground/50">
+                              (ref price)
+                            </span>
                           </span>
                         )}
                       {edgeStatus.strategies &&
