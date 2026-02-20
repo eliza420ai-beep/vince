@@ -46,6 +46,7 @@ export function buildEdgeStatusHandler() {
         contractsWatched: status.contractsWatched ?? 0,
         btcLastPrice: status.btcLastPrice ?? null,
         strategies: status.strategies ?? {},
+        whyOnlySomeStrategies: status.whyOnlySomeStrategies ?? null,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

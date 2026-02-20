@@ -1,6 +1,6 @@
 # Standup learnings
 
-*Append-only log of action item outcomes and learnings.*
+_Append-only log of action item outcomes and learnings._
 
 - **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts

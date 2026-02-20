@@ -24,12 +24,12 @@ Ten autonomous agents on ElizaOS. One system.
 
 The important ones for this conversation:
 
-| Agent | What it does |
-|-------|-------------|
-| **VINCE** | Signal aggregation across 15+ sources (CoinGlass, Binance, Deribit, Hyperliquid, X sentiment, news, on-chain). 50+ features per decision. Paper trades with Kelly sizing, circuit breakers, and daily caps. Every trade includes a "WHY THIS TRADE" banner — supporting vs conflicting factors, N of M sources agreed. |
-| **Oracle** | Polymarket edge engine. Three strategies: Black–Scholes implied probability vs CLOB price, overreaction detection (price velocity on favorites → cheap underdogs), and external forecast comparison. Kelly-sized paper trades when edge exceeds threshold. |
-| **Otaku** | Only agent with a funded wallet. Executes on Base and EVM: swaps, DCA, bridges (Relay), Morpho lending, stop-loss, NFT mints. x402 micropayments for paid API endpoints. Two modes: degen (full DeFi) and normies (Coinbase-style). |
-| **Solus** | Weekly BTC options on Hypersurface. Strike selection, direction, invalidation levels. |
+| Agent      | What it does                                                                                                                                                                                                                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **VINCE**  | Signal aggregation across 15+ sources (CoinGlass, Binance, Deribit, Hyperliquid, X sentiment, news, on-chain). 50+ features per decision. Paper trades with Kelly sizing, circuit breakers, and daily caps. Every trade includes a "WHY THIS TRADE" banner — supporting vs conflicting factors, N of M sources agreed. |
+| **Oracle** | Polymarket edge engine. Three strategies: Black–Scholes implied probability vs CLOB price, overreaction detection (price velocity on favorites → cheap underdogs), and external forecast comparison. Kelly-sized paper trades when edge exceeds threshold.                                                             |
+| **Otaku**  | Only agent with a funded wallet. Executes on Base and EVM: swaps, DCA, bridges (Relay), Morpho lending, stop-loss, NFT mints. x402 micropayments for paid API endpoints. Two modes: degen (full DeFi) and normies (Coinbase-style).                                                                                    |
+| **Solus**  | Weekly BTC options on Hypersurface. Strike selection, direction, invalidation levels.                                                                                                                                                                                                                                  |
 
 The rest: Eliza (knowledge, research, content), ECHO (X sentiment, social alpha), Kelly (lifestyle — literally "touch grass" concierge), Sentinel (ops, cost, PRDs), Naval (philosophy, mental models), Clawterm (research terminal).
 
@@ -83,20 +83,20 @@ Target: 100K/year covers API + compute + data. Prediction market alpha and execu
 
 This is running code, not a whitepaper.
 
-| What | Status |
-|------|--------|
-| 10 agents on ElizaOS | Deployed, Eliza Cloud |
-| Paper trading bot with 15+ signal sources | Running daily |
-| Feature store (50+ features per trade, JSONL + DB + optional Supabase) | Live, dual-write |
-| ONNX training pipeline (XGBoost → ONNX, four models) | Shipped |
-| Thompson Sampling source weighting | Shipped |
-| Bayesian parameter tuner | Shipped |
-| Polymarket edge engine (3 strategies, Black–Scholes, overreaction, Synth) | Shipped |
-| Otaku with 13 DeFi actions, x402 paid API, funded wallet | Shipped |
-| Leaderboard dashboard (markets, memes, news, art, trading bot, Polymarket) | Live |
-| Daily standup + day report (cross-agent, 800–1200 word narrative) | Running 2x/day |
-| 102 tests pass, 0 fail, build clean, type check clean | Current |
-| Base Builder Grant application submitted | In review |
+| What                                                                       | Status                |
+| -------------------------------------------------------------------------- | --------------------- |
+| 10 agents on ElizaOS                                                       | Deployed, Eliza Cloud |
+| Paper trading bot with 15+ signal sources                                  | Running daily         |
+| Feature store (50+ features per trade, JSONL + DB + optional Supabase)     | Live, dual-write      |
+| ONNX training pipeline (XGBoost → ONNX, four models)                       | Shipped               |
+| Thompson Sampling source weighting                                         | Shipped               |
+| Bayesian parameter tuner                                                   | Shipped               |
+| Polymarket edge engine (3 strategies, Black–Scholes, overreaction, Synth)  | Shipped               |
+| Otaku with 13 DeFi actions, x402 paid API, funded wallet                   | Shipped               |
+| Leaderboard dashboard (markets, memes, news, art, trading bot, Polymarket) | Live                  |
+| Daily standup + day report (cross-agent, 800–1200 word narrative)          | Running 2x/day        |
+| 102 tests pass, 0 fail, build clean, type check clean                      | Current               |
+| Base Builder Grant application submitted                                   | In review             |
 
 Open source: [github.com/IkigaiLabsETH/vince](https://github.com/IkigaiLabsETH/vince). 420+ commits.
 
@@ -118,13 +118,13 @@ The honest version: we need capital to go from paper to live, hire ML specialist
 
 You'll ask about this, so:
 
-| Risk | Mitigation |
-|------|-----------|
-| Paper ≠ live (slippage, liquidity) | Phased rollout: paper → testnet → small live. Protection layers 3–5 (post-fill verification, exchange reconciliation, SL/TP validation). Single executor path — same code, paper or live. |
-| ML on small N | Graceful degradation: rules run when models lack data. Minimum 90 trades for ONNX training. Feature store grows daily. Walk-forward validation, not just backtest. |
-| Signal source dependency (X API, CoinGlass) | 15+ sources; Thompson Sampling naturally downweights unreliable sources. Cached fallbacks. No single source is fatal. |
-| Execution risk (Otaku wallet) | Only one agent holds funds. Circuit breakers, daily caps ($200 paper, configurable live). No leverage without explicit mode. Producer/executor split enforced in code. |
-| Regulatory | Paper trading only today. No advisory, no fund structure, no customer funds. Open source. |
+| Risk                                        | Mitigation                                                                                                                                                                                |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Paper ≠ live (slippage, liquidity)          | Phased rollout: paper → testnet → small live. Protection layers 3–5 (post-fill verification, exchange reconciliation, SL/TP validation). Single executor path — same code, paper or live. |
+| ML on small N                               | Graceful degradation: rules run when models lack data. Minimum 90 trades for ONNX training. Feature store grows daily. Walk-forward validation, not just backtest.                        |
+| Signal source dependency (X API, CoinGlass) | 15+ sources; Thompson Sampling naturally downweights unreliable sources. Cached fallbacks. No single source is fatal.                                                                     |
+| Execution risk (Otaku wallet)               | Only one agent holds funds. Circuit breakers, daily caps ($200 paper, configurable live). No leverage without explicit mode. Producer/executor split enforced in code.                    |
+| Regulatory                                  | Paper trading only today. No advisory, no fund structure, no customer funds. Open source.                                                                                                 |
 
 ---
 
@@ -136,12 +136,12 @@ Two options. Pick the one that matches your conviction.
 
 SAFE, $8M cap. Enough to answer the only question that matters: does the edge survive live execution?
 
-| Use | Allocation |
-|-----|-----------|
-| Live execution on Hyperliquid (testnet → small real capital) | $200K |
-| One ML engineer (ONNX pipeline depth, regime detection) | $300K |
-| Data API upgrades (Nansen, CoinGlass, Santiment paid tiers) | $50K |
-| Six months of runway (infra, compute, ClawRouter) | $200K |
+| Use                                                          | Allocation |
+| ------------------------------------------------------------ | ---------- |
+| Live execution on Hyperliquid (testnet → small real capital) | $200K      |
+| One ML engineer (ONNX pipeline depth, regime detection)      | $300K      |
+| Data API upgrades (Nansen, CoinGlass, Santiment paid tiers)  | $50K       |
+| Six months of runway (infra, compute, ClawRouter)            | $200K      |
 
 We come back in six months with live P&L, Sharpe, drawdown, and a feature store with 500+ closed trades. If the numbers work, we raise a proper seed on results. If they don't, you risked $750K instead of $2M to find out.
 
@@ -151,12 +151,12 @@ This is the poker-correct play: call a small bet to see the flop. If we hit, we 
 
 Priced round, $12M–$15M pre-money. For when you've looked at the repo, run the validation script, and decided the architecture is worth betting on before live proof.
 
-| Use | Allocation |
-|-----|-----------|
-| Live execution (Hyperliquid perps + Polymarket CLOB) | $500K |
-| ML team (2 engineers, feature depth, cross-asset models) | $800K |
-| Data and infrastructure (APIs, compute, Supabase, monitoring) | $200K |
-| 12 months of runway | $500K |
+| Use                                                           | Allocation |
+| ------------------------------------------------------------- | ---------- |
+| Live execution (Hyperliquid perps + Polymarket CLOB)          | $500K      |
+| ML team (2 engineers, feature depth, cross-asset models)      | $800K      |
+| Data and infrastructure (APIs, compute, Supabase, monitoring) | $200K      |
+| 12 months of runway                                           | $500K      |
 
 Projected return path: execution fees, x402 API revenue, prediction market alpha, and the option value of a self-improving system that compounds its own edge. The [Treasury mandate](TREASURY.md) targets 100K/year to cover costs; alpha and fees are upside.
 
@@ -182,19 +182,19 @@ We'd rather have one conversation with someone who gets this intuitively than pi
 
 For due diligence, everything is in the repo:
 
-| Doc | What it proves |
-|-----|---------------|
-| [WORTH_IT_PROOF.md](WORTH_IT_PROOF.md) | Three pillars: ONNX validation (one-command proof), 24/7 research as ML prerequisite, knowledge = methodology |
-| [TRADING_RUNTIME_CONTRACT.md](TRADING_RUNTIME_CONTRACT.md) | Producer/executor split, CRON vs manual, single execution path |
-| [PRD_LIVE_HYPERLIQUID_PERPS.md](PRD_LIVE_HYPERLIQUID_PERPS.md) | Paper → live roadmap, phased, protection layers, EVClaw-informed |
-| [FEATURE-STORE.md](FEATURE-STORE.md) | 50+ features per trade, JSONL + DB + Supabase, training pipeline |
-| [PAPER-BOT-AND-ML.md](PAPER-BOT-AND-ML.md) | Full signal loop, MandoMinutes, training, improvement weights |
-| [POLYMARKET_TRADING_DESK.md](POLYMARKET_TRADING_DESK.md) | Edge engine, three strategies, analyst → risk → executor |
-| [TREASURY.md](TREASURY.md) | Cost mandate, ClawRouter, revenue strategies, money loop |
-| [ONNX.md](ONNX.md) | Train once run anywhere, four models, portable inference |
-| [grants/BASE-BUILDER-GRANT-APPLICATION.md](grants/BASE-BUILDER-GRANT-APPLICATION.md) | Otaku as execution agent, 13 actions, x402, shipped |
-| [VINCE.md](VINCE.md) | Agent brief: can/can't, key files, gaps |
-| [README.md](../README.md) | Full overview, five levels, team, getting started |
+| Doc                                                                                  | What it proves                                                                                                |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| [WORTH_IT_PROOF.md](WORTH_IT_PROOF.md)                                               | Three pillars: ONNX validation (one-command proof), 24/7 research as ML prerequisite, knowledge = methodology |
+| [TRADING_RUNTIME_CONTRACT.md](TRADING_RUNTIME_CONTRACT.md)                           | Producer/executor split, CRON vs manual, single execution path                                                |
+| [PRD_LIVE_HYPERLIQUID_PERPS.md](PRD_LIVE_HYPERLIQUID_PERPS.md)                       | Paper → live roadmap, phased, protection layers, EVClaw-informed                                              |
+| [FEATURE-STORE.md](FEATURE-STORE.md)                                                 | 50+ features per trade, JSONL + DB + Supabase, training pipeline                                              |
+| [PAPER-BOT-AND-ML.md](PAPER-BOT-AND-ML.md)                                           | Full signal loop, MandoMinutes, training, improvement weights                                                 |
+| [POLYMARKET_TRADING_DESK.md](POLYMARKET_TRADING_DESK.md)                             | Edge engine, three strategies, analyst → risk → executor                                                      |
+| [TREASURY.md](TREASURY.md)                                                           | Cost mandate, ClawRouter, revenue strategies, money loop                                                      |
+| [ONNX.md](ONNX.md)                                                                   | Train once run anywhere, four models, portable inference                                                      |
+| [grants/BASE-BUILDER-GRANT-APPLICATION.md](grants/BASE-BUILDER-GRANT-APPLICATION.md) | Otaku as execution agent, 13 actions, x402, shipped                                                           |
+| [VINCE.md](VINCE.md)                                                                 | Agent brief: can/can't, key files, gaps                                                                       |
+| [README.md](../README.md)                                                            | Full overview, five levels, team, getting started                                                             |
 
 ---
 

@@ -53,10 +53,30 @@ The edge engine (`plugin-polymarket-edge` on Oracle) runs multiple strategies. E
 
 ### 3.3 synth
 
-- **What it does:** Compares Synth API forecast probability (e.g. BTC) to CLOB mid price. Signals when edge in bps is at or above threshold (default 200 bps). No-op if `SYNTH_API_KEY` is not set.
+- **What it does:** Compares Synth API forecast probability (e.g. BTC) to CLOB mid price. Signals when edge in bps is at or above threshold (default 200 bps). **No-op if `SYNTH_API_KEY` is not set** — synth will never emit in that case.
 - **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts](src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts). Uses [synthClient.ts](src/plugins/plugin-polymarket-edge/src/services/synthClient.ts).
 - **Config (env):** `EDGE_SYNTH_POLL_INTERVAL_MS`, `EDGE_SYNTH_EDGE_BPS` (200). Requires `SYNTH_API_KEY` (and Pro for Polymarket predictions; see §11).
 - **Signal metadata (Why):** asset (e.g. BTC), synthSource.
+
+### 3.4 maker_rebate
+
+- **What it does:** Paper-traded maker signals for **5-minute BTC up/down** markets. Only considers markets whose question matches 5-min BTC direction (e.g. “Will BTC go up in the next 5 minutes”) and **only when expiry is within 0–10 seconds**. Signals maker-side entry at 90–95¢ with zero-fee / rebate rationale.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/makerRebate.ts](src/plugins/plugin-polymarket-edge/src/strategies/makerRebate.ts). Uses same Binance WS + CLOB WS as other strategies.
+- **Config (env):** `EDGE_MAKER_REBATE_TICK_MS` (2s), `EDGE_MAKER_REBATE_ENTRY_WINDOW_SEC` (10), `EDGE_MAKER_REBATE_MIN_CONFIDENCE`, `EDGE_MAKER_REBATE_MIN_ENTRY_PRICE`, `EDGE_MAKER_REBATE_COOLDOWN_MS`.
+- **Signal metadata (Why):** makerEntryPrice, takerFeeAvoidedBps, estimatedFillProb, windowSecsRemaining, btcMomentumPct, isMakerOrder.
+
+### 3.5 Why only overreaction might fire (fresh restart)
+
+After a fresh server restart you may see only **overreaction** in paper positions. Reasons:
+
+| Strategy             | When it can signal                                                                                                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **overreaction**     | Works on **any** binary in the watched list. Needs: underdog ≤ 0.15, favorite ≥ 0.7, price velocity spike (default 5% in 5 min), edge ≥ 200 bps. So most discovered contracts can qualify once velocity builds. |
+| **model_fair_value** | Only contracts with **strikeUsd > 0** (BTC threshold questions like “Will BTC hit $100k?”). If discovery returns mostly non-threshold binaries (`strikeUsd = 0`), it never fires.                               |
+| **synth**            | **No signals if `SYNTH_API_KEY` is not set.** Set the key to enable.                                                                                                                                            |
+| **maker_rebate**     | Only **5-min BTC up/down** markets and only when **expiry is in the next 0–10 seconds**. So it needs those markets in the discovered set and a tick in that tiny window (288 such markets per day).             |
+
+**What to do:** Ask Oracle for “edge status” (or open Leaderboard → Polymarket tab → Edge status). The response now includes **Why only some strategies may fire** (e.g. `model_fair_value: needs BTC threshold markets (strikeUsd>0): 0 of 12 watched`, `synth: SYNTH_API_KEY not set`, `maker_rebate: needs 5-min BTC markets with expiry in 0–10s: 0 right now`). To get more variety: set `SYNTH_API_KEY` for synth; ensure discovery tags include markets that have BTC threshold questions for model_fair_value; for maker_rebate, ensure 5-min BTC markets are in the discovery tag set and that the engine is running when those windows occur.
 
 ---
 

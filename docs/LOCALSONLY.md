@@ -15,7 +15,7 @@ The setup has two parts: the **EXO Inference Cluster** (compute and storage) and
 | Component        | Role          | Specs                                                         |
 | ---------------- | ------------- | ------------------------------------------------------------- |
 | **DGX SPARK**    | Prefill       | 128GB memory, ~100 TFLOPs                                     |
-| **MAC STUDIO**   | Decode        | 3× 512GB memory, 819 GB/s bandwidth each                     |
+| **MAC STUDIO**   | Decode        | 3× 512GB memory, 819 GB/s bandwidth each                      |
 | **MACBOOK PRO**  | Decode        | 128GB memory, 400 GB/s bandwidth                              |
 | **NAS**          | Model storage | Network-attached; shared model store                          |
 | **10GbE Switch** | Network       | Connects all nodes (Mac Studio 10GbE; MacBook Pro WiFi/10GbE) |
@@ -67,12 +67,12 @@ Use exo on the cluster nodes (e.g. Mac Studio, MacBook Pro) for distributed infe
 
 **Orchestration:** 4 OpenClaws across 3 Mac Studios and 1 Mac Mini—coding, writing, researching, reading, 24/7.
 
-| Model                     | Footprint        | Notes                                              |
-| ------------------------- | ----------------- | -------------------------------------------------- |
-| **Kimi K2.5**             | 600GB (all 3 Studios, via EXO) | Shared across cluster                             |
-| **MiniMax 2.5**           | 120GB (one Studio) | Reddit scanning, prototype generation              |
-| **Qwen 3.5**              | 220GB (one Studio) | X API trending, vibe coding, video scripts          |
-| **GOT OSS 120B Heretic**   | 60GB (one Studio)  | Fully uncensored OSS 120B                           |
+| Model                    | Footprint                      | Notes                                      |
+| ------------------------ | ------------------------------ | ------------------------------------------ |
+| **Kimi K2.5**            | 600GB (all 3 Studios, via EXO) | Shared across cluster                      |
+| **MiniMax 2.5**          | 120GB (one Studio)             | Reddit scanning, prototype generation      |
+| **Qwen 3.5**             | 220GB (one Studio)             | X API trending, vibe coding, video scripts |
+| **GOT OSS 120B Heretic** | 60GB (one Studio)              | Fully uncensored OSS 120B                  |
 
 No cloud APIs. No API bills. No tech executives reading your logs. Totally customizable and private. Unlimited economic power sitting on-prem.
 

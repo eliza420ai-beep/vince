@@ -15,12 +15,12 @@ Let me check current CT sentiment to identify a mispricing opportunity.
 </function_calls>
 <function_result>
 **X PULSE REPORT**
-*Generated:
+\*Generated:
 
 ---
 
 **X PULSE REPORT**
-*Generated: Friday, Feb 20*
+_Generated: Friday, Feb 20_
 
 CT is split between euphoria and exhaustion. BTC sitting at $68k has the maximalists calling for $100k while ETH at $1968 feels forgotten. The real story is in the stocks though — NVDA barely moved at $187.9 while Tesla gained to $411.71. But here's what everyone's missing: Palantir at $135.82 is trading like it's just another AI stock when it's becoming the backbone of government AI deployment.
 
@@ -32,9 +32,10 @@ Risk is real though. If the broader AI narrative cracks or government spending g
 
 PLTR-PERP · perp · LONG
 100 shares @ $135.82 · risk $500
-$135.82   lose if <$130   win if >$145
+$135.82 lose if <$130 win if >$145
 +EV above 7% · dies if gov AI spending cuts
 Alt: NVDA $188.86 long (safer but crowded)
 
 ---
+
 _Expressions, not advice. Do your own research._

@@ -1,29 +1,30 @@
 ---
-date: 2026-02-20T09:41:30.896Z
+date: 2026-02-20T21:21:41.595Z
 type: day-report
 generated: automated-standup
 ---
 
 Day Report — 2026-02-20
 
-Solus's call: Above — BTC spot $71.5K with covered call at $72K, 2 days to expiry, assignment prob ~40% but we're safe above our $70K cost basis.
+Solus's call: **Above** — BTC holding 67.7K into settlement, selling 70K covered calls while funding collapses
 
-TL;DR: BTC holding $67-68K in sideways chop while builders ship infrastructure—we're positioned for the patient game, not the noise.
+TL;DR: Extreme fear (7/10) but prices grinding higher—classic premium harvest setup while we wait for the real break.
 
 TODO
 | WHAT | WHY | OWNER |
 |------|-----|-------|
-| Configure Bankr wallet keys | Get Otaku operational for DeFi execution | @Otaku |
-| Ship SkillGuard audit CLI | One-command security gate before production | @Clawterm |
-| Draft infrastructure funding correlation | Map capital freeze to shipping velocity inflection | @Eliza |
-| Monitor BTC $68K resistance test | Clean breakout or rejection sets next move | @Vince |
-| Track Iran strike odds movement | 27% tail risk worth sizing if CLOB shifts | @Oracle |
-| Complete v2.1.0 smoke test | Close plugin gaps before full rollout | @Sentinel |
+| Finalize Bankr wallet setup | Need Base/Solana execution ready | @Otaku |
+| Ship one-click OpenClaw installer | Tech With Tim momentum hitting 1.95M subs | @Clawterm |
+| Agent infrastructure playbook | Builders shipping Telegram+voice, we need the thesis | @Eliza |
+| Iran strike CLOB odds pull | 26% Feb 28 pricing, macro hedge opportunity | @Oracle |
+| Smoke-test v2.1.0 release notes | PRD ready, need validation before ship | @Sentinel |
+| Finish meme LP substack | Fear→premium sell narrative needs the piece | @Eliza |
 
-Risk: Early exercise Thursday night if BTC runs above $72K
+Risk: Clear
 
 Wrap-up
-Fear sentiment at 11 but no panic—just weak hands shaking out while real builders keep shipping. The edge isn't in price action right now, it's in infrastructure positioning. Watch for that $68K test to tell us if consolidation holds or breaks.
+Fear index at 7 but funding rates collapsing tells the real story—longs shaking out, not panic selling yet. Vince's short signal conflicts with bullish institutional flow, classic range-bound confusion. The autonomous agent narrative is winning while we harvest premium in the chop. Watch 66K support and funding spike above 0.015% for the thesis break.
 
 ---
+
 One team, one dream.

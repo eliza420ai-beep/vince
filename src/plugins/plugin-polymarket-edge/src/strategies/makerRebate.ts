@@ -57,7 +57,8 @@ function getConfig(): Record<string, unknown> {
 const cfg = getConfig();
 const lastSignalByCondition = new Map<string, number>();
 
-function is5MinBtcMarket(question: string): boolean {
+/** Exported for edge engine status (why maker_rebate may not fire). */
+export function is5MinBtcMarket(question: string): boolean {
   if (!question || typeof question !== "string") return false;
   const q = question.toLowerCase();
   if (!q.includes("btc") && !q.includes("bitcoin")) return false;

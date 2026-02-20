@@ -39,17 +39,17 @@ Solus is the **CFO (Chief Financial Officer)** agent: Hypersurface options exper
 
 ## Key Files for Code Review
 
-| Area             | Path                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| Agent definition | [src/agents/solus.ts](src/agents/solus.ts)                                                 |
-| Plugin entry     | [src/plugins/plugin-solus/src/index.ts](src/plugins/plugin-solus/src/index.ts)             |
-| Actions          | [src/plugins/plugin-solus/src/actions/](src/plugins/plugin-solus/src/actions/)             |
-| Providers        | [src/plugins/plugin-solus/src/providers/](src/plugins/plugin-solus/src/providers/) (incl. solusStockPulse) |
-| Finnhub service   | [src/plugins/plugin-solus/src/services/finnhub.service.ts](src/plugins/plugin-solus/src/services/finnhub.service.ts) |
-| Alpha Vantage svc | [src/plugins/plugin-solus/src/services/alphaVantage.service.ts](src/plugins/plugin-solus/src/services/alphaVantage.service.ts) |
+| Area               | Path                                                                                                                                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent definition   | [src/agents/solus.ts](src/agents/solus.ts)                                                                                                                                                                                    |
+| Plugin entry       | [src/plugins/plugin-solus/src/index.ts](src/plugins/plugin-solus/src/index.ts)                                                                                                                                                |
+| Actions            | [src/plugins/plugin-solus/src/actions/](src/plugins/plugin-solus/src/actions/)                                                                                                                                                |
+| Providers          | [src/plugins/plugin-solus/src/providers/](src/plugins/plugin-solus/src/providers/) (incl. solusStockPulse)                                                                                                                    |
+| Finnhub service    | [src/plugins/plugin-solus/src/services/finnhub.service.ts](src/plugins/plugin-solus/src/services/finnhub.service.ts)                                                                                                          |
+| Alpha Vantage svc  | [src/plugins/plugin-solus/src/services/alphaVantage.service.ts](src/plugins/plugin-solus/src/services/alphaVantage.service.ts)                                                                                                |
 | Offchain watchlist | [src/plugins/plugin-solus/src/constants/solusStockWatchlist.ts](src/plugins/plugin-solus/src/constants/solusStockWatchlist.ts) · [knowledge/stocks/solus-offchain-watchlist.md](knowledge/stocks/solus-offchain-watchlist.md) |
-| Utils (isSolus)  | [src/plugins/plugin-solus/src/utils/solus.ts](src/plugins/plugin-solus/src/utils/solus.ts) |
-| Three curves     | [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md)                   |
+| Utils (isSolus)    | [src/plugins/plugin-solus/src/utils/solus.ts](src/plugins/plugin-solus/src/utils/solus.ts)                                                                                                                                    |
+| Three curves       | [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md)                                                                                                                                                      |
 
 ---
 

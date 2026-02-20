@@ -157,22 +157,22 @@ Single source of truth for Sentinel: all project costs, LLM choice, data API tie
 
 ### Data APIs (tiers and differences)
 
-| API / service       | Tier / limit           | What we use it for                                               |
-| ------------------- | ---------------------- | ---------------------------------------------------------------- |
-| Nansen              | 100 credits/month      | Smart money, wallet tracking (NANSEN_API_KEY)                    |
-| Sanbase (Santiment) | 1K calls/month         | On-chain analytics, flows/whales (SANTIMENT_API_KEY)             |
-| CoinGlass           | Free tier / Hobbyist   | L/S ratio, funding, OI, fear/greed (COINGLASS_API_KEY)           |
-| **Pro tier (high-tier APIs)** | **$199/mo** | Volatility Dashboard, ODTE, Liquidity, Liquidations, Polymarket; 5K API calls/mo; 15‑min Claude/OpenClaw integration. Billed monthly. Leaderboard Usage tab "Cost if we go PRO". |
-| Binance, Deribit    | Public/free where used | Taker flow, IV, funding                                          |
-| Hyperliquid         | Public API             | OI, funding, options pulse                                       |
-| CoinGecko           | Free tier              | Prices, exchange health (COINGECKO_API_KEY)                      |
-| Birdeye             | Per tier               | Memes, Solana wallets (BIRDEYE_API_KEY; plugin-vince TopTraders) |
-| DexScreener         | Free / tier            | Meme scanner, traction                                           |
-| Helius              | Per tier               | Solana RPC (HELIUS_API_KEY; .env.example)                        |
-| OpenSea             | Limited / tier         | NFT floors (OPENSEA_API_KEY; CryptoPunks, Meridian)              |
-| X (Twitter)         | Pay-as-you-go           | Read-only research, sentiment (X_BEARER_TOKEN). Est. ~$690/mo at heavy usage. |
-| Firecrawl           | Optional               | Web URLs for upload (FIRECRAWL_API_KEY)                          |
-| Supabase            | Project plan           | Feature store, ML bucket (SUPABASE\_\*; optional)                |
+| API / service                 | Tier / limit           | What we use it for                                                                                                                                                               |
+| ----------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nansen                        | 100 credits/month      | Smart money, wallet tracking (NANSEN_API_KEY)                                                                                                                                    |
+| Sanbase (Santiment)           | 1K calls/month         | On-chain analytics, flows/whales (SANTIMENT_API_KEY)                                                                                                                             |
+| CoinGlass                     | Free tier / Hobbyist   | L/S ratio, funding, OI, fear/greed (COINGLASS_API_KEY)                                                                                                                           |
+| **Pro tier (high-tier APIs)** | **$199/mo**            | Volatility Dashboard, ODTE, Liquidity, Liquidations, Polymarket; 5K API calls/mo; 15‑min Claude/OpenClaw integration. Billed monthly. Leaderboard Usage tab "Cost if we go PRO". |
+| Binance, Deribit              | Public/free where used | Taker flow, IV, funding                                                                                                                                                          |
+| Hyperliquid                   | Public API             | OI, funding, options pulse                                                                                                                                                       |
+| CoinGecko                     | Free tier              | Prices, exchange health (COINGECKO_API_KEY)                                                                                                                                      |
+| Birdeye                       | Per tier               | Memes, Solana wallets (BIRDEYE_API_KEY; plugin-vince TopTraders)                                                                                                                 |
+| DexScreener                   | Free / tier            | Meme scanner, traction                                                                                                                                                           |
+| Helius                        | Per tier               | Solana RPC (HELIUS_API_KEY; .env.example)                                                                                                                                        |
+| OpenSea                       | Limited / tier         | NFT floors (OPENSEA_API_KEY; CryptoPunks, Meridian)                                                                                                                              |
+| X (Twitter)                   | Pay-as-you-go          | Read-only research, sentiment (X_BEARER_TOKEN). Est. ~$690/mo at heavy usage.                                                                                                    |
+| Firecrawl                     | Optional               | Web URLs for upload (FIRECRAWL_API_KEY)                                                                                                                                          |
+| Supabase                      | Project plan           | Feature store, ML bucket (SUPABASE\_\*; optional)                                                                                                                                |
 
 **All data APIs on high tier (estimate):** If every current data API is moved to its high/pro tier (Nansen, Sanbase, CoinGlass + Pro, Glassnode, X ~$690, Helius, Supabase; plus Tavily ~$150, Dune ~$399, Allium ~$99, Jupiter ~$49, Alchemy ~$99, XAI/Grok ~$100, Etherscan ~$149, Solus stocks ~$99), total is **~$4,203/mo** or **~$50,346/yr**. Leaderboard → Usage tab shows the live total and breakdown.
 

@@ -48,6 +48,16 @@ export const edgeStatusAction: Action = {
         `BTC last price: $${(status.btcLastPrice as number) ?? "—"}`,
         `Strategies: ${Object.keys(status.strategies ?? {}).join(", ") || "none"}`,
       ];
+      const why = status.whyOnlySomeStrategies as
+        | Record<string, string>
+        | undefined;
+      if (why && typeof why === "object") {
+        lines.push("", "**Why only some strategies may fire**");
+        if (why.model_fair_value)
+          lines.push(`• model_fair_value: ${why.model_fair_value}`);
+        if (why.synth) lines.push(`• synth: ${why.synth}`);
+        if (why.maker_rebate) lines.push(`• maker_rebate: ${why.maker_rebate}`);
+      }
       const text = lines.join("\n");
       if (callback) await callback({ text });
       return { text, success: true };

@@ -21,7 +21,10 @@ import { PriceVelocityTracker } from "./priceVelocity";
 import { modelFairValueStrategy } from "../strategies/modelFairValue";
 import { overreactionStrategy } from "../strategies/overreaction";
 import { synthForecastStrategy } from "../strategies/synthForecast";
-import { makerRebateStrategy } from "../strategies/makerRebate";
+import {
+  makerRebateStrategy,
+  is5MinBtcMarket,
+} from "../strategies/makerRebate";
 
 const BINANCE_WS = EDGE_SERVICE_TYPES.BINANCE_WS;
 const CLOB_WS = EDGE_SERVICE_TYPES.CLOB_WS;
@@ -140,12 +143,30 @@ export class EdgeEngineService extends Service {
     } | null;
     const btcLast = binance?.getPriceState?.()?.lastPrice ?? 0;
     const vol = binance?.getVolatility?.() ?? 0;
+    const now = Date.now();
+    const entryWindowSec = 10;
+    const contractsWithStrike = this.contracts.filter(
+      (c) => c.strikeUsd > 0,
+    ).length;
+    const fiveMinInWindow = this.contracts.filter((c) => {
+      if (!is5MinBtcMarket(c.question)) return false;
+      const secs = (c.expiryMs - now) / 1000;
+      return secs > 0 && secs <= entryWindowSec;
+    }).length;
+    const synthApiKeySet = !!process.env.SYNTH_API_KEY?.trim();
     return {
       paused: this.paused,
       contractsWatched: this.contracts.length,
       btcLastPrice: btcLast,
       volatility: vol,
       strategies: this.strategyStats,
+      whyOnlySomeStrategies: {
+        model_fair_value: `needs BTC threshold markets (strikeUsd>0): ${contractsWithStrike} of ${this.contracts.length} watched`,
+        synth: synthApiKeySet
+          ? "SYNTH_API_KEY set — can signal"
+          : "SYNTH_API_KEY not set — no signals",
+        maker_rebate: `needs 5-min BTC markets with expiry in 0–${entryWindowSec}s: ${fiveMinInWindow} right now`,
+      },
     };
   }
 
