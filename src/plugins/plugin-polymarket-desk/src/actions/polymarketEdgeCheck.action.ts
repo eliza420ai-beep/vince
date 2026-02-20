@@ -149,9 +149,14 @@ export const polymarketEdgeCheckAction: Action = {
                 values?: unknown[],
               ) => Promise<{ rows?: unknown[] }>;
             };
+            const metadataJson = JSON.stringify({
+              source: "POLYMARKET_EDGE_CHECK",
+              asset,
+              conditionId,
+            });
             await client.query(
-              `INSERT INTO ${SIGNALS_TABLE} (id, created_at, source, market_id, side, suggested_size_usd, confidence, forecast_prob, market_price, edge_bps, status)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+              `INSERT INTO ${SIGNALS_TABLE} (id, created_at, source, market_id, side, suggested_size_usd, confidence, forecast_prob, market_price, edge_bps, status, metadata_json)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
               [
                 signalId,
                 new Date(now).toISOString(),
@@ -164,6 +169,7 @@ export const polymarketEdgeCheckAction: Action = {
                 marketPrice,
                 edgeBps,
                 "pending",
+                metadataJson,
               ],
             );
             logger.info(

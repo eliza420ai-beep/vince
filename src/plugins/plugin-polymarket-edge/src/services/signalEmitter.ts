@@ -39,16 +39,22 @@ export async function emitSignal(
     signal.metadata && Object.keys(signal.metadata).length > 0
       ? JSON.stringify(signal.metadata)
       : null;
+  const suggestedSizeUsd =
+    signal.suggested_size_usd != null &&
+    Number.isFinite(signal.suggested_size_usd)
+      ? signal.suggested_size_usd
+      : null;
   try {
     await client.query(
-      `INSERT INTO plugin_polymarket_desk.signals (id, created_at, source, market_id, side, confidence, forecast_prob, market_price, edge_bps, status, metadata_json)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10)`,
+      `INSERT INTO plugin_polymarket_desk.signals (id, created_at, source, market_id, side, suggested_size_usd, confidence, forecast_prob, market_price, edge_bps, status, metadata_json)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)`,
       [
         id,
         now,
         signal.source,
         signal.market_id,
         signal.side,
+        suggestedSizeUsd,
         signal.confidence,
         signal.forecast_prob,
         signal.market_price,

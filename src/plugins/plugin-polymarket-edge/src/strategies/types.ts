@@ -36,6 +36,8 @@ export interface EdgeSignal {
   forecast_prob: number;
   market_price: number;
   metadata: Record<string, unknown>;
+  /** Optional suggested size in USD; Risk uses this with fallback to bankroll-based sizing. */
+  suggested_size_usd?: number;
 }
 
 /** Pluggable strategy contract */

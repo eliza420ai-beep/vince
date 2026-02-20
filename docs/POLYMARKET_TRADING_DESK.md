@@ -33,7 +33,34 @@ Performance agent ← trade log + positions (read) ←────────�
 
 ---
 
-## 3. Schema: structured signal (Analyst → Risk)
+## 3. Trading strategies (edge engine)
+
+The edge engine (`plugin-polymarket-edge` on Oracle) runs multiple strategies. Each strategy compares some “fair value” or signal to the CLOB price and emits a signal when edge exceeds its threshold. Signal metadata from these strategies is stored in `plugin_polymarket_desk.signals.metadata_json` and shown in the leaderboard UI as “Why this position.”
+
+### 3.1 model_fair_value
+
+- **What it does:** Compares Black–Scholes implied probability (spot vs strike, volatility) to the CLOB YES price. Only considers BTC binary markets with a numeric strike (`strikeUsd > 0`). Emits a signal when edge is above threshold and the model forecast is in a “meaningful” range (default 5–95%) to avoid flooding from deep ITM/OTM.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/modelFairValue.ts](src/plugins/plugin-polymarket-edge/src/strategies/modelFairValue.ts). Uses [impliedProbability.ts](src/plugins/plugin-polymarket-edge/src/services/impliedProbability.ts) and spot from Binance WS.
+- **Config (env):** `EDGE_MODEL_MIN_EDGE_PCT` (default 15), `EDGE_MODEL_TICK_INTERVAL_MS` (5s), `EDGE_MODEL_MIN_FORECAST_PROB` / `EDGE_MODEL_MAX_FORECAST_PROB` (5–95%), `EDGE_MODEL_COOLDOWN_MS` (10 min per market). See [plugin-polymarket-edge/src/constants.ts](src/plugins/plugin-polymarket-edge/src/constants.ts).
+- **Signal metadata (Why):** spot, strikeUsd, expiryMs, volatility.
+
+### 3.2 overreaction (Poly Strat)
+
+- **What it does:** Detects a sharp move in the favorite and a cheap underdog. Signals **BUY underdog** when price velocity is above threshold, underdog price is below max (e.g. 0.15), and favorite is clearly above 0.7. Uses rolling price velocity from CLOB WS.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/overreaction.ts](src/plugins/plugin-polymarket-edge/src/strategies/overreaction.ts). Uses [priceVelocity.ts](src/plugins/plugin-polymarket-edge/src/services/priceVelocity.ts).
+- **Config (env):** `EDGE_OVERREACTION_VELOCITY_PCT` (default 5), `EDGE_OVERREACTION_WINDOW_MS` (5 min), `EDGE_OVERREACTION_MAX_UNDERDOG_PRICE` (0.15), `EDGE_OVERREACTION_COOLDOWN_MS` (15 min).
+- **Signal metadata (Why):** favoritePrice, underdogPrice, velocityPct.
+
+### 3.3 synth
+
+- **What it does:** Compares Synth API forecast probability (e.g. BTC) to CLOB mid price. Signals when edge in bps is at or above threshold (default 200 bps). No-op if `SYNTH_API_KEY` is not set.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts](src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts). Uses [synthClient.ts](src/plugins/plugin-polymarket-edge/src/services/synthClient.ts).
+- **Config (env):** `EDGE_SYNTH_POLL_INTERVAL_MS`, `EDGE_SYNTH_EDGE_BPS` (200). Requires `SYNTH_API_KEY` (and Pro for Polymarket predictions; see §11).
+- **Signal metadata (Why):** asset (e.g. BTC), synthSource.
+
+---
+
+## 4. Schema: structured signal (Analyst → Risk)
 
 Produced by the Analyst (Oracle) when edge is above threshold. Stored so Risk can poll or be notified.
 
@@ -55,7 +82,7 @@ Produced by the Analyst (Oracle) when edge is above threshold. Stored so Risk ca
 
 ---
 
-## 4. Schema: sized order (Risk → Executor)
+## 5. Schema: sized order (Risk → Executor)
 
 Produced by Risk after approving a signal and applying sizing. Only Executor reads and consumes these.
 
@@ -77,7 +104,7 @@ Produced by Risk after approving a signal and applying sizing. Only Executor rea
 
 ---
 
-## 5. Schema: trade log (Executor write; Performance read)
+## 6. Schema: trade log (Executor write; Performance read)
 
 One row per filled order. Written by Executor; read by Performance for TCA and reports.
 
@@ -100,7 +127,7 @@ One row per filled order. Written by Executor; read by Performance for TCA and r
 
 ---
 
-## 6. Where each artifact lives
+## 7. Where each artifact lives
 
 | Artifact                         | Primary storage                                                                           | Optional / backup                                   |
 | -------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- |
@@ -114,7 +141,7 @@ DB tables live in the same database as ElizaOS (PGLite when no `POSTGRES_URL`, e
 
 ---
 
-## 7. Approval mechanism (push vs pull)
+## 8. Approval mechanism (push vs pull)
 
 - **Pull (recommended for Phase 1):** Executor (Otaku) runs a recurring task (e.g. every 1–2 min) that queries `sized_orders` for `status = 'pending'`, picks one, calls Polymarket CLOB to place order, then updates the row to `status = 'filled'`/`'sent'` and appends to `trade_log`. Simple and decoupled; no ASK_AGENT required for execution.
 - **Push (optional later):** Risk agent, after writing a sized order, invokes ASK_AGENT to Otaku with a structured message containing the order id; Otaku then fetches the order and executes. Lowers latency but couples Risk to Otaku’s availability.
@@ -123,7 +150,7 @@ This doc assumes **pull** for initial implementation.
 
 ---
 
-## 8. Discord audit trail (per-role channels)
+## 9. Discord audit trail (per-role channels)
 
 Each role can post to its own channel for a timestamped audit trail. Configure one Discord app per agent (or use a single app and route by channel).
 
@@ -153,13 +180,17 @@ Set `POLYMARKET_DESK_SCHEDULE_ENABLED=false` to disable all desk recurring tasks
 
 When the schedule is enabled, **Risk 15m** approves one pending signal per run (invokes `POLYMARKET_RISK_APPROVE`) and writes one row to `sized_orders`. **Otaku 2m** executes one pending sized order per run (invokes `POLYMARKET_EXECUTE_PENDING_ORDER` directly, no LLM) and writes to `trade_log`. Both run via Bootstrap TaskService (tasks are tagged `queue` + `repeat`).
 
-**Otaku execution (paper or live)** requires these env vars on the Otaku agent; if any are missing, the execute action marks the order as rejected and returns:
+**Otaku execution (paper or live)** requires these env vars on the Otaku agent; if any are missing, the execute action does **not** update the order (see Paper-only mode below):
 
 - `POLYMARKET_PRIVATE_KEY` or `EVM_PRIVATE_KEY`
 - `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`
 - `POLYMARKET_FUNDER_ADDRESS`
 
 See `.env.example` (Polymarket / Otaku sections) for all desk and execution variables.
+
+### Paper-only mode
+
+When Otaku does not have Polymarket CLOB credentials set, the execute action does **not** mark pending sized orders as rejected. Orders stay `status = 'pending'` so they remain visible under “Open paper positions” on the Polymarket tab (leaderboard) with live P&L and rationale (“Why this position”). Once credentials are configured, the same pending orders can be executed; the 2‑minute poll will then consume them and write to the trade log.
 
 ### Tuning parameters
 

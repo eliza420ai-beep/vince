@@ -340,6 +340,7 @@ export default function LeaderboardPage({
   });
   const edgeSignalsData = edgeSignalsResult?.data ?? null;
 
+  // Desk queries keyed by oracleAgentId so they refetch when Oracle agent changes (e.g. after server restart).
   const {
     data: deskStatusResult,
     isLoading: deskStatusLoading,

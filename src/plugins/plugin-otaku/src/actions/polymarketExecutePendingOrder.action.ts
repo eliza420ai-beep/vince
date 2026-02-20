@@ -12,7 +12,7 @@ import {
   logger,
 } from "@elizaos/core";
 
-const POLYMARKET_DISCOVERY_SERVICE = "polymarket-discovery";
+const POLYMARKET_DISCOVERY_SERVICE = "POLYMARKET_DISCOVERY_SERVICE";
 const SIGNALS_TABLE = "plugin_polymarket_desk.signals";
 const SIZED_ORDERS_TABLE = "plugin_polymarket_desk.sized_orders";
 const TRADE_LOG_TABLE = "plugin_polymarket_desk.trade_log";
@@ -182,13 +182,10 @@ export const polymarketExecutePendingOrderAction: Action = {
         (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) ||
         "https://clob.polymarket.com";
 
+      // Do not mark order rejected when creds missing: leave pending so it stays visible as open paper position (see POLYMARKET_TRADING_DESK § Paper-only mode).
       if (!privateKey || !apiKey || !apiSecret || !apiPassphrase || !funder) {
-        await client.query(
-          `UPDATE ${SIZED_ORDERS_TABLE} SET status = 'rejected' WHERE id = $1`,
-          [order.id],
-        );
         await out(
-          "Polymarket execution not configured (missing POLYMARKET_PRIVATE_KEY, POLYMARKET_CLOB_* or POLYMARKET_FUNDER_ADDRESS). Order marked rejected.",
+          "Polymarket execution not configured (missing POLYMARKET_PRIVATE_KEY, POLYMARKET_CLOB_* or POLYMARKET_FUNDER_ADDRESS). Order left pending so it stays visible as a paper position.",
         );
         return;
       }
