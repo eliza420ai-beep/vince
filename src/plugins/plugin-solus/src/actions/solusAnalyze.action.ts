@@ -6,6 +6,7 @@
 import {
   type Action,
   type ActionExample,
+  type HandlerCallback,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -57,10 +58,14 @@ export const solusAnalyzeAction: Action = {
     );
   },
 
+  suppressInitialMessage: true,
+
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
+    _options: any,
+    callback?: HandlerCallback,
   ): Promise<void> => {
     const text = message.content?.text || "";
 
@@ -69,6 +74,12 @@ export const solusAnalyzeAction: Action = {
 
     if (!ticker) {
       logger.warn("[SolusAnalyze] No ticker found in message: " + text);
+      if (callback) {
+        await callback({
+          text: "Couldn't find a ticker in your message. Try something like: analyze NVDA",
+          actions: ["SOLUS_ANALYZE"],
+        });
+      }
       return;
     }
 
@@ -217,12 +228,15 @@ export const solusAnalyzeAction: Action = {
       );
     }
 
-    // Build final response
     const response = results.join("\n");
     logger.info(`[SolusAnalyze] Analysis complete for ${ticker}`);
 
-    // TODO: Emit result as message or callback
-    console.log(response);
+    if (callback) {
+      await callback({
+        text: response,
+        actions: ["SOLUS_ANALYZE"],
+      });
+    }
 
     return;
   },
