@@ -1,25 +1,23 @@
 {
   "date": "2026-02-20",
-  "thesis": "HYPE trades like a meme but is infrastructure for Hyperliquid's perp DEX; structural undervaluation versus utility token status and COIN comparison",
-  "primaryTicker": "HYPE",
-  "primaryDirection": "long",
+  "thesis": "SOL at $84 is pricing in perfection while ETH at $1968 is undervalued; fade SOL momentum via short perp as crowd capitulates on weakness",
+  "primaryTicker": "SOL",
+  "primaryDirection": "short",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 29.35,
+  "primaryEntryPrice": 84.18,
   "primaryRiskUsd": 500,
-  "invalidateCondition": "below $25",
+  "invalidateCondition": "SOL breaks $90 convincingly",
   "killConditions": [
-    "Hyperliquid volume drops",
-    "major competitor emerges",
-    "growth stalls"
+    "dies if $90 break"
   ],
   "rubric": {
     "alignment": "pure_play",
-    "edge": "undiscovered",
-    "payoffShape": "max_asymmetry",
-    "timingForgiveness": "forgiving"
+    "edge": "crowded",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
   },
-  "altTicker": "COIN",
-  "altDirection": "short",
-  "altInstrument": "equity",
-  "evThresholdPct": 15
+  "altTicker": "ETH",
+  "altDirection": "long",
+  "altInstrument": "spot",
+  "evThresholdPct": 60
 }

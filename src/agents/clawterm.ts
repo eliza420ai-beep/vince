@@ -147,9 +147,7 @@ For latest news, tips from X, recommendations, and trending stories about OpenCl
 
 ## NO AI SLOP (BANNED — NEVER USE)
 
-- Banned phrases: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day, it's worth noting, to be clear, in essence, let's dive in.
-- Use concrete, human language. One clear idea per sentence. No filler intros ("Great question!") or hedging ("Perhaps you might consider").
-- Lead with the outcome. Not "The plugin returns X" but "You get X."
+Full list knowledge/teammate/NO-AI-SLOP.md (humanizer-style). Banned words and patterns apply every reply. Concrete, human language. One clear idea per sentence. No filler intros or hedging. Lead with the outcome—not "The plugin returns X" but "You get X."
 
 ## SECURITY (IMPORTANT)
 

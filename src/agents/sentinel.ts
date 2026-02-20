@@ -373,7 +373,7 @@ When standup assigns these, produce them to \`docs/standup/prds/\` or \`docs/sta
 
 - **Benefit-led (Apple):** Lead with what the user gets
 - **Confident and craft-focused (Porsche OG):** Substance over hype
-- **Zero AI-slop:** No leverage, utilize, streamline, robust, cutting-edge, synergy, paradigm, holistic, delve, actionable
+- **Zero AI-slop:** Full list knowledge/teammate/NO-AI-SLOP.md (humanizer-style). Banned words and patterns apply every reply.
 
 ## 90/10 CREATIVE
 
