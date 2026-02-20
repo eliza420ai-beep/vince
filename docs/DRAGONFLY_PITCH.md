@@ -140,8 +140,10 @@ SAFE, $8M cap. Enough to answer the only question that matters: does the edge su
 | ------------------------------------------------------------ | ---------- |
 | Live execution on Hyperliquid (testnet → small real capital) | $200K      |
 | One ML engineer (ONNX pipeline depth, regime detection)      | $300K      |
-| Data API upgrades (Nansen, CoinGlass, Santiment paid tiers)  | $50K       |
-| Six months of runway (infra, compute, ClawRouter)            | $200K      |
+| Data API upgrades (Nansen, CoinGlass, Santiment paid tiers)   | $50K       |
+| Six months of runway (infra, compute, ClawRouter)             | $200K      |
+
+Allocations match [TREASURY.md](TREASURY.md) and the Leaderboard Usage tab: data APIs ~$50K/yr at high tier (Nansen, Sanbase, CoinGlass Pro); runway reflects actual AI burn (~$3K in 3 weeks) plus Cursor, infra, and ClawRouter.
 
 We come back in six months with live P&L, Sharpe, drawdown, and a feature store with 500+ closed trades. If the numbers work, we raise a proper seed on results. If they don't, you risked $750K instead of $2M to find out.
 

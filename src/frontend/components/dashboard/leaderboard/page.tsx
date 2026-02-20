@@ -339,6 +339,26 @@ const DATA_SOURCES_DISPLAY_TOTAL_YEARLY = DATA_SOURCES_COSTS.reduce(
 const AI_TOKEN_SPEND_3_WEEKS_USD = 3000;
 const AI_TOKEN_SPEND_3_WEEKS_LABEL = "~$3K in 3 weeks";
 
+/** Option A allocations (proof round $750K). Must match docs/DRAGONFLY_PITCH.md. */
+const PITCH_OPTION_A_ALLOCATIONS = [
+  {
+    use: "Live execution on Hyperliquid (testnet → small real capital)",
+    allocation: 200_000,
+  },
+  {
+    use: "One ML engineer (ONNX pipeline depth, regime detection)",
+    allocation: 300_000,
+  },
+  {
+    use: "Data API upgrades (Nansen, CoinGlass, Santiment paid tiers)",
+    allocation: 50_000,
+  },
+  {
+    use: "Six months of runway (infra, compute, ClawRouter)",
+    allocation: 200_000,
+  },
+] as const;
+
 /** Hardware: 2x Mac Studio @ $5K each. LOCALSONLY.md cost model. */
 const HARDWARE_2X_MAC_STUDIO = { unitCost: 5000, units: 2, totalCapEx: 10000 };
 const CLOUD_INFERENCE_EQUIV_MONTHLY = 932; // ~2B tokens/mo ≈ $932 (LOCALSONLY)
@@ -4712,6 +4732,63 @@ export default function LeaderboardPage({
                     Add session token cost (Totals), Cursor, and AI invoice
                     spend for full run rate.
                   </p>
+                </div>
+              </DashboardCard>
+
+              {/* Pitch alignment — Option A ($750K); must match docs/DRAGONFLY_PITCH.md */}
+              <DashboardCard title="Pitch alignment (Option A — $750K)">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Allocations match TREASURY and this Usage tab: data APIs
+                  ~$50K/yr at high tier (table above); runway reflects actual AI
+                  burn ({AI_TOKEN_SPEND_3_WEEKS_LABEL}) plus Cursor, infra, and
+                  ClawRouter. See{" "}
+                  <a
+                    href="/docs/DRAGONFLY_PITCH.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex items-center gap-0.5"
+                  >
+                    docs/DRAGONFLY_PITCH.md
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  .
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left py-2.5 pl-3 font-medium">
+                          Use
+                        </th>
+                        <th className="text-right py-2.5 pr-3 w-28 font-medium">
+                          Allocation
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PITCH_OPTION_A_ALLOCATIONS.map((row) => (
+                        <tr
+                          key={row.use}
+                          className="border-b border-border/50 hover:bg-muted/10"
+                        >
+                          <td className="py-2 pl-3 text-foreground/90">
+                            {row.use}
+                          </td>
+                          <td className="text-right py-2 pr-3 font-mono tabular-nums font-medium">
+                            ${(row.allocation / 1000).toFixed(0)}K
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border bg-muted/40 font-semibold">
+                        <td className="py-2.5 pl-3">Total (Option A)</td>
+                        <td className="text-right py-2.5 pr-3 font-mono tabular-nums">
+                          $750K
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
               </DashboardCard>
 
