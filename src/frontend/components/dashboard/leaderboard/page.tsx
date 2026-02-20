@@ -36,6 +36,8 @@ import {
   fetchPolymarketPriorityMarkets,
   fetchPolymarketEdgeStatus,
   fetchPolymarketEdgeSignals,
+  fetchPolymarketDeskStatus,
+  fetchPolymarketDeskTrades,
   fetchSubstackPostsWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
@@ -336,6 +338,32 @@ export default function LeaderboardPage({
     refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
   });
   const edgeSignalsData = edgeSignalsResult?.data ?? null;
+
+  const {
+    data: deskStatusResult,
+    isLoading: deskStatusLoading,
+    isFetching: deskStatusFetching,
+  } = useQuery({
+    queryKey: ["polymarket-desk-status", oracleAgentId],
+    queryFn: () => fetchPolymarketDeskStatus(oracleAgentId!),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const deskStatus = deskStatusResult?.data ?? null;
+
+  const {
+    data: deskTradesResult,
+    isLoading: deskTradesLoading,
+    isFetching: deskTradesFetching,
+  } = useQuery({
+    queryKey: ["polymarket-desk-trades", oracleAgentId],
+    queryFn: () => fetchPolymarketDeskTrades(oracleAgentId!, 50),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const deskTradesData = deskTradesResult?.data ?? null;
 
   // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
   const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
@@ -3037,6 +3065,136 @@ export default function LeaderboardPage({
                     <p className="text-sm text-muted-foreground">
                       Not running or edge engine not available on Oracle.
                     </p>
+                  )}
+                </DashboardCard>
+              )}
+
+              {/* Paper trading: desk status (trades today, volume, execution P&L) */}
+              {oracleAgentId && (
+                <DashboardCard title="Paper trading">
+                  {(deskStatusLoading || deskStatusFetching) && !deskStatus ? (
+                    <p className="text-sm text-muted-foreground">Loading…</p>
+                  ) : deskStatus ? (
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                      <span className="font-medium text-foreground">
+                        Trades today: {deskStatus.tradesToday}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Volume: $
+                        {deskStatus.volumeTodayUsd.toLocaleString(undefined, {
+                          maximumFractionDigits: 0,
+                        })}
+                      </span>
+                      <span
+                        className={cn(
+                          "font-mono font-medium",
+                          (deskStatus.executionPnlTodayUsd ?? 0) >= 0
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400",
+                        )}
+                      >
+                        Execution P&L: $
+                        {(deskStatus.executionPnlTodayUsd ?? 0).toFixed(2)}
+                      </span>
+                      {deskStatus.pendingSignalsCount > 0 && (
+                        <span className="text-muted-foreground">
+                          Pending signals: {deskStatus.pendingSignalsCount}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Desk not available or DB not configured.
+                    </p>
+                  )}
+                </DashboardCard>
+              )}
+
+              {/* Polymarket paper trading — Recent trades (desk fills) */}
+              {oracleAgentId && (
+                <DashboardCard title="Polymarket paper trading — Recent trades">
+                  {(deskTradesLoading || deskTradesFetching) &&
+                  !deskTradesData ? (
+                    <p className="text-sm text-muted-foreground">
+                      Loading trades…
+                    </p>
+                  ) : (deskTradesData?.trades?.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">
+                      No fills yet. Trades appear when Risk approves a signal
+                      and Otaku executes on the CLOB. Edge engine feeds signals
+                      → desk pipeline.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground uppercase">
+                            <th className="pb-2 pr-3">Time</th>
+                            <th className="pb-2 pr-3">Side</th>
+                            <th className="pb-2 pr-3">Market</th>
+                            <th className="pb-2 pr-3">Size $</th>
+                            <th className="pb-2 pr-3">Arrival</th>
+                            <th className="pb-2 pr-3">Fill</th>
+                            <th className="pb-2">P&L $</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(deskTradesData?.trades ?? []).map((t) => (
+                            <tr
+                              key={t.id}
+                              className="border-b border-border/50"
+                            >
+                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                {t.createdAt
+                                  ? new Date(t.createdAt).toLocaleString(
+                                      undefined,
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    )
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">{t.side}</td>
+                              <td
+                                className="py-2 pr-3 font-mono truncate max-w-[8rem]"
+                                title={t.marketId}
+                              >
+                                {t.marketId.slice(0, 8)}…
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                $
+                                {t.sizeUsd.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {t.arrivalPrice != null
+                                  ? (t.arrivalPrice * 100).toFixed(1) + "%"
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {(t.fillPrice * 100).toFixed(1)}%
+                              </td>
+                              <td
+                                className={cn(
+                                  "py-2 font-mono font-medium",
+                                  (t.executionPnlUsd ?? 0) >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400",
+                                )}
+                              >
+                                {t.executionPnlUsd != null
+                                  ? `${t.executionPnlUsd >= 0 ? "+" : ""}$${t.executionPnlUsd.toFixed(2)}`
+                                  : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </DashboardCard>
               )}

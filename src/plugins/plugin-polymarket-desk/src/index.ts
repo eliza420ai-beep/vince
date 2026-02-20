@@ -15,6 +15,8 @@ import { polymarketEdgeCheckAction } from "./actions/polymarketEdgeCheck.action"
 import { polymarketRiskApproveAction } from "./actions/polymarketRiskApprove.action";
 import { polymarketDeskReportAction } from "./actions/polymarketDeskReport.action";
 import { registerDeskSchedule } from "./tasks/deskSchedule.tasks";
+import { buildDeskStatusHandler } from "./routes/deskStatus";
+import { buildDeskTradesHandler } from "./routes/deskTrades";
 
 export const pluginPolymarketDesk: Plugin = {
   name: "polymarket-desk",
@@ -22,6 +24,21 @@ export const pluginPolymarketDesk: Plugin = {
     "Polymarket trading desk: signals, sized orders, trade log schema; edge-check (Analyst), risk-approve (Risk), report (Performance). No execution.",
 
   schema: deskSchema,
+
+  routes: [
+    {
+      name: "desk-status",
+      path: "/desk/status",
+      type: "GET",
+      handler: buildDeskStatusHandler(),
+    },
+    {
+      name: "desk-trades",
+      path: "/desk/trades",
+      type: "GET",
+      handler: buildDeskTradesHandler(),
+    },
+  ],
 
   actions: [
     polymarketEdgeCheckAction,
