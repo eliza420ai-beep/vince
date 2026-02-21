@@ -494,20 +494,32 @@ export class VincePaperTradingService extends Service {
     const contributingSources = signal.sourceBreakdown
       ? Object.keys(signal.sourceBreakdown)
       : [];
-    // Always store for dashboard (every no-trade is a decision we want to see)
-    this.recentNoTrades.push({
-      asset,
-      direction: signal.direction,
-      reason,
-      strength: signal.strength,
-      confidence: signal.confidence,
-      confirmingCount: signal.confirmingCount ?? 0,
-      minStrength,
-      minConfidence,
-      minConfirming,
-      timestamp: now,
-      contributingSources,
-    });
+
+    // Deduplicate: skip if same asset+direction+reason appeared within the last 2 minutes
+    const dedupeWindowMs = 2 * 60 * 1000;
+    const isDuplicate = this.recentNoTrades.some(
+      (entry) =>
+        entry.asset === asset &&
+        entry.direction === signal.direction &&
+        entry.reason === reason &&
+        now - entry.timestamp < dedupeWindowMs,
+    );
+
+    if (!isDuplicate) {
+      this.recentNoTrades.push({
+        asset,
+        direction: signal.direction,
+        reason,
+        strength: signal.strength,
+        confidence: signal.confidence,
+        confirmingCount: signal.confirmingCount ?? 0,
+        minStrength,
+        minConfidence,
+        minConfirming,
+        timestamp: now,
+        contributingSources,
+      });
+    }
     if (
       this.recentNoTrades.length > VincePaperTradingService.MAX_RECENT_NO_TRADES
     ) {
