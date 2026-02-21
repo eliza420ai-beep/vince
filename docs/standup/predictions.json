@@ -7,7 +7,10 @@
     "confidence": 55,
     "expiryDate": "2026-02-21T08:00:00Z",
     "source": "Solus",
-    "id": "pred-1771119172357-updtap7"
+    "id": "pred-1771119172357-updtap7",
+    "outcome": "incorrect",
+    "actualPrice": 68147,
+    "validatedAt": "2026-02-21T13:08:22.601Z"
   },
   {
     "date": "2026-02-15",
@@ -17,7 +20,10 @@
     "confidence": 55,
     "expiryDate": "2026-02-21T08:00:00Z",
     "source": "Solus",
-    "id": "pred-1771120223715-uojz09n"
+    "id": "pred-1771120223715-uojz09n",
+    "outcome": "incorrect",
+    "actualPrice": 68147,
+    "validatedAt": "2026-02-21T13:08:22.601Z"
   },
   {
     "date": "2026-02-15",
@@ -27,7 +33,10 @@
     "confidence": 65,
     "expiryDate": "2026-02-21T08:00:00Z",
     "source": "Solus",
-    "id": "pred-1771121292723-60z8lvn"
+    "id": "pred-1771121292723-60z8lvn",
+    "outcome": "incorrect",
+    "actualPrice": 68147,
+    "validatedAt": "2026-02-21T13:08:22.601Z"
   },
   {
     "date": "2026-02-15",
