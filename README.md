@@ -74,6 +74,7 @@ The goal: stay in the game without 12+ hours on screens. Push, not pull.
 | **Day Report = Report of the Day** | Kelly's daily standup is now an 800-1200 word narrative (trading desk letter, cross-agent data, opinionated take) followed by a Daily TODO table (5-7 items with @Owner). |
 | **Team priorities baked in** | 11 strategic priorities wired into every standup so TODO items always move the needle. |
 | **Duplicate WTT trade fix** | Paper bot no longer opens the same What's-the-Trade pick twice; pick file renamed to `.traded.json` after opening. |
+| **Primary signal gate fix** | Paper bot was blocking all HIP-3 trades (primary-source check used `.toUpperCase()` vs mixed-case set). Fixed: OIL, COIN, NVDA, TSLA, PLTR, AMD, etc. now open as intended. |
 | **TypeScript declarations fixed** | Clean build output; module declarations for `@elizaos/plugin-x402`, `elizaos-plugins.d.ts` in build config. |
 | **Single Oracle for Polymarket** | Oracle runs all three desk workers (analyst, risk, perf). Polymarket Risk and Performance agents removed. |
 | **Quick actions + About** | Agent-specific quick actions and About modals refined for all 10 agents. |
@@ -100,6 +101,12 @@ Clear lanes, no overlap: data, plan, call, lifestyle, infra.
 | **Clawterm** | AI agents terminal: OpenClaw skills, Milaidy, ElizaOS, setup tips, trending. |
 
 One conversation, ask any teammate by name; standups 2x/day. [MULTI_AGENT.md](docs/MULTI_AGENT.md)
+
+---
+
+### Trading Bot: No Tilt. Every decision explained. Every outcome learned.
+
+The paper bot runs 24/7 on the **Leaderboard** (Trading Bot tab): 15+ signal sources, 38 onchain assets (crypto, stocks, commodities, indices) as Hyperliquid perps. Zero tilt. Every open position shows strength, confidence, sources, and R:R; every close feeds the feature store and ML loop. Goal progress ($420/day, $10K/mo), open positions, recent trades, and signal source status—all in one place. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
 
 ---
 

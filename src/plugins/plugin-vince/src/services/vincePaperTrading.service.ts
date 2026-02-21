@@ -62,7 +62,11 @@ import {
   wttPickToWttBlock,
   type WttFeatureBlock,
 } from "../constants/paperTradingDefaults";
-import { normalizeWttTicker, CORE_ASSETS } from "../constants/targetAssets";
+import {
+  normalizeWttTicker,
+  CORE_ASSETS,
+  HIP3_ASSETS,
+} from "../constants/targetAssets";
 import * as fs from "fs";
 import * as path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -149,6 +153,10 @@ export class VincePaperTradingService extends Service {
 
   // Throttle "No WTT pick for today" to once per calendar day (update loop runs every 30s)
   private lastNoWttLogDate: string | null = null;
+
+  // WTT: ensure we only open today's pick once (persisted so survives restart)
+  private wttTradedToday: { date: string; asset: string } | null = null;
+  private lastWttAlreadyTradedLogDate: string | null = null;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -802,6 +810,48 @@ Reply format: APPROVE reason or VETO reason`;
     );
   }
 
+  private getWttTradedTodayPath(): string {
+    if (!this.persistenceDir) {
+      return path.join(
+        process.cwd(),
+        ".elizadb",
+        PERSISTENCE_DIR,
+        "wtt-traded-today.json",
+      );
+    }
+    return path.join(this.persistenceDir, "wtt-traded-today.json");
+  }
+
+  private loadWttTradedToday(): void {
+    try {
+      const filepath = this.getWttTradedTodayPath();
+      if (fs.existsSync(filepath)) {
+        const raw = fs.readFileSync(filepath, "utf-8");
+        const data = JSON.parse(raw) as { date: string; asset: string };
+        if (data?.date && data?.asset) {
+          this.wttTradedToday = { date: data.date, asset: data.asset };
+        }
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  private async persistWttTradedToday(): Promise<void> {
+    if (!this.wttTradedToday || !this.persistenceDir) return;
+    try {
+      const filepath = this.getWttTradedTodayPath();
+      await fs.promises.writeFile(
+        filepath,
+        JSON.stringify(this.wttTradedToday, null, 2),
+      );
+    } catch (e) {
+      logger.debug(
+        `[VincePaperTrading] Failed to persist WTT traded today: ${e}`,
+      );
+    }
+  }
+
   private async readLatestWttPick(): Promise<WttPickJson | null> {
     try {
       const filepath = this.getWttPickPath();
@@ -920,6 +970,21 @@ Reply format: APPROVE reason or VETO reason`;
       await this.appendWttPickJsonl(pick, "skipped", "ticker not in universe");
       return false;
     }
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (
+      this.wttTradedToday?.date === today &&
+      this.wttTradedToday?.asset === asset
+    ) {
+      if (this.lastWttAlreadyTradedLogDate !== today) {
+        this.lastWttAlreadyTradedLogDate = today;
+        logger.info(
+          `[VincePaperTrading] WTT already traded today (${asset}); skipping`,
+        );
+      }
+      return false;
+    }
+
     if (positionManager.hasOpenPosition(asset) || this.hasPendingEntry(asset)) {
       await this.appendWttPickJsonl(pick, "skipped", `already in ${asset}`);
       return false;
@@ -978,6 +1043,9 @@ Reply format: APPROVE reason or VETO reason`;
       await this.appendWttPickJsonl(pick, "rejected", "openTrade failed");
       return false;
     }
+
+    this.wttTradedToday = { date: today, asset };
+    await this.persistWttTradedToday();
 
     // Store WTT thesis and invalidate condition for WHY THIS TRADE (explainer + notifications)
     position.metadata = {
@@ -1357,6 +1425,12 @@ Reply format: APPROVE reason or VETO reason`;
             );
           }
           continue;
+        }
+
+        if (isHip3Asset) {
+          logger.info(
+            `[VincePaperTrading] HIP-3 trade passing validation: ${asset} ${signal.direction} str=${signal.strength.toFixed(0)} conf=${signal.confidence.toFixed(0)}`,
+          );
         }
 
         // Calculate position size
@@ -1858,18 +1932,38 @@ Reply format: APPROVE reason or VETO reason`;
       entryPrice = ctx?.currentPrice;
       // Layer 1: Symbol validation (reject invalid / zero price)
       if (entryPrice == null || entryPrice <= 0) {
-        const now = Date.now();
-        const lastWarn = this.lastEntryPriceWarnByAsset.get(asset) ?? 0;
-        if (
-          now - lastWarn >=
-          VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS
-        ) {
-          logger.warn(
-            `[VincePaperTrading] SYMBOL VALIDATION FAILED: ${asset} (mid price missing or <= 0)`,
-          );
-          this.lastEntryPriceWarnByAsset.set(asset, now);
+        // HIP-3 fallback: get price directly from HIP-3 service when marketData missed it
+        const isHip3 = (HIP3_ASSETS as readonly string[]).includes(
+          asset.toUpperCase(),
+        );
+        if (isHip3) {
+          const hip3Service = this.runtime.getService("VINCE_HIP3_SERVICE") as {
+            getAssetPrice?(s: string): Promise<{ price: number } | null>;
+          } | null;
+          const hip3Data = hip3Service?.getAssetPrice
+            ? await hip3Service.getAssetPrice(asset)
+            : null;
+          if (hip3Data && hip3Data.price > 0) {
+            entryPrice = hip3Data.price;
+            logger.debug(
+              `[VincePaperTrading] HIP-3 price fallback: ${asset} $${entryPrice.toFixed(2)}`,
+            );
+          }
         }
-        return null;
+        if (entryPrice == null || entryPrice <= 0) {
+          const now = Date.now();
+          const lastWarn = this.lastEntryPriceWarnByAsset.get(asset) ?? 0;
+          if (
+            now - lastWarn >=
+            VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS
+          ) {
+            logger.warn(
+              `[VincePaperTrading] SYMBOL VALIDATION FAILED: ${asset} (mid price missing or <= 0)`,
+            );
+            this.lastEntryPriceWarnByAsset.set(asset, now);
+          }
+          return null;
+        }
       }
     } catch (error) {
       logger.error(
@@ -2831,6 +2925,8 @@ Reply format: APPROVE reason or VETO reason`;
         const entries = JSON.parse(fs.readFileSync(journalPath, "utf-8"));
         tradeJournal.restoreEntries(entries);
       }
+
+      this.loadWttTradedToday();
 
       logger.info("[VincePaperTrading] State restored from disk");
     } catch (error) {
