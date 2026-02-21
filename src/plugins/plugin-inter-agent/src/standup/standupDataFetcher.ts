@@ -234,18 +234,19 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   } catch {
     /* non-fatal */
   }
-  
+
   let line = "";
   if (stats && stats.totalTrades > 0) {
     // Show: W/L, PnL, win rate, profit factor
     const pnlStr = `${stats.totalPnl >= 0 ? "+" : ""}$${stats.totalPnl.toFixed(0)}`;
     const winRateStr = `${(stats.winRate * 100).toFixed(0)}%`;
-    const pfStr = stats.profitFactor > 0 ? `PF:${stats.profitFactor.toFixed(1)}` : "";
+    const pfStr =
+      stats.profitFactor > 0 ? `PF:${stats.profitFactor.toFixed(1)}` : "";
     line = `**Paper:** ${stats.winCount}W/${stats.lossCount}L ${pnlStr} | WR:${winRateStr} ${pfStr}`;
   } else {
     line = "**Paper:** No trades yet";
   }
-  
+
   if (botStatus)
     line += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;
   return line;
@@ -266,18 +267,18 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
         trained?: number;
       } | null>;
     } | null;
-    
+
     // Also get ML inference service for threshold visibility
     const mlService = runtime.getService("VINCE_ML_INFERENCE_SERVICE") as {
       getSignalQualityThreshold?: () => number;
-      getImprovementReport?: () => ({
+      getImprovementReport?: () => {
         suggested_signal_quality_threshold?: number;
-        tp_level_performance?: Record<string, { win_rate: number; count: number }>;
+        tp_level_performance?: Record<
+          string,
+          { win_rate: number; count: number }
+        >;
         suggested_tuning?: { min_strength?: number; min_confidence?: number };
-      } | null);
-        suggested_signal_quality_threshold?: number;
-        tp_level_performance?: Record<string, { win_rate: number; count: number }>;
-      } | null>;
+      } | null;
       getModelStatus?: () => {
         onnxAvailable: boolean;
         modelsLoaded: boolean;
@@ -289,17 +290,17 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
         }>;
       };
     } | null;
-    
+
     let featureCount = 0;
     let modelTrained = 0;
     let hasModels = false;
     let signalQualityThreshold: number | null = null;
     let tpPerformance: string = "";
-    
+
     try {
-      featureCount = await vinceService?.getFeatureCount?.() ?? 0;
+      featureCount = (await vinceService?.getFeatureCount?.()) ?? 0;
     } catch {}
-    
+
     try {
       const modelStatus = await vinceService?.getModelStatus?.();
       if (modelStatus) {
@@ -307,12 +308,12 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
         hasModels = !!(modelStatus.signalQuality || modelStatus.positionSizing);
       }
     } catch {}
-    
+
     // Get signal quality threshold from ML service
     try {
       signalQualityThreshold = mlService?.getSignalQualityThreshold?.() ?? null;
     } catch {}
-    
+
     // Get TP level performance if available
     try {
       const report = await mlService?.getImprovementReport?.();
@@ -330,59 +331,75 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
         const { min_strength, min_confidence } = report.suggested_tuning;
         if (min_strength !== undefined || min_confidence !== undefined) {
           const parts: string[] = [];
-          if (min_strength !== undefined) parts.push(`strength≥${(min_strength * 100).toFixed(0)}%`);
-          if (min_confidence !== undefined) parts.push(`conf≥${(min_confidence * 100).toFixed(0)}%`);
+          if (min_strength !== undefined)
+            parts.push(`strength≥${(min_strength * 100).toFixed(0)}%`);
+          if (min_confidence !== undefined)
+            parts.push(`conf≥${(min_confidence * 100).toFixed(0)}%`);
           if (parts.length > 0) {
             tpPerformance += ` [tuning: ${parts.join(", ")}]`;
           }
         }
       }
     } catch {}
-    
+
     // Also check feature store directory for trade count
     try {
-      const featureDir = path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
+      const featureDir = path.join(
+        process.cwd(),
+        ".elizadb",
+        "vince-paper-bot",
+        "features",
+      );
       if (fs.existsSync(featureDir)) {
-        const files = fs.readdirSync(featureDir).filter(f => f.endsWith(".jsonl"));
+        const files = fs
+          .readdirSync(featureDir)
+          .filter((f) => f.endsWith(".jsonl"));
         // Estimate trades from file sizes (rough proxy)
         if (featureCount === 0) {
           // Try to count lines in first file
           for (const f of files.slice(0, 1)) {
             const content = fs.readFileSync(path.join(featureDir, f), "utf-8");
-            featureCount = content.split("\n").filter(l => l.trim()).length;
+            featureCount = content.split("\n").filter((l) => l.trim()).length;
           }
         }
       }
     } catch {}
-    
-    if (featureCount > 0 || modelTrained > 0 || hasModels || signalQualityThreshold !== null) {
+
+    if (
+      featureCount > 0 ||
+      modelTrained > 0 ||
+      hasModels ||
+      signalQualityThreshold !== null
+    ) {
       const parts: string[] = [];
-      if (featureCount > 0) parts.push(`${featureCount}+ trades in feature store`);
-      
+      if (featureCount > 0)
+        parts.push(`${featureCount}+ trades in feature store`);
+
       // Get detailed model status from ML inference service
       let modelDetails: string[] = [];
       try {
         const modelStatus = mlService?.getModelStatus?.();
         if (modelStatus?.models) {
           modelDetails = modelStatus.models
-            .filter(m => m.loaded && m.inferenceCount > 0)
-            .map(m => `${m.name.replace('_', '')}:${m.inferenceCount}`);
+            .filter((m) => m.loaded && m.inferenceCount > 0)
+            .map((m) => `${m.name.replace("_", "")}:${m.inferenceCount}`);
         }
       } catch {}
-      
+
       if (modelDetails.length > 0) {
         parts.push(`ONNX [${modelDetails.join(", ")}]`);
       } else if (hasModels) {
         parts.push("ONNX models loaded");
       }
-      
+
       if (modelTrained > 0) parts.push(`${modelTrained} runs`);
-      if (signalQualityThreshold !== null) parts.push(`SQ:${(signalQualityThreshold * 100).toFixed(0)}%`);
+      if (signalQualityThreshold !== null)
+        parts.push(`SQ:${(signalQualityThreshold * 100).toFixed(0)}%`);
       if (tpPerformance) parts.push(tpPerformance);
-      
+
       return `**ML Loop:** ${parts.join(" | ")}`;
     }
-    
+
     return ""; // No ML data yet - graceful degradation
   } catch {
     return "";
@@ -392,47 +409,60 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
 /** Fetch parameter tuner status - shows self-improving architecture state */
 async function fetchParameterTuner(runtime: IAgentRuntime): Promise<string> {
   try {
-    const tunerService = runtime.getService("VINCE_PARAMETER_TUNER_SERVICE") as {
+    const tunerService = runtime.getService(
+      "VINCE_PARAMETER_TUNER_SERVICE",
+    ) as {
       getParameterStatus?: () => {
         thresholds: { minStrength?: number; minConfidence?: number };
         sourceWeights: Record<string, number>;
-        recentAdjustments: Array<{ param: string; oldVal: number; newVal: number; timestamp: string }>;
+        recentAdjustments: Array<{
+          param: string;
+          oldVal: number;
+          newVal: number;
+          timestamp: string;
+        }>;
         isModified: boolean;
       } | null;
     } | null;
-    
+
     const status = tunerService?.getParameterStatus?.();
     if (!status) return "";
-    
+
     const parts: string[] = [];
-    
+
     // Show current thresholds
     if (status.thresholds?.minStrength !== undefined) {
       parts.push(`minStr=${(status.thresholds.minStrength * 100).toFixed(0)}%`);
     }
     if (status.thresholds?.minConfidence !== undefined) {
-      parts.push(`minConf=${(status.thresholds.minConfidence * 100).toFixed(0)}%`);
+      parts.push(
+        `minConf=${(status.thresholds.minConfidence * 100).toFixed(0)}%`,
+      );
     }
-    
+
     // Show if parameters have been modified from defaults
     if (status.isModified) {
       parts.push(`AUTO-TUNED`);
     }
-    
+
     // Show recent adjustments (last 2)
     if (status.recentAdjustments?.length > 0) {
-      const recent = status.recentAdjustments.slice(-2).map(a => 
-        `${a.param}:${(a.oldVal * 100).toFixed(0)}%→${(a.newVal * 100).toFixed(0)}%`
-      ).join(", ");
+      const recent = status.recentAdjustments
+        .slice(-2)
+        .map(
+          (a) =>
+            `${a.param}:${(a.oldVal * 100).toFixed(0)}%→${(a.newVal * 100).toFixed(0)}%`,
+        )
+        .join(", ");
       if (recent) {
         parts.push(`[${recent}]`);
       }
     }
-    
+
     if (parts.length > 0) {
       return `**Self-tuning:** ${parts.join(" | ")}`;
     }
-    
+
     return "";
   } catch {
     return "";
@@ -454,27 +484,29 @@ async function fetchRiskState(runtime: IAgentRuntime): Promise<string> {
         todayTradeCount: number;
       } | null;
     } | null;
-    
+
     const riskState = riskService?.getRiskState?.();
     if (!riskState) return "";
-    
+
     const parts: string[] = [];
-    
+
     // Daily P&L
     if (riskState.dailyPnl !== 0) {
-      parts.push(`Day: ${riskState.dailyPnl >= 0 ? "+" : ""}$${riskState.dailyPnl.toFixed(0)} (${(riskState.dailyPnlPct * 100).toFixed(1)}%)`);
+      parts.push(
+        `Day: ${riskState.dailyPnl >= 0 ? "+" : ""}$${riskState.dailyPnl.toFixed(0)} (${(riskState.dailyPnlPct * 100).toFixed(1)}%)`,
+      );
     }
-    
+
     // Drawdown
     if (riskState.currentDrawdownPct > 0) {
       parts.push(`DD: ${(riskState.currentDrawdownPct * 100).toFixed(1)}%`);
     }
-    
+
     // Trade count
     if (riskState.todayTradeCount > 0) {
       parts.push(`${riskState.todayTradeCount} trades`);
     }
-    
+
     // Status flags
     if (riskState.isPaused) {
       parts.push(`PAUSED: ${riskState.pauseReason || "risk limit"}`);
@@ -482,11 +514,11 @@ async function fetchRiskState(runtime: IAgentRuntime): Promise<string> {
     if (riskState.circuitBreakerActive) {
       parts.push(`CIRCUIT_BREAKER`);
     }
-    
+
     if (parts.length > 0) {
       return `**Risk:** ${parts.join(" | ")}`;
     }
-    
+
     return "";
   } catch {
     return "";
@@ -503,31 +535,33 @@ async function fetchPortfolioSummary(runtime: IAgentRuntime): Promise<string> {
         openPositions: number;
       } | null;
     } | null;
-    
+
     const status = await paperTrading?.getStatus?.();
     if (!status) return "";
-    
+
     const parts: string[] = [];
-    
+
     // Total value
     if (status.portfolioValue > 0) {
       parts.push(`$${status.portfolioValue.toFixed(0)}`);
     }
-    
+
     // Return %
     if (status.returnPct !== 0) {
-      parts.push(`ret:${status.returnPct >= 0 ? "+" : ""}${(status.returnPct * 100).toFixed(1)}%`);
+      parts.push(
+        `ret:${status.returnPct >= 0 ? "+" : ""}${(status.returnPct * 100).toFixed(1)}%`,
+      );
     }
-    
+
     // Open positions
     if (status.openPositions > 0) {
       parts.push(`${status.openPositions} positions`);
     }
-    
+
     if (parts.length > 0) {
       return `**Portfolio:** ${parts.join(" | ")}`;
     }
-    
+
     return "";
   } catch {
     return "";
@@ -673,12 +707,12 @@ async function fetchVinceDelta(runtime: IAgentRuntime): Promise<string> {
   try {
     const cacheDir = path.join(process.cwd(), ".elizadb", "standup-cache");
     const cacheFile = path.join(cacheDir, "vince-last-state.json");
-    
+
     // Get current state from services
     let currentPrice = "";
     let currentRegime = "";
     let currentSignal = "";
-    
+
     // Try to get current price from enriched context
     try {
       const sigAgg = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as {
@@ -687,12 +721,14 @@ async function fetchVinceDelta(runtime: IAgentRuntime): Promise<string> {
           confidence?: number;
         } | null>;
       } | null;
-      const btcSignal = await sigAgg?.aggregateSignals?.("BTC").catch(() => null);
+      const btcSignal = await sigAgg
+        ?.aggregateSignals?.("BTC")
+        .catch(() => null);
       if (btcSignal?.direction) {
         currentSignal = `${btcSignal.direction} (${btcSignal.confidence ?? 0}%)`;
       }
     } catch {}
-    
+
     // Try to get current regime
     try {
       const vinceService = runtime.getService("VINCE_RUNTIME_SERVICE") as {
@@ -703,44 +739,57 @@ async function fetchVinceDelta(runtime: IAgentRuntime): Promise<string> {
         currentRegime = regime.regime;
       }
     } catch {}
-    
+
     // Read previous state from cache
-    let previousState: { price?: string; regime?: string; signal?: string; timestamp?: number } = {};
+    let previousState: {
+      price?: string;
+      regime?: string;
+      signal?: string;
+      timestamp?: number;
+    } = {};
     try {
       if (fs.existsSync(cacheFile)) {
         previousState = JSON.parse(fs.readFileSync(cacheFile, "utf-8"));
       }
     } catch {}
-    
+
     // Build delta string
     const deltas: string[] = [];
-    
+
     if (previousState.signal && currentSignal) {
       if (previousState.signal !== currentSignal) {
         deltas.push(`Signal: ${previousState.signal} → ${currentSignal}`);
       }
     }
-    
+
     if (previousState.regime && currentRegime) {
       if (previousState.regime !== currentRegime) {
-        deltas.push(`Regime: ${previousState.regime} → ${currentRegime} (CHANGED)`);
+        deltas.push(
+          `Regime: ${previousState.regime} → ${currentRegime} (CHANGED)`,
+        );
       }
     }
-    
+
     // Save current state for next run
     try {
       if (!fs.existsSync(cacheDir)) {
         fs.mkdirSync(cacheDir, { recursive: true });
       }
-      fs.writeFileSync(cacheFile, JSON.stringify({
-        signal: currentSignal,
-        regime: currentRegime,
-        timestamp: Date.now(),
-      }));
+      fs.writeFileSync(
+        cacheFile,
+        JSON.stringify({
+          signal: currentSignal,
+          regime: currentRegime,
+          timestamp: Date.now(),
+        }),
+      );
     } catch (writeErr) {
-      logger.debug({ err: writeErr }, "[STANDUP_DATA] Failed to write VINCE delta cache");
+      logger.debug(
+        { err: writeErr },
+        "[STANDUP_DATA] Failed to write VINCE delta cache",
+      );
     }
-    
+
     return deltas.length > 0 ? deltas.join("\n") : "";
   } catch (err) {
     logger.debug({ err }, "[STANDUP_DATA] VINCE delta fetch failed");
@@ -870,7 +919,11 @@ interface AssetSignal {
 }
 
 function extractAssetSignalsFromTweets(
-  tweets: Array<{ text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>,
+  tweets: Array<{
+    text: string;
+    author?: { username?: string };
+    metrics?: { likeCount?: number };
+  }>,
   trackedAssets: string[] = ["BTC", "SOL", "ETH", "HYPE"],
 ): AssetSignal[] {
   // Initialize asset signals
@@ -889,8 +942,33 @@ function extractAssetSignalsFromTweets(
   }
 
   // Keywords for sentiment analysis
-  const bullishKeywords = ["bull", "long", "moon", "pump", "up", "breakout", "rally", "gain", "buy", "accumulation", "inflow", "etf"];
-  const bearishKeywords = ["bear", "short", "dump", "down", "crash", "sell", "outflow", "fear", "risk", "drop", "breakdown"];
+  const bullishKeywords = [
+    "bull",
+    "long",
+    "moon",
+    "pump",
+    "up",
+    "breakout",
+    "rally",
+    "gain",
+    "buy",
+    "accumulation",
+    "inflow",
+    "etf",
+  ];
+  const bearishKeywords = [
+    "bear",
+    "short",
+    "dump",
+    "down",
+    "crash",
+    "sell",
+    "outflow",
+    "fear",
+    "risk",
+    "drop",
+    "breakdown",
+  ];
 
   // Process each tweet
   for (const tweet of tweets) {
@@ -899,7 +977,10 @@ function extractAssetSignalsFromTweets(
 
     // Find mentioned assets
     for (const asset of trackedAssets) {
-      if (text.includes(asset.toLowerCase()) || text.includes("$" + asset.toLowerCase())) {
+      if (
+        text.includes(asset.toLowerCase()) ||
+        text.includes("$" + asset.toLowerCase())
+      ) {
         mentions.push(asset);
       }
     }
@@ -915,8 +996,12 @@ function extractAssetSignalsFromTweets(
     const confidence = Math.min(90, 50 + Math.abs(score) * 10);
 
     // Extract narrative (first 50 chars that aren't a hashtag or mention)
-    const cleanText = tweet.text.replace(/@\w+/g, "").replace(/#\w+/g, "").trim();
-    const narrative = cleanText.slice(0, 60) + (cleanText.length > 60 ? "..." : "");
+    const cleanText = tweet.text
+      .replace(/@\w+/g, "")
+      .replace(/#\w+/g, "")
+      .trim();
+    const narrative =
+      cleanText.slice(0, 60) + (cleanText.length > 60 ? "..." : "");
 
     // Update asset signals
     for (const asset of mentions) {
@@ -927,9 +1012,14 @@ function extractAssetSignalsFromTweets(
       const newWeight = existing.tweetCount;
       if (sentiment !== "neutral") {
         existing.sentiment = score > 0 ? "bullish" : "bearish";
-        existing.sentimentConfidence = Math.round((existing.sentimentConfidence * oldWeight + confidence) / newWeight);
+        existing.sentimentConfidence = Math.round(
+          (existing.sentimentConfidence * oldWeight + confidence) / newWeight,
+        );
       }
-      if (existing.narrative === "no clear narrative" || existing.narrative.length < narrative.length) {
+      if (
+        existing.narrative === "no clear narrative" ||
+        existing.narrative.length < narrative.length
+      ) {
         existing.narrative = narrative;
       }
       if (sentiment === "bullish") existing.bullCase = narrative;
@@ -945,11 +1035,20 @@ function extractAssetSignalsFromTweets(
     // Determine signal
     if (signal.sentiment === "bullish" && signal.sentimentConfidence > 60) {
       signal.signal = "LONG";
-    } else if (signal.sentiment === "bearish" && signal.sentimentConfidence > 60) {
+    } else if (
+      signal.sentiment === "bearish" &&
+      signal.sentimentConfidence > 60
+    ) {
       signal.signal = "SHORT";
-    } else if (signal.sentiment === "bullish" && signal.sentimentConfidence > 50) {
+    } else if (
+      signal.sentiment === "bullish" &&
+      signal.sentimentConfidence > 50
+    ) {
       signal.signal = "SHIFT-UP";
-    } else if (signal.sentiment === "bearish" && signal.sentimentConfidence > 50) {
+    } else if (
+      signal.sentiment === "bearish" &&
+      signal.sentimentConfidence > 50
+    ) {
       signal.signal = "SHIFT-DOWN";
     } else {
       signal.signal = "HOLD";
@@ -963,8 +1062,12 @@ function extractAssetSignalsFromTweets(
 
 function generateContrarianAlert(signals: AssetSignal[]): string {
   // Find consensus
-  const bullish = signals.filter(s => s.sentiment === "bullish" && s.sentimentConfidence > 50);
-  const bearish = signals.filter(s => s.sentiment === "bearish" && s.sentimentConfidence > 50);
+  const bullish = signals.filter(
+    (s) => s.sentiment === "bullish" && s.sentimentConfidence > 50,
+  );
+  const bearish = signals.filter(
+    (s) => s.sentiment === "bearish" && s.sentimentConfidence > 50,
+  );
 
   if (bullish.length > bearish.length) {
     return `Consensus: CT is ${bullish.length > 1 ? "bullish" : "leaning bullish"}. Edge: contrarians may be right in near-term.`;
@@ -1137,7 +1240,10 @@ export async function fetchEchoData(
 
     // Extract structured signals from tweets (improved format)
     const trackedAssets = getStandupTrackedAssets();
-    const assetSignals = extractAssetSignalsFromTweets(allTweets, trackedAssets);
+    const assetSignals = extractAssetSignalsFromTweets(
+      allTweets,
+      trackedAssets,
+    );
 
     let sentimentBlock = `## ECHO — Structured Sentiment
 
@@ -1145,7 +1251,10 @@ export async function fetchEchoData(
 
     if (assetSignals.length > 0) {
       const tableRows = assetSignals
-        .map((s) => `| ${s.asset} | ${s.sentiment} (${s.sentimentConfidence}%) | ${s.narrative.replace(/\|/g, "-")} | ${s.signal} |`)
+        .map(
+          (s) =>
+            `| ${s.asset} | ${s.sentiment} (${s.sentimentConfidence}%) | ${s.narrative.replace(/\|/g, "-")} | ${s.signal} |`,
+        )
         .join("\n");
 
       sentimentBlock += `
@@ -1167,7 +1276,8 @@ ${generateTakeaway(assetSignals)}`;
     const shortTweetLines = allTweets.slice(0, 5).map((t) => {
       const handle = t.author?.username ?? "anon";
       const len = getStandupSnippetLen();
-      const snippet = t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
+      const snippet =
+        t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
       return `@${handle}: ${snippet}`;
     });
 
