@@ -287,6 +287,18 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
           tpPerformance = ` (TP: ${levels.join(", ")})`;
         }
       }
+      // Also show suggested tuning if available
+      if (report?.suggested_tuning) {
+        const { min_strength, min_confidence } = report.suggested_tuning;
+        if (min_strength !== undefined || min_confidence !== undefined) {
+          const parts: string[] = [];
+          if (min_strength !== undefined) parts.push(`strength≥${(min_strength * 100).toFixed(0)}%`);
+          if (min_confidence !== undefined) parts.push(`conf≥${(min_confidence * 100).toFixed(0)}%`);
+          if (parts.length > 0) {
+            tpPerformance += ` [tuning: ${parts.join(", ")}]`;
+          }
+        }
+      }
     } catch {}
     
     // Also check feature store directory for trade count
