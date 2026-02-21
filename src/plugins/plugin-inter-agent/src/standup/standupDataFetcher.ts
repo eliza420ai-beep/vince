@@ -449,6 +449,138 @@ function sanitizeXQuery(q: string): string {
   return q.trim().replace(/\s+/g, " ").slice(0, X_QUERY_MAX_LEN);
 }
 
+/**
+ * Extract structured signals from tweets for the improved ECHO section.
+ * Groups tweets by asset and extracts sentiment, narratives, and signals.
+ */
+interface AssetSignal {
+  asset: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  sentimentConfidence: number;
+  narrative: string;
+  bullCase: string;
+  bearCase: string;
+  signal: "LONG" | "SHORT" | "SHIFT-UP" | "SHIFT-DOWN" | "FLIP-WATCH" | "HOLD";
+  tweetCount: number;
+}
+
+function extractAssetSignalsFromTweets(
+  tweets: Array<{ text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>,
+  trackedAssets: string[] = ["BTC", "SOL", "ETH", "HYPE"],
+): AssetSignal[] {
+  // Initialize asset signals
+  const assetMap = new Map<string, AssetSignal>();
+  for (const asset of trackedAssets) {
+    assetMap.set(asset, {
+      asset,
+      sentiment: "neutral",
+      sentimentConfidence: 50,
+      narrative: "no clear narrative",
+      bullCase: "",
+      bearCase: "",
+      signal: "HOLD",
+      tweetCount: 0,
+    });
+  }
+
+  // Keywords for sentiment analysis
+  const bullishKeywords = ["bull", "long", "moon", "pump", "up", "breakout", "rally", "gain", "buy", " accumulation", "inflow", "etf"];
+  const bearishKeywords = ["bear", "short", "dump", "down", "crash", "sell", "outflow", "fear", "risk", "drop", "breakdown"];
+
+  // Process each tweet
+  for (const tweet of tweets) {
+    const text = tweet.text.toLowerCase();
+    const mentions: string[] = [];
+
+    // Find mentioned assets
+    for (const asset of trackedAssets) {
+      if (text.includes(asset.toLowerCase()) || text.includes("$" + asset.toLowerCase())) {
+        mentions.push(asset);
+      }
+    }
+
+    if (mentions.length === 0) mentions.push("BTC"); // Default to BTC if no specific asset
+
+    // Determine sentiment
+    let score = 0;
+    for (const kw of bullishKeywords) if (text.includes(kw)) score++;
+    for (const kw of bearishKeywords) if (text.includes(kw)) score--;
+
+    const sentiment = score > 0 ? "bullish" : score < 0 ? "bearish" : "neutral";
+    const confidence = Math.min(90, 50 + Math.abs(score) * 10);
+
+    // Extract narrative (first 50 chars that aren't a hashtag or mention)
+    const cleanText = tweet.text.replace(/@\w+/g, "").replace(/#\w+/g, "").trim();
+    const narrative = cleanText.slice(0, 60) + (cleanText.length > 60 ? "..." : "");
+
+    // Update asset signals
+    for (const asset of mentions) {
+      const existing = assetMap.get(asset)!;
+      existing.tweetCount++;
+      // Weighted update
+      const oldWeight = existing.tweetCount - 1;
+      const newWeight = existing.tweetCount;
+      if (sentiment !== "neutral") {
+        existing.sentiment = score > 0 ? "bullish" : "bearish";
+        existing.sentimentConfidence = Math.round((existing.sentimentConfidence * oldWeight + confidence) / newWeight);
+      }
+      if (existing.narrative === "no clear narrative" || existing.narrative.length < narrative.length) {
+        existing.narrative = narrative;
+      }
+      if (sentiment === "bullish") existing.bullCase = narrative;
+      if (sentiment === "bearish") existing.bearCase = narrative;
+    }
+  }
+
+  // Generate signals based on sentiment
+  const results: AssetSignal[] = [];
+  for (const [asset, signal] of assetMap) {
+    if (signal.tweetCount === 0) continue;
+
+    // Determine signal
+    if (signal.sentiment === "bullish" && signal.sentimentConfidence > 60) {
+      signal.signal = "LONG";
+    } else if (signal.sentiment === "bearish" && signal.sentimentConfidence > 60) {
+      signal.signal = "SHORT";
+    } else if (signal.sentiment === "bullish" && signal.sentimentConfidence > 50) {
+      signal.signal = "SHIFT-UP";
+    } else if (signal.sentiment === "bearish" && signal.sentimentConfidence > 50) {
+      signal.signal = "SHIFT-DOWN";
+    } else {
+      signal.signal = "HOLD";
+    }
+
+    results.push(signal);
+  }
+
+  return results.sort((a, b) => b.tweetCount - a.tweetCount);
+}
+
+function generateContrarianAlert(signals: AssetSignal[]): string {
+  // Find consensus
+  const bullish = signals.filter(s => s.sentiment === "bullish" && s.sentimentConfidence > 50);
+  const bearish = signals.filter(s => s.sentiment === "bearish" && s.sentimentConfidence > 50);
+
+  if (bullish.length > bearish.length) {
+    return `Consensus: CT is ${bullish.length > 1 ? "bullish" : "leaning bullish"}. Edge: contrarians may be right in near-term.`;
+  } else if (bearish.length > bullish.length) {
+    return `Consensus: CT is ${bearish.length > 1 ? "bearish" : "leaning bearish"}. Edge: institutions may be Accumulating.`;
+  }
+  return "No clear consensus in CT sentiment.";
+}
+
+function generateTakeaway(signals: AssetSignal[]): string {
+  if (signals.length === 0) return "No actionable signals from CT.";
+
+  const top = signals[0];
+  if (top.signal === "LONG" || top.signal === "SHIFT-UP") {
+    return `${top.asset}: CT ${top.sentiment} (${top.sentimentConfidence}% conf). Narrative: "${top.narrative}". → Consider long on momentum.`;
+  } else if (top.signal === "SHORT" || top.signal === "SHIFT-DOWN") {
+    return `${top.asset}: CT ${top.sentiment} (${top.sentimentConfidence}% conf). Narrative: "${top.narrative}". → Watch for shorts or wait for flip.`;
+  }
+  return `${top.asset}: CT neutral. No clear directional signal.`;
+}
+
 async function runXQueries(
   svc: {
     searchQuery: (opts: {
@@ -597,13 +729,48 @@ export async function fetchEchoData(
 
     const queryNote =
       uniqueQueries.length > 1 ? ` [queries: ${uniqueQueries.join(", ")}]` : "";
-    let sentimentBlock = `**CT sentiment (${allTweets.length} posts, last 24h)${queryNote}:**\n${tweetLines.join("\n")}`;
 
-    // Append X content suggestions via LLM
-    if (runtime.useModel && tweetLines.length > 0) {
+    // Extract structured signals from tweets (improved format)
+    const trackedAssets = getStandupTrackedAssets();
+    const assetSignals = extractAssetSignalsFromTweets(allTweets, trackedAssets);
+
+    let sentimentBlock = `## ECHO — Structured Sentiment
+
+### Asset Sentiment (${allTweets.length} posts, last 24h)${queryNote}`;
+
+    if (assetSignals.length > 0) {
+      const tableRows = assetSignals
+        .map((s) => `| ${s.asset} | ${s.sentiment} (${s.sentimentConfidence}%) | ${s.narrative.replace(/\|/g, "-")} | ${s.signal} |`)
+        .join("\n");
+
+      sentimentBlock += `
+
+| Asset | CT Sentiment | Dominant Narrative | Signal |
+|-------|--------------|-------------------|--------|
+${tableRows}
+
+### Contrarian Alert
+${generateContrarianAlert(assetSignals)}
+
+### Actionable Takeaway
+${generateTakeaway(assetSignals)}`;
+    } else {
+      sentimentBlock += "\n\nNo clear signals extracted from tweets.";
+    }
+
+    // Keep short tweet samples for reference
+    const shortTweetLines = allTweets.slice(0, 5).map((t) => {
+      const handle = t.author?.username ?? "anon";
+      const len = getStandupSnippetLen();
+      const snippet = t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
+      return `@${handle}: ${snippet}`;
+    });
+
+    // Append X content suggestions via LLM (still useful)
+    if (runtime.useModel && shortTweetLines.length > 0) {
       try {
         const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-          prompt: `You are ECHO, the crypto-twitter sentiment agent. Based on the tweets below, suggest 1–2 tweet or post ideas for our X account that would resonate with today's CT pulse. Specific hooks, not generic. One sentence each. No filler.\n\nTweets:\n${tweetLines.slice(0, 6).join("\n")}`,
+          prompt: `You are ECHO, the crypto-twitter sentiment agent. Based on the tweets below, suggest 1–2 tweet or post ideas for our X account that would resonate with today's CT pulse. Specific hooks, not generic. One sentence each. No filler.\n\nTweets:\n${shortTweetLines.slice(0, 4).join("\n")}`,
           maxTokens: 150,
           temperature: 0.6,
         });
