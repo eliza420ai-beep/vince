@@ -270,7 +270,11 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
     // Also get ML inference service for threshold visibility
     const mlService = runtime.getService("VINCE_ML_INFERENCE_SERVICE") as {
       getSignalQualityThreshold?: () => number;
-      getImprovementReport?: () => Promise<{
+      getImprovementReport?: () => ({
+        suggested_signal_quality_threshold?: number;
+        tp_level_performance?: Record<string, { win_rate: number; count: number }>;
+        suggested_tuning?: { min_strength?: number; min_confidence?: number };
+      } | null);
         suggested_signal_quality_threshold?: number;
         tp_level_performance?: Record<string, { win_rate: number; count: number }>;
       } | null>;
