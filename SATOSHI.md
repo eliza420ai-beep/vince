@@ -95,7 +95,9 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - **Code: fetchVinceDelta()** — Delta vs yesterday section
 - **Code: fetchMLStatus()** — ML loop visibility (feature store, ONNX models)
 - **Eliza section** — Already has: Delta, Facts, Substack idea, Knowledge to expand
-- PR: `satoshi/improve-daily-insights-template` (10 commits)
+- **Agent review: Otaku** — docs/OTAKU.md complete: Can/Cannot, gaps, key files, how to run
+- **Agent review: VINCE** — docs/VINCE.md complete: Can/Cannot, gaps, key files, PRD guidance
+- PR: `satoshi/improve-daily-insights-template` (12 commits)
 
 **📋 REMAINING (lower priority):**
 - Cross-agent links (requires complex parsing of multiple sections)
@@ -103,8 +105,8 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - Test new format with next standup run
 
 **📋 NEXT PRIORITY (per standing mandate):**
-1. Test standup output with new ECHO + VINCE delta format
-2. Agent/plugin review - pick one agent and improve plugins
+1. Test standup output with new ECHO + VINCE delta + ML status format
+2. Review other agents if needed (Solus, Oracle, ECHO)
 
 ---
 
