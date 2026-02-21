@@ -5158,60 +5158,137 @@ export default function LeaderboardPage({
                     </div>
 
                     <DashboardCard title="Portfolio">
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Total value
-                          </p>
-                          <p className="font-mono font-semibold">
-                            $
-                            {(
-                              paperData.portfolio.totalValue ?? 0
-                            ).toLocaleString(undefined, {
-                              maximumFractionDigits: 0,
-                            })}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Realized P&L
-                          </p>
-                          <p
-                            className={cn(
-                              "font-mono font-semibold",
-                              (paperData.portfolio.realizedPnl ?? 0) >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400",
-                            )}
-                          >
-                            $
-                            {(
-                              paperData.portfolio.realizedPnl ?? 0
-                            ).toLocaleString(undefined, {
-                              maximumFractionDigits: 0,
-                            })}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Win rate
-                          </p>
-                          <p className="font-mono font-semibold">
-                            {((paperData.portfolio.winRate ?? 0) * 100).toFixed(
-                              0,
-                            )}
-                            %
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Trades
-                          </p>
-                          <p className="font-mono font-semibold">
-                            {paperData.portfolio.tradeCount ?? 0}
-                          </p>
-                        </div>
-                      </div>
+                      {(() => {
+                        const positions = paperData.openPositions ?? [];
+                        let totalMarginUsd = 0;
+                        let totalNotionalUsd = 0;
+                        let potentialLossAtSl = 0;
+                        let potentialProfitAtTp = 0;
+                        for (const pos of positions) {
+                          const marginUsd =
+                            pos.marginUsd ??
+                            (pos.sizeUsd && pos.leverage
+                              ? pos.sizeUsd / pos.leverage
+                              : 0);
+                          totalMarginUsd += marginUsd;
+                          totalNotionalUsd += pos.sizeUsd ?? 0;
+                          const ep = pos.entryPrice ?? 0;
+                          const sizeUsd = pos.sizeUsd ?? 0;
+                          if (ep && pos.stopLossPrice != null) {
+                            const slPct = Math.abs(
+                              ((pos.stopLossPrice - ep) / ep) * 100,
+                            );
+                            potentialLossAtSl += sizeUsd * (slPct / 100);
+                          }
+                          const tp1Price = pos.takeProfitPrices?.[0];
+                          if (ep && tp1Price != null && sizeUsd > 0) {
+                            const tp1Pct = Math.abs(
+                              ((tp1Price - ep) / ep) * 100,
+                            );
+                            potentialProfitAtTp += sizeUsd * (tp1Pct / 100);
+                          }
+                        }
+                        return (
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Total value
+                              </p>
+                              <p className="font-mono font-semibold">
+                                $
+                                {(
+                                  paperData.portfolio.totalValue ?? 0
+                                ).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Realized P&L
+                              </p>
+                              <p
+                                className={cn(
+                                  "font-mono font-semibold",
+                                  (paperData.portfolio.realizedPnl ?? 0) >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400",
+                                )}
+                              >
+                                $
+                                {(
+                                  paperData.portfolio.realizedPnl ?? 0
+                                ).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Win rate
+                              </p>
+                              <p className="font-mono font-semibold">
+                                {(
+                                  (paperData.portfolio.winRate ?? 0) * 100
+                                ).toFixed(0)}
+                                %
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Trades
+                              </p>
+                              <p className="font-mono font-semibold">
+                                {paperData.portfolio.tradeCount ?? 0}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Margin
+                              </p>
+                              <p className="font-mono font-semibold">
+                                $
+                                {totalMarginUsd.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Notional
+                              </p>
+                              <p className="font-mono font-semibold">
+                                $
+                                {totalNotionalUsd.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Potential loss (at SL)
+                              </p>
+                              <p className="font-mono font-semibold text-red-600 dark:text-red-400">
+                                -$
+                                {potentialLossAtSl.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Potential profit (at TP1)
+                              </p>
+                              <p className="font-mono font-semibold text-green-600 dark:text-green-400">
+                                +$
+                                {potentialProfitAtTp.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </DashboardCard>
 
                     {/* Open positions — shown first so you always see what's live */}

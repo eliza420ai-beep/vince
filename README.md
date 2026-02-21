@@ -65,21 +65,11 @@ The goal: stay in the game without 12+ hours on screens. Push, not pull.
 
 ---
 
-## What's New in v3.3
+## What's New in v3.7
 
-**102 tests pass, 0 fail. Build clean. Type check clean.**
+**HIP-3 leverage, Hyperliquid max leverage, auto-discovery, RIVN, risk notice.**
 
-| Change | Detail |
-| :--- | :--- |
-| **Day Report = Report of the Day** | Kelly's daily standup is now an 800-1200 word narrative (trading desk letter, cross-agent data, opinionated take) followed by a Daily TODO table (5-7 items with @Owner). |
-| **Team priorities baked in** | 11 strategic priorities wired into every standup so TODO items always move the needle. |
-| **Duplicate WTT trade fix** | Paper bot no longer opens the same What's-the-Trade pick twice; pick file renamed to `.traded.json` after opening. |
-| **Primary signal gate fix** | Paper bot was blocking all HIP-3 trades (primary-source check used `.toUpperCase()` vs mixed-case set). Fixed: OIL, COIN, NVDA, TSLA, PLTR, AMD, etc. now open as intended. |
-| **TypeScript declarations fixed** | Clean build output; module declarations for `@elizaos/plugin-x402`, `elizaos-plugins.d.ts` in build config. |
-| **Single Oracle for Polymarket** | Oracle runs all three desk workers (analyst, risk, perf). Polymarket Risk and Performance agents removed. |
-| **Quick actions + About** | Agent-specific quick actions and About modals refined for all 10 agents. |
-
-Previous: [v3.2](docs/RELEASE_v3.2.md) · [v3.1](docs/RELEASE_v3.1.md) · [v2.8](docs/RELEASE_v2.8.md) · [v2.7](docs/RELEASE_v2.7.md) · [v2.5](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
+Releases: [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
 
 ---
 
