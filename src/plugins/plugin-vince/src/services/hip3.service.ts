@@ -19,6 +19,8 @@ import {
   HIP3_DEX_MAPPING,
   normalizeHIP3Symbol,
   getHIP3Category,
+  getHIP3Dex,
+  toHIP3ApiSymbol,
   type HIP3Dex,
 } from "../constants/targetAssets";
 
@@ -123,12 +125,23 @@ export interface FetchAllHIP3DexesResult {
   perDexSummary: HIP3DexFetchSummary[];
 }
 
+/** Candidate for adding to HIP-3 tracked list (discovery by volume) */
+export interface HIP3DiscoveryCandidate {
+  symbol: string;
+  dex: string;
+  volume24h: number;
+  maxLeverage?: number;
+}
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
 const HYPERLIQUID_API_URL = "https://api.hyperliquid.xyz/info";
 const CACHE_TTL_MS = 30_000; // 30 seconds
+
+/** Min 24h notional volume (USD) for a HIP-3 asset to be a discovery candidate */
+export const MIN_HIP3_VOLUME_USD_24H = 100_000;
 const REQUEST_TIMEOUT_MS = 15_000; // 15 seconds (increased)
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 1000;
@@ -146,6 +159,13 @@ export class VinceHIP3Service extends Service {
     data: HIP3Pulse | null;
     timestamp: number;
   } = { data: null, timestamp: 0 };
+
+  /** Cache for per-DEX meta (maxLeverage lookup). TTL 60s. */
+  private metaByDexCache: Record<
+    string,
+    { data: HyperliquidMetaAndAssetCtxs; timestamp: number }
+  > = {};
+  private readonly META_CACHE_TTL_MS = 60_000;
 
   // Circuit breaker state
   private consecutiveErrors = 0;
@@ -1146,6 +1166,80 @@ export class VinceHIP3Service extends Service {
       `[VinceHIP3] Invalid response structure for DEX ${dex || "main"}`,
     );
     return null;
+  }
+
+  /**
+   * Get max leverage for a HIP-3 asset from Hyperliquid meta.
+   * Returns null if asset is not HIP-3 or maxLeverage is not available.
+   * Uses per-DEX meta cache (TTL 60s) to avoid extra API calls.
+   */
+  async getMaxLeverageForAsset(asset: string): Promise<number | null> {
+    const dex = getHIP3Dex(asset);
+    if (!dex) return null;
+
+    const now = Date.now();
+    let metaTuple = this.metaByDexCache[dex];
+    if (!metaTuple || now - metaTuple.timestamp > this.META_CACHE_TTL_MS) {
+      const data = await this.fetchDexData(dex);
+      if (!data) return null;
+      this.metaByDexCache[dex] = { data, timestamp: now };
+      metaTuple = this.metaByDexCache[dex];
+    }
+
+    const [meta] = metaTuple.data;
+    const apiSymbol = toHIP3ApiSymbol(asset);
+    const market = meta.universe?.find(
+      (m: HyperliquidMarket) => m.name === apiSymbol,
+    );
+    if (!market || typeof market.maxLeverage !== "number") return null;
+    return market.maxLeverage;
+  }
+
+  /**
+   * Discover HIP-3 assets by volume: scan all DEX metas, filter by min volume,
+   * return candidates that are not yet in HIP3_ASSETS (for manual add to targetAssets).
+   */
+  async discoverHIP3Candidates(): Promise<HIP3DiscoveryCandidate[]> {
+    const { results } = await this.fetchAllHIP3Dexes();
+    const list: HIP3DiscoveryCandidate[] = [];
+    const seen = new Set<string>();
+
+    for (const [meta, assetCtxs] of results) {
+      for (let i = 0; i < meta.universe.length && i < assetCtxs.length; i++) {
+        const market = meta.universe[i];
+        const ctx = assetCtxs[i];
+        if (!market?.name || !ctx) continue;
+
+        const normalizedSymbol = normalizeHIP3Symbol(market.name);
+        const upperSymbol = normalizedSymbol.toUpperCase();
+        const volume24h = parseFloat(ctx.dayNtlVlm || "0") || 0;
+        if (volume24h < MIN_HIP3_VOLUME_USD_24H) continue;
+
+        const dex = market.name.includes(":")
+          ? market.name.split(":")[0].toLowerCase()
+          : "unknown";
+        const maxLeverage =
+          typeof market.maxLeverage === "number"
+            ? market.maxLeverage
+            : undefined;
+
+        const key = `${upperSymbol}:${dex}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        if ((HIP3_ASSETS as readonly string[]).includes(upperSymbol)) continue;
+
+        list.push({
+          symbol: upperSymbol,
+          dex,
+          volume24h,
+          maxLeverage,
+        });
+      }
+    }
+
+    list.sort((a, b) => b.volume24h - a.volume24h);
+    return list;
   }
 
   /**

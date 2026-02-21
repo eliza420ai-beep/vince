@@ -15,6 +15,9 @@ export type CoreAsset = (typeof CORE_ASSETS)[number];
 // ============================================================================
 // TIER 2 - HIP-3 ASSETS (Hyperliquid perps on multiple DEXes)
 // ============================================================================
+// Beware of low liquidity, high volatility, and increased liquidation risk.
+// (Same notice as on Hyperliquid for HIP-3 markets.)
+// ============================================================================
 
 /** HIP-3 Commodities - Available on flx and km dexes */
 export const HIP3_COMMODITIES = [
@@ -59,6 +62,7 @@ export const HIP3_STOCKS = [
   "MU",
   "SNDK",
   "CRCL",
+  "RIVN",
 ] as const;
 export type HIP3Stock = (typeof HIP3_STOCKS)[number];
 
@@ -110,6 +114,7 @@ export const HIP3_DEX_MAPPING: Record<string, HIP3Dex> = {
   INTC: "xyz",
   ORCL: "xyz",
   MU: "xyz",
+  RIVN: "xyz",
   XYZ100: "xyz",
 
   // flx dex (USDH settled) - Commodities

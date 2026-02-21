@@ -333,20 +333,42 @@ export const TIMING = {
 /**
  * Asset-specific max leverage.
  * BTC: 40x (primary, most liquid). SOL, ETH, HYPE: 10x (higher volatility/risk).
+ * HIP-3: 5x cap for now; future: read from Hyperliquid meta.
  */
 export const ASSET_MAX_LEVERAGE: Record<string, number> = {
   BTC: 40,
   ETH: 10,
   SOL: 10,
   HYPE: 10,
+  // HIP-3 assets: 5x cap (HL allows 3x–50x per asset; we cap for safety until we read from API)
+  GOLD: 5,
+  SILVER: 5,
+  OIL: 5,
+  USOIL: 5,
+  US500: 5,
+  MAG7: 5,
+  SEMIS: 5,
+  NVDA: 5,
+  GOOGL: 5,
+  TSLA: 5,
+  AAPL: 5,
+  META: 5,
+  MSFT: 5,
+  AMZN: 5,
+  PLTR: 5,
+  COIN: 5,
+  AMD: 5,
 };
 
-/** Get max leverage for an asset (defaults to AGGRESSIVE_LEVERAGE for unknown) */
+/** Get max leverage for an asset (defaults to 5 for HIP-3, else AGGRESSIVE_LEVERAGE for unknown) */
 export function getAssetMaxLeverage(
   asset: string,
   aggressiveDefault: number = 40,
 ): number {
-  return ASSET_MAX_LEVERAGE[asset.toUpperCase()] ?? aggressiveDefault;
+  const key = asset.toUpperCase();
+  if (ASSET_MAX_LEVERAGE[key] != null) return ASSET_MAX_LEVERAGE[key];
+  if ((HIP3_ASSETS as readonly string[]).includes(key)) return 5;
+  return aggressiveDefault;
 }
 
 /** Assets available for paper trading (V3.0: full HIP-3 universe) */

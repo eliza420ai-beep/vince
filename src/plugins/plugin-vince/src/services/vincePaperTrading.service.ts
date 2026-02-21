@@ -278,6 +278,28 @@ export class VincePaperTradingService extends Service {
     ) as VinceNewsSentimentService | null;
   }
 
+  /**
+   * Max leverage cap for an asset. For HIP-3 assets uses Hyperliquid meta when
+   * available (VinceHIP3Service.getMaxLeverageForAsset), else getAssetMaxLeverage.
+   */
+  private async getMaxLeverageCap(asset: string): Promise<number> {
+    const hip3 = this.runtime.getService("VINCE_HIP3_SERVICE") as {
+      getMaxLeverageForAsset?(s: string): Promise<number | null>;
+    } | null;
+    if (
+      hip3?.getMaxLeverageForAsset &&
+      (HIP3_ASSETS as readonly string[]).includes(asset.toUpperCase())
+    ) {
+      try {
+        const hl = await hip3.getMaxLeverageForAsset(asset);
+        if (typeof hl === "number") return hl;
+      } catch (_) {
+        // fall through to static cap
+      }
+    }
+    return getAssetMaxLeverage(asset);
+  }
+
   /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). */
   private getTPMultipliersForReport(): number[] {
     const fastTp =
@@ -1027,7 +1049,8 @@ Reply format: APPROVE reason or VETO reason`;
     }
 
     const portfolio = positionManager.getPortfolio();
-    const leverage = Math.min(DEFAULT_LEVERAGE, getAssetMaxLeverage(asset));
+    const cap = await this.getMaxLeverageCap(asset);
+    const leverage = Math.min(DEFAULT_LEVERAGE, cap);
     const sizeUsd = Math.min(
       portfolio.totalValue * 0.05,
       portfolio.totalValue * 0.1,
@@ -1438,11 +1461,12 @@ Reply format: APPROVE reason or VETO reason`;
         const aggressive =
           this.runtime.getSetting?.("vince_paper_aggressive") === true ||
           this.runtime.getSetting?.("vince_paper_aggressive") === "true";
-        // Asset-specific max leverage: BTC 40x, SOL/ETH/HYPE 10x
+        // Asset-specific max leverage: BTC 40x, SOL/ETH/HYPE 10x; HIP-3 from HL or 5x
         const baseLeverage = aggressive
           ? AGGRESSIVE_LEVERAGE
           : DEFAULT_LEVERAGE;
-        const leverage = Math.min(baseLeverage, getAssetMaxLeverage(asset));
+        const cap = await this.getMaxLeverageCap(asset);
+        const leverage = Math.min(baseLeverage, cap);
         let baseSizeUsd = aggressive
           ? portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
             ? AGGRESSIVE_MARGIN_USD * leverage
