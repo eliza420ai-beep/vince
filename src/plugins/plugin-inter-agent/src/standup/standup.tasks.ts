@@ -332,7 +332,7 @@ function generateCrossAgentLinks(sections: string[]): string {
   const allContent = sections.join("\n").toLowerCase();
 
   // Check for VINCE → Oracle connection
-  const vinceSection = sections.find(s => s.startsWith("## VINCE") || s.includes(""));
+  const vinceSection = sections.find(s => s.startsWith("## VINCE") || s.includes("VINCE\n"));
   const oracleSection = sections.find(s => s.startsWith("## Oracle") || s.includes("Oracle\n"));
 
   if (vinceSection && oracleSection) {
