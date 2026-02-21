@@ -466,6 +466,10 @@ export interface PolymarketDeskStatus {
   pendingSignalsCount: number;
   /** Pending sized orders (open paper positions) from Risk */
   pendingSizedOrdersCount?: number;
+  /** Total rows in trade_log (diagnostic for "Recent trades empty?") */
+  tradeLogCount?: number;
+  /** ISO string of latest trade_log row, or null if empty */
+  tradeLogLatestAt?: string | null;
   updatedAt: number;
   error?: string;
   hint?: string;
@@ -477,16 +481,22 @@ export interface PolymarketDeskStatusFetchResult {
   status: number | null;
 }
 
-/** One desk fill (trade_log row) */
+/** One desk fill (trade_log row) with enrichment from edge_signals + discovery */
 export interface PolymarketDeskTradeItem {
   id: string;
   createdAt: string;
   marketId: string;
+  question?: string;
+  eventUrl?: string | null;
+  strategy?: string;
+  strategyWhy?: string;
   side: string;
   sizeUsd: number;
   arrivalPrice: number | null;
   fillPrice: number;
-  executionPnlUsd: number;
+  executionPnlUsd: number | null;
+  mtmPnlUsd?: number | null;
+  currentPrice?: number | null;
 }
 
 export interface PolymarketDeskTradesResponse {

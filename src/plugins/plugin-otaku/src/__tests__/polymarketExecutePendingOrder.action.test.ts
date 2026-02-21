@@ -1,5 +1,5 @@
 /**
- * POLYMARKET_EXECUTE_PENDING_ORDER action: validate, no-DB, missing creds leaves order pending (no rejected UPDATE).
+ * POLYMARKET_EXECUTE_PENDING_ORDER action: validate, no-DB, missing creds records paper fill (UPDATE filled, INSERT trade_log with wallet 'paper').
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -139,7 +139,7 @@ describe("plugin-otaku: POLYMARKET_EXECUTE_PENDING_ORDER", () => {
       expect(callbackText).toContain("No pending Polymarket sized orders");
     });
 
-    it("when credentials missing: callback explains not configured and no UPDATE to rejected", async () => {
+    it("when credentials missing: records paper fill (UPDATE filled, INSERT trade_log with wallet 'paper')", async () => {
       const queryCalls: { sql: string; values?: unknown[] }[] = [];
       const runtime = {
         getConnection: async () => ({
@@ -187,22 +187,41 @@ describe("plugin-otaku: POLYMARKET_EXECUTE_PENDING_ORDER", () => {
         },
       );
 
-      expect(callbackText).toContain("Polymarket execution not configured");
-      expect(callbackText).toContain("Order left pending");
-      expect(callbackText).toContain("paper position");
+      expect(callbackText).toContain("Paper fill recorded");
+      expect(callbackText).toContain("no CLOB credentials");
+      expect(callbackText).toContain("order-1");
+      expect(callbackText).toContain("YES");
+      expect(callbackText).toContain("50");
+      expect(callbackText).toContain("48.0");
 
-      const rejectedUpdates = queryCalls.filter(
-        (q) => q.sql.includes("UPDATE") && q.sql.includes("rejected"),
+      const updateFilled = queryCalls.filter(
+        (q) =>
+          q.sql.includes("UPDATE") &&
+          q.sql.includes("sized_orders") &&
+          q.sql.includes("filled"),
       );
-      expect(rejectedUpdates).toHaveLength(0);
+      expect(updateFilled).toHaveLength(1);
+
+      const insertTradeLog = queryCalls.filter(
+        (q) =>
+          q.sql.includes("INSERT") &&
+          q.sql.includes("trade_log") &&
+          q.values?.includes("paper"),
+      );
+      expect(insertTradeLog).toHaveLength(1);
+      expect(insertTradeLog[0].values).toContain("paper");
+      const clobOrderIdx = insertTradeLog[0].values?.findIndex(
+        (v) => v === null || v === undefined,
+      );
+      expect(clobOrderIdx).toBeGreaterThanOrEqual(0);
     });
 
-    it("when discovery service null: still checks credentials and leaves pending if missing", async () => {
-      const queryCalls: { sql: string }[] = [];
+    it("when discovery service null: credentials missing still records paper fill", async () => {
+      const queryCalls: { sql: string; values?: unknown[] }[] = [];
       const runtime = {
         getConnection: async () => ({
           query: async (sql: string, values?: unknown[]) => {
-            queryCalls.push({ sql });
+            queryCalls.push({ sql, values });
             if (
               sql.includes("sized_orders") &&
               sql.includes("pending") &&
@@ -241,12 +260,14 @@ describe("plugin-otaku: POLYMARKET_EXECUTE_PENDING_ORDER", () => {
         },
       );
 
-      expect(callbackText).toContain("not configured");
-      expect(callbackText).toContain("left pending");
-      const rejectedUpdates = queryCalls.filter(
-        (q) => q.sql.includes("UPDATE") && q.sql.includes("rejected"),
+      expect(callbackText).toContain("Paper fill recorded");
+      const insertTradeLog = queryCalls.filter(
+        (q) =>
+          q.sql.includes("INSERT") &&
+          q.sql.includes("trade_log") &&
+          q.values?.includes("paper"),
       );
-      expect(rejectedUpdates).toHaveLength(0);
+      expect(insertTradeLog).toHaveLength(1);
     });
   });
 });

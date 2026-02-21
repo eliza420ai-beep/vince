@@ -127,21 +127,140 @@ describe("plugin-polymarket-desk: desk routes", () => {
       expect((res.body as any).hint).toContain("trade_log");
     });
 
-    it("returns 200 with trades array when connection returns trade_log rows", async () => {
+    it("returns 200 with trades, strategy, and question from edge_signals", async () => {
+      let callIndex = 0;
       const runtime = {
         getConnection: async () => ({
-          query: async () => ({
-            rows: [
-              {
-                id: "t1",
-                created_at: "2026-02-20T12:00:00Z",
-                market_id: "0xabc",
-                side: "YES",
-                size_usd: 50,
-                arrival_price: 0.52,
-                fill_price: 0.51,
-              },
-            ],
+          query: async (sql: string) => {
+            if (sql.includes("trade_log")) {
+              return {
+                rows: [
+                  {
+                    id: "t1",
+                    created_at: "2026-02-20T12:00:00Z",
+                    market_id: "0xabc",
+                    side: "YES",
+                    size_usd: 50,
+                    arrival_price: 0.488,
+                    fill_price: 0.488,
+                    signal_id: "sig-1",
+                    source: "model_fair_value",
+                    edge_bps: 5125,
+                    forecast_prob: 1,
+                    market_price: 0.488,
+                  },
+                ],
+              };
+            }
+            if (sql.includes("edge_signals")) {
+              return {
+                rows: [
+                  { desk_signal_id: "sig-1", question: "Will BTC hit $200k?" },
+                ],
+              };
+            }
+            return { rows: [] };
+          },
+        }),
+        getService: () => null,
+      } as unknown as IAgentRuntime;
+      const tradesHandler = buildDeskTradesHandler();
+      const res = mockRes();
+      await tradesHandler(req, res as any, runtime);
+      expect(res.statusCode).toBe(200);
+      const trades = (res.body as any).trades;
+      expect(trades).toHaveLength(1);
+      expect(trades[0].id).toBe("t1");
+      expect(trades[0].marketId).toBe("0xabc");
+      expect(trades[0].question).toBe("Will BTC hit $200k?");
+      expect(trades[0].strategy).toBe("model_fair_value");
+      expect(trades[0].strategyWhy).toContain("5125 bps edge");
+      expect(trades[0].strategyWhy).toContain("forecast 100%");
+      expect(trades[0].executionPnlUsd).toBeNull();
+      expect(trades[0].mtmPnlUsd).toBeNull();
+      expect((res.body as any).updatedAt).toBeDefined();
+    });
+
+    it("still works when edge_signals schema does not exist", async () => {
+      const runtime = {
+        getConnection: async () => ({
+          query: async (sql: string) => {
+            if (sql.includes("trade_log")) {
+              return {
+                rows: [
+                  {
+                    id: "t1",
+                    created_at: "2026-02-20T12:00:00Z",
+                    market_id: "0xabc",
+                    side: "YES",
+                    size_usd: 50,
+                    arrival_price: 0.488,
+                    fill_price: 0.488,
+                    signal_id: "sig-1",
+                    source: "overreaction",
+                    edge_bps: 1000,
+                    forecast_prob: 0.11,
+                    market_price: 0.09,
+                  },
+                ],
+              };
+            }
+            if (sql.includes("edge_signals")) {
+              throw new Error("relation does not exist");
+            }
+            return { rows: [] };
+          },
+        }),
+        getService: () => null,
+      } as unknown as IAgentRuntime;
+      const tradesHandler = buildDeskTradesHandler();
+      const res = mockRes();
+      await tradesHandler(req, res as any, runtime);
+      expect(res.statusCode).toBe(200);
+      const trades = (res.body as any).trades;
+      expect(trades).toHaveLength(1);
+      expect(trades[0].strategy).toBe("overreaction");
+      expect(trades[0].question).toBeUndefined();
+    });
+
+    it("computes mtm P&L when discovery service provides current prices", async () => {
+      const runtime = {
+        getConnection: async () => ({
+          query: async (sql: string) => {
+            if (sql.includes("trade_log")) {
+              return {
+                rows: [
+                  {
+                    id: "t2",
+                    created_at: "2026-02-21T01:00:00Z",
+                    market_id: "0xdef",
+                    side: "YES",
+                    size_usd: 25,
+                    arrival_price: 0.1,
+                    fill_price: 0.1,
+                    signal_id: "sig-2",
+                    source: "overreaction",
+                    edge_bps: 1000,
+                    forecast_prob: 0.2,
+                    market_price: 0.1,
+                  },
+                ],
+              };
+            }
+            if (sql.includes("edge_signals")) {
+              return { rows: [] };
+            }
+            return { rows: [] };
+          },
+        }),
+        getService: () => ({
+          getMarketPrices: async () => ({
+            yes_price: "0.15",
+            no_price: "0.85",
+          }),
+          getMarketDetail: async () => ({
+            question: "Will X happen?",
+            slug: "will-x-happen",
           }),
         }),
       } as unknown as IAgentRuntime;
@@ -149,11 +268,14 @@ describe("plugin-polymarket-desk: desk routes", () => {
       const res = mockRes();
       await tradesHandler(req, res as any, runtime);
       expect(res.statusCode).toBe(200);
-      expect((res.body as any).trades).toHaveLength(1);
-      expect((res.body as any).trades[0].id).toBe("t1");
-      expect((res.body as any).trades[0].marketId).toBe("0xabc");
-      expect((res.body as any).trades[0].executionPnlUsd).toBeCloseTo(0.5);
-      expect((res.body as any).updatedAt).toBeDefined();
+      const trades = (res.body as any).trades;
+      expect(trades).toHaveLength(1);
+      expect(trades[0].question).toBe("Will X happen?");
+      expect(trades[0].eventUrl).toBe(
+        "https://polymarket.com/market/will-x-happen",
+      );
+      expect(trades[0].currentPrice).toBeCloseTo(0.15);
+      expect(trades[0].mtmPnlUsd).toBeCloseTo(1.25);
     });
   });
 

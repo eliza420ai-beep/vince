@@ -200,7 +200,7 @@ Set `POLYMARKET_DESK_SCHEDULE_ENABLED=false` to disable all desk recurring tasks
 
 When the schedule is enabled, **Risk 15m** approves one pending signal per run (invokes `POLYMARKET_RISK_APPROVE`) and writes one row to `sized_orders`. **Otaku 2m** executes one pending sized order per run (invokes `POLYMARKET_EXECUTE_PENDING_ORDER` directly, no LLM) and writes to `trade_log`. Both run via Bootstrap TaskService (tasks are tagged `queue` + `repeat`).
 
-**Otaku execution (paper or live)** requires these env vars on the Otaku agent; if any are missing, the execute action does **not** update the order (see Paper-only mode below):
+**Otaku execution (live)** requires these env vars on the Otaku agent. If any are missing, the execute action records a **paper fill** instead (see Paper-only mode below):
 
 - `POLYMARKET_PRIVATE_KEY` or `EVM_PRIVATE_KEY`
 - `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`
@@ -210,7 +210,7 @@ See `.env.example` (Polymarket / Otaku sections) for all desk and execution vari
 
 ### Paper-only mode
 
-When Otaku does not have Polymarket CLOB credentials set, the execute action does **not** mark pending sized orders as rejected. Orders stay `status = 'pending'` so they remain visible under “Open paper positions” on the Polymarket tab (leaderboard) with live P&L and rationale (“Why this position”). Once credentials are configured, the same pending orders can be executed; the 2‑minute poll will then consume them and write to the trade log.
+When Otaku does **not** have Polymarket CLOB credentials set, the execute action **records a paper fill**: it updates the sized order to `status = 'filled'` and inserts a row into `trade_log` (with `wallet = 'paper'`, `clob_order_id = null`). Fill price is taken from the signal's market price, or from Polymarket discovery (current YES/NO price) when available. No CLOB credentials are required for paper trading. The 2 minute poll will consume pending orders one-by-one and write these paper fills, so the Leaderboard **“Recent trades”**, **“Trades today”**, and **Execution P&L** all reflect paper activity and you can validate strategies and P&L without real execution. Once credentials are configured, the same flow places real orders on the CLOB and writes live fills to the trade log.
 
 ### Tuning parameters
 
@@ -262,7 +262,26 @@ Standard ($49/mo) only has “API access to 100 calls one time,” which is not 
 
 ---
 
-## 12. References
+## 12. Recent trades empty? (Leaderboard troubleshooting)
+
+The Leaderboard **Polymarket** tab shows “Polymarket paper trading — Recent trades.” That list is filled from `plugin_polymarket_desk.trade_log`. Rows are written **only** when **Otaku** runs `POLYMARKET_EXECUTE_PENDING_ORDER`: it takes the next pending row from `sized_orders`, places the order on the CLOB, then inserts into `trade_log`. If you see “No trades executed yet,” use this checklist.
+
+### Shared database
+
+**Oracle** (plugin-polymarket-desk) and **Otaku** (plugin-otaku) must use the **same** database. The Leaderboard calls Oracle’s `/desk/trades` and `/desk/status`; those read `trade_log`. If Otaku runs in a different process or points to a different `POSTGRES_URL` or `PGLITE_DATA_DIR`, its inserts won’t be visible to Oracle and the list stays empty. **Single process:** one `POSTGRES_URL` or one `PGLITE_DATA_DIR` usually means all agents share the same DB. **Multiple processes/hosts:** set the same `POSTGRES_URL` (or same PGLite path) for both Oracle and Otaku.
+
+### Checklist
+
+- **Oracle and Otaku use the same DB** (see above).
+- **Otaku is running** and `POLYMARKET_DESK_SCHEDULE_ENABLED` is **not** set to `false` (otherwise the 2‑minute execute poll never runs).
+- **Polymarket CLOB credentials** are set for Otaku: `POLYMARKET_PRIVATE_KEY` (or `EVM_PRIVATE_KEY`), `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`. Without these, the execute action cannot place orders or write to `trade_log`.
+- **Pending sized orders exist:** the Leaderboard shows “Open paper orders: N.” If N &gt; 0, Risk has written orders; Otaku’s poll will pick them up every 2 min when credentials and DB are correct.
+
+If the desk status API returns `tradeLogCount: 0` and you have pending sized orders, the usual cause is Otaku not running the execute poll, missing credentials, or a different DB.
+
+---
+
+## 13. References
 
 - [ORACLE.md](ORACLE.md) — Oracle as Analyst (Polymarket discovery).
 - [OTAKU.md](OTAKU.md) — Otaku as Executor (only wallet).

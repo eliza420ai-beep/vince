@@ -1,23 +1,24 @@
 {
   "date": "2026-02-20",
-  "thesis": "SOL at $84 is pricing in perfection while ETH at $1968 is undervalued; fade SOL momentum via short perp as crowd capitulates on weakness",
+  "thesis": "SOL outperforms ETH by 15%+ over next two weeks as institutional flows rotate from underperforming L1s into higher-velocity ecosystems",
   "primaryTicker": "SOL",
-  "primaryDirection": "short",
+  "primaryDirection": "long",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 84.18,
+  "primaryEntryPrice": 84.33,
   "primaryRiskUsd": 500,
-  "invalidateCondition": "SOL breaks $90 convincingly",
+  "invalidateCondition": "BTC < 65k",
   "killConditions": [
-    "dies if $90 break"
+    "BTC breaks down hard below 65k",
+    "broader crypto washout with correlation to one"
   ],
   "rubric": {
-    "alignment": "pure_play",
-    "edge": "crowded",
+    "alignment": "direct",
+    "edge": "emerging",
     "payoffShape": "high",
-    "timingForgiveness": "punishing"
+    "timingForgiveness": "forgiving"
   },
   "altTicker": "ETH",
-  "altDirection": "long",
-  "altInstrument": "spot",
-  "evThresholdPct": 60
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 3
 }

@@ -30,6 +30,8 @@ export function buildDeskStatusHandler() {
         executionPnlTodayUsd: 0,
         pendingSignalsCount: 0,
         pendingSizedOrdersCount: 0,
+        tradeLogCount: 0,
+        tradeLogLatestAt: null,
         hint: "Ensure the agent has plugin-polymarket-desk loaded",
       });
       return;
@@ -53,6 +55,8 @@ export function buildDeskStatusHandler() {
         executionPnlTodayUsd: 0,
         pendingSignalsCount: 0,
         pendingSizedOrdersCount: 0,
+        tradeLogCount: 0,
+        tradeLogLatestAt: null,
         updatedAt: Date.now(),
         hint: "Database not configured; desk tables in plugin_polymarket_desk",
       });
@@ -75,24 +79,31 @@ export function buildDeskStatusHandler() {
       };
       const since = startOfTodayUtcMs();
 
-      const [tradeSummary, pendingSignalsResult, pendingSizedResult] =
-        await Promise.all([
-          client.query(
-            `SELECT
+      const [
+        tradeSummary,
+        pendingSignalsResult,
+        pendingSizedResult,
+        tradeLogMetaResult,
+      ] = await Promise.all([
+        client.query(
+          `SELECT
             COUNT(*)::int AS trades_today,
             COALESCE(SUM(size_usd), 0)::double precision AS volume_today,
             COALESCE(SUM((arrival_price - fill_price) * size_usd), 0)::double precision AS execution_pnl_today
            FROM plugin_polymarket_desk.trade_log
            WHERE created_at >= to_timestamp($1 / 1000.0) AT TIME ZONE 'UTC'`,
-            [since],
-          ),
-          client.query(
-            `SELECT COUNT(*)::int AS cnt FROM plugin_polymarket_desk.signals WHERE status = 'pending'`,
-          ),
-          client.query(
-            `SELECT COUNT(*)::int AS cnt FROM plugin_polymarket_desk.sized_orders WHERE status = 'pending'`,
-          ),
-        ]);
+          [since],
+        ),
+        client.query(
+          `SELECT COUNT(*)::int AS cnt FROM plugin_polymarket_desk.signals WHERE status = 'pending'`,
+        ),
+        client.query(
+          `SELECT COUNT(*)::int AS cnt FROM plugin_polymarket_desk.sized_orders WHERE status = 'pending'`,
+        ),
+        client.query(
+          `SELECT COUNT(*)::int AS cnt, MAX(created_at) AS latest FROM plugin_polymarket_desk.trade_log`,
+        ),
+      ]);
 
       const row = tradeSummary?.rows?.[0];
       const pendingRow = pendingSignalsResult?.rows?.[0] as
@@ -101,6 +112,18 @@ export function buildDeskStatusHandler() {
       const sizedRow = pendingSizedResult?.rows?.[0] as
         | { cnt?: number }
         | undefined;
+      const tradeLogMetaRow = tradeLogMetaResult?.rows?.[0] as
+        | { cnt?: number; latest?: string | Date | null }
+        | undefined;
+      const tradeLogCount = tradeLogMetaRow?.cnt ?? 0;
+      const tradeLogLatestAt =
+        tradeLogMetaRow?.latest != null
+          ? typeof tradeLogMetaRow.latest === "string"
+            ? tradeLogMetaRow.latest
+            : tradeLogMetaRow.latest instanceof Date
+              ? tradeLogMetaRow.latest.toISOString()
+              : String(tradeLogMetaRow.latest)
+          : null;
 
       res.status(200).json({
         tradesToday: row?.trades_today ?? 0,
@@ -108,6 +131,8 @@ export function buildDeskStatusHandler() {
         executionPnlTodayUsd: row?.execution_pnl_today ?? 0,
         pendingSignalsCount: pendingRow?.cnt ?? 0,
         pendingSizedOrdersCount: sizedRow?.cnt ?? 0,
+        tradeLogCount,
+        tradeLogLatestAt,
         updatedAt: Date.now(),
       });
     } catch (e) {
@@ -119,6 +144,8 @@ export function buildDeskStatusHandler() {
         executionPnlTodayUsd: 0,
         pendingSignalsCount: 0,
         pendingSizedOrdersCount: 0,
+        tradeLogCount: 0,
+        tradeLogLatestAt: null,
         updatedAt: Date.now(),
       });
     }

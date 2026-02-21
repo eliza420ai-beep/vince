@@ -3327,7 +3327,7 @@ export default function LeaderboardPage({
                 </DashboardCard>
               )}
 
-              {/* Paper trading: desk status (trades today, volume, execution P&L) */}
+              {/* Paper trading: desk status (trades today, volume, mtm P&L) */}
               {oracleAgentId && (
                 <DashboardCard title="Paper trading">
                   {(deskStatusLoading || deskStatusFetching) && !deskStatus ? (
@@ -3344,36 +3344,36 @@ export default function LeaderboardPage({
                             maximumFractionDigits: 0,
                           })}
                         </span>
-                        <span
-                          className={cn(
-                            "font-mono font-medium",
-                            deskStatus.tradesToday === 0
-                              ? "text-muted-foreground"
-                              : (deskStatus.executionPnlTodayUsd ?? 0) >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400",
-                          )}
-                        >
-                          Execution P&L:{" "}
-                          {deskStatus.tradesToday === 0 ? (
-                            <>
-                              —{" "}
-                              <span className="text-xs font-normal">
-                                (no fills yet)
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              $
-                              {(deskStatus.executionPnlTodayUsd ?? 0).toFixed(
-                                2,
+                        {(() => {
+                          const totalMtm = (
+                            deskTradesData?.trades ?? []
+                          ).reduce((sum, t) => sum + (t.mtmPnlUsd ?? 0), 0);
+                          const hasMtm = (deskTradesData?.trades ?? []).some(
+                            (t) => t.mtmPnlUsd != null,
+                          );
+                          return (
+                            <span
+                              className={cn(
+                                "font-mono font-medium",
+                                !hasMtm
+                                  ? "text-muted-foreground"
+                                  : totalMtm >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400",
                               )}
-                              <span className="text-xs font-normal text-muted-foreground ml-0.5">
-                                (paper)
-                              </span>
-                            </>
-                          )}
-                        </span>
+                            >
+                              Paper P&L:{" "}
+                              {!hasMtm ? (
+                                "—"
+                              ) : (
+                                <>
+                                  {totalMtm >= 0 ? "+" : ""}$
+                                  {totalMtm.toFixed(2)}
+                                </>
+                              )}
+                            </span>
+                          );
+                        })()}
                         {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
                           <>
                             <span className="text-muted-foreground">
@@ -3629,11 +3629,88 @@ export default function LeaderboardPage({
                       Loading trades…
                     </p>
                   ) : (deskTradesData?.trades?.length ?? 0) === 0 ? (
-                    <div className="text-sm text-muted-foreground py-4">
+                    <div className="text-sm text-muted-foreground py-4 space-y-3">
                       <p>
-                        No trades executed yet. Paper trades are logged here
-                        once Otaku fills a sized order on the CLOB.
+                        No trades executed yet. Paper trades appear here once
+                        Otaku fills a sized order on the CLOB.
                       </p>
+                      {deskStatus != null &&
+                        typeof deskStatus.tradeLogCount === "number" && (
+                          <p className="text-xs">
+                            Desk trade log: {deskStatus.tradeLogCount} row
+                            {deskStatus.tradeLogCount !== 1 ? "s" : ""}
+                            {deskStatus.tradeLogLatestAt
+                              ? ` (latest: ${new Date(deskStatus.tradeLogLatestAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})`
+                              : ""}
+                          </p>
+                        )}
+                      <p className="text-xs font-medium text-foreground/80 mt-2">
+                        Checklist:
+                      </p>
+                      <ul className="list-disc list-inside text-xs space-y-0.5">
+                        <li>Otaku running?</li>
+                        <li>
+                          <code className="rounded bg-muted px-0.5">
+                            POLYMARKET_DESK_SCHEDULE_ENABLED
+                          </code>{" "}
+                          not false?
+                        </li>
+                        <li>Polymarket CLOB credentials set for Otaku?</li>
+                        <li>Same DB as Oracle?</li>
+                        <li>
+                          Pending sized orders (Risk) are executed by Otaku
+                          every 2 min.
+                        </li>
+                      </ul>
+                      {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
+                        <div className="pt-3 border-t border-border/50">
+                          <p className="text-xs font-medium text-foreground/80 mb-1">
+                            Open positions (not yet closed)
+                          </p>
+                          <ul className="text-xs space-y-0.5">
+                            {[...(deskPositionsBody?.positions ?? [])]
+                              .sort(
+                                (a, b) =>
+                                  new Date(b.openedAt).getTime() -
+                                  new Date(a.openedAt).getTime(),
+                              )
+                              .slice(0, 5)
+                              .map((pos) => (
+                                <li key={pos.id} className="truncate">
+                                  {pos.openedAt
+                                    ? new Date(pos.openedAt).toLocaleString(
+                                        undefined,
+                                        {
+                                          month: "short",
+                                          day: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        },
+                                      )
+                                    : "—"}{" "}
+                                  {pos.side}{" "}
+                                  {pos.question?.length > 40
+                                    ? pos.question.slice(0, 37) + "…"
+                                    : (pos.question ??
+                                      pos.marketId.slice(0, 8))}
+                                  {" · "}
+                                  <span
+                                    className={cn(
+                                      "font-mono",
+                                      (pos.unrealizedPnl ?? 0) >= 0
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    {pos.unrealizedPnl != null
+                                      ? `${pos.unrealizedPnl >= 0 ? "+" : ""}$${pos.unrealizedPnl.toFixed(2)}`
+                                      : "—"}
+                                  </span>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -3643,66 +3720,113 @@ export default function LeaderboardPage({
                             <th className="pb-2 pr-3">Time</th>
                             <th className="pb-2 pr-3">Side</th>
                             <th className="pb-2 pr-3">Market</th>
-                            <th className="pb-2 pr-3">Size $</th>
-                            <th className="pb-2 pr-3">Arrival</th>
-                            <th className="pb-2 pr-3">Fill</th>
-                            <th className="pb-2">P&L $</th>
+                            <th className="pb-2 pr-3">Strategy</th>
+                            <th className="pb-2 pr-3">Size</th>
+                            <th className="pb-2 pr-3">Entry</th>
+                            <th className="pb-2 pr-3">Now</th>
+                            <th className="pb-2">P&L</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(deskTradesData?.trades ?? []).map((t) => (
-                            <tr
-                              key={t.id}
-                              className="border-b border-border/50"
-                            >
-                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
-                                {t.createdAt
-                                  ? new Date(t.createdAt).toLocaleString(
-                                      undefined,
-                                      {
-                                        month: "short",
-                                        day: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      },
-                                    )
-                                  : "—"}
-                              </td>
-                              <td className="py-2 pr-3 font-mono">{t.side}</td>
-                              <td
-                                className="py-2 pr-3 font-mono truncate max-w-[8rem]"
-                                title={t.marketId}
-                              >
-                                {t.marketId.slice(0, 8)}…
-                              </td>
-                              <td className="py-2 pr-3 font-mono">
-                                $
-                                {t.sizeUsd.toLocaleString(undefined, {
-                                  maximumFractionDigits: 0,
-                                })}
-                              </td>
-                              <td className="py-2 pr-3 font-mono">
-                                {t.arrivalPrice != null
-                                  ? (t.arrivalPrice * 100).toFixed(1) + "%"
-                                  : "—"}
-                              </td>
-                              <td className="py-2 pr-3 font-mono">
-                                {(t.fillPrice * 100).toFixed(1)}%
-                              </td>
-                              <td
-                                className={cn(
-                                  "py-2 font-mono font-medium",
-                                  (t.executionPnlUsd ?? 0) >= 0
-                                    ? "text-green-600 dark:text-green-400"
-                                    : "text-red-600 dark:text-red-400",
-                                )}
-                              >
-                                {t.executionPnlUsd != null
-                                  ? `${t.executionPnlUsd >= 0 ? "+" : ""}$${t.executionPnlUsd.toFixed(2)}`
-                                  : "—"}
-                              </td>
-                            </tr>
-                          ))}
+                          {(deskTradesData?.trades ?? [])
+                            .filter(
+                              (t) => t.question != null || t.mtmPnlUsd != null,
+                            )
+                            .slice(0, 20)
+                            .map((t) => {
+                              const pnl =
+                                t.mtmPnlUsd != null
+                                  ? t.mtmPnlUsd
+                                  : t.executionPnlUsd;
+                              return (
+                                <tr
+                                  key={t.id}
+                                  className="border-b border-border/50"
+                                >
+                                  <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                    {t.createdAt
+                                      ? new Date(t.createdAt).toLocaleString(
+                                          undefined,
+                                          {
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          },
+                                        )
+                                      : "—"}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    {t.side}
+                                  </td>
+                                  <td
+                                    className="py-2 pr-3 max-w-[18rem]"
+                                    title={t.question ?? t.marketId}
+                                  >
+                                    {(() => {
+                                      const label = t.question
+                                        ? t.question.length > 60
+                                          ? t.question.slice(0, 57) + "…"
+                                          : t.question
+                                        : t.marketId.slice(0, 10) + "…";
+                                      return t.eventUrl ? (
+                                        <a
+                                          href={t.eventUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline block break-words"
+                                        >
+                                          {label}
+                                        </a>
+                                      ) : (
+                                        <span className="block break-words">
+                                          {label}
+                                        </span>
+                                      );
+                                    })()}
+                                  </td>
+                                  <td
+                                    className="py-2 pr-3 max-w-[12rem] text-muted-foreground"
+                                    title={t.strategyWhy ?? undefined}
+                                  >
+                                    <span className="font-medium text-foreground">
+                                      {t.strategy ?? "—"}
+                                    </span>
+                                    {t.strategyWhy ? (
+                                      <span className="block text-xs truncate mt-0.5">
+                                        {t.strategyWhy}
+                                      </span>
+                                    ) : null}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    $
+                                    {t.sizeUsd.toLocaleString(undefined, {
+                                      maximumFractionDigits: 0,
+                                    })}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    {(t.fillPrice * 100).toFixed(1)}%
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    {t.currentPrice != null
+                                      ? (t.currentPrice * 100).toFixed(1) + "%"
+                                      : "—"}
+                                  </td>
+                                  <td
+                                    className={cn(
+                                      "py-2 font-mono font-medium",
+                                      (pnl ?? 0) >= 0
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    {pnl != null
+                                      ? `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>

@@ -182,10 +182,65 @@ export const polymarketExecutePendingOrderAction: Action = {
         (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) ||
         "https://clob.polymarket.com";
 
-      // Do not mark order rejected when creds missing: leave pending so it stays visible as open paper position (see POLYMARKET_TRADING_DESK § Paper-only mode).
+      // Paper-only: when CLOB credentials are missing, record a paper fill so "Recent trades" and execution P&L show strategy activity without real execution.
       if (!privateKey || !apiKey || !apiSecret || !apiPassphrase || !funder) {
-        await out(
-          "Polymarket execution not configured (missing POLYMARKET_PRIVATE_KEY, POLYMARKET_CLOB_* or POLYMARKET_FUNDER_ADDRESS). Order left pending so it stays visible as a paper position.",
+        let fillPrice = arrivalPrice;
+        const discoverySvc = runtime.getService(
+          POLYMARKET_DISCOVERY_SERVICE,
+        ) as {
+          getMarketPrices?: (conditionId: string) => Promise<{
+            yes_price?: string;
+            no_price?: string;
+          }>;
+        } | null;
+        if (
+          discoverySvc?.getMarketPrices &&
+          (order.market_id.startsWith("0x") || order.market_id.length < 80)
+        ) {
+          try {
+            const prices = await discoverySvc.getMarketPrices(order.market_id);
+            const priceStr =
+              order.side.toUpperCase() === "YES"
+                ? prices.yes_price
+                : prices.no_price;
+            if (priceStr != null) {
+              const p = parseFloat(priceStr);
+              if (!Number.isNaN(p)) fillPrice = p;
+            }
+          } catch {
+            // keep fillPrice = arrivalPrice
+          }
+        }
+        const now = Date.now();
+        const filledAt = new Date(now).toISOString();
+        const slippageBps = Math.round((fillPrice - arrivalPrice) * 10000);
+        const tradeId = crypto.randomUUID();
+        await client.query(
+          `UPDATE ${SIZED_ORDERS_TABLE} SET status = 'filled', filled_at = $1, fill_price = $2 WHERE id = $3`,
+          [filledAt, fillPrice, order.id],
+        );
+        await client.query(
+          `INSERT INTO ${TRADE_LOG_TABLE} (id, created_at, sized_order_id, signal_id, market_id, side, size_usd, arrival_price, fill_price, slippage_bps, clob_order_id, wallet)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            tradeId,
+            filledAt,
+            order.id,
+            order.signal_id,
+            order.market_id,
+            order.side,
+            order.size_usd,
+            arrivalPrice,
+            fillPrice,
+            slippageBps,
+            null,
+            "paper",
+          ],
+        );
+        const summary = `Paper fill recorded (no CLOB credentials). Order \`${order.id.slice(0, 8)}…\`: ${order.side} $${order.size_usd} @ ${(fillPrice * 100).toFixed(1)}%.`;
+        await out(summary);
+        logger.info(
+          `[POLYMARKET_EXECUTE] Paper fill order ${order.id} trade_log ${tradeId}`,
         );
         return;
       }
