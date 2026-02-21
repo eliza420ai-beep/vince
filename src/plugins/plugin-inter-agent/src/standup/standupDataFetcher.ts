@@ -358,8 +358,92 @@ async function fetchRegime(runtime: IAgentRuntime): Promise<string> {
   return `**Regime (BTC):** ${regime.regime}${adxStr} | size ${regime.positionSizeMultiplier}x`;
 }
 
+/**
+ * Fetch VINCE delta vs yesterday - compares current state to previous.
+ * Uses a simple cache file to store previous run's key metrics.
+ */
+async function fetchVinceDelta(runtime: IAgentRuntime): Promise<string> {
+  try {
+    const cacheDir = path.join(process.cwd(), ".elizadb", "standup-cache");
+    const cacheFile = path.join(cacheDir, "vince-last-state.json");
+    
+    // Get current state from services
+    let currentPrice = "";
+    let currentRegime = "";
+    let currentSignal = "";
+    
+    // Try to get current price from enriched context
+    try {
+      const sigAgg = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as {
+        aggregateSignals?: (asset: string) => Promise<{
+          direction?: string;
+          confidence?: number;
+        } | null>;
+      } | null;
+      const btcSignal = await sigAgg?.aggregateSignals?.("BTC").catch(() => null);
+      if (btcSignal?.direction) {
+        currentSignal = `${btcSignal.direction} (${btcSignal.confidence ?? 0}%)`;
+      }
+    } catch {}
+    
+    // Try to get current regime
+    try {
+      const vinceService = runtime.getService("VINCE_RUNTIME_SERVICE") as {
+        getRegime?: () => Promise<{ regime: string } | null>;
+      } | null;
+      const regime = await vinceService?.getRegime?.();
+      if (regime?.regime) {
+        currentRegime = regime.regime;
+      }
+    } catch {}
+    
+    // Read previous state from cache
+    let previousState: { price?: string; regime?: string; signal?: string; timestamp?: number } = {};
+    try {
+      if (fs.existsSync(cacheFile)) {
+        previousState = JSON.parse(fs.readFileSync(cacheFile, "utf-8"));
+      }
+    } catch {}
+    
+    // Build delta string
+    const deltas: string[] = [];
+    
+    if (previousState.signal && currentSignal) {
+      if (previousState.signal !== currentSignal) {
+        deltas.push(`Signal: ${previousState.signal} → ${currentSignal}`);
+      }
+    }
+    
+    if (previousState.regime && currentRegime) {
+      if (previousState.regime !== currentRegime) {
+        deltas.push(`Regime: ${previousState.regime} → ${currentRegime} (CHANGED)`);
+      }
+    }
+    
+    // Save current state for next run
+    try {
+      if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+      fs.writeFileSync(cacheFile, JSON.stringify({
+        signal: currentSignal,
+        regime: currentRegime,
+        timestamp: Date.now(),
+      }));
+    } catch (writeErr) {
+      logger.debug({ err: writeErr }, "[STANDUP_DATA] Failed to write VINCE delta cache");
+    }
+    
+    return deltas.length > 0 ? deltas.join("\n") : "";
+  } catch (err) {
+    logger.debug({ err }, "[STANDUP_DATA] VINCE delta fetch failed");
+    return "";
+  }
+}
+
 export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
   const blockLabels = [
+    "Delta",
     "EnrichedContext",
     "FearGreed",
     "HIP3",
@@ -375,6 +459,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     "Regime",
   ];
   const results = await Promise.allSettled([
+    fetchVinceDelta(runtime),
     fetchEnrichedContext(runtime),
     fetchFearGreed(runtime),
     fetchHIP3Pulse(runtime),
@@ -393,7 +478,12 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
   const lines: string[] = [];
   results.forEach((r, i) => {
     if (r.status === "fulfilled" && r.value) {
-      lines.push(r.value);
+      // Add section header for Delta
+      if (blockLabels[i] === "Delta" && r.value) {
+        lines.push(`### Delta vs Yesterday\n${r.value}`);
+      } else {
+        lines.push(r.value);
+      }
     } else if (r.status === "rejected") {
       logger.warn(
         { err: r.reason, source: blockLabels[i] },
