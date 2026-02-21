@@ -101,7 +101,10 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 
 **📋 REMAINING:**
 - Test new format with next standup run
-- TRADING_RUNTIME_CONTRACT.md verified - aligns with EVClaw producer/executor pattern
+
+**🚀 JUST ADDED:**
+- **ML Signal Quality Threshold visibility** - Shows SQ threshold % + TP win rates in daily insights
+- New output: `ML Loop: 150+ trades | ONNX | SQ threshold: 50% (TP: 1:60%, 2:45%)`
 
 ---
 
