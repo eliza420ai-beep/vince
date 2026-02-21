@@ -194,9 +194,15 @@ async function fetchBinanceTopTraders(runtime: IAgentRuntime): Promise<string> {
 async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
     getStats?: () => {
+      totalTrades: number;
       winCount: number;
       lossCount: number;
+      winRate: number;
       totalPnl: number;
+      avgPnlPerTrade: number;
+      avgWin: number;
+      avgLoss: number;
+      profitFactor: number;
     } | null;
   } | null;
   const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
@@ -205,8 +211,17 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
       pendingEntries?: number;
     } | null>;
   } | null;
-  let stats: { winCount: number; lossCount: number; totalPnl: number } | null =
-    null;
+  let stats: {
+    totalTrades: number;
+    winCount: number;
+    lossCount: number;
+    winRate: number;
+    totalPnl: number;
+    avgPnlPerTrade: number;
+    avgWin: number;
+    avgLoss: number;
+    profitFactor: number;
+  } | null = null;
   let botStatus: { openPositions?: number; pendingEntries?: number } | null =
     null;
   try {
@@ -219,9 +234,18 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   } catch {
     /* non-fatal */
   }
-  let line = stats
-    ? `**Paper bot:** ${stats.winCount}W/${stats.lossCount}L (${stats.totalPnl >= 0 ? "+" : ""}$${stats.totalPnl.toFixed(0)})`
-    : "**Paper bot:** No data";
+  
+  let line = "";
+  if (stats && stats.totalTrades > 0) {
+    // Show: W/L, PnL, win rate, profit factor
+    const pnlStr = `${stats.totalPnl >= 0 ? "+" : ""}$${stats.totalPnl.toFixed(0)}`;
+    const winRateStr = `${(stats.winRate * 100).toFixed(0)}%`;
+    const pfStr = stats.profitFactor > 0 ? `PF:${stats.profitFactor.toFixed(1)}` : "";
+    line = `**Paper:** ${stats.winCount}W/${stats.lossCount}L ${pnlStr} | WR:${winRateStr} ${pfStr}`;
+  } else {
+    line = "**Paper:** No trades yet";
+  }
+  
   if (botStatus)
     line += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;
   return line;
@@ -376,6 +400,60 @@ async function fetchParameterTuner(runtime: IAgentRuntime): Promise<string> {
     
     if (parts.length > 0) {
       return `**Self-tuning:** ${parts.join(" | ")}`;
+    }
+    
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+/** Fetch risk manager state - shows current risk exposure and circuit breaker status */
+async function fetchRiskState(runtime: IAgentRuntime): Promise<string> {
+  try {
+    const riskService = runtime.getService("VINCE_RISK_MANAGER_SERVICE") as {
+      getRiskState?: () => {
+        isPaused: boolean;
+        pauseReason?: string;
+        dailyPnl: number;
+        dailyPnlPct: number;
+        currentDrawdown: number;
+        currentDrawdownPct: number;
+        circuitBreakerActive: boolean;
+        todayTradeCount: number;
+      } | null;
+    } | null;
+    
+    const riskState = riskService?.getRiskState?.();
+    if (!riskState) return "";
+    
+    const parts: string[] = [];
+    
+    // Daily P&L
+    if (riskState.dailyPnl !== 0) {
+      parts.push(`Day: ${riskState.dailyPnl >= 0 ? "+" : ""}$${riskState.dailyPnl.toFixed(0)} (${(riskState.dailyPnlPct * 100).toFixed(1)}%)`);
+    }
+    
+    // Drawdown
+    if (riskState.currentDrawdownPct > 0) {
+      parts.push(`DD: ${(riskState.currentDrawdownPct * 100).toFixed(1)}%`);
+    }
+    
+    // Trade count
+    if (riskState.todayTradeCount > 0) {
+      parts.push(`${riskState.todayTradeCount} trades`);
+    }
+    
+    // Status flags
+    if (riskState.isPaused) {
+      parts.push(`PAUSED: ${riskState.pauseReason || "risk limit"}`);
+    }
+    if (riskState.circuitBreakerActive) {
+      parts.push(`CIRCUIT_BREAKER`);
+    }
+    
+    if (parts.length > 0) {
+      return `**Risk:** ${parts.join(" | ")}`;
     }
     
     return "";
@@ -627,6 +705,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     fetchPaperBot(runtime),
     fetchMLStatus(runtime),
     fetchParameterTuner(runtime),
+    fetchRiskState(runtime),
     fetchGoalTracker(runtime),
     fetchMandoMinutes(runtime),
     fetchAlliumOnChain(runtime),
