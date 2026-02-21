@@ -243,9 +243,20 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
       } | null>;
     } | null;
     
+    // Also get ML inference service for threshold visibility
+    const mlService = runtime.getService("VINCE_ML_INFERENCE_SERVICE") as {
+      getSignalQualityThreshold?: () => number;
+      getImprovementReport?: () => Promise<{
+        suggested_signal_quality_threshold?: number;
+        tp_level_performance?: Record<string, { win_rate: number; count: number }>;
+      } | null>;
+    } | null;
+    
     let featureCount = 0;
     let modelTrained = 0;
     let hasModels = false;
+    let signalQualityThreshold: number | null = null;
+    let tpPerformance: string = "";
     
     try {
       featureCount = await vinceService?.getFeatureCount?.() ?? 0;
@@ -256,6 +267,25 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
       if (modelStatus) {
         modelTrained = modelStatus.trained ?? 0;
         hasModels = !!(modelStatus.signalQuality || modelStatus.positionSizing);
+      }
+    } catch {}
+    
+    // Get signal quality threshold from ML service
+    try {
+      signalQualityThreshold = mlService?.getSignalQualityThreshold?.() ?? null;
+    } catch {}
+    
+    // Get TP level performance if available
+    try {
+      const report = await mlService?.getImprovementReport?.();
+      if (report?.tp_level_performance) {
+        const levels = Object.entries(report.tp_level_performance)
+          .filter(([_, v]) => v.count >= 5)
+          .map(([l, v]) => `${l}:${(v.win_rate * 100).toFixed(0)}%`)
+          .slice(0, 3);
+        if (levels.length > 0) {
+          tpPerformance = ` (TP: ${levels.join(", ")})`;
+        }
       }
     } catch {}
     
@@ -275,11 +305,13 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
       }
     } catch {}
     
-    if (featureCount > 0 || modelTrained > 0 || hasModels) {
+    if (featureCount > 0 || modelTrained > 0 || hasModels || signalQualityThreshold !== null) {
       const parts: string[] = [];
       if (featureCount > 0) parts.push(`${featureCount}+ trades in feature store`);
       if (hasModels) parts.push("ONNX models loaded");
       if (modelTrained > 0) parts.push(`${modelTrained} training runs`);
+      if (signalQualityThreshold !== null) parts.push(`SQ threshold: ${(signalQualityThreshold * 100).toFixed(0)}%`);
+      if (tpPerformance) parts.push(tpPerformance);
       
       return `**ML Loop:** ${parts.join(" | ")}`;
     }
