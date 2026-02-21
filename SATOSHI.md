@@ -104,7 +104,10 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 
 **🚀 JUST ADDED:**
 - **ML Signal Quality Threshold visibility** - Shows SQ threshold % + TP win rates + tuning params
-- New output: `ML Loop: 150+ trades | ONNX | SQ threshold: 50% (TP: 1:60%, 2:45%) [tuning: strength≥60%, conf≥40%]`
+- **Self-tuning visibility** - Shows parameter tuner status, auto-tuned flag, recent adjustments
+- Output examples:
+  - `ML Loop: 150+ trades | ONNX | SQ threshold: 50% (TP: 1:60%) [tuning: strength≥60%]`
+  - `Self-tuning: minStr=60% | minConf=40% | AUTO-TUNED [signal_thresh:45%→50%]`
 
 ---
 
