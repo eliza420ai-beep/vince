@@ -83,6 +83,37 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 
 ---
 
+## Progress Tracker
+
+### 2026-02-21
+
+**✅ COMPLETED:**
+- Daily insights template improvement (docs/standup/daily-insights/DAILY_INSIGHTS_TEMPLATE.md)
+- ECHO sentiment structured format (docs/standup/daily-insights/ECHO_SENTIMENT_IMPROVEMENT.md)
+- Standup fetcher pattern documentation (docs/standup/daily-insights/STANDUP_FETCHER_PATTERN.md)
+- **Code: fetchEchoData()** — Structured tables instead of raw tweets
+- **Code: fetchVinceDelta()** — Delta vs yesterday section
+- **Code: fetchMLStatus()** — ML loop visibility (feature store, ONNX models)
+- **Code: Cross-agent links** — Auto-generates connections between VINCE/Oracle/ECHO/Solus
+- **Eliza section** — Already has: Delta, Facts, Substack idea, Knowledge to expand
+- **Agent reviews:** All agents have docs: VINCE, Otaku, ECHO, Oracle, Solus
+- PR: `satoshi/improve-daily-insights-template` (25 commits)
+
+**📋 REMAINING:**
+- Test new format with next standup run
+
+**🚀 JUST ADDED:**
+- **ML Signal Quality Threshold visibility** - Shows SQ threshold % + TP win rates + tuning params
+- **Self-tuning visibility** - Shows parameter tuner status, auto-tuned flag, recent adjustments
+- **Paper bot stats** - Win rate, profit factor, enhanced display
+- **Risk state** - Daily P&L, drawdown, trade count, circuit breaker status
+- **Portfolio summary** - Total value, return %, positions
+- **ONNX model inference counts** - Shows which models are being used
+
+**PR Total:** 25 commits, +750 lines
+
+---
+
 ## Standing mandate: review and improve every agent and their plugins
 
 On each visit (or when no task is queued), you are expected to **review and improve** every agent in `src/agents/` and the plugins they use.
