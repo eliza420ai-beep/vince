@@ -93,17 +93,17 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - Standup fetcher pattern documentation (docs/standup/daily-insights/STANDUP_FETCHER_PATTERN.md)
 - **Code: fetchEchoData()** — Structured tables instead of raw tweets
 - **Code: fetchVinceDelta()** — Delta vs yesterday section
-  - Caches signal/regime to `.elizadb/standup-cache/vince-last-state.json`
-  - Compares current to previous run
-  - Tracks signal changes and regime changes
-- PR: `satoshi/improve-daily-insights-template` (7 commits)
+- **Eliza section** — Already has: Delta, Facts, Substack idea, Knowledge to expand (matches template)
+- PR: `satoshi/improve-daily-insights-template` (9 commits)
 
-**🔄 IN PROGRESS:**
+**📋 REMAINING (lower priority):**
+- Cross-agent links (requires complex parsing of multiple sections)
+- Action Items (extracted post-standup from day report - already works)
 - Test new format with next standup run
 
-**📋 NEXT PRIORITY:**
+**📋 NEXT PRIORITY (per standing mandate):**
 1. Test standup output with new ECHO + VINCE delta format
-2. Review and improve other agents (per standing mandate)
+2. Agent/plugin review - pick one agent and improve plugins
 
 ---
 
