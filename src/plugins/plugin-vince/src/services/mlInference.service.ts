@@ -347,6 +347,11 @@ export class VinceMLInferenceService extends Service {
     );
   }
 
+  /** Get improvement report for visibility (used by standup/dashboard) */
+  getImprovementReport(): ImprovementReportTuning | null {
+    return this.improvementReport;
+  }
+
   /**
    * TP level indices to use when building takeProfitPrices (0-based).
    * From improvement report: skip the worst-performing level if win_rate < 0.45 and count >= 5.
