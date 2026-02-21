@@ -1268,11 +1268,11 @@ export class VinceHIP3Service extends Service {
         const data = await this.fetchDexData(dex);
         const assetCount = data ? data[0].universe.length : 0;
         if (data) {
-          logger.info(`[VinceHIP3] DEX ${dex}: ${assetCount} assets`);
+          logger.debug(`[VinceHIP3] DEX ${dex}: ${assetCount} assets`);
           perDexSummary.push({ dex, assetCount, ok: true });
           return { data, dex, assetCount, ok: true as const };
         }
-        logger.info(`[VinceHIP3] DEX ${dex} fetch failed: invalid response`);
+        logger.debug(`[VinceHIP3] DEX ${dex} fetch failed: invalid response`);
         perDexSummary.push({
           dex,
           assetCount: 0,
@@ -1282,7 +1282,7 @@ export class VinceHIP3Service extends Service {
         return { data: null, dex, assetCount: 0, ok: false as const };
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        logger.info(`[VinceHIP3] DEX ${dex} fetch failed: ${errMsg}`);
+        logger.debug(`[VinceHIP3] DEX ${dex} fetch failed: ${errMsg}`);
         perDexSummary.push({ dex, assetCount: 0, ok: false, error: errMsg });
         return { data: null, dex, assetCount: 0, ok: false as const };
       }
@@ -1299,8 +1299,12 @@ export class VinceHIP3Service extends Service {
       0,
     );
 
-    logger.debug(
-      `[VinceHIP3] Fetched ${results.length}/${hip3Dexes.length} HIP-3 DEXes with ${totalAssets} total assets`,
+    const dexSummary = perDexSummary
+      .filter((s) => s.ok)
+      .map((s) => `${s.dex}:${s.assetCount}`)
+      .join(", ");
+    logger.info(
+      `[VinceHIP3] ${results.length}/${hip3Dexes.length} DEXes OK, ${totalAssets} assets [${dexSummary}]`,
     );
     return { results, perDexSummary };
   }
