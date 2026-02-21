@@ -969,7 +969,7 @@ function generateContrarianAlert(signals: AssetSignal[]): string {
   if (bullish.length > bearish.length) {
     return `Consensus: CT is ${bullish.length > 1 ? "bullish" : "leaning bullish"}. Edge: contrarians may be right in near-term.`;
   } else if (bearish.length > bullish.length) {
-    return `Consensus: CT is ${bearish.length > 1 ? "bearish" : "leaning bearish"}. Edge: institutions may be Accumulating.`;
+    return `Consensus: CT is ${bearish.length > 1 ? "bearish" : "leaning bearish"}. Edge: institutions may be accumulating.`;
   }
   return "No clear consensus in CT sentiment.";
 }
