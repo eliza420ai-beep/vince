@@ -489,6 +489,47 @@ async function fetchRiskState(runtime: IAgentRuntime): Promise<string> {
   }
 }
 
+/** Fetch portfolio summary - shows total value, return %, exposure */
+async function fetchPortfolioSummary(runtime: IAgentRuntime): Promise<string> {
+  try {
+    const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
+      getStatus?: () => {
+        portfolioValue: number;
+        returnPct: number;
+        openPositions: number;
+      } | null;
+    } | null;
+    
+    const status = paperTrading?.getStatus?.();
+    if (!status) return "";
+    
+    const parts: string[] = [];
+    
+    // Total value
+    if (status.portfolioValue > 0) {
+      parts.push(`$${status.portfolioValue.toFixed(0)}`);
+    }
+    
+    // Return %
+    if (status.returnPct !== 0) {
+      parts.push(`ret:${status.returnPct >= 0 ? "+" : ""}${(status.returnPct * 100).toFixed(1)}%`);
+    }
+    
+    // Open positions
+    if (status.openPositions > 0) {
+      parts.push(`${status.openPositions} positions`);
+    }
+    
+    if (parts.length > 0) {
+      return `**Portfolio:** ${parts.join(" | ")}`;
+    }
+    
+    return "";
+  } catch {
+    return "";
+  }
+}
+
 async function fetchGoalTracker(runtime: IAgentRuntime): Promise<string> {
   const goals = runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as {
     getDailyProgress?: () => Promise<{
@@ -733,6 +774,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     fetchMLStatus(runtime),
     fetchParameterTuner(runtime),
     fetchRiskState(runtime),
+    fetchPortfolioSummary(runtime),
     fetchGoalTracker(runtime),
     fetchMandoMinutes(runtime),
     fetchAlliumOnChain(runtime),
