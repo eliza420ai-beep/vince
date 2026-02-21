@@ -310,8 +310,81 @@ export async function buildAndSaveSharedDailyInsights(
       sections.push(`## ${displayName}\n(fetch failed)\n`);
     }
   }
+
+  // Add cross-agent links section
+  const crossAgentLinks = generateCrossAgentLinks(sections);
+  if (crossAgentLinks) {
+    sections.push(crossAgentLinks);
+  }
+
   const content = sections.join("\n");
   await saveSharedDailyInsights(content);
+}
+
+/**
+ * Generate cross-agent links by analyzing agent sections for connections.
+ * Looks for signals, opportunities, and handoffs between agents.
+ */
+function generateCrossAgentLinks(sections: string[]): string {
+  const links: string[] = [];
+
+  // Combine all sections for analysis
+  const allContent = sections.join("\n").toLowerCase();
+
+  // Check for VINCE → Oracle connection
+  const vinceSection = sections.find(s => s.startsWith("## VINCE") || s.includes("VINCE\n"));
+  const oracleSection = sections.find(s => s.startsWith("## Oracle") || s.includes("Oracle\n"));
+
+  if (vinceSection && oracleSection) {
+    // Check if VINCE has signal and Oracle has relevant market
+    const hasSignal = vinceSection.match(/signal.*(long|short)/i);
+    const hasWarsh = oracleSection.match(/warsh|fed.*chair/i);
+    const hasIran = oracleSection.match(/iran/i);
+
+    if (hasSignal && (hasWarsh || hasIran)) {
+      links.push("• VINCE signal → Oracle: Macro event in Polymarket - check for edge");
+    }
+  }
+
+  // Check for ECHO → VINCE connection
+  const echoSection = sections.find(s => s.startsWith("## ECHO") || s.includes("ECHO\n"));
+
+  if (echoSection && vinceSection) {
+    const echoSentiment = echoSection.match(/sentiment.*(bullish|bearish)/i);
+    const vinceSignal = vinceSection.match(/signal.*(long|short)/i);
+
+    if (echoSentiment && vinceSignal) {
+      const sentiment = echoSentiment[1];
+      const signal = vinceSignal[1];
+      if (sentiment === signal) {
+        links.push(`• ECHO → VINCE: CT sentiment aligns with VINCE signal (${signal})`);
+      } else {
+        links.push(`• ECHO → VINCE: CT sentiment (${sentiment}) conflicts with VINCE signal (${signal}) - reconsider?`);
+      }
+    }
+  }
+
+  // Check for Solus → any options signals
+  const solusSection = sections.find(s => s.startsWith("## Solus") || s.includes("Solus\n"));
+
+  if (solusSection) {
+    const hasOptions = solusSection.match(/option|call|put|strike/i);
+    if (hasOptions) {
+      links.push("• Solus: Active options context - prepare for strike decision");
+    }
+  }
+
+  // Check for ML status
+  const hasML = allContent.includes("ml loop") || allContent.includes("onnx");
+  if (hasML) {
+    links.push("• ML Loop: ONNX models training - feature store accumulating");
+  }
+
+  if (links.length === 0) {
+    return ""; // No meaningful links found
+  }
+
+  return `\n## Cross-Agent Links\n\n${links.join("\n")}`;
 }
 
 function extractReplyFromResponse(resp: unknown): string | null {
