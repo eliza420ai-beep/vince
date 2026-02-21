@@ -93,8 +93,9 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - Standup fetcher pattern documentation (docs/standup/daily-insights/STANDUP_FETCHER_PATTERN.md)
 - **Code: fetchEchoData()** — Structured tables instead of raw tweets
 - **Code: fetchVinceDelta()** — Delta vs yesterday section
-- **Eliza section** — Already has: Delta, Facts, Substack idea, Knowledge to expand (matches template)
-- PR: `satoshi/improve-daily-insights-template` (9 commits)
+- **Code: fetchMLStatus()** — ML loop visibility (feature store, ONNX models)
+- **Eliza section** — Already has: Delta, Facts, Substack idea, Knowledge to expand
+- PR: `satoshi/improve-daily-insights-template` (10 commits)
 
 **📋 REMAINING (lower priority):**
 - Cross-agent links (requires complex parsing of multiple sections)
