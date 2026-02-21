@@ -23,6 +23,7 @@ export const signals = pluginPolymarketDeskSchema.table("signals", {
   market_price: real("market_price"),
   edge_bps: real("edge_bps"),
   status: text("status").notNull().default("pending"),
+  metadata_json: text("metadata_json"),
 });
 
 /** Risk → Executor: sized order after approval */

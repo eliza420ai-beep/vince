@@ -41,11 +41,11 @@ If you use this heading, only its body is used as "Last week's strategy" in stan
 
 ## Environment variables
 
-| Variable | Purpose |
-|----------|---------|
-| `SOLUS_PORTFOLIO_CONTEXT` | Full portfolio + open-positions block for Solus. Overrides file for that block only. |
+| Variable                   | Purpose                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| `SOLUS_PORTFOLIO_CONTEXT`  | Full portfolio + open-positions block for Solus. Overrides file for that block only.     |
 | `SOLUS_LAST_WEEK_STRATEGY` | Overrides "Last week's strategy" in standup (file or `## Last week's strategy` section). |
-| `STANDUP_DELIVERABLES_DIR` | Directory for `weekly-options-context.md` (default `docs/standup`). |
+| `STANDUP_DELIVERABLES_DIR` | Directory for `weekly-options-context.md` (default `docs/standup`).                      |
 
 ## Who uses it
 

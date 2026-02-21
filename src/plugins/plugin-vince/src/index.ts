@@ -147,6 +147,7 @@ import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
 import { registerLifestyleDailyTask } from "./tasks/lifestyleDaily.tasks";
 import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
+import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
 
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
@@ -1061,6 +1062,11 @@ export const vincePlugin: Plugin = {
           await registerPaperOpsTask(runtime);
         } catch (e) {
           logger.warn("[VINCE] Failed to register paper ops task:", e);
+        }
+        try {
+          await registerHIP3DiscoveryTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register HIP-3 discovery task:", e);
         }
       });
     }

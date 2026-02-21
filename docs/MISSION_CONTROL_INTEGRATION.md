@@ -1,31 +1,35 @@
 # Mission Control Integration - WHY & How
 
-*Generated: 2026-02-19*
+_Generated: 2026-02-19_
 
 ---
 
 ## WHY This Integration Matters
 
 ### The Problem
+
 You've spent **$3,000+ in AI tokens** building VINCE to MVP. Currently:
+
 - 10 agents operating with limited orchestration
 - Manual task tracking
 - No governance/approval flows
 - No unified dashboard for agent management
 
 ### The Solution
+
 **Mission Control** gives you:
 
-| Feature | Benefit |
-|---------|---------|
+| Feature                | Benefit                                        |
+| ---------------------- | ---------------------------------------------- |
 | **Work Orchestration** | Boards, tasks, dependencies - all in one place |
-| **Agent Lifecycle** | Register, monitor, pause, retire agents |
-| **Governance** | Approval flows before sensitive actions |
-| **Audit Trail** | Every action logged, searchable |
-| **API-First** | Programmatic control, automation |
-| **Dashboard** | Visual UI for everything |
+| **Agent Lifecycle**    | Register, monitor, pause, retire agents        |
+| **Governance**         | Approval flows before sensitive actions        |
+| **Audit Trail**        | Every action logged, searchable                |
+| **API-First**          | Programmatic control, automation               |
+| **Dashboard**          | Visual UI for everything                       |
 
 ### Why Satoshi (Me) Needs This
+
 1. **Task Assignment** - You assign research tasks via Mission Control board
 2. **Heartbeat Monitoring** - MC knows if I'm alive or stuck
 3. **Result Capture** - My outputs get stored in MC, not lost
@@ -33,6 +37,7 @@ You've spent **$3,000+ in AI tokens** building VINCE to MVP. Currently:
 5. **Audit** - Every research task I complete is logged
 
 ### The Vision
+
 ```
 You (Mission Control UI)
     │
@@ -78,11 +83,13 @@ You (Mission Control UI)
 ## Current Status
 
 ### What's Working
+
 - Mission Control UI loads
 - API authentication works
 - Service + actions registered in VINCE
 
 ### What's Blocked
+
 - **Gateway Connection** - Need to connect OpenClaw Gateway to Mission Control
   - Gateway must be reachable (WebSocket)
   - Board creation requires gateway_id
@@ -93,20 +100,22 @@ You (Mission Control UI)
 ## Integration Code
 
 ### Service: MissionControlService
+
 ```typescript
 // Key methods:
-- registerSatoshi()     // One-click register me
-- createSatoshiBoard()  // Create research board
-- createTask()          // Assign tasks
-- listTasks()           // See pending work
+-registerSatoshi() - // One-click register me
+  createSatoshiBoard() - // Create research board
+  createTask() - // Assign tasks
+  listTasks(); // See pending work
 ```
 
 ### Actions
-| Action | Trigger | Does |
-|--------|---------|------|
+
+| Action                | Trigger                       | Does                  |
+| --------------------- | ----------------------------- | --------------------- |
 | `MC_REGISTER_SATOSHI` | "Register in Mission Control" | Creates agent + board |
-| `MC_ASSIGN_TASK` | "Research NVDA" | Creates task |
-| `MC_LIST_TASKS` | "Show tasks" | Lists all tasks |
+| `MC_ASSIGN_TASK`      | "Research NVDA"               | Creates task          |
+| `MC_LIST_TASKS`       | "Show tasks"                  | Lists all tasks       |
 
 ---
 
@@ -120,6 +129,7 @@ docker compose up -d --build
 ```
 
 Access:
+
 - **Frontend:** http://localhost:3000
 - **Backend:** http://localhost:8000
 - **Health:** http://localhost:8000/healthz
@@ -162,12 +172,12 @@ openclaw gateway start --bind custom --custom-bind 0.0.0.0:9000 --auth token --t
 3. Go to **Gateways** → **Add Gateway**
 4. Fill in:
 
-| Field | Value |
-|-------|-------|
-| **Name** | OpenClaw Gateway |
-| **URL** | `ws://YOUR_IP:PORT` (from Gateway startup) |
-| **Workspace Root** | `/Users/vince/.openclaw/workspace` |
-| **Token** | `satoshi123` (or whatever you set) |
+| Field              | Value                                      |
+| ------------------ | ------------------------------------------ |
+| **Name**           | OpenClaw Gateway                           |
+| **URL**            | `ws://YOUR_IP:PORT` (from Gateway startup) |
+| **Workspace Root** | `/Users/vince/.openclaw/workspace`         |
+| **Token**          | `satoshi123` (or whatever you set)         |
 
 5. Click **Save**
 
@@ -189,13 +199,13 @@ Once Gateway is connected:
 1. Go to **Agents** → **New Agent**
 2. Fill in:
 
-| Field | Value |
-|-------|-------|
-| **Name** | Satoshi |
-| **Board** | (select Satoshi Research board) |
-| **Status** | Active |
+| Field                 | Value                                    |
+| --------------------- | ---------------------------------------- |
+| **Name**              | Satoshi                                  |
+| **Board**             | (select Satoshi Research board)          |
+| **Status**            | Active                                   |
 | **Identity Template** | You are Satoshi, an AI research agent... |
-| **Soul Template** | Be direct, concise, helpful... |
+| **Soul Template**     | Be direct, concise, helpful...           |
 
 Or just say: "Register Satoshi in Mission Control" (once VINCE is restarted)
 
@@ -225,6 +235,7 @@ Or just say: "Register Satoshi in Mission Control" (once VINCE is restarted)
 ## ⚠️ Security Note
 
 **Token was rotated on 2026-02-19** - The token in git history was exposed. Current tokens are in:
+
 - Mission Control `.env` file
 - `~/.openclaw/openclaw.json` for gateway
 
@@ -232,13 +243,13 @@ Or just say: "Register Satoshi in Mission Control" (once VINCE is restarted)
 
 ## Open Questions (Answered)
 
-| Question | Answer |
-|----------|--------|
-| Gateway Auth? | Token in body, WebSocket URL |
-| Task Dispatch? | Via Gateway RPC |
+| Question         | Answer                       |
+| ---------------- | ---------------------------- |
+| Gateway Auth?    | Token in body, WebSocket URL |
+| Task Dispatch?   | Via Gateway RPC              |
 | Agent Callbacks? | Via Gateway session messages |
-| Webhooks? | Board webhooks supported |
+| Webhooks?        | Board webhooks supported     |
 
 ---
 
-*Last updated: 2026-02-19*
+_Last updated: 2026-02-19_

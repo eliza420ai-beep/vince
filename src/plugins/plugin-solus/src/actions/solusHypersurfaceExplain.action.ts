@@ -78,8 +78,20 @@ Reply with the explanation only.`;
         typeof response === "string"
           ? response
           : ((response as { text?: string })?.text ?? String(response));
-      const out = "Here's how Hypersurface works—\n\n" + text.trim();
-      await callback({ text: out, actions: ["SOLUS_HYPERSURFACE_EXPLAIN"] });
+      const sections = [
+        "**Hypersurface Mechanics**",
+        "",
+        text.trim(),
+        "",
+        "*Source: Hypersurface mechanics, knowledge/options*",
+        "",
+        "---",
+        "_Next steps_: `STRIKE RITUAL` (Friday process) · `OPTIMAL STRIKE` (strike call) · `OPTIONS` → VINCE (IV data)",
+      ];
+      await callback({
+        text: sections.join("\n"),
+        actions: ["SOLUS_HYPERSURFACE_EXPLAIN"],
+      });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_HYPERSURFACE_EXPLAIN] Failed:", error);

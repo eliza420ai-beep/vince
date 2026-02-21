@@ -30,7 +30,12 @@ export const solusPlugin: Plugin = {
   description:
     "Hypersurface expertise for Solus: mechanics, strike ritual, position assess, optimal strike. Offchain stock pulse via Finnhub. Solus only.",
 
-  services: [FinnhubService, AlphaVantageService, FMPService, MissionControlService],
+  services: [
+    FinnhubService,
+    AlphaVantageService,
+    FMPService,
+    MissionControlService,
+  ],
   providers: [
     hypersurfaceContextProvider,
     hypersurfaceSpotPricesProvider,

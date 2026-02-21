@@ -48,3 +48,28 @@
 - Develop a cross-agent knowledge sharing protocol
 - Start tracking prediction accuracy across team agents
 - Create a standardized method for capturing tactical insights from daily standups
+
+## 2026-02-20
+
+- Track BTC $68K rejection or breakout as inflection signal for macro shakeout vs. real weakness.
+- Pull live CLOB on Iran strike Feb 28 if desk wants to size geopolitical tail risk.
+
+## 2026-02-20
+
+- Pull live CLOB odds on Iran Feb 28 strike (27% Polymarket) for Hypersurface weekly strike selection context.
+- Map Solus's 70k BTC covered call to Vince's 58% short signal and Naval's institutional rotation thesis to show options positioning vs macro conviction.
+
+## 2026-02-20
+
+- Clawterm should prioritize the one-click installer script over the Skills Marketplace to capture immediate momentum from Tech With Tim's course audience.
+- Eliza's agent infrastructure playbook should include specific GTM channels (X, CT, Telegram) for autonomous agent builders.
+- Oracle should pull live CLOB odds on Iran Feb 28 strike if the desk wants to size a macro hedge.
+## 2026-02-20
+
+- Monitor btc-going-to-zero sentiment acceleration as a live thesis-break signal paired with ADX below 25.
+- Coordinate Eliza's DeFi rate-cut research with Solus's covered-call sizing to align macro positioning.
+- Test Otaku's DefiLlama yield scanning output against Eliza's stablecoin yield strategy corpus once wallet is live.
+## 2026-02-21
+
+- Pull live CLOB odds on Iran Feb 28 if desk wants to size a macro hedge (Oracle suggestion).
+- Monitor BTC invalidation at 67K Thursday and Iran Feb 28 odds spike above 30% as breakout signals (Naval thesis).

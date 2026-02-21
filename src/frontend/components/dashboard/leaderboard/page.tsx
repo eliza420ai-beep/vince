@@ -34,13 +34,19 @@ import {
   fetchKnowledgeQualityResults,
   submitKnowledgeUpload,
   fetchPolymarketPriorityMarkets,
-  fetchPolymarketArbStatus,
+  fetchPolymarketEdgeStatus,
+  fetchPolymarketEdgeSignals,
+  fetchPolymarketDeskStatus,
+  fetchPolymarketDeskTrades,
+  fetchPolymarketDeskPositions,
   fetchSubstackPostsWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type {
   PaperResponse,
   KnowledgeResponse,
+  PolymarketPaperPositionsFetchResult,
+  PolymarketPaperPosition,
 } from "@/frontend/lib/leaderboardsApi";
 import type { RebelRanking } from "@/frontend/types/dashboard";
 import type {
@@ -66,32 +72,128 @@ import {
 import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
 
+/**
+ * Extract human-readable rationale for a Polymarket paper position.
+ * Priority: metadata.rationale (written at signal time) > constructed one-liner > fallback.
+ */
+function polymarketWhyRationale(pos: PolymarketPaperPosition): string {
+  const m = pos.metadata;
+
+  // Best case: strategy wrote a rationale at signal time
+  if (m && typeof m === "object" && typeof m.rationale === "string")
+    return m.rationale;
+
+  // Construct from known strategy metadata
+  const strat = (m?.strategy ?? pos.strategy) as string | undefined;
+  const edgeBps = Number(m?.edge_bps ?? pos.edgeBps ?? 0);
+  const forecastPct = `${(Number(m?.forecast_prob ?? pos.forecastProb ?? 0) * 100).toFixed(1)}%`;
+  const entryPct = `${(pos.entryPrice * 100).toFixed(1)}%`;
+
+  if (strat === "model_fair_value") {
+    const spot = m?.spot as number | undefined;
+    const strikeUsd = m?.strikeUsd as number | undefined;
+    if (spot != null && strikeUsd != null) {
+      const spotStr = `$${Number(spot).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+      const strikeStr = `$${Number(strikeUsd).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+      return (
+        `BTC spot ${spotStr}, strike ${strikeStr}. ` +
+        `Model prices ${pos.side} at ${forecastPct} — market had it at ${entryPct}. ` +
+        `${Math.abs(edgeBps).toFixed(0)} bps edge.`
+      );
+    }
+  }
+  if (strat === "overreaction") {
+    const fav = m?.favoritePrice as number | undefined;
+    const under = m?.underdogPrice as number | undefined;
+    if (fav != null && under != null) {
+      return (
+        `Crowd overreaction: favorite at ${(Number(fav) * 100).toFixed(1)}%, underdog at ${(Number(under) * 100).toFixed(1)}%. ` +
+        `Buying ${pos.side} for mean reversion — ${Math.abs(edgeBps).toFixed(0)} bps spread.`
+      );
+    }
+  }
+  if (strat === "synth") {
+    return `Synth model forecasts ${pos.side} at ${forecastPct} vs market at ${entryPct}. ${Math.abs(edgeBps).toFixed(0)} bps edge.`;
+  }
+  if (strat === "maker_rebate") {
+    const makerEntry = m?.makerEntryPrice as number | undefined;
+    const windowSec = m?.windowSecsRemaining as number | undefined;
+    const momentum = m?.btcMomentumPct as number | undefined;
+    const takerFeeBps = m?.takerFeeAvoidedBps as number | undefined;
+    const fillProb = m?.estimatedFillProb as number | undefined;
+    const parts: string[] = [];
+    parts.push(
+      `Maker rebate (5-min BTC): ${pos.side} at ${makerEntry != null ? (makerEntry * 100).toFixed(0) : entryPct.replace("%", "")}¢`,
+    );
+    if (windowSec != null && Number.isFinite(windowSec))
+      parts.push(`~${Math.round(windowSec)}s to expiry`);
+    if (momentum != null && Number.isFinite(momentum))
+      parts.push(
+        `BTC momentum ${momentum >= 0 ? "+" : ""}${momentum.toFixed(1)}%`,
+      );
+    if (takerFeeBps != null && Number.isFinite(takerFeeBps))
+      parts.push(`taker fee avoided ${takerFeeBps} bps`);
+    if (fillProb != null && Number.isFinite(fillProb))
+      parts.push(`est. fill ${(fillProb * 100).toFixed(0)}%`);
+    if (edgeBps !== 0) parts.push(`${Math.abs(edgeBps).toFixed(0)} bps edge`);
+    return parts.join(". ");
+  }
+  if (
+    strat === "POLYMARKET_EDGE_CHECK" ||
+    m?.source === "POLYMARKET_EDGE_CHECK"
+  ) {
+    return `Edge check: forecast ${forecastPct} vs market ${entryPct}. ${Math.abs(edgeBps).toFixed(0)} bps edge on ${pos.side}.`;
+  }
+
+  // Fallback for positions with no stored rationale
+  if (edgeBps !== 0)
+    return `${pos.strategy} strategy. Entry ${entryPct}, forecast ${forecastPct}, ${Math.abs(edgeBps).toFixed(0)} bps edge on ${pos.side}.`;
+  return `${pos.strategy} strategy — entry at ${entryPct}.`;
+}
+
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
 
-/** Data API cost estimates (monthly/yearly). From TREASURY.md; update when tiers change. */
+/** Data API cost estimates (monthly/yearly). From TREASURY.md; update when tiers change. highTier* = estimate when all APIs on high/pro tier. */
 const DATA_SOURCES_COSTS: {
   name: string;
   monthly: number;
   yearly: number;
   notes: string;
+  highTierMonthly?: number;
+  highTierYearly?: number;
 }[] = [
   {
     name: "Nansen",
     monthly: 0,
     yearly: 0,
     notes: "100 credits/mo free; API Standard ~$999/mo",
+    highTierMonthly: 999,
+    highTierYearly: 11988,
   },
   {
     name: "Sanbase (Santiment)",
     monthly: 0,
     yearly: 0,
     notes: "1K calls/mo free; Pro ~$99+/mo",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
   },
   {
     name: "CoinGlass",
     monthly: 29,
     yearly: 350,
     notes: "Hobbyist $29/mo; $350/yr",
+    highTierMonthly: 199,
+    highTierYearly: 2388,
+  },
+  {
+    name: "Pro tier (high-tier APIs)",
+    monthly: 199,
+    yearly: 2388,
+    notes:
+      "Volatility Dashboard, ODTE, Liquidity, Liquidations, Polymarket; 5K API calls/mo; 15‑min Claude/OpenClaw integration. Billed monthly.",
+    highTierMonthly: 199,
+    highTierYearly: 2388,
   },
   {
     name: "Birdeye",
@@ -104,18 +206,24 @@ const DATA_SOURCES_COSTS: {
     monthly: 29,
     yearly: 0,
     notes: "Starter ~$29/mo; Advanced ~$799/mo",
+    highTierMonthly: 799,
+    highTierYearly: 9588,
   },
   {
     name: "X (Twitter) API",
-    monthly: 100,
-    yearly: 1200,
-    notes: "Basic tier; Pro $5K/mo",
+    monthly: 690,
+    yearly: 8280,
+    notes: "Pay-as-you-go; est. ~$690/mo at heavy usage",
+    highTierMonthly: 690,
+    highTierYearly: 8280,
   },
   {
     name: "Helius",
     monthly: 0,
     yearly: 0,
     notes: "Free tier; Developer $49/mo",
+    highTierMonthly: 49,
+    highTierYearly: 588,
   },
   { name: "OpenSea", monthly: 0, yearly: 0, notes: "Free tier; NFT floors" },
   { name: "Firecrawl", monthly: 0, yearly: 0, notes: "Optional; free tier" },
@@ -124,6 +232,74 @@ const DATA_SOURCES_COSTS: {
     monthly: 25,
     yearly: 300,
     notes: "Pro ~$25/mo; feature store",
+    highTierMonthly: 25,
+    highTierYearly: 300,
+  },
+  {
+    name: "Tavily",
+    monthly: 0,
+    yearly: 0,
+    notes:
+      "Agent search/research (webSearch, intel); credit-based; free trial then paid",
+    highTierMonthly: 150,
+    highTierYearly: 1800,
+  },
+  {
+    name: "Dune",
+    monthly: 0,
+    yearly: 0,
+    notes: "Analytics/SQL (DUNE_API_KEY); free tier, paid for high volume",
+    highTierMonthly: 399,
+    highTierYearly: 4788,
+  },
+  {
+    name: "Allium",
+    monthly: 0,
+    yearly: 0,
+    notes: "Data (plugin-vince VinceAlliumService); tier TBD",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
+  },
+  {
+    name: "Jupiter",
+    monthly: 0,
+    yearly: 0,
+    notes: "Solana DEX agg (Otaku); free tier",
+    highTierMonthly: 49,
+    highTierYearly: 588,
+  },
+  {
+    name: "Alchemy",
+    monthly: 0,
+    yearly: 0,
+    notes: "EVM RPC (Otaku/Base); free tier, paid at scale",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
+  },
+  {
+    name: "XAI (Grok)",
+    monthly: 0,
+    yearly: 0,
+    notes: "Grok Expert (XAI_API_KEY); usage-based",
+    highTierMonthly: 100,
+    highTierYearly: 1200,
+  },
+  {
+    name: "Etherscan",
+    monthly: 0,
+    yearly: 0,
+    notes: "EVM explorer; free tier, paid for high call volume",
+    highTierMonthly: 149,
+    highTierYearly: 1788,
+  },
+  {
+    name: "Solus / stocks (Finnhub, FMP, Alpha Vantage)",
+    monthly: 0,
+    yearly: 0,
+    notes:
+      "Finnhub 60/min free; FMP 250 req/day; Alpha Vantage 25 req/day free",
+    highTierMonthly: 99,
+    highTierYearly: 1188,
   },
   {
     name: "Binance, Deribit, Hyperliquid, CoinGecko, DexScreener",
@@ -132,6 +308,57 @@ const DATA_SOURCES_COSTS: {
     notes: "Public/free APIs",
   },
 ];
+
+/** All data APIs on high/pro tier: estimated monthly and yearly total (only rows with highTier* set). */
+const HIGH_TIER_TOTAL_MONTHLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + (r.highTierMonthly ?? 0),
+  0,
+);
+const HIGH_TIER_TOTAL_YEARLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + (r.highTierYearly ?? 0),
+  0,
+);
+
+/** Display value per row: high tier if set, else current (for VC "if funded" table). */
+function dataSourceDisplayMonthly(r: (typeof DATA_SOURCES_COSTS)[0]): number {
+  return r.highTierMonthly ?? r.monthly;
+}
+function dataSourceDisplayYearly(r: (typeof DATA_SOURCES_COSTS)[0]): number {
+  return r.highTierYearly ?? r.yearly;
+}
+/** Total for "if funded" table: sum of display values across all rows. */
+const DATA_SOURCES_DISPLAY_TOTAL_MONTHLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + dataSourceDisplayMonthly(r),
+  0,
+);
+const DATA_SOURCES_DISPLAY_TOTAL_YEARLY = DATA_SOURCES_COSTS.reduce(
+  (s, r) => s + dataSourceDisplayYearly(r),
+  0,
+);
+
+/** AI token spend (actual from invoices). Update when new invoice data is in. DRAGONFLY_PITCH / Usage tab. */
+const AI_TOKEN_SPEND_3_WEEKS_USD = 3000;
+const AI_TOKEN_SPEND_3_WEEKS_LABEL = "~$3K in 3 weeks";
+
+/** Option A allocations (proof round $750K). Must match docs/DRAGONFLY_PITCH.md. */
+const PITCH_OPTION_A_ALLOCATIONS = [
+  {
+    use: "Live execution on Hyperliquid (testnet → small real capital)",
+    allocation: 200_000,
+  },
+  {
+    use: "One ML engineer (ONNX pipeline depth, regime detection)",
+    allocation: 300_000,
+  },
+  {
+    use: "Data API upgrades (Nansen, CoinGlass, Santiment paid tiers)",
+    allocation: 50_000,
+  },
+  {
+    use: "Six months of runway (infra, compute, ClawRouter)",
+    allocation: 200_000,
+  },
+] as const;
 
 /** Hardware: 2x Mac Studio @ $5K each. LOCALSONLY.md cost model. */
 const HARDWARE_2X_MAC_STUDIO = { unitCost: 5000, units: 2, totalCapEx: 10000 };
@@ -311,17 +538,74 @@ export default function LeaderboardPage({
   const polymarketError = polymarketResult?.error ?? null;
 
   const {
-    data: arbStatusResult,
-    isLoading: arbStatusLoading,
-    isFetching: arbStatusFetching,
+    data: edgeStatusResult,
+    isLoading: edgeStatusLoading,
+    isFetching: edgeStatusFetching,
   } = useQuery({
-    queryKey: ["polymarket-arb-status", oracleAgentId],
-    queryFn: () => fetchPolymarketArbStatus(oracleAgentId!),
+    queryKey: ["polymarket-edge-status", oracleAgentId],
+    queryFn: () => fetchPolymarketEdgeStatus(oracleAgentId!),
     enabled: mainTab === "polymarket" && !!oracleAgentId,
     staleTime: 30 * 1000,
     refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
   });
-  const arbStatus = arbStatusResult?.data ?? null;
+  const edgeStatus = edgeStatusResult?.data ?? null;
+
+  const {
+    data: edgeSignalsResult,
+    isLoading: edgeSignalsLoading,
+    isFetching: edgeSignalsFetching,
+  } = useQuery({
+    queryKey: ["polymarket-edge-signals", oracleAgentId],
+    queryFn: () => fetchPolymarketEdgeSignals(oracleAgentId!, 50),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const edgeSignalsData = edgeSignalsResult?.data ?? null;
+
+  // Desk queries keyed by oracleAgentId so they refetch when Oracle agent changes (e.g. after server restart).
+  const {
+    data: deskStatusResult,
+    isLoading: deskStatusLoading,
+    isFetching: deskStatusFetching,
+  } = useQuery({
+    queryKey: ["polymarket-desk-status", oracleAgentId],
+    queryFn: () => fetchPolymarketDeskStatus(oracleAgentId!),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const deskStatus = deskStatusResult?.data ?? null;
+
+  const {
+    data: deskTradesResult,
+    isLoading: deskTradesLoading,
+    isFetching: deskTradesFetching,
+  } = useQuery({
+    queryKey: ["polymarket-desk-trades", oracleAgentId],
+    queryFn: () => fetchPolymarketDeskTrades(oracleAgentId!, 50),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const deskTradesData = deskTradesResult?.data ?? null;
+
+  const {
+    data: deskPositionsResult,
+    isLoading: deskPositionsLoading,
+    isFetching: deskPositionsFetching,
+  } = useQuery({
+    queryKey: ["polymarket-desk-positions", oracleAgentId],
+    queryFn: () => fetchPolymarketDeskPositions(oracleAgentId!),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const deskPositionsData = deskPositionsResult?.data ?? null;
+  /** Response body: positions array and optional hint (fetch result is { data: body, error, status }) */
+  const deskPositionsBody =
+    (deskPositionsData as PolymarketPaperPositionsFetchResult | null)?.data ??
+    null;
 
   // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
   const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
@@ -516,7 +800,7 @@ export default function LeaderboardPage({
                   ? "Session token usage and estimated cost (TREASURY)"
                   : mainTab === "polymarket"
                     ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
-                    : "Open paper trades and portfolio overview";
+                    : "No tilt. Every decision explained. Every outcome learned.";
 
   return (
     <DashboardPageLayout
@@ -2975,53 +3259,672 @@ export default function LeaderboardPage({
             className="mt-6 flex-1 min-h-0 overflow-auto"
           >
             <div className="space-y-6">
-              {/* Paper trading (latency arb) bot status */}
+              {/* Edge engine status (multi-strategy: overreaction, model fair value, Synth) */}
               {oracleAgentId && (
-                <DashboardCard title="Paper trading bot">
-                  {(arbStatusLoading || arbStatusFetching) && !arbStatus ? (
+                <DashboardCard title="Edge engine">
+                  {(edgeStatusLoading || edgeStatusFetching) && !edgeStatus ? (
                     <p className="text-sm text-muted-foreground">
                       Checking status…
                     </p>
-                  ) : arbStatus?.running ? (
+                  ) : edgeStatus?.running ? (
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                       <span
                         className={cn(
                           "font-medium",
-                          arbStatus.paused
+                          edgeStatus.paused
                             ? "text-amber-600 dark:text-amber-400"
                             : "text-green-600 dark:text-green-400",
                         )}
                       >
-                        {arbStatus.paused ? "Paused" : "Running"}
+                        {edgeStatus.paused ? "Paused" : "Running"}
                       </span>
                       <span className="text-muted-foreground">
-                        Mode: {arbStatus.liveExecution ? "Live" : "Paper"}
+                        Contracts: {edgeStatus.contractsWatched ?? 0}
                       </span>
-                      {arbStatus.tradesToday != null &&
-                        arbStatus.tradesToday > 0 && (
+                      {edgeStatus.btcLastPrice != null &&
+                        edgeStatus.btcLastPrice > 0 && (
                           <span className="text-muted-foreground">
-                            Trades today: {arbStatus.tradesToday}
-                            {arbStatus.winCountToday != null &&
-                              ` (${arbStatus.winCountToday} wins)`}
+                            BTC spot: $
+                            {edgeStatus.btcLastPrice.toLocaleString(undefined, {
+                              maximumFractionDigits: 0,
+                            })}{" "}
+                            <span className="text-muted-foreground/50">
+                              (ref price)
+                            </span>
                           </span>
                         )}
-                      {arbStatus.todayPnlUsd != null &&
-                        arbStatus.todayPnlUsd !== 0 && (
-                          <span
-                            className={cn(
-                              arbStatus.todayPnlUsd >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400",
+                      {edgeStatus.strategies &&
+                        Object.keys(edgeStatus.strategies).length > 0 && (
+                          <span className="text-muted-foreground">
+                            {Object.entries(edgeStatus.strategies).map(
+                              ([name, s], i) => {
+                                const count = s.signalCount ?? 0;
+                                const label =
+                                  count > 0
+                                    ? `${count} signal${count !== 1 ? "s" : ""}`
+                                    : "active";
+                                return (
+                                  <span key={name}>
+                                    {i > 0 && ", "}
+                                    <span className="font-mono">
+                                      {name}
+                                    </span>{" "}
+                                    <span className="text-muted-foreground/70">
+                                      ({label})
+                                    </span>
+                                  </span>
+                                );
+                              },
                             )}
-                          >
-                            Today P&amp;L: ${arbStatus.todayPnlUsd.toFixed(2)}
                           </span>
                         )}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Not running or arb engine not available on Oracle.
+                      Not running or edge engine not available on Oracle.
                     </p>
+                  )}
+                </DashboardCard>
+              )}
+
+              {/* Paper trading: desk status (trades today, volume, mtm P&L) */}
+              {oracleAgentId && (
+                <DashboardCard title="Paper trading">
+                  {(deskStatusLoading || deskStatusFetching) && !deskStatus ? (
+                    <p className="text-sm text-muted-foreground">Loading…</p>
+                  ) : deskStatus ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <span className="font-medium text-foreground">
+                          Trades today: {deskStatus.tradesToday}
+                        </span>
+                        <span className="text-muted-foreground">
+                          Volume: $
+                          {deskStatus.volumeTodayUsd.toLocaleString(undefined, {
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
+                        {(() => {
+                          const totalMtm = (
+                            deskTradesData?.trades ?? []
+                          ).reduce((sum, t) => sum + (t.mtmPnlUsd ?? 0), 0);
+                          const hasMtm = (deskTradesData?.trades ?? []).some(
+                            (t) => t.mtmPnlUsd != null,
+                          );
+                          return (
+                            <span
+                              className={cn(
+                                "font-mono font-medium",
+                                !hasMtm
+                                  ? "text-muted-foreground"
+                                  : totalMtm >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400",
+                              )}
+                            >
+                              Paper P&L:{" "}
+                              {!hasMtm ? (
+                                "—"
+                              ) : (
+                                <>
+                                  {totalMtm >= 0 ? "+" : ""}$
+                                  {totalMtm.toFixed(2)}
+                                </>
+                              )}
+                            </span>
+                          );
+                        })()}
+                        {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
+                          <>
+                            <span className="text-muted-foreground">
+                              Open positions:{" "}
+                              {deskPositionsBody?.positions?.length ?? 0}
+                            </span>
+                            <span
+                              className={cn(
+                                "font-mono font-medium",
+                                (deskPositionsBody?.positions?.reduce(
+                                  (s: number, p: PolymarketPaperPosition) =>
+                                    s + p.unrealizedPnl,
+                                  0,
+                                ) ?? 0) >= 0
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400",
+                              )}
+                            >
+                              Paper P&L:{" "}
+                              {(deskPositionsBody?.positions?.reduce(
+                                (s: number, p: PolymarketPaperPosition) =>
+                                  s + p.unrealizedPnl,
+                                0,
+                              ) ?? 0) >= 0
+                                ? "+"
+                                : ""}
+                              $
+                              {(
+                                deskPositionsBody?.positions?.reduce(
+                                  (s: number, p: PolymarketPaperPosition) =>
+                                    s + p.unrealizedPnl,
+                                  0,
+                                ) ?? 0
+                              ).toFixed(2)}
+                            </span>
+                          </>
+                        )}
+                        {deskStatus.pendingSignalsCount > 0 && (
+                          <span className="text-muted-foreground">
+                            Pending signals: {deskStatus.pendingSignalsCount}
+                          </span>
+                        )}
+                        {(deskStatus.pendingSizedOrdersCount ?? 0) > 0 && (
+                          <span className="text-muted-foreground">
+                            Open paper orders:{" "}
+                            {deskStatus.pendingSizedOrdersCount}
+                          </span>
+                        )}
+                      </div>
+                      {deskStatus.tradesToday === 0 &&
+                        (deskPositionsBody?.positions?.length ?? 0) === 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            P&L is from filled trades only. Once Risk → Otaku
+                            fills orders, paper gains/losses will appear here.
+                          </p>
+                        )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Desk not available or DB not configured.
+                    </p>
+                  )}
+                </DashboardCard>
+              )}
+
+              {/* Open paper positions (pending sized orders with live P&L) */}
+              {oracleAgentId && (
+                <DashboardCard title="Open paper positions">
+                  {(deskPositionsLoading || deskPositionsFetching) &&
+                  !deskPositionsData ? (
+                    <p className="text-sm text-muted-foreground">
+                      Loading positions…
+                    </p>
+                  ) : (deskPositionsBody?.positions?.length ?? 0) === 0 ? (
+                    <div className="text-sm text-muted-foreground py-4 space-y-2">
+                      {(deskStatus?.pendingSizedOrdersCount ?? 0) > 0 ? (
+                        <>
+                          <p>
+                            You have{" "}
+                            <strong>
+                              {deskStatus?.pendingSizedOrdersCount} open paper
+                              order(s)
+                            </strong>
+                            . The list is capped so the API doesn’t timeout. If
+                            nothing appears below, the request may have timed
+                            out—reduce the backlog by executing or cancelling
+                            old orders (Otaku / desk executor).
+                          </p>
+                          {(deskPositionsData?.error ||
+                            deskPositionsBody?.hint) && (
+                            <p className="text-xs">
+                              {deskPositionsData?.error ??
+                                deskPositionsBody?.hint}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p>No open paper positions yet.</p>
+                      )}
+                      {deskPositionsData?.error &&
+                        !(deskStatus?.pendingSizedOrdersCount ?? 0) && (
+                          <p className="text-xs">{deskPositionsData.error}</p>
+                        )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {((deskPositionsBody?.totalPending ?? 0) >
+                        (deskPositionsBody?.positions?.length ?? 0) ||
+                        deskPositionsBody?.livePricesSkipped) && (
+                        <p className="text-xs text-muted-foreground">
+                          Showing first{" "}
+                          {deskPositionsBody?.positions?.length ?? 0} of{" "}
+                          {deskPositionsBody?.totalPending ?? 0} open paper
+                          positions.
+                          {deskPositionsBody?.livePricesSkipped &&
+                            " Current price and P&L use entry (live prices skipped for capped list)."}
+                          {" Reduce backlog (execute or cancel) to see fewer."}
+                        </p>
+                      )}
+                      {(deskPositionsBody?.positions ?? []).map(
+                        (pos: PolymarketPaperPosition) => {
+                          const rationale = polymarketWhyRationale(pos);
+                          return (
+                            <div
+                              key={pos.id}
+                              className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "font-semibold",
+                                    pos.side === "YES"
+                                      ? "text-green-600 dark:text-green-400"
+                                      : "text-red-600 dark:text-red-400",
+                                  )}
+                                >
+                                  {pos.side}{" "}
+                                  {pos.question.length > 60
+                                    ? pos.question.slice(0, 60) + "…"
+                                    : pos.question}
+                                </span>
+                                <span className="text-muted-foreground text-sm">
+                                  Entry {(pos.entryPrice * 100).toFixed(1)}%
+                                </span>
+                                <span
+                                  className={cn(
+                                    "font-mono font-medium",
+                                    (pos.unrealizedPnl ?? 0) >= 0
+                                      ? "text-green-600 dark:text-green-400"
+                                      : "text-red-600 dark:text-red-400",
+                                  )}
+                                >
+                                  P&L {pos.unrealizedPnl >= 0 ? "+" : ""}$
+                                  {pos.unrealizedPnl.toFixed(2)} (
+                                  {pos.unrealizedPnlPct >= 0 ? "+" : ""}
+                                  {pos.unrealizedPnlPct.toFixed(2)}%)
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                                <span className="text-muted-foreground">
+                                  Opened:{" "}
+                                  {pos.openedAt
+                                    ? new Date(pos.openedAt).toLocaleString(
+                                        undefined,
+                                        {
+                                          month: "short",
+                                          day: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        },
+                                      )
+                                    : "—"}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Size: ${pos.sizeUsd.toFixed(0)}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Current: {(pos.currentPrice * 100).toFixed(1)}
+                                  %
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Edge: {pos.edgeBps >= 0 ? "+" : ""}
+                                  {pos.edgeBps} bps
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Strategy: {pos.strategy}
+                                </span>
+                              </div>
+                              <div className="text-sm">
+                                <p className="font-medium text-foreground mb-1">
+                                  Why this position
+                                </p>
+                                <p className="text-muted-foreground mb-1">
+                                  {rationale}
+                                </p>
+                                {pos.metadata &&
+                                  Object.keys(pos.metadata).filter(
+                                    (k) =>
+                                      k !== "_fallback" && k !== "rationale",
+                                  ).length > 0 && (
+                                    <details className="mt-1">
+                                      <summary className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground">
+                                        Signal details
+                                      </summary>
+                                      <ul className="list-disc list-inside text-muted-foreground space-y-0.5 mt-1">
+                                        {Object.entries(pos.metadata)
+                                          .filter(
+                                            ([k]) =>
+                                              k !== "_fallback" &&
+                                              k !== "rationale",
+                                          )
+                                          .map(
+                                            ([k, v]) =>
+                                              v != null &&
+                                              String(v).trim() !== "" && (
+                                                <li key={k}>
+                                                  {k.replace(/_/g, " ")}:{" "}
+                                                  {typeof v === "object"
+                                                    ? JSON.stringify(v)
+                                                    : String(v)}
+                                                </li>
+                                              ),
+                                          )}
+                                      </ul>
+                                    </details>
+                                  )}
+                              </div>
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                <span>
+                                  Confidence {(pos.confidence * 100).toFixed(0)}
+                                  %
+                                </span>
+                                <span>
+                                  Forecast {(pos.forecastProb * 100).toFixed(1)}
+                                  %
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  )}
+                </DashboardCard>
+              )}
+
+              {/* Polymarket paper trading — Recent trades (desk fills) */}
+              {oracleAgentId && (
+                <DashboardCard title="Polymarket paper trading — Recent trades">
+                  {(deskTradesLoading || deskTradesFetching) &&
+                  !deskTradesData ? (
+                    <p className="text-sm text-muted-foreground">
+                      Loading trades…
+                    </p>
+                  ) : (deskTradesData?.trades?.length ?? 0) === 0 ? (
+                    <div className="text-sm text-muted-foreground py-4 space-y-3">
+                      <p>
+                        No trades executed yet. Paper trades appear here once
+                        Otaku fills a sized order on the CLOB.
+                      </p>
+                      {deskStatus != null &&
+                        typeof deskStatus.tradeLogCount === "number" && (
+                          <p className="text-xs">
+                            Desk trade log: {deskStatus.tradeLogCount} row
+                            {deskStatus.tradeLogCount !== 1 ? "s" : ""}
+                            {deskStatus.tradeLogLatestAt
+                              ? ` (latest: ${new Date(deskStatus.tradeLogLatestAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})`
+                              : ""}
+                          </p>
+                        )}
+                      <p className="text-xs font-medium text-foreground/80 mt-2">
+                        Checklist:
+                      </p>
+                      <ul className="list-disc list-inside text-xs space-y-0.5">
+                        <li>Otaku running?</li>
+                        <li>
+                          <code className="rounded bg-muted px-0.5">
+                            POLYMARKET_DESK_SCHEDULE_ENABLED
+                          </code>{" "}
+                          not false?
+                        </li>
+                        <li>Polymarket CLOB credentials set for Otaku?</li>
+                        <li>Same DB as Oracle?</li>
+                        <li>
+                          Pending sized orders (Risk) are executed by Otaku
+                          every 2 min.
+                        </li>
+                      </ul>
+                      {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
+                        <div className="pt-3 border-t border-border/50">
+                          <p className="text-xs font-medium text-foreground/80 mb-1">
+                            Open positions (not yet closed)
+                          </p>
+                          <ul className="text-xs space-y-0.5">
+                            {[...(deskPositionsBody?.positions ?? [])]
+                              .sort(
+                                (a, b) =>
+                                  new Date(b.openedAt).getTime() -
+                                  new Date(a.openedAt).getTime(),
+                              )
+                              .slice(0, 5)
+                              .map((pos) => (
+                                <li key={pos.id} className="truncate">
+                                  {pos.openedAt
+                                    ? new Date(pos.openedAt).toLocaleString(
+                                        undefined,
+                                        {
+                                          month: "short",
+                                          day: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        },
+                                      )
+                                    : "—"}{" "}
+                                  {pos.side}{" "}
+                                  {pos.question?.length > 40
+                                    ? pos.question.slice(0, 37) + "…"
+                                    : (pos.question ??
+                                      pos.marketId.slice(0, 8))}
+                                  {" · "}
+                                  <span
+                                    className={cn(
+                                      "font-mono",
+                                      (pos.unrealizedPnl ?? 0) >= 0
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    {pos.unrealizedPnl != null
+                                      ? `${pos.unrealizedPnl >= 0 ? "+" : ""}$${pos.unrealizedPnl.toFixed(2)}`
+                                      : "—"}
+                                  </span>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground uppercase">
+                            <th className="pb-2 pr-3">Time</th>
+                            <th className="pb-2 pr-3">Side</th>
+                            <th className="pb-2 pr-3">Market</th>
+                            <th className="pb-2 pr-3">Strategy</th>
+                            <th className="pb-2 pr-3">Size</th>
+                            <th className="pb-2 pr-3">Entry</th>
+                            <th className="pb-2 pr-3">Now</th>
+                            <th className="pb-2">P&L</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(deskTradesData?.trades ?? [])
+                            .filter(
+                              (t) => t.question != null || t.mtmPnlUsd != null,
+                            )
+                            .slice(0, 20)
+                            .map((t) => {
+                              const pnl =
+                                t.mtmPnlUsd != null
+                                  ? t.mtmPnlUsd
+                                  : t.executionPnlUsd;
+                              return (
+                                <tr
+                                  key={t.id}
+                                  className="border-b border-border/50"
+                                >
+                                  <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                    {t.createdAt
+                                      ? new Date(t.createdAt).toLocaleString(
+                                          undefined,
+                                          {
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          },
+                                        )
+                                      : "—"}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    {t.side}
+                                  </td>
+                                  <td
+                                    className="py-2 pr-3 max-w-[18rem]"
+                                    title={t.question ?? t.marketId}
+                                  >
+                                    {(() => {
+                                      const label = t.question
+                                        ? t.question.length > 60
+                                          ? t.question.slice(0, 57) + "…"
+                                          : t.question
+                                        : t.marketId.slice(0, 10) + "…";
+                                      return t.eventUrl ? (
+                                        <a
+                                          href={t.eventUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline block break-words"
+                                        >
+                                          {label}
+                                        </a>
+                                      ) : (
+                                        <span className="block break-words">
+                                          {label}
+                                        </span>
+                                      );
+                                    })()}
+                                  </td>
+                                  <td
+                                    className="py-2 pr-3 max-w-[12rem] text-muted-foreground"
+                                    title={t.strategyWhy ?? undefined}
+                                  >
+                                    <span className="font-medium text-foreground">
+                                      {t.strategy ?? "—"}
+                                    </span>
+                                    {t.strategyWhy ? (
+                                      <span className="block text-xs truncate mt-0.5">
+                                        {t.strategyWhy}
+                                      </span>
+                                    ) : null}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    $
+                                    {t.sizeUsd.toLocaleString(undefined, {
+                                      maximumFractionDigits: 0,
+                                    })}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    {(t.fillPrice * 100).toFixed(1)}%
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono">
+                                    {t.currentPrice != null
+                                      ? (t.currentPrice * 100).toFixed(1) + "%"
+                                      : "—"}
+                                  </td>
+                                  <td
+                                    className={cn(
+                                      "py-2 font-mono font-medium",
+                                      (pnl ?? 0) >= 0
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    {pnl != null
+                                      ? `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </DashboardCard>
+              )}
+
+              {/* Edge engine — Recent signals */}
+              {oracleAgentId && (
+                <DashboardCard title="Polymarket edge — Recent signals">
+                  {(edgeSignalsLoading || edgeSignalsFetching) &&
+                  !edgeSignalsData ? (
+                    <p className="text-sm text-muted-foreground">
+                      Loading signals…
+                    </p>
+                  ) : (edgeSignalsData?.signals?.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">
+                      No edge signals yet. Signals appear when a strategy spots
+                      a pricing gap between model forecast and market.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground uppercase">
+                            <th className="pb-2 pr-3">Time</th>
+                            <th className="pb-2 pr-3">Strategy</th>
+                            <th className="pb-2 pr-3">Side</th>
+                            <th className="pb-2 pr-3">Market</th>
+                            <th className="pb-2 pr-3">Edge bps</th>
+                            <th className="pb-2 pr-3">Forecast</th>
+                            <th className="pb-2">Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(edgeSignalsData?.signals ?? []).map((s) => (
+                            <tr
+                              key={s.id}
+                              className="border-b border-border/50"
+                            >
+                              <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                                {s.createdAt
+                                  ? new Date(s.createdAt).toLocaleString(
+                                      undefined,
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    )
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {s.strategy}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">{s.side}</td>
+                              <td
+                                className="py-2 pr-3 max-w-[20rem]"
+                                title={s.marketId}
+                              >
+                                {s.question ? (
+                                  <a
+                                    href={`https://polymarket.com/event/${s.marketId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-500 hover:text-green-400 hover:underline"
+                                  >
+                                    {s.question.length > 50
+                                      ? s.question.slice(0, 47) + "…"
+                                      : s.question}
+                                  </a>
+                                ) : (
+                                  <span className="font-mono">
+                                    {s.marketId.slice(0, 8)}…
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {s.edgeBps != null
+                                  ? `${s.edgeBps >= 0 ? "+" : ""}${s.edgeBps.toFixed(0)} bps`
+                                  : "—"}
+                              </td>
+                              <td className="py-2 pr-3 font-mono">
+                                {s.forecastProb != null
+                                  ? (s.forecastProb * 100).toFixed(1) + "%"
+                                  : "—"}
+                              </td>
+                              <td className="py-2 font-mono">
+                                {s.marketPrice != null
+                                  ? (s.marketPrice * 100).toFixed(1) + "%"
+                                  : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </DashboardCard>
               )}
@@ -3806,6 +4709,22 @@ export default function LeaderboardPage({
                 </div>
               ) : null}
 
+              {/* AI token spend (actual from invoices) — always shown; DRAGONFLY_PITCH / VC visibility */}
+              <DashboardCard title="AI token spend (actual)">
+                <p className="text-sm font-medium text-foreground">
+                  {AI_TOKEN_SPEND_3_WEEKS_LABEL} — almost $3K in 3 weeks
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Invoice data (Jan 25 – Feb 20, 2026). Dominated by high-tier
+                  model usage (e.g. claude-4.5-opus-high-thinking). Session
+                  tokens in &quot;Totals&quot; above are from run_event logs;
+                  this is total invoice spend.
+                </p>
+                <p className="text-lg font-semibold font-mono mt-2 text-primary">
+                  ~${AI_TOKEN_SPEND_3_WEEKS_USD.toLocaleString()} in 3 weeks
+                </p>
+              </DashboardCard>
+
               {/* Cursor usage — always shown; often highest cost */}
               <DashboardCard title="Cursor usage">
                 <p className="text-xs text-muted-foreground mb-3">
@@ -3865,10 +4784,11 @@ export default function LeaderboardPage({
                   : null}
               </DashboardCard>
 
-              {/* Data sources — monthly/yearly cost estimates (TREASURY) */}
-              <DashboardCard title="Data sources (monthly / yearly)">
+              {/* Data sources — high-tier (if funded) in table; free/optional in compact list */}
+              <DashboardCard title="Data sources (if funded — high tier monthly / yearly)">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Estimated costs for data APIs. Many have free tiers. See{" "}
+                  Paid APIs only; values shown are high/pro tier (what we’d
+                  spend if funded). See{" "}
                   <a
                     href="/TREASURY.md"
                     target="_blank"
@@ -3878,46 +4798,182 @@ export default function LeaderboardPage({
                     TREASURY.md
                     <ExternalLink className="w-3 h-3" />
                   </a>{" "}
-                  for tiers.
+                  for full tier list.
                 </p>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border border-border/60">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-2 font-medium">API</th>
-                        <th className="text-right py-2 font-medium">Monthly</th>
-                        <th className="text-right py-2 font-medium">Yearly</th>
-                        <th className="text-right py-2 font-medium">Notes</th>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left py-2.5 pl-3 font-medium">
+                          API
+                        </th>
+                        <th className="text-right py-2.5 w-24 font-medium">
+                          Monthly
+                        </th>
+                        <th className="text-right py-2.5 w-24 font-medium">
+                          Yearly
+                        </th>
+                        <th className="text-right py-2.5 pr-3 text-muted-foreground font-normal max-w-[36ch]">
+                          Notes
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {DATA_SOURCES_COSTS.map((row) => (
+                      {DATA_SOURCES_COSTS.filter(
+                        (r) =>
+                          dataSourceDisplayMonthly(r) > 0 ||
+                          dataSourceDisplayYearly(r) > 0,
+                      ).map((row) => (
                         <tr
                           key={row.name}
-                          className="border-b border-border/50"
+                          className="border-b border-border/50 hover:bg-muted/10"
                         >
-                          <td className="py-2 font-medium">{row.name}</td>
-                          <td className="text-right font-mono">
-                            {row.monthly === 0 ? "—" : `$${row.monthly}`}
+                          <td className="py-2 pl-3 font-medium">{row.name}</td>
+                          <td className="text-right font-mono tabular-nums">
+                            {dataSourceDisplayMonthly(row) === 0
+                              ? "—"
+                              : `$${dataSourceDisplayMonthly(row).toLocaleString()}`}
                           </td>
-                          <td className="text-right font-mono">
-                            {row.yearly === 0 ? "—" : `$${row.yearly}`}
+                          <td className="text-right font-mono tabular-nums">
+                            {dataSourceDisplayYearly(row) === 0
+                              ? "—"
+                              : `$${dataSourceDisplayYearly(row).toLocaleString()}`}
                           </td>
-                          <td className="py-2 text-right text-muted-foreground text-xs">
+                          <td className="py-2 pr-3 text-right text-muted-foreground text-xs max-w-[36ch]">
                             {row.notes}
                           </td>
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border bg-muted/40 font-semibold">
+                        <td className="py-2.5 pl-3">Total (if funded)</td>
+                        <td className="text-right font-mono tabular-nums">
+                          ${DATA_SOURCES_DISPLAY_TOTAL_MONTHLY.toLocaleString()}
+                        </td>
+                        <td className="text-right font-mono tabular-nums">
+                          ${DATA_SOURCES_DISPLAY_TOTAL_YEARLY.toLocaleString()}
+                        </td>
+                        <td className="py-2.5 pr-3 text-right text-muted-foreground text-xs" />
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Total paid: ~$
-                  {DATA_SOURCES_COSTS.reduce((s, r) => s + r.monthly, 0)}/mo or
-                  ~$
-                  {DATA_SOURCES_COSTS.reduce((s, r) => s + r.yearly, 0)}/yr
-                  (excludes free tiers).
+                {DATA_SOURCES_COSTS.filter(
+                  (r) =>
+                    dataSourceDisplayMonthly(r) === 0 &&
+                    dataSourceDisplayYearly(r) === 0,
+                ).length > 0 ? (
+                  <details className="mt-3">
+                    <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                      Free / optional (
+                      {
+                        DATA_SOURCES_COSTS.filter(
+                          (r) =>
+                            dataSourceDisplayMonthly(r) === 0 &&
+                            dataSourceDisplayYearly(r) === 0,
+                        ).length
+                      }{" "}
+                      APIs)
+                    </summary>
+                    <ul className="mt-1.5 text-xs text-muted-foreground space-y-0.5 list-disc list-inside pl-1 max-h-32 overflow-y-auto">
+                      {DATA_SOURCES_COSTS.filter(
+                        (r) =>
+                          dataSourceDisplayMonthly(r) === 0 &&
+                          dataSourceDisplayYearly(r) === 0,
+                      ).map((row) => (
+                        <li key={row.name}>
+                          <span className="font-medium text-foreground/80">
+                            {row.name}
+                          </span>
+                          {" — "}
+                          {row.notes}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+                <p className="text-xs text-muted-foreground mt-2">
+                  <strong>All data APIs on high tier (if funded):</strong> $
+                  {DATA_SOURCES_DISPLAY_TOTAL_MONTHLY.toLocaleString()}/mo or $
+                  {DATA_SOURCES_DISPLAY_TOTAL_YEARLY.toLocaleString()}/yr (table
+                  total above). Nansen, Sanbase, CoinGlass + Pro, Glassnode, X
+                  ~$690, Helius, Supabase; Tavily, Dune, Allium, Jupiter,
+                  Alchemy, XAI/Grok, Etherscan, Solus stocks; Birdeye/OpenSea
+                  /Firecrawl not priced.
                 </p>
+                <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                  <p className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                    Cost of running if we go PRO
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Pro tier ($199/mo) is included in the table above:
+                    Volatility Dashboard, ODTE, Liquidity, Liquidations,
+                    Polymarket, 5K API calls/mo, 15‑min Claude/OpenClaw
+                    integration. All data APIs on high tier ≈ $
+                    {DATA_SOURCES_DISPLAY_TOTAL_MONTHLY.toLocaleString()}/mo ($
+                    {DATA_SOURCES_DISPLAY_TOTAL_YEARLY.toLocaleString()}/yr).
+                    Add session token cost (Totals), Cursor, and AI invoice
+                    spend for full run rate.
+                  </p>
+                </div>
+              </DashboardCard>
+
+              {/* Pitch alignment — Option A ($750K); must match docs/DRAGONFLY_PITCH.md */}
+              <DashboardCard title="Pitch alignment (Option A — $750K)">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Allocations match TREASURY and this Usage tab: data APIs
+                  ~$50K/yr at high tier (table above); runway reflects actual AI
+                  burn ({AI_TOKEN_SPEND_3_WEEKS_LABEL}) plus Cursor, infra, and
+                  ClawRouter. See{" "}
+                  <a
+                    href="/docs/DRAGONFLY_PITCH.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex items-center gap-0.5"
+                  >
+                    docs/DRAGONFLY_PITCH.md
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  .
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left py-2.5 pl-3 font-medium">
+                          Use
+                        </th>
+                        <th className="text-right py-2.5 pr-3 w-28 font-medium">
+                          Allocation
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PITCH_OPTION_A_ALLOCATIONS.map((row) => (
+                        <tr
+                          key={row.use}
+                          className="border-b border-border/50 hover:bg-muted/10"
+                        >
+                          <td className="py-2 pl-3 text-foreground/90">
+                            {row.use}
+                          </td>
+                          <td className="text-right py-2 pr-3 font-mono tabular-nums font-medium">
+                            ${(row.allocation / 1000).toFixed(0)}K
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border bg-muted/40 font-semibold">
+                        <td className="py-2.5 pl-3">Total (Option A)</td>
+                        <td className="text-right py-2.5 pr-3 font-mono tabular-nums">
+                          $750K
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </DashboardCard>
 
               {/* Hardware — 2x Mac Studio, potential savings (LOCALSONLY) */}
@@ -4017,35 +5073,37 @@ export default function LeaderboardPage({
                   </div>
                 ) : paperData ? (
                   <div className="space-y-6">
-                    {/* V3.0 Renaissance Fund banner */}
+                    {/* No Tilt banner */}
                     <div className="rounded-xl border border-border bg-gradient-to-r from-muted/80 to-muted/40 p-5 space-y-3">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-foreground/10 text-foreground/80 tracking-wide">
                           V3.0
                         </span>
-                        <h3 className="text-sm font-semibold">
-                          Renaissance Fund 3.0
+                        <h3 className="text-sm font-semibold tracking-tight">
+                          No Tilt
                         </h3>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Every trade expressible onchain. The daily{" "}
-                        <strong>What&apos;s the Trade</strong> thesis now
-                        constrains picks to Hyperliquid perps (4 core + 34 HIP-3
-                        assets: stocks, indices, commodities, AI/tech).
-                        Robinhood data stays as context&mdash;the LLM sees
-                        offchain movers but must express the trade via
-                        Hyperliquid. Feature store records WTT rubric dimensions
-                        (alignment, edge, payoff, timing, invalidate) for ML
-                        training. The paper bot evaluates each pick, and the
-                        self-improving loop keeps getting sharper.
+                        Never sleeps. Never tilts. Explains every decision.
+                        Learns from every outcome. 15+ signal sources feed 38
+                        onchain assets&mdash;crypto, stocks, commodities,
+                        indices&mdash;all traded as Hyperliquid perps. Every
+                        trade ships with a{" "}
+                        <strong>&ldquo;Why this trade&rdquo;</strong> banner:
+                        which sources agreed, which disagreed, the strength and
+                        confidence that cleared the bar. Thompson Sampling plays
+                        more hands through sources that run hot and folds the
+                        ones that run cold. The ML loop is real: 50+ features
+                        per decision, ONNX models trained on actual outcomes,
+                        measurably better selectivity with every session.
                       </p>
                       <div className="flex flex-wrap gap-2 pt-1">
                         {[
-                          "HIP-3 only picks",
+                          "Zero tilt",
                           "38 onchain assets",
-                          "WTT → paper bot",
-                          "Feature store + ML",
-                          "Rubric scoring",
+                          "15+ signal sources",
+                          "50+ features per trade",
+                          "Self-improving ML",
                         ].map((tag) => (
                           <span
                             key={tag}
@@ -4057,104 +5115,680 @@ export default function LeaderboardPage({
                       </div>
                       <details className="pt-1 group">
                         <summary className="text-[11px] text-muted-foreground cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                          What shipped in V3.0
+                          How it works
                         </summary>
                         <ul className="text-[11px] text-muted-foreground mt-2 space-y-1 pl-4 list-disc">
                           <li>
-                            <strong>WTT → Paper Bot integration:</strong> daily
-                            thesis generates a structured pick (JSON sidecar),
-                            paper bot auto-evaluates, opens trades with WTT
-                            rubric metadata.
+                            <strong>Signal → Trade → Learn:</strong> signals
+                            feed trades, trades generate 50+ features, features
+                            train XGBoost models exported as ONNX, ONNX runs
+                            inference at decision time. Cycle repeats.
                           </li>
                           <li>
-                            <strong>HIP-3 constraint:</strong> thesis prompt,
-                            narrative, and extraction all enforce onchain-only
-                            tickers. Hard gate rejects non-HIP-3 primary picks
-                            (falls back to alt).
+                            <strong>Kelly sizing, circuit breakers:</strong>{" "}
+                            position sizing follows Kelly criterion with daily
+                            caps and drawdown protection. No leverage without
+                            explicit mode selection.
                           </li>
                           <li>
-                            <strong>Feature store WTT block:</strong> alignment,
-                            edge, payoff shape, timing forgiveness ordinals
-                            stored per trade. <code>invalidateHit</code>{" "}
-                            computed on close.
+                            <strong>WTT → Paper Bot:</strong> daily thesis
+                            generates a structured pick with rubric scoring
+                            (alignment, edge, payoff, timing). The bot
+                            auto-evaluates and opens trades.
                           </li>
                           <li>
-                            <strong>ML training:</strong> <code>wtt_*</code>{" "}
-                            columns as optional features; improvement report
-                            includes <code>wtt_performance</code> slice when 5+
-                            WTT trades.
+                            <strong>Thompson Sampling:</strong> sources that
+                            produce winners get more weight. Sources that
+                            produce losers get less. Table selection, automated.
                           </li>
                           <li>
-                            <strong>Robinhood as context:</strong> offchain
-                            stock data labeled &quot;context
-                            only&quot;&mdash;LLM uses it to find the best
-                            onchain proxy (e.g. IREN hot → long SEMIS).
+                            <strong>Graceful degradation:</strong> rules keep
+                            the bot running when models lack data. When models
+                            are ready, ONNX inference slots in without
+                            redeployment.
                           </li>
                           <li>
-                            <strong>Env vars:</strong>{" "}
-                            <code>ECHO_WTT_HIP3_ONLY=true</code> (default),{" "}
-                            <code>ECHO_WTT_ROBINHOOD_ENABLED=true</code>,{" "}
-                            <code>VINCE_PAPER_WTT_ENABLED</code>.
+                            <strong>Full transparency:</strong> every position
+                            shows supporting factors, conflicting factors,
+                            signal strength, and exactly how many sources agreed
+                            on direction.
                           </li>
                         </ul>
                       </details>
                     </div>
 
                     <DashboardCard title="Portfolio">
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Total value
-                          </p>
-                          <p className="font-mono font-semibold">
-                            $
-                            {(
-                              paperData.portfolio.totalValue ?? 0
-                            ).toLocaleString(undefined, {
-                              maximumFractionDigits: 0,
-                            })}
-                          </p>
+                      {(() => {
+                        const positions = paperData.openPositions ?? [];
+                        let totalMarginUsd = 0;
+                        let totalNotionalUsd = 0;
+                        let potentialLossAtSl = 0;
+                        let potentialProfitAtTp = 0;
+                        for (const pos of positions) {
+                          const marginUsd =
+                            pos.marginUsd ??
+                            (pos.sizeUsd && pos.leverage
+                              ? pos.sizeUsd / pos.leverage
+                              : 0);
+                          totalMarginUsd += marginUsd;
+                          totalNotionalUsd += pos.sizeUsd ?? 0;
+                          const ep = pos.entryPrice ?? 0;
+                          const sizeUsd = pos.sizeUsd ?? 0;
+                          if (ep && pos.stopLossPrice != null) {
+                            const slPct = Math.abs(
+                              ((pos.stopLossPrice - ep) / ep) * 100,
+                            );
+                            potentialLossAtSl += sizeUsd * (slPct / 100);
+                          }
+                          const tp1Price = pos.takeProfitPrices?.[0];
+                          if (ep && tp1Price != null && sizeUsd > 0) {
+                            const tp1Pct = Math.abs(
+                              ((tp1Price - ep) / ep) * 100,
+                            );
+                            potentialProfitAtTp += sizeUsd * (tp1Pct / 100);
+                          }
+                        }
+                        return (
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Total value
+                              </p>
+                              <p className="font-mono font-semibold">
+                                $
+                                {(
+                                  paperData.portfolio.totalValue ?? 0
+                                ).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Realized P&L
+                              </p>
+                              <p
+                                className={cn(
+                                  "font-mono font-semibold",
+                                  (paperData.portfolio.realizedPnl ?? 0) >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400",
+                                )}
+                              >
+                                $
+                                {(
+                                  paperData.portfolio.realizedPnl ?? 0
+                                ).toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Win rate
+                              </p>
+                              <p className="font-mono font-semibold">
+                                {(
+                                  (paperData.portfolio.winRate ?? 0) * 100
+                                ).toFixed(0)}
+                                %
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Trades
+                              </p>
+                              <p className="font-mono font-semibold">
+                                {paperData.portfolio.tradeCount ?? 0}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Margin
+                              </p>
+                              <p className="font-mono font-semibold">
+                                $
+                                {totalMarginUsd.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Notional
+                              </p>
+                              <p className="font-mono font-semibold">
+                                $
+                                {totalNotionalUsd.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Potential loss (at SL)
+                              </p>
+                              <p className="font-mono font-semibold text-red-600 dark:text-red-400">
+                                -$
+                                {potentialLossAtSl.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Potential profit (at TP1)
+                              </p>
+                              <p className="font-mono font-semibold text-green-600 dark:text-green-400">
+                                +$
+                                {potentialProfitAtTp.toLocaleString(undefined, {
+                                  maximumFractionDigits: 0,
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </DashboardCard>
+
+                    {/* Open positions — shown first so you always see what's live */}
+                    <DashboardCard title="Open positions">
+                      {paperData.openPositions.length === 0 ? (
+                        <p className="text-muted-foreground py-4">
+                          No open paper positions. Ask VINCE to &quot;bot
+                          status&quot; or &quot;trade&quot;.
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          {paperData.openPositions.map((pos) => {
+                            const entryTime = pos.openedAt
+                              ? new Date(pos.openedAt)
+                                  .toISOString()
+                                  .replace("T", " ")
+                                  .slice(0, 19) + "Z"
+                              : "—";
+                            const marginUsd =
+                              pos.marginUsd ??
+                              (pos.sizeUsd && pos.leverage
+                                ? pos.sizeUsd / pos.leverage
+                                : 0);
+                            const slPct =
+                              pos.entryPrice && pos.stopLossPrice
+                                ? Math.abs(
+                                    ((pos.stopLossPrice - pos.entryPrice) /
+                                      pos.entryPrice) *
+                                      100,
+                                  ).toFixed(2)
+                                : null;
+                            const liqPct =
+                              pos.entryPrice && pos.liquidationPrice
+                                ? Math.abs(
+                                    ((pos.liquidationPrice - pos.entryPrice) /
+                                      pos.entryPrice) *
+                                      100,
+                                  ).toFixed(1)
+                                : null;
+                            const atrVal =
+                              pos.entryATRPct ??
+                              (pos.metadata?.entryATRPct as number | undefined);
+                            const atrPct =
+                              atrVal != null
+                                ? `${Number(atrVal).toFixed(2)}%`
+                                : "—";
+                            const sources =
+                              (pos.metadata?.contributingSources as
+                                | string[]
+                                | undefined) ?? [];
+                            const supporting = pos.triggerSignals ?? [];
+                            const conflicting =
+                              (pos.metadata?.conflictingReasons as
+                                | string[]
+                                | undefined) ?? [];
+                            const totalSourceCount =
+                              (pos.metadata?.totalSourceCount as
+                                | number
+                                | undefined) ?? 0;
+                            const confirmingCount =
+                              (pos.metadata?.confirmingCount as
+                                | number
+                                | undefined) ?? 0;
+                            const conflictingCount =
+                              (pos.metadata?.conflictingCount as
+                                | number
+                                | undefined) ?? 0;
+                            const strength = pos.metadata?.strength as
+                              | number
+                              | undefined;
+                            const confidence = pos.metadata?.confidence as
+                              | number
+                              | undefined;
+                            const session = pos.metadata?.session as
+                              | string
+                              | undefined;
+                            const metaSlLossUsd = pos.metadata?.slLossUsd as
+                              | number
+                              | undefined;
+                            const metaTp1ProfitUsd = pos.metadata
+                              ?.tp1ProfitUsd as number | undefined;
+                            const rrRatio = pos.metadata?.rrRatio as
+                              | number
+                              | undefined;
+                            const rrLabel = pos.metadata?.rrLabel as
+                              | string
+                              | undefined;
+                            const metaSlPct = pos.metadata?.slPct as
+                              | number
+                              | undefined;
+                            const metaTp1Pct = pos.metadata?.tp1Pct as
+                              | number
+                              | undefined;
+                            const tp1Price = pos.takeProfitPrices?.[0];
+                            const ep = pos.entryPrice ?? 0;
+                            const sizeUsd = pos.sizeUsd ?? 0;
+                            const slPrice = pos.stopLossPrice;
+                            const slPctDerived =
+                              ep && slPrice
+                                ? Math.abs(((slPrice - ep) / ep) * 100)
+                                : null;
+                            const tp1PctDerived =
+                              ep && tp1Price
+                                ? Math.abs(((tp1Price - ep) / ep) * 100)
+                                : null;
+                            const slLossUsd =
+                              metaSlLossUsd ??
+                              (sizeUsd && slPctDerived != null
+                                ? sizeUsd * (slPctDerived / 100)
+                                : undefined);
+                            const tp1ProfitUsd =
+                              metaTp1ProfitUsd ??
+                              (sizeUsd && tp1PctDerived != null
+                                ? sizeUsd * (tp1PctDerived / 100)
+                                : undefined);
+                            const slPctDisplay = metaSlPct ?? slPctDerived;
+                            const tp1PctDisplay = metaTp1Pct ?? tp1PctDerived;
+                            const rrNum =
+                              slLossUsd != null &&
+                              slLossUsd > 0 &&
+                              tp1ProfitUsd != null
+                                ? tp1ProfitUsd / slLossUsd
+                                : undefined;
+                            const rrRatioDisplay = rrRatio ?? rrNum;
+                            const rrLabelDisplay =
+                              rrLabel ??
+                              (rrNum != null
+                                ? rrNum >= 1.5
+                                  ? "Good"
+                                  : rrNum >= 1
+                                    ? "OK"
+                                    : rrNum >= 0.5
+                                      ? "Weak"
+                                      : rrNum > 0
+                                        ? "Poor"
+                                        : "—"
+                                : undefined);
+                            const hasWhy =
+                              supporting.length > 0 ||
+                              conflicting.length > 0 ||
+                              sources.length > 0;
+                            const hasSignal =
+                              strength != null ||
+                              confidence != null ||
+                              confirmingCount != null;
+                            const hasRisk =
+                              pos.stopLossPrice != null || tp1Price != null;
+                            return (
+                              <div
+                                key={pos.id}
+                                className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
+                              >
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold">
+                                  <span
+                                    className={cn(
+                                      "uppercase",
+                                      pos.direction === "long"
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    {pos.direction} {pos.asset}
+                                  </span>
+                                  <span className="font-mono">
+                                    @ $
+                                    {(pos.entryPrice ?? 0).toLocaleString(
+                                      undefined,
+                                      { maximumFractionDigits: 0 },
+                                    )}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "font-mono",
+                                      (pos.unrealizedPnl ?? 0) >= 0
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    P&L $
+                                    {(pos.unrealizedPnl ?? 0).toLocaleString(
+                                      undefined,
+                                      { maximumFractionDigits: 0 },
+                                    )}
+                                    {pos.unrealizedPnlPct != null &&
+                                      ` (${pos.unrealizedPnlPct >= 0 ? "+" : ""}${pos.unrealizedPnlPct.toFixed(2)}%)`}
+                                  </span>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
+                                  <div>
+                                    <span className="text-muted-foreground">
+                                      Entry
+                                    </span>
+                                    <p className="font-mono">{entryTime}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">
+                                      Notional
+                                    </span>
+                                    <p className="font-mono">
+                                      $
+                                      {(pos.sizeUsd ?? 0).toLocaleString(
+                                        undefined,
+                                        { maximumFractionDigits: 0 },
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">
+                                      Margin
+                                    </span>
+                                    <p className="font-mono">
+                                      $
+                                      {marginUsd.toLocaleString(undefined, {
+                                        maximumFractionDigits: 0,
+                                      })}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">
+                                      Leverage
+                                    </span>
+                                    <p className="font-mono">
+                                      {pos.leverage}x
+                                      {sizeUsd > 0 &&
+                                        ` (~$${Math.round(sizeUsd / 100)}/1%)`}
+                                    </p>
+                                  </div>
+                                  {pos.liquidationPrice != null && (
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Liq
+                                      </span>
+                                      <p className="font-mono">
+                                        $
+                                        {pos.liquidationPrice.toLocaleString(
+                                          undefined,
+                                          { maximumFractionDigits: 0 },
+                                        )}
+                                        {liqPct != null && ` (~${liqPct}%)`}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {atrPct !== "—" && (
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        ATR(14)
+                                      </span>
+                                      <p className="font-mono">
+                                        {atrPct} (volatility)
+                                      </p>
+                                    </div>
+                                  )}
+                                  {slPct != null && (
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        SL
+                                      </span>
+                                      <p className="font-mono">
+                                        {slPct}%
+                                        {rrRatioDisplay != null
+                                          ? ` (${rrRatioDisplay.toFixed(1)}:1 R:R target)`
+                                          : ""}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {pos.strategyName && (
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Strategy
+                                      </span>
+                                      <p className="font-mono">
+                                        {pos.strategyName}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {session && (
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Session
+                                      </span>
+                                      <p className="font-mono">{session}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                {hasWhy && (
+                                  <details className="border-t border-border/50 pt-3">
+                                    <summary className="text-xs font-semibold text-muted-foreground uppercase cursor-pointer">
+                                      Why this trade
+                                    </summary>
+                                    <div className="space-y-3 pt-2">
+                                      {totalSourceCount > 0 &&
+                                        (confirmingCount != null ||
+                                          conflictingCount != null) && (
+                                          <p className="text-xs text-muted-foreground">
+                                            {pos.direction.toUpperCase()} —{" "}
+                                            {confirmingCount} of{" "}
+                                            {totalSourceCount} sources agreed
+                                            {conflictingCount != null &&
+                                            conflictingCount > 0
+                                              ? ` (${conflictingCount} disagreed).`
+                                              : "."}
+                                            {strength != null &&
+                                              confidence != null &&
+                                              ` Net: Strength ${strength}% / confidence ${confidence}% met threshold. `}
+                                            {supporting.length} supporting,{" "}
+                                            {conflicting.length} conflicting.
+                                          </p>
+                                        )}
+                                      {supporting.length > 0 && (
+                                        <div>
+                                          <p className="text-xs text-muted-foreground mb-1">
+                                            Supporting ({supporting.length})
+                                          </p>
+                                          <ul className="list-disc list-inside text-xs space-y-0.5">
+                                            {supporting.map((s, i) => (
+                                              <li key={i}>{s}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                      {conflicting.length > 0 && (
+                                        <div>
+                                          <p className="text-xs text-muted-foreground mb-1">
+                                            Conflicting ({conflicting.length})
+                                          </p>
+                                          <ul className="list-disc list-inside text-xs space-y-0.5">
+                                            {conflicting.map((s, i) => (
+                                              <li key={i}>{s}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                      {sources.length > 0 && (
+                                        <div>
+                                          <p className="text-xs text-muted-foreground mb-1">
+                                            Sources
+                                          </p>
+                                          <p className="text-xs">
+                                            {sources.map((src) => (
+                                              <span key={src}>
+                                                {sources.indexOf(src) > 0 &&
+                                                  ", "}
+                                                {src === "XSentiment" ? (
+                                                  <strong className="text-foreground">
+                                                    {signalSourceDisplayName(
+                                                      src,
+                                                    )}
+                                                  </strong>
+                                                ) : (
+                                                  signalSourceDisplayName(src)
+                                                )}
+                                              </span>
+                                            ))}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </details>
+                                )}
+                                {hasRisk && (
+                                  <details className="border-t border-border/50 pt-3">
+                                    <summary className="text-xs font-semibold text-muted-foreground uppercase cursor-pointer">
+                                      Risk management
+                                    </summary>
+                                    <div className="text-xs space-y-1 pt-2">
+                                      {pos.stopLossPrice != null && (
+                                        <p className="font-mono">
+                                          SL $
+                                          {pos.stopLossPrice.toLocaleString(
+                                            undefined,
+                                            {
+                                              minimumFractionDigits: 2,
+                                              maximumFractionDigits: 2,
+                                            },
+                                          )}
+                                          {slPctDisplay != null &&
+                                            ` (${slPctDisplay.toFixed(1)}%)`}
+                                          {slLossUsd != null &&
+                                            ` If hit -$${Math.round(slLossUsd)}`}
+                                        </p>
+                                      )}
+                                      {tp1Price != null && (
+                                        <p className="font-mono">
+                                          TP $
+                                          {tp1Price.toLocaleString(undefined, {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                          })}
+                                          {tp1PctDisplay != null &&
+                                            ` (${tp1PctDisplay.toFixed(1)}%)`}
+                                          {tp1ProfitUsd != null &&
+                                            ` If hit +$${Math.round(tp1ProfitUsd)}`}
+                                        </p>
+                                      )}
+                                      {(rrRatioDisplay != null ||
+                                        rrLabelDisplay) && (
+                                        <p className="font-mono">
+                                          R:R (TP1 vs SL){" "}
+                                          {rrRatioDisplay != null
+                                            ? `${rrRatioDisplay.toFixed(1)}:1`
+                                            : "—"}{" "}
+                                          {rrLabelDisplay
+                                            ? ` ${rrLabelDisplay}`
+                                            : ""}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </details>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Realized P&L
-                          </p>
-                          <p
-                            className={cn(
-                              "font-mono font-semibold",
-                              (paperData.portfolio.realizedPnl ?? 0) >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400",
-                            )}
-                          >
-                            $
-                            {(
-                              paperData.portfolio.realizedPnl ?? 0
-                            ).toLocaleString(undefined, {
-                              maximumFractionDigits: 0,
-                            })}
-                          </p>
+                      )}
+                    </DashboardCard>
+
+                    {/* Recent trades: which trades the bot made and how much P&L */}
+                    <DashboardCard title="Recent trades">
+                      {(paperData.recentTrades?.length ?? 0) === 0 ? (
+                        <p className="text-muted-foreground py-4 text-sm">
+                          No closed trades yet. Realized P&L and trade list will
+                          appear here as the paper bot closes positions.
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground uppercase">
+                                <th className="pb-2 pr-3">Asset</th>
+                                <th className="pb-2 pr-3">Side</th>
+                                <th className="pb-2 pr-3">Entry → Exit</th>
+                                <th className="pb-2 pr-3 text-right">P&L</th>
+                                <th className="pb-2 pr-3">Close reason</th>
+                                <th className="pb-2">Closed</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(paperData.recentTrades ?? []).map((t, i) => (
+                                <tr
+                                  key={`${t.asset}-${t.closedAt}-${i}`}
+                                  className="border-b border-border/50"
+                                >
+                                  <td className="py-2 pr-3 font-mono">
+                                    {t.asset}
+                                  </td>
+                                  <td className="py-2 pr-3 capitalize">
+                                    {t.direction}
+                                  </td>
+                                  <td className="py-2 pr-3 font-mono text-muted-foreground">
+                                    $
+                                    {t.entryPrice.toLocaleString(undefined, {
+                                      maximumFractionDigits: 0,
+                                    })}{" "}
+                                    → $
+                                    {t.exitPrice.toLocaleString(undefined, {
+                                      maximumFractionDigits: 0,
+                                    })}
+                                  </td>
+                                  <td
+                                    className={cn(
+                                      "py-2 pr-3 text-right font-mono font-medium",
+                                      (t.realizedPnl ?? 0) >= 0
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400",
+                                    )}
+                                  >
+                                    {(t.realizedPnl ?? 0) >= 0 ? "+" : ""}$
+                                    {(t.realizedPnl ?? 0).toLocaleString(
+                                      undefined,
+                                      {
+                                        maximumFractionDigits: 2,
+                                        minimumFractionDigits: 2,
+                                      },
+                                    )}
+                                  </td>
+                                  <td
+                                    className="py-2 pr-3 text-muted-foreground max-w-[120px] truncate"
+                                    title={t.closeReason}
+                                  >
+                                    {t.closeReason || "—"}
+                                  </td>
+                                  <td className="py-2 text-muted-foreground whitespace-nowrap">
+                                    {t.closedAt
+                                      ? new Date(t.closedAt).toLocaleString(
+                                          undefined,
+                                          {
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          },
+                                        )
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Win rate
-                          </p>
-                          <p className="font-mono font-semibold">
-                            {((paperData.portfolio.winRate ?? 0) * 100).toFixed(
-                              0,
-                            )}
-                            %
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Trades
-                          </p>
-                          <p className="font-mono font-semibold">
-                            {paperData.portfolio.tradeCount ?? 0}
-                          </p>
-                        </div>
-                      </div>
+                      )}
                     </DashboardCard>
 
                     {/* Goal Progress */}
@@ -4414,483 +6048,6 @@ export default function LeaderboardPage({
                       </DashboardCard>
                     )}
 
-                    <DashboardCard title="Open positions">
-                      {paperData.openPositions.length === 0 ? (
-                        <p className="text-muted-foreground py-4">
-                          No open paper positions. Ask VINCE to &quot;bot
-                          status&quot; or &quot;trade&quot;.
-                        </p>
-                      ) : (
-                        <div className="space-y-4">
-                          {paperData.openPositions.map((pos) => {
-                            const entryTime = pos.openedAt
-                              ? new Date(pos.openedAt)
-                                  .toISOString()
-                                  .replace("T", " ")
-                                  .slice(0, 19) + "Z"
-                              : "—";
-                            const marginUsd =
-                              pos.marginUsd ??
-                              (pos.sizeUsd && pos.leverage
-                                ? pos.sizeUsd / pos.leverage
-                                : 0);
-                            const slPct =
-                              pos.entryPrice && pos.stopLossPrice
-                                ? Math.abs(
-                                    ((pos.stopLossPrice - pos.entryPrice) /
-                                      pos.entryPrice) *
-                                      100,
-                                  ).toFixed(2)
-                                : null;
-                            const liqPct =
-                              pos.entryPrice && pos.liquidationPrice
-                                ? Math.abs(
-                                    ((pos.liquidationPrice - pos.entryPrice) /
-                                      pos.entryPrice) *
-                                      100,
-                                  ).toFixed(1)
-                                : null;
-                            const atrVal =
-                              pos.entryATRPct ??
-                              (pos.metadata?.entryATRPct as number | undefined);
-                            const atrPct =
-                              atrVal != null
-                                ? `${Number(atrVal).toFixed(2)}%`
-                                : "—";
-                            const sources =
-                              (pos.metadata?.contributingSources as
-                                | string[]
-                                | undefined) ?? [];
-                            const supporting = pos.triggerSignals ?? [];
-                            const conflicting =
-                              (pos.metadata?.conflictingReasons as
-                                | string[]
-                                | undefined) ?? [];
-                            const totalSourceCount =
-                              (pos.metadata?.totalSourceCount as
-                                | number
-                                | undefined) ?? 0;
-                            const confirmingCount =
-                              (pos.metadata?.confirmingCount as
-                                | number
-                                | undefined) ?? 0;
-                            const conflictingCount =
-                              (pos.metadata?.conflictingCount as
-                                | number
-                                | undefined) ?? 0;
-                            const strength = pos.metadata?.strength as
-                              | number
-                              | undefined;
-                            const confidence = pos.metadata?.confidence as
-                              | number
-                              | undefined;
-                            const session = pos.metadata?.session as
-                              | string
-                              | undefined;
-                            const metaSlLossUsd = pos.metadata?.slLossUsd as
-                              | number
-                              | undefined;
-                            const metaTp1ProfitUsd = pos.metadata
-                              ?.tp1ProfitUsd as number | undefined;
-                            const rrRatio = pos.metadata?.rrRatio as
-                              | number
-                              | undefined;
-                            const rrLabel = pos.metadata?.rrLabel as
-                              | string
-                              | undefined;
-                            const metaSlPct = pos.metadata?.slPct as
-                              | number
-                              | undefined;
-                            const metaTp1Pct = pos.metadata?.tp1Pct as
-                              | number
-                              | undefined;
-                            const tp1Price = pos.takeProfitPrices?.[0];
-                            // Derive risk management from position when metadata missing (e.g. older positions)
-                            const ep = pos.entryPrice ?? 0;
-                            const sizeUsd = pos.sizeUsd ?? 0;
-                            const slPrice = pos.stopLossPrice;
-                            const slPctDerived =
-                              ep && slPrice
-                                ? Math.abs(((slPrice - ep) / ep) * 100)
-                                : null;
-                            const tp1PctDerived =
-                              ep && tp1Price
-                                ? Math.abs(((tp1Price - ep) / ep) * 100)
-                                : null;
-                            const slLossUsd =
-                              metaSlLossUsd ??
-                              (sizeUsd && slPctDerived != null
-                                ? sizeUsd * (slPctDerived / 100)
-                                : undefined);
-                            const tp1ProfitUsd =
-                              metaTp1ProfitUsd ??
-                              (sizeUsd && tp1PctDerived != null
-                                ? sizeUsd * (tp1PctDerived / 100)
-                                : undefined);
-                            const slPctDisplay = metaSlPct ?? slPctDerived;
-                            const tp1PctDisplay = metaTp1Pct ?? tp1PctDerived;
-                            const rrNum =
-                              slLossUsd != null &&
-                              slLossUsd > 0 &&
-                              tp1ProfitUsd != null
-                                ? tp1ProfitUsd / slLossUsd
-                                : undefined;
-                            const rrRatioDisplay = rrRatio ?? rrNum;
-                            const rrLabelDisplay =
-                              rrLabel ??
-                              (rrNum != null
-                                ? rrNum >= 1.5
-                                  ? "Good"
-                                  : rrNum >= 1
-                                    ? "OK"
-                                    : rrNum >= 0.5
-                                      ? "Weak"
-                                      : rrNum > 0
-                                        ? "Poor"
-                                        : "—"
-                                : undefined);
-                            const hasWhy =
-                              supporting.length > 0 ||
-                              conflicting.length > 0 ||
-                              sources.length > 0;
-                            const hasSignal =
-                              strength != null ||
-                              confidence != null ||
-                              confirmingCount != null;
-                            const hasRisk =
-                              pos.stopLossPrice != null || tp1Price != null;
-                            return (
-                              <div
-                                key={pos.id}
-                                className="rounded-lg border border-border bg-muted/20 p-4 space-y-4"
-                              >
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold">
-                                  <span
-                                    className={cn(
-                                      "uppercase",
-                                      pos.direction === "long"
-                                        ? "text-green-600 dark:text-green-400"
-                                        : "text-red-600 dark:text-red-400",
-                                    )}
-                                  >
-                                    {pos.direction} {pos.asset}
-                                  </span>
-                                  <span className="font-mono">
-                                    @ $
-                                    {(pos.entryPrice ?? 0).toLocaleString(
-                                      undefined,
-                                      { maximumFractionDigits: 0 },
-                                    )}
-                                  </span>
-                                  <span
-                                    className={cn(
-                                      "font-mono",
-                                      (pos.unrealizedPnl ?? 0) >= 0
-                                        ? "text-green-600 dark:text-green-400"
-                                        : "text-red-600 dark:text-red-400",
-                                    )}
-                                  >
-                                    P&L $
-                                    {(pos.unrealizedPnl ?? 0).toLocaleString(
-                                      undefined,
-                                      { maximumFractionDigits: 0 },
-                                    )}
-                                    {pos.unrealizedPnlPct != null &&
-                                      ` (${pos.unrealizedPnlPct >= 0 ? "+" : ""}${pos.unrealizedPnlPct.toFixed(2)}%)`}
-                                  </span>
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      Entry
-                                    </span>
-                                    <p className="font-mono">{entryTime}</p>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      Notional
-                                    </span>
-                                    <p className="font-mono">
-                                      $
-                                      {(pos.sizeUsd ?? 0).toLocaleString(
-                                        undefined,
-                                        { maximumFractionDigits: 0 },
-                                      )}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      Margin
-                                    </span>
-                                    <p className="font-mono">
-                                      $
-                                      {marginUsd.toLocaleString(undefined, {
-                                        maximumFractionDigits: 0,
-                                      })}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      Leverage
-                                    </span>
-                                    <p className="font-mono">
-                                      {pos.leverage}x
-                                      {sizeUsd > 0 &&
-                                        ` (~$${Math.round(sizeUsd / 100)}/1%)`}
-                                    </p>
-                                  </div>
-                                  {pos.liquidationPrice != null && (
-                                    <div>
-                                      <span className="text-muted-foreground">
-                                        Liq
-                                      </span>
-                                      <p className="font-mono">
-                                        $
-                                        {pos.liquidationPrice.toLocaleString(
-                                          undefined,
-                                          { maximumFractionDigits: 0 },
-                                        )}
-                                        {liqPct != null && ` (~${liqPct}%)`}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {atrPct !== "—" && (
-                                    <div>
-                                      <span className="text-muted-foreground">
-                                        ATR(14)
-                                      </span>
-                                      <p className="font-mono">
-                                        {atrPct} (volatility → SL floor)
-                                      </p>
-                                    </div>
-                                  )}
-                                  {slPct != null && (
-                                    <div>
-                                      <span className="text-muted-foreground">
-                                        SL
-                                      </span>
-                                      <p className="font-mono">
-                                        {slPct}%
-                                        {rrRatioDisplay != null
-                                          ? ` (${rrRatioDisplay.toFixed(1)}:1 R:R target)`
-                                          : ""}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {pos.strategyName && (
-                                    <div>
-                                      <span className="text-muted-foreground">
-                                        Strategy
-                                      </span>
-                                      <p className="font-mono">
-                                        {pos.strategyName}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {session && (
-                                    <div>
-                                      <span className="text-muted-foreground">
-                                        Session
-                                      </span>
-                                      <p className="font-mono">{session}</p>
-                                    </div>
-                                  )}
-                                </div>
-                                {hasWhy && (
-                                  <div className="border-t border-border/50 pt-3 space-y-3">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase">
-                                      Why this trade
-                                    </p>
-                                    {totalSourceCount > 0 &&
-                                      (confirmingCount != null ||
-                                        conflictingCount != null) && (
-                                        <p className="text-xs text-muted-foreground">
-                                          {pos.direction.toUpperCase()} —{" "}
-                                          {confirmingCount} of{" "}
-                                          {totalSourceCount} sources agreed
-                                          {conflictingCount != null &&
-                                          conflictingCount > 0
-                                            ? ` (${conflictingCount} disagreed).`
-                                            : "."}
-                                          {strength != null &&
-                                            confidence != null &&
-                                            ` Net: Strength ${strength}% / confidence ${confidence}% met threshold. `}
-                                          {supporting.length} supporting,{" "}
-                                          {conflicting.length} conflicting.
-                                        </p>
-                                      )}
-                                    {supporting.length > 0 && (
-                                      <div>
-                                        <p className="text-xs text-muted-foreground mb-1">
-                                          Supporting ({supporting.length})
-                                        </p>
-                                        <ul className="list-disc list-inside text-xs space-y-0.5">
-                                          {supporting.map((s, i) => (
-                                            <li key={i}>{s}</li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                    {conflicting.length > 0 && (
-                                      <div>
-                                        <p className="text-xs text-muted-foreground mb-1">
-                                          Conflicting ({conflicting.length})
-                                        </p>
-                                        <ul className="list-disc list-inside text-xs space-y-0.5">
-                                          {conflicting.map((s, i) => (
-                                            <li key={i}>{s}</li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                    {sources.length > 0 && (
-                                      <div>
-                                        <p className="text-xs text-muted-foreground mb-1">
-                                          Sources
-                                        </p>
-                                        <p className="text-xs">
-                                          {sources.map((src) => (
-                                            <span key={src}>
-                                              {sources.indexOf(src) > 0 && ", "}
-                                              {src === "XSentiment" ? (
-                                                <strong className="text-foreground">
-                                                  {signalSourceDisplayName(src)}
-                                                </strong>
-                                              ) : (
-                                                signalSourceDisplayName(src)
-                                              )}
-                                            </span>
-                                          ))}
-                                        </p>
-                                        {sources.includes("XSentiment") && (
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <span className="inline-block mt-1 text-[11px] text-primary cursor-help border-b border-dotted border-primary/50">
-                                                X (CT) contributed to this entry
-                                              </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              Same sentiment data as the News
-                                              tab vibe check; 0.5× weight in the
-                                              aggregator.
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {hasSignal && (
-                                  <div className="border-t border-border/50 pt-3 space-y-1">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase">
-                                      Signal
-                                    </p>
-                                    <p className="text-xs font-mono">
-                                      {strength != null &&
-                                        `Strength ${strength}%`}
-                                      {strength != null &&
-                                        (confidence != null ||
-                                          confirmingCount != null ||
-                                          totalSourceCount > 0) &&
-                                        " · "}
-                                      {confidence != null &&
-                                        `Confidence ${confidence}%`}
-                                      {confidence != null &&
-                                        (confirmingCount != null ||
-                                          totalSourceCount > 0) &&
-                                        " · "}
-                                      {confirmingCount != null &&
-                                        (totalSourceCount > 0
-                                          ? `Confirming ${confirmingCount} of ${totalSourceCount}`
-                                          : `Confirming ${confirmingCount}`)}
-                                    </p>
-                                    {strength == null &&
-                                      confidence == null &&
-                                      (confirmingCount != null ||
-                                        totalSourceCount > 0) && (
-                                        <p className="text-[11px] text-muted-foreground">
-                                          Strength/confidence not recorded for
-                                          this position.
-                                        </p>
-                                      )}
-                                  </div>
-                                )}
-                                {hasRisk && (
-                                  <div className="border-t border-border/50 pt-3 space-y-1">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase">
-                                      Risk management
-                                    </p>
-                                    <div className="text-xs space-y-1">
-                                      {pos.stopLossPrice != null && (
-                                        <p className="font-mono">
-                                          SL $
-                                          {pos.stopLossPrice.toLocaleString(
-                                            undefined,
-                                            {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            },
-                                          )}
-                                          {slPctDisplay != null &&
-                                            ` (${slPctDisplay.toFixed(1)}%)`}
-                                          {slLossUsd != null &&
-                                            ` If hit -$${Math.round(slLossUsd)}`}
-                                        </p>
-                                      )}
-                                      {tp1Price != null && (
-                                        <p className="font-mono">
-                                          TP $
-                                          {tp1Price.toLocaleString(undefined, {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })}
-                                          {tp1PctDisplay != null &&
-                                            ` (${tp1PctDisplay.toFixed(1)}%)`}
-                                          {tp1ProfitUsd != null &&
-                                            ` If hit +$${Math.round(tp1ProfitUsd)}`}
-                                        </p>
-                                      )}
-                                      {(rrRatioDisplay != null ||
-                                        rrLabelDisplay) && (
-                                        <p className="font-mono">
-                                          R:R (TP1 vs SL){" "}
-                                          {rrRatioDisplay != null
-                                            ? `${rrRatioDisplay.toFixed(1)}:1`
-                                            : "—"}{" "}
-                                          {rrLabelDisplay
-                                            ? ` ${rrLabelDisplay}`
-                                            : ""}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                                {(pos.metadata?.mlQualityScore != null ||
-                                  pos.metadata?.banditWeightsUsed === true) && (
-                                  <div className="border-t border-border/50 pt-3 space-y-1">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase">
-                                      Recorded data influence
-                                    </p>
-                                    <p className="text-xs font-mono">
-                                      {typeof pos.metadata?.mlQualityScore ===
-                                        "number" &&
-                                        `ML quality ${(Number(pos.metadata.mlQualityScore) * 100).toFixed(0)}%`}
-                                      {typeof pos.metadata?.mlQualityScore ===
-                                        "number" &&
-                                        pos.metadata?.banditWeightsUsed ===
-                                          true &&
-                                        " · "}
-                                      {pos.metadata?.banditWeightsUsed ===
-                                        true && "Bandit weights used"}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </DashboardCard>
                     {/* Signals evaluated but no trade — "a no-trade is also a trade" (same data as terminal) */}
                     <DashboardCard
                       title="Signals evaluated (no trade)"

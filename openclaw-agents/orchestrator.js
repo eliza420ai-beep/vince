@@ -19,14 +19,13 @@
  */
 
 import { readFileSync, writeFileSync } from "fs";
-import { spawnSync } from "child_process";
+import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AGENTS_DIR = path.resolve(__dirname, ".");
 
-// Load agent specs
 const AGENT_SPECS = {
   alpha: readFileSync(path.join(AGENTS_DIR, "alpha-research.md"), "utf-8"),
   market: readFileSync(path.join(AGENTS_DIR, "market-data.md"), "utf-8"),
@@ -34,31 +33,54 @@ const AGENT_SPECS = {
   news: readFileSync(path.join(AGENTS_DIR, "news.md"), "utf-8"),
 };
 
+const CLI_TIMEOUT_MS = 120000;
+const HEALTH_TIMEOUT_MS = 10000;
+
 /**
- * Run openclaw CLI command
+ * Run openclaw CLI command (async). Returns stdout string or throws.
  */
-function runOpenClaw(args) {
-  try {
-    const result = spawnSync("openclaw", args, {
-      encoding: "utf-8",
-      timeout: 180000,
+function runOpenClawAsync(args, options = {}) {
+  const timeoutMs = options.timeout ?? CLI_TIMEOUT_MS;
+  return new Promise((resolve, reject) => {
+    const child = spawn("openclaw", args, {
       stdio: ["pipe", "pipe", "pipe"],
+      shell: false,
     });
-    if (result.status !== 0) {
-      throw new Error(`Exit code ${result.status}: ${result.stderr}`);
-    }
-    return result.stdout || "";
-  } catch (e) {
-    throw new Error(`OpenClaw CLI failed: ${e instanceof Error ? e.message : String(e)}`);
-  }
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf-8");
+    child.stderr.setEncoding("utf-8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`OpenClaw CLI timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    child.on("close", (code, signal) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolve(stdout || "");
+      } else {
+        reject(new Error(`Exit code ${code}: ${stderr || signal || "unknown"}`));
+      }
+    });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
 }
 
 /**
  * Check if gateway is running
  */
-function checkGateway(): boolean {
+async function checkGateway() {
   try {
-    runOpenClaw(["health"]);
+    await runOpenClawAsync(["health"], { timeout: HEALTH_TIMEOUT_MS });
     return true;
   } catch {
     return false;
@@ -66,16 +88,14 @@ function checkGateway(): boolean {
 }
 
 /**
- * Spawn agent via OpenClaw CLI and return briefing text.
- * Uses: openclaw agent --agent <name> --message "<spec + query>"
- * If --agent <name> is not configured, tries without --agent (default agent).
+ * Spawn one agent via OpenClaw CLI and return briefing text (async).
+ * Tries --agent <name> first, then default agent.
  */
-function runAgentViaCLI(name, query) {
+async function runAgentViaCLI(name, query) {
   const spec = AGENT_SPECS[name];
   if (!spec) {
     throw new Error(`Unknown agent: ${name}`);
   }
-
   const message = `${spec}
 
 QUERY: ${query}
@@ -87,27 +107,30 @@ Provide your findings in the format specified above.`;
 
   for (const args of [argsWithAgent, argsDefault]) {
     try {
-      const result = spawnSync("openclaw", args, {
-        encoding: "utf-8",
-        timeout: 120000,
-        maxBuffer: 4 * 1024 * 1024,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-      if (result.status === 0 && result.stdout && result.stdout.trim()) {
-        return result.stdout.trim();
-      }
-      if (result.status !== 0 && result.stderr && result.stderr.includes("not found")) {
-        continue;
-      }
-      if (result.status === 0) {
-        return result.stdout?.trim() || "(No output from agent)";
-      }
+      const out = await runOpenClawAsync(args);
+      const trimmed = out.trim();
+      if (trimmed) return trimmed;
+      return "(No output from agent)";
     } catch (e) {
-      continue;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("not found") || msg.includes("Unknown")) continue;
+      throw e;
     }
   }
-
   return null;
+}
+
+/**
+ * Run a single agent with timeout and partial-result fallback.
+ */
+async function runAgentSafe(name, query) {
+  try {
+    const text = await runAgentViaCLI(name, query);
+    return { name, text: text || `(Agent ${name}: not configured or no output. Use VINCE/plugin-openclaw for full research.)` };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { name, text: `(Agent ${name} failed: ${msg})` };
+  }
 }
 
 /**
@@ -141,8 +164,7 @@ ${results.news}
 async function main() {
   const [, , command, ...args] = process.argv;
 
-  // Check gateway first
-  if (!checkGateway()) {
+  if (!(await checkGateway())) {
     console.log(`
 ❌ OpenClaw gateway is not running.
 
@@ -165,7 +187,7 @@ Then try again.
       case "news": {
         const query = args.join(" ") || "general crypto research";
         console.log(`🚀 Running ${command} agent for: ${query}`);
-        const out = runAgentViaCLI(command, query);
+        const out = await runAgentViaCLI(command, query);
         const single = out || `CLI run failed or agent "${command}" not configured. Use VINCE/plugin-openclaw for in-app research, or configure OpenClaw agents (alpha, market, onchain, news).`;
         results = {
           alpha: command === "alpha" ? single : "N/A",
@@ -178,14 +200,11 @@ Then try again.
 
       case "all": {
         const tokens = args.join(" ") || "SOL BTC ETH";
-        console.log(`🕵️ Running all agents for: ${tokens}`);
+        console.log(`🕵️ Running all agents in parallel for: ${tokens}`);
         const agents = ["alpha", "market", "onchain", "news"];
-        const pairs = agents.map((a) => [a, tokens]);
-        const runOne = ([name, q]) => {
-          const text = runAgentViaCLI(name, q);
-          return { name, text: text || `(Agent ${name}: not configured or no output. Use VINCE/plugin-openclaw for full research.)` };
-        };
-        const resolved = await Promise.all(pairs.map((p) => Promise.resolve(runOne(p))));
+        const resolved = await Promise.all(
+          agents.map((name) => runAgentSafe(name, tokens))
+        );
         results = { alpha: "N/A", market: "N/A", onchain: "N/A", news: "N/A" };
         for (const { name, text } of resolved) {
           results[name] = text;
@@ -217,10 +236,8 @@ The CLI-only mode provides basic scaffolding.
     const briefing = formatBriefing(results);
     console.log(briefing);
 
-    // Save to file for VINCE to pick up
     writeFileSync(path.join(AGENTS_DIR, "last-briefing.md"), briefing);
     console.log("\n📁 Briefing saved to openclaw-agents/last-briefing.md");
-
   } catch (e) {
     console.error("Error:", e instanceof Error ? e.message : String(e));
     process.exit(1);

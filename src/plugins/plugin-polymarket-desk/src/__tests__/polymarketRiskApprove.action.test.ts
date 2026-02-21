@@ -162,7 +162,9 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
     expect((result as any).success).toBe(true);
     expect((result as any).sized_order_id).toBeDefined();
     expect((result as any).signal_id).toBe(SIGNAL_ID);
-    const insertOrder = queries.find((q) => q.sql.includes("sized_orders"));
+    const insertOrder = queries.find(
+      (q) => q.sql.includes("INSERT") && q.sql.includes("sized_orders"),
+    );
     expect(insertOrder).toBeDefined();
     expect(insertOrder!.values[2]).toBe(SIGNAL_ID);
     expect(insertOrder!.values[3]).toBe(MARKET_ID);
@@ -205,6 +207,57 @@ describe("plugin-polymarket-desk: POLYMARKET_RISK_APPROVE", () => {
     );
     expect((result as any).success).toBe(true);
     expect((result as any).signal_id).toBe(firstSignal.id);
+  });
+
+  it("skips when a pending sized_order already exists for the same market", async () => {
+    const queries: Array<{ sql: string; values: unknown[] }> = [];
+    const runtime = createMockRuntime({
+      getConnection: async () => ({
+        query: async (sql: string, values?: unknown[]) => {
+          queries.push({ sql, values: values ?? [] });
+          if (sql.includes("ORDER BY created_at ASC LIMIT 1"))
+            return {
+              rows: [
+                {
+                  id: SIGNAL_ID,
+                  market_id: MARKET_ID,
+                  side: "YES",
+                  suggested_size_usd: null,
+                  confidence: 0.6,
+                  edge_bps: 300,
+                  forecast_prob: 0.55,
+                  market_price: 0.52,
+                },
+              ],
+            };
+          if (
+            sql.includes("SELECT") &&
+            sql.includes("sized_orders") &&
+            sql.includes("pending")
+          )
+            return { rows: [{ id: "existing-order-id" }] };
+          return { rows: [] };
+        },
+      }),
+      composeState: async () => ({ data: { actionParams: {} } }) as State,
+    });
+    const result = await polymarketRiskApproveAction.handler!(
+      runtime,
+      createMessage(),
+      undefined,
+      undefined,
+      undefined,
+    );
+    expect((result as any).success).toBe(true);
+    expect((result as any).text).toContain("already has a pending order");
+    const updateSkip = queries.find(
+      (q) => q.sql.includes("UPDATE") && q.sql.includes("skipped"),
+    );
+    expect(updateSkip).toBeDefined();
+    const insertOrder = queries.find(
+      (q) => q.sql.includes("INSERT") && q.sql.includes("sized_orders"),
+    );
+    expect(insertOrder).toBeUndefined();
   });
 
   it("invokes callback when provided", async () => {

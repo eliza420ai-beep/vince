@@ -27,4 +27,5 @@ Wrap-up
 Fear and Greed at 9 but smart money is patient. UAE dropping half a billion on mining infrastructure while CT stays cautious. Warsh at 95% for Fed chair tells us where institutional confidence sits. We're building the stack while waiting for the catalyst.
 
 ---
+
 One team, one dream.

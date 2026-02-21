@@ -226,6 +226,15 @@ describe("plugin-polymarket-desk: POLYMARKET_EDGE_CHECK", () => {
     expect(insert!.values[0]).toBeDefined();
     expect(insert!.values[3]).toBe(CONDITION_ID);
     expect((result as any).signal_id).toBeDefined();
+    const metadataJson = insert!.values[11];
+    expect(typeof metadataJson).toBe("string");
+    const metadata = JSON.parse(metadataJson as string) as Record<
+      string,
+      unknown
+    >;
+    expect(metadata.source).toBe("POLYMARKET_EDGE_CHECK");
+    expect(metadata.asset).toBe("BTC");
+    expect(metadata.conditionId).toBe(CONDITION_ID);
   });
 
   it("invokes callback when provided", async () => {

@@ -26,6 +26,30 @@ const BINANCE_WS = "POLYMARKET_ARB_BINANCE_SPOT_WS";
 const POLY_WS = "POLYMARKET_ARB_CLOB_WS";
 const ARB_TRADES_TABLE = "plugin_polymarket_arb.arb_trades";
 
+/** SQL to create schema and arb_trades table (PGLite or Postgres). Run once at startup. */
+const ARB_TABLES_SQL = `
+CREATE SCHEMA IF NOT EXISTS plugin_polymarket_arb;
+CREATE TABLE IF NOT EXISTS plugin_polymarket_arb.arb_trades (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  condition_id TEXT NOT NULL,
+  token_id TEXT NOT NULL,
+  side TEXT NOT NULL,
+  btc_spot_price REAL NOT NULL,
+  contract_price REAL NOT NULL,
+  implied_prob REAL NOT NULL,
+  edge_pct REAL NOT NULL,
+  size_usd REAL NOT NULL,
+  fill_price REAL,
+  pnl_usd REAL,
+  status TEXT NOT NULL,
+  clob_order_id TEXT,
+  exit_price REAL,
+  exit_reason TEXT,
+  latency_ms INTEGER
+);
+`;
+
 function getConfigFromEnv(): ArbEngineConfig {
   const num = (key: string, def: number): number => {
     const v = process.env[key];
@@ -100,6 +124,7 @@ export class ArbEngineService extends Service {
     engine.engineConfig = getConfigFromEnv();
     engine.dayStartBankroll = engine.engineConfig.bankrollUsd;
     engine.lastTradeDay = engine.getToday();
+    await engine.ensureArbTables();
     await engine.runDiscovery();
     engine.discoveryInterval = setInterval(() => {
       engine
@@ -129,6 +154,37 @@ export class ArbEngineService extends Service {
 
   getToday(): string {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  /** Create plugin_polymarket_arb schema and arb_trades table if missing (PGLite or Postgres). */
+  private async ensureArbTables(): Promise<void> {
+    const conn = await (
+      this.runtime as { getConnection?: () => Promise<unknown> }
+    ).getConnection?.();
+    if (
+      !conn ||
+      typeof (conn as { query: (s: string, v?: unknown[]) => Promise<unknown> })
+        .query !== "function"
+    ) {
+      logger.debug(
+        "[ArbEngine] No DB connection; arb trades will not be persisted (use PGLite or set POSTGRES_URL).",
+      );
+      return;
+    }
+    try {
+      const client = conn as {
+        query: (text: string, values?: unknown[]) => Promise<unknown>;
+      };
+      await client.query(ARB_TABLES_SQL);
+      logger.debug(
+        "[ArbEngine] arb_trades table ready (plugin_polymarket_arb).",
+      );
+    } catch (e) {
+      logger.warn(
+        "[ArbEngine] Failed to ensure arb_trades table: " +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    }
   }
 
   async getStatus(): Promise<Record<string, unknown>> {

@@ -80,8 +80,26 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
         typeof response === "string"
           ? response
           : ((response as { text?: string })?.text ?? String(response));
-      const out = "Here's the strike call—\n\n" + text.trim();
-      await callback({ text: out, actions: ["SOLUS_OPTIMAL_STRIKE"] });
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
+      const sections = [
+        `**Strike Call** _${dateStr}_`,
+        "",
+        text.trim(),
+        "",
+        "*Source: Hypersurface mechanics, CoinGecko spot, pasted context*",
+        "",
+        "---",
+        "_Next steps_: `STRIKE RITUAL` (full process) · `POSITION ASSESS` (review position) · `OPTIONS` → VINCE (IV data)",
+      ];
+      await callback({
+        text: sections.join("\n"),
+        actions: ["SOLUS_OPTIMAL_STRIKE"],
+      });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_OPTIMAL_STRIKE] Failed:", error);

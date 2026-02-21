@@ -22,6 +22,8 @@ const DEFAULT_KELLY_FRACTION = 0.25;
 const DEFAULT_MAX_POSITION_PCT = 0.05;
 const DEFAULT_MIN_SIZE_USD = 5;
 const DEFAULT_MAX_SIZE_USD = 500;
+/** Don't add new sized orders when pending backlog is already at or above this (keeps desk selective). */
+const DEFAULT_MAX_PENDING_SIZED_ORDERS = 10;
 
 interface RiskApproveParams {
   signal_id?: string;
@@ -72,7 +74,8 @@ export const polymarketRiskApproveAction: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params = (composedState?.data?.actionParams ??
+      const params = ((_options as RiskApproveParams | undefined) ??
+        (composedState?.data?.actionParams as RiskApproveParams | undefined) ??
         {}) as RiskApproveParams;
       let signalId = params.signal_id?.trim();
       const walletAddress =
@@ -102,6 +105,23 @@ export const polymarketRiskApproveAction: Action = {
           values?: unknown[],
         ) => Promise<{ rows: unknown[] }>;
       };
+
+      const maxPending =
+        Number(
+          runtime.getSetting?.("POLYMARKET_DESK_MAX_PENDING_SIZED_ORDERS") ?? 0,
+        ) || DEFAULT_MAX_PENDING_SIZED_ORDERS;
+      const countResult = await client.query(
+        `SELECT COUNT(*)::int AS cnt FROM ${SIZED_ORDERS_TABLE} WHERE status = 'pending'`,
+        [],
+      );
+      const pendingCount =
+        (countResult?.rows?.[0] as { cnt?: number } | undefined)?.cnt ?? 0;
+      if (pendingCount >= maxPending) {
+        const text = ` Sized order backlog at limit (${pendingCount} >= ${maxPending}). Skipping approval until Executor fills some. Set POLYMARKET_DESK_MAX_PENDING_SIZED_ORDERS to raise the cap.`;
+        logger.info(`[POLYMARKET_RISK_APPROVE] ${text}`);
+        if (callback) await callback({ text });
+        return { text, success: true };
+      }
 
       interface SignalRow {
         id: string;
@@ -133,6 +153,22 @@ export const polymarketRiskApproveAction: Action = {
 
       if (!signal) {
         const text = " No pending signal found to approve.";
+        if (callback) await callback({ text });
+        return { text, success: true };
+      }
+
+      // Dedup: skip if a pending sized_order already exists for this market
+      const dupOrder = await client.query(
+        `SELECT id FROM ${SIZED_ORDERS_TABLE} WHERE market_id = $1 AND status = 'pending' LIMIT 1`,
+        [signal.market_id],
+      );
+      if (dupOrder.rows && dupOrder.rows.length > 0) {
+        await client.query(
+          `UPDATE ${SIGNALS_TABLE} SET status = 'skipped' WHERE id = $1`,
+          [signal.id],
+        );
+        const text = ` Market ${signal.market_id.slice(0, 14)}… already has a pending order — signal ${signal.id.slice(0, 8)}… skipped.`;
+        logger.info(`[POLYMARKET_RISK_APPROVE] ${text}`);
         if (callback) await callback({ text });
         return { text, success: true };
       }

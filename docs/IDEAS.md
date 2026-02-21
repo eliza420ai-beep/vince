@@ -90,7 +90,7 @@ Below are 10 ideas from a structural audit of the repo (themes, unused capacity,
 
 **Core concept:** When a recommendation or bet is closed (e.g. "Solus: sell $68.5k covered call; invalidation below $67k"), the system writes a short "obituary": what was recommended, what actually happened, and whether the scenario (bull/base/bear) was right. No score, no leaderboard—just a paragraph per closed decision. Stored in a single place (e.g. `calibration-obituaries/YYYY-MM-DD.md`). Optional: one line from the human ("why I took or skipped it").
 
-**Why it's asymmetric:** Solus north star has EV framing and track_record; day reports have "Solus's call." The obituary is _narrative_ and _per decision_, not aggregate. It's memory for "what did we think and what did the world do?"—readable later for pattern recognition without forcing a formal calibration system first.
+**Why it's asymmetric:** Solus north star has EV framing and track*record; day reports have "Solus's call." The obituary is \_narrative* and _per decision_, not aggregate. It's memory for "what did we think and what did the world do?"—readable later for pattern recognition without forcing a formal calibration system first.
 
 **Why it would surprise the founder:** It turns "recommendations with EV" into a _story_ layer. The founder already cares about proof and calibration; this is the minimal story form that supports that—one obituary at a time, no dashboard required.
 

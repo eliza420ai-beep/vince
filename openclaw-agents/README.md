@@ -45,6 +45,8 @@ In this repo you also use **vault/** (knowledge vault, todos, meetings), **skill
 
 See **[HOW-TO-RUN.md](HOW-TO-RUN.md)** for a short checklist (orchestrator + 8-pillar flows).
 
+**Fast onboarding:** `bun run openclaw-agents/run-fast.ts` — one conversation to produce USER, SOUL, AGENTS, etc. (~15 min). See [fast/README.md](fast/README.md).
+
 ```bash
 # Install OpenClaw (if not already)
 npm install -g openclaw

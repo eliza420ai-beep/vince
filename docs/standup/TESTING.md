@@ -54,11 +54,11 @@ To test only the round-robin wiring with mock agents (no LLM calls):
 
 ## Summary
 
-| Method              | Speed   | Needs Discord | Validates prompts/sections | Validates real LLM output |
-|---------------------|--------|----------------|----------------------------|----------------------------|
-| Unit tests          | Fast   | No             | Yes                        | No                         |
-| Discord manual      | Slow   | Yes            | Indirectly                 | Yes                        |
-| Scheduled standup   | Medium | No             | Indirectly                 | Yes (via Day Report file)  |
-| One-off script      | Fast   | No             | Wiring only                | No                         |
+| Method            | Speed  | Needs Discord | Validates prompts/sections | Validates real LLM output |
+| ----------------- | ------ | ------------- | -------------------------- | ------------------------- |
+| Unit tests        | Fast   | No            | Yes                        | No                        |
+| Discord manual    | Slow   | Yes           | Indirectly                 | Yes                       |
+| Scheduled standup | Medium | No            | Indirectly                 | Yes (via Day Report file) |
+| One-off script    | Fast   | No            | Wiring only                | No                        |
 
 **Recommendation:** Run unit tests on every change; run a manual Discord standup (or scheduled) when you want to confirm real agent output stays in lane.

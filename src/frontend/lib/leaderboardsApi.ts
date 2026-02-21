@@ -348,32 +348,59 @@ export interface PolymarketPriorityMarketsFetchResult {
   status: number | null;
 }
 
-/** Latency arb (paper trading) bot status for Polymarket tab */
-export interface PolymarketArbStatus {
+/** Edge engine status for Polymarket tab (plugin-polymarket-edge) */
+export interface PolymarketEdgeStatus {
   running: boolean;
-  liveExecution: boolean;
   paused: boolean;
-  tradesToday: number;
-  winCountToday: number;
-  todayPnlUsd: number;
-  bankrollUsd: number;
   contractsWatched: number;
   btcLastPrice: number | null;
+  strategies: Record<string, { lastSignalAt?: number; signalCount: number }>;
   error?: string;
   hint?: string;
 }
 
-export interface PolymarketArbStatusFetchResult {
-  data: PolymarketArbStatus | null;
+export interface PolymarketEdgeStatusFetchResult {
+  data: PolymarketEdgeStatus | null;
   error: string | null;
   status: number | null;
 }
 
-export async function fetchPolymarketArbStatus(
+/** One edge signal (emitted by engine, written to desk) */
+export interface PolymarketEdgeSignalItem {
+  id: string;
+  createdAt: string;
+  strategy: string;
+  source: string;
+  marketId: string;
+  side: string;
+  confidence: number | null;
+  edgeBps: number | null;
+  forecastProb: number | null;
+  marketPrice: number | null;
+  deskSignalId: string | null;
+  question: string | null;
+}
+
+export interface PolymarketEdgeSignalsResponse {
+  signals: PolymarketEdgeSignalItem[];
+  updatedAt: number;
+  hint?: string;
+  error?: string;
+}
+
+export interface PolymarketEdgeSignalsFetchResult {
+  data: PolymarketEdgeSignalsResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
+export async function fetchPolymarketEdgeSignals(
   agentId: string,
-): Promise<PolymarketArbStatusFetchResult> {
+  limit?: number,
+): Promise<PolymarketEdgeSignalsFetchResult> {
   const base = window.location.origin;
-  const url = `${base}/api/agents/${agentId}/plugins/polymarket-arb/arb/status`;
+  const params = limit != null ? `?limit=${Math.min(limit, 100)}` : "";
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-edge/edge/signals${params}`;
   try {
     const res = await fetch(url, {
       method: "GET",
@@ -390,7 +417,224 @@ export async function fetchPolymarketArbStatus(
       return { data: null, error: msg, status: res.status };
     }
     return {
-      data: body as PolymarketArbStatus,
+      data: body as PolymarketEdgeSignalsResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchPolymarketEdgeStatus(
+  agentId: string,
+): Promise<PolymarketEdgeStatusFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-edge/edge/status`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketEdgeStatus,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+/** Desk paper-trading summary (plugin-polymarket-desk) */
+export interface PolymarketDeskStatus {
+  tradesToday: number;
+  volumeTodayUsd: number;
+  executionPnlTodayUsd: number;
+  pendingSignalsCount: number;
+  /** Pending sized orders (open paper positions) from Risk */
+  pendingSizedOrdersCount?: number;
+  /** Total rows in trade_log (diagnostic for "Recent trades empty?") */
+  tradeLogCount?: number;
+  /** ISO string of latest trade_log row, or null if empty */
+  tradeLogLatestAt?: string | null;
+  updatedAt: number;
+  error?: string;
+  hint?: string;
+}
+
+export interface PolymarketDeskStatusFetchResult {
+  data: PolymarketDeskStatus | null;
+  error: string | null;
+  status: number | null;
+}
+
+/** One desk fill (trade_log row) with enrichment from edge_signals + discovery */
+export interface PolymarketDeskTradeItem {
+  id: string;
+  createdAt: string;
+  marketId: string;
+  question?: string;
+  eventUrl?: string | null;
+  strategy?: string;
+  strategyWhy?: string;
+  side: string;
+  sizeUsd: number;
+  arrivalPrice: number | null;
+  fillPrice: number;
+  executionPnlUsd: number | null;
+  mtmPnlUsd?: number | null;
+  currentPrice?: number | null;
+}
+
+export interface PolymarketDeskTradesResponse {
+  trades: PolymarketDeskTradeItem[];
+  updatedAt: number;
+  hint?: string;
+  error?: string;
+}
+
+export interface PolymarketDeskTradesFetchResult {
+  data: PolymarketDeskTradesResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
+/** One open paper position (pending sized order with live P&L) */
+export interface PolymarketPaperPosition {
+  id: string;
+  signalId: string;
+  marketId: string;
+  question: string;
+  side: "YES" | "NO";
+  sizeUsd: number;
+  entryPrice: number;
+  currentPrice: number;
+  unrealizedPnl: number;
+  unrealizedPnlPct: number;
+  openedAt: string;
+  strategy: string;
+  edgeBps: number;
+  confidence: number;
+  forecastProb: number;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface PolymarketPaperPositionsResponse {
+  positions: PolymarketPaperPosition[];
+  /** Total pending sized orders (list may be capped to avoid timeouts) */
+  totalPending?: number;
+  /** True when list was capped and live Polymarket prices were skipped (P&L ≈ 0) */
+  livePricesSkipped?: boolean;
+  updatedAt: number;
+  error?: string;
+  hint?: string;
+}
+
+export interface PolymarketPaperPositionsFetchResult {
+  data: PolymarketPaperPositionsResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
+export async function fetchPolymarketDeskStatus(
+  agentId: string,
+): Promise<PolymarketDeskStatusFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-desk/desk/status`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketDeskStatus,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchPolymarketDeskTrades(
+  agentId: string,
+  limit?: number,
+): Promise<PolymarketDeskTradesFetchResult> {
+  const base = window.location.origin;
+  const params = limit != null ? `?limit=${Math.min(limit, 100)}` : "";
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-desk/desk/trades${params}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketDeskTradesResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchPolymarketDeskPositions(
+  agentId: string,
+): Promise<PolymarketPaperPositionsFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-desk/desk/positions`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketPaperPositionsResponse,
       error: null,
       status: res.status,
     };
@@ -565,7 +809,20 @@ export interface PaperResponse {
   } | null;
   /** Last closed positions (contributingSources only) for "X contributed to N of K" */
   recentClosedTrades: Array<{ contributingSources?: string[] }>;
+  /** Recent closed trades with P&L (which trades, how much made) */
+  recentTrades: RecentTradeItem[];
   updatedAt: number;
+}
+
+export interface RecentTradeItem {
+  asset: string;
+  direction: string;
+  entryPrice: number;
+  exitPrice: number;
+  realizedPnl: number;
+  closeReason: string;
+  openedAt: number;
+  closedAt: number;
 }
 
 export async function fetchPaperWithError(agentId: string): Promise<{

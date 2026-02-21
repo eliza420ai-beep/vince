@@ -47,6 +47,18 @@ When you run `bun start` or `bun run dev`, the terminal log is a good health che
 
 ---
 
+## Polymarket: open paper positions disappeared after refresh
+
+If you saw “Open paper positions” on the Polymarket tab and then after a refresh they were gone:
+
+**Cause:** Otaku’s execute poll runs every 2 min. When Polymarket CLOB credentials are not set, the execute action used to mark the next pending order as `rejected`, so pending orders were removed one by one and no fills were written.
+
+**Fix (in code):** When credentials are missing, the execute action no longer updates the order; it leaves it `pending`. So pending orders stay visible as open paper positions with P&L and “Why this position.” See [POLYMARKET_TRADING_DESK.md § Paper-only mode](POLYMARKET_TRADING_DESK.md#paper-only-mode).
+
+**If you already had orders rejected:** They will not reappear. New approvals from Risk will stay pending until you enable execution or cancel them.
+
+---
+
 ## Known limitations
 
 | Limitation       | Notes                                              |

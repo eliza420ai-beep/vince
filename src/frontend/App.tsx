@@ -31,6 +31,7 @@ import { fetchOtakuConfig } from "@/frontend/lib/otakuConfigApi";
 import { UUID } from "@elizaos/core";
 import { AboutModalContent } from "@/frontend/components/about/about-modal-content";
 import { getRandomAvatar, cn } from "@/frontend/lib/utils";
+import { LoadingScreen } from "./components/ui/loading-screen";
 
 /** Default message server ID the message bus is subscribed to (local messaging). Use this when getCurrentMessageServer() returns null so replies reach the UI. */
 const DEFAULT_MESSAGE_SERVER_ID =
@@ -961,25 +962,7 @@ function App() {
   };
 
   if (isLoading || isWaitingForAgents) {
-    return (
-      <div className="min-h-screen bg-muted flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground uppercase tracking-wider text-sm font-mono">
-            {isWaitingForAgents
-              ? "Waiting for agent to start…"
-              : "Loading agent..."}
-          </p>
-          {isWaitingForAgents && (
-            <p className="text-xs text-muted-foreground mt-2 font-mono max-w-sm mx-auto">
-              Backend may still be starting. If this persists, ensure you ran{" "}
-              <code className="bg-muted px-1 rounded">bun start</code> and use
-              the URL it prints (e.g. :5173).
-            </p>
-          )}
-        </div>
-      </div>
-    );
+    return <LoadingScreen isWaitingForAgents={isWaitingForAgents} />;
   }
 
   if (!agent) {

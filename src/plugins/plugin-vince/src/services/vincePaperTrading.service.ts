@@ -62,7 +62,11 @@ import {
   wttPickToWttBlock,
   type WttFeatureBlock,
 } from "../constants/paperTradingDefaults";
-import { normalizeWttTicker } from "../constants/targetAssets";
+import {
+  normalizeWttTicker,
+  CORE_ASSETS,
+  HIP3_ASSETS,
+} from "../constants/targetAssets";
 import * as fs from "fs";
 import * as path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -149,6 +153,10 @@ export class VincePaperTradingService extends Service {
 
   // Throttle "No WTT pick for today" to once per calendar day (update loop runs every 30s)
   private lastNoWttLogDate: string | null = null;
+
+  // WTT: ensure we only open today's pick once (persisted so survives restart)
+  private wttTradedToday: { date: string; asset: string } | null = null;
+  private lastWttAlreadyTradedLogDate: string | null = null;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -268,6 +276,28 @@ export class VincePaperTradingService extends Service {
     return this.runtime.getService(
       "VINCE_NEWS_SENTIMENT_SERVICE",
     ) as VinceNewsSentimentService | null;
+  }
+
+  /**
+   * Max leverage cap for an asset. For HIP-3 assets uses Hyperliquid meta when
+   * available (VinceHIP3Service.getMaxLeverageForAsset), else getAssetMaxLeverage.
+   */
+  private async getMaxLeverageCap(asset: string): Promise<number> {
+    const hip3 = this.runtime.getService("VINCE_HIP3_SERVICE") as {
+      getMaxLeverageForAsset?(s: string): Promise<number | null>;
+    } | null;
+    if (
+      hip3?.getMaxLeverageForAsset &&
+      (HIP3_ASSETS as readonly string[]).includes(asset.toUpperCase())
+    ) {
+      try {
+        const hl = await hip3.getMaxLeverageForAsset(asset);
+        if (typeof hl === "number") return hl;
+      } catch (_) {
+        // fall through to static cap
+      }
+    }
+    return getAssetMaxLeverage(asset);
   }
 
   /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). */
@@ -436,9 +466,13 @@ export class VincePaperTradingService extends Service {
     const limits = riskManager?.getLimits();
     let minStrength = limits?.minSignalStrength ?? 60;
     let minConfidence = limits?.minSignalConfidence ?? 60;
-    // HYPE has fewer signal sources, so lower minimum
-    const minConfirming =
-      asset === "HYPE" ? 2 : (limits?.minConfirmingSignals ?? 3);
+    // HIP-3 and HYPE have fewer signal sources; primary source gate ensures quality
+    const isCoreForConfirming = (CORE_ASSETS as readonly string[]).includes(
+      asset,
+    );
+    const minConfirming = !isCoreForConfirming
+      ? 1
+      : (limits?.minConfirmingSignals ?? 3);
 
     // When rejection was due to ML "report suggestion", show that stricter bar so the box matches reality
     const usedReportSuggestion = reason.includes("report suggestion");
@@ -798,6 +832,48 @@ Reply format: APPROVE reason or VETO reason`;
     );
   }
 
+  private getWttTradedTodayPath(): string {
+    if (!this.persistenceDir) {
+      return path.join(
+        process.cwd(),
+        ".elizadb",
+        PERSISTENCE_DIR,
+        "wtt-traded-today.json",
+      );
+    }
+    return path.join(this.persistenceDir, "wtt-traded-today.json");
+  }
+
+  private loadWttTradedToday(): void {
+    try {
+      const filepath = this.getWttTradedTodayPath();
+      if (fs.existsSync(filepath)) {
+        const raw = fs.readFileSync(filepath, "utf-8");
+        const data = JSON.parse(raw) as { date: string; asset: string };
+        if (data?.date && data?.asset) {
+          this.wttTradedToday = { date: data.date, asset: data.asset };
+        }
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  private async persistWttTradedToday(): Promise<void> {
+    if (!this.wttTradedToday || !this.persistenceDir) return;
+    try {
+      const filepath = this.getWttTradedTodayPath();
+      await fs.promises.writeFile(
+        filepath,
+        JSON.stringify(this.wttTradedToday, null, 2),
+      );
+    } catch (e) {
+      logger.debug(
+        `[VincePaperTrading] Failed to persist WTT traded today: ${e}`,
+      );
+    }
+  }
+
   private async readLatestWttPick(): Promise<WttPickJson | null> {
     try {
       const filepath = this.getWttPickPath();
@@ -916,6 +992,21 @@ Reply format: APPROVE reason or VETO reason`;
       await this.appendWttPickJsonl(pick, "skipped", "ticker not in universe");
       return false;
     }
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (
+      this.wttTradedToday?.date === today &&
+      this.wttTradedToday?.asset === asset
+    ) {
+      if (this.lastWttAlreadyTradedLogDate !== today) {
+        this.lastWttAlreadyTradedLogDate = today;
+        logger.info(
+          `[VincePaperTrading] WTT already traded today (${asset}); skipping`,
+        );
+      }
+      return false;
+    }
+
     if (positionManager.hasOpenPosition(asset) || this.hasPendingEntry(asset)) {
       await this.appendWttPickJsonl(pick, "skipped", `already in ${asset}`);
       return false;
@@ -958,7 +1049,8 @@ Reply format: APPROVE reason or VETO reason`;
     }
 
     const portfolio = positionManager.getPortfolio();
-    const leverage = Math.min(DEFAULT_LEVERAGE, getAssetMaxLeverage(asset));
+    const cap = await this.getMaxLeverageCap(asset);
+    const leverage = Math.min(DEFAULT_LEVERAGE, cap);
     const sizeUsd = Math.min(
       portfolio.totalValue * 0.05,
       portfolio.totalValue * 0.1,
@@ -974,6 +1066,9 @@ Reply format: APPROVE reason or VETO reason`;
       await this.appendWttPickJsonl(pick, "rejected", "openTrade failed");
       return false;
     }
+
+    this.wttTradedToday = { date: today, asset };
+    await this.persistWttTradedToday();
 
     // Store WTT thesis and invalidate condition for WHY THIS TRADE (explainer + notifications)
     position.metadata = {
@@ -1043,11 +1138,25 @@ Reply format: APPROVE reason or VETO reason`;
         const signal = await signalAggregator.getSignal(asset);
         if (!signal) continue;
 
+        // HIP-3 diagnostics: log signal for non-core assets so we can see why trades aren't opening
+        const isHip3Asset = !(CORE_ASSETS as readonly string[]).includes(asset);
+        if (
+          isHip3Asset &&
+          signal.direction !== "neutral" &&
+          signal.strength > 20
+        ) {
+          logger.info(
+            `[VincePaperTrading] HIP-3 signal: ${asset} ${signal.direction} | str=${signal.strength.toFixed(0)} conf=${signal.confidence.toFixed(0)} confirm=${signal.confirmingCount} | sources=${(signal.sources ?? []).join(",")}`,
+          );
+        }
+
         // Block trade when ML quality is below trained threshold (fewer low-quality trades)
+        // Skip for HIP-3: models trained on BTC/ETH/SOL/HYPE only — applying to HIP-3 would reject unfamiliar patterns
         const mlService = this.runtime.getService(
           "VINCE_ML_INFERENCE_SERVICE",
         ) as VinceMLInferenceService | null;
         if (
+          !isHip3Asset &&
           mlService &&
           typeof (signal as AggregatedSignal).mlQualityScore === "number"
         ) {
@@ -1081,8 +1190,9 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Improvement report: optional min strength / min confidence (when suggested_tuning is in training_metadata).
-        // In aggressive mode we skip this so we take more trades (base thresholds 40/35 only) for ML data.
+        // In aggressive mode OR for HIP-3 assets we skip this so we take more trades for ML data.
         const aggressiveMode =
+          isHip3Asset ||
           this.runtime.getSetting?.("vince_paper_aggressive") === true ||
           this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         if (mlService && !aggressiveMode) {
@@ -1135,8 +1245,12 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Hard-filter when similarity says "avoid" (ALGO_ML_IMPROVEMENTS #5)
+        // Skip for HIP-3: similarity model has no HIP-3 trade history to compare against
         const aggSignal = signal as AggregatedSignal;
-        if (aggSignal.mlSimilarityPrediction?.recommendation === "avoid") {
+        if (
+          !isHip3Asset &&
+          aggSignal.mlSimilarityPrediction?.recommendation === "avoid"
+        ) {
           if (signal.direction !== "neutral" && signal.strength > 30) {
             const reason = `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`;
             this.pushMLInfluence("reject", asset, reason);
@@ -1308,9 +1422,15 @@ Reply format: APPROVE reason or VETO reason`;
           PRIMARY_SIGNAL_SOURCES.has(s),
         );
         if (!hasPrimary && contributingSources.length > 0) {
-          logger.debug(
-            `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
-          );
+          if (isHip3Asset) {
+            logger.info(
+              `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
+            );
+          } else {
+            logger.debug(
+              `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
+            );
+          }
           continue;
         }
 
@@ -1330,16 +1450,23 @@ Reply format: APPROVE reason or VETO reason`;
           continue;
         }
 
+        if (isHip3Asset) {
+          logger.info(
+            `[VincePaperTrading] HIP-3 trade passing validation: ${asset} ${signal.direction} str=${signal.strength.toFixed(0)} conf=${signal.confidence.toFixed(0)}`,
+          );
+        }
+
         // Calculate position size
         const portfolio = positionManager.getPortfolio();
         const aggressive =
           this.runtime.getSetting?.("vince_paper_aggressive") === true ||
           this.runtime.getSetting?.("vince_paper_aggressive") === "true";
-        // Asset-specific max leverage: BTC 40x, SOL/ETH/HYPE 10x
+        // Asset-specific max leverage: BTC 40x, SOL/ETH/HYPE 10x; HIP-3 from HL or 5x
         const baseLeverage = aggressive
           ? AGGRESSIVE_LEVERAGE
           : DEFAULT_LEVERAGE;
-        const leverage = Math.min(baseLeverage, getAssetMaxLeverage(asset));
+        const cap = await this.getMaxLeverageCap(asset);
+        const leverage = Math.min(baseLeverage, cap);
         let baseSizeUsd = aggressive
           ? portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
             ? AGGRESSIVE_MARGIN_USD * leverage
@@ -1829,18 +1956,38 @@ Reply format: APPROVE reason or VETO reason`;
       entryPrice = ctx?.currentPrice;
       // Layer 1: Symbol validation (reject invalid / zero price)
       if (entryPrice == null || entryPrice <= 0) {
-        const now = Date.now();
-        const lastWarn = this.lastEntryPriceWarnByAsset.get(asset) ?? 0;
-        if (
-          now - lastWarn >=
-          VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS
-        ) {
-          logger.warn(
-            `[VincePaperTrading] SYMBOL VALIDATION FAILED: ${asset} (mid price missing or <= 0)`,
-          );
-          this.lastEntryPriceWarnByAsset.set(asset, now);
+        // HIP-3 fallback: get price directly from HIP-3 service when marketData missed it
+        const isHip3 = (HIP3_ASSETS as readonly string[]).includes(
+          asset.toUpperCase(),
+        );
+        if (isHip3) {
+          const hip3Service = this.runtime.getService("VINCE_HIP3_SERVICE") as {
+            getAssetPrice?(s: string): Promise<{ price: number } | null>;
+          } | null;
+          const hip3Data = hip3Service?.getAssetPrice
+            ? await hip3Service.getAssetPrice(asset)
+            : null;
+          if (hip3Data && hip3Data.price > 0) {
+            entryPrice = hip3Data.price;
+            logger.debug(
+              `[VincePaperTrading] HIP-3 price fallback: ${asset} $${entryPrice.toFixed(2)}`,
+            );
+          }
         }
-        return null;
+        if (entryPrice == null || entryPrice <= 0) {
+          const now = Date.now();
+          const lastWarn = this.lastEntryPriceWarnByAsset.get(asset) ?? 0;
+          if (
+            now - lastWarn >=
+            VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS
+          ) {
+            logger.warn(
+              `[VincePaperTrading] SYMBOL VALIDATION FAILED: ${asset} (mid price missing or <= 0)`,
+            );
+            this.lastEntryPriceWarnByAsset.set(asset, now);
+          }
+          return null;
+        }
       }
     } catch (error) {
       logger.error(
@@ -2310,8 +2457,8 @@ Reply format: APPROVE reason or VETO reason`;
       return null;
     }
 
-    // Close at current mark price
-    const closedPosition = positionManager.closePosition(
+    // Close at current mark price and record with goal tracker so Goal progress updates as soon as we have recent trades
+    const closedPosition = positionManager.closePositionWithGoalTracking(
       positionId,
       position.markPrice,
       reason,
@@ -2802,6 +2949,8 @@ Reply format: APPROVE reason or VETO reason`;
         const entries = JSON.parse(fs.readFileSync(journalPath, "utf-8"));
         tradeJournal.restoreEntries(entries);
       }
+
+      this.loadWttTradedToday();
 
       logger.info("[VincePaperTrading] State restored from disk");
     } catch (error) {

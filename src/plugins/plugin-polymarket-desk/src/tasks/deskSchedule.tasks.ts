@@ -70,7 +70,7 @@ export function registerDeskSchedule(runtime: IAgentRuntime): void {
         description: "Hourly Polymarket edge check (Synth vs market)",
         roomId: taskWorldId,
         worldId: taskWorldId,
-        tags: ["polymarket", "desk", "analyst"],
+        tags: ["polymarket", "desk", "analyst", "queue", "repeat"],
         metadata: {
           updateInterval: ANALYST_INTERVAL_MS,
           updatedAt: Date.now(),
@@ -79,25 +79,28 @@ export function registerDeskSchedule(runtime: IAgentRuntime): void {
       .catch((e) => logger.warn("[PolymarketDesk] createTask analyst:", e));
   });
 
-  // --- Risk: 15m snapshot (pending signals) ---
+  // --- Risk: 15m — approve one pending signal (size and write sized order) ---
   runtime.registerTaskWorker({
     name: "POLYMARKET_RISK_15M",
     execute: async (rt, _options, task) => {
       if (process.env.POLYMARKET_DESK_SCHEDULE_ENABLED === "false") return;
-      const conn = await (
-        rt as { getConnection?: () => Promise<unknown> }
-      ).getConnection?.();
-      if (conn && typeof (conn as any).query === "function") {
-        const r = await (
-          conn as {
-            query: (s: string, v?: unknown[]) => Promise<{ rows: unknown[] }>;
-          }
-        ).query(
-          "SELECT COUNT(*) as cnt FROM plugin_polymarket_desk.signals WHERE status = 'pending'",
-          [],
+      const action = rt.actions?.find(
+        (a) => a.name === "POLYMARKET_RISK_APPROVE",
+      );
+      if (action?.handler) {
+        const walletFromEnv =
+          process.env.POLYMARKET_DESK_WALLET_ADDRESS?.trim();
+        const options =
+          walletFromEnv !== undefined && walletFromEnv !== ""
+            ? { wallet_address: walletFromEnv }
+            : {};
+        await (action.handler as any)(
+          rt,
+          syntheticMessage("risk approve", rt),
+          undefined,
+          options,
+          undefined,
         );
-        const cnt = (r.rows?.[0] as { cnt: string })?.cnt ?? "0";
-        logger.info(`[PolymarketDesk] Risk snapshot: ${cnt} pending signals.`);
       }
       if (task.id)
         await rt.updateTask(task.id, {
@@ -112,7 +115,7 @@ export function registerDeskSchedule(runtime: IAgentRuntime): void {
         description: "15m Polymarket risk snapshot (pending signals)",
         roomId: taskWorldId,
         worldId: taskWorldId,
-        tags: ["polymarket", "desk", "risk"],
+        tags: ["polymarket", "desk", "risk", "queue", "repeat"],
         metadata: { updateInterval: RISK_INTERVAL_MS, updatedAt: Date.now() },
       })
       .catch((e) => logger.warn("[PolymarketDesk] createTask risk:", e));
@@ -148,7 +151,7 @@ export function registerDeskSchedule(runtime: IAgentRuntime): void {
         description: "4h Polymarket desk performance report",
         roomId: taskWorldId,
         worldId: taskWorldId,
-        tags: ["polymarket", "desk", "performance"],
+        tags: ["polymarket", "desk", "performance", "queue", "repeat"],
         metadata: { updateInterval: PERF_INTERVAL_MS, updatedAt: Date.now() },
       })
       .catch((e) => logger.warn("[PolymarketDesk] createTask perf:", e));

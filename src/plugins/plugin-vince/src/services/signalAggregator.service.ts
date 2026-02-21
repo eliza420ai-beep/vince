@@ -87,9 +87,33 @@ import {
   getStandupSignalForAsset,
 } from "../utils/standupSignalsReader";
 
+// WTT (What's The Trade) daily pick → signal aggregator boost
+import { normalizeWttTicker } from "../constants/targetAssets";
+import {
+  wttRubricToSignal,
+  isWttEnabled,
+  type WttRubricStrings,
+} from "../constants/paperTradingDefaults";
+import * as fs from "fs";
+import * as path from "path";
+
 // ==========================================
 // ML-Enhanced Configuration
 // ==========================================
+
+/** Minimal shape of the WTT daily pick JSON sidecar for signal aggregation. */
+interface WttPickParsed {
+  primaryTicker: string;
+  primaryDirection: "long" | "short";
+  thesis: string;
+  altTicker?: string;
+  rubric: {
+    alignment: string;
+    edge: string;
+    payoffShape: string;
+    timingForgiveness: string;
+  };
+}
 
 /** Max wait per external source so one slow API doesn't block the whole aggregation */
 const SOURCE_FETCH_TIMEOUT_MS = 12_000;
@@ -287,6 +311,36 @@ export class VinceSignalAggregatorService extends Service {
 
   async stop(): Promise<void> {
     logger.debug("[VinceSignalAggregator] Service stopped");
+  }
+
+  /** Cache today's WTT pick (read once per day, reused across all assets). */
+  private wttPickCache: { date: string; pick: WttPickParsed | null } | null =
+    null;
+
+  private getWttPickForToday(): WttPickParsed | null {
+    if (!isWttEnabled(this.runtime)) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    if (this.wttPickCache?.date === today) return this.wttPickCache.pick;
+    try {
+      const base = process.env.STANDUP_DELIVERABLES_DIR?.trim()
+        ? path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR)
+        : path.join(process.cwd(), "docs", "standup");
+      const filepath = path.join(
+        base,
+        "whats-the-trade",
+        `${today}-whats-the-trade.json`,
+      );
+      const raw = fs.readFileSync(filepath, "utf-8");
+      const parsed = JSON.parse(raw) as WttPickParsed;
+      if (parsed?.primaryTicker && parsed?.rubric) {
+        this.wttPickCache = { date: today, pick: parsed };
+        return parsed;
+      }
+    } catch {
+      // No file or invalid JSON
+    }
+    this.wttPickCache = { date: today, pick: null };
+    return null;
   }
 
   /**
@@ -1598,12 +1652,21 @@ export class VinceSignalAggregatorService extends Service {
             hip3Service.getAssetPrice(asset),
           );
           if (hip3Data) {
-            // Funding-based signal (contrarian: extreme funding → mean reversion)
+            // Funding-based signal — contrarian only at extreme levels.
+            // At moderate levels, use funding polarity as trend confirmation
+            // (longs paying on uptrend = crowded but confirms direction).
             const fr = hip3Data.funding8h;
-            if (Math.abs(fr) > 0.0003) {
-              const fundingDir: "long" | "short" = fr > 0 ? "short" : "long";
-              const fundingStrength = Math.min(72, 58 + Math.abs(fr) * 20000);
-              const fundingConfidence = Math.min(65, 52 + Math.abs(fr) * 15000);
+            if (Math.abs(fr) > 0.00005) {
+              const extremeFunding = Math.abs(fr) > 0.0005;
+              const fundingDir: "long" | "short" = extremeFunding
+                ? fr > 0
+                  ? "short"
+                  : "long"
+                : fr > 0
+                  ? "long"
+                  : "short";
+              const fundingStrength = Math.min(72, 55 + Math.abs(fr) * 25000);
+              const fundingConfidence = Math.min(65, 48 + Math.abs(fr) * 20000);
               signals.push({
                 asset,
                 direction: fundingDir,
@@ -1611,22 +1674,23 @@ export class VinceSignalAggregatorService extends Service {
                 confidence: fundingConfidence,
                 source: "HIP3Funding",
                 factors: [
-                  `HIP-3 ${asset} funding ${fr > 0 ? "longs paying" : "shorts paying"} ${(fr * 100).toFixed(4)}% - contrarian ${fundingDir}`,
+                  `HIP-3 ${asset} funding ${fr > 0 ? "longs paying" : "shorts paying"} ${(fr * 100).toFixed(4)}% - ${extremeFunding ? "contrarian" : "confirming"} ${fundingDir}`,
                 ],
                 timestamp: Date.now(),
               });
               sources.push("HIP3Funding");
               allFactors.push(
-                `HIP-3 ${asset} funding ${(fr * 100).toFixed(4)}% (contrarian ${fundingDir})`,
+                `HIP-3 ${asset} funding ${(fr * 100).toFixed(4)}% (${extremeFunding ? "contrarian" : "confirming"} ${fundingDir})`,
               );
             }
 
-            // Momentum signal (24h change)
+            // Momentum signal (24h change) — primary source for HIP-3
+            // 0.3% threshold so more assets get a HIP3Momentum signal (was 0.5%)
             const change = hip3Data.change24h;
-            if (Math.abs(change) > 2) {
+            if (Math.abs(change) > 0.3) {
               const momDir: "long" | "short" = change > 0 ? "long" : "short";
-              const momStrength = Math.min(70, 55 + Math.abs(change) * 1.5);
-              const momConfidence = Math.min(62, 50 + Math.abs(change));
+              const momStrength = Math.min(82, 52 + Math.abs(change) * 3);
+              const momConfidence = Math.min(72, 48 + Math.abs(change) * 2);
               signals.push({
                 asset,
                 direction: momDir,
@@ -1644,27 +1708,62 @@ export class VinceSignalAggregatorService extends Service {
               );
             }
 
-            // OI buildup signal (high OI = crowded, mean reversion potential)
+            // OI buildup signal — only fire when momentum/priceAction agree (same direction).
+            // At lower ratios (1.8-3x on thin HIP-3 markets) use as CONFIRMING trend signal
+            // rather than contrarian, since contrarian OI fights momentum and zeros out direction.
+            // Only go contrarian at extreme ratios (> 5x).
             if (hip3Data.openInterest > 0 && hip3Data.volume24h > 0) {
               const oiToVolRatio = hip3Data.openInterest / hip3Data.volume24h;
-              if (oiToVolRatio > 3) {
-                const oiDir: "long" | "short" = change > 0 ? "short" : "long";
+              if (oiToVolRatio > 1.8) {
+                const extreme = oiToVolRatio > 5;
+                const oiDir: "long" | "short" = extreme
+                  ? change > 0
+                    ? "short"
+                    : "long"
+                  : change > 0
+                    ? "long"
+                    : "short";
+                const oiStrength = Math.min(70, 52 + oiToVolRatio * 3);
+                const oiConfidence = Math.min(64, 48 + oiToVolRatio * 2.5);
                 signals.push({
                   asset,
                   direction: oiDir,
-                  strength: 55,
-                  confidence: 50,
+                  strength: oiStrength,
+                  confidence: oiConfidence,
                   source: "HIP3OIBuild",
                   factors: [
-                    `HIP-3 ${asset} OI/volume ratio ${oiToVolRatio.toFixed(1)}x (position buildup, contrarian ${oiDir})`,
+                    `HIP-3 ${asset} OI/volume ratio ${oiToVolRatio.toFixed(1)}x (${extreme ? "extreme crowding, contrarian" : "confirming trend"} ${oiDir})`,
                   ],
                   timestamp: Date.now(),
                 });
                 sources.push("HIP3OIBuild");
                 allFactors.push(
-                  `HIP-3 ${asset} OI/vol ${oiToVolRatio.toFixed(1)}x (contrarian)`,
+                  `HIP-3 ${asset} OI/vol ${oiToVolRatio.toFixed(1)}x (${extreme ? "contrarian" : "confirming"})`,
                 );
               }
+            }
+
+            // Top-mover price action (trend-following): top 3 by |change24h| in universe
+            const topMovers = await hip3Service.getTopMoversByAbsChange(3);
+            if (topMovers.includes(asset) && Math.abs(change) > 0.3) {
+              const paDir: "long" | "short" = change > 0 ? "long" : "short";
+              const paStrength = Math.min(78, 50 + Math.abs(change) * 3);
+              const paConfidence = Math.min(70, 46 + Math.abs(change) * 2);
+              signals.push({
+                asset,
+                direction: paDir,
+                strength: paStrength,
+                confidence: paConfidence,
+                source: "HIP3PriceAction",
+                factors: [
+                  `HIP-3 ${asset} top mover ${change > 0 ? "+" : ""}${change.toFixed(1)}% 24h (trend-follow ${paDir})`,
+                ],
+                timestamp: Date.now(),
+              });
+              sources.push("HIP3PriceAction");
+              allFactors.push(
+                `HIP-3 ${asset} top mover (trend-follow ${paDir})`,
+              );
             }
           }
           if (!sources.some((s) => s.startsWith("HIP3"))) {
@@ -1677,6 +1776,41 @@ export class VinceSignalAggregatorService extends Service {
           triedNoContribution.push("HIP3");
         }
       }
+    }
+
+    // =========================================
+    // 9e. WTT (What's The Trade) daily curated pick — primary source
+    // If today's WTT pick matches this asset, inject it as a strong directional signal.
+    // =========================================
+    try {
+      const wttPick = this.getWttPickForToday();
+      if (wttPick) {
+        const wttAsset =
+          normalizeWttTicker(wttPick.primaryTicker) ??
+          normalizeWttTicker(wttPick.altTicker ?? "");
+        if (wttAsset === asset) {
+          const { strength: wttStr, confidence: wttConf } = wttRubricToSignal(
+            wttPick.rubric as WttRubricStrings,
+          );
+          signals.push({
+            asset,
+            direction: wttPick.primaryDirection,
+            strength: wttStr,
+            confidence: wttConf,
+            source: "WTT",
+            factors: [
+              `WTT daily pick: ${wttPick.primaryDirection} ${asset} — ${wttPick.thesis}`,
+            ],
+            timestamp: Date.now(),
+          });
+          sources.push("WTT");
+          allFactors.push(
+            `WTT daily pick: ${wttPick.primaryDirection} ${asset}`,
+          );
+        }
+      }
+    } catch (e) {
+      logger.debug(`[VinceSignalAggregator] WTT signal error: ${e}`);
     }
 
     // =========================================
@@ -2488,6 +2622,18 @@ export class VinceSignalAggregatorService extends Service {
       {
         name: "HIP3Funding",
         available: !!this.runtime.getService("VINCE_HIP3_SERVICE"),
+      },
+      {
+        name: "HIP3Momentum",
+        available: !!this.runtime.getService("VINCE_HIP3_SERVICE"),
+      },
+      {
+        name: "HIP3OIBuild",
+        available: !!this.runtime.getService("VINCE_HIP3_SERVICE"),
+      },
+      {
+        name: "WTT",
+        available: isWttEnabled(this.runtime),
       },
       { name: "DeribitPutCallRatio", available: !!deribitPluginService },
       { name: "DeribitDVOL", available: !!deribitPluginService },

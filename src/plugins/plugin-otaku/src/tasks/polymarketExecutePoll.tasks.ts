@@ -28,8 +28,18 @@ export function registerPolymarketExecutePollTask(
     execute: async (rt, _options, task) => {
       if (process.env.POLYMARKET_DESK_SCHEDULE_ENABLED === "false") return;
       try {
-        const msg = syntheticMessage("execute pending polymarket order", rt);
-        await rt.processActions(msg, [], undefined, undefined);
+        const action = rt.actions?.find(
+          (a) => a.name === "POLYMARKET_EXECUTE_PENDING_ORDER",
+        );
+        if (action?.handler) {
+          await (action.handler as any)(
+            rt,
+            syntheticMessage("execute pending polymarket order", rt),
+            undefined,
+            undefined,
+            () => Promise.resolve(),
+          );
+        }
       } catch (e) {
         logger.debug("[Otaku] Polymarket execute poll:", e);
       }
@@ -49,7 +59,7 @@ export function registerPolymarketExecutePollTask(
         description: "Poll and execute next pending Polymarket sized order",
         roomId: taskWorldId,
         worldId: taskWorldId,
-        tags: ["polymarket", "desk", "executor"],
+        tags: ["polymarket", "desk", "executor", "queue", "repeat"],
         metadata: { updateInterval: POLL_INTERVAL_MS, updatedAt: Date.now() },
       })
       .then(() =>

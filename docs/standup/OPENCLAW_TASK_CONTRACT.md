@@ -14,24 +14,24 @@ Task briefs produced by Sentinel for AI coding agents (OpenClaw, Cursor, Claude 
 
 ### Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique task id (e.g. openclaw-YYYYMMDD-XXXX) |
-| `title` | string | Yes | Short title |
-| `description` | string | Yes | What to do and why |
-| `scope` | string | Yes | What's in scope / out of scope |
-| `filesToChange` | string[] | No | Paths or globs to touch |
-| `acceptanceCriteria` | string[] | Yes | Checklist for done |
-| `expectedOutcome` | string | Yes | One sentence expected result |
-| `source` | string | Yes | `sentinel_ship` \| `weekly` \| `prd` \| `suggest` |
-| `prdPath` | string | No | Path to full PRD markdown if generated |
-| `branchName` | string | Yes | Suggested branch (e.g. sentinel/YYYY-MM-DD-short-slug) |
-| `createdAt` | string | Yes | ISO timestamp when created |
-| `plugin` | string | No | Plugin or area (e.g. plugin-vince) |
-| `priority` | string | No | P0 \| P1 \| P2 |
-| `effort` | string | No | XS \| S \| M \| L \| XL |
-| `consumedAt` | string | No | Set by consumer when picked up; ISO timestamp |
-| `prUrl` | string | No | Set by consumer when PR is opened |
+| Field                | Type     | Required | Description                                            |
+| -------------------- | -------- | -------- | ------------------------------------------------------ |
+| `id`                 | string   | Yes      | Unique task id (e.g. openclaw-YYYYMMDD-XXXX)           |
+| `title`              | string   | Yes      | Short title                                            |
+| `description`        | string   | Yes      | What to do and why                                     |
+| `scope`              | string   | Yes      | What's in scope / out of scope                         |
+| `filesToChange`      | string[] | No       | Paths or globs to touch                                |
+| `acceptanceCriteria` | string[] | Yes      | Checklist for done                                     |
+| `expectedOutcome`    | string   | Yes      | One sentence expected result                           |
+| `source`             | string   | Yes      | `sentinel_ship` \| `weekly` \| `prd` \| `suggest`      |
+| `prdPath`            | string   | No       | Path to full PRD markdown if generated                 |
+| `branchName`         | string   | Yes      | Suggested branch (e.g. sentinel/YYYY-MM-DD-short-slug) |
+| `createdAt`          | string   | Yes      | ISO timestamp when created                             |
+| `plugin`             | string   | No       | Plugin or area (e.g. plugin-vince)                     |
+| `priority`           | string   | No       | P0 \| P1 \| P2                                         |
+| `effort`             | string   | No       | XS \| S \| M \| L \| XL                                |
+| `consumedAt`         | string   | No       | Set by consumer when picked up; ISO timestamp          |
+| `prUrl`              | string   | No       | Set by consumer when PR is opened                      |
 
 ## Consumer contract
 

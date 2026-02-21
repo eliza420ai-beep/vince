@@ -26,6 +26,16 @@ Short checklist for running the orchestrator and the 8-pillar workspace flows.
 
 4. **Optional:** Configure OpenClaw agents named `alpha`, `market`, `onchain`, `news` in your OpenClaw workspace so the orchestrator can target them. If not configured, the CLI falls back to the default agent or returns a short message; use VINCE/plugin-openclaw for in-app research with real data.
 
+## Fast onboarding (optional)
+
+One conversation instead of Brain + DNA + Soul (~15 min):
+
+```bash
+bun run openclaw-agents/run-fast.ts
+```
+
+Then sync and optionally run the remaining pillars (Bones, Eyes, Heartbeat, Nerves). See [fast/README.md](fast/README.md).
+
 ## 8-pillar workspace flows (Brain → Nerves)
 
 Run in order. Each writes or updates files under `openclaw-agents/workspace/` (and optionally sync to `knowledge/teammate/` and `~/.openclaw/workspace/`).
@@ -70,7 +80,15 @@ Run in order. Each writes or updates files under `openclaw-agents/workspace/` (a
    bun run openclaw-agents/nerves/run-nerves.ts
    ```
 
-After each run, copy or symlink `openclaw-agents/workspace/*.md` to `knowledge/teammate/` for VINCE and to `~/.openclaw/workspace/` for the OpenClaw CLI. See [ARCHITECTURE.md](ARCHITECTURE.md#sync).
+After each run, sync workspace files so VINCE and OpenClaw use them:
+
+- **To VINCE (knowledge/teammate/):**
+  ```bash
+  bun run openclaw-agents/scripts/sync-workspace-to-teammate.ts
+  ```
+- **To OpenClaw CLI:** copy or symlink `openclaw-agents/workspace/*.md` to `~/.openclaw/workspace/`.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md#sync).
 
 ## Plugin: use last-briefing in VINCE
 
