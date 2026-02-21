@@ -99,6 +99,11 @@ const KNOWN_SOURCES = [
   "MarketRegime",
   "NewsSentiment",
   "XSentiment",
+  "HIP3Funding",
+  "HIP3Momentum",
+  "HIP3OIBuild",
+  "HIP3PriceAction",
+  "WTT",
 ];
 
 // ==========================================

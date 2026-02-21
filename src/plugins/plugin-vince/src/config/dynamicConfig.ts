@@ -164,10 +164,11 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   BinanceTopTraders: 1.0, // Real data from public Binance API
   SanbaseWhales: 0.0, // DISABLED - 30-day lag on free tier
 
-  // HIP-3 Hyperliquid DEX signals (1.3x-1.0x)
-  HIP3Funding: 1.3, // HIP-3 per-asset funding rate (contrarian mean-reversion)
-  HIP3Momentum: 1.0, // HIP-3 24h price momentum
-  HIP3OIBuild: 0.8, // HIP-3 OI/volume ratio (position buildup, contrarian)
+  // HIP-3 Hyperliquid DEX signals (1.3x-0.8x)
+  HIP3Funding: 1.3, // HIP-3 per-asset funding rate (confirms trend; contrarian at extreme only)
+  HIP3Momentum: 1.0, // HIP-3 24h price momentum (trend-following)
+  HIP3OIBuild: 0.8, // HIP-3 OI/volume ratio (confirms trend; contrarian at extreme only)
+  HIP3PriceAction: 1.0, // HIP-3 top-3 movers by |change24h| (trend-following)
 
   // WTT (What's The Trade) — curated daily thesis pick
   WTT: 1.5, // Strong weight: human-curated thesis with rubric scoring
