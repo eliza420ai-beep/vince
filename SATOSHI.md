@@ -105,9 +105,12 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 **🚀 JUST ADDED:**
 - **ML Signal Quality Threshold visibility** - Shows SQ threshold % + TP win rates + tuning params
 - **Self-tuning visibility** - Shows parameter tuner status, auto-tuned flag, recent adjustments
-- Output examples:
-  - `ML Loop: 150+ trades | ONNX | SQ threshold: 50% (TP: 1:60%) [tuning: strength≥60%]`
-  - `Self-tuning: minStr=60% | minConf=40% | AUTO-TUNED [signal_thresh:45%→50%]`
+- **Paper bot stats** - Win rate, profit factor, enhanced display
+- **Risk state** - Daily P&L, drawdown, trade count, circuit breaker status
+- **Portfolio summary** - Total value, return %, positions
+- **ONNX model inference counts** - Shows which models are being used
+
+**PR Total:** 24 commits, +708 lines
 
 ---
 
