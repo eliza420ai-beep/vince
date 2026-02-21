@@ -101,6 +101,7 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 
 **📋 REMAINING:**
 - Test new format with next standup run
+- TRADING_RUNTIME_CONTRACT.md verified - aligns with EVClaw producer/executor pattern
 
 ---
 
