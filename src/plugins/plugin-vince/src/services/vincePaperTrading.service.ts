@@ -2457,8 +2457,8 @@ Reply format: APPROVE reason or VETO reason`;
       return null;
     }
 
-    // Close at current mark price
-    const closedPosition = positionManager.closePosition(
+    // Close at current mark price and record with goal tracker so Goal progress updates as soon as we have recent trades
+    const closedPosition = positionManager.closePositionWithGoalTracking(
       positionId,
       position.markPrice,
       reason,
