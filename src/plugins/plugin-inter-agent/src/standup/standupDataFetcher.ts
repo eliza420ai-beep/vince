@@ -227,6 +227,69 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   return line;
 }
 
+/**
+ * Fetch ML/ONNX model status for VINCE - shows self-improvement progress.
+ * This supports the Dragonfly pitch narrative: "the ML loop is real"
+ */
+async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
+  try {
+    // Try to get feature store count
+    const vinceService = runtime.getService("VINCE_RUNTIME_SERVICE") as {
+      getFeatureCount?: () => Promise<number>;
+      getModelStatus?: () => Promise<{
+        signalQuality?: boolean;
+        positionSizing?: boolean;
+        trained?: number;
+      } | null>;
+    } | null;
+    
+    let featureCount = 0;
+    let modelTrained = 0;
+    let hasModels = false;
+    
+    try {
+      featureCount = await vinceService?.getFeatureCount?.() ?? 0;
+    } catch {}
+    
+    try {
+      const modelStatus = await vinceService?.getModelStatus?.();
+      if (modelStatus) {
+        modelTrained = modelStatus.trained ?? 0;
+        hasModels = !!(modelStatus.signalQuality || modelStatus.positionSizing);
+      }
+    } catch {}
+    
+    // Also check feature store directory for trade count
+    try {
+      const featureDir = path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
+      if (fs.existsSync(featureDir)) {
+        const files = fs.readdirSync(featureDir).filter(f => f.endsWith(".jsonl"));
+        // Estimate trades from file sizes (rough proxy)
+        if (featureCount === 0) {
+          // Try to count lines in first file
+          for (const f of files.slice(0, 1)) {
+            const content = fs.readFileSync(path.join(featureDir, f), "utf-8");
+            featureCount = content.split("\n").filter(l => l.trim()).length;
+          }
+        }
+      }
+    } catch {}
+    
+    if (featureCount > 0 || modelTrained > 0 || hasModels) {
+      const parts: string[] = [];
+      if (featureCount > 0) parts.push(`${featureCount}+ trades in feature store`);
+      if (hasModels) parts.push("ONNX models loaded");
+      if (modelTrained > 0) parts.push(`${modelTrained} training runs`);
+      
+      return `**ML Loop:** ${parts.join(" | ")}`;
+    }
+    
+    return ""; // No ML data yet - graceful degradation
+  } catch {
+    return "";
+  }
+}
+
 async function fetchGoalTracker(runtime: IAgentRuntime): Promise<string> {
   const goals = runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as {
     getDailyProgress?: () => Promise<{
@@ -451,6 +514,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     "Deribit",
     "Binance",
     "PaperBot",
+    "ML",
     "Goals",
     "MandoMinutes",
     "Allium",
@@ -467,6 +531,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     fetchDeribitDVOL(runtime),
     fetchBinanceTopTraders(runtime),
     fetchPaperBot(runtime),
+    fetchMLStatus(runtime),
     fetchGoalTracker(runtime),
     fetchMandoMinutes(runtime),
     fetchAlliumOnChain(runtime),
