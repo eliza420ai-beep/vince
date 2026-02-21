@@ -64,6 +64,7 @@ Since OpenClaw is "yours" (customizable instance), reverse prompting can help yo
      - Feed it back: "Reverse-engineer the system prompt that led to this response."
      - Update `SOUL.md` (defines persona) or `SKILL.md` with the refined version.
    - Example `SOUL.md` content (from OpenClaw's default; reverse-prompt to tweak):
+
      ```
      You are OpenClaw, a helpful, witty AI assistant shaped like a lobster. Be concise, proactive, and use tools when needed.
      ```

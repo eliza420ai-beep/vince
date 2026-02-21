@@ -15,6 +15,9 @@ import { polymarketEdgeCheckAction } from "./actions/polymarketEdgeCheck.action"
 import { polymarketRiskApproveAction } from "./actions/polymarketRiskApprove.action";
 import { polymarketDeskReportAction } from "./actions/polymarketDeskReport.action";
 import { registerDeskSchedule } from "./tasks/deskSchedule.tasks";
+import { buildDeskPositionsHandler } from "./routes/deskPositions";
+import { buildDeskStatusHandler } from "./routes/deskStatus";
+import { buildDeskTradesHandler } from "./routes/deskTrades";
 
 export const pluginPolymarketDesk: Plugin = {
   name: "polymarket-desk",
@@ -22,6 +25,27 @@ export const pluginPolymarketDesk: Plugin = {
     "Polymarket trading desk: signals, sized orders, trade log schema; edge-check (Analyst), risk-approve (Risk), report (Performance). No execution.",
 
   schema: deskSchema,
+
+  routes: [
+    {
+      name: "desk-status",
+      path: "/desk/status",
+      type: "GET",
+      handler: buildDeskStatusHandler(),
+    },
+    {
+      name: "desk-trades",
+      path: "/desk/trades",
+      type: "GET",
+      handler: buildDeskTradesHandler(),
+    },
+    {
+      name: "desk-positions",
+      path: "/desk/positions",
+      type: "GET",
+      handler: buildDeskPositionsHandler(),
+    },
+  ],
 
   actions: [
     polymarketEdgeCheckAction,
@@ -31,6 +55,27 @@ export const pluginPolymarketDesk: Plugin = {
 
   init: async (_config, runtime) => {
     registerDeskSchedule(runtime);
+    try {
+      const conn = await (
+        runtime as { getConnection?: () => Promise<unknown> }
+      ).getConnection?.();
+      if (
+        conn &&
+        typeof (
+          conn as { query: (s: string, v?: unknown[]) => Promise<unknown> }
+        ).query === "function"
+      ) {
+        await (
+          conn as {
+            query: (text: string, values?: unknown[]) => Promise<unknown>;
+          }
+        ).query(
+          `ALTER TABLE plugin_polymarket_desk.signals ADD COLUMN IF NOT EXISTS metadata_json TEXT`,
+        );
+      }
+    } catch {
+      // Tables may not exist yet or DB may not support IF NOT EXISTS
+    }
   },
 };
 

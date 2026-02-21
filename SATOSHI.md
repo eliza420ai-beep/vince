@@ -97,7 +97,7 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - **Code: Cross-agent links** — Auto-generates connections between VINCE/Oracle/ECHO/Solus
 - **Eliza section** — Already has: Delta, Facts, Substack idea, Knowledge to expand
 - **Agent reviews:** All agents have docs: VINCE, Otaku, ECHO, Oracle, Solus
-- PR: `satoshi/improve-daily-insights-template` (13 commits)
+- PR: `satoshi/improve-daily-insights-template` (25 commits)
 
 **📋 REMAINING:**
 - Test new format with next standup run
@@ -110,7 +110,7 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - **Portfolio summary** - Total value, return %, positions
 - **ONNX model inference counts** - Shows which models are being used
 
-**PR Total:** 24 commits, +708 lines
+**PR Total:** 25 commits, +750 lines
 
 ---
 

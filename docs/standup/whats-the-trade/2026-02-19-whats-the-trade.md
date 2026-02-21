@@ -28,9 +28,10 @@ But with funding rates neutral and the stock sitting below recent highs, the asy
 
 PLTR · perp · LONG
 100 shares @ $133.09 · risk $665
-$133   lose if <$126   win if >$145
+$133 lose if <$126 win if >$145
 +EV above 9% · dies if peace breaks out
 Alt: NVDA $187 short (overvalued vs defense rotation)
 
 ---
+
 _Expressions, not advice. Do your own research._

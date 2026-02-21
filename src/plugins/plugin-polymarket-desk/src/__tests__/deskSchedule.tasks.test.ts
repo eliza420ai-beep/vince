@@ -86,10 +86,16 @@ describe("plugin-polymarket-desk: deskSchedule.tasks", () => {
       "POLYMARKET_ANALYST_HOURLY",
     );
     expect((runtime as any)._createdTasks[0].tags).toContain("analyst");
+    expect((runtime as any)._createdTasks[0].tags).toContain("queue");
+    expect((runtime as any)._createdTasks[0].tags).toContain("repeat");
     expect((runtime as any)._createdTasks[1].name).toBe("POLYMARKET_RISK_15M");
     expect((runtime as any)._createdTasks[1].tags).toContain("risk");
+    expect((runtime as any)._createdTasks[1].tags).toContain("queue");
+    expect((runtime as any)._createdTasks[1].tags).toContain("repeat");
     expect((runtime as any)._createdTasks[2].name).toBe("POLYMARKET_PERF_4H");
     expect((runtime as any)._createdTasks[2].tags).toContain("performance");
+    expect((runtime as any)._createdTasks[2].tags).toContain("queue");
+    expect((runtime as any)._createdTasks[2].tags).toContain("repeat");
   });
 
   it("registerDeskSchedule does nothing for Polymarket Risk (consolidated under Oracle)", () => {
@@ -177,18 +183,21 @@ describe("plugin-polymarket-desk: deskSchedule.tasks", () => {
     expect(updateCalled).toBe(true);
   });
 
-  it("risk 15m worker queries pending signals and calls updateTask", async () => {
+  it("risk 15m worker calls POLYMARKET_RISK_APPROVE handler and updateTask", async () => {
     delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
-    let queryCalled = false;
+    let riskHandlerCalled = false;
+    let handlerOptions: Record<string, unknown> = {};
     const runtime = createMockRuntime("Oracle");
-    (runtime as any).getConnection = async () => ({
-      query: async (sql: string) => {
-        queryCalled = true;
-        expect(sql).toContain("plugin_polymarket_desk.signals");
-        expect(sql).toContain("pending");
-        return { rows: [{ cnt: "3" }] };
-      },
-    });
+    runtime.actions = [
+      {
+        name: "POLYMARKET_RISK_APPROVE",
+        handler: async (_rt: any, msg: any, _state: any, options: any) => {
+          riskHandlerCalled = true;
+          handlerOptions = options ?? {};
+          expect(msg?.content?.text).toBe("risk approve");
+        },
+      } as any,
+    ];
     registerDeskSchedule(runtime);
     const worker = (runtime as any)._taskWorkers[1];
     let updateCalled = false;
@@ -201,27 +210,53 @@ describe("plugin-polymarket-desk: deskSchedule.tasks", () => {
       tags: [],
       metadata: {},
     } as Task);
-    expect(queryCalled).toBe(true);
+    expect(riskHandlerCalled).toBe(true);
+    expect(updateCalled).toBe(true);
+    expect(handlerOptions).toBeDefined();
+  });
+
+  it("risk 15m worker runs updateTask when POLYMARKET_RISK_APPROVE action not present", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    const runtime = createMockRuntime("Oracle");
+    runtime.actions = [];
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[1];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, {
+      id: "t2",
+      name: "POLYMARKET_RISK_15M",
+      tags: [],
+      metadata: {},
+    } as Task);
     expect(updateCalled).toBe(true);
   });
 
-  it("risk 15m worker skips DB when getConnection returns null", async () => {
+  it("risk 15m worker passes wallet_address in options when POLYMARKET_DESK_WALLET_ADDRESS set", async () => {
     delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    process.env.POLYMARKET_DESK_WALLET_ADDRESS = "0xWallet123";
+    let handlerOptions: Record<string, unknown> = {};
     const runtime = createMockRuntime("Oracle");
-    (runtime as any).getConnection = async () => null;
+    runtime.actions = [
+      {
+        name: "POLYMARKET_RISK_APPROVE",
+        handler: async (_rt: any, _msg: any, _state: any, options: any) => {
+          handlerOptions = options ?? {};
+        },
+      } as any,
+    ];
     registerDeskSchedule(runtime);
     const worker = (runtime as any)._taskWorkers[1];
-    let updateCalled = false;
-    (runtime as any).updateTask = async () => {
-      updateCalled = true;
-    };
     await worker.execute(runtime, {}, {
       id: "t2",
       name: "POLYMARKET_RISK_15M",
       tags: [],
       metadata: {},
     } as Task);
-    expect(updateCalled).toBe(true);
+    expect(handlerOptions.wallet_address).toBe("0xWallet123");
+    delete process.env.POLYMARKET_DESK_WALLET_ADDRESS;
   });
 
   it("perf 4h worker runs desk report action and updateTask", async () => {

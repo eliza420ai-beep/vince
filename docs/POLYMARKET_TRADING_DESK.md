@@ -22,17 +22,65 @@ Design doc for the Polymarket trading desk: agent roles, tool ownership, and sch
 
 ```
 Synth API → Analyst (Oracle) → [signal] → Risk agent → [sized order] → Executor (Otaku) → CLOB → [fill] → trade log
+Edge engine (Oracle) ──────────┘                              ↑
                                                                               ↑
 Performance agent ← trade log + positions (read) ←────────────────────────────┘
 ```
 
-- **Signals:** Emitted by Analyst when edge (e.g. Synth forecast vs Polymarket price) exceeds threshold. Stored in DB table or task queue for Risk to consume.
+- **Signals:** Emitted when edge exceeds threshold. Two sources: (1) **Edge engine** (`plugin-polymarket-edge` on Oracle): multi-strategy runner (overreaction, model fair value, Synth forecast) that writes to `plugin_polymarket_desk.signals`; (2) **Desk’s own hourly check** (e.g. POLYMARKET_EDGE_CHECK) when configured. Both feed the same Risk → Executor pipeline.
 - **Sized orders:** Produced by Risk after checking bankroll, exposure, and limits; written to approval queue. Executor is the only consumer.
 - **Trade log:** Written by Executor on each fill (market, side, size, arrival price, fill price, timestamp). Read by Performance for TCA and reports.
 
 ---
 
-## 3. Schema: structured signal (Analyst → Risk)
+## 3. Trading strategies (edge engine)
+
+The edge engine (`plugin-polymarket-edge` on Oracle) runs multiple strategies. Each strategy compares some “fair value” or signal to the CLOB price and emits a signal when edge exceeds its threshold. Signal metadata from these strategies is stored in `plugin_polymarket_desk.signals.metadata_json` and shown in the leaderboard UI as “Why this position.”
+
+### 3.1 model_fair_value
+
+- **What it does:** Compares Black–Scholes implied probability (spot vs strike, volatility) to the CLOB YES price. Only considers BTC binary markets with a numeric strike (`strikeUsd > 0`). Emits a signal when edge is above threshold and the model forecast is in a “meaningful” range (default 5–95%) to avoid flooding from deep ITM/OTM.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/modelFairValue.ts](src/plugins/plugin-polymarket-edge/src/strategies/modelFairValue.ts). Uses [impliedProbability.ts](src/plugins/plugin-polymarket-edge/src/services/impliedProbability.ts) and spot from Binance WS.
+- **Config (env):** `EDGE_MODEL_MIN_EDGE_PCT` (default 15), `EDGE_MODEL_TICK_INTERVAL_MS` (5s), `EDGE_MODEL_MIN_FORECAST_PROB` / `EDGE_MODEL_MAX_FORECAST_PROB` (5–95%), `EDGE_MODEL_COOLDOWN_MS` (10 min per market). See [plugin-polymarket-edge/src/constants.ts](src/plugins/plugin-polymarket-edge/src/constants.ts).
+- **Signal metadata (Why):** spot, strikeUsd, expiryMs, volatility.
+
+### 3.2 overreaction (Poly Strat)
+
+- **What it does:** Detects a sharp move in the favorite and a cheap underdog. Signals **BUY underdog** when price velocity is above threshold, underdog price is below max (e.g. 0.15), and favorite is clearly above 0.7. Uses rolling price velocity from CLOB WS.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/overreaction.ts](src/plugins/plugin-polymarket-edge/src/strategies/overreaction.ts). Uses [priceVelocity.ts](src/plugins/plugin-polymarket-edge/src/services/priceVelocity.ts).
+- **Config (env):** `EDGE_OVERREACTION_VELOCITY_PCT` (default 5), `EDGE_OVERREACTION_WINDOW_MS` (5 min), `EDGE_OVERREACTION_MAX_UNDERDOG_PRICE` (0.15), `EDGE_OVERREACTION_COOLDOWN_MS` (15 min).
+- **Signal metadata (Why):** favoritePrice, underdogPrice, velocityPct.
+
+### 3.3 synth
+
+- **What it does:** Compares Synth API forecast probability (e.g. BTC) to CLOB mid price. Signals when edge in bps is at or above threshold (default 200 bps). **No-op if `SYNTH_API_KEY` is not set** — synth will never emit in that case.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts](src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts). Uses [synthClient.ts](src/plugins/plugin-polymarket-edge/src/services/synthClient.ts).
+- **Config (env):** `EDGE_SYNTH_POLL_INTERVAL_MS`, `EDGE_SYNTH_EDGE_BPS` (200). Requires `SYNTH_API_KEY` (and Pro for Polymarket predictions; see §11).
+- **Signal metadata (Why):** asset (e.g. BTC), synthSource.
+
+### 3.4 maker_rebate
+
+- **What it does:** Paper-traded maker signals for **5-minute BTC up/down** markets. Only considers markets whose question matches 5-min BTC direction (e.g. “Will BTC go up in the next 5 minutes”) and **only when expiry is within 0–10 seconds**. Signals maker-side entry at 90–95¢ with zero-fee / rebate rationale.
+- **Implementation:** [src/plugins/plugin-polymarket-edge/src/strategies/makerRebate.ts](src/plugins/plugin-polymarket-edge/src/strategies/makerRebate.ts). Uses same Binance WS + CLOB WS as other strategies.
+- **Config (env):** `EDGE_MAKER_REBATE_TICK_MS` (2s), `EDGE_MAKER_REBATE_ENTRY_WINDOW_SEC` (10), `EDGE_MAKER_REBATE_MIN_CONFIDENCE`, `EDGE_MAKER_REBATE_MIN_ENTRY_PRICE`, `EDGE_MAKER_REBATE_COOLDOWN_MS`.
+- **Signal metadata (Why):** makerEntryPrice, takerFeeAvoidedBps, estimatedFillProb, windowSecsRemaining, btcMomentumPct, isMakerOrder.
+
+### 3.5 Why only overreaction might fire (fresh restart)
+
+After a fresh server restart you may see only **overreaction** in paper positions. Reasons:
+
+| Strategy             | When it can signal                                                                                                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **overreaction**     | Works on **any** binary in the watched list. Needs: underdog ≤ 0.15, favorite ≥ 0.7, price velocity spike (default 5% in 5 min), edge ≥ 200 bps. So most discovered contracts can qualify once velocity builds. |
+| **model_fair_value** | Only contracts with **strikeUsd > 0** (BTC threshold questions like “Will BTC hit $100k?”). If discovery returns mostly non-threshold binaries (`strikeUsd = 0`), it never fires.                               |
+| **synth**            | **No signals if `SYNTH_API_KEY` is not set.** Set the key to enable.                                                                                                                                            |
+| **maker_rebate**     | Only **5-min BTC up/down** markets and only when **expiry is in the next 0–10 seconds**. So it needs those markets in the discovered set and a tick in that tiny window (288 such markets per day).             |
+
+**What to do:** Ask Oracle for “edge status” (or open Leaderboard → Polymarket tab → Edge status). The response now includes **Why only some strategies may fire** (e.g. `model_fair_value: needs BTC threshold markets (strikeUsd>0): 0 of 12 watched`, `synth: SYNTH_API_KEY not set`, `maker_rebate: needs 5-min BTC markets with expiry in 0–10s: 0 right now`). To get more variety: set `SYNTH_API_KEY` for synth; ensure discovery tags include markets that have BTC threshold questions for model_fair_value; for maker_rebate, ensure 5-min BTC markets are in the discovery tag set and that the engine is running when those windows occur.
+
+---
+
+## 4. Schema: structured signal (Analyst → Risk)
 
 Produced by the Analyst (Oracle) when edge is above threshold. Stored so Risk can poll or be notified.
 
@@ -54,7 +102,7 @@ Produced by the Analyst (Oracle) when edge is above threshold. Stored so Risk ca
 
 ---
 
-## 4. Schema: sized order (Risk → Executor)
+## 5. Schema: sized order (Risk → Executor)
 
 Produced by Risk after approving a signal and applying sizing. Only Executor reads and consumes these.
 
@@ -76,7 +124,7 @@ Produced by Risk after approving a signal and applying sizing. Only Executor rea
 
 ---
 
-## 5. Schema: trade log (Executor write; Performance read)
+## 6. Schema: trade log (Executor write; Performance read)
 
 One row per filled order. Written by Executor; read by Performance for TCA and reports.
 
@@ -99,7 +147,7 @@ One row per filled order. Written by Executor; read by Performance for TCA and r
 
 ---
 
-## 6. Where each artifact lives
+## 7. Where each artifact lives
 
 | Artifact                         | Primary storage                                                                           | Optional / backup                                   |
 | -------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- |
@@ -113,7 +161,7 @@ DB tables live in the same database as ElizaOS (PGLite when no `POSTGRES_URL`, e
 
 ---
 
-## 7. Approval mechanism (push vs pull)
+## 8. Approval mechanism (push vs pull)
 
 - **Pull (recommended for Phase 1):** Executor (Otaku) runs a recurring task (e.g. every 1–2 min) that queries `sized_orders` for `status = 'pending'`, picks one, calls Polymarket CLOB to place order, then updates the row to `status = 'filled'`/`'sent'` and appends to `trade_log`. Simple and decoupled; no ASK_AGENT required for execution.
 - **Push (optional later):** Risk agent, after writing a sized order, invokes ASK_AGENT to Otaku with a structured message containing the order id; Otaku then fetches the order and executes. Lowers latency but couples Risk to Otaku’s availability.
@@ -122,7 +170,7 @@ This doc assumes **pull** for initial implementation.
 
 ---
 
-## 8. Discord audit trail (per-role channels)
+## 9. Discord audit trail (per-role channels)
 
 Each role can post to its own channel for a timestamped audit trail. Configure one Discord app per agent (or use a single app and route by channel).
 
@@ -150,10 +198,25 @@ Create these channels in your Discord server and invite the corresponding bot to
 
 Set `POLYMARKET_DESK_SCHEDULE_ENABLED=false` to disable all desk recurring tasks.
 
+When the schedule is enabled, **Risk 15m** approves one pending signal per run (invokes `POLYMARKET_RISK_APPROVE`) and writes one row to `sized_orders`. **Otaku 2m** executes one pending sized order per run (invokes `POLYMARKET_EXECUTE_PENDING_ORDER` directly, no LLM) and writes to `trade_log`. Both run via Bootstrap TaskService (tasks are tagged `queue` + `repeat`).
+
+**Otaku execution (live)** requires these env vars on the Otaku agent. If any are missing, the execute action records a **paper fill** instead (see Paper-only mode below):
+
+- `POLYMARKET_PRIVATE_KEY` or `EVM_PRIVATE_KEY`
+- `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`
+- `POLYMARKET_FUNDER_ADDRESS`
+
+See `.env.example` (Polymarket / Otaku sections) for all desk and execution variables.
+
+### Paper-only mode
+
+When Otaku does **not** have Polymarket CLOB credentials set, the execute action **records a paper fill**: it updates the sized order to `status = 'filled'` and inserts a row into `trade_log` (with `wallet = 'paper'`, `clob_order_id = null`). Fill price is taken from the signal's market price, or from Polymarket discovery (current YES/NO price) when available. No CLOB credentials are required for paper trading. The 2 minute poll will consume pending orders one-by-one and write these paper fills, so the Leaderboard **“Recent trades”**, **“Trades today”**, and **Execution P&L** all reflect paper activity and you can validate strategies and P&L without real execution. Once credentials are configured, the same flow places real orders on the CLOB and writes live fills to the trade log.
+
 ### Tuning parameters
 
 - **Edge (Analyst):** `edge_threshold_bps` in POLYMARKET_EDGE_CHECK (default 200). Higher = fewer, higher-conviction signals.
 - **Risk sizing:** `POLYMARKET_DESK_BANKROLL_USD`, `POLYMARKET_DESK_KELLY_FRACTION` (e.g. 0.25), `POLYMARKET_DESK_MAX_POSITION_PCT`, `POLYMARKET_DESK_MIN_SIZE_USD`, `POLYMARKET_DESK_MAX_SIZE_USD` (see Risk action and .env.example).
+- **Selectivity (backlog cap):** `POLYMARKET_DESK_MAX_PENDING_SIZED_ORDERS` (default 10). Risk will not create a new sized order when the number of pending sized orders is already at or above this limit, so the desk stays selective and the UI/Executor aren’t overloaded. Raise the cap if Otaku is filling orders quickly; leave at 10–20 if execution is slow or paper-only.
 - **Execution:** CLOB credentials and `POLYMARKET_FUNDER_ADDRESS` only on Otaku; no execution keys on other agents.
 
 EOD (e.g. 10pm) and weekly (e.g. Sunday) reports can be added as additional tasks or triggered via Orchestrator (Kelly) / ASK_AGENT.
@@ -164,7 +227,7 @@ EOD (e.g. 10pm) and weekly (e.g. Sunday) reports can be added as additional task
 
 ### What we did
 
-The **Analyst (Oracle)** compares an external forecast to Polymarket’s price to decide when we have edge. We use **Synth** (synthdata.co) for that forecast:
+The **Analyst (Oracle)** compares an external forecast to Polymarket’s price to decide when we have edge. We use **Synth** (synthdata.co) for that forecast. Our edge is **forecast vs price**, not latency — Polymarket removed the 0.5s order delay on 15m BTC events (Feb 2025), which killed speed-based bots; we do not rely on that. See [Polymarket deep reference](../knowledge/macro-economy/polymarket-deep-reference.md) Part 10 for platform-regime notes.
 
 - **`plugin-polymarket-desk`** → `services/synthClient.ts`: `getSynthForecast(asset)` calls Synth’s prediction-percentiles API (e.g. BTC, ETH, SOL).
 - **POLYMARKET_EDGE_CHECK** (Oracle): Fetches Synth forecast + Polymarket YES/NO price for a `condition_id`, computes edge in bps; when edge ≥ threshold, writes a row to `plugin_polymarket_desk.signals` for Risk to approve and size.
@@ -199,9 +262,29 @@ Standard ($49/mo) only has “API access to 100 calls one time,” which is not 
 
 ---
 
-## 12. References
+## 12. Recent trades empty? (Leaderboard troubleshooting)
+
+The Leaderboard **Polymarket** tab shows “Polymarket paper trading — Recent trades.” That list is filled from `plugin_polymarket_desk.trade_log`. Rows are written **only** when **Otaku** runs `POLYMARKET_EXECUTE_PENDING_ORDER`: it takes the next pending row from `sized_orders`, places the order on the CLOB, then inserts into `trade_log`. If you see “No trades executed yet,” use this checklist.
+
+### Shared database
+
+**Oracle** (plugin-polymarket-desk) and **Otaku** (plugin-otaku) must use the **same** database. The Leaderboard calls Oracle’s `/desk/trades` and `/desk/status`; those read `trade_log`. If Otaku runs in a different process or points to a different `POSTGRES_URL` or `PGLITE_DATA_DIR`, its inserts won’t be visible to Oracle and the list stays empty. **Single process:** one `POSTGRES_URL` or one `PGLITE_DATA_DIR` usually means all agents share the same DB. **Multiple processes/hosts:** set the same `POSTGRES_URL` (or same PGLite path) for both Oracle and Otaku.
+
+### Checklist
+
+- **Oracle and Otaku use the same DB** (see above).
+- **Otaku is running** and `POLYMARKET_DESK_SCHEDULE_ENABLED` is **not** set to `false` (otherwise the 2‑minute execute poll never runs).
+- **Polymarket CLOB credentials** are set for Otaku: `POLYMARKET_PRIVATE_KEY` (or `EVM_PRIVATE_KEY`), `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`. Without these, the execute action cannot place orders or write to `trade_log`.
+- **Pending sized orders exist:** the Leaderboard shows “Open paper orders: N.” If N &gt; 0, Risk has written orders; Otaku’s poll will pick them up every 2 min when credentials and DB are correct.
+
+If the desk status API returns `tradeLogCount: 0` and you have pending sized orders, the usual cause is Otaku not running the execute poll, missing credentials, or a different DB.
+
+---
+
+## 13. References
 
 - [ORACLE.md](ORACLE.md) — Oracle as Analyst (Polymarket discovery).
 - [OTAKU.md](OTAKU.md) — Otaku as Executor (only wallet).
+- [knowledge/macro-economy/polymarket-deep-reference.md](../knowledge/macro-economy/polymarket-deep-reference.md) — Full Polymarket reference; Part 10 = platform changes and bot strategy (e.g. Feb 2025 delay removal).
 - [FEATURE-STORE.md](FEATURE-STORE.md) — How paper bot stores feature records (DB + JSONL pattern).
 - [MULTI_AGENT.md](MULTI_AGENT.md) — ASK_AGENT and handoffs.

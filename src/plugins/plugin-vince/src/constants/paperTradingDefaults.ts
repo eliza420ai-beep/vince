@@ -238,6 +238,10 @@ export const PRIMARY_SIGNAL_SOURCES = new Set([
   "HyperliquidCrowding",
   "DeribitPutCallRatio",
   "HIP3Funding",
+  "HIP3Momentum",
+  "HIP3OIBuild",
+  "HIP3PriceAction",
+  "WTT",
   "CoinGlass",
   "BinanceTakerFlow",
   "BinanceLongShort",
@@ -291,6 +295,14 @@ export const SIGNAL_THRESHOLDS = {
    * confirming sources instead of MIN_CONFIRMING. Lower = more trades = more training data.
    */
   MIN_CONFIRMING_WHEN_STRONG: 2,
+
+  /**
+   * HIP-3 assets have only 3–4 signal sources (Hyperliquid DEXes). Use lower minimums
+   * so aggregated HIP-3 signals can pass and the paper bot can open HIP-3 positions.
+   * 45/40 allows more single-signal HIP-3 trades (e.g. one HIP3Momentum) to pass.
+   */
+  HIP3_MIN_STRENGTH: 45,
+  HIP3_MIN_CONFIDENCE: 40,
 } as const;
 
 // ==========================================
@@ -321,20 +333,42 @@ export const TIMING = {
 /**
  * Asset-specific max leverage.
  * BTC: 40x (primary, most liquid). SOL, ETH, HYPE: 10x (higher volatility/risk).
+ * HIP-3: 5x cap for now; future: read from Hyperliquid meta.
  */
 export const ASSET_MAX_LEVERAGE: Record<string, number> = {
   BTC: 40,
   ETH: 10,
   SOL: 10,
   HYPE: 10,
+  // HIP-3 assets: 5x cap (HL allows 3x–50x per asset; we cap for safety until we read from API)
+  GOLD: 5,
+  SILVER: 5,
+  OIL: 5,
+  USOIL: 5,
+  US500: 5,
+  MAG7: 5,
+  SEMIS: 5,
+  NVDA: 5,
+  GOOGL: 5,
+  TSLA: 5,
+  AAPL: 5,
+  META: 5,
+  MSFT: 5,
+  AMZN: 5,
+  PLTR: 5,
+  COIN: 5,
+  AMD: 5,
 };
 
-/** Get max leverage for an asset (defaults to AGGRESSIVE_LEVERAGE for unknown) */
+/** Get max leverage for an asset (defaults to 5 for HIP-3, else AGGRESSIVE_LEVERAGE for unknown) */
 export function getAssetMaxLeverage(
   asset: string,
   aggressiveDefault: number = 40,
 ): number {
-  return ASSET_MAX_LEVERAGE[asset.toUpperCase()] ?? aggressiveDefault;
+  const key = asset.toUpperCase();
+  if (ASSET_MAX_LEVERAGE[key] != null) return ASSET_MAX_LEVERAGE[key];
+  if ((HIP3_ASSETS as readonly string[]).includes(key)) return 5;
+  return aggressiveDefault;
 }
 
 /** Assets available for paper trading (V3.0: full HIP-3 universe) */

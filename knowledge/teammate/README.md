@@ -2,7 +2,7 @@
 
 Multi-agent coordination, standup system, team architecture
 
-**Files**: 8
+**Files**: 9
 
 ## Subdirectories
 
@@ -13,6 +13,7 @@ Multi-agent coordination, standup system, team architecture
 - AGENTS.md
 - HEARTBEAT.md
 - IDENTITY.md
+- NO-AI-SLOP.md
 - POLYMARKET_PRIORITY_MARKETS.md
 - SOUL.md
 - THREE-CURVES.md

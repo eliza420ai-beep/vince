@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-20",
+  "thesis": "SOL outperforms ETH by 15%+ over next two weeks as institutional flows rotate from underperforming L1s into higher-velocity ecosystems",
+  "primaryTicker": "SOL",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 84.33,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "BTC < 65k",
+  "killConditions": [
+    "BTC breaks down hard below 65k",
+    "broader crypto washout with correlation to one"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "ETH",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 3
+}

@@ -65,20 +65,11 @@ The goal: stay in the game without 12+ hours on screens. Push, not pull.
 
 ---
 
-## What's New in v3.3
+## What Shipped
 
-**102 tests pass, 0 fail. Build clean. Type check clean.**
+The paper bot now trades **HIP-3 spot tokens** alongside Hyperliquid perps — stocks, commodities, and crypto on the same signal loop, same feature store, same ML pipeline. The **Polymarket edge engine** went from a single latency-arb strategy to three: Black-Scholes implied probability vs CLOB price, overreaction detection on favorites, and model fair-value comparison — each Kelly-sized, each with a rationale you can read. Every agent speaks with **zero AI slop**: a humanizer-style writing rule enforced across all ten agents, every response, every standup. And the **leaderboard** now shows real cost transparency — AI token spend, data API tiers, burn rate — because if the system can't justify its own costs, it doesn't deserve to run.
 
-| Change | Detail |
-| :--- | :--- |
-| **Day Report = Report of the Day** | Kelly's daily standup is now an 800-1200 word narrative (trading desk letter, cross-agent data, opinionated take) followed by a Daily TODO table (5-7 items with @Owner). |
-| **Team priorities baked in** | 11 strategic priorities wired into every standup so TODO items always move the needle. |
-| **Duplicate WTT trade fix** | Paper bot no longer opens the same What's-the-Trade pick twice; pick file renamed to `.traded.json` after opening. |
-| **TypeScript declarations fixed** | Clean build output; module declarations for `@elizaos/plugin-x402`, `elizaos-plugins.d.ts` in build config. |
-| **Single Oracle for Polymarket** | Oracle runs all three desk workers (analyst, risk, perf). Polymarket Risk and Performance agents removed. |
-| **Quick actions + About** | Agent-specific quick actions and About modals refined for all 10 agents. |
-
-Previous: [v3.2](docs/RELEASE_v3.2.md) · [v3.1](docs/RELEASE_v3.1.md) · [v2.8](docs/RELEASE_v2.8.md) · [v2.7](docs/RELEASE_v2.7.md) · [v2.5](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
+Releases: [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -100,6 +91,14 @@ Clear lanes, no overlap: data, plan, call, lifestyle, infra.
 | **Clawterm** | AI agents terminal: OpenClaw skills, Milaidy, ElizaOS, setup tips, trending. |
 
 One conversation, ask any teammate by name; standups 2x/day. [MULTI_AGENT.md](docs/MULTI_AGENT.md)
+
+---
+
+### Trading Bot: No Tilt. Every decision explained. Every outcome learned.
+
+The paper bot runs 24/7 on the **Leaderboard** (Trading Bot tab): 15+ signal sources, 38 onchain assets (crypto, stocks, commodities, indices) as Hyperliquid perps. Zero tilt. Every open position shows strength, confidence, sources, and R:R; every close feeds the feature store and ML loop. Goal progress ($420/day, $10K/mo), open positions, recent trades, and signal source status—all in one place. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
+
+**HIP-3 assets** (stocks, commodities, indices on Hyperliquid) are capped at 5x leverage in code; max leverage can be read from the Hyperliquid API when available. New HIP-3 markets are **discovered automatically**: a daily task scans all HIP-3 DEXes, keeps symbols with 24h volume above threshold, and adds new candidates (e.g. RIVN) to [targetAssets.ts](src/plugins/plugin-vince/src/constants/targetAssets.ts) so the bot can trade them. **Beware of low liquidity, high volatility, and increased liquidation risk** on HIP-3 perps (same notice as on Hyperliquid).
 
 ---
 

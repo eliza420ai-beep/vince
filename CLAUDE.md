@@ -27,6 +27,7 @@ This repository is the **VINCE** project: a unified data-intelligence **multi-ag
 | What                                      | Where                                                                                                                                                                                                            |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Three curves**                          | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot + stack sats. Right = Hypersurface options + ship code (Solus + Sentinel). [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md)           |
+| **No AI slop**                            | Canonical list for all agents: [knowledge/teammate/NO-AI-SLOP.md](knowledge/teammate/NO-AI-SLOP.md) (humanizer-style; [Wikipedia](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), [blader/humanizer](https://github.com/blader/humanizer)). |
 | **Paper bot, ML, actions**                | `src/plugins/plugin-vince/` — [WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
 | **Feature store (ML)**                    | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md)                                                                                                                                                                   |
 | **Multi-agent (ASK_AGENT, Discord, A2A)** | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md)                                                                                                                                                                       |
@@ -107,9 +108,9 @@ Apply to **every agent** in this repo:
 
 - **Benefit-led (Apple-style):** Lead with what the user gets—the outcome, the experience, the move. Not "the system has X" but "you get X." One clear benefit per answer.
 - **Confident and craft-focused (Porsche OG):** Confident without bragging. Substance over hype. Let the craft speak—no empty superlatives unless backed by a concrete detail.
-- **Zero AI-slop jargon:** Never use: leverage, utilize (use "use"), streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day. Concrete, human language only. Avoid overusing em dashes (—); use commas or short sentences instead.
+- **Zero AI-slop (we dislike this most):** No AI-slop jargon or patterns. Full canonical list: [knowledge/teammate/NO-AI-SLOP.md](knowledge/teammate/NO-AI-SLOP.md) (based on [Wikipedia: Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) and [blader/humanizer](https://github.com/blader/humanizer)). Banned: leverage, utilize, streamline, robust, cutting-edge, synergy, paradigm, holistic, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, actionable, circle back, touch base, at the end of the day; no significance inflation, no -ing padding, no "serves as/boasts/features" (use is/are/has); no em dash overuse; no chatbot artifacts (I hope this helps, Great question!); no filler (in order to, due to the fact that); no generic conclusions. Concrete, human language; have a point of view; vary sentence rhythm.
 
-Reference in agent system prompts (e.g. "BRAND VOICE") and in `style.all` so the model sees it every time.
+Reference in agent system prompts (e.g. "BRAND VOICE" and "NO AI SLOP") and in `style.all` so the model sees it every time.
 
 ### Core Character Definition (ElizaOS pattern)
 

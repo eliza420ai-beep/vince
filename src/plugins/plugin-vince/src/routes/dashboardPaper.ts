@@ -65,7 +65,20 @@ export interface PaperResponse {
   } | null;
   /** Last closed positions (contributingSources only) for "X contributed to N of K" */
   recentClosedTrades: Array<{ contributingSources?: string[] }>;
+  /** Recent closed trades with P&L for dashboard (which trades, how much made) */
+  recentTrades: RecentTradeItem[];
   updatedAt: number;
+}
+
+export interface RecentTradeItem {
+  asset: string;
+  direction: string;
+  entryPrice: number;
+  exitPrice: number;
+  realizedPnl: number;
+  closeReason: string;
+  openedAt: number;
+  closedAt: number;
 }
 
 const emptyPortfolio: Portfolio = {
@@ -103,6 +116,7 @@ export async function buildPaperResponse(
       signalStatus: null,
       banditSummary: null,
       recentClosedTrades: [],
+      recentTrades: [],
       updatedAt: Date.now(),
     };
   }
@@ -165,17 +179,115 @@ export async function buildPaperResponse(
 
   const recentClosedTrades = paperTrading?.getRecentClosedTrades?.() ?? [];
 
+  const tradeJournal = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
+    getRecentTrades?: (count: number) => {
+      entry: {
+        asset: string;
+        direction: string;
+        price: number;
+        timestamp: number;
+      };
+      exit?: {
+        price: number;
+        realizedPnl?: number;
+        closeReason?: string;
+        timestamp: number;
+      };
+    }[];
+  } | null;
+  const recentTradesRaw = tradeJournal?.getRecentTrades?.(30) ?? [];
+  const recentTrades: RecentTradeItem[] = recentTradesRaw.map((t) => ({
+    asset: t.entry.asset,
+    direction: t.entry.direction,
+    entryPrice: t.entry.price,
+    exitPrice: t.exit?.price ?? t.entry.price,
+    realizedPnl: t.exit?.realizedPnl ?? 0,
+    closeReason: t.exit?.closeReason ?? "—",
+    openedAt: t.entry.timestamp,
+    closedAt: t.exit?.timestamp ?? t.entry.timestamp,
+  }));
+
+  // Fill goal progress from recent trades when tracker shows 0 (e.g. after restart) so UI shows progress as soon as we have trades
+  let goalProgressOut: typeof goalProgress = goalProgress;
+  if (goalProgressOut != null && recentTrades.length > 0 && goalTargets) {
+    const now = new Date();
+    const todayStart = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+    );
+    const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+    let todayPnl = 0;
+    let todayTrades = 0;
+    let monthPnl = 0;
+    for (const t of recentTrades) {
+      if (t.closedAt >= monthStart) {
+        monthPnl += t.realizedPnl;
+        if (t.closedAt >= todayStart) {
+          todayPnl += t.realizedPnl;
+          todayTrades += 1;
+        }
+      }
+    }
+    const dailyTarget = goalTargets.daily;
+    const monthlyTarget = goalTargets.monthly;
+    if (
+      (goalProgressOut.daily.current === 0 && todayPnl !== 0) ||
+      (goalProgressOut.daily.trades === 0 && todayTrades > 0)
+    ) {
+      goalProgressOut = {
+        ...goalProgressOut,
+        daily: {
+          ...goalProgressOut.daily,
+          current: Math.round(todayPnl),
+          pct: Math.round((todayPnl / dailyTarget) * 100),
+          remaining: Math.round(dailyTarget - todayPnl),
+          trades: todayTrades,
+          pace:
+            todayPnl >= dailyTarget * 0.1
+              ? "ahead"
+              : todayPnl < -dailyTarget * 0.1
+                ? "behind"
+                : "on-track",
+          paceAmount: Math.round(
+            todayPnl -
+              (now.getUTCHours() + now.getUTCMinutes() / 60) *
+                (dailyTarget / 24),
+          ),
+        },
+      };
+    }
+    if (goalProgressOut.monthly.current === 0 && monthPnl !== 0) {
+      goalProgressOut = {
+        ...goalProgressOut,
+        monthly: {
+          ...goalProgressOut.monthly,
+          current: Math.round(monthPnl),
+          pct: Math.round((monthPnl / monthlyTarget) * 100),
+          remaining: Math.round(monthlyTarget - monthPnl),
+          status:
+            monthPnl >= monthlyTarget * 0.1
+              ? "ahead"
+              : monthPnl < -monthlyTarget * 0.1
+                ? "behind"
+                : "on-track",
+        },
+      };
+    }
+  }
+
   return {
     openPositions,
     portfolio,
     recentNoTrades,
     recentMLInfluences,
     mlStatus,
-    goalProgress,
+    goalProgress: goalProgressOut,
     goalTargets,
     signalStatus,
     banditSummary,
     recentClosedTrades,
+    recentTrades,
     updatedAt: Date.now(),
   };
 }

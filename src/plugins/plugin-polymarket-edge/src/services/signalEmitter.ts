@@ -1,0 +1,132 @@
+/**
+ * Writes EdgeSignal to plugin_polymarket_desk.signals for Risk/Executor pipeline.
+ * Also logs to plugin_polymarket_edge.edge_signals for audit.
+ */
+
+import type { IAgentRuntime } from "@elizaos/core";
+import { logger } from "@elizaos/core";
+import type { EdgeSignal } from "../strategies/types";
+
+const DESK_SIGNALS_TABLE = "plugin_polymarket_desk.signals";
+const EDGE_SIGNALS_TABLE = "plugin_polymarket_edge.edge_signals";
+
+export async function emitSignal(
+  runtime: IAgentRuntime,
+  signal: EdgeSignal,
+): Promise<string | null> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const conn = await (
+    runtime as { getConnection?: () => Promise<unknown> }
+  ).getConnection?.();
+  if (
+    !conn ||
+    typeof (conn as { query: (s: string, v?: unknown[]) => Promise<unknown> })
+      .query !== "function"
+  ) {
+    logger.debug(
+      "[SignalEmitter] No DB connection; signal not persisted (id=" + id + ")",
+    );
+    return null;
+  }
+
+  const client = conn as {
+    query: (text: string, values?: unknown[]) => Promise<unknown>;
+  };
+
+  // Dedup: skip if a pending/approved signal OR a pending sized_order already
+  // exists for the same market — prevents stacking duplicate positions.
+  try {
+    const dupSig = await client.query(
+      `SELECT id FROM ${DESK_SIGNALS_TABLE} WHERE market_id = $1 AND status IN ('pending','approved') LIMIT 1`,
+      [signal.market_id],
+    );
+    const sigRows = (dupSig as { rows?: { id: string }[] }).rows;
+    if (sigRows && sigRows.length > 0) {
+      logger.debug(
+        `[SignalEmitter] Skipping — pending signal exists for market ${signal.market_id.slice(0, 14)}…`,
+      );
+      return null;
+    }
+    const dupOrder = await client.query(
+      `SELECT id FROM plugin_polymarket_desk.sized_orders WHERE market_id = $1 AND status = 'pending' LIMIT 1`,
+      [signal.market_id],
+    );
+    const orderRows = (dupOrder as { rows?: { id: string }[] }).rows;
+    if (orderRows && orderRows.length > 0) {
+      logger.debug(
+        `[SignalEmitter] Skipping — pending order exists for market ${signal.market_id.slice(0, 14)}…`,
+      );
+      return null;
+    }
+  } catch (e) {
+    logger.debug(
+      "[SignalEmitter] Dedup check failed, proceeding: " +
+        (e instanceof Error ? e.message : String(e)),
+    );
+  }
+
+  const metadataJson =
+    signal.metadata && Object.keys(signal.metadata).length > 0
+      ? JSON.stringify(signal.metadata)
+      : null;
+  const suggestedSizeUsd =
+    signal.suggested_size_usd != null &&
+    Number.isFinite(signal.suggested_size_usd)
+      ? signal.suggested_size_usd
+      : null;
+  try {
+    await client.query(
+      `INSERT INTO plugin_polymarket_desk.signals (id, created_at, source, market_id, side, suggested_size_usd, confidence, forecast_prob, market_price, edge_bps, status, metadata_json)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)`,
+      [
+        id,
+        now,
+        signal.source,
+        signal.market_id,
+        signal.side,
+        suggestedSizeUsd,
+        signal.confidence,
+        signal.forecast_prob,
+        signal.market_price,
+        signal.edge_bps,
+        metadataJson,
+      ],
+    );
+  } catch (e) {
+    logger.warn(
+      "[SignalEmitter] Failed to insert desk signal: " +
+        (e instanceof Error ? e.message : String(e)),
+    );
+    return null;
+  }
+
+  try {
+    await client.query(
+      `INSERT INTO plugin_polymarket_edge.edge_signals (id, created_at, strategy, source, market_id, side, confidence, edge_bps, forecast_prob, market_price, desk_signal_id, question)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [
+        crypto.randomUUID(),
+        now,
+        signal.strategy,
+        signal.source,
+        signal.market_id,
+        signal.side,
+        signal.confidence,
+        signal.edge_bps,
+        signal.forecast_prob,
+        signal.market_price,
+        id,
+        signal.question ?? null,
+      ],
+    );
+  } catch (e) {
+    logger.debug(
+      "[SignalEmitter] Edge_signals log failed (desk signal already written): " +
+        (e instanceof Error ? e.message : String(e)),
+    );
+  }
+
+  return id;
+}

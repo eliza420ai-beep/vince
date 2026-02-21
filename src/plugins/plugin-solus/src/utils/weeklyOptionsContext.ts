@@ -55,11 +55,19 @@ function escapeRegex(s: string): string {
 }
 
 /**
+ * Strip fenced code blocks (``` ... ```) so we don't accidentally parse
+ * example headings inside documentation code fences as real data sections.
+ */
+function stripCodeBlocks(md: string): string {
+  return md.replace(/```[\s\S]*?```/g, "");
+}
+
+/**
  * Parse raw markdown content into Portfolio, Open positions, and Last week's strategy.
  * Exported for tests; getWeeklyOptionsContext() reads the file and calls this.
  */
 export function parseWeeklyOptionsContext(raw: string): WeeklyOptionsContext {
-  const trimmed = raw.trim();
+  const trimmed = stripCodeBlocks(raw).trim();
   const portfolioSection = extractSection(trimmed, "## Portfolio");
   const openPositionsSection = extractSection(trimmed, "## Open positions");
   const lastWeekExplicit = extractSection(trimmed, "## Last week's strategy");

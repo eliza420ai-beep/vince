@@ -54,6 +54,7 @@ last_reviewed: 2026-02-17
 - **Limit Order**: Set your price, wait for someone to match. Can partially fill. Optional expiration date
 - Can buy YES or NO shares. Can sell shares you hold at any time
 - Sports markets: 3-second delay on marketable orders; all orders auto-cancelled at game start
+- **Feb 2025 — 15m BTC events:** Polymarket removed the 0.5-second order delay. Previously, the UI updated with a fraction-of-a-second lag while price moved; bots could execute at the old price for guaranteed profit. That edge is gone. Do not assume latency arbitrage on these events.
 
 ### Key Trading Concepts
 
@@ -268,3 +269,12 @@ last_reviewed: 2026-02-17
 - CLOB API: real-time orderbook, live prices, trading
 - Data API: positions, trades, leaderboards, analytics
 - All APIs are public (read endpoints), trading requires wallet auth
+
+## Part 10: Platform changes and bot strategy (notes for our trading bot)
+
+### Feb 2025 — Polymarket removed the “money button” (0.5s delay)
+
+- **What happened:** Polymarket removed the 0.5-second delay on orders for events with 15m BTC (and similar high-volume crypto price markets). No announcement or explanation from the team.
+- **Why it mattered:** The UI was slower than price movement by fractions of a second. Bots could click and get fills at the old price while spot had already moved — guaranteed profit. The most profitable bot reportedly went from ~$55k to ~$20 after the change. Copy trading those bots was never viable (too fast for humans).
+- **Implication for our bot:** Do **not** design or size for latency arbitrage on these markets. That edge is gone. Our desk (Synth vs Polymarket price, edge threshold, Risk/Executor flow) does not rely on order delay; we are fine. Any future arb or speed-based strategy must assume no artificial delay.
+- **What to do instead:** Look for new inefficiencies (e.g. Synth forecast vs CLOB price, crowd overreaction per “the poly strat”, technical analysis on Bitcoin markets). Now is a good environment to trade Bitcoin on Polymarket using TA / fundamental edge rather than speed.

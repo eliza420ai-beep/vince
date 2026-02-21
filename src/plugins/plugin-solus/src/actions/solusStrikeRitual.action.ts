@@ -73,8 +73,26 @@ Reply with the checklist and one next step only.`;
         typeof response === "string"
           ? response
           : ((response as { text?: string })?.text ?? String(response));
-      const out = "Here's the strike ritual—\n\n" + text.trim();
-      await callback({ text: out, actions: ["SOLUS_STRIKE_RITUAL"] });
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
+      const sections = [
+        `**Strike Ritual** _${dateStr}_`,
+        "",
+        text.trim(),
+        "",
+        "*Source: Hypersurface mechanics, knowledge/options*",
+        "",
+        "---",
+        "_Next steps_: `OPTIMAL STRIKE` (strike call) · `OPTIONS` → VINCE (IV data) · `ANALYZE <ticker>` (stock deep dive)",
+      ];
+      await callback({
+        text: sections.join("\n"),
+        actions: ["SOLUS_STRIKE_RITUAL"],
+      });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_STRIKE_RITUAL] Failed:", error);

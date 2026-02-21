@@ -231,7 +231,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Analyze AMD", message: "analyze AMD" },
     { label: "Analyze AAPL", message: "analyze AAPL" },
     { label: "Earnings Calendar", message: "earnings calendar" },
-    { label: "Sector: AI Infra", message: "What's the latest on AI infrastructure stocks?" },
+    {
+      label: "Sector: AI Infra",
+      message: "What's the latest on AI infrastructure stocks?",
+    },
   ],
   // Sentinel (CTO): core dev, ops, cost, ONNX, clawdbot, project radar.
   sentinel: [
