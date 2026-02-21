@@ -500,7 +500,7 @@ async function fetchPortfolioSummary(runtime: IAgentRuntime): Promise<string> {
       } | null;
     } | null;
     
-    const status = paperTrading?.getStatus?.();
+    const status = await paperTrading?.getStatus?.();
     if (!status) return "";
     
     const parts: string[] = [];
