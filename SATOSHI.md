@@ -94,19 +94,13 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - **Code: fetchEchoData()** — Structured tables instead of raw tweets
 - **Code: fetchVinceDelta()** — Delta vs yesterday section
 - **Code: fetchMLStatus()** — ML loop visibility (feature store, ONNX models)
+- **Code: Cross-agent links** — Auto-generates connections between VINCE/Oracle/ECHO/Solus
 - **Eliza section** — Already has: Delta, Facts, Substack idea, Knowledge to expand
-- **Agent review: Otaku** — docs/OTAKU.md complete: Can/Cannot, gaps, key files, how to run
-- **Agent review: VINCE** — docs/VINCE.md complete: Can/Cannot, gaps, key files, PRD guidance
-- PR: `satoshi/improve-daily-insights-template` (12 commits)
+- **Agent reviews:** All agents have docs: VINCE, Otaku, ECHO, Oracle, Solus
+- PR: `satoshi/improve-daily-insights-template` (13 commits)
 
-**📋 REMAINING (lower priority):**
-- Cross-agent links (requires complex parsing of multiple sections)
-- Action Items (extracted post-standup from day report - already works)
+**📋 REMAINING:**
 - Test new format with next standup run
-
-**📋 NEXT PRIORITY (per standing mandate):**
-1. Test standup output with new ECHO + VINCE delta + ML status format
-2. Review other agents if needed (Solus, Oracle, ECHO)
 
 ---
 
