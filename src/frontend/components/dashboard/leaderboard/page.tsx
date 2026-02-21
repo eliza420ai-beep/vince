@@ -800,7 +800,7 @@ export default function LeaderboardPage({
                   ? "Session token usage and estimated cost (TREASURY)"
                   : mainTab === "polymarket"
                     ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
-                    : "Open paper trades and portfolio overview";
+                    : "No tilt. Every decision explained. Every outcome learned.";
 
   return (
     <DashboardPageLayout
@@ -5073,35 +5073,37 @@ export default function LeaderboardPage({
                   </div>
                 ) : paperData ? (
                   <div className="space-y-6">
-                    {/* V3.0 Renaissance Fund banner */}
+                    {/* No Tilt banner */}
                     <div className="rounded-xl border border-border bg-gradient-to-r from-muted/80 to-muted/40 p-5 space-y-3">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-foreground/10 text-foreground/80 tracking-wide">
                           V3.0
                         </span>
-                        <h3 className="text-sm font-semibold">
-                          Renaissance Fund 3.0
+                        <h3 className="text-sm font-semibold tracking-tight">
+                          No Tilt
                         </h3>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Every trade expressible onchain. The daily{" "}
-                        <strong>What&apos;s the Trade</strong> thesis now
-                        constrains picks to Hyperliquid perps (4 core + 34 HIP-3
-                        assets: stocks, indices, commodities, AI/tech).
-                        Robinhood data stays as context&mdash;the LLM sees
-                        offchain movers but must express the trade via
-                        Hyperliquid. Feature store records WTT rubric dimensions
-                        (alignment, edge, payoff, timing, invalidate) for ML
-                        training. The paper bot evaluates each pick, and the
-                        self-improving loop keeps getting sharper.
+                        Never sleeps. Never tilts. Explains every decision.
+                        Learns from every outcome. 15+ signal sources feed 38
+                        onchain assets&mdash;crypto, stocks, commodities,
+                        indices&mdash;all traded as Hyperliquid perps. Every
+                        trade ships with a{" "}
+                        <strong>&ldquo;Why this trade&rdquo;</strong> banner:
+                        which sources agreed, which disagreed, the strength and
+                        confidence that cleared the bar. Thompson Sampling plays
+                        more hands through sources that run hot and folds the
+                        ones that run cold. The ML loop is real: 50+ features
+                        per decision, ONNX models trained on actual outcomes,
+                        measurably better selectivity with every session.
                       </p>
                       <div className="flex flex-wrap gap-2 pt-1">
                         {[
-                          "HIP-3 only picks",
+                          "Zero tilt",
                           "38 onchain assets",
-                          "WTT → paper bot",
-                          "Feature store + ML",
-                          "Rubric scoring",
+                          "15+ signal sources",
+                          "50+ features per trade",
+                          "Self-improving ML",
                         ].map((tag) => (
                           <span
                             key={tag}
@@ -5113,44 +5115,43 @@ export default function LeaderboardPage({
                       </div>
                       <details className="pt-1 group">
                         <summary className="text-[11px] text-muted-foreground cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                          What shipped in V3.0
+                          How it works
                         </summary>
                         <ul className="text-[11px] text-muted-foreground mt-2 space-y-1 pl-4 list-disc">
                           <li>
-                            <strong>WTT → Paper Bot integration:</strong> daily
-                            thesis generates a structured pick (JSON sidecar),
-                            paper bot auto-evaluates, opens trades with WTT
-                            rubric metadata.
+                            <strong>Signal → Trade → Learn:</strong> signals
+                            feed trades, trades generate 50+ features, features
+                            train XGBoost models exported as ONNX, ONNX runs
+                            inference at decision time. Cycle repeats.
                           </li>
                           <li>
-                            <strong>HIP-3 constraint:</strong> thesis prompt,
-                            narrative, and extraction all enforce onchain-only
-                            tickers. Hard gate rejects non-HIP-3 primary picks
-                            (falls back to alt).
+                            <strong>Kelly sizing, circuit breakers:</strong>{" "}
+                            position sizing follows Kelly criterion with daily
+                            caps and drawdown protection. No leverage without
+                            explicit mode selection.
                           </li>
                           <li>
-                            <strong>Feature store WTT block:</strong> alignment,
-                            edge, payoff shape, timing forgiveness ordinals
-                            stored per trade. <code>invalidateHit</code>{" "}
-                            computed on close.
+                            <strong>WTT → Paper Bot:</strong> daily thesis
+                            generates a structured pick with rubric scoring
+                            (alignment, edge, payoff, timing). The bot
+                            auto-evaluates and opens trades.
                           </li>
                           <li>
-                            <strong>ML training:</strong> <code>wtt_*</code>{" "}
-                            columns as optional features; improvement report
-                            includes <code>wtt_performance</code> slice when 5+
-                            WTT trades.
+                            <strong>Thompson Sampling:</strong> sources that
+                            produce winners get more weight. Sources that
+                            produce losers get less. Table selection, automated.
                           </li>
                           <li>
-                            <strong>Robinhood as context:</strong> offchain
-                            stock data labeled &quot;context
-                            only&quot;&mdash;LLM uses it to find the best
-                            onchain proxy (e.g. IREN hot → long SEMIS).
+                            <strong>Graceful degradation:</strong> rules keep
+                            the bot running when models lack data. When models
+                            are ready, ONNX inference slots in without
+                            redeployment.
                           </li>
                           <li>
-                            <strong>Env vars:</strong>{" "}
-                            <code>ECHO_WTT_HIP3_ONLY=true</code> (default),{" "}
-                            <code>ECHO_WTT_ROBINHOOD_ENABLED=true</code>,{" "}
-                            <code>VINCE_PAPER_WTT_ENABLED</code>.
+                            <strong>Full transparency:</strong> every position
+                            shows supporting factors, conflicting factors,
+                            signal strength, and exactly how many sources agreed
+                            on direction.
                           </li>
                         </ul>
                       </details>
