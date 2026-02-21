@@ -65,9 +65,9 @@ The goal: stay in the game without 12+ hours on screens. Push, not pull.
 
 ---
 
-## What's New in v3.7
+## What Shipped
 
-**HIP-3 leverage, Hyperliquid max leverage, auto-discovery, RIVN, risk notice.**
+The paper bot now trades **HIP-3 spot tokens** alongside Hyperliquid perps — stocks, commodities, and crypto on the same signal loop, same feature store, same ML pipeline. The **Polymarket edge engine** went from a single latency-arb strategy to three: Black-Scholes implied probability vs CLOB price, overreaction detection on favorites, and model fair-value comparison — each Kelly-sized, each with a rationale you can read. Every agent speaks with **zero AI slop**: a humanizer-style writing rule enforced across all ten agents, every response, every standup. And the **leaderboard** now shows real cost transparency — AI token spend, data API tiers, burn rate — because if the system can't justify its own costs, it doesn't deserve to run.
 
 Releases: [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
 
