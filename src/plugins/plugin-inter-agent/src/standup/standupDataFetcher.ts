@@ -334,6 +334,56 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
   }
 }
 
+/** Fetch parameter tuner status - shows self-improving architecture state */
+async function fetchParameterTuner(runtime: IAgentRuntime): Promise<string> {
+  try {
+    const tunerService = runtime.getService("VINCE_PARAMETER_TUNER_SERVICE") as {
+      getParameterStatus?: () => {
+        thresholds: { minStrength?: number; minConfidence?: number };
+        sourceWeights: Record<string, number>;
+        recentAdjustments: Array<{ param: string; oldVal: number; newVal: number; timestamp: string }>;
+        isModified: boolean;
+      } | null;
+    } | null;
+    
+    const status = tunerService?.getParameterStatus?.();
+    if (!status) return "";
+    
+    const parts: string[] = [];
+    
+    // Show current thresholds
+    if (status.thresholds?.minStrength !== undefined) {
+      parts.push(`minStr=${(status.thresholds.minStrength * 100).toFixed(0)}%`);
+    }
+    if (status.thresholds?.minConfidence !== undefined) {
+      parts.push(`minConf=${(status.thresholds.minConfidence * 100).toFixed(0)}%`);
+    }
+    
+    // Show if parameters have been modified from defaults
+    if (status.isModified) {
+      parts.push(`AUTO-TUNED`);
+    }
+    
+    // Show recent adjustments (last 2)
+    if (status.recentAdjustments?.length > 0) {
+      const recent = status.recentAdjustments.slice(-2).map(a => 
+        `${a.param}:${(a.oldVal * 100).toFixed(0)}%→${(a.newVal * 100).toFixed(0)}%`
+      ).join(", ");
+      if (recent) {
+        parts.push(`[${recent}]`);
+      }
+    }
+    
+    if (parts.length > 0) {
+      return `**Self-tuning:** ${parts.join(" | ")}`;
+    }
+    
+    return "";
+  } catch {
+    return "";
+  }
+}
+
 async function fetchGoalTracker(runtime: IAgentRuntime): Promise<string> {
   const goals = runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as {
     getDailyProgress?: () => Promise<{
@@ -576,6 +626,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     fetchBinanceTopTraders(runtime),
     fetchPaperBot(runtime),
     fetchMLStatus(runtime),
+    fetchParameterTuner(runtime),
     fetchGoalTracker(runtime),
     fetchMandoMinutes(runtime),
     fetchAlliumOnChain(runtime),
