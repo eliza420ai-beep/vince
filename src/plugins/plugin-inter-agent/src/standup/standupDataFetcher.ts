@@ -889,7 +889,7 @@ function extractAssetSignalsFromTweets(
   }
 
   // Keywords for sentiment analysis
-  const bullishKeywords = ["bull", "long", "moon", "pump", "up", "breakout", "rally", "gain", "buy", " accumulation", "inflow", "etf"];
+  const bullishKeywords = ["bull", "long", "moon", "pump", "up", "breakout", "rally", "gain", "buy", "accumulation", "inflow", "etf"];
   const bearishKeywords = ["bear", "short", "dump", "down", "crash", "sell", "outflow", "fear", "risk", "drop", "breakdown"];
 
   // Process each tweet
