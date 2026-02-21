@@ -274,6 +274,16 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
         suggested_signal_quality_threshold?: number;
         tp_level_performance?: Record<string, { win_rate: number; count: number }>;
       } | null>;
+      getModelStatus?: () => {
+        onnxAvailable: boolean;
+        modelsLoaded: boolean;
+        models: Array<{
+          name: string;
+          loaded: boolean;
+          inferenceCount: number;
+          avgLatencyMs: number;
+        }>;
+      };
     } | null;
     
     let featureCount = 0;
@@ -344,9 +354,26 @@ async function fetchMLStatus(runtime: IAgentRuntime): Promise<string> {
     if (featureCount > 0 || modelTrained > 0 || hasModels || signalQualityThreshold !== null) {
       const parts: string[] = [];
       if (featureCount > 0) parts.push(`${featureCount}+ trades in feature store`);
-      if (hasModels) parts.push("ONNX models loaded");
-      if (modelTrained > 0) parts.push(`${modelTrained} training runs`);
-      if (signalQualityThreshold !== null) parts.push(`SQ threshold: ${(signalQualityThreshold * 100).toFixed(0)}%`);
+      
+      // Get detailed model status from ML inference service
+      let modelDetails: string[] = [];
+      try {
+        const modelStatus = mlService?.getModelStatus?.();
+        if (modelStatus?.models) {
+          modelDetails = modelStatus.models
+            .filter(m => m.loaded && m.inferenceCount > 0)
+            .map(m => `${m.name.replace('_', '')}:${m.inferenceCount}`);
+        }
+      } catch {}
+      
+      if (modelDetails.length > 0) {
+        parts.push(`ONNX [${modelDetails.join(", ")}]`);
+      } else if (hasModels) {
+        parts.push("ONNX models loaded");
+      }
+      
+      if (modelTrained > 0) parts.push(`${modelTrained} runs`);
+      if (signalQualityThreshold !== null) parts.push(`SQ:${(signalQualityThreshold * 100).toFixed(0)}%`);
       if (tpPerformance) parts.push(tpPerformance);
       
       return `**ML Loop:** ${parts.join(" | ")}`;
