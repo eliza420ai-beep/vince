@@ -91,20 +91,19 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 - Daily insights template improvement (docs/standup/daily-insights/DAILY_INSIGHTS_TEMPLATE.md)
 - ECHO sentiment structured format (docs/standup/daily-insights/ECHO_SENTIMENT_IMPROVEMENT.md)
 - Standup fetcher pattern documentation (docs/standup/daily-insights/STANDUP_FETCHER_PATTERN.md)
-- **Code: fetchEchoData() updated** — Now outputs structured tables instead of raw tweets
-  - Added `extractAssetSignalsFromTweets()` helper
-  - Added `generateContrarianAlert()` and `generateTakeaway()`
-  - Output format: Asset Sentiment table + Contrarian Alert + Actionable Takeaway
-- PR: `satoshi/improve-daily-insights-template` (4 commits)
+- **Code: fetchEchoData()** — Structured tables instead of raw tweets
+- **Code: fetchVinceDelta()** — Delta vs yesterday section
+  - Caches signal/regime to `.elizadb/standup-cache/vince-last-state.json`
+  - Compares current to previous run
+  - Tracks signal changes and regime changes
+- PR: `satoshi/improve-daily-insights-template` (7 commits)
 
 **🔄 IN PROGRESS:**
-- Test new ECHO format with next standup run
-- Add delta vs yesterday to VINCE section (fetchVinceData)
+- Test new format with next standup run
 
 **📋 NEXT PRIORITY:**
-1. Test standup output with new ECHO format
-2. Add "Delta vs Yesterday" to VINCE section
-3. Review and improve other agents (per standing mandate)
+1. Test standup output with new ECHO + VINCE delta format
+2. Review and improve other agents (per standing mandate)
 
 ---
 
