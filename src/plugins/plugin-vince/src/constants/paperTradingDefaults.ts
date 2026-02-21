@@ -240,6 +240,7 @@ export const PRIMARY_SIGNAL_SOURCES = new Set([
   "HIP3Funding",
   "HIP3Momentum",
   "HIP3OIBuild",
+  "HIP3PriceAction",
   "WTT",
   "CoinGlass",
   "BinanceTakerFlow",

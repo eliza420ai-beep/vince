@@ -76,6 +76,9 @@ const WTT_UNIVERSE_TICKERS = [
 ] as const;
 const WTT_UNIVERSE_LABEL = WTT_UNIVERSE_TICKERS.join(", ");
 const WTT_UNIVERSE_SET = new Set<string>(WTT_UNIVERSE_TICKERS);
+/** HIP-3 stock tickers for Robinhood adapter (offchain context); subset of WTT universe. */
+const ROBINHOOD_HIP3_TICKERS =
+  "NVDA,TSLA,AAPL,AMZN,GOOGL,META,MSFT,PLTR,COIN,HOOD,NFLX,MSTR,AMD,INTC,ORCL,MU,SNDK,CRCL";
 
 /** Check if a WTT ticker is in the onchain-tradeable universe (core + HIP-3). */
 function isWttUniverseTicker(ticker: string): boolean {
@@ -186,7 +189,7 @@ async function suggestThesis(
   dateStr: string,
   hip3Only: boolean,
 ): Promise<string> {
-  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or relative strength the market hasn't fully priced. Examples: "Defense AI spending will accelerate faster than commercial AI (PLTR vs NVDA)", "SOL outperforms ETH on relative strength this week", "Fed holds in March and risk-on rotates into crypto". Do not give generic sentiment ("CT is bullish"); name the specific asymmetry.`;
+  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or relative strength the market hasn't fully priced. Rotate across asset classes: crypto, stocks, commodities, indices. Do not default to crypto. Examples: "Defense AI spending will accelerate faster than commercial AI (PLTR vs NVDA)", "Silver breaks out on industrial demand while gold stalls", "GOOGL trades at a discount to MAG7 on AI capex fears", "SOL outperforms ETH on relative strength this week", "Commodities outperform indices on supply disruption". Do not give generic sentiment ("CT is bullish"); name the specific asymmetry.`;
   const constraint = hip3Only
     ? ` The trade MUST be expressible onchain via a Hyperliquid perp. Available tickers: ${WTT_UNIVERSE_LABEL}. Pick a thesis that maps to one of these assets.`
     : "";
@@ -206,7 +209,7 @@ async function suggestThesis(
     logger.warn(
       "[ECHO WhatstheTrade] Thesis suggestion failed, using fallback",
     );
-    return "Risk-on rotation; crypto and risk assets may outperform on the week.";
+    return "Macro rotation creates relative-value opportunities across the Hyperliquid universe.";
   }
 }
 
@@ -289,7 +292,7 @@ Reply with only that one sentence, no quotes or preamble.`;
     logger.warn(
       "[ECHO WhatstheTrade] X-driven thesis suggestion failed, using fallback",
     );
-    return "Risk-on rotation; crypto and risk assets may outperform on the week.";
+    return "Macro rotation creates relative-value opportunities across the Hyperliquid universe.";
   }
 }
 
@@ -335,7 +338,7 @@ async function fetchAdapterData(
       const rh = await runBunScript(
         skillDir,
         "scripts/adapters/robinhood/instruments.ts",
-        ["NVDA,AAPL,HIMS,TSLA"],
+        [ROBINHOOD_HIP3_TICKERS],
       );
       if (
         rh.json &&
@@ -349,7 +352,7 @@ async function fetchAdapterData(
           ? "\n=== ROBINHOOD (offchain context only — do NOT use as primary pick) ==="
           : "\n=== ROBINHOOD (sample) ===";
         lines.push(label);
-        arr.slice(0, 4).forEach((i: Record<string, unknown>) => {
+        arr.slice(0, 14).forEach((i: Record<string, unknown>) => {
           lines.push(
             `  ${i.ticker ?? ""}: $${i.price ?? ""} (${i.day_change_pct ?? ""}%)`,
           );
@@ -409,7 +412,7 @@ async function generateNarrative(
   hip3Only: boolean,
 ): Promise<string> {
   const marketScope = hip3Only
-    ? `you pick the single best onchain expression using Hyperliquid perps (core crypto or HIP-3 assets: stocks, indices, commodities all trade as perps on Hyperliquid). Your PRIMARY pick ticker must be from the Hyperliquid universe. You may reference offchain context (Robinhood stocks, Kalshi odds) to support your reasoning, but the trade card ticker must be a Hyperliquid perp from: ${WTT_UNIVERSE_LABEL}.`
+    ? `you pick the single best onchain expression using Hyperliquid perps (HIP-3 assets and crypto: stocks, indices, commodities all trade as perps on Hyperliquid). Your PRIMARY pick ticker must be from the Hyperliquid universe. You may reference offchain context (Robinhood stocks, Kalshi odds) to support your reasoning, but the trade card ticker must be a Hyperliquid perp from: ${WTT_UNIVERSE_LABEL}.`
     : "you pick the single best expression across markets.";
 
   const instrumentOptions = hip3Only

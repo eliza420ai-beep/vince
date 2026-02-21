@@ -4,13 +4,14 @@
  * Validates that HIP-3 stocks and WTT picks can actually trigger paper trades
  * by being promoted to PRIMARY signal sources:
  *
- * 1. PRIMARY_SIGNAL_SOURCES includes HIP3Momentum, HIP3OIBuild, WTT
- * 2. HIP3Funding threshold lowered to 0.01% (from 0.03%)
- * 3. HIP3Momentum fires at |change| > 1.5% with sufficient strength
- * 4. HIP3OIBuild fires at OI/vol > 2.5x with dynamic strength
- * 5. WTT pick injects a primary signal for the matching asset
- * 6. Risk manager uses minConfirming = 2 for non-core assets
- * 7. Dynamic config has WTT weight = 1.5
+ * 1. PRIMARY_SIGNAL_SOURCES includes HIP3Momentum, HIP3OIBuild, HIP3PriceAction, WTT
+ * 2. HIP3Funding threshold 0.005% (0.00005)
+ * 3. HIP3Momentum fires at |change| > 0.8% with strength min(82, 52 + |change|*3)
+ * 4. HIP3OIBuild fires at OI/vol > 1.8x with dynamic strength
+ * 5. HIP3PriceAction fires for top-3 movers by |change24h| (trend-following)
+ * 6. WTT pick injects a primary signal for the matching asset
+ * 7. Risk manager uses minConfirming = 1 for non-core assets
+ * 8. Dynamic config has WTT weight = 1.5
  *
  * Run: bun test src/plugins/plugin-vince/src/__tests__/hip3SignalPrimary.test.ts
  */
@@ -37,6 +38,10 @@ describe("PRIMARY_SIGNAL_SOURCES includes HIP-3 and WTT", () => {
 
   it("includes HIP3OIBuild (newly promoted)", () => {
     expect(PRIMARY_SIGNAL_SOURCES.has("HIP3OIBuild")).toBe(true);
+  });
+
+  it("includes HIP3PriceAction (top movers trend-follow)", () => {
+    expect(PRIMARY_SIGNAL_SOURCES.has("HIP3PriceAction")).toBe(true);
   });
 
   it("includes WTT (newly added)", () => {
@@ -82,19 +87,19 @@ describe("CORE_ASSETS classification", () => {
 });
 
 // =============================================================================
-// 3. HIP3Funding threshold (now 0.01% = 0.0001)
+// 3. HIP3Funding threshold (now 0.005% = 0.00005)
 // =============================================================================
 
 describe("HIP3Funding threshold", () => {
-  it("fires at 0.015% funding (above new 0.01% threshold)", () => {
+  it("fires at 0.015% funding (above new 0.005% threshold)", () => {
     const fr = 0.00015; // 0.015%
-    const triggers = Math.abs(fr) > 0.0001;
+    const triggers = Math.abs(fr) > 0.00005;
     expect(triggers).toBe(true);
   });
 
-  it("does NOT fire at 0.005% funding (below threshold)", () => {
-    const fr = 0.00005;
-    const triggers = Math.abs(fr) > 0.0001;
+  it("does NOT fire at 0.00003 funding (below 0.00005 threshold)", () => {
+    const fr = 0.00003;
+    const triggers = Math.abs(fr) > 0.00005;
     expect(triggers).toBe(false);
   });
 
@@ -117,42 +122,42 @@ describe("HIP3Funding threshold", () => {
 // =============================================================================
 
 describe("HIP3Momentum signal", () => {
-  it("fires at 1.8% change (above new 1.5% threshold)", () => {
-    const change = 1.8;
-    const triggers = Math.abs(change) > 1.5;
+  it("fires at 1.0% change (above new 0.8% threshold)", () => {
+    const change = 1.0;
+    const triggers = Math.abs(change) > 0.8;
     expect(triggers).toBe(true);
   });
 
-  it("does NOT fire at 1.2% change", () => {
-    const change = 1.2;
-    const triggers = Math.abs(change) > 1.5;
+  it("does NOT fire at 0.5% change", () => {
+    const change = 0.5;
+    const triggers = Math.abs(change) > 0.8;
     expect(triggers).toBe(false);
   });
 
-  it("would NOT have fired at old 2% threshold for 1.8% change", () => {
-    const change = 1.8;
-    const oldThreshold = Math.abs(change) > 2;
+  it("would NOT have fired at old 1.5% threshold for 1.0% change", () => {
+    const change = 1.0;
+    const oldThreshold = Math.abs(change) > 1.5;
     expect(oldThreshold).toBe(false);
   });
 
   it("strength reaches sufficient level for a 4% move", () => {
     const change = 4.0;
-    const strength = Math.min(75, 56 + Math.abs(change) * 2);
+    const strength = Math.min(82, 52 + Math.abs(change) * 3);
     expect(strength).toBe(64);
-    expect(strength).toBeGreaterThanOrEqual(56);
+    expect(strength).toBeGreaterThanOrEqual(52);
   });
 
   it("confidence reaches sufficient level for a 4% move", () => {
     const change = 4.0;
-    const confidence = Math.min(68, 50 + Math.abs(change) * 1.5);
+    const confidence = Math.min(72, 48 + Math.abs(change) * 2);
     expect(confidence).toBe(56);
-    expect(confidence).toBeGreaterThanOrEqual(50);
+    expect(confidence).toBeGreaterThanOrEqual(48);
   });
 
-  it("caps at 75 strength for extreme moves", () => {
+  it("caps at 82 strength for extreme moves", () => {
     const change = 20;
-    const strength = Math.min(75, 56 + Math.abs(change) * 2);
-    expect(strength).toBe(75);
+    const strength = Math.min(82, 52 + Math.abs(change) * 3);
+    expect(strength).toBe(82);
   });
 
   it("direction follows momentum (long for positive, short for negative)", () => {
@@ -166,21 +171,21 @@ describe("HIP3Momentum signal", () => {
 // =============================================================================
 
 describe("HIP3OIBuild signal", () => {
-  it("fires at OI/vol ratio 3x (above new 2.5x threshold)", () => {
-    const ratio = 3.0;
-    const triggers = ratio > 2.5;
+  it("fires at OI/vol ratio 2x (above new 1.8x threshold)", () => {
+    const ratio = 2.0;
+    const triggers = ratio > 1.8;
     expect(triggers).toBe(true);
   });
 
-  it("does NOT fire at 2x ratio", () => {
-    const ratio = 2.0;
-    const triggers = ratio > 2.5;
+  it("does NOT fire at 1.5x ratio", () => {
+    const ratio = 1.5;
+    const triggers = ratio > 1.8;
     expect(triggers).toBe(false);
   });
 
-  it("would NOT have fired at old 3x threshold for 2.8x ratio", () => {
-    const ratio = 2.8;
-    const oldThreshold = ratio > 3;
+  it("would NOT have fired at old 2.5x threshold for 2.0x ratio", () => {
+    const ratio = 2.0;
+    const oldThreshold = ratio > 2.5;
     expect(oldThreshold).toBe(false);
   });
 
@@ -202,14 +207,32 @@ describe("HIP3OIBuild signal", () => {
     expect(strength).toBe(70);
   });
 
-  it("direction is contrarian (short when price up, long when price down)", () => {
+  it("direction confirms trend at moderate ratios (long when price up)", () => {
     const change = 5; // price up
-    const dir: "long" | "short" = change > 0 ? "short" : "long";
-    expect(dir).toBe("short");
+    const oiToVolRatio = 3.0; // moderate, not extreme
+    const extreme = oiToVolRatio > 5;
+    const dir: "long" | "short" = extreme
+      ? change > 0
+        ? "short"
+        : "long"
+      : change > 0
+        ? "long"
+        : "short";
+    expect(dir).toBe("long");
+  });
 
-    const change2 = -3; // price down
-    const dir2: "long" | "short" = change2 > 0 ? "short" : "long";
-    expect(dir2).toBe("long");
+  it("direction is contrarian at extreme ratios (short when price up, ratio > 5x)", () => {
+    const change = 5; // price up
+    const oiToVolRatio = 6.0; // extreme
+    const extreme = oiToVolRatio > 5;
+    const dir: "long" | "short" = extreme
+      ? change > 0
+        ? "short"
+        : "long"
+      : change > 0
+        ? "long"
+        : "short";
+    expect(dir).toBe("short");
   });
 });
 
@@ -285,6 +308,14 @@ describe("primary source gate: HIP-3 trade scenarios", () => {
 
   it("NVDA with HIP3OIBuild alone passes primary gate", () => {
     const contributingSources = ["HIP3OIBuild"];
+    const hasPrimary = contributingSources.some((s) =>
+      PRIMARY_SIGNAL_SOURCES.has(s),
+    );
+    expect(hasPrimary).toBe(true);
+  });
+
+  it("NVDA with HIP3PriceAction alone passes primary gate", () => {
+    const contributingSources = ["HIP3PriceAction"];
     const hasPrimary = contributingSources.some((s) =>
       PRIMARY_SIGNAL_SOURCES.has(s),
     );
@@ -391,22 +422,22 @@ describe("end-to-end: HIP-3 asset tradability", () => {
   it("NVDA with +3% move and OI/vol 3.5x: both primary sources fire", () => {
     const change = 3.0;
     const oiToVol = 3.5;
-    const funding = 0.00005; // neutral, below threshold
+    const funding = 0.00003; // below 0.00005 threshold
 
     const signals: string[] = [];
 
-    // HIP3Funding check (new threshold 0.0001)
-    if (Math.abs(funding) > 0.0001) signals.push("HIP3Funding");
+    // HIP3Funding check (new threshold 0.00005)
+    if (Math.abs(funding) > 0.00005) signals.push("HIP3Funding");
 
-    // HIP3Momentum check (new threshold 1.5)
-    if (Math.abs(change) > 1.5) signals.push("HIP3Momentum");
+    // HIP3Momentum check (new threshold 0.8)
+    if (Math.abs(change) > 0.8) signals.push("HIP3Momentum");
 
-    // HIP3OIBuild check (new threshold 2.5)
-    if (oiToVol > 2.5) signals.push("HIP3OIBuild");
+    // HIP3OIBuild check (new threshold 1.8)
+    if (oiToVol > 1.8) signals.push("HIP3OIBuild");
 
     expect(signals).toContain("HIP3Momentum");
     expect(signals).toContain("HIP3OIBuild");
-    expect(signals).not.toContain("HIP3Funding"); // funding is neutral
+    expect(signals).not.toContain("HIP3Funding"); // funding below threshold
     expect(signals.length).toBeGreaterThanOrEqual(2); // meets minConfirming for HIP-3
 
     const hasPrimary = signals.some((s) => PRIMARY_SIGNAL_SOURCES.has(s));
@@ -445,14 +476,14 @@ describe("end-to-end: HIP-3 asset tradability", () => {
   });
 
   it("TSLA with WTT pick + mild momentum: WTT unlocks the trade", () => {
-    const change = 1.8; // above 1.5 threshold
-    const oiToVol = 1.5; // below 2.5 threshold
-    const funding = 0.00002; // neutral
+    const change = 0.9; // above 0.8 threshold
+    const oiToVol = 1.5; // below 1.8 threshold
+    const funding = 0.00002; // below 0.00005 threshold
 
     const signals: string[] = [];
-    if (Math.abs(funding) > 0.0001) signals.push("HIP3Funding");
-    if (Math.abs(change) > 1.5) signals.push("HIP3Momentum");
-    if (oiToVol > 2.5) signals.push("HIP3OIBuild");
+    if (Math.abs(funding) > 0.00005) signals.push("HIP3Funding");
+    if (Math.abs(change) > 0.8) signals.push("HIP3Momentum");
+    if (oiToVol > 1.8) signals.push("HIP3OIBuild");
     signals.push("WTT"); // WTT pick matches TSLA
 
     const hasPrimary = signals.some((s) => PRIMARY_SIGNAL_SOURCES.has(s));

@@ -1652,10 +1652,19 @@ export class VinceSignalAggregatorService extends Service {
             hip3Service.getAssetPrice(asset),
           );
           if (hip3Data) {
-            // Funding-based signal (contrarian: extreme funding → mean reversion)
+            // Funding-based signal — contrarian only at extreme levels.
+            // At moderate levels, use funding polarity as trend confirmation
+            // (longs paying on uptrend = crowded but confirms direction).
             const fr = hip3Data.funding8h;
-            if (Math.abs(fr) > 0.0001) {
-              const fundingDir: "long" | "short" = fr > 0 ? "short" : "long";
+            if (Math.abs(fr) > 0.00005) {
+              const extremeFunding = Math.abs(fr) > 0.0005;
+              const fundingDir: "long" | "short" = extremeFunding
+                ? fr > 0
+                  ? "short"
+                  : "long"
+                : fr > 0
+                  ? "long"
+                  : "short";
               const fundingStrength = Math.min(72, 55 + Math.abs(fr) * 25000);
               const fundingConfidence = Math.min(65, 48 + Math.abs(fr) * 20000);
               signals.push({
@@ -1665,22 +1674,22 @@ export class VinceSignalAggregatorService extends Service {
                 confidence: fundingConfidence,
                 source: "HIP3Funding",
                 factors: [
-                  `HIP-3 ${asset} funding ${fr > 0 ? "longs paying" : "shorts paying"} ${(fr * 100).toFixed(4)}% - contrarian ${fundingDir}`,
+                  `HIP-3 ${asset} funding ${fr > 0 ? "longs paying" : "shorts paying"} ${(fr * 100).toFixed(4)}% - ${extremeFunding ? "contrarian" : "confirming"} ${fundingDir}`,
                 ],
                 timestamp: Date.now(),
               });
               sources.push("HIP3Funding");
               allFactors.push(
-                `HIP-3 ${asset} funding ${(fr * 100).toFixed(4)}% (contrarian ${fundingDir})`,
+                `HIP-3 ${asset} funding ${(fr * 100).toFixed(4)}% (${extremeFunding ? "contrarian" : "confirming"} ${fundingDir})`,
               );
             }
 
             // Momentum signal (24h change) — primary source for HIP-3
             const change = hip3Data.change24h;
-            if (Math.abs(change) > 1.5) {
+            if (Math.abs(change) > 0.8) {
               const momDir: "long" | "short" = change > 0 ? "long" : "short";
-              const momStrength = Math.min(75, 56 + Math.abs(change) * 2);
-              const momConfidence = Math.min(68, 50 + Math.abs(change) * 1.5);
+              const momStrength = Math.min(82, 52 + Math.abs(change) * 3);
+              const momConfidence = Math.min(72, 48 + Math.abs(change) * 2);
               signals.push({
                 asset,
                 direction: momDir,
@@ -1698,11 +1707,21 @@ export class VinceSignalAggregatorService extends Service {
               );
             }
 
-            // OI buildup signal (high OI = crowded, mean reversion potential) — primary source for HIP-3
+            // OI buildup signal — only fire when momentum/priceAction agree (same direction).
+            // At lower ratios (1.8-3x on thin HIP-3 markets) use as CONFIRMING trend signal
+            // rather than contrarian, since contrarian OI fights momentum and zeros out direction.
+            // Only go contrarian at extreme ratios (> 5x).
             if (hip3Data.openInterest > 0 && hip3Data.volume24h > 0) {
               const oiToVolRatio = hip3Data.openInterest / hip3Data.volume24h;
-              if (oiToVolRatio > 2.5) {
-                const oiDir: "long" | "short" = change > 0 ? "short" : "long";
+              if (oiToVolRatio > 1.8) {
+                const extreme = oiToVolRatio > 5;
+                const oiDir: "long" | "short" = extreme
+                  ? change > 0
+                    ? "short"
+                    : "long"
+                  : change > 0
+                    ? "long"
+                    : "short";
                 const oiStrength = Math.min(70, 52 + oiToVolRatio * 3);
                 const oiConfidence = Math.min(64, 48 + oiToVolRatio * 2.5);
                 signals.push({
@@ -1712,15 +1731,38 @@ export class VinceSignalAggregatorService extends Service {
                   confidence: oiConfidence,
                   source: "HIP3OIBuild",
                   factors: [
-                    `HIP-3 ${asset} OI/volume ratio ${oiToVolRatio.toFixed(1)}x (position buildup, contrarian ${oiDir})`,
+                    `HIP-3 ${asset} OI/volume ratio ${oiToVolRatio.toFixed(1)}x (${extreme ? "extreme crowding, contrarian" : "confirming trend"} ${oiDir})`,
                   ],
                   timestamp: Date.now(),
                 });
                 sources.push("HIP3OIBuild");
                 allFactors.push(
-                  `HIP-3 ${asset} OI/vol ${oiToVolRatio.toFixed(1)}x (contrarian)`,
+                  `HIP-3 ${asset} OI/vol ${oiToVolRatio.toFixed(1)}x (${extreme ? "contrarian" : "confirming"})`,
                 );
               }
+            }
+
+            // Top-mover price action (trend-following): top 3 by |change24h| in universe
+            const topMovers = await hip3Service.getTopMoversByAbsChange(3);
+            if (topMovers.includes(asset) && Math.abs(change) > 0.5) {
+              const paDir: "long" | "short" = change > 0 ? "long" : "short";
+              const paStrength = Math.min(78, 50 + Math.abs(change) * 3);
+              const paConfidence = Math.min(70, 46 + Math.abs(change) * 2);
+              signals.push({
+                asset,
+                direction: paDir,
+                strength: paStrength,
+                confidence: paConfidence,
+                source: "HIP3PriceAction",
+                factors: [
+                  `HIP-3 ${asset} top mover ${change > 0 ? "+" : ""}${change.toFixed(1)}% 24h (trend-follow ${paDir})`,
+                ],
+                timestamp: Date.now(),
+              });
+              sources.push("HIP3PriceAction");
+              allFactors.push(
+                `HIP-3 ${asset} top mover (trend-follow ${paDir})`,
+              );
             }
           }
           if (!sources.some((s) => s.startsWith("HIP3"))) {

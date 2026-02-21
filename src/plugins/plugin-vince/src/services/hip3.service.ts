@@ -1343,6 +1343,25 @@ export class VinceHIP3Service extends Service {
   }
 
   /**
+   * Top movers by absolute 24h change (for HIP3PriceAction signal).
+   * Uses same cache as getHIP3Pulse(); returns top n symbols.
+   */
+  async getTopMoversByAbsChange(n: number): Promise<string[]> {
+    const pulse = await this.getHIP3Pulse();
+    if (!pulse) return [];
+    const allAssets = [
+      ...pulse.commodities,
+      ...pulse.indices,
+      ...pulse.stocks,
+      ...pulse.aiPlays,
+    ];
+    const sorted = [...allAssets].sort(
+      (a, b) => Math.abs(b.change24h) - Math.abs(a.change24h),
+    );
+    return sorted.slice(0, n).map((a) => a.symbol);
+  }
+
+  /**
    * Get service status
    */
   getStatus(): { available: boolean; lastUpdate: number; assetCount: number } {
