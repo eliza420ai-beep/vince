@@ -622,6 +622,82 @@ Output only the JSON object, no markdown or explanation.`;
   }
 }
 
+/** Default rubric when we fall back to narrative parsing (paper bot still needs a valid pick). */
+const FALLBACK_RUBRIC: WttPick["rubric"] = {
+  alignment: "direct",
+  edge: "emerging",
+  payoffShape: "high",
+  timingForgiveness: "forgiving",
+};
+
+/**
+ * When LLM extraction fails, try to infer a minimal pick from the narrative
+ * so the paper bot still gets a JSON (e.g. "xyz: GOOGL-PERP perp LONG" or "long GOOGL").
+ */
+function extractPickFromNarrativeFallback(
+  narrative: string,
+  thesis: string,
+  dateStr: string,
+): WttPick | null {
+  const text = (narrative + "\n" + thesis).toLowerCase();
+  let direction: "long" | "short" = "long";
+  const shortMatch = text.match(
+    /\bshort\s+(\w+)\b|(\w+)[-\s]perp\s+perp\s+short/i,
+  );
+  const longMatch = text.match(
+    /\blong\s+(\w+)\b|(\w+)[-\s]perp\s+perp\s+long/i,
+  );
+  if (shortMatch) {
+    direction = "short";
+  }
+  const tickerCandidates: string[] = [];
+  for (const t of WTT_UNIVERSE_TICKERS) {
+    const upper = t.toUpperCase();
+    const re = new RegExp(
+      `(?:^|[^a-z])${upper.replace(/-/g, "[-\s]?")}(?:-?perp|\\s|$|[^a-z])`,
+      "i",
+    );
+    if (re.test(narrative) || re.test(thesis)) {
+      tickerCandidates.push(upper);
+    }
+  }
+  const perpLine = narrative.match(
+    /(?:xyz|flx|vntl|km)?:?\s*([A-Z][A-Z0-9]+)(?:-PERP)?\s+perp\s+(LONG|SHORT)/i,
+  );
+  if (perpLine) {
+    const ticker = perpLine[1].toUpperCase().replace(/-/g, "");
+    if (isWttUniverseTicker(ticker)) {
+      tickerCandidates.unshift(ticker);
+    }
+    if (perpLine[2].toUpperCase() === "SHORT") {
+      direction = "short";
+    }
+  }
+  const priceMatch = narrative.match(/\$\s*([\d,.]+)/);
+  const entryPrice = priceMatch
+    ? parseFloat(priceMatch[1].replace(/,/g, ""))
+    : 0;
+  const ticker = tickerCandidates[0];
+  if (!ticker || !isWttUniverseTicker(ticker)) {
+    return null;
+  }
+  logger.info(
+    `[ECHO WhatstheTrade] Fallback pick: ${ticker} ${direction} (from narrative)`,
+  );
+  return {
+    date: dateStr,
+    thesis,
+    primaryTicker: ticker,
+    primaryDirection: direction,
+    primaryInstrument: "perp",
+    primaryEntryPrice: entryPrice,
+    primaryRiskUsd: 0,
+    invalidateCondition: "",
+    killConditions: [],
+    rubric: FALLBACK_RUBRIC,
+  };
+}
+
 async function saveReport(content: string, date: Date): Promise<string | null> {
   try {
     const dir = getOutputDir();
@@ -771,7 +847,26 @@ export async function runWhatsTheTradeReport(
     }
   }
 
-  if (pick) await savePickJson(pick, now);
+  if (pick) {
+    await savePickJson(pick, now);
+  } else {
+    const fallbackPick = extractPickFromNarrativeFallback(
+      narrative,
+      thesis,
+      dateStr,
+    );
+    if (fallbackPick) {
+      await savePickJson(fallbackPick, now);
+      pick = fallbackPick;
+      logger.info(
+        "[ECHO WhatstheTrade] Saved pick from fallback (paper bot will use it)",
+      );
+    } else {
+      logger.warn(
+        "[ECHO WhatstheTrade] No structured pick and fallback found no ticker; paper bot will not have a WTT pick for today",
+      );
+    }
+  }
   return { filepath, report: fullReport, pick };
 }
 

@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-21",
+  "thesis": "GOOGL trades at a discount to MAG7 peers despite superior search moat and AI integration progress that the market is undervaluing relative to capex concerns.",
+  "primaryTicker": "GOOGL",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 315.57,
+  "primaryRiskUsd": 1500,
+  "invalidateCondition": "search traffic declines month-over-month by 5%+",
+  "killConditions": [
+    "search traffic -5% MoM",
+    "GOOGL search revenue growth turns negative"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "MAG7",
+  "altDirection": "short",
+  "altInstrument": "index",
+  "evThresholdPct": 4.5
+}

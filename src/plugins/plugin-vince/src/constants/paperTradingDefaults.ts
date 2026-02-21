@@ -295,6 +295,14 @@ export const SIGNAL_THRESHOLDS = {
    * confirming sources instead of MIN_CONFIRMING. Lower = more trades = more training data.
    */
   MIN_CONFIRMING_WHEN_STRONG: 2,
+
+  /**
+   * HIP-3 assets have only 3–4 signal sources (Hyperliquid DEXes). Use lower minimums
+   * so aggregated HIP-3 signals can pass and the paper bot can open HIP-3 positions.
+   * 45/40 allows more single-signal HIP-3 trades (e.g. one HIP3Momentum) to pass.
+   */
+  HIP3_MIN_STRENGTH: 45,
+  HIP3_MIN_CONFIDENCE: 40,
 } as const;
 
 // ==========================================

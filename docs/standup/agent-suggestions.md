@@ -69,3 +69,7 @@
 - Monitor btc-going-to-zero sentiment acceleration as a live thesis-break signal paired with ADX below 25.
 - Coordinate Eliza's DeFi rate-cut research with Solus's covered-call sizing to align macro positioning.
 - Test Otaku's DefiLlama yield scanning output against Eliza's stablecoin yield strategy corpus once wallet is live.
+## 2026-02-21
+
+- Pull live CLOB odds on Iran Feb 28 if desk wants to size a macro hedge (Oracle suggestion).
+- Monitor BTC invalidation at 67K Thursday and Iran Feb 28 odds spike above 30% as breakout signals (Naval thesis).

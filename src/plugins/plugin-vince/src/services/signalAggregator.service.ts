@@ -1685,8 +1685,9 @@ export class VinceSignalAggregatorService extends Service {
             }
 
             // Momentum signal (24h change) — primary source for HIP-3
+            // 0.3% threshold so more assets get a HIP3Momentum signal (was 0.5%)
             const change = hip3Data.change24h;
-            if (Math.abs(change) > 0.8) {
+            if (Math.abs(change) > 0.3) {
               const momDir: "long" | "short" = change > 0 ? "long" : "short";
               const momStrength = Math.min(82, 52 + Math.abs(change) * 3);
               const momConfidence = Math.min(72, 48 + Math.abs(change) * 2);
@@ -1744,7 +1745,7 @@ export class VinceSignalAggregatorService extends Service {
 
             // Top-mover price action (trend-following): top 3 by |change24h| in universe
             const topMovers = await hip3Service.getTopMoversByAbsChange(3);
-            if (topMovers.includes(asset) && Math.abs(change) > 0.5) {
+            if (topMovers.includes(asset) && Math.abs(change) > 0.3) {
               const paDir: "long" | "short" = change > 0 ? "long" : "short";
               const paStrength = Math.min(78, 50 + Math.abs(change) * 3);
               const paConfidence = Math.min(70, 46 + Math.abs(change) * 2);

@@ -15,10 +15,6 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import { isVinceAgent } from "../utils/dashboard";
 import {
-  HIP3_COMMODITIES,
-  HIP3_INDICES,
-  HIP3_STOCKS,
-  HIP3_AI_TECH,
   HIP3_ASSETS,
   HIP3_DEX_MAPPING,
   normalizeHIP3Symbol,
@@ -112,6 +108,20 @@ interface HyperliquidMeta {
 }
 
 type HyperliquidMetaAndAssetCtxs = [HyperliquidMeta, HyperliquidAssetCtx[]];
+
+/** Per-DEX result for Strategy 2 diagnostics */
+export interface HIP3DexFetchSummary {
+  dex: string;
+  assetCount: number;
+  ok: boolean;
+  error?: string;
+}
+
+/** Result of fetching all HIP-3 DEXes (Strategy 2) */
+export interface FetchAllHIP3DexesResult {
+  results: HyperliquidMetaAndAssetCtxs[];
+  perDexSummary: HIP3DexFetchSummary[];
+}
 
 // ============================================================================
 // CONSTANTS
@@ -452,14 +462,14 @@ export class VinceHIP3Service extends Service {
   }> {
     try {
       // Try to fetch data from HIP-3 DEXes
-      const hip3Data = await this.fetchAllHIP3Dexes();
+      const hip3Result = await this.fetchAllHIP3Dexes();
 
-      if (!hip3Data || hip3Data.length === 0) {
+      if (!hip3Result || hip3Result.results.length === 0) {
         return { success: false, message: "No HIP-3 DEX data returned" };
       }
 
       // Build pulse to count assets
-      const pulse = this.buildHIP3Pulse(hip3Data);
+      const pulse = this.buildHIP3Pulse(hip3Result.results);
       const totalAssets = this.countHIP3Assets(pulse);
 
       if (totalAssets === 0) {
@@ -1025,8 +1035,20 @@ export class VinceHIP3Service extends Service {
   private static readonly HIP3_DEX_NAMES = ["xyz", "flx", "vntl", "km"];
 
   /**
+   * Map API-returned DEX names (lowercased) to canonical dex value for metaAndAssetCtxs requests.
+   * Covers alternate names (e.g. "tradexyz") so we always send the correct dex param.
+   */
+  private static readonly API_DEX_TO_REQUEST_DEX: Record<string, string> = {
+    xyz: "xyz",
+    tradexyz: "xyz",
+    flx: "flx",
+    vntl: "vntl",
+    km: "km",
+  };
+
+  /**
    * Fetch available perp DEX names from the API
-   * Returns empty string for main crypto dex, plus HIP-3 dex names
+   * Returns empty string for main crypto dex, plus canonical HIP-3 dex names for requests
    */
   private async getPerpDexs(): Promise<string[]> {
     try {
@@ -1036,10 +1058,20 @@ export class VinceHIP3Service extends Service {
         // Response format: [null, { name: "xyz" }, { name: "flx" }, ...]
         // First element is null (represents main crypto dex)
         const dexNames: string[] = [""]; // Empty string = main dex
+        const seen = new Set<string>();
 
         for (const item of data.slice(1)) {
           if (item?.name && typeof item.name === "string") {
-            dexNames.push(item.name);
+            const lower = item.name.toLowerCase();
+            const canonical =
+              VinceHIP3Service.API_DEX_TO_REQUEST_DEX[lower] ?? lower;
+            if (
+              VinceHIP3Service.HIP3_DEX_NAMES.includes(canonical) &&
+              !seen.has(canonical)
+            ) {
+              seen.add(canonical);
+              dexNames.push(canonical);
+            }
           }
         }
 
@@ -1047,11 +1079,7 @@ export class VinceHIP3Service extends Service {
           `[VinceHIP3] Discovered DEXes from API: ${dexNames.join(", ") || "(main only)"}`,
         );
 
-        // Verify we got at least some HIP-3 DEXes
-        const hasHip3Dexes = dexNames.some((d) =>
-          VinceHIP3Service.HIP3_DEX_NAMES.includes(d),
-        );
-        if (hasHip3Dexes) {
+        if (dexNames.length > 1) {
           return dexNames;
         }
 
@@ -1124,8 +1152,9 @@ export class VinceHIP3Service extends Service {
    * Fetch from all HIP-3 DEXes individually
    * Uses getPerpDexs to discover DEXes dynamically with fallback
    */
-  private async fetchAllHIP3Dexes(): Promise<HyperliquidMetaAndAssetCtxs[]> {
+  private async fetchAllHIP3Dexes(): Promise<FetchAllHIP3DexesResult> {
     const results: HyperliquidMetaAndAssetCtxs[] = [];
+    const perDexSummary: HIP3DexFetchSummary[] = [];
 
     // Get available DEXes dynamically (with fallback to hardcoded list)
     const allDexes = await this.getPerpDexs();
@@ -1143,27 +1172,43 @@ export class VinceHIP3Service extends Service {
     const dexPromises = hip3Dexes.map(async (dex) => {
       try {
         const data = await this.fetchDexData(dex);
-        return data;
+        const assetCount = data ? data[0].universe.length : 0;
+        if (data) {
+          logger.info(`[VinceHIP3] DEX ${dex}: ${assetCount} assets`);
+          perDexSummary.push({ dex, assetCount, ok: true });
+          return { data, dex, assetCount, ok: true as const };
+        }
+        logger.info(`[VinceHIP3] DEX ${dex} fetch failed: invalid response`);
+        perDexSummary.push({
+          dex,
+          assetCount: 0,
+          ok: false,
+          error: "invalid response",
+        });
+        return { data: null, dex, assetCount: 0, ok: false as const };
       } catch (error) {
-        logger.debug(`[VinceHIP3] Failed to fetch DEX ${dex}: ${error}`);
-        return null;
+        const errMsg = error instanceof Error ? error.message : String(error);
+        logger.info(`[VinceHIP3] DEX ${dex} fetch failed: ${errMsg}`);
+        perDexSummary.push({ dex, assetCount: 0, ok: false, error: errMsg });
+        return { data: null, dex, assetCount: 0, ok: false as const };
       }
     });
 
     const dexResults = await Promise.all(dexPromises);
 
-    let totalAssets = 0;
-    for (const result of dexResults) {
-      if (result) {
-        results.push(result);
-        totalAssets += result[0].universe.length;
-      }
+    for (const r of dexResults) {
+      if (r.data) results.push(r.data);
     }
+
+    const totalAssets = results.reduce(
+      (sum, tuple) => sum + tuple[0].universe.length,
+      0,
+    );
 
     logger.debug(
       `[VinceHIP3] Fetched ${results.length}/${hip3Dexes.length} HIP-3 DEXes with ${totalAssets} total assets`,
     );
-    return results;
+    return { results, perDexSummary };
   }
 
   /**
@@ -1226,12 +1271,14 @@ export class VinceHIP3Service extends Service {
     );
 
     // Strategy 2: If no HIP-3 assets, fetch from individual HIP-3 DEXes
+    let strategy2Summary: HIP3DexFetchSummary[] = [];
     if (hip3Count === 0) {
       logger.debug("[VinceHIP3] Strategy 2: Fetching from individual DEXes...");
 
       // Get main dex for BTC comparison + all HIP-3 dexes
       const mainDexData = await this.fetchMetaAndAssetCtxs();
-      const hip3DexData = await this.fetchAllHIP3Dexes();
+      const hip3DexResult = await this.fetchAllHIP3Dexes();
+      strategy2Summary = hip3DexResult.perDexSummary;
 
       allData = [];
       if (mainDexData) {
@@ -1240,10 +1287,10 @@ export class VinceHIP3Service extends Service {
           `[VinceHIP3] Main DEX added: ${mainDexData.length} result(s)`,
         );
       }
-      if (hip3DexData.length > 0) {
-        allData.push(...hip3DexData);
+      if (hip3DexResult.results.length > 0) {
+        allData.push(...hip3DexResult.results);
         logger.debug(
-          `[VinceHIP3] HIP-3 DEXes added: ${hip3DexData.length} result(s)`,
+          `[VinceHIP3] HIP-3 DEXes added: ${hip3DexResult.results.length} result(s)`,
         );
       }
 
@@ -1259,6 +1306,11 @@ export class VinceHIP3Service extends Service {
     // Log diagnostics if still no HIP-3 assets
     if (hip3Count === 0) {
       logger.warn("[VinceHIP3] No HIP-3 assets found from any strategy");
+      const succeeded = strategy2Summary.filter((s) => s.ok);
+      const tried = strategy2Summary.map((s) => s.dex).join(", ") || "none";
+      logger.info(
+        `[VinceHIP3] Strategy 2: tried DEXes ${tried}; succeeded: ${succeeded.length} (${succeeded.map((s) => `${s.dex}=${s.assetCount}`).join(", ") || "0"})`,
+      );
       logger.debug(
         `[VinceHIP3] Expected HIP-3 symbols: ${HIP3_ASSETS.slice(0, 10).join(", ")}...`,
       );

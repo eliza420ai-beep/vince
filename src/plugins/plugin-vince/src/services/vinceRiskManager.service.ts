@@ -490,24 +490,41 @@ export class VinceRiskManagerService extends Service {
     // Do NOT double-apply here - use signal.confidence directly
     // (Previously this was double-dipping the penalty, causing signals to fail unexpectedly)
 
+    const isCoreAsset = (CORE_ASSETS as readonly string[]).includes(
+      signal.asset,
+    );
+    // HIP-3 assets have only 3–4 sources (Hyperliquid DEXes); use relaxed min so they can pass
+    const minStrength = !isCoreAsset
+      ? Math.min(
+          this.limits.minSignalStrength,
+          SIGNAL_THRESHOLDS.HIP3_MIN_STRENGTH,
+        )
+      : this.limits.minSignalStrength;
+    const minConfidence = !isCoreAsset
+      ? Math.min(
+          this.limits.minSignalConfidence,
+          SIGNAL_THRESHOLDS.HIP3_MIN_CONFIDENCE,
+        )
+      : this.limits.minSignalConfidence;
+
     // Check signal strength
-    if (signal.strength < this.limits.minSignalStrength) {
+    if (signal.strength < minStrength) {
       return {
         valid: false,
-        reason: `Signal strength ${signal.strength}% below minimum ${this.limits.minSignalStrength}%`,
+        reason: `Signal strength ${signal.strength}% below minimum ${minStrength}%`,
       };
     }
 
     // Check signal confidence (already time-adjusted by SignalAggregator)
-    if (signal.confidence < this.limits.minSignalConfidence) {
+    if (signal.confidence < minConfidence) {
       return {
         valid: false,
-        reason: `Signal confidence ${signal.confidence.toFixed(0)}% below minimum ${this.limits.minSignalConfidence}%`,
+        reason: `Signal confidence ${signal.confidence.toFixed(0)}% below minimum ${minConfidence}%`,
       };
     }
 
     // Check confirming signals
-    // HIP-3 and HYPE have fewer signal sources (Hyperliquid only), so use lower minimum (2).
+    // HIP-3 and HYPE have fewer signal sources (Hyperliquid only), so use lower minimum (1).
     // Core assets (BTC/ETH/SOL) have many sources, so use full minimum (3).
     // Strong-signal override: when strength/confidence are high, allow MIN_CONFIRMING_WHEN_STRONG (more trades → more training data)
     const strongStrength = SIGNAL_THRESHOLDS.STRONG_STRENGTH;
@@ -517,9 +534,6 @@ export class VinceRiskManagerService extends Service {
     const isStrongSignal =
       signal.strength >= strongStrength &&
       signal.confidence >= strongConfidence;
-    const isCoreAsset = (CORE_ASSETS as readonly string[]).includes(
-      signal.asset,
-    );
     const minConfirming = !isCoreAsset
       ? 1 // HIP-3 / HYPE: only 3-4 sources available; primary source gate already ensures quality
       : isStrongSignal && signal.confirmingCount >= minConfirmingWhenStrong
