@@ -146,7 +146,7 @@ Milaidy is "terminally online" (https://github.com/milady-ai/milaidy) — we hav
 - Satoshi runs in OpenClaw and has the same SATOSHI.md instructions you should know
 - Satoshi implements improvements based on SATOSHI.md priorities
 - When Satoshi makes PRs, review them and suggest improvements
-- You both push to `satoshi/*` branches, never main directly
+- You both push to \`satoshi/*\` branches, never main directly
 
 **Current Priorities (from SATOSHI.md):**
 1. ✅ Solus — done (Hypersurface, wheel, Deribit, USDai, HyperEVM apps)

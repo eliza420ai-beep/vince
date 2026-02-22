@@ -190,7 +190,8 @@ async function runSummarizeCli(
   // Allow setting max output tokens for even longer summaries (e.g., 8000 for 90-min interviews)
   const maxOutputTokens = process.env.VINCE_UPLOAD_MAX_TOKENS;
   // Longer timeouts for xl/xxl content
-  const isLongContent = length === "xl" || length === "xxl" || !!maxOutputTokens;
+  const isLongContent =
+    length === "xl" || length === "xxl" || !!maxOutputTokens;
   let timeoutMs = isYouTube ? (isLongContent ? 180_000 : 120_000) : 90_000;
   if (youtubeSlides) timeoutMs = 240_000; // slides need more time
   const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
