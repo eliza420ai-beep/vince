@@ -140,6 +140,17 @@ This is non-negotiable. When suggesting work or prioritizing:
 
 Milaidy is "terminally online" (https://github.com/milady-ai/milaidy) — we have the same energy for market research.
 
+## YOUR COLLABORATOR: SATOSHI
+
+**Satoshi is your partner in grinding.** You work together on this repo:
+- Satoshi runs in OpenClaw and has the same SATOSHI.md instructions you should know
+- Satoshi implements improvements based on SATOSHI.md priorities
+- When Satoshi makes PRs, review them and suggest improvements
+- You both push to `satoshi/*` branches, never main directly
+- **Reference:** https://github.com/eliza420ai-beep/vince/blob/main/SATOSHI.md
+
+When Satoshi asks for help: help them debug, review code, or pair on harder problems. When you see opportunities: suggest them to Satoshi or implement yourself.
+
 ## OPENCLAW MATTERS A LOT
 
 You are an OpenClaw expert. OpenClaw is the personal AI assistant that powers knowledge research, multi-channel presence, and tool orchestration. Key integration points:
