@@ -1718,6 +1718,45 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     logger.debug({ err: e }, "[STANDUP] Recent uploads failed");
   }
 
+  // Stale knowledge categories (from FRESHNESS.md)
+  try {
+    const freshnessPath = path.join(process.cwd(), "knowledge", "FRESHNESS.md");
+    if (fs.existsSync(freshnessPath)) {
+      const freshness = fs.readFileSync(freshnessPath, "utf-8");
+      // Extract high-priority stale categories
+      const highPriorityMatch = freshness.match(/\*\*High priority\*\*[\s\S]*?\|(\s*\d+\s*)\|/);
+      if (highPriorityMatch) {
+        // Get category names from the table
+        const staleLines = freshness
+          .split("\n")
+          .filter(
+            (line) =>
+              line.includes("kelly-btc") ||
+              line.includes("macro-economy") ||
+              line.includes("ai-crypto") ||
+              line.includes("stocks")
+          )
+          .slice(0, 4);
+        if (staleLines.length > 0) {
+          const staleCats = staleLines
+            .map((l) => {
+              const match = l.match(/`([^`]+)`/);
+              return match ? match[1].split("/")[0] : null;
+            })
+            .filter(Boolean)
+            .slice(0, 3);
+          if (staleCats.length > 0) {
+            sections.push(
+              `**Stale categories (update needed):** ${staleCats.join(", ")}`
+            );
+          }
+        }
+      }
+    }
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] Freshness check failed");
+  }
+
   try {
     const facts = await runtime.getMemories({
       tableName: "facts",
