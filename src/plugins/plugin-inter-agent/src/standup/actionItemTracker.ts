@@ -33,6 +33,8 @@ export interface ActionItem {
   how: string;
   why: string;
   owner: string;
+  /** Due date in YYYY-MM-DD format */
+  dueDate?: string;
   urgency: ActionItemUrgency;
   status: ActionItemStatus;
   /** 1 = highest priority; lower number = do first. Set by planner. */
@@ -301,11 +303,11 @@ export function formatActionItemsTable(items: ActionItem[]): string {
       item.pnl !== undefined
         ? `$${item.pnl > 0 ? "+" : ""}${item.pnl}`
         : item.outcome || "—";
-    return `| ${item.date} | ${item.what.slice(0, 30)} | @${item.owner} | ${status} | ${outcome} |`;
+    return `| ${item.date} | ${item.what.slice(0, 30)} | @${item.owner} | ${item.dueDate || "—"} | ${status} | ${outcome} |`;
   });
 
-  return `| Date | Action | Owner | Status | Outcome |
-|------|--------|-------|--------|---------|
+  return `| Date | Action | Owner | Due | Status | Outcome |
+|------|--------|-------|-----|--------|---------|
 ${rows.join("\n")}`;
 }
 
@@ -318,12 +320,43 @@ export function parseActionItemsFromReport(
 ): Partial<ActionItem>[] {
   const items: Partial<ActionItem>[] = [];
 
-  // Look for action plan table
+  // Look for action plan table - now includes DUE DATE
   const tableMatch = report.match(
-    /\|\s*WHAT\s*\|\s*HOW\s*\|\s*WHY\s*\|\s*OWNER[\s\S]*?\n([\s\S]*?)(?=\n\n|\n#|$)/i,
+    /\|\s*WHAT\s*\|\s*HOW\s*\|\s*WHY\s*\|\s*OWNER\s*\|\s*DUE\s*\|?\s*[\s\S]*?\n([\s\S]*?)(?=\n\n|\n#|$)/i,
   );
 
-  if (!tableMatch) return items;
+  if (!tableMatch) {
+    // Try legacy format without DUE column
+    const legacyMatch = report.match(
+      /\|\s*WHAT\s*\|\s*HOW\s*\|\s*WHY\s*\|\s*OWNER[\s\S]*?\n([\s\S]*?)(?=\n\n|\n#|$)/i,
+    );
+    if (!legacyMatch) return items;
+    
+    const rows = legacyMatch[1]
+      .split("\n")
+      .filter((row) => row.trim().startsWith("|"));
+
+    for (const row of rows) {
+      const cells = row
+        .split("|")
+        .map((c) => c.trim())
+        .filter(Boolean);
+      if (cells.length >= 4 && !cells[0].match(/^-+$/)) {
+        const owner = cells[3].replace("@", "").trim();
+        if (owner && owner !== "OWNER") {
+          items.push({
+            date,
+            what: cells[0],
+            how: cells[1] || "",
+            why: cells[2] || "",
+            owner,
+            urgency: cells[4]?.toLowerCase().includes("now") ? "now" : "today",
+          });
+        }
+      }
+    }
+    return items;
+  }
 
   const rows = tableMatch[1]
     .split("\n")
@@ -343,7 +376,8 @@ export function parseActionItemsFromReport(
           how: cells[1] || "",
           why: cells[2] || "",
           owner,
-          urgency: cells[4]?.toLowerCase().includes("now") ? "now" : "today",
+          dueDate: cells[4] || undefined,
+          urgency: cells[5]?.toLowerCase().includes("now") ? "now" : "today",
         });
       }
     }

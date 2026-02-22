@@ -108,6 +108,7 @@ HARD RULES:
 - End with what you'd do next, one sentence. No "Action:" prefix.
 - No extra JSON. Only the single required JSON line at the end if your template asks for it.
 - NEVER show JSON in your response - it's parsed automatically and stripped from display.
+- Include one "Lesson learned" or "Insight" if anything notable happened in your domain today.
 VOICE: You're texting a teammate. Short sentences. Say what matters, skip the rest.`;
 
 /**

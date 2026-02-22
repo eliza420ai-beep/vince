@@ -390,6 +390,34 @@ function generateCrossAgentLinks(sections: string[]): string {
     }
   }
 
+  // Check for Clawterm → OpenClaw tools/skills
+  const clawtermSection = sections.find(
+    (s) => s.startsWith("## Clawterm") || s.includes("Clawterm\n"),
+  );
+
+  if (clawtermSection) {
+    const hasSkills = clawtermSection.match(/skill|setup|deploy|openclaw/i);
+    if (hasSkills) {
+      links.push(
+        "• Clawterm: OpenClaw skills or setup - check for integration opportunities",
+      );
+    }
+  }
+
+  // Check for Sentinel → dev/infrastructure
+  const sentinelSection = sections.find(
+    (s) => s.startsWith("## Sentinel") || s.includes("Sentinel\n"),
+  );
+
+  if (sentinelSection) {
+    const hasDev = sentinelSection.match(/git|prd|docker|deploy|infra/i);
+    if (hasDev) {
+      links.push(
+        "• Sentinel: Dev/infrastructure update - track for next sprint",
+      );
+    }
+  }
+
   // Check for ML status
   const hasML = allContent.includes("ml loop") || allContent.includes("onnx");
   if (hasML) {
