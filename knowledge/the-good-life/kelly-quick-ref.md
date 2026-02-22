@@ -93,7 +93,10 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | swimming-daily-winter-pools.md     | Daily 1000m, sets, palace reopen dates      |
 | home-cooking.md                    | Green Egg, Thermomix, oven — dinner at home |
 | wine-tasting/sommelier-playbook.md | Tasting language, pairings, service         |
+| wine-tasting/italy-wines.md      | Italy: Barolo, Tuscany, Veneto            |
+| wine-tasting/spain-wines.md      | Spain: Rioja, Ribera, Priorat, Albariño    |
 | lifestyle/spa-wellness-guide.md    | Thalasso, thermal spas, day spa options    |
+| lifestyle/travel-aviation-guide.md | Private jet, first class, airports         |
 | surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics       |
 | kelly-backstory.md                 | Character backstory (investments, origin)   |
 | kelly-interview-questions.md       | Deep-life / interview-style answers         |
