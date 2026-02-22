@@ -38,3 +38,8 @@
 | 2026-02-21 | Fear at 8 but institutions are loading; we're selling premium into consolidation | [View](day-reports/2026-02-21-day-report.md) |
 | 2026-02-22 | Fear at 9 but whales loading, we're harvesting options premium while institution | [View](day-reports/2026-02-22-day-report.md) |
 | 2026-02-22 | Fear at 9 but whales are loading $2B in BTC while we collect premium below strik | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-22 | Fear at 9, institutions loading the dip while retail hedges—we're stacking theta | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-22 | Fear index at 9 while institutions load ETFs—classic divergence setup with BTC r | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-22 | Fear index hit 9 while institutions keep loading—classic capitulation setup with | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-22 | Fear at 12 but institutions loading $2B in BTC while we hold covered calls and c | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-22 | Fear at 9, institutions loading quietly while retail searches "Bitcoin to zero"— | [View](day-reports/2026-02-22-day-report.md) |

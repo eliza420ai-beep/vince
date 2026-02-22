@@ -26,6 +26,8 @@ export type KnowledgeCategory =
   | "substack-essays"
   | "the-good-life"
   | "art-collections"
+  | "ai-agents"
+  | "x-posts"
   | "uncategorized";
 
 export interface IGeneratedKnowledgeFile {

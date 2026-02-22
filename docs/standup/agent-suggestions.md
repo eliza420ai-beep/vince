@@ -78,3 +78,26 @@
 - Pull live CLOB odds on Warsh Fed chair entry for tighter macro signal mapping.
 - Map VINCE live order flow against ECHO whale accumulation to resolve signal fragmentation.
 - Document Bankr wallet setup as reference for team onboarding once Otaku ships.
+## 2026-02-22
+
+- Build Hyperliquid session playbook (Asia vs EU/US overlap) as a reusable framework for all future timing decisions.
+- Link Polymarket macro odds (Warsh, Iran strike, rate moves) directly to Hypersurface weekly strike selection in next standup.
+- Track memU adoption and SkillGuard uptake as leading indicators of builder confidence in OpenClaw security posture.
+## 2026-02-22
+
+- Build Skills Security Audit CLI as first onboarding step to reduce builder friction on skill vetting and Gateway security.
+- Wire Hyperliquid quick-takes directly into perps-trading/ and options/ knowledge to tighten funding→strike mapping loop.
+- Add graceful error handling for deleted/unavailable X tweets in knowledge channel extraction pipeline.
+## 2026-02-22
+
+- ECHO and VINCE: reconcile CT sentiment (bullish AI tokens) vs perps short signal (53% confidence) into a unified macro read for next standup.
+## 2026-02-22
+
+- Sentinel: Once X link ingestion ships, automate signal feed to Vince to eliminate manual curation lag.
+- Clawterm: Bundle memU with production security patterns (SOUL.md, HEARTBEAT.md) in ClawHub docs to accelerate adoption.
+- Eliza: Cross-link altcoin fundraise data into regulatory framework for stronger perps session filters.
+- Naval: Thesis first, then build agents to execute it while you sleep—compound your edge across 24/7 cycles.
+## 2026-02-22
+
+- Clawterm and Sentinel should coordinate on memU + OpenClaw integration docs to avoid duplication with OPENCLAW.md updates.
+- Eliza and Solus should sync on institution flow tracking weekly so macro thesis and options context stay aligned.

@@ -70,6 +70,7 @@ export function normalizeTweet(raw: Record<string, unknown>): XTweet {
       id: r.id,
     })),
     entities: raw.entities as XTweet["entities"],
+    article: raw.article as { title?: string } | undefined,
   };
 }
 
@@ -142,20 +143,39 @@ export function normalizeCountsResponse(
   };
 }
 
-/** Normalize single tweet response { data: tweet } */
+/** Normalize single tweet response { data: tweet, includes?: { users } } */
 export function normalizeTweetResponse(raw: {
   data?: Record<string, unknown>;
+  includes?: { users?: Record<string, unknown>[] };
 }): { data?: XTweet } {
   if (!raw.data) return { data: undefined };
-  return { data: normalizeTweet(raw.data) };
+  const tweet = normalizeTweet(raw.data);
+  if (raw.includes?.users && tweet.authorId) {
+    const authorRaw = raw.includes.users.find(
+      (u) => String(u.id) === tweet.authorId,
+    );
+    if (authorRaw) tweet.author = normalizeUser(authorRaw);
+  }
+  return { data: tweet };
 }
 
-/** Normalize tweet array response { data: tweets[] } */
+/** Normalize tweet array response { data: tweets[], includes?: { users } } */
 export function normalizeTweetArrayResponse(raw: {
   data?: Record<string, unknown>[];
+  includes?: { users?: Record<string, unknown>[] };
 }): { data: XTweet[] } {
   const data = raw.data ?? [];
-  return { data: data.map((t) => normalizeTweet(t)) };
+  const users = raw.includes?.users;
+  const tweets = data.map((t) => normalizeTweet(t));
+  if (users) {
+    const userMap = new Map(users.map((u) => [String(u.id), normalizeUser(u)]));
+    for (const tweet of tweets) {
+      if (tweet.authorId && userMap.has(tweet.authorId)) {
+        tweet.author = userMap.get(tweet.authorId);
+      }
+    }
+  }
+  return { data: tweets };
 }
 
 /** Normalize user response { data: user } */

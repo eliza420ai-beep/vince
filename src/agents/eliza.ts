@@ -173,6 +173,8 @@ const elizaCharacter: Character = {
     { directory: "stocks", shared: true },
     { directory: "venture-capital", shared: true },
     { directory: "substack-essays", shared: true },
+    { directory: "x-posts", shared: true },
+    { directory: "ai-agents", shared: true },
     { directory: "prompt-templates", shared: true },
     { directory: "setup-guides", shared: true },
     { directory: "internal-docs", shared: true },

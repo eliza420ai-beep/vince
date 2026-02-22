@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-22",
+  "thesis": "Defense contractors like PLTR outpace broader tech on accelerating military AI budgets while INFOTECH faces margin compression from capex cycles.",
+  "primaryTicker": "PLTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 134.28,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "tech rally kills defense premium",
+  "killConditions": [
+    "MAG7 rips >5%",
+    "broader tech rallies hard on AI optimism"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "INFOTECH",
+  "altDirection": "short",
+  "altInstrument": "stock",
+  "evThresholdPct": 3
+}

@@ -1,30 +1,38 @@
 ---
-date: 2026-02-22T06:53:13.203Z
+date: 2026-02-22T09:50:16.850Z
 type: shared-daily-insights
 ---
 
 # Shared Daily Insights — 2026-02-22
 
+**Scorecard:** ⚪ Health | ✅ VINCE | ✅ Eliza | ✅ ECHO | ✅ Oracle | ✅ Solus | ✅ Otaku | ✅ Sentinel | ✅ Clawterm | ✅ Naval
+
+## Health
+(no agent in registry)
+
 ## VINCE
+### Delta vs Yesterday
+Signal: short (42%) → short (52%)
+
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $68,031 +0.4% | F:0.182% L/S:1.78 Vol:1.0x | bearish |
-| SOL | $85.236 +1.4% | F:-0.656% L/S:2.40 Vol:1.0x | bearish |
-| HYPE | $29.594 -2.1% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $68,056 -0.1% | F:0.002% L/S:1.79 Vol:1.0x | bearish |
+| SOL | $85.045 +0.1% | F:-0.010% L/S:2.43 Vol:1.0x | bearish |
+| HYPE | $29.559 -2.9% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
 **Fear & Greed:** 9 (extreme fear)
 
-**Signal (BTC):** short (47% conf, CoinGlass, BinanceTakerFlow, BinanceLongShort +6 more)
+**Signal (BTC):** short (52% conf, CoinGlass, BinanceTakerFlow, BinanceLongShort +5 more)
 
-**Paper:** No trades yet | 15 open, 0 pending
+**Paper:** No trades yet | 2 open, 0 pending
 
 **ML Loop:** 1+ trades in feature store | SQ:50% |  (TP: 0:0%, 1:39%) [tuning: strength≥5500%, conf≥5000%]
 
 **Self-tuning:** minStr=8000% | minConf=7500% | AUTO-TUNED | [undefined:NaN%→NaN%, undefined:NaN%→NaN%]
 
-**Risk:** 15 trades
+**Risk:** 2 trades
 
-**Portfolio:** $92593 | ret:-740.7% | 15 positions
+**Portfolio:** $99056 | ret:-94.4% | 2 positions
 
 **MandoMinutes:** Risk-on: regulatory. Themes: other, meme, macro, institutional
 News sentiment: bullish (64% conf)
@@ -36,9 +44,9 @@ Headlines:
 🟢 Record fund inflows to Europe equities
 ⚪ Top Gainers: NIGHT, RENDER, TRUMP, AVAX, MORPHO
 
-**OI (24h Δ):** BTC $45.3B (-0.2%) | SOL $5.2B (+1.3%)
+**OI (24h Δ):** BTC $5.4B (-1.4%) | SOL $818M (+0.6%)
 
-**Regime (BTC):** ranging ADX 18.0 | size 0.8x
+**Regime (BTC):** ranging ADX 19.3 | size 0.8x
 
 ## Eliza
 **Yesterday TL;DR:** Fear at 8 but institutions are loading; we're selling premium into consolidation while waiting for t
@@ -47,58 +55,55 @@ Headlines:
 
 **Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.
 
-**Recent uploads (4):**
-- 📝 **teammate:** SATOSHI (1931 words)
-- 📋 **perps-trading:** eliza-upload-hyperlquid-quick-take-17717 (465 words)
-- 📋 **teammate:** README (36 words)
-- 📝 **teammate:** NO-AI-SLOP (596 words)
+**Recent uploads (12):**
+- 📋 **options:** eliza-upload-overview-1771753456820 (451 words)
+- 📋 **macro-economy:** eliza-upload-ben-horowitz-xai-exodus-app (368 words)
+- 📝 **altcoins:** eliza-upload-fundraise-snapshot-17717523 (503 words)
+- 📋 **options:** eliza-upload-regulatory-wins-politics-an (444 words)
+- 📋 **altcoins:** eliza-upload-ikigailabseth-things-are-no (130 words) (+7 more)
 
 **Recent facts in memory (5):**
-- [Standup lesson] memU memory layer adoption driven by hands-on setup tutorials (VPS, Gateway, auth)—theory is dead, ship
-- [Standup lesson] Log noise reduction and type definition fixes improve signal clarity for standup data fetcher.
-- [Standup lesson] Bankr wallet setup is the blocker for DeFi execution; on…
+- [Standup lesson] Persistent memory is no longer a feature—it's table stakes for 24/7 agents; memU at 6.3k stars proves m
+- [Standup lesso…
 
 ## ECHO
 ## ECHO — CT VIBE (last 24h)
 
-**What's HOT (+fomo):** Whale accumulation is real — $2B in BTC scooped, Satoshi-era wallets moving $500M+. XRP's Deutsche Bank partnership narrative still circulating. SOL showing resilience (+1.38%) while alts digest volatility.
+**What's HOT (+fomo):** Whale accumulation signals are firing — Satoshi-era wallets scooping $2B in BTC, on-chain metrics building bases. $XRP partnership buzz (Deutsche Bank) adding tailwind. 📈
 
-**What's FUD (-fear):** Extreme fear grip (F&G at 12). ETF outflows this week despite price gains. BTC miners' margins tightening, NUPL in "anxiety" zone. Polymarket pricing 66% odds of $50K drop — macro fear is baked in.
+**What's FUD (-fear):** Extreme retail fear (Bitcoin-to-zero searches at yearly highs), ETF outflows this week, institutional pessimism. Fear & Greed at 12 (extreme fear). Miner margins tightening as BTC fell 29% in 30 days. ⚠️
 
-**NEW META:** On-chain resilience narrative emerging — despite sentiment crush, distribution patterns suggest mid-cycle stabilization, not capitulation.
+**NEW META:** Contrarian signal forming — when retail searches "Bitcoin to zero" at extremes, historically marks accumulation zones. Smart money watching sentiment inversions, not headlines.
 
-**CORE:** BTC [cautious bullish — testing $68.5K resistance, base-building vibes but institutional pessimism real] | ETH [neutral — +1.30%, tracking BTC] | SOL [bullish — +1.38%, leading altcoin resilience] | HYPE [mixed — noise heavy, signal thin]
+**CORE:** BTC [cautious bullish + base-building] | ETH [neutral, +1.30% but lagging conviction] | SOL [bullish + leading altcoin resilience at +1.38%] | HYPE [not trending in core]
 
-**STOCKS (NVDA/TSLA/AAPL/MAG7):** Not trending in this feed.
+**STOCKS (NVDA/TSLA/AAPL/MAG7):** Not trending.
 
 **@hypersurfaceX:** Not trending.
 
 **@elonmusk / @naval / @kevinWSHpod:** Not trending.
 
-**@autismcapital / @blocknewsdotcom:** Not trending.
-
----
-
-*…
+**@autismcapital / @blocknewsdotcom:** VanEck flagging miner margin squeeze and NUPL anxiety zone — macro headwinds real, but on-cha…
 
 ## Oracle
-| Priority market | YES% | condition_id |
-|-----------------|------|--------------|
+**Priority Markets:**
+| Market | YES% | ID |
+|-------|------|----|
 | Will Trump nominate Judy Shelton as the next Fed c… | 3% | `0x46d40e851b24d9b0af4bc1942ccd86439cae82a9011767da14950df0ad997adf` |
 | Will the Fed decrease interest rates by 50+ bps af… | 1% | `0xdeb615a52cd114e5aa27d8344ae506a72bea81f6ed13f5915f050b615a193c20` |
 | Will the Fed increase interest rates by 25+ bps af… | 1% | `0x25aa90b3cd98305e849189b4e8b770fc77fe89bccb7cf9656468414e01145d38` |
-| Will Trump nominate Kevin Warsh as the next Fed ch… | 95% | `0x61b66d02793b4a68ab0cc25be60d65f517fe18c7d654041281bb130341244fcc` |
+| Will Trump nominate Kevin Warsh as the next Fed ch… | 94% | `0x61b66d02793b4a68ab0cc25be60d65f517fe18c7d654041281bb130341244fcc` |
 | US strikes Iran by January 31, 2026? | 0% | `0xabb86b080e9858dcb3f46954010e49b6f539c20036856c7f999395bfd58d01e6` |
 | US strikes Iran by February 28, 2026? | 17% | `0x3488f31e6449f9803f99a8b5dd232c7ad883637f1c86e6953305a2ef19c77f20` |
 | Will Trump nominate Kevin Hassett as the next Fed … | 0% | `0xdcc87b9ca36015e396bd0eebca29e854a136ed2b0b701049d1ee9da6bee3eb35` |
 | Will Trump nominate Bill Pulte as the next Fed cha… | 0% | `0xc82669901de7cb0be25c1d8de39fbbe8e2ddc0aacba0a30a663ed13c3b9eb06d` |
 
-Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
+**Strike Insight:** Check top 2-3 markets for expiry probabilities — use for Hypersurface weekly strike…
 
 ## Solus
 **Today:** Sunday, 2026-02-22. Hypersurface weekly options settle Friday ~09:00 Paris Time (08:00 UTC / 00:00 PT).
 
-**Live spot (use these — do not guess):** [Hypersurface spot USD] BTC $68,044, ETH $1,975.47, SOL $85.23, HYPE $29.58
+**Live spot (use these — do not guess):** [Hypersurface spot USD] BTC $68,073, ETH $1,975.37, SOL $85.07, HYPE $29.55
 
 **⚠️ CRITICAL: Current positions this week:**
 - **HYPE:** Secured puts, strike $30 (collected premium, holding USDT collateral)
@@ -131,45 +136,44 @@ Solus reads portfolio and open-option context from a single markdown file so he 
 
 ## Sentinel
 Recent code (git log --oneline):
-5c51b69d LFG
-0a3389b9 Merge pull request #38 from eliza420ai-beep/satoshi/improve-daily-insights-template
-5e425f76 Update src/agents/naval.ts
-19e4f413 Update src/plugins/plugin-inter-agent/src/standup/standupDataFetcher.ts
-57ba516e feat(naval): add standup, team framework, agent philosophy
-bd7a6ee5 Merge branch 'IkigaiLabsETH:main' into satoshi/improve-daily-insights-template
-9a9dd7b0 feat(naval): update philosophy and brand voice
-90eccca6 feat(clawterm): add essential X accounts
-a9573ab1 feat(clawterm): add Pete's GitHub as inspiration
-322d4cbc feat(clawterm): add Pete's repos as the edge
+4b248ccb LFG
+f52b3682 Merge pull request #40 from eliza420ai-beep/satoshi/improve-daily-insights-template
+edac9444 Merge branch 'IkigaiLabsETH:main' into satoshi/improve-daily-insights-template
+7b362ea5 fix(eliza): properly fetch X tweets in knowledge channel
+3d124b43 Merge pull request #39 from eliza420ai-beep/satoshi/improve-daily-insights-template
+4ec87b2b Update src/plugins/plugin-inter-agent/src/standup/standup.tasks.ts
+a5173045 Update OPENCLAW.md
+1cae2e50 Update src/plugins/plugin-inter-agent/src/standup/standupDataFetcher.ts
+81a6de1f Update src/plugins/plugin-eliza/src/actions/upload.action.ts
+88cf3e2c feat(eliza): fetch X/Twitter links in knowledge channel
 
-**Branch:** main (1 uncommitted)
+**Branch:** main (5 uncommitted)
 
-**Recent PRDs:** 2026-02-21-prd-test-prd-for-v2-1-0-release-notes-smoke-test.md, 2026-02-21-prd-list-test-prd.md, 2026-02-20-prd-test-prd-for-v2-1-0-release-notes-smoke-test.md
+**Shipped this week:** other: LFG, Merge pull request #40 from eliza420ai-beep/satoshi/improve-daily-insights-template, Merge branch 'IkigaiLabsETH:main' into satoshi/improve-daily-insights-template | eliza: fetch X/Twitter links in knowledge channel, add substack style guide for content writing | standup: add 6 more improvements, add 5 improvements
 
-**Macro news:**
-Learn how Federal Reserve rate hikes, cuts and guidance impact crypto prices. Explore key mechanisms, past examples and what to expect at future Fed
-He said the Fed is “pretty close to neutral” after cutting interest rates multiple times over the past two years. Kashkari: Crypto is like the '
-After three interest rate cuts in the last half…
+**Recent PRDs:** 2026-02-21-prd-test-prd-for-v2-1-0-release-notes-smoke-test.md, 2026-02-21-prd-list-test-…
 
 ## Clawterm
-**Daily Standup — OpenClaw Trends**
+**Daily Standup — OpenClaw Trending & Shipping**
 
-memU (memory layer) hit 6.3k stars — builders are shipping persistent agent memory, critical for 24/7 proactive skills. Security setup is the blocker: Reddit threads show non-technical users confused about safe local deployment, malicious community skills, and risk mitigation. Web tutorials are strong (Telegram/Discord integration, web search, task automation), but the gap is clear — people want "safe by default" guidance. No major new skills shipping this cycle, but memory + security setup are the conversation.
+memU (6.3k stars) is gaining traction as the memory layer for 24/7 proactive agents—builders are shipping persistent memory as table stakes. Browser-hosted OpenClaw (Kimi Claw) is live in beta, showing the shift from local VPS to SaaS-style agent platforms with one-click setup and ClawHub skill integration. Major creators (Tech With Tim, freeCodeCamp, Snapper AI) dropped full courses covering VPS setup, Docker, Telegram integration, voice/STT, and SOUL.md/HEARTBEAT.md configs—the community is standardizing on Hostinger + Docker + memory-first architecture. Setup tutorials are exploding; security guides and skill libraries (ClawHub) are the hot topics.
 
-**Concrete focus:** Ship **OPENCLAW_SECURITY_GUIDE as a one-pager** (local setup checklist, which official skills to enable, how to audit community skills with SkillGuard). Make it Reddit-friendly — non-technical users need a "safe path" decision tree, not walls of text. This closes the security knowledge gap and unblocks adoption.
+**Next focus:** Ship a **memU + OpenClaw integration guide** (or verify existing one). Builders want persistent memory baked into onboarding—show how to wire memU into a fresh OpenClaw instance so agents remember across 24/7 runs without manual config. Make it a 10-min setup, not a deep dive.
 
 ## Naval
-**Today's Naval:** **Agents that execute your thesis while you sleep are leverage—code + labor combined. Write your edge down first; then build the agent to enforce it, not chase every signal.**
-
-That's wealth compounding: your judgment, once coded, scales infinitely.
+**Today's Naval:** **Agents are leverage: they execute your thesis while you sleep, but only if the thesis is written down first.** Push one command, not a thousand decisions—that's how you compound.
 
 **Team Frameworks:** Push not pull. Thesis first. Signal not hype. Paper before live. One team, one dream.
 
-**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VIN…
+**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VINCE = our first product.
+
+**OpenClaw Path:** Build specific knowledge.…
 
 
 ## Cross-Agent Links
 
 • VINCE signal → Oracle: Macro event in Polymarket - check for edge
 • Solus: Active options context - prepare for strike decision
+• Clawterm: OpenClaw skills or setup - check for integration opportunities
+• Sentinel: Dev/infrastructure update - track for next sprint
 • ML Loop: ONNX models training - feature store accumulating

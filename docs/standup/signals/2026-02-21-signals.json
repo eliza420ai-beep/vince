@@ -1,0 +1,12 @@
+{
+  "date": "2026-02-21",
+  "signals": [
+    {
+      "asset": "BTC",
+      "direction": "short",
+      "confidence_pct": 50,
+      "source": "solus",
+      "raw": "BTC holding $68.5K with our $70.5K call strike 5 days out, premium solid but assignment risk climbing if we rally."
+    }
+  ]
+}
