@@ -7,35 +7,56 @@ SECTION 1 — PROGRESS (what is done)
 --------------------------------------------------------------------------------
 
 Plugin structure
-  - plugin-kelly with services (KellyLifestyleService), actions (8), evaluators (1), providers (2), tasks (2).
+  - plugin-kelly with services (KellyLifestyleService), actions (16), evaluators (1), providers (2), tasks (4).
   - Init runs only when character name is Kelly.
 
-Actions
+Actions (16)
   - KELLY_DAILY_BRIEFING: day-aware picks (health, dining, hotels) from the-good-life and curated-open-schedule.
-  - KELLY_RECOMMEND_PLACE: one best pick + one alternative for hotel or restaurant; open today and Landes favorites for SW France.
-  - KELLY_RECOMMEND_WINE: one pick + alternative, SW France/Bordeaux default, tasting note and service.
+  - KELLY_RECOMMEND_PLACE: one best pick + one alternative for hotel or restaurant; "eat in X", "wanna go eat"; place-aware retrieval; open today and Landes favorites for SW France; allowlist guard.
+  - KELLY_RECOMMEND_WINE: one pick + alternative, SW France/Bordeaux default, tasting note and service; South African, whiskey, Armagnac when in wine-tasting knowledge.
   - KELLY_SURF_FORECAST: Biarritz wave height, period, direction, sea temp; interpretation with surf-ocean voice tint; rain/storm suggests indoor or surfer yoga.
-  - KELLY_ITINERARY: multi-day trip plans (hotel, lunch, dinner per day) from the-good-life only.
+  - KELLY_ITINERARY: multi-day trip plans (hotel, lunch, dinner per day) from the-good-life; travel/roadtrips, luxury-hotels.
   - KELLY_RECOMMEND_WORKOUT: one concrete workout (pool, gym, surfer yoga, swim) from pool/gym season and swimming context.
   - KELLY_WEEK_AHEAD: 3–5 suggestions for the week (dining, hotels, wellness) from the-good-life and curated schedule.
   - KELLY_SWIMMING_TIPS: tips for daily 1000m, winter pools, swimmer yoga from swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers.
-  - All use the-good-life knowledge and curated-open-schedule.
+  - KELLY_RECOMMEND_EXPERIENCE: wine tasting, spa, wellness, cooking class, guided tour; one pick + alternative; lifestyle/spa-wellness-guide, experience-prioritization-framework.
+  - KELLY_RECOMMEND_HOME_COOKING: Green Egg, Thermomix, oven; dinner at home; wine pairing; lifestyle/home-cooking, local meat.
+  - KELLY_RECOMMEND_TEA: Dammann Frères by time of day; one pick + alternative.
+  - KELLY_RECOMMEND_ENTERTAINMENT: books, music, Netflix, Apple TV; lifestyle/entertainment-tastes.
+  - KELLY_RECOMMEND_CREATIVE: oil painting, Hasselblad/Capture One, Ableton, Blackmagic/Resolve, Blender; creative-production/*.
+  - KELLY_RECOMMEND_ROWING: water rower for surf/swim fit; lifestyle/water-rowing-surf-swim-fit; one session + benefit.
+  - KELLY_INTERESTING_QUESTION: one thought-provoking question from lifestyle/interesting-questions.
+  - REPLY / ASK_AGENT as used by character.
+  - All use the-good-life knowledge and curated-open-schedule where applicable.
 
-Providers
+Providers (2)
   - kellyContext: today's wellness tip, day of week, season (pool/gym), restaurants open today (SW France/Landes), location context, yoga line, winter swimming line (gym season), known preferences from facts.
   - weather: Bordeaux + Biarritz conditions; marine/surf data for Biarritz (wave height, period, direction, sea temp); high-wind caution; cached 30 min; no beach/surf/outdoor dining in rain or storm.
 
 Evaluator
   - lifestyleFeedback: captures lifestyle preferences from conversation for future personalization.
 
-Tasks
-  - Daily lifestyle briefing push to channels whose name contains "kelly" or "lifestyle".
-  - Optional nudge task (configurable via KELLY_NUDGE_ENABLED, day/hour) to channels with "lifestyle" in name.
+Tasks (4)
+  - Daily lifestyle briefing push to channels whose name contains "kelly" or "lifestyle" (KELLY_LIFESTYLE_DAILY_ENABLED, KELLY_LIFESTYLE_HOUR).
+  - Optional nudge task (KELLY_NUDGE_ENABLED, KELLY_NUDGE_DAY, KELLY_NUDGE_HOUR) to channels with "lifestyle" in name.
+  - Optional weekly digest (KELLY_WEEKLY_DIGEST_ENABLED, KELLY_WEEKLY_DIGEST_HOUR).
+  - Optional winter swim reminder (KELLY_WINTER_SWIM_REMINDER_ENABLED, KELLY_WINTER_SWIM_REMINDER_WEEK).
 
 Knowledge (the-good-life) used
-  - curated-open-schedule: restaurants by day, hotels by season, palace close/reopen (Winter, Palace indoor pools), fitness/health (pool season, gym season).
-  - lifestyle: swimming-daily-winter-pools (1000m+ daily, 12x6 pool, heating off Dec–Feb, winter palace pools, close/reopen dates), surf-ocean-voice (traits, phrase patterns, benefit-led/craft/no jargon, banned list), wellness-reminders, yoga-practice, daily-yoga-surfers-vinyasa, yoga-vinyasa-surfers-swimmers, creative-practice (painting, photography, music, cinema, Blender+MCP).
-  - creative-production (deep knowledge): oil-painting, hasselblad-fuji-capture-one, ableton-push-3, blackmagic-design, capture-one-pro, davinci-resolve, blender-claude-mcp. creative-practice.md has "Deep knowledge:" line per section; kelly.ts LIFESTYLE KNOWLEDGE list includes these docs for technique and workflow tips.
+  - curated-open-schedule.md: restaurants by day, hotels by season, palace close/reopen, fitness/health (pool season, gym season).
+  - lifestyle/: swimming-daily-winter-pools, surf-ocean-voice, wellness-reminders, yoga-*, tea-dammann-freres, home-cooking, water-rowing-surf-swim-fit, creative-practice, entertainment-tastes, spa-wellness-guide, golf-guide, cycling-guide, fishing-guide, dress-code-guide, local-markets-guide, hossegor-local, home-and-spaces, etc.
+  - creative-production/: oil-painting, hasselblad-fuji-capture-one, ableton-push-3, blackmagic-design, capture-one-pro, davinci-resolve, blender-claude-mcp.
+  - luxury-hotels/: france-palaces, livethelife-places, ski-mountain-resorts, southwest-france-5-star-complete, Cape Town, Lisbon, Brussels, Amsterdam, Monaco, Ibiza, etc.
+  - michelin-restaurants/: paris, biarritz-region, bordeaux-region, landes-*, basque-coast, southwest-france-michelin-stars-complete, etc.
+  - wine-tasting/: sommelier-playbook, bordeaux-*, burgundy-*, rhone-*, loire-*, champagne, alsace, south-african-wines, whiskey, armagnac, etc.
+  - surf/: iconic-pointbreaks-world, surf-spots-by-country, surf-resorts, landes-basque-home-breaks, jbay, etc.
+  - travel/, roadtrips-travel/: within-2h, Alps, Basque Spain, Côte d'Azur, Switzerland, etc.
+  - real-estate/: destinations, France, Portugal, Costa Rica (travel context).
+  - restaurants-and-hotels/: Monaco, Côte d'Azur, new-hotels-2026, thegoodlife-fr-*.
+  - art-collecting/: collecting-strategy, blue-chips, nft-tiers, emerging-artists (REPLY + RAG when user asks).
+  - brands/: japanese-knives, the-wagyu-delusion, jacob-cohen.
+  - Root: experience-prioritization-framework, uhnw-destinations-2026, allowlist-life, kelly-quick-ref, kelly-decision-rules.
+  - See README Knowledge section for full map.
 
 Agent (kelly.ts) prompt work
   - YOUR HUMAN'S CONTEXT: swimming as #1 sport (1000m+ a day, 12x6 pool), tips wanted, pool heating off early Dec–end Feb (5/3 wetsuit option), winter indoor swim at Palais/Caudalie; use curated-open-schedule and swimming-daily-winter-pools for exact close/reopen; only suggest those hotels when open.
@@ -67,11 +88,22 @@ Completed in plan implementation (Phase 1–2, 6 partial)
   - messageExamples: added 3 in kelly.ts (surf Biarritz, unplug for an hour, red for lamb)—benefit-led, no jargon.
   - Inline comments in lifestyle.service.ts for curated schedule structure (Restaurants by Day, Hotels by Season, Fitness/Health, Palace pools).
   - README: response guard note, personalization note, Improvement roadmap subsection.
+  - Dining-recommendations plan: validate, extractPlaceQuery, early exit, prompt, allowlist, place-aware retrieval, system prompt—done.
 
+Testing
+  - Suite covers all 16 actions (validate + handler with mocks where applicable). recommendPlace tests: validation, allowlist guard, place-aware behavior. Voice-quality, knowledge-grounded, defaults-and-safety, integration, ask-agent-routing, messageExamples-regression. Run: bun test src/plugins/plugin-kelly.
+
+
+Code review (2026-02)
+  - 16 actions and 2 providers reviewed; aligned with expanded the-good-life knowledge. KELLY_RECOMMEND_EXPERIENCE: added "spa" and "wellness" to validate triggers. Art-collecting, golf/cycling/fishing/dress-code/local-markets remain REPLY + RAG when user asks; optional KELLY_ART_COLLECTING deferred.
 
 --------------------------------------------------------------------------------
 SECTION 2 — RECOMMENDATIONS (improve the plugin further)
 --------------------------------------------------------------------------------
+
+Documentation and About
+  - About popup: keep intro and capabilities in sync with the-good-life and 16 actions (see about-config.ts).
+  - Optional future action: KELLY_ART_COLLECTING (or similar) for art-collecting/* if demand appears; until then REPLY + RAG.
 
 Actions
   - KELLY_ITINERARY: optional output format (e.g. calendar-friendly or copy-paste for notes). (Already supported via wantCalendarFormat.)

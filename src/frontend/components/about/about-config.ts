@@ -235,7 +235,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Kelly: {
     headline: "Live the life.",
     intro:
-      "Chief Vibes Officer (CVO): people and balance guardian. Kelly picks hotels and restaurants from the-good-life: MICHELIN, James Edition, France palaces. Wine, health, fitness. Occasion, season, budget—she adjusts. Touch grass; no burnout.",
+      "Chief Vibes Officer (CVO): people and balance guardian. Kelly uses a large curated knowledge base (the-good-life: 200+ docs—hotels, MICHELIN, wine, surf, wellness, travel, creative, art, home cooking, rowing, tea, entertainment) and 16 actions: daily briefing, place/wine/experience recommendations, itinerary, workout, surf, swimming tips, home cooking, tea, entertainment, creative tips, rowing, interesting questions. Occasion, season, budget—she adjusts. Touch grass; no burnout. No trading.",
     tags: [
       { label: "CVO", withSparkles: true },
       { label: "Lifestyle Only" },
@@ -251,7 +251,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Five-Star Hotels & Fine Dining",
         description:
-          "Palaces, MICHELIN, Bib Gourmand. James Edition. One pick + alternative. Default: within 2h of home (Landes, Hossegor, Magescq, Basque coast, Saint-Émilion).",
+          "Palaces, MICHELIN, Bib Gourmand. James Edition. One pick + alternative. Default: within 2h of home (Landes, Hossegor, Magescq, Basque coast, Saint-Émilion). Eat in X, wanna go eat—place-aware.",
       },
       {
         title: "Wine & Spirits",
@@ -266,12 +266,22 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Something Special",
         description:
-          "Wine tasting, spa day, cooking class, guided tour. One pick + alternative.",
+          "Wine tasting, spa day, cooking class, guided tour. KELLY_RECOMMEND_EXPERIENCE. One pick + alternative.",
       },
       {
         title: "Surf & Workout",
         description:
           "Surf forecast (Biarritz). Pool, gym, surfer yoga, swim. Swimming tips for 1000m.",
+      },
+      {
+        title: "Home Cooking",
+        description:
+          "Green Egg, Thermomix, oven. Dinner at home; wine pairing. KELLY_RECOMMEND_HOME_COOKING.",
+      },
+      {
+        title: "Rowing",
+        description:
+          "Water rower for surf/swim fit. Session + benefit. KELLY_RECOMMEND_ROWING.",
       },
       {
         title: "Tea (Dammann Frères)",
@@ -297,6 +307,11 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         description: "Oil painting, photography, Ableton, cinema, Blender.",
       },
       {
+        title: "Knowledge breadth",
+        description:
+          "the-good-life (200+ docs): luxury-hotels, michelin-restaurants, wine-tasting, surf, lifestyle, travel, art-collecting, real-estate, brands, creative-production. REPLY + RAG when you ask.",
+      },
+      {
         title: "What can you do?",
         description: "Capability discovery: summary and detailed manifest.",
       },
@@ -305,12 +320,14 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Plugin-Kelly",
         category: "Lifestyle",
-        summary: "Hotels, dining, wine, health, fitness. Uses the-good-life.",
+        summary:
+          "16 actions and the-good-life (hotels, dining, wine, surf, wellness, travel, creative, home cooking, rowing, tea, entertainment).",
         points: [
-          "KELLY_DAILY_BRIEFING for scheduled push.",
-          "Day-of-week suggestions.",
+          "16 actions: daily briefing, place/wine/experience, itinerary, week ahead, workout, swimming tips, home cooking, tea, entertainment, creative, rowing, interesting question.",
+          "Knowledge: the-good-life (200+ docs), art-collections, naval, substack-essays, teammate, brand.",
         ],
-        example: '"Recommend a Michelin spot in Biarritz."',
+        example:
+          '"Where to eat in Hossegor tomorrow" or "Recommend a Michelin spot in Biarritz."',
       },
       {
         name: "Powered by ElizaOS",
@@ -340,7 +357,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
     ],
     proTip:
-      "Michelin in Biarritz. Five-star on the Côte d'Azur. Sommelier for wine. James Edition for stays.",
+      "Try: where to eat in Hossegor, wine for tonight, dinner idea, rowing workout, or what should I do today. Michelin in Biarritz. Five-star on the Côte d'Azur. Sommelier for wine. James Edition for stays.",
   },
 
   Solus: {
