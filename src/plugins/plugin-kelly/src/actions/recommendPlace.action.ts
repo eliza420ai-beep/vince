@@ -174,6 +174,7 @@ export const kellyRecommendPlaceAction: Action = {
       let knowledgeSnippet = contextBlock.slice(0, 12000);
 
       const placeSlice = placeQuery.toLowerCase().slice(0, 20);
+      const inDefaultRegion = isDefaultRegionPlace(placeQuery);
       const isGenericPlaceQuery =
         /^(the area|here|nearby|around)$/i.test(placeQuery.trim()) ||
         placeQuery.length < 3;
@@ -181,12 +182,26 @@ export const kellyRecommendPlaceAction: Action = {
         !isGenericPlaceQuery &&
         (knowledgeSnippet.length < 800 ||
           !knowledgeSnippet.toLowerCase().includes(placeSlice));
-      if (needsPlaceContext && typeof runtime.composeState === "function") {
+      // For generic / default-region queries ("the area", "within 2h of home"), explicitly ask for Landes/Basque/SW France content so RAG retrieves landes-locals, landes-coast, landes-interior.
+      const needsDefaultRegionContext =
+        (isGenericPlaceQuery || isLandesOrSWFranceQuery(placeQuery)) &&
+        knowledgeSnippet.length < 1500;
+      if (
+        (needsPlaceContext || needsDefaultRegionContext) &&
+        typeof runtime.composeState === "function"
+      ) {
+        const defaultRegionKeywords =
+          "Landes Hossegor Magescq landes-locals landes-coast landes-interior Basque Biarritz Saint-Émilion Arcachon within 2h dining restaurant hotel the-good-life michelin " +
+          "biarritz-region bordeaux-region southwest-france-extended basque-coast southwest-france-michelin-stars-complete basque-country-northern-spain";
+        const syntheticText =
+          isGenericPlaceQuery || inDefaultRegion
+            ? defaultRegionKeywords
+            : `restaurant ${placeQuery} hotel ${placeQuery} dining the-good-life michelin`;
         const syntheticMessage: Memory = {
           ...message,
           content: {
             ...message.content,
-            text: `restaurant ${placeQuery} hotel ${placeQuery} dining the-good-life michelin`,
+            text: syntheticText,
           },
         };
         try {
@@ -209,7 +224,6 @@ export const kellyRecommendPlaceAction: Action = {
         }
       }
 
-      const inDefaultRegion = isDefaultRegionPlace(placeQuery);
       // Only early-exit when context is clearly empty (no place-specific content). Let the model decide otherwise.
       const hasPlaceInContext =
         knowledgeSnippet.length >= 50 &&
