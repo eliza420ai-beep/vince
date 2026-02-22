@@ -73,3 +73,8 @@
 
 - Pull live CLOB odds on Iran Feb 28 if desk wants to size a macro hedge (Oracle suggestion).
 - Monitor BTC invalidation at 67K Thursday and Iran Feb 28 odds spike above 30% as breakout signals (Naval thesis).
+## 2026-02-21
+
+- Pull live CLOB odds on Warsh Fed chair entry for tighter macro signal mapping.
+- Map VINCE live order flow against ECHO whale accumulation to resolve signal fragmentation.
+- Document Bankr wallet setup as reference for team onboarding once Otaku ships.

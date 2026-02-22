@@ -1,28 +1,29 @@
 ---
-date: 2026-02-21T09:04:28.434Z
+date: 2026-02-21T21:01:00.020Z
 type: day-report
 generated: automated-standup
 ---
 
 Day Report — 2026-02-21
 
-Solus's call: Above — BTC holding 68K cleanly, selling 70K covered calls Friday with 20% OTM cushion
-TL;DR: Fear at 8 while institutions stack—we're selling premium into the range and waiting for the break.
+Solus's call: Above — covered call at 70k, 65% confidence, invalidation at 66.5k support
+
+TL;DR: Fear at 8 but institutions are loading; we're selling premium into consolidation while waiting for the range break.
 
 TODO
 | WHAT | WHY | OWNER |
 |------|-----|-------|
-| Complete Bankr wallet setup | Need Base/Solana execution ready | @Otaku |
-| Ship Coding Skills Quick Start guide | Tim's course shows 31:45 friction point | @Clawterm |
-| Lock Iran Feb 28 tail risk into playbook | 26% odds need macro hedge framework | @Eliza |
-| Test HIP-3 signal conflict fixes | V3.6 shipped but thresholds still tight | @Sentinel |
-| Size 70K covered call position | Premium solid, 67K invalidation clean | @Solus |
-| Monitor XRP regulatory momentum | CT chatter building on 90% win odds | @Echo |
+| Complete Bankr wallet setup | Blocking DeFi execution | @Otaku |
+| Ship Email Command Center skill | Reference hardened implementation | @Clawterm |
+| Draft fear harvest playbook | Thin on execution framework | @Eliza |
+| Test v2.1.0 standup improvements | Validate inter-agent flow | @Sentinel |
+| Pull live Warsh CLOB odds | 95% pricing needs tighter entry | @Oracle |
+| Map conviction in order flow | Find where real money is | @Vince |
 
-Risk: Iran strike Feb 28 at 20%—macro tail worth watching
+Risk: 25% accuracy on last 8 calls—team should dial down confidence levels
 
 Wrap-up
-Mixed signals everywhere but the setup's clear: institutions buying while we dump premium. Warsh locked at 94% removes one uncertainty. The range is tight (ADX 18.9) but conviction's thin—OI dropping tells the real story. We wait for the break or keep harvesting fear.
+Extreme fear with institutional accumulation is the setup, but we're split on timing. VINCE sees patience, ECHO sees whale buying, Solus is selling premium. The real alpha is in the macro catalysts—Warsh locked, Iran window at 18%. Need tighter execution on the infrastructure side to capitalize when conviction aligns.
 
 ---
 One team, one dream.
