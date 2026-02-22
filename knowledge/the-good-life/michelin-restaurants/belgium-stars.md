@@ -14,7 +14,7 @@ Complete guide to Belgium's Michelin-starred restaurants. Use when user asks for
 
 Belgium has one of Europe's most concentrated culinary scenes. Brussels alone has 80+ Michelin recommendations. The country balances French technique with Flemish simplicity, plus legendary beer pairings.
 
-**Current Status**: ~90 Michelin-starred restaurants across Belgium
+**Key Cities**: Brussels, Bruges, Antwerp, Ghent, Knokke-Heist
 
 ---
 
@@ -22,19 +22,12 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 
 ### Brussels
 
-***{}**
-- **Style**: Modern French
-- **Chef**: **{}**
-- **Notes**: Exceptional, book months ahead
-
----
-
-### Bruges
-
-***{}**
-- **Style**: French
-- **Chef**: ***
-- **Notes**: Historic setting
+**Comme chez soi**
+- **Address**: Place du Grand Sablon 8, Brussels
+- **Style**: Classic French
+- **Chef**: Pierre Van Der Brande
+- **Notes**: Legendary, 3★ since 2022, intimate setting
+- **Book**: Months ahead
 
 ---
 
@@ -44,37 +37,29 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 
 | Restaurant | Style | Chef | Notes |
 |------------|-------|------|-------|
-| **{}** | Modern | **{}** | Fine dining |
-| **{}** | French | **{}** | Classic |
-| **{}** | Fusion | **{}** | Creative |
+| **Le Chalet de la Forêt** | Modern | |
+| **The Living Room** | Modern | |
+| **Nuance** | French | |
 
 ### Antwerp
 
-| Restaurant | Style | Chef | Notes |
-|------------|-------|------|-------|
-| **'t Fornuis** | French | **{}** | Historic |
-| **{}** | Modern | **{}** | City center |
-
-### Ghent
-
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **{}** | Modern | *** |
-| **{}** | French | *** |
+| **'t Fornuis** | French | Historic, 2★ |
+| **Bij den Grooten Voorsprong** | Modern | |
 
 ### Bruges
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **{}** | French | *** |
-| **{}** | Modern | *** |
+| **Café Thai** | Thai-French | Unique |
+| **De Karmeliet** | French | Historic |
 
 ### Knokke-Heist
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
 | **Bourget** | French | Coastal elegance |
-| **{}** | Modern | *** |
 
 ---
 
@@ -84,69 +69,62 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 
 | Restaurant | Style | Neighborhood |
 |------------|-------|--------------|
-| **{}** | Modern | Ixelles |
-| **{}** | French | Saint-Josse |
-| **{}** | Italian | Sablon |
-| **{}** | Asian-French | Matonge |
-| **{}** | Seafood | Canal |
-| **{}** | Bistro | Marolles |
-| **{}** | Modern | Schaerbeek |
-| **{}** | French | Woluwe |
+| **Brut** | Modern | Ixelles |
+| **Huart** | French | Woluwe |
+| **Seazen** | Seafood | |
+| **L'Escargot** | French | |
+| **La Rotonde** | French | |
+| **Le Marmiton** | French | |
+| **Le Saint-Géry** | Modern | |
+| **Le Ung No** | Vietnamese | |
+| **Tables** | French | |
+| **Yam'Tcha** | Asian-Fusion | |
+| **Le Ventoux** | French | |
 
 ### Antwerp
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **Het Gilbertz** | French | ***
-- **{}** | Modern | ***
-- **{}** | Seafood | ***
+| **Het Gilbertz** | French | |
+| **In het Zotte Konijn** | Modern | |
+| **Smoor** | Modern | |
 
 ### Bruges
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **{}** | French | ***
-- **{}** | Modern | ***
-- **{}** | Belgian | ***
+| **De Gouden Harynck** | French | |
+| **Den Gouden Harynck** | French | Classic |
+| **Hostel** | Modern | |
 
 ### Ghent
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **{}** | Modern | ***
-- **{}** | French | ***
+| **Aura** | Modern | |
+| **Bar Popular** | Spanish | |
+| **Bij Colette** | French | |
+| **De Vitrine** | Modern | |
 
 ### Knokke-Heist
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **Le H²** | Modern | ***
-- **Bourget** | French | ***
+| **Le H²** | Modern | |
+| **Bourget** | French | |
 
 ### Liège
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **{}** | French | ***
-- **{}** | Modern | ***
+| **La Villa** | French | |
+| **Le Bistran** | French | |
 
 ### Leuven
 
 | Restaurant | Style | Notes |
 |------------|-------|-------|
-| **{}** | Modern | ***
-
-### Mechelen
-
-| Restaurant | Style | Notes |
-|------------|-------|-------|
-| **{}** | French | ***
-
-### Namur
-
-| Restaurant | Style | Notes |
-|------------|-------|-------|
-| **{}** | French | ***
+| **Fleur** | Modern | |
 
 ---
 
@@ -165,12 +143,11 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 - **Sablon**: Classic, near antiques
 - **Matonge**: African influence, diverse
 - **Marolles**: Bistro, local
-- **Canal**: Emerging
 
 **Must-Try**
-- **{}** — Signature
-- **{}** — Classic
-- **{}** — Modern
+- **Comme chez soi** — 3★, legendary
+- **Le Chalet de la Forêt** — 2★, forest setting
+- **The Living Room** — 2★, modern
 
 ---
 
@@ -181,13 +158,9 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 - Creative, modern focus
 - Fashion-forward city
 
-**Best Areas**
-- **Centrum**: Main restaurants
-- **Het Eilandje**: Modern, near MAS
-
 **Must-Try**
-- **{}** — 2★
-- **{}** — 1★
+- **'t Fornuis** — 2★, historic
+- **Bij den Grooten Voorsprong** — 2★
 
 ---
 
@@ -199,8 +172,8 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 - Classic French
 
 **Must-Try**
-- **{}** — 2★
-- **{}** — 1★
+- **De Karmeliet** — 2★
+- **De Gouden Harynck** — 1★
 
 ---
 
@@ -212,7 +185,8 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 - Student energy
 
 **Must-Try**
-- **{}** — 1-2★
+- **Aura** — 1★
+- **Bar Popular** — 1★
 
 ---
 
@@ -233,9 +207,9 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 
 | Restaurant | City | Price | Why |
 |------------|------|-------|-----|
-| **{}** | Brussels | €€ | Quality |
-| **{}** | Ghent | €€ | Creative |
-| **{}** | Antwerp | €€ | Modern |
+| **Brut** | Brussels | €€ | Quality |
+| **Aura** | Ghent | €€ | Creative |
+| **Het Gilbertz** | Antwerp | €€ | Modern |
 
 ---
 
@@ -243,11 +217,11 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 
 | Occasion | Restaurant | City | Stars |
 |----------|------------|------|-------|
-| **Special** | **{}** | Brussels | 3★ |
-| **Romantic** | **{}** | Bruges | 2★ |
-| **Business** | **{}** | Brussels | 2★ |
-| **Casual** | **{}** | Brussels | 1★ |
-| **Group** | **{}** | Antwerp | 1★ |
+| **Special** | Comme chez soi | Brussels | 3★ |
+| **Romantic** | De Karmeliet | Bruges | 2★ |
+| **Business** | Le Chalet de la Forêt | Brussels | 2★ |
+| **Casual** | Brut | Brussels | 1★ |
+| **Group** | Bij Colette | Ghent | 1★ |
 
 ---
 
@@ -286,11 +260,10 @@ Belgium has one of Europe's most concentrated culinary scenes. Brussels alone ha
 
 Belgium's beer deserves pairing:
 
-| Restaurant | Beer Highlights |
-|------------|-----------------|
-| **{}** | Trappist, lambic |
-| **{}** | Craft selection |
-| **{}** | Rare bottles |
+- **Trappist**: Rochefort, Westvleteren, Orval
+- **Lambic**: Cantillon, 3 Fonteinen
+- **Saison**: Dupont, Fantôme
+- **Flemish Red**: Rodenbach, Duchesse de Bourgogne
 
 ---
 
@@ -298,11 +271,11 @@ Belgium's beer deserves pairing:
 
 | Want... | Go To | Restaurant |
 |---------|-------|------------|
-| **Ultimate** | Brussels | 3★ |
-| **Romantic** | Bruges | 2★ |
-| **Modern** | Antwerp | 2★ |
-| **Value** | Brussels | 1★ |
-| **Coastal** | Knokke | 1★ |
+| **Ultimate** | Brussels | Comme chez soi (3★) |
+| **Romantic** | Bruges | De Karmeliet (2★) |
+| **Modern** | Antwerp | 't Fornuis (2★) |
+| **Value** | Brussels | Brut (1★) |
+| **Coastal** | Knokke | Bourget (1★) |
 
 ---
 
@@ -327,6 +300,13 @@ When user asks about Belgium dining:
 | The menu | Le menu | Het menu |
 | Delicious! | Délicieux! | Heerlijk! |
 | Wine list | La carte des vins | Wijnpas |
+
+---
+
+## Famous Belgian Chefs
+
+- **Pierre Van Der Brande** — Comme chez soi (3★)
+- **Alain Cairo** — Le Chalet de la Forêt (2★)
 
 ---
 
