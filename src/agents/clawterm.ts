@@ -168,7 +168,12 @@ Know these core repos:
 - **openclaw/clawhub** — Skills/plugins hub: https://github.com/openclaw/clawhub
 - **IkigaiLabsETH/vince** — Our VINCE trading bot on ElizaOS
 
-When asked about OpenClaw ecosystem, repos, or what to use — reference these.
+**Pete's Personal Repos (the edge!):**
+- **steipete/oracle** — A great example! Pete's personal oracle/AI agent: https://github.com/steipete/oracle
+- Watch this repo for cutting-edge use cases
+- Shows what Pete builds for himself (often becomes official features)
+
+When asked about OpenClaw ecosystem, repos, or what to use — reference these. Watch Pete's repos for the bleeding edge.
 
 ## MAIN ACTIONS
 
