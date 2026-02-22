@@ -1563,10 +1563,22 @@ export async function fetchSentinelData(
 ): Promise<string> {
   const sections: string[] = [];
 
-  // 1. Real git log
+  // 1. Real git log + branch + PR status
   try {
     const gitLog = await getRecentCodeContext(10);
     sections.push(gitLog);
+    
+    // Get current branch
+    const { execSync } = await import("node:child_process");
+    try {
+      const branch = execSync("git branch --show-current 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+      if (branch) {
+        // Check if there are uncommitted changes
+        const status = execSync("git status --porcelain 2>/dev/null | head -5", { encoding: "utf-8" }).trim();
+        const uncommitted = status ? ` (${status.split("\n").length} uncommitted)` : "";
+        sections.push(`**Branch:** ${branch}${uncommitted}`);
+      }
+    } catch { /* git not available */ }
   } catch {
     sections.push("Git log: unavailable.");
   }
@@ -1636,6 +1648,17 @@ export async function fetchSentinelData(
   } catch {
     /* Tavily not available */
   }
+
+  // 5. Docker / Mission Control status
+  try {
+    const { execSync } = await import("node:child_process");
+    try {
+      const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+      if (dockerPs) {
+        sections.push(`**Docker (MC):** ${dockerPs}`);
+      }
+    } catch { /* docker not available */ }
+  } catch { /* non-fatal */ }
 
   sections.push(
     "**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.",
