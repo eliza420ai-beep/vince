@@ -1,6 +1,7 @@
 /**
  * Agent-specific About modal configuration.
  * Content is selected by agent name; falls back to VINCE for unknown agents.
+ * Keep headline and intro aligned with docs/AGENTS_INDEX.md one-liners and agent system prompts in src/agents/*.ts.
  */
 
 export interface AboutCapability {
@@ -27,8 +28,12 @@ export interface AboutConfig {
 
 const DEFAULT_AGENT = "VINCE";
 
-/** Canonical About keys (display name as stored in ABOUT_CONFIG). */
-const ABOUT_CONFIG_KEYS = [
+/**
+ * Canonical agent display names used by the About modal and quick actions.
+ * Keep in sync with QUICK_ACTIONS_BY_AGENT and QUICK_ACTIONS_LIMITATIONS in chat-interface.tsx.
+ * Align with docs/AGENTS_INDEX.md and src/agents/*.ts character names.
+ */
+export const AGENT_DISPLAY_NAMES = [
   "VINCE",
   "Otaku",
   "Kelly",
@@ -40,6 +45,9 @@ const ABOUT_CONFIG_KEYS = [
   "Naval",
   "Eliza",
 ] as const;
+
+/** Canonical About keys (display name as stored in ABOUT_CONFIG). */
+const ABOUT_CONFIG_KEYS = AGENT_DISPLAY_NAMES;
 
 /** Map lowercase agent name to canonical key for case-insensitive About lookup. */
 const AGENT_ABOUT_KEY_MAP: Record<string, string> = Object.fromEntries(
@@ -534,7 +542,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   ECHO: {
     headline: "Your ears on Crypto Twitter.",
     intro:
-      "Chief Sentiment Officer (CSO): captures and communicates what CT is saying. Pulse, vibe, threads, account analysis, watchlist, news from X. Subjective sentiment only—VINCE owns the numbers. Whale and alpha accounts weighted; contrarian warnings when sentiment gets extreme. No content audit—that's Eliza.",
+      "Chief Sentiment Officer (CSO): captures and communicates what CT is saying. Flagship: What's the trade (belief-router from thesis to one onchain expression). Pulse, vibe, threads, account analysis, watchlist, news from X. Subjective sentiment only—VINCE owns the numbers. Whale and alpha accounts weighted; contrarian warnings when sentiment gets extreme. No content audit—that's Eliza.",
     tags: [
       { label: "CSO", withSparkles: true },
       { label: "What's the trade" },

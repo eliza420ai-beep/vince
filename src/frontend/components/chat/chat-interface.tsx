@@ -167,7 +167,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   ],
   // Kelly (CVO): lifestyle concierge — benefit-led, concrete, evocative. Live the life.
   kelly: [
-    { label: "What can you do?", message: "What can you do?" },
+    { label: "What can the CVO do?", message: "What can you do?" },
     { label: "Today's move", message: "What should I do today?" },
     {
       label: "Best table",
@@ -280,10 +280,15 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       label: "Limit Order Quote",
       message: "Get a limit buy quote for ETH on Base via Bankr",
     },
+    {
+      label: "Stop-loss",
+      message: "Set stop-loss at $1800 and take-profit at $2200 for 1 ETH",
+    },
+    { label: "NFT mint", message: "Mint an NFT" },
   ],
   // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research). What's the trade = belief-router (thesis → one expression).
   echo: [
-    { label: "What can you do?", message: "What can you do?" },
+    { label: "What can the CSO do?", message: "What can you do?" },
     { label: "What's the trade", message: "What's the trade today?" },
     { label: "X Pulse", message: "What's CT saying today?" },
     { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
@@ -297,10 +302,11 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Who is @user?", message: "Who is @crediblecrypto?" },
     { label: "X News", message: "What's the crypto news on X?" },
     { label: "CT Headlines", message: "Headlines from crypto Twitter" },
+    { label: "Save that", message: "save that" },
   ],
   // Oracle: Polymarket discovery + desk (edge check, risk snapshot, perf report). One agent for all.
   oracle: [
-    { label: "What can you do?", message: "What can you do?" },
+    { label: "What can the CPO do?", message: "What can you do?" },
     {
       label: "Our focus markets",
       message: "What Polymarket markets matter for us?",
@@ -332,7 +338,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   ],
   // Naval: on-topic, on-brand (push not pull, thesis first, one team one dream, signal not hype, paper before live, one command, size/skip/watch, why this trade, one terminal, agents as leverage, touch grass, cover costs). Paste context after clicking.
   naval: [
-    { label: "What can you do?", message: "What can you do?" },
+    { label: "What can Naval do?", message: "What can you do?" },
     { label: "Push Not Pull", message: "push not pull" },
     { label: "One Team One Dream", message: "one team one dream" },
     { label: "Thesis First", message: "thesis first" },
@@ -350,7 +356,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   ],
   // Clawterm: AI terminal, OpenClaw expert — AI 2027, AGI, setup, gateway, openclaw-agents, tips, use cases, HIP-3 AI assets. For crypto data—VINCE.
   clawterm: [
-    { label: "What can you do?", message: "What can you do?" },
+    { label: "What can Clawterm do?", message: "What can you do?" },
     { label: "AI 2027", message: "What's AI 2027?" },
     { label: "AGI timeline", message: "Tell me about the AGI timeline" },
     { label: "Research agents", message: "What are research agents?" },
