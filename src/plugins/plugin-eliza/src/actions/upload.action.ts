@@ -674,8 +674,14 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
             { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" },
           );
           if (callback && fileResult.success && fileResult.file) {
+            // Extract a preview from the content (first 300 chars, strip markdown)
+            const contentPreview = summarized.content
+              .slice(0, 300)
+              .replace(/[#*_`]/g, "")
+              .replace(/\n+/g, " ")
+              .trim();
             await callback({
-              text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}${ELIZA_FOOTER}`,
+              text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...${ELIZA_FOOTER}`,
               actions: ["UPLOAD"],
               success: true,
             });
@@ -756,8 +762,14 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" },
             );
             if (callback && fileResult.success && fileResult.file) {
+              // Extract a preview from the content (first 300 chars, strip markdown)
+              const contentPreview = content
+                .slice(0, 300)
+                .replace(/[#*_`]/g, "")
+                .replace(/\n+/g, " ")
+                .trim();
               await callback({
-                text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}${ELIZA_FOOTER}`,
+                text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...${ELIZA_FOOTER}`,
                 actions: ["UPLOAD"],
                 success: true,
               });
