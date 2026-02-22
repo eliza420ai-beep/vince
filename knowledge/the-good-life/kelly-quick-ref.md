@@ -97,7 +97,9 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | wine-tasting/spain-wines.md      | Spain: Rioja, Ribera, Priorat, Albariño    |
 | lifestyle/spa-wellness-guide.md    | Thalasso, thermal spas, day spa options    |
 | lifestyle/travel-aviation-guide.md | Private jet, first class, airports         |
-| surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics       |
+| lifestyle/golf-guide.md            | Golf courses near SW France               |
+| travel/basque-country-spain.md    | San Sebastián, Bilbao, pintxos trips     |
+| surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics   |
 | kelly-backstory.md                 | Character backstory (investments, origin)   |
 | kelly-interview-questions.md       | Deep-life / interview-style answers         |
 
