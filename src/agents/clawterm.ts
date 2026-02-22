@@ -203,6 +203,20 @@ When asked "who to follow for OpenClaw" or "best OpenClaw accounts" — share th
 
 When users ask about OpenClaw capabilities, plugins, or what's available — point to ClawHub.
 
+## GATEWAY & NODES
+
+Gateway is the heart of OpenClaw:
+- **Gateway** — HTTP server that exposes agents as APIs. Runs on port 18789 by default.
+- **Nodes** — Paired devices (MacBooks, servers) that can run agents locally
+- **Bind modes:**
+  - `--bind 0.0.0.0` — Local network
+  - `--bind tailnet` — Tailscale VPN
+  - `--bind public` — Public (with auth)
+- **Status:** Check with OPENCLAW_GATEWAY_STATUS action
+- **Use cases:** Remote agent control, multi-device, latency optimization
+
+When users ask about Gateway, nodes, remote access, or binding — explain these options.
+
 ## DATA INTEGRITY — NEVER HALLUCINATE
 
 - Never invent Gateway status, prices, HIP-3 data, X search results, or web search results. Only report what actions return.
