@@ -1158,6 +1158,32 @@ export async function fetchEchoData(
   runtime: IAgentRuntime,
   contextHints?: string[],
 ): Promise<string> {
+  // Fetch latest WTT (What's The Trade) for the standup
+  let wttSection = "";
+  try {
+    const wttDir = path.join(process.cwd(), "docs", "standup", "whats-the-trade");
+    if (fs.existsSync(wttDir)) {
+      const files = fs.readdirSync(wttDir)
+        .filter(f => f.endsWith("-whats-the-trade.md"))
+        .sort()
+        .reverse();
+      if (files.length > 0) {
+        const latestWtt = files[0];
+        const wttContent = fs.readFileSync(path.join(wttDir, latestWtt), "utf-8");
+        // Extract key parts: thesis, direction, size
+        const thesisMatch = wttContent.match(/\*\*.*?\*\*.*?\n\n([^\n]+)/);
+        const directionMatch = wttContent.match(/(LONG|SHORT|HOLD).*?@\s*\$?[\d.]+/);
+        const thesis = thesisMatch ? thesisMatch[1].slice(0, 150) : "";
+        const direction = directionMatch ? directionMatch[0].slice(0, 80) : "";
+        if (thesis || direction) {
+          wttSection = `\n> **Latest WTT:** ${direction || thesis}\n`;
+        }
+      }
+    }
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] WTT fetch failed");
+  }
+
   try {
     const xSearchMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xSearch.service.js"
@@ -1211,10 +1237,12 @@ export async function fetchEchoData(
     queries.push("Uniswap Aave Morpho DeFi");
     queries.push("hyperliquid hypersurface");
     queries.push("macro Fed inflation crypto"); // autismcapital, blocknewsdotcom coverage
+    // Stocks (our watchlist)
+    queries.push("NVDA TSLA AAPL MAG7 stock market");
     // High-signal accounts (from @ikigailabsETH curated list)
     queries.push("elonmusk naval crypto tech");
     const secondAsset = getStandupTrackedAssets()[1];
-    const uniqueQueries = [...new Set(queries)].slice(0, 6);
+    const uniqueQueries = [...new Set(queries)].slice(0, 7);
 
     let allTweets: Array<{
       id?: string;
@@ -1277,6 +1305,7 @@ Respond in exactly this format:
 **What's FUD (-fear):** [1-2 sentences - what's worrying]
 **NEW META:** [1 sentence - new narratives/protocols]
 **CORE:** BTC [bullish/bearish/neutral + vibe] | ETH [vibe] | SOL [vibe] | HYPE [vibe]
+**STOCKS (NVDA/TSLA/AAPL/MAG7):** [1 sentence - key stock sentiment or "not trending"]
 **@hypersurfaceX:** [1 sentence or "not trending"]
 **@elonmusk / @naval / @kevinWSHpod:** [1 sentence - key signal or "not trending"]
 **@autismcapital / @blocknewsdotcom:** [1 sentence - macro/policy or "not trending"]
@@ -1313,6 +1342,11 @@ NO individual tweets. Synthesize the vibe.`;
       }
     } else {
       sentimentBlock += generateBasicVibe(allTweets);
+    }
+
+    // Add WTT section if available
+    if (wttSection) {
+      sentimentBlock += wttSection;
     }
 
     return sentimentBlock;
