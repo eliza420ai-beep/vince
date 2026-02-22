@@ -8,6 +8,18 @@ last_reviewed: 2026-02-22
 
 The curated list. Kelly suggests from here first. No reviews, just the names and why. For current listings and reservations: **[James Edition](https://www.jamesedition.com/)** and **[MICHELIN Guide](https://guide.michelin.com/)**.
 
+**Name disambiguation:** **Maison Devaux** on this allowlist is the **restaurant and hotel in Rion-des-Landes (Landes)** — one of the best restaurants in the Landes, Bib Gourmand, locavore bistrot, lunch Wed–Sun. Not the Champagne house (Bar-sur-Seine). Full profile: [maison-devaux-landes.md](maison-devaux-landes.md). When users ask "Maison Devaux" in a Landes / SW France context, they mean this place.
+
+**Landes restaurants:** Each top Landes restaurant has a dedicated profile .md in this folder for full detail. Index: [landes-restaurants-index.md](landes-restaurants-index.md).
+
+**Bordeaux restaurants:** City + wine country (Sauternes, Saint-Émilion, Médoc, Martillac). Index: [bordeaux-restaurants-index.md](bordeaux-restaurants-index.md).
+
+**Biarritz restaurants:** Index: [biarritz-restaurants-index.md](biarritz-restaurants-index.md).
+
+**Basque Country (France) restaurants:** Bidart, Guéthary, Saint-Jean-de-Luz, Ciboure/Socoa, Ainhoa, Bidarray. Index: [basque-country-restaurants-index.md](basque-country-restaurants-index.md).
+
+**San Sebastián restaurants:** Spain, ~1h15 from Hossegor. Index: [san-sebastian-restaurants-index.md](san-sebastian-restaurants-index.md).
+
 ---
 
 ## Rules

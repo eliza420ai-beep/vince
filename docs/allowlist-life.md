@@ -4,6 +4,8 @@
 
 No reviews — just the list. Default for lifestyle suggestions (hotels, dining). For current listings and reservations, use **James Edition** and **MICHELIN Guide**.
 
+**Name disambiguation:** **Maison Devaux** here = the **restaurant and hotel in Rion-des-Landes (Landes)** — Bib Gourmand, not the Champagne house. In a Landes/SW France context, users mean this place.
+
 ---
 
 ## Rules
