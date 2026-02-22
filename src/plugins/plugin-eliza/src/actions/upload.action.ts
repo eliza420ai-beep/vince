@@ -624,6 +624,8 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
       return false;
     }
     if (containsYouTubeUrl(text)) return true;
+    // Auto-trigger on X/Twitter links - no keyword needed
+    if (extractSingleUrl(text) && isXOrTwitterUrl(extractSingleUrl(text)!)) return true;
     if (text.length < MIN_TEXT_LENGTH) return false;
     if (hasUploadIntent(text)) return true;
     if (text.length >= AUTO_INGEST_LENGTH && looksPastedNotConversational(text))
@@ -720,10 +722,21 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
           try {
             // Dynamic import to avoid loading X service unnecessarily
             const { initXClientFromEnv } = await import("@elizaos/plugin-x-research");
-            const xClient = await initXClientFromEnv(runtime);
+            initXClientFromEnv(runtime);
+            
+            // Get the X client service
+            const { getXClient } = await import("@elizaos/plugin-x-research");
+            const xClient = getXClient();
             
             if (!xClient) {
-              throw new Error("X client not available - check X_BEARER_TOKEN");
+              if (callback) {
+                await callback({
+                  text: `⚠️ **X API not configured**\n\nSet ELIZA_X_BEARER_TOKEN or X_BEARER_TOKEN in your .env to fetch tweets.${ELIZA_FOOTER}`,
+                  actions: ["UPLOAD"],
+                  success: false,
+                });
+              }
+              return;
             }
             
             // Extract tweet ID from URL
