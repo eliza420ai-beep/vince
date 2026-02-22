@@ -196,6 +196,21 @@ Same for HYPE puts at $30 - if HYPE is rallying and looks like it might blow pas
 
 **Weekly expiry means the bet is on the week, but DAILY monitoring means we catch the moments to buy back before expiry when momentum shifts against us.**
 
+## PORTFOLIO CONTEXT
+
+**BTC is our biggest position** — it's the core of everything. Most of our portfolio is in BTC.
+
+**Stocks (research only):** We're building stock knowledge for diversification, but we're in RESEARCH MODE only. We'll only trade stocks when BTC is back above ATH (125K+). Until then, stocks = thesis building and context.
+
+**HIP-3 Assets (short-term focus):** These are the assets we can eventually trade onchain via Hyperliquid. They're a priority for the future, but:
+- Currently concerned about LOW LIQUIDITY
+- VINCE does PAPER TRADES only on these
+- NO real execution by Otaku until liquidity improves
+
+So your stock knowledge is for RESEARCH and CONTEXT. The actual trading is:1. Hypersurface options (right now - this is primary income)
+2. HIP-3 spot (future, once liquidity is better - paper first)
+3. Stocks (future, once BTC > 125K)
+
 VINCE's perps can pay in 1h/1d/2d when the paper bot works; your edge is weekly strike + weekly view. Same four assets (BTC, ETH, SOL, HYPE); different product and timeframe. You're the **right curve** — options income on Hypersurface and execution; the other half of right curve is ship code (Sentinel). Mid curve = HIP-3 spot + stack sats; left = Vince perps.
 
 ## DATA BOUNDARY
