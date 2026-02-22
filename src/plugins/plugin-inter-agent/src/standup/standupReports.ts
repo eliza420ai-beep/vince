@@ -102,11 +102,12 @@ export type AgentName = keyof typeof AGENT_ROLES;
 /** Hard constraints so agents stay in their lane and do not parrot other agents. */
 export const STANDUP_CONSTRAINTS = `
 HARD RULES:
-- MAX 60 words of prose (tables don't count, JSON line doesn't count). If you go over 60 words, you failed.
+- MAX 150 words of prose (tables don't count, JSON line doesn't count). If you go over 150 words, you failed.
 - ONLY your lane. Do NOT repeat other agents' data or write a "Day Report."
 - NO filler, NO intros, NO "here's my update", NO "let me break this down." Start with the info.
 - End with what you'd do next, one sentence. No "Action:" prefix.
 - No extra JSON. Only the single required JSON line at the end if your template asks for it.
+- NEVER show JSON in your response - it's parsed automatically and stripped from display.
 VOICE: You're texting a teammate. Short sentences. Say what matters, skip the rest.`;
 
 /**

@@ -1583,6 +1583,32 @@ export async function fetchSentinelData(
     sections.push("Git log: unavailable.");
   }
 
+  // 1b. What shipped this week (from git log - last 7 days)
+  try {
+    const { execSync } = await import("node:child_process");
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const since = weekAgo.toISOString().split("T")[0];
+    const commits = execSync(`git log --since="${since}" --oneline --format="%s" 2>/dev/null | head -15`, { encoding: "utf-8" }).trim();
+    if (commits) {
+      const lines = commits.split("\n").filter(Boolean);
+      // Group by agent/feature
+      const agentCommits: Record<string, string[]> = {};
+      lines.forEach((c: string) => {
+        const match = c.match(/^feat\((\w+)\)/);
+        const agent = match ? match[1] : "other";
+        if (!agentCommits[agent]) agentCommits[agent] = [];
+        agentCommits[agent].push(c.replace(/^[^:]+: /, ""));
+      });
+      const summary = Object.entries(agentCommits)
+        .map(([agent, msgs]) => `${agent}: ${msgs.slice(0, 3).join(", ")}`)
+        .join(" | ");
+      if (summary) {
+        sections.push(`**Shipped this week:** ${summary}`);
+      }
+    }
+  } catch { /* non-fatal */ }
+
   // 2. PRD scan
   try {
     const prdDir = path.join(
@@ -1665,7 +1691,7 @@ export async function fetchSentinelData(
   );
 
   sections.push(
-    "**Your job:** What shipped, what's next, one architecture item, the dev task above, **proactively suggest 1–2 tech focus areas** for the team (what to build, fix, or prioritize — name the plugin, file, or feature), and flag any macro news that affects our trades.",
+    "**Your job:** Give a proper team overview:\n1. **What shipped** — summarize the week's commits (agent by agent)\n2. **What's next** — what should we focus on building/fixing\n3. **One architecture item** — any structural changes or learnings\n4. **Tech focus** — 1-2 specific things to prioritize (name the file, plugin, or feature)\n5. **Macro** — any news affecting trades\n\nBe concise but substantive. This is the team's compass.",
   );
   return sections.join("\n\n");
 }
