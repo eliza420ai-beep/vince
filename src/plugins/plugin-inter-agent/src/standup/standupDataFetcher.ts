@@ -152,7 +152,7 @@ async function fetchSignalAggregator(runtime: IAgentRuntime): Promise<string> {
   const btcSignal =
     (await sigAgg?.aggregateSignals?.("BTC").catch(() => null)) ?? null;
   if (!btcSignal?.direction) return "";
-  
+
   // Format sources nicely - truncate long lists
   const sources = btcSignal.sources ?? [];
   const sourceCount = sources.length;
@@ -161,11 +161,12 @@ async function fetchSignalAggregator(runtime: IAgentRuntime): Promise<string> {
     // Show first 3 sources, then "+N more"
     const displaySources = sources.slice(0, 3);
     const remaining = sourceCount - 3;
-    sourceStr = remaining > 0 
-      ? `${displaySources.join(", ")} +${remaining} more`
-      : displaySources.join(", ");
+    sourceStr =
+      remaining > 0
+        ? `${displaySources.join(", ")} +${remaining} more`
+        : displaySources.join(", ");
   }
-  
+
   return `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${sourceStr})`;
 }
 
@@ -1161,18 +1162,29 @@ export async function fetchEchoData(
   // Fetch latest WTT (What's The Trade) for the standup
   let wttSection = "";
   try {
-    const wttDir = path.join(process.cwd(), "docs", "standup", "whats-the-trade");
+    const wttDir = path.join(
+      process.cwd(),
+      "docs",
+      "standup",
+      "whats-the-trade",
+    );
     if (fs.existsSync(wttDir)) {
-      const files = fs.readdirSync(wttDir)
-        .filter(f => f.endsWith("-whats-the-trade.md"))
+      const files = fs
+        .readdirSync(wttDir)
+        .filter((f) => f.endsWith("-whats-the-trade.md"))
         .sort()
         .reverse();
       if (files.length > 0) {
         const latestWtt = files[0];
-        const wttContent = fs.readFileSync(path.join(wttDir, latestWtt), "utf-8");
+        const wttContent = fs.readFileSync(
+          path.join(wttDir, latestWtt),
+          "utf-8",
+        );
         // Extract key parts: thesis, direction, size
         const thesisMatch = wttContent.match(/\*\*.*?\*\*.*?\n\n([^\n]+)/);
-        const directionMatch = wttContent.match(/(LONG|SHORT|HOLD).*?@\s*\$?[\d.]+/);
+        const directionMatch = wttContent.match(
+          /(LONG|SHORT|HOLD).*?@\s*\$?[\d.]+/,
+        );
         const thesis = thesisMatch ? thesisMatch[1].slice(0, 150) : "";
         const direction = directionMatch ? directionMatch[0].slice(0, 80) : "";
         if (thesis || direction) {
@@ -1241,7 +1253,6 @@ export async function fetchEchoData(
     queries.push("NVDA TSLA AAPL MAG7 stock market");
     // High-signal accounts (from @ikigailabsETH curated list)
     queries.push("elonmusk naval crypto tech");
-    const uniqueQueries = [...new Set(queries)].slice(0, 7);
     const uniqueQueries = [...new Set(queries)].slice(0, 7);
 
     let allTweets: Array<{
@@ -1315,14 +1326,17 @@ Curated from @ikigailabsETH follows. Note: @realDonaldTrump hasn't tweeted since
 NO individual tweets. Synthesize the vibe.`;
 
         const vibeText = await runtime.useModel(ModelType.TEXT_SMALL, {
-          prompt: `${vibePrompt}\n\nTweets:\n${allTweets.slice(0, 15).map(t => t.text).join("\n---\n")}`,
+          prompt: `${vibePrompt}\n\nTweets:\n${allTweets
+            .slice(0, 15)
+            .map((t) => t.text)
+            .join("\n---\n")}`,
           maxTokens: 400,
           temperature: 0.5,
         });
         const text = String(vibeText ?? "").trim();
         if (text && text.length > 30) {
           sentimentBlock += text;
-          
+
           // Add X content idea
           const ideaPrompt = `Based on this vibe, suggest 1 punchy tweet hook for @ikigaistudioxyz. 1 sentence.`;
           const idea = await runtime.useModel(ModelType.TEXT_SMALL, {
@@ -1360,20 +1374,30 @@ NO individual tweets. Synthesize the vibe.`;
 function generateBasicVibe(
   tweets: Array<{ text: string; author?: { username?: string } }>,
 ): string {
-  const texts = tweets.map(t => t.text.toLowerCase());
-  const bullish = texts.filter(t => 
-    t.includes("bull") || t.includes("moon") || t.includes("pump") || t.includes("up") || t.includes("breakout")
+  const texts = tweets.map((t) => t.text.toLowerCase());
+  const bullish = texts.filter(
+    (t) =>
+      t.includes("bull") ||
+      t.includes("moon") ||
+      t.includes("pump") ||
+      t.includes("up") ||
+      t.includes("breakout"),
   ).length;
-  const bearish = texts.filter(t => 
-    t.includes("bear") || t.includes("dump") || t.includes("crash") || t.includes("down") || t.includes("fear")
+  const bearish = texts.filter(
+    (t) =>
+      t.includes("bear") ||
+      t.includes("dump") ||
+      t.includes("crash") ||
+      t.includes("down") ||
+      t.includes("fear"),
   ).length;
   const net = bullish - bearish;
   const vibe = net > 2 ? "bullish" : net < -2 ? "bearish" : "neutral";
-  
+
   return `**Overall:** ${vibe.toUpperCase()} (${bullish} bullish vs ${bearish} bearish)
 
-**What's HOT:** ${texts.some(t => t.includes("etf") || t.includes("spot")) ? "ETF/spot momentum" : "General crypto"}
-**What's FUD:** ${texts.some(t => t.includes("crash") || t.includes("liquidate")) ? "Liquidation fears" : "No major FUD"}
+**What's HOT:** ${texts.some((t) => t.includes("etf") || t.includes("spot")) ? "ETF/spot momentum" : "General crypto"}
+**What's FUD:** ${texts.some((t) => t.includes("crash") || t.includes("liquidate")) ? "Liquidation fears" : "No major FUD"}
 **CORE:** BTC ${vibe} | ETH ${vibe} | SOL ${vibe} | HYPE ${vibe}`;
 }
 
@@ -1567,18 +1591,28 @@ export async function fetchSentinelData(
   try {
     const gitLog = await getRecentCodeContext(10);
     sections.push(gitLog);
-    
+
     // Get current branch
     const { execSync } = await import("node:child_process");
     try {
-      const branch = execSync("git branch --show-current 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+      const branch = execSync(
+        "git branch --show-current 2>/dev/null || echo ''",
+        { encoding: "utf-8" },
+      ).trim();
       if (branch) {
         // Check if there are uncommitted changes
-        const status = execSync("git status --porcelain 2>/dev/null | head -5", { encoding: "utf-8" }).trim();
-        const uncommitted = status ? ` (${status.split("\n").length} uncommitted)` : "";
+        const status = execSync(
+          "git status --porcelain 2>/dev/null | head -5",
+          { encoding: "utf-8" },
+        ).trim();
+        const uncommitted = status
+          ? ` (${status.split("\n").length} uncommitted)`
+          : "";
         sections.push(`**Branch:** ${branch}${uncommitted}`);
       }
-    } catch { /* git not available */ }
+    } catch {
+      /* git not available */
+    }
   } catch {
     sections.push("Git log: unavailable.");
   }
@@ -1653,12 +1687,19 @@ export async function fetchSentinelData(
   try {
     const { execSync } = await import("node:child_process");
     try {
-      const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+      const dockerPs = execSync(
+        "docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''",
+        { encoding: "utf-8" },
+      ).trim();
       if (dockerPs) {
         sections.push(`**Docker (MC):** ${dockerPs}`);
       }
-    } catch { /* docker not available */ }
-  } catch { /* non-fatal */ }
+    } catch {
+      /* docker not available */
+    }
+  } catch {
+    /* non-fatal */
+  }
 
   sections.push(
     "**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.",
@@ -1734,7 +1775,12 @@ async function getRecentUploads(): Promise<string> {
     // Get files from last 48 hours
     const now = Date.now();
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
-    const recentFiles: { name: string; mtime: number; category: string; words: number }[] = [];
+    const recentFiles: {
+      name: string;
+      mtime: number;
+      category: string;
+      words: number;
+    }[] = [];
 
     // Walk knowledge directory
     const categories = fs.readdirSync(knowledgeRoot, { withFileTypes: true });
@@ -1756,7 +1802,12 @@ async function getRecentUploads(): Promise<string> {
           } catch {
             wordCount = 0;
           }
-          recentFiles.push({ name: f.name, mtime: stats.mtimeMs, category: cat.name, words: wordCount });
+          recentFiles.push({
+            name: f.name,
+            mtime: stats.mtimeMs,
+            category: cat.name,
+            words: wordCount,
+          });
         }
       }
     }
@@ -1776,7 +1827,8 @@ async function getRecentUploads(): Promise<string> {
       const sizeLabel = f.words > 2000 ? "📄" : f.words > 500 ? "📝" : "📋";
       return `- ${sizeLabel} **${f.category}:** ${truncated} (${f.words} words)`;
     });
-    const more = recentFiles.length > 5 ? ` (+${recentFiles.length - 5} more)` : "";
+    const more =
+      recentFiles.length > 5 ? ` (+${recentFiles.length - 5} more)` : "";
     return `**Recent uploads (${recentFiles.length}):**\n${lines.join("\n")}${more}`;
   } catch (e) {
     logger.debug({ err: e }, "[STANDUP] Failed to get recent uploads");
@@ -1813,7 +1865,9 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     if (fs.existsSync(freshnessPath)) {
       const freshness = fs.readFileSync(freshnessPath, "utf-8");
       // Extract high-priority stale categories
-      const highPriorityMatch = freshness.match(/\*\*High priority\*\*[\s\S]*?\|(\s*\d+\s*)\|/);
+      const highPriorityMatch = freshness.match(
+        /\*\*High priority\*\*[\s\S]*?\|(\s*\d+\s*)\|/,
+      );
       if (highPriorityMatch) {
         // Get category names from the table
         const staleLines = freshness
@@ -1823,7 +1877,7 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
               line.includes("kelly-btc") ||
               line.includes("macro-economy") ||
               line.includes("ai-crypto") ||
-              line.includes("stocks")
+              line.includes("stocks"),
           )
           .slice(0, 4);
         if (staleLines.length > 0) {
@@ -1836,7 +1890,7 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
             .slice(0, 3);
           if (staleCats.length > 0) {
             sections.push(
-              `**Stale categories (update needed):** ${staleCats.join(", ")}`
+              `**Stale categories (update needed):** ${staleCats.join(", ")}`,
             );
           }
         }
@@ -2126,22 +2180,24 @@ export async function fetchNavalData(runtime: IAgentRuntime): Promise<string> {
       if (text && text.length > 10) {
         sections.push(`**Today's Naval:** ${text}`);
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 
   // Team framework - what's the mental model for the team
   sections.push(
-    "**Team Frameworks:** Push not pull. Thesis first. Signal not hype. Paper before live. One team, one dream."
+    "**Team Frameworks:** Push not pull. Thesis first. Signal not hype. Paper before live. One team, one dream.",
   );
 
   // Agent philosophy - leverage lesson
   sections.push(
-    "**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VINCE = our first product."
+    "**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VINCE = our first product.",
   );
 
   // Career audit / OpenClaw guidance
   sections.push(
-    "**OpenClaw Path:** Build specific knowledge. Ship early. Let agents do the work. Compound the edge."
+    "**OpenClaw Path:** Build specific knowledge. Ship early. Let agents do the work. Compound the edge.",
   );
 
   return sections.join("\n\n");
