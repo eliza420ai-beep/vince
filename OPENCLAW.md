@@ -17,7 +17,7 @@ When you (OpenClaw) work on this repo — including the fork [eliza420ai-beep/vi
 
 ### Essential Repos
 - [openclaw/openclaw](https://github.com/openclaw/openclaw) — Core framework
-- [openclaw/openclaw-adapter](https://github.com/elizaOS/openclaw-adapter) — Eliza plugins in OpenClaw
+- [elizaOS/openclaw-adapter](https://github.com/elizaOS/openclaw-adapter) — Eliza plugins in OpenClaw
 - [openclaw/openclaw-ansible](https://github.com/openclaw/openclaw-ansible) — Ansible deployments
 - [openclaw/nix-openclaw](https://github.com/openclaw/nix-openclaw) — NixOS deployments
 - [openclaw/nix-steipete-tools](https://github.com/openclaw/nix-steipete-tools) — Pete's personal Nix tools
