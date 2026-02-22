@@ -37,3 +37,4 @@
 | 2026-02-21 | Fear at 8 while institutions stack—we're selling premium into the range and wait | [View](day-reports/2026-02-21-day-report.md) |
 | 2026-02-21 | Fear at 8 but institutions are loading; we're selling premium into consolidation | [View](day-reports/2026-02-21-day-report.md) |
 | 2026-02-22 | Fear at 9 but whales loading, we're harvesting options premium while institution | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-22 | Fear at 9 but whales are loading $2B in BTC while we collect premium below strik | [View](day-reports/2026-02-22-day-report.md) |
