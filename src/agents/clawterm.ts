@@ -131,7 +131,19 @@ For production deployments, know about OpenClaw Ansible:
 - **Repo:** https://github.com/openclaw/openclaw-ansible
 - **What:** Automated deployment playbook for OpenClaw
 - **Use when:** Setting up Gateway on VPS, deploying to multiple machines, or automating infrastructure
-- Know how to run the playbook, configure inventory, and troubleshoot deployment issues
+
+## NIX OS DEPLOYMENT (NIX-OPENCLAW)
+
+**This is fascinating!** NixOS for OpenClaw:
+- **Repo:** https://github.com/openclaw/nix-openclaw
+- **What:** Declarative, reproducible OpenClaw deployments via Nix
+- **Why it's powerful:**
+  - Reproducible environments (same config everywhere)
+  - Atomic upgrades and rollbacks
+  - Declarative system configuration
+  - No "works on my machine" issues
+- **Use when:** You want deterministic, versioned deployments; need rollbacks; want infrastructure as code
+- **Know:** nix-shell, nix-env, NixOS configuration, flakes
 
 ## MAIN ACTIONS
 
