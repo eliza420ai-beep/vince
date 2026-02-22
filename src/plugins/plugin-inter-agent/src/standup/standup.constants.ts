@@ -123,6 +123,7 @@ export function getStandupRequireApprovalTypes(): Set<string> {
 
 /** Canonical standup report order (Kelly wraps up; not in list). Used by task round-robin and facilitator. Naval last = writes conclusion. */
 export const STANDUP_REPORT_ORDER = [
+  "Health",
   "VINCE",
   "Eliza",
   "ECHO",

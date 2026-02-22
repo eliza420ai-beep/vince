@@ -70,6 +70,44 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// Health Check: Gateway, Docker, APIs status
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Build a quick health status for the standup header */
+export async function fetchStandupHealth(_runtime: IAgentRuntime): Promise<string> {
+  const { execSync } = await import("node:child_process");
+  const checks: string[] = [];
+
+  // Check Gateway
+  try {
+    const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL || "http://localhost:18789";
+    const response = await fetch(`${gatewayUrl}/health`, { signal: AbortSignal.timeout(2000) }).catch(() => null);
+    checks.push(response?.ok ? "🟢 Gateway" : "🔴 Gateway");
+  } catch {
+    checks.push("🔴 Gateway");
+  }
+
+  // Check Docker
+  try {
+    const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8", timeout: 3000 }).trim();
+    checks.push(dockerPs ? "🟢 Docker" : "⚪ Docker");
+  } catch {
+    checks.push("⚪ Docker");
+  }
+
+  // Check API keys
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+  checks.push(hasOpenAI || hasAnthropic ? "🟢 APIs" : "🔴 APIs");
+
+  // Check X token
+  const hasX = !!process.env.X_BEARER_TOKEN || !!process.env.ELIZA_X_BEARER_TOKEN;
+  checks.push(hasX ? "🟢 X" : "⚪ X");
+
+  return `**System:** ${checks.join(" | ")}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // VINCE: enriched context + 12 data sources (all parallel via Promise.allSettled)
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1406,18 +1444,21 @@ function generateBasicVibe(
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
+  const sections: string[] = [];
+
+  // Get priority markets for strike selection context
   try {
     const service = runtime.getService(
       PolymarketService.serviceType,
     ) as InstanceType<typeof PolymarketService> | null;
 
     if (!service) {
-      return "Polymarket service not loaded. Report: discovery ready when Oracle is used in chat.";
+      return "**Status:** Polymarket service not loaded.\n\n**Action:** Oracle ready when used in chat.\n\n**Insight:** For strike selection, check Polymarket for BTC/ETH/SOL weekly expiry probabilities.";
     }
 
     const markets = await service.getMarketsByPreferredTags({ totalLimit: 8 });
     if (markets.length === 0) {
-      return "No VINCE-priority markets returned. Report: Polymarket discovery ready; no markets in scope.";
+      return "**Status:** No VINCE-priority markets found.\n\n**Action:** Oracle discovery ready; no markets in scope yet.\n\n**Insight:** Add markets to VINCE priority list for strike selection.";
     }
 
     const rows: string[] = [];
@@ -1435,17 +1476,28 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
       rows.push(`| ${question} | ${yesPct} | \`${cid}\` |`);
     }
 
-    return `
-| Priority market | YES% | condition_id |
-|-----------------|------|--------------|
-${rows.join("\n")}
-
-Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
-`.trim();
+    sections.push(`**Priority Markets:**\n| Market | YES% | ID |\n|-------|------|----|\n${rows.join("\n")}`);
   } catch (err) {
     logger.warn({ err }, "[STANDUP_DATA] Failed to fetch Oracle data");
-    return "Polymarket data unavailable; report discovery readiness.";
+    sections.push("**Status:** Polymarket fetch failed.");
   }
+
+  // Add actionable insight for strike selection
+  sections.push(
+    "**Strike Insight:** Check top 2-3 markets for expiry probabilities — use for Hypersurface weekly strike selection (Solus's call).",
+  );
+
+  // Add edge status query
+  sections.push(
+    "**Edge Engine:** Ask Oracle for EDGE_STATUS to see if any edge opportunities are detected.",
+  );
+
+  // Add what to do next
+  sections.push(
+    "**Next:** Run EDGE_CHECK on BTC or ETH for potential strike signals.",
+  );
+
+  return sections.join("\n\n");
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1617,6 +1669,32 @@ export async function fetchSentinelData(
     sections.push("Git log: unavailable.");
   }
 
+  // 1b. What shipped this week (from git log - last 7 days)
+  try {
+    const { execSync } = await import("node:child_process");
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const since = weekAgo.toISOString().split("T")[0];
+    const commits = execSync(`git log --since="${since}" --oneline --format="%s" 2>/dev/null | head -15`, { encoding: "utf-8" }).trim();
+    if (commits) {
+      const lines = commits.split("\n").filter(Boolean);
+      // Group by agent/feature
+      const agentCommits: Record<string, string[]> = {};
+      lines.forEach((c: string) => {
+        const match = c.match(/^feat\((\w+)\)/);
+        const agent = match ? match[1] : "other";
+        if (!agentCommits[agent]) agentCommits[agent] = [];
+        agentCommits[agent].push(c.replace(/^[^:]+: /, ""));
+      });
+      const summary = Object.entries(agentCommits)
+        .map(([agent, msgs]) => `${agent}: ${msgs.slice(0, 3).join(", ")}`)
+        .join(" | ");
+      if (summary) {
+        sections.push(`**Shipped this week:** ${summary}`);
+      }
+    }
+  } catch { /* non-fatal */ }
+
   // 2. PRD scan
   try {
     const prdDir = path.join(
@@ -1706,7 +1784,7 @@ export async function fetchSentinelData(
   );
 
   sections.push(
-    "**Your job:** What shipped, what's next, one architecture item, the dev task above, **proactively suggest 1–2 tech focus areas** for the team (what to build, fix, or prioritize — name the plugin, file, or feature), and flag any macro news that affects our trades.",
+    "**Your job:** Give a proper team overview:\n1. **What shipped** — summarize the week's commits (agent by agent)\n2. **What's next** — what should we focus on building/fixing\n3. **One architecture item** — any structural changes or learnings\n4. **Tech focus** — 1-2 specific things to prioritize (name the file, plugin, or feature)\n5. **Macro** — any news affecting trades\n\nBe concise but substantive. This is the team's compass.",
   );
   return sections.join("\n\n");
 }
@@ -1926,7 +2004,7 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     try {
       const context = sections.join("\n");
       const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines. PRIORITIZE the "Recent uploads" and "Stale categories" sections:\n**Substack idea:** [One specific substack essay with a CONTRARIAN or UNIQUE angle — MUST reference a specific upload. E.g., "Write: Hyperliquid at $30 is the bear case for the next bull — hook: We watched $1→$60, missed 8-figures, still bullish." Include: topic + hook + angle.]\n**Knowledge to expand:** [One specific file to update in knowledge/ — E.g., "Update kelly-btc/satoshis-knowledge/bitcoin/latest.md with current BTC price and MSTR holdings" or "Add Hyperliquid section to defi-metrics/README.md". Name the exact file and what to add.]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines. PRIORITIZE the "Recent uploads" and "Stale categories" sections. Focus on AI agents, OpenClaw, DeFi, options/perps, macro, lifestyle. SKIP memes, memetics, NFTs:\n**Substack idea:** [One specific substack essay with a CONTRARIAN or UNIQUE angle — MUST reference a specific upload. E.g., "Write: Hyperliquid at $30 is the bear case for the next bull — hook: We watched $1→$60, missed 8-figures, still bullish." Include: topic + hook + angle.]\n**Knowledge to expand:** [One specific file to update in knowledge/ — E.g., "Update kelly-btc/satoshis-knowledge/bitcoin/latest.md with current BTC price and MSTR holdings" or "Add Hyperliquid section to defi-metrics/README.md". Name the exact file and what to add.]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
         maxTokens: 300,
         temperature: 0.7,
       });
@@ -2159,6 +2237,8 @@ export async function fetchAgentData(
       return fetchElizaData(runtime);
     case "naval":
       return fetchNavalData(runtime);
+    case "health":
+      return fetchStandupHealth(runtime);
     default:
       return null;
   }
