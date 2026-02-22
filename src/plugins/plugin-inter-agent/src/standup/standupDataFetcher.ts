@@ -1448,7 +1448,15 @@ export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
   const openPositionsBlock =
     openPositionsSection.trim().length > 0
       ? `**Current open positions:**\n${openPositionsSection.trim()}\n\n`
-      : "";
+      : `**⚠️ CRITICAL: Current positions this week:**
+- **HYPE:** Secured puts, strike $30 (collected premium, holding USDT collateral)
+- **BTC:** Covered calls, strike $70,500 (holding BTC, hoping it stays below strike)
+
+**Before giving ANY advice, you must know: What assets do we have positions on? What are our strikes?**
+
+This determines what we should focus on and whether to consider BUYING BACK early.
+
+`;
 
   const now = new Date();
   const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" });
@@ -1461,7 +1469,14 @@ export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
   if (isSettlementDay) {
     yourJobBlock = `**Your job (FRIDAY — settlement day):** Old positions settle today at ~09:00 Paris Time. (1) Final status of expiring position if any. (2) Propose NEXT WEEK's BTC covered call strike for Hypersurface (new weekly cycle starts now, settles next Friday ~09:00 Paris Time). State: strike price, direction (above/below), premium target, invalidation level. Use the LIVE SPOT PRICE above, not old context. Reference VINCE's section for regime/DVOL; Oracle's odds for confidence.`;
   } else if (hasOpen) {
-    yourJobBlock = `**Your job:** (1) Current position status: strike, premium, distance to strike, DTE when available. (2) Daily question: hold, close early, roll, or adjust? (3) **Thursday → check for early exercise/assignment risk** — if ITM, decide whether to roll to next week's expiry. Hypersurface settles Friday ~09:00 Paris Time; early exercise possible Thursday afternoon. State your call and invalidation. Reference live spot above and VINCE's section for regime/DVOL; Oracle's odds for confidence.`;
+    yourJobBlock = `**Your job (DAILY MONITORING):** This is no longer just Friday expiry — we track DAILY because we can BUY BACK early to unlock collateral!
+
+(1) Current position status: strike, premium, distance to strike.
+(2) **KEY QUESTION:** Is BTC approaching our $70,500 strike? If BTC is getting close to $70,250 and momentum is up, should we BUY BACK the covered call early to avoid selling at $70,500 when BTC might close at $72K+?
+(3) Same for HYPE puts at $30 — if HYPE is rallying past $30, buy back early?
+(4) **Thursday → check for early exercise/assignment risk** — if ITM, decide whether to roll.
+Hypersurface settles Friday ~09:00 Paris Time.
+State your call: HOLD, BUY BACK, or ROLL — and why.`;
   } else {
     yourJobBlock = `**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday ~09:00 Paris Time).
 State: strike price, direction (above/below), premium target, invalidation level.
