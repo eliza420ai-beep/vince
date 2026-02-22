@@ -146,14 +146,27 @@ async function fetchSignalAggregator(runtime: IAgentRuntime): Promise<string> {
     aggregateSignals?: (asset: string) => Promise<{
       direction?: string;
       confidence?: number;
-      sources?: number;
+      sources?: string[];
     } | null>;
   } | null;
   const btcSignal =
     (await sigAgg?.aggregateSignals?.("BTC").catch(() => null)) ?? null;
-  return btcSignal?.direction
-    ? `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${btcSignal.sources ?? 0} sources)`
-    : "";
+  if (!btcSignal?.direction) return "";
+  
+  // Format sources nicely - truncate long lists
+  const sources = btcSignal.sources ?? [];
+  const sourceCount = sources.length;
+  let sourceStr = `${sourceCount} sources`;
+  if (sourceCount > 0) {
+    // Show first 3 sources, then "+N more"
+    const displaySources = sources.slice(0, 3);
+    const remaining = sourceCount - 3;
+    sourceStr = remaining > 0 
+      ? `${displaySources.join(", ")} +${remaining} more`
+      : displaySources.join(", ");
+  }
+  
+  return `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${sourceStr})`;
 }
 
 async function fetchDeribitDVOL(runtime: IAgentRuntime): Promise<string> {
@@ -695,7 +708,7 @@ async function fetchRegime(runtime: IAgentRuntime): Promise<string> {
   const regime =
     (await regimeSvc?.getRegime?.("BTC").catch(() => null)) ?? null;
   if (!regime) return "";
-  const adxStr = regime.adx != null ? ` ADX ${regime.adx}` : "";
+  const adxStr = regime.adx != null ? ` ADX ${regime.adx.toFixed(1)}` : "";
   return `**Regime (BTC):** ${regime.regime}${adxStr} | size ${regime.positionSizeMultiplier}x`;
 }
 
@@ -1435,22 +1448,37 @@ export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
   const openPositionsBlock =
     openPositionsSection.trim().length > 0
       ? `**Current open positions:**\n${openPositionsSection.trim()}\n\n`
-      : "";
+      : `**⚠️ CRITICAL: Current positions this week:**
+- **HYPE:** Secured puts, strike $30 (collected premium, holding USDT collateral)
+- **BTC:** Covered calls, strike $70,500 (holding BTC, hoping it stays below strike)
+
+**Before giving ANY advice, you must know: What assets do we have positions on? What are our strikes?**
+
+This determines what we should focus on and whether to consider BUYING BACK early.
+
+`;
 
   const now = new Date();
   const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" });
   const isFriday = now.getDay() === 5;
   const isSettlementDay = isFriday;
-  const dayContext = `**Today:** ${dayOfWeek}, ${now.toISOString().slice(0, 10)}. Hypersurface weekly options settle Friday 08:00 UTC.${isSettlementDay ? " TODAY IS SETTLEMENT DAY — old positions expire today. Focus on the NEW week's strike." : ""}`;
+  const dayContext = `**Today:** ${dayOfWeek}, ${now.toISOString().slice(0, 10)}. Hypersurface weekly options settle Friday ~09:00 Paris Time (08:00 UTC / 00:00 PT).${isSettlementDay ? " TODAY IS SETTLEMENT DAY — old positions expire today. Focus on the NEW week's strike." : ""}`;
 
   const hasOpen = hasOpenPositions();
   let yourJobBlock: string;
   if (isSettlementDay) {
-    yourJobBlock = `**Your job (FRIDAY — settlement day):** Old positions settle today at 08:00 UTC. (1) Final status of expiring position if any. (2) Propose NEXT WEEK's BTC covered call strike for Hypersurface (new weekly cycle starts now, settles next Friday 08:00 UTC). State: strike price, direction (above/below), premium target, invalidation level. Use the LIVE SPOT PRICE above, not old context. Reference VINCE's section for regime/DVOL; Oracle's odds for confidence.`;
+    yourJobBlock = `**Your job (FRIDAY — settlement day):** Old positions settle today at ~09:00 Paris Time. (1) Final status of expiring position if any. (2) Propose NEXT WEEK's BTC covered call strike for Hypersurface (new weekly cycle starts now, settles next Friday ~09:00 Paris Time). State: strike price, direction (above/below), premium target, invalidation level. Use the LIVE SPOT PRICE above, not old context. Reference VINCE's section for regime/DVOL; Oracle's odds for confidence.`;
   } else if (hasOpen) {
-    yourJobBlock = `**Your job:** (1) Current position status: strike, premium, distance to strike, DTE when available. (2) Daily question: hold, close early, or adjust? (3) If relevant, this week's strike recommendation. Hypersurface settles Friday 08:00 UTC; early exercise/close possible. State your call and invalidation. Reference live spot above and VINCE's section for regime/DVOL; Oracle's odds for confidence.`;
+    yourJobBlock = `**Your job (DAILY MONITORING):** This is no longer just Friday expiry — we track DAILY because we can BUY BACK early to unlock collateral!
+
+(1) Current position status: strike, premium, distance to strike.
+(2) **KEY QUESTION:** Is BTC approaching our $70,500 strike? If BTC is getting close to $70,250 and momentum is up, should we BUY BACK the covered call early to avoid selling at $70,500 when BTC might close at $72K+?
+(3) Same for HYPE puts at $30 — if HYPE is rallying past $30, buy back early?
+(4) **Thursday → check for early exercise/assignment risk** — if ITM, decide whether to roll.
+Hypersurface settles Friday ~09:00 Paris Time.
+State your call: HOLD, BUY BACK, or ROLL — and why.`;
   } else {
-    yourJobBlock = `**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
+    yourJobBlock = `**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday ~09:00 Paris Time).
 State: strike price, direction (above/below), premium target, invalidation level.
 Reference the live spot prices above when present; otherwise VINCE's DVOL, funding, and regime. Reference Oracle's odds.
 If uncertain (like last week), say so and explain why with data.`;
