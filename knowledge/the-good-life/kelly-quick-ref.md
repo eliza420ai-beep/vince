@@ -107,6 +107,8 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | lifestyle/photography-guide.md    | Hasselblad, technique, editing         |
 | lifestyle/fishing-guide.md       | Shore, deep sea, spearfishing          |
 | lifestyle/local-services-guide.md | Doctors, mechanics, emergency contacts |
+| michelin-restaurants/belgium-stars.md | Michelin-starred restaurants in Belgium   |
+| luxury-hotels/belgium-5star.md       | 5-star hotels in Brussels, Bruges, Antwerp |
 | travel/basque-country-complete.md  | Full Basque guide (FR + ES)              |
 | travel/pyrenees-complete.md        | Full Pyrénées guide (ski, hiking)       |
 | travel/alps-complete.md           | French Alps (Courchevel, Chamonix)     |
