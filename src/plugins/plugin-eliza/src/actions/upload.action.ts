@@ -625,7 +625,8 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
     }
     if (containsYouTubeUrl(text)) return true;
     // Auto-trigger on X/Twitter links - no keyword needed
-    if (extractSingleUrl(text) && isXOrTwitterUrl(extractSingleUrl(text)!)) return true;
+    if (extractSingleUrl(text) && isXOrTwitterUrl(extractSingleUrl(text)!))
+      return true;
     if (text.length < MIN_TEXT_LENGTH) return false;
     if (hasUploadIntent(text)) return true;
     if (text.length >= AUTO_INGEST_LENGTH && looksPastedNotConversational(text))
@@ -721,13 +722,15 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
           // Try to fetch the tweet using X research service
           try {
             // Dynamic import to avoid loading X service unnecessarily
-            const { initXClientFromEnv } = await import("@elizaos/plugin-x-research");
+            const { initXClientFromEnv } =
+              await import("../../../plugin-x-research/src/services/xClient.service");
             initXClientFromEnv(runtime);
-            
+
             // Get the X client service
-            const { getXClient } = await import("@elizaos/plugin-x-research");
+            const { getXClient } =
+              await import("../../../plugin-x-research/src/services/xClient.service");
             const xClient = getXClient();
-            
+
             if (!xClient) {
               if (callback) {
                 await callback({
@@ -738,9 +741,11 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               }
               return;
             }
-            
+
             // Extract tweet ID from URL
-            const tweetIdMatch = singleUrl.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
+            const tweetIdMatch = singleUrl.match(
+              /(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/,
+            );
             if (!tweetIdMatch) {
               if (callback) {
                 await callback({
@@ -751,10 +756,10 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               }
               return;
             }
-            
+
             const tweetId = tweetIdMatch[1];
             const tweet = await xClient.getTweet(tweetId);
-            
+
             if (!tweet) {
               if (callback) {
                 await callback({
@@ -765,16 +770,16 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               }
               return;
             }
-            
+
             // Build tweet content for summarization
-            const tweetContent = `Tweet by @${tweet.username}:\n\n${tweet.text}\n\n---\nLikes: ${tweet.likes || 0} | Retweets: ${tweet.retweets || 0} | Replies: ${tweet.replies || 0}`;
-            
+            const tweetContent = `Tweet by @${tweet.author?.username ?? tweet.authorId}:\n\n${tweet.text}\n\n---\nLikes: ${tweet.metrics?.likeCount ?? 0} | Retweets: ${tweet.metrics?.retweetCount ?? 0} | Replies: ${tweet.metrics?.replyCount ?? 0}`;
+
             // Continue with the normal upload flow using tweet content
             content = tweetContent;
-            
+
             if (callback) {
               await callback({
-                text: `🐦 **Fetching tweet...**\n\n@${tweet.username}: ${tweet.text.slice(0, 200)}...`,
+                text: `🐦 **Fetching tweet...**\n\n@${tweet.author?.username ?? tweet.authorId}: ${tweet.text.slice(0, 200)}...`,
                 actions: ["UPLOAD"],
                 success: true,
               });

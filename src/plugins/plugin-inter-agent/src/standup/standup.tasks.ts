@@ -260,7 +260,7 @@ export async function buildAndSaveSharedDailyInsights(
   const sections: string[] = [];
   const date = new Date().toISOString().slice(0, 10);
   sections.push(`# Shared Daily Insights — ${date}\n`);
-  
+
   // Add scorecard - will be updated as agents report
   const scorecardEmoji: Record<string, string> = {};
   for (const displayName of STANDUP_REPORT_ORDER) {
@@ -300,7 +300,10 @@ export async function buildAndSaveSharedDailyInsights(
         contextHints,
       );
       // Update scorecard on success
-      scorecardEmoji[displayName] = data && !data.includes("(no data)") && !data.includes("(fetch failed)") ? "✅" : "⚠️";
+      scorecardEmoji[displayName] =
+        data && !data.includes("(no data)") && !data.includes("(fetch failed)")
+          ? "✅"
+          : "⚠️";
       if (!data) data = "(no data)";
       if (normalized === "vince") {
         vinceContextHints = extractKeyEventsFromVinceData(data);
@@ -330,9 +333,14 @@ export async function buildAndSaveSharedDailyInsights(
     const emoji = scorecardEmoji[name] || "⚪";
     return `${emoji} ${name}`;
   }).join(" | ");
-  
+
   // Prepend scorecard to the content
-  const content = sections[0] + "\n**Scorecard:** " + scorecardLine + "\n\n" + sections.slice(1).join("\n");
+  const content =
+    sections[0] +
+    "\n**Scorecard:** " +
+    scorecardLine +
+    "\n\n" +
+    sections.slice(1).join("\n");
   await saveSharedDailyInsights(content);
 }
 
@@ -1558,7 +1566,7 @@ export async function registerStandupTask(
           messageToPush = reportText.trim() + footer + noReportLine;
         } else {
           messageToPush =
-            `Standup ${dateStr} completed; ${replies.length} agents reported (${Math.round((Date.now() - (currentSession?.startedAt || Date.now())) / 60000)}min). Day Report generation failed — see logs.` +
+            `Standup ${dateStr} completed; ${replies.length} agents reported. Day Report generation failed — see logs.` +
             noReportLine;
         }
         await pushStandupSummaryToChannels(rt, messageToPush);
