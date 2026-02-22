@@ -70,6 +70,44 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// Health Check: Gateway, Docker, APIs status
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Build a quick health status for the standup header */
+export async function fetchStandupHealth(_runtime: IAgentRuntime): Promise<string> {
+  const { execSync } = await import("node:child_process");
+  const checks: string[] = [];
+
+  // Check Gateway
+  try {
+    const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL || "http://localhost:18789";
+    const response = await fetch(`${gatewayUrl}/health`, { signal: AbortSignal.timeout(2000) }).catch(() => null);
+    checks.push(response?.ok ? "🟢 Gateway" : "🔴 Gateway");
+  } catch {
+    checks.push("🔴 Gateway");
+  }
+
+  // Check Docker
+  try {
+    const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+    checks.push(dockerPs ? "🟢 Docker" : "⚪ Docker");
+  } catch {
+    checks.push("⚪ Docker");
+  }
+
+  // Check API keys
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+  checks.push(hasOpenAI || hasAnthropic ? "🟢 APIs" : "🔴 APIs");
+
+  // Check X token
+  const hasX = !!process.env.X_BEARER_TOKEN || !!process.env.ELIZA_X_BEARER_TOKEN;
+  checks.push(hasX ? "🟢 X" : "⚪ X");
+
+  return `**System:** ${checks.join(" | ")}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // VINCE: enriched context + 12 data sources (all parallel via Promise.allSettled)
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -2145,6 +2183,8 @@ export async function fetchAgentData(
       return fetchElizaData(runtime);
     case "naval":
       return fetchNavalData(runtime);
+    case "health":
+      return fetchStandupHealth(runtime);
     default:
       return null;
   }
