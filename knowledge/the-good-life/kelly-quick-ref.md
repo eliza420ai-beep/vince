@@ -107,8 +107,11 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | lifestyle/photography-guide.md    | Hasselblad, technique, editing         |
 | lifestyle/fishing-guide.md       | Shore, deep sea, spearfishing          |
 | lifestyle/local-services-guide.md | Doctors, mechanics, emergency contacts |
-| travel/basque-country-spain.md    | San Sebastián, Bilbao, pintxos trips     |
-| travel/weekend-itineraries.md     | Ready-made weekend plans                 |
+| travel/basque-country-complete.md  | Full Basque guide (FR + ES)              |
+| travel/pyrenees-complete.md        | Full Pyrénées guide (ski, hiking)       |
+| travel/alps-complete.md           | French Alps (Courchevel, Chamonix)     |
+| travel/cote-dazur-complete.md    | French Riviera (Nice, Cannes, Monaco)  |
+| travel/weekend-itineraries.md    | Ready-made weekend plans               |
 | surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics   |
 | kelly-backstory.md                 | Character backstory (investments, origin)   |
 | kelly-interview-questions.md       | Deep-life / interview-style answers         |
