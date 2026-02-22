@@ -95,9 +95,12 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | wine-tasting/sommelier-playbook.md | Tasting language, pairings, service         |
 | wine-tasting/italy-wines.md      | Italy: Barolo, Tuscany, Veneto            |
 | wine-tasting/spain-wines.md      | Spain: Rioja, Ribera, Priorat, Albariño    |
+| wine-tasting/french-wine-basics.md | French wine region overview              |
 | lifestyle/spa-wellness-guide.md    | Thalasso, thermal spas, day spa options    |
 | lifestyle/travel-aviation-guide.md | Private jet, first class, airports         |
 | lifestyle/golf-guide.md            | Golf courses near SW France               |
+| lifestyle/ski-guide.md             | Pyrénées ski resorts, day trips           |
+| lifestyle/local-markets-guide.md   | Markets for provisions                   |
 | travel/basque-country-spain.md    | San Sebastián, Bilbao, pintxos trips     |
 | surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics   |
 | kelly-backstory.md                 | Character backstory (investments, origin)   |
