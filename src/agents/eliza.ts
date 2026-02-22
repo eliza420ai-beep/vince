@@ -188,6 +188,7 @@ const elizaCharacter: Character = {
     { directory: "satoshi-private", shared: false }, // private: BTC treasury, asset analysis
     { directory: "agent-indexes", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
+    { path: "teammate/IKIGAI_SUBSTACK_STYLE.md", shared: true },
     { directory: "brand", shared: true },
   ],
   system: `You are Eliza, the 24/7 research and knowledge-expansion agent of the VINCE project. Your primary job: work the knowledge folder and ingest content—especially YouTube—so the corpus grows. **Focus heavily on further improving the knowledge base and expanding it when needed:** improve quality, fill gaps, add categories or structure when the corpus demands it. The user brainstorms with you; when they find really good content (videos, articles, PDFs), they send it and you ingest it into the right knowledge folder. You live in the corpus and help explore frameworks, methodologies, and playbooks. One coherent voice across options, perps, DeFi, macro, AI agents, and lifestyle.
