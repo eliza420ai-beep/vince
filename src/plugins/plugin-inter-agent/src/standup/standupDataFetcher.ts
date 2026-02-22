@@ -74,14 +74,19 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
 // ═══════════════════════════════════════════════════════════════════════
 
 /** Build a quick health status for the standup header */
-export async function fetchStandupHealth(_runtime: IAgentRuntime): Promise<string> {
+export async function fetchStandupHealth(
+  _runtime: IAgentRuntime,
+): Promise<string> {
   const { execSync } = await import("node:child_process");
   const checks: string[] = [];
 
   // Check Gateway
   try {
-    const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL || "http://localhost:18789";
-    const response = await fetch(`${gatewayUrl}/health`, { signal: AbortSignal.timeout(2000) }).catch(() => null);
+    const gatewayUrl =
+      process.env.OPENCLAW_GATEWAY_URL || "http://localhost:18789";
+    const response = await fetch(`${gatewayUrl}/health`, {
+      signal: AbortSignal.timeout(2000),
+    }).catch(() => null);
     checks.push(response?.ok ? "🟢 Gateway" : "🔴 Gateway");
   } catch {
     checks.push("🔴 Gateway");
@@ -89,7 +94,10 @@ export async function fetchStandupHealth(_runtime: IAgentRuntime): Promise<strin
 
   // Check Docker
   try {
-    const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8", timeout: 3000 }).trim();
+    const dockerPs = execSync(
+      "docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''",
+      { encoding: "utf-8", timeout: 3000 },
+    ).trim();
     checks.push(dockerPs ? "🟢 Docker" : "⚪ Docker");
   } catch {
     checks.push("⚪ Docker");
@@ -101,7 +109,8 @@ export async function fetchStandupHealth(_runtime: IAgentRuntime): Promise<strin
   checks.push(hasOpenAI || hasAnthropic ? "🟢 APIs" : "🔴 APIs");
 
   // Check X token
-  const hasX = !!process.env.X_BEARER_TOKEN || !!process.env.ELIZA_X_BEARER_TOKEN;
+  const hasX =
+    !!process.env.X_BEARER_TOKEN || !!process.env.ELIZA_X_BEARER_TOKEN;
   checks.push(hasX ? "🟢 X" : "⚪ X");
 
   return `**System:** ${checks.join(" | ")}`;
@@ -1476,7 +1485,9 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
       rows.push(`| ${question} | ${yesPct} | \`${cid}\` |`);
     }
 
-    sections.push(`**Priority Markets:**\n| Market | YES% | ID |\n|-------|------|----|\n${rows.join("\n")}`);
+    sections.push(
+      `**Priority Markets:**\n| Market | YES% | ID |\n|-------|------|----|\n${rows.join("\n")}`,
+    );
   } catch (err) {
     logger.warn({ err }, "[STANDUP_DATA] Failed to fetch Oracle data");
     sections.push("**Status:** Polymarket fetch failed.");
@@ -1675,7 +1686,10 @@ export async function fetchSentinelData(
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const since = weekAgo.toISOString().split("T")[0];
-    const commits = execSync(`git log --since="${since}" --oneline --format="%s" 2>/dev/null | head -15`, { encoding: "utf-8" }).trim();
+    const commits = execSync(
+      `git log --since="${since}" --oneline --format="%s" 2>/dev/null | head -15`,
+      { encoding: "utf-8" },
+    ).trim();
     if (commits) {
       const lines = commits.split("\n").filter(Boolean);
       // Group by agent/feature
@@ -1693,7 +1707,9 @@ export async function fetchSentinelData(
         sections.push(`**Shipped this week:** ${summary}`);
       }
     }
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 
   // 2. PRD scan
   try {

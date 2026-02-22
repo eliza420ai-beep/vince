@@ -331,7 +331,7 @@ export function parseActionItemsFromReport(
       /\|\s*WHAT\s*\|\s*HOW\s*\|\s*WHY\s*\|\s*OWNER[\s\S]*?\n([\s\S]*?)(?=\n\n|\n#|$)/i,
     );
     if (!legacyMatch) return items;
-    
+
     const rows = legacyMatch[1]
       .split("\n")
       .filter((row) => row.trim().startsWith("|"));
