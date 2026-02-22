@@ -146,14 +146,27 @@ async function fetchSignalAggregator(runtime: IAgentRuntime): Promise<string> {
     aggregateSignals?: (asset: string) => Promise<{
       direction?: string;
       confidence?: number;
-      sources?: number;
+      sources?: string[];
     } | null>;
   } | null;
   const btcSignal =
     (await sigAgg?.aggregateSignals?.("BTC").catch(() => null)) ?? null;
-  return btcSignal?.direction
-    ? `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${btcSignal.sources ?? 0} sources)`
-    : "";
+  if (!btcSignal?.direction) return "";
+  
+  // Format sources nicely - truncate long lists
+  const sources = btcSignal.sources ?? [];
+  const sourceCount = sources.length;
+  let sourceStr = `${sourceCount} sources`;
+  if (sourceCount > 0) {
+    // Show first 3 sources, then "+N more"
+    const displaySources = sources.slice(0, 3);
+    const remaining = sourceCount - 3;
+    sourceStr = remaining > 0 
+      ? `${displaySources.join(", ")} +${remaining} more`
+      : displaySources.join(", ");
+  }
+  
+  return `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${sourceStr})`;
 }
 
 async function fetchDeribitDVOL(runtime: IAgentRuntime): Promise<string> {
@@ -695,7 +708,7 @@ async function fetchRegime(runtime: IAgentRuntime): Promise<string> {
   const regime =
     (await regimeSvc?.getRegime?.("BTC").catch(() => null)) ?? null;
   if (!regime) return "";
-  const adxStr = regime.adx != null ? ` ADX ${regime.adx}` : "";
+  const adxStr = regime.adx != null ? ` ADX ${regime.adx.toFixed(1)}` : "";
   return `**Regime (BTC):** ${regime.regime}${adxStr} | size ${regime.positionSizeMultiplier}x`;
 }
 
