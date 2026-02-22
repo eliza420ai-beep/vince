@@ -1643,6 +1643,58 @@ async function buildDeltaReport(): Promise<string> {
   return lines.join("\n\n");
 }
 
+/** Get recent knowledge uploads (last 48 hours) for standup */
+async function getRecentUploads(): Promise<string> {
+  try {
+    const knowledgeRoot = path.join(process.cwd(), "knowledge");
+    if (!fs.existsSync(knowledgeRoot)) {
+      return "**Recent uploads:** Knowledge folder not found.";
+    }
+
+    // Get files from last 48 hours
+    const now = Date.now();
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+    const recentFiles: { name: string; mtime: number; category: string }[] = [];
+
+    // Walk knowledge directory
+    const categories = fs.readdirSync(knowledgeRoot, { withFileTypes: true });
+    for (const cat of categories) {
+      if (!cat.isDirectory()) continue;
+      const catPath = path.join(knowledgeRoot, cat.name);
+      const files = fs.readdirSync(catPath, { withFileTypes: true });
+      for (const f of files) {
+        if (!f.isFile() || !f.name.endsWith(".md")) continue;
+        const filePath = path.join(catPath, f.name);
+        const stats = fs.statSync(filePath);
+        const ageMs = now - stats.mtimeMs;
+        if (ageMs < TWO_DAYS_MS) {
+          recentFiles.push({ name: f.name, mtime: stats.mtimeMs, category: cat.name });
+        }
+      }
+    }
+
+    if (recentFiles.length === 0) {
+      return "**Recent uploads:** No new uploads in last 48h.";
+    }
+
+    // Sort by newest first
+    recentFiles.sort((a, b) => b.mtime - a.mtime);
+
+    // Format: take top 5, show category + filename (truncated)
+    const top5 = recentFiles.slice(0, 5);
+    const lines = top5.map((f) => {
+      const nameWithoutExt = f.name.replace(/\.md$/, "");
+      const truncated = nameWithoutExt.slice(0, 50);
+      return `- **${f.category}:** ${truncated}`;
+    });
+    const more = recentFiles.length > 5 ? ` (+${recentFiles.length - 5} more)` : "";
+    return `**Recent uploads (${recentFiles.length}):**\n${lines.join("\n")}${more}`;
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] Failed to get recent uploads");
+    return "**Recent uploads:** Could not scan.";
+  }
+}
+
 export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
   const sections: string[] = [];
   try {
@@ -1657,6 +1709,15 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
       "**Delta:** Could not load yesterday vs today; report from memory only.",
     );
   }
+
+  // Recent uploads
+  try {
+    const uploads = await getRecentUploads();
+    sections.push(uploads);
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] Recent uploads failed");
+  }
+
   try {
     const facts = await runtime.getMemories({
       tableName: "facts",
@@ -1683,9 +1744,9 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     try {
       const context = sections.join("\n");
       const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines:\n**Substack idea:** [One specific, timely content topic for Ikigai Studio Substack — tied to what's happening in crypto/AI/DeFi today]\n**Knowledge to expand:** [One specific area in the knowledge/ directory to add or update — name the category and what's missing]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
-        maxTokens: 200,
-        temperature: 0.6,
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines. PRIORITIZE the "Recent uploads" section — these are fresh knowledge that can inspire content:\n**Substack idea:** [One specific, timely content topic for Ikigai Studio Substack — MUST reference what's in "Recent uploads" if present. E.g., "Write about the Jeff Yan Hyperliquid interview we just uploaded..."]\n**Knowledge to expand:** [One specific area in the knowledge/ directory to add or update — name the category and what's missing]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
+        maxTokens: 250,
+        temperature: 0.7,
       });
       const text = String(suggestion ?? "").trim();
       if (text && text.length > 20) {
