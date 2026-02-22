@@ -1207,11 +1207,12 @@ export async function fetchEchoData(
       }
     }
     queries.push("BTC crypto market sentiment");
+    queries.push("ETH SOL HYPE crypto");
+    queries.push("Uniswap Aave Morpho DeFi");
+    queries.push("hyperliquid hypersurface");
+    queries.push("Trump macro Fed");
     const secondAsset = getStandupTrackedAssets()[1];
-    if (secondAsset && secondAsset !== "BTC" && queries.length < 3) {
-      queries.push(`${secondAsset} crypto sentiment`);
-    }
-    const uniqueQueries = [...new Set(queries)].slice(0, 3);
+    const uniqueQueries = [...new Set(queries)].slice(0, 5);
 
     let allTweets: Array<{
       id?: string;
@@ -1258,66 +1259,83 @@ export async function fetchEchoData(
       trackedAssets,
     );
 
-    let sentimentBlock = `## ECHO — Structured Sentiment
+    // VIBE-FOCUSED output - synthesize into a summary, don't show individual tweets
+    let sentimentBlock = `## ECHO — CT VIBE (last 24h)
 
-### Asset Sentiment (${allTweets.length} posts, last 24h)${queryNote}`;
+`;
 
-    if (assetSignals.length > 0) {
-      const tableRows = assetSignals
-        .map(
-          (s) =>
-            `| ${s.asset} | ${s.sentiment} (${s.sentimentConfidence}%) | ${s.narrative.replace(/\|/g, "-")} | ${s.signal} |`,
-        )
-        .join("\n");
-
-      sentimentBlock += `
-
-| Asset | CT Sentiment | Dominant Narrative | Signal |
-|-------|--------------|-------------------|--------|
-${tableRows}
-
-### Contrarian Alert
-${generateContrarianAlert(assetSignals)}
-
-### Actionable Takeaway
-${generateTakeaway(assetSignals)}`;
-    } else {
-      sentimentBlock += "\n\nNo clear signals extracted from tweets.";
-    }
-
-    // Keep short tweet samples for reference
-    const shortTweetLines = allTweets.slice(0, 5).map((t) => {
-      const handle = t.author?.username ?? "anon";
-      const len = getStandupSnippetLen();
-      const snippet =
-        t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
-      return `@${handle}: ${snippet}`;
-    });
-
-    // Append X content suggestions via LLM (still useful)
-    if (runtime.useModel && shortTweetLines.length > 0) {
+    // Use LLM to synthesize vibe
+    if (runtime.useModel) {
       try {
-        const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-          prompt: `You are ECHO, the crypto-twitter sentiment agent. Based on the tweets below, suggest 1–2 tweet or post ideas for our X account that would resonate with today's CT pulse. Specific hooks, not generic. One sentence each. No filler.\n\nTweets:\n${shortTweetLines.slice(0, 4).join("\n")}`,
-          maxTokens: 150,
-          temperature: 0.6,
+        const vibePrompt = `You are ECHO, the CT VIBE agent. Synthesize these tweets into a CONCISE vibe report.
+
+Respond in exactly this format:
+
+**What's HOT (+fomo):** [1-2 sentences - what's trending, exciting]
+**What's FUD (-fear):** [1-2 sentences - what's worrying]
+**NEW META:** [1 sentence - new narratives/protocols]
+**CORE:** BTC [bullish/bearish/neutral + vibe] | ETH [vibe] | SOL [vibe] | HYPE [vibe]
+**@hypersurfaceX:** [1 sentence or "not trending"]
+**@realDonaldTrump:** [1 sentence or "not trending"]
+
+NO individual tweets. Synthesize the vibe.`;
+
+        const vibeText = await runtime.useModel(ModelType.TEXT_SMALL, {
+          prompt: `${vibePrompt}\n\nTweets:\n${allTweets.slice(0, 15).map(t => t.text).join("\n---\n")}`,
+          maxTokens: 400,
+          temperature: 0.5,
         });
-        const text = String(suggestion ?? "").trim();
-        if (text && text.length > 15)
-          sentimentBlock += `\n\n**X content ideas:** ${text}`;
+        const text = String(vibeText ?? "").trim();
+        if (text && text.length > 30) {
+          sentimentBlock += text;
+          
+          // Add X content idea
+          const ideaPrompt = `Based on this vibe, suggest 1 punchy tweet hook for @ikigaistudioxyz. 1 sentence.`;
+          const idea = await runtime.useModel(ModelType.TEXT_SMALL, {
+            prompt: `${text}\n\n${ideaPrompt}`,
+            maxTokens: 80,
+            temperature: 0.7,
+          });
+          const ideaText = String(idea ?? "").trim();
+          if (ideaText) {
+            sentimentBlock += `\n\n**X hook:** ${ideaText}`;
+          }
+        } else {
+          sentimentBlock += generateBasicVibe(allTweets);
+        }
       } catch {
-        // non-fatal; content ideas are a bonus
+        sentimentBlock += generateBasicVibe(allTweets);
       }
+    } else {
+      sentimentBlock += generateBasicVibe(allTweets);
     }
 
     return sentimentBlock;
   } catch (err) {
-    logger.warn(
-      { err, lastQuery: "init or format" },
-      "[STANDUP_DATA] fetchEchoData: X unavailable",
-    );
-    return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
+    logger.warn({ err }, "[STANDUP_DATA] fetchEchoData: failed");
+    return "**CT Vibe:** X API unavailable.";
   }
+}
+
+// Basic vibe without LLM
+function generateBasicVibe(
+  tweets: Array<{ text: string; author?: { username?: string } }>,
+): string {
+  const texts = tweets.map(t => t.text.toLowerCase());
+  const bullish = texts.filter(t => 
+    t.includes("bull") || t.includes("moon") || t.includes("pump") || t.includes("up") || t.includes("breakout")
+  ).length;
+  const bearish = texts.filter(t => 
+    t.includes("bear") || t.includes("dump") || t.includes("crash") || t.includes("down") || t.includes("fear")
+  ).length;
+  const net = bullish - bearish;
+  const vibe = net > 2 ? "bullish" : net < -2 ? "bearish" : "neutral";
+  
+  return `**Overall:** ${vibe.toUpperCase()} (${bullish} bullish vs ${bearish} bearish)
+
+**What's HOT:** ${texts.some(t => t.includes("etf") || t.includes("spot")) ? "ETF/spot momentum" : "General crypto"}
+**What's FUD:** ${texts.some(t => t.includes("crash") || t.includes("liquidate")) ? "Liquidation fears" : "No major FUD"}
+**CORE:** BTC ${vibe} | ETH ${vibe} | SOL ${vibe} | HYPE ${vibe}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
