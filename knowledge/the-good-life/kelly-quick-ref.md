@@ -104,6 +104,8 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | lifestyle/cycling-guide.md         | Road cycling routes, climbs              |
 | lifestyle/spirits-cocktails.md   | Spirits, cocktails, French spirits      |
 | lifestyle/dress-code-guide.md     | What to wear, occasions                 |
+| lifestyle/photography-guide.md    | Hasselblad, technique, editing         |
+| lifestyle/fishing-guide.md       | Shore, deep sea, spearfishing          |
 | travel/basque-country-spain.md    | San Sebastián, Bilbao, pintxos trips     |
 | travel/weekend-itineraries.md     | Ready-made weekend plans                 |
 | surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics   |
