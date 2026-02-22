@@ -101,7 +101,9 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | lifestyle/golf-guide.md            | Golf courses near SW France               |
 | lifestyle/ski-guide.md             | Pyrénées ski resorts, day trips           |
 | lifestyle/local-markets-guide.md   | Markets for provisions                   |
+| lifestyle/cycling-guide.md         | Road cycling routes, climbs              |
 | travel/basque-country-spain.md    | San Sebastián, Bilbao, pintxos trips     |
+| travel/weekend-itineraries.md     | Ready-made weekend plans                 |
 | surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics   |
 | kelly-backstory.md                 | Character backstory (investments, origin)   |
 | kelly-interview-questions.md       | Deep-life / interview-style answers         |
