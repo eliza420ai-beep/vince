@@ -1211,8 +1211,10 @@ export async function fetchEchoData(
     queries.push("Uniswap Aave Morpho DeFi");
     queries.push("hyperliquid hypersurface");
     queries.push("macro Fed inflation crypto"); // autismcapital, blocknewsdotcom coverage
+    // High-signal accounts (from @ikigailabsETH curated list)
+    queries.push("elonmusk naval crypto tech");
     const secondAsset = getStandupTrackedAssets()[1];
-    const uniqueQueries = [...new Set(queries)].slice(0, 5);
+    const uniqueQueries = [...new Set(queries)].slice(0, 6);
 
     let allTweets: Array<{
       id?: string;
@@ -1276,9 +1278,12 @@ Respond in exactly this format:
 **NEW META:** [1 sentence - new narratives/protocols]
 **CORE:** BTC [bullish/bearish/neutral + vibe] | ETH [vibe] | SOL [vibe] | HYPE [vibe]
 **@hypersurfaceX:** [1 sentence or "not trending"]
-**@autismcapital / @blocknewsdotcom:** [1 sentence - key macro/policy sentiment or "not trending"]
+**@elonmusk / @naval / @kevinWSHpod:** [1 sentence - key signal or "not trending"]
+**@autismcapital / @blocknewsdotcom:** [1 sentence - macro/policy or "not trending"]
 
-NO individual tweets. Synthesize the vibe. Note: @realDonaldTrump hasn't tweeted since early Feb 2026.`;
+Curated from @ikigailabsETH follows. Note: @realDonaldTrump hasn't tweeted since early Feb 2026.
+
+NO individual tweets. Synthesize the vibe.`;
 
         const vibeText = await runtime.useModel(ModelType.TEXT_SMALL, {
           prompt: `${vibePrompt}\n\nTweets:\n${allTweets.slice(0, 15).map(t => t.text).join("\n---\n")}`,
