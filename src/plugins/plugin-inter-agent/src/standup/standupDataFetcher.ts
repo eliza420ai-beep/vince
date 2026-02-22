@@ -1654,7 +1654,7 @@ async function getRecentUploads(): Promise<string> {
     // Get files from last 48 hours
     const now = Date.now();
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
-    const recentFiles: { name: string; mtime: number; category: string }[] = [];
+    const recentFiles: { name: string; mtime: number; category: string; words: number }[] = [];
 
     // Walk knowledge directory
     const categories = fs.readdirSync(knowledgeRoot, { withFileTypes: true });
@@ -1668,7 +1668,15 @@ async function getRecentUploads(): Promise<string> {
         const stats = fs.statSync(filePath);
         const ageMs = now - stats.mtimeMs;
         if (ageMs < TWO_DAYS_MS) {
-          recentFiles.push({ name: f.name, mtime: stats.mtimeMs, category: cat.name });
+          // Quick word count estimate
+          let wordCount = 0;
+          try {
+            const content = fs.readFileSync(filePath, "utf-8");
+            wordCount = content.split(/\s+/).filter((w) => w.length > 0).length;
+          } catch {
+            wordCount = 0;
+          }
+          recentFiles.push({ name: f.name, mtime: stats.mtimeMs, category: cat.name, words: wordCount });
         }
       }
     }
@@ -1680,12 +1688,13 @@ async function getRecentUploads(): Promise<string> {
     // Sort by newest first
     recentFiles.sort((a, b) => b.mtime - a.mtime);
 
-    // Format: take top 5, show category + filename (truncated)
+    // Format: take top 5, show category + filename + word count (substantial = good for essays)
     const top5 = recentFiles.slice(0, 5);
     const lines = top5.map((f) => {
       const nameWithoutExt = f.name.replace(/\.md$/, "");
-      const truncated = nameWithoutExt.slice(0, 50);
-      return `- **${f.category}:** ${truncated}`;
+      const truncated = nameWithoutExt.slice(0, 40);
+      const sizeLabel = f.words > 2000 ? "📄" : f.words > 500 ? "📝" : "📋";
+      return `- ${sizeLabel} **${f.category}:** ${truncated} (${f.words} words)`;
     });
     const more = recentFiles.length > 5 ? ` (+${recentFiles.length - 5} more)` : "";
     return `**Recent uploads (${recentFiles.length}):**\n${lines.join("\n")}${more}`;
