@@ -114,6 +114,22 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 
 ---
 
+## Current Priorities (2026-02-21)
+
+### Priority Order
+
+1. **Solus** — Top priority. Make him really good at Hypersurface consulting for weekly options. Focus on strike selection, roll decisions, mechanics mastery.
+
+2. **Eliza** — Improve research abilities, knowledge ingestion (summarize by PET/OpenClaw founder), substack drafting, X tweet drafting.
+
+3. **Clawterm (ME)** — Improve assistant knowledge on OpenClaw. X is best source for tips/tricks → follow @AlexFinn @MisbahSy @aiedge_.
+
+4. **ECHO** — Most important for pulse. Improve WTT (What's The Trade) skill. Add curated accounts: @tulipking @chamath @jvisserlabs @0xdeployer @thinkingusd @hosseeb @scottmelker
+
+5. **Otaku** — LAST priority. Waiting for enough paper trades to test ML. No real wallet/execution until then.
+
+---
+
 ## Standing mandate: review and improve every agent and their plugins
 
 On each visit (or when no task is queued), you are expected to **review and improve** every agent in `src/agents/` and the plugins they use.
