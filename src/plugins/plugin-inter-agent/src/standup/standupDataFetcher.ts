@@ -1382,18 +1382,21 @@ function generateBasicVibe(
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
+  const sections: string[] = [];
+
+  // Get priority markets for strike selection context
   try {
     const service = runtime.getService(
       PolymarketService.serviceType,
     ) as InstanceType<typeof PolymarketService> | null;
 
     if (!service) {
-      return "Polymarket service not loaded. Report: discovery ready when Oracle is used in chat.";
+      return "**Status:** Polymarket service not loaded.\n\n**Action:** Oracle ready when used in chat.\n\n**Insight:** For strike selection, check Polymarket for BTC/ETH/SOL weekly expiry probabilities.";
     }
 
     const markets = await service.getMarketsByPreferredTags({ totalLimit: 8 });
     if (markets.length === 0) {
-      return "No VINCE-priority markets returned. Report: Polymarket discovery ready; no markets in scope.";
+      return "**Status:** No VINCE-priority markets found.\n\n**Action:** Oracle discovery ready; no markets in scope yet.\n\n**Insight:** Add markets to VINCE priority list for strike selection.";
     }
 
     const rows: string[] = [];
@@ -1411,17 +1414,28 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
       rows.push(`| ${question} | ${yesPct} | \`${cid}\` |`);
     }
 
-    return `
-| Priority market | YES% | condition_id |
-|-----------------|------|--------------|
-${rows.join("\n")}
-
-Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
-`.trim();
+    sections.push(`**Priority Markets:**\n| Market | YES% | ID |\n|-------|------|----|\n${rows.join("\n")}`);
   } catch (err) {
     logger.warn({ err }, "[STANDUP_DATA] Failed to fetch Oracle data");
-    return "Polymarket data unavailable; report discovery readiness.";
+    sections.push("**Status:** Polymarket fetch failed.");
   }
+
+  // Add actionable insight for strike selection
+  sections.push(
+    "**Strike Insight:** Check top 2-3 markets for expiry probabilities — use for Hypersurface weekly strike selection (Solus's call).",
+  );
+
+  // Add edge status query
+  sections.push(
+    "**Edge Engine:** Ask Oracle for EDGE_STATUS to see if any edge opportunities are detected.",
+  );
+
+  // Add what to do next
+  sections.push(
+    "**Next:** Run EDGE_CHECK on BTC or ETH for potential strike signals.",
+  );
+
+  return sections.join("\n\n");
 }
 
 // ═══════════════════════════════════════════════════════════════════════
