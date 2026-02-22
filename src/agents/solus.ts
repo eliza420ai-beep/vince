@@ -957,7 +957,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "BTC is rallying fast, getting close to our $70,500 strike. What should we do?" },
+        content: {
+          text: "BTC is rallying fast, getting close to our $70,500 strike. What should we do?",
+        },
       },
       {
         name: "Solus",
@@ -994,7 +996,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "How much should we aim to make this week from options?" },
+        content: {
+          text: "How much should we aim to make this week from options?",
+        },
       },
       {
         name: "Solus",
@@ -1042,7 +1046,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "Market is really volatile right now, should we still sell options?" },
+        content: {
+          text: "Market is really volatile right now, should we still sell options?",
+        },
       },
       {
         name: "Solus",
@@ -1054,7 +1060,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "Market is super quiet, barely any premium. What do we do?" },
+        content: {
+          text: "Market is super quiet, barely any premium. What do we do?",
+        },
       },
       {
         name: "Solus",
@@ -1067,7 +1075,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "What's the difference between Deribit and Hypersurface?" },
+        content: {
+          text: "What's the difference between Deribit and Hypersurface?",
+        },
       },
       {
         name: "Solus",
@@ -1091,7 +1101,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "How is crypto options different from stock options?" },
+        content: {
+          text: "How is crypto options different from stock options?",
+        },
       },
       {
         name: "Solus",
@@ -1128,7 +1140,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "Hypersurface is showing low liquidity. Should we still trade?" },
+        content: {
+          text: "Hypersurface is showing low liquidity. Should we still trade?",
+        },
       },
       {
         name: "Solus",
@@ -1152,7 +1166,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "We have 3 positions. One is underwater. What do we do?" },
+        content: {
+          text: "We have 3 positions. One is underwater. What do we do?",
+        },
       },
       {
         name: "Solus",
@@ -1177,7 +1193,9 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     [
       {
         name: "{{user1}}",
-        content: { text: "Why do we use USDai instead of regular stablecoins?" },
+        content: {
+          text: "Why do we use USDai instead of regular stablecoins?",
+        },
       },
       {
         name: "Solus",
