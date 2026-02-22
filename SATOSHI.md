@@ -114,6 +114,38 @@ We **definitely want to improve** the standup pipeline and its outputs. **Priori
 
 ---
 
+## Today's Progress (2026-02-21 evening)
+
+### ✅ Completed Agent Improvements
+
+**Solus (16 commits):** Paris time + Thursday roll workflow, current positions (HYPE $30 puts, BTC $70,500 calls), buyback feature, daily tracking, portfolio context, wheel strategy framework, buyback vs roll decision matrix, risk management, premium targets ($1,000-3,000/week), market conditions, Deribit knowledge (European options, Greeks, DVOL, skew), edge cases, USDai protocol, HyperEVM apps, Hyperliquid journey.
+
+**Eliza (14 commits):** Upload summary default "xl", VINCE_UPLOAD_MAX_TOKENS=8000, recent uploads in standup, substack ideas from uploads with HOOK, content preview, stale categories, knowledge INDEX/FRESHNESS, fresh content for tweets, upload→substack examples, repurposing suggestion, actionable knowledge expansion, contrarian angle, substack style guide (knowledge/teammate/IKIGAI_SUBSTACK_STYLE.md).
+
+**ECHO (6+ commits):** Complete rewrite for vibe-focused, new queries (BTC/ETH/SOL/HYPE + DeFi + Hyperliquid + macro + stocks), curated accounts, WTT emphasis, stocks sentiment, latest WTT in standup.
+
+**Sentinel (5 commits):** Git branch + uncommitted status, Docker/Mission Control status, SATOSHI.md in knowledge/teammate/, OpenClaw synergy deep dive, Clawterm in Dream Team.
+
+**Clawterm (10+ commits):** ClawHub awareness, Tailscale expert, Ansible deployment, NixOS deployment (nix-openclaw), nix-steipete-tools (DOPE AF), key X accounts (@matthewberman, @petergyang, @gmoneyNFT, etc.), ecosystem repos, Gateway & Nodes (port 18789, bind modes), OpenClaw lore (Pete, OpenAI funding), sponsorship, multi-Discord setup (livethelifetv vs ikigaiLabs), barnacle, Pete's GitHub (the edge!), steipete/oracle.
+
+**Naval (4 commits):** Standup section (fetchNavalData), NAVAL_TEAM_FRAMEWORK, NAVAL_AGENT_PHILOSOPHY, brand voice update (LIVETHELIFETV), bio update.
+
+### Standup Improvements
+
+- Increased MAX words: 60 → 150
+- More aggressive JSON stripping
+- Sentinel: "Shipped this week" section, better overview prompt
+- Oracle: Actionable standup with status/action/insight structure
+- Eliza: Skip memes/NFTs in content priorities
+
+### New Knowledge
+
+- **knowledge/teammate/IKIGAI_SUBSTACK_STYLE.md** — Substack writing style guide (No Tilt, Ideas Matter, The Stack, Shut Up)
+
+**PR Total:** 30+ commits this session
+
+---
+
 ## Current Priorities (2026-02-21)
 
 ### Priority Order

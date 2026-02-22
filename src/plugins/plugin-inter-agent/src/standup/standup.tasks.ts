@@ -260,6 +260,12 @@ export async function buildAndSaveSharedDailyInsights(
   const sections: string[] = [];
   const date = new Date().toISOString().slice(0, 10);
   sections.push(`# Shared Daily Insights — ${date}\n`);
+  
+  // Add scorecard - will be updated as agents report
+  const scorecardEmoji: Record<string, string> = {};
+  for (const displayName of STANDUP_REPORT_ORDER) {
+    scorecardEmoji[displayName] = "⚪"; // pending
+  }
   let vinceContextHints: string[] = [];
   for (const displayName of STANDUP_REPORT_ORDER) {
     const entry = byName.get(displayName.toLowerCase());
@@ -293,6 +299,8 @@ export async function buildAndSaveSharedDailyInsights(
         entry.displayName,
         contextHints,
       );
+      // Update scorecard on success
+      scorecardEmoji[displayName] = data && !data.includes("(no data)") && !data.includes("(fetch failed)") ? "✅" : "⚠️";
       if (!data) data = "(no data)";
       if (normalized === "vince") {
         vinceContextHints = extractKeyEventsFromVinceData(data);
@@ -317,7 +325,14 @@ export async function buildAndSaveSharedDailyInsights(
     sections.push(crossAgentLinks);
   }
 
-  const content = sections.join("\n");
+  // Build scorecard from collected emojis
+  const scorecardLine = STANDUP_REPORT_ORDER.map((name) => {
+    const emoji = scorecardEmoji[name] || "⚪";
+    return `${emoji} ${name}`;
+  }).join(" | ");
+  
+  // Prepend scorecard to the content
+  const content = sections[0] + "\n**Scorecard:** " + scorecardLine + "\n\n" + sections.slice(1).join("\n");
   await saveSharedDailyInsights(content);
 }
 
@@ -386,6 +401,34 @@ function generateCrossAgentLinks(sections: string[]): string {
     if (hasOptions) {
       links.push(
         "• Solus: Active options context - prepare for strike decision",
+      );
+    }
+  }
+
+  // Check for Clawterm → OpenClaw tools/skills
+  const clawtermSection = sections.find(
+    (s) => s.startsWith("## Clawterm") || s.includes("Clawterm\n"),
+  );
+
+  if (clawtermSection) {
+    const hasSkills = clawtermSection.match(/skill|setup|deploy|openclaw/i);
+    if (hasSkills) {
+      links.push(
+        "• Clawterm: OpenClaw skills or setup - check for integration opportunities",
+      );
+    }
+  }
+
+  // Check for Sentinel → dev/infrastructure
+  const sentinelSection = sections.find(
+    (s) => s.startsWith("## Sentinel") || s.includes("Sentinel\n"),
+  );
+
+  if (sentinelSection) {
+    const hasDev = sentinelSection.match(/git|prd|docker|deploy|infra/i);
+    if (hasDev) {
+      links.push(
+        "• Sentinel: Dev/infrastructure update - track for next sprint",
       );
     }
   }
@@ -525,9 +568,10 @@ async function runOneStandupTurn(
     : extractAgentSection(sharedInsights, agentName);
   const agentRole = AGENT_ROLES[agentName as keyof typeof AGENT_ROLES];
   const roleHint = agentRole ? ` (${agentRole.focus})` : "";
+  const utcTime = new Date().toISOString().slice(11, 16) + " UTC";
   const directAddress = isConclusionTurn
     ? `@${agentName}, conclusion only. 2-4 short sentences: thesis, signal to watch, one team one dream. No bullets, no paragraphs.\n\n`
-    : `@${agentName}${roleHint}, your turn. Report your domain only. Under 120 words.\n\n`;
+    : `@${agentName}${roleHint} [${utcTime}], your turn. Report your domain only. Under 150 words.\n\n`;
   const userMsg = {
     id: uuidv4(),
     entityId: facilitatorEntityId,
@@ -1514,7 +1558,7 @@ export async function registerStandupTask(
           messageToPush = reportText.trim() + footer + noReportLine;
         } else {
           messageToPush =
-            `Standup ${dateStr} completed; ${replies.length} agents reported. Day Report generation failed — see logs.` +
+            `Standup ${dateStr} completed; ${replies.length} agents reported (${Math.round((Date.now() - (currentSession?.startedAt || Date.now())) / 60000)}min). Day Report generation failed — see logs.` +
             noReportLine;
         }
         await pushStandupSummaryToChannels(rt, messageToPush);

@@ -716,14 +716,67 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
         content.trim().length < 500 && extractSingleUrl(content);
       if (singleUrl && hasUploadIntent(text)) {
         if (isXOrTwitterUrl(singleUrl)) {
-          if (callback) {
-            await callback({
-              text: `⚠️ **X (Twitter) links can't be fetched here**\n\nPaste the thread or article text, then say **"upload that"** and I'll save it to knowledge.${ELIZA_FOOTER}`,
-              actions: ["UPLOAD"],
-              success: false,
-            });
+          // Try to fetch the tweet using X research service
+          try {
+            // Dynamic import to avoid loading X service unnecessarily
+            const { initXClientFromEnv } = await import("@elizaos/plugin-x-research");
+            const xClient = await initXClientFromEnv(runtime);
+            
+            if (!xClient) {
+              throw new Error("X client not available - check X_BEARER_TOKEN");
+            }
+            
+            // Extract tweet ID from URL
+            const tweetIdMatch = singleUrl.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
+            if (!tweetIdMatch) {
+              if (callback) {
+                await callback({
+                  text: `⚠️ **Couldn't parse tweet ID from URL**\n\n${singleUrl}${ELIZA_FOOTER}`,
+                  actions: ["UPLOAD"],
+                  success: false,
+                });
+              }
+              return;
+            }
+            
+            const tweetId = tweetIdMatch[1];
+            const tweet = await xClient.getTweet(tweetId);
+            
+            if (!tweet) {
+              if (callback) {
+                await callback({
+                  text: `⚠️ **Tweet not found**\n\nThe tweet may be deleted or private.${ELIZA_FOOTER}`,
+                  actions: ["UPLOAD"],
+                  success: false,
+                });
+              }
+              return;
+            }
+            
+            // Build tweet content for summarization
+            const tweetContent = `Tweet by @${tweet.username}:\n\n${tweet.text}\n\n---\nLikes: ${tweet.likes || 0} | Retweets: ${tweet.retweets || 0} | Replies: ${tweet.replies || 0}`;
+            
+            // Continue with the normal upload flow using tweet content
+            content = tweetContent;
+            
+            if (callback) {
+              await callback({
+                text: `🐦 **Fetching tweet...**\n\n@${tweet.username}: ${tweet.text.slice(0, 200)}...`,
+                actions: ["UPLOAD"],
+                success: true,
+              });
+            }
+          } catch (xErr) {
+            console.error("[UPLOAD] X fetch error:", xErr);
+            if (callback) {
+              await callback({
+                text: `⚠️ **Couldn't fetch tweet**\n\nMake sure X_BEARER_TOKEN is set in your .env. Alternatively, paste the tweet text and say **"upload that"** to save it.${ELIZA_FOOTER}`,
+                actions: ["UPLOAD"],
+                success: false,
+              });
+            }
+            return;
           }
-          return;
         }
         if (singleUrl.includes("guide.michelin.com")) {
           if (callback) {
