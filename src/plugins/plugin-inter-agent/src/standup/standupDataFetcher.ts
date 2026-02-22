@@ -1158,6 +1158,32 @@ export async function fetchEchoData(
   runtime: IAgentRuntime,
   contextHints?: string[],
 ): Promise<string> {
+  // Fetch latest WTT (What's The Trade) for the standup
+  let wttSection = "";
+  try {
+    const wttDir = path.join(process.cwd(), "docs", "standup", "whats-the-trade");
+    if (fs.existsSync(wttDir)) {
+      const files = fs.readdirSync(wttDir)
+        .filter(f => f.endsWith("-whats-the-trade.md"))
+        .sort()
+        .reverse();
+      if (files.length > 0) {
+        const latestWtt = files[0];
+        const wttContent = fs.readFileSync(path.join(wttDir, latestWtt), "utf-8");
+        // Extract key parts: thesis, direction, size
+        const thesisMatch = wttContent.match(/\*\*.*?\*\*.*?\n\n([^\n]+)/);
+        const directionMatch = wttContent.match(/(LONG|SHORT|HOLD).*?@\s*\$?[\d.]+/);
+        const thesis = thesisMatch ? thesisMatch[1].slice(0, 150) : "";
+        const direction = directionMatch ? directionMatch[0].slice(0, 80) : "";
+        if (thesis || direction) {
+          wttSection = `\n> **Latest WTT:** ${direction || thesis}\n`;
+        }
+      }
+    }
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] WTT fetch failed");
+  }
+
   try {
     const xSearchMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xSearch.service.js"
@@ -1207,11 +1233,16 @@ export async function fetchEchoData(
       }
     }
     queries.push("BTC crypto market sentiment");
-    const secondAsset = getStandupTrackedAssets()[1];
-    if (secondAsset && secondAsset !== "BTC" && queries.length < 3) {
-      queries.push(`${secondAsset} crypto sentiment`);
-    }
-    const uniqueQueries = [...new Set(queries)].slice(0, 3);
+    queries.push("ETH SOL HYPE crypto");
+    queries.push("Uniswap Aave Morpho DeFi");
+    queries.push("hyperliquid hypersurface");
+    queries.push("macro Fed inflation crypto"); // autismcapital, blocknewsdotcom coverage
+    // Stocks (our watchlist)
+    queries.push("NVDA TSLA AAPL MAG7 stock market");
+    // High-signal accounts (from @ikigailabsETH curated list)
+    queries.push("elonmusk naval crypto tech");
+    const uniqueQueries = [...new Set(queries)].slice(0, 7);
+    const uniqueQueries = [...new Set(queries)].slice(0, 7);
 
     let allTweets: Array<{
       id?: string;
@@ -1258,66 +1289,92 @@ export async function fetchEchoData(
       trackedAssets,
     );
 
-    let sentimentBlock = `## ECHO — Structured Sentiment
+    // VIBE-FOCUSED output - synthesize into a summary, don't show individual tweets
+    let sentimentBlock = `## ECHO — CT VIBE (last 24h)
 
-### Asset Sentiment (${allTweets.length} posts, last 24h)${queryNote}`;
+`;
 
-    if (assetSignals.length > 0) {
-      const tableRows = assetSignals
-        .map(
-          (s) =>
-            `| ${s.asset} | ${s.sentiment} (${s.sentimentConfidence}%) | ${s.narrative.replace(/\|/g, "-")} | ${s.signal} |`,
-        )
-        .join("\n");
+    // Use LLM to synthesize vibe
+    if (runtime.useModel) {
+      try {
+        const vibePrompt = `You are ECHO, the CT VIBE agent. Synthesize these tweets into a CONCISE vibe report.
 
-      sentimentBlock += `
+Respond in exactly this format:
 
-| Asset | CT Sentiment | Dominant Narrative | Signal |
-|-------|--------------|-------------------|--------|
-${tableRows}
+**What's HOT (+fomo):** [1-2 sentences - what's trending, exciting]
+**What's FUD (-fear):** [1-2 sentences - what's worrying]
+**NEW META:** [1 sentence - new narratives/protocols]
+**CORE:** BTC [bullish/bearish/neutral + vibe] | ETH [vibe] | SOL [vibe] | HYPE [vibe]
+**STOCKS (NVDA/TSLA/AAPL/MAG7):** [1 sentence - key stock sentiment or "not trending"]
+**@hypersurfaceX:** [1 sentence or "not trending"]
+**@elonmusk / @naval / @kevinWSHpod:** [1 sentence - key signal or "not trending"]
+**@autismcapital / @blocknewsdotcom:** [1 sentence - macro/policy or "not trending"]
 
-### Contrarian Alert
-${generateContrarianAlert(assetSignals)}
+Curated from @ikigailabsETH follows. Note: @realDonaldTrump hasn't tweeted since early Feb 2026.
 
-### Actionable Takeaway
-${generateTakeaway(assetSignals)}`;
+NO individual tweets. Synthesize the vibe.`;
+
+        const vibeText = await runtime.useModel(ModelType.TEXT_SMALL, {
+          prompt: `${vibePrompt}\n\nTweets:\n${allTweets.slice(0, 15).map(t => t.text).join("\n---\n")}`,
+          maxTokens: 400,
+          temperature: 0.5,
+        });
+        const text = String(vibeText ?? "").trim();
+        if (text && text.length > 30) {
+          sentimentBlock += text;
+          
+          // Add X content idea
+          const ideaPrompt = `Based on this vibe, suggest 1 punchy tweet hook for @ikigaistudioxyz. 1 sentence.`;
+          const idea = await runtime.useModel(ModelType.TEXT_SMALL, {
+            prompt: `${text}\n\n${ideaPrompt}`,
+            maxTokens: 80,
+            temperature: 0.7,
+          });
+          const ideaText = String(idea ?? "").trim();
+          if (ideaText) {
+            sentimentBlock += `\n\n**Draft X hook (you post):** ${ideaText}`;
+          }
+        } else {
+          sentimentBlock += generateBasicVibe(allTweets);
+        }
+      } catch {
+        sentimentBlock += generateBasicVibe(allTweets);
+      }
     } else {
-      sentimentBlock += "\n\nNo clear signals extracted from tweets.";
+      sentimentBlock += generateBasicVibe(allTweets);
     }
 
-    // Keep short tweet samples for reference
-    const shortTweetLines = allTweets.slice(0, 5).map((t) => {
-      const handle = t.author?.username ?? "anon";
-      const len = getStandupSnippetLen();
-      const snippet =
-        t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
-      return `@${handle}: ${snippet}`;
-    });
-
-    // Append X content suggestions via LLM (still useful)
-    if (runtime.useModel && shortTweetLines.length > 0) {
-      try {
-        const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-          prompt: `You are ECHO, the crypto-twitter sentiment agent. Based on the tweets below, suggest 1–2 tweet or post ideas for our X account that would resonate with today's CT pulse. Specific hooks, not generic. One sentence each. No filler.\n\nTweets:\n${shortTweetLines.slice(0, 4).join("\n")}`,
-          maxTokens: 150,
-          temperature: 0.6,
-        });
-        const text = String(suggestion ?? "").trim();
-        if (text && text.length > 15)
-          sentimentBlock += `\n\n**X content ideas:** ${text}`;
-      } catch {
-        // non-fatal; content ideas are a bonus
-      }
+    // Add WTT section if available
+    if (wttSection) {
+      sentimentBlock += wttSection;
     }
 
     return sentimentBlock;
   } catch (err) {
-    logger.warn(
-      { err, lastQuery: "init or format" },
-      "[STANDUP_DATA] fetchEchoData: X unavailable",
-    );
-    return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
+    logger.warn({ err }, "[STANDUP_DATA] fetchEchoData: failed");
+    return "**CT Vibe:** X API unavailable.";
   }
+}
+
+// Basic vibe without LLM
+function generateBasicVibe(
+  tweets: Array<{ text: string; author?: { username?: string } }>,
+): string {
+  const texts = tweets.map(t => t.text.toLowerCase());
+  const bullish = texts.filter(t => 
+    t.includes("bull") || t.includes("moon") || t.includes("pump") || t.includes("up") || t.includes("breakout")
+  ).length;
+  const bearish = texts.filter(t => 
+    t.includes("bear") || t.includes("dump") || t.includes("crash") || t.includes("down") || t.includes("fear")
+  ).length;
+  const net = bullish - bearish;
+  const vibe = net > 2 ? "bullish" : net < -2 ? "bearish" : "neutral";
+  
+  return `**Overall:** ${vibe.toUpperCase()} (${bullish} bullish vs ${bearish} bearish)
+
+**What's HOT:** ${texts.some(t => t.includes("etf") || t.includes("spot")) ? "ETF/spot momentum" : "General crypto"}
+**What's FUD:** ${texts.some(t => t.includes("crash") || t.includes("liquidate")) ? "Liquidation fears" : "No major FUD"}
+**CORE:** BTC ${vibe} | ETH ${vibe} | SOL ${vibe} | HYPE ${vibe}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1506,10 +1563,22 @@ export async function fetchSentinelData(
 ): Promise<string> {
   const sections: string[] = [];
 
-  // 1. Real git log
+  // 1. Real git log + branch + PR status
   try {
     const gitLog = await getRecentCodeContext(10);
     sections.push(gitLog);
+    
+    // Get current branch
+    const { execSync } = await import("node:child_process");
+    try {
+      const branch = execSync("git branch --show-current 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+      if (branch) {
+        // Check if there are uncommitted changes
+        const status = execSync("git status --porcelain 2>/dev/null | head -5", { encoding: "utf-8" }).trim();
+        const uncommitted = status ? ` (${status.split("\n").length} uncommitted)` : "";
+        sections.push(`**Branch:** ${branch}${uncommitted}`);
+      }
+    } catch { /* git not available */ }
   } catch {
     sections.push("Git log: unavailable.");
   }
@@ -1580,6 +1649,17 @@ export async function fetchSentinelData(
     /* Tavily not available */
   }
 
+  // 5. Docker / Mission Control status
+  try {
+    const { execSync } = await import("node:child_process");
+    try {
+      const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+      if (dockerPs) {
+        sections.push(`**Docker (MC):** ${dockerPs}`);
+      }
+    } catch { /* docker not available */ }
+  } catch { /* non-fatal */ }
+
   sections.push(
     "**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.",
   );
@@ -1643,6 +1723,67 @@ async function buildDeltaReport(): Promise<string> {
   return lines.join("\n\n");
 }
 
+/** Get recent knowledge uploads (last 48 hours) for standup */
+async function getRecentUploads(): Promise<string> {
+  try {
+    const knowledgeRoot = path.join(process.cwd(), "knowledge");
+    if (!fs.existsSync(knowledgeRoot)) {
+      return "**Recent uploads:** Knowledge folder not found.";
+    }
+
+    // Get files from last 48 hours
+    const now = Date.now();
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+    const recentFiles: { name: string; mtime: number; category: string; words: number }[] = [];
+
+    // Walk knowledge directory
+    const categories = fs.readdirSync(knowledgeRoot, { withFileTypes: true });
+    for (const cat of categories) {
+      if (!cat.isDirectory()) continue;
+      const catPath = path.join(knowledgeRoot, cat.name);
+      const files = fs.readdirSync(catPath, { withFileTypes: true });
+      for (const f of files) {
+        if (!f.isFile() || !f.name.endsWith(".md")) continue;
+        const filePath = path.join(catPath, f.name);
+        const stats = fs.statSync(filePath);
+        const ageMs = now - stats.mtimeMs;
+        if (ageMs < TWO_DAYS_MS) {
+          // Quick word count estimate
+          let wordCount = 0;
+          try {
+            const content = fs.readFileSync(filePath, "utf-8");
+            wordCount = content.split(/\s+/).filter((w) => w.length > 0).length;
+          } catch {
+            wordCount = 0;
+          }
+          recentFiles.push({ name: f.name, mtime: stats.mtimeMs, category: cat.name, words: wordCount });
+        }
+      }
+    }
+
+    if (recentFiles.length === 0) {
+      return "**Recent uploads:** No new uploads in last 48h.";
+    }
+
+    // Sort by newest first
+    recentFiles.sort((a, b) => b.mtime - a.mtime);
+
+    // Format: take top 5, show category + filename + word count (substantial = good for essays)
+    const top5 = recentFiles.slice(0, 5);
+    const lines = top5.map((f) => {
+      const nameWithoutExt = f.name.replace(/\.md$/, "");
+      const truncated = nameWithoutExt.slice(0, 40);
+      const sizeLabel = f.words > 2000 ? "📄" : f.words > 500 ? "📝" : "📋";
+      return `- ${sizeLabel} **${f.category}:** ${truncated} (${f.words} words)`;
+    });
+    const more = recentFiles.length > 5 ? ` (+${recentFiles.length - 5} more)` : "";
+    return `**Recent uploads (${recentFiles.length}):**\n${lines.join("\n")}${more}`;
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] Failed to get recent uploads");
+    return "**Recent uploads:** Could not scan.";
+  }
+}
+
 export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
   const sections: string[] = [];
   try {
@@ -1657,6 +1798,54 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
       "**Delta:** Could not load yesterday vs today; report from memory only.",
     );
   }
+
+  // Recent uploads
+  try {
+    const uploads = await getRecentUploads();
+    sections.push(uploads);
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] Recent uploads failed");
+  }
+
+  // Stale knowledge categories (from FRESHNESS.md)
+  try {
+    const freshnessPath = path.join(process.cwd(), "knowledge", "FRESHNESS.md");
+    if (fs.existsSync(freshnessPath)) {
+      const freshness = fs.readFileSync(freshnessPath, "utf-8");
+      // Extract high-priority stale categories
+      const highPriorityMatch = freshness.match(/\*\*High priority\*\*[\s\S]*?\|(\s*\d+\s*)\|/);
+      if (highPriorityMatch) {
+        // Get category names from the table
+        const staleLines = freshness
+          .split("\n")
+          .filter(
+            (line) =>
+              line.includes("kelly-btc") ||
+              line.includes("macro-economy") ||
+              line.includes("ai-crypto") ||
+              line.includes("stocks")
+          )
+          .slice(0, 4);
+        if (staleLines.length > 0) {
+          const staleCats = staleLines
+            .map((l) => {
+              const match = l.match(/`([^`]+)`/);
+              return match ? match[1].split("/")[0] : null;
+            })
+            .filter(Boolean)
+            .slice(0, 3);
+          if (staleCats.length > 0) {
+            sections.push(
+              `**Stale categories (update needed):** ${staleCats.join(", ")}`
+            );
+          }
+        }
+      }
+    }
+  } catch (e) {
+    logger.debug({ err: e }, "[STANDUP] Freshness check failed");
+  }
+
   try {
     const facts = await runtime.getMemories({
       tableName: "facts",
@@ -1683,9 +1872,9 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     try {
       const context = sections.join("\n");
       const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines:\n**Substack idea:** [One specific, timely content topic for Ikigai Studio Substack — tied to what's happening in crypto/AI/DeFi today]\n**Knowledge to expand:** [One specific area in the knowledge/ directory to add or update — name the category and what's missing]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
-        maxTokens: 200,
-        temperature: 0.6,
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines. PRIORITIZE the "Recent uploads" and "Stale categories" sections:\n**Substack idea:** [One specific substack essay with a CONTRARIAN or UNIQUE angle — MUST reference a specific upload. E.g., "Write: Hyperliquid at $30 is the bear case for the next bull — hook: We watched $1→$60, missed 8-figures, still bullish." Include: topic + hook + angle.]\n**Knowledge to expand:** [One specific file to update in knowledge/ — E.g., "Update kelly-btc/satoshis-knowledge/bitcoin/latest.md with current BTC price and MSTR holdings" or "Add Hyperliquid section to defi-metrics/README.md". Name the exact file and what to add.]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
+        maxTokens: 300,
+        temperature: 0.7,
       });
       const text = String(suggestion ?? "").trim();
       if (text && text.length > 20) {
@@ -1914,7 +2103,46 @@ export async function fetchAgentData(
       return fetchClawtermData(runtime, contextHints);
     case "eliza":
       return fetchElizaData(runtime);
+    case "naval":
+      return fetchNavalData(runtime);
     default:
       return null;
   }
+}
+
+// Naval: philosophy, frameworks, team guidance
+export async function fetchNavalData(runtime: IAgentRuntime): Promise<string> {
+  const sections: string[] = [];
+
+  // Quote/wisdom for the day - short and punchy
+  if (runtime.useModel) {
+    try {
+      const wisdom = await runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt: `Give one short Naval-style insight relevant to running a crypto trading project with AI agents. 1-2 sentences max. Include the theme: push not pull, thesis first, agents as leverage, or wealth compounding.`,
+        maxTokens: 80,
+        temperature: 0.6,
+      });
+      const text = String(wisdom ?? "").trim();
+      if (text && text.length > 10) {
+        sections.push(`**Today's Naval:** ${text}`);
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  // Team framework - what's the mental model for the team
+  sections.push(
+    "**Team Frameworks:** Push not pull. Thesis first. Signal not hype. Paper before live. One team, one dream."
+  );
+
+  // Agent philosophy - leverage lesson
+  sections.push(
+    "**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VINCE = our first product."
+  );
+
+  // Career audit / OpenClaw guidance
+  sections.push(
+    "**OpenClaw Path:** Build specific knowledge. Ship early. Let agents do the work. Compound the edge."
+  );
+
+  return sections.join("\n\n");
 }

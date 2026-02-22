@@ -178,16 +178,21 @@ async function runSummarizeCli(
     isYouTube &&
     (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "true" ||
       process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "1");
+  // Default changed from "long" to "xl" (matches CLI default) - longer content needs "xxl"
   const lengthEnv = (
-    process.env.VINCE_UPLOAD_SUMMARY_LENGTH ?? "long"
+    process.env.VINCE_UPLOAD_SUMMARY_LENGTH ?? "xl"
   ).toLowerCase();
   const length = SUMMARY_LENGTH_PRESETS.includes(
     lengthEnv as (typeof SUMMARY_LENGTH_PRESETS)[number],
   )
     ? lengthEnv
-    : "long";
-  let timeoutMs = isYouTube ? 120_000 : 90_000;
-  if (youtubeSlides) timeoutMs = 180_000;
+    : "xl"; // fallback to xl instead of long
+  // Allow setting max output tokens for even longer summaries (e.g., 8000 for 90-min interviews)
+  const maxOutputTokens = process.env.VINCE_UPLOAD_MAX_TOKENS;
+  // Longer timeouts for xl/xxl content
+  const isLongContent = length === "xl" || length === "xxl" || !!maxOutputTokens;
+  let timeoutMs = isYouTube ? (isLongContent ? 180_000 : 120_000) : 90_000;
+  if (youtubeSlides) timeoutMs = 240_000; // slides need more time
   const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
   const timeoutArg =
     timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
@@ -198,6 +203,10 @@ async function runSummarizeCli(
     if (!isYouTube) cliArgs.push("--format", "md");
   } else {
     cliArgs.push("--length", length);
+    // Allow extra output tokens for very long content (e.g., 8000 for 90-min interviews)
+    if (maxOutputTokens) {
+      cliArgs.push("--max-output-tokens", maxOutputTokens);
+    }
   }
   if (isYouTube) cliArgs.push("--youtube", "auto");
   if (youtubeSlides) {
@@ -665,8 +674,14 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
             { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" },
           );
           if (callback && fileResult.success && fileResult.file) {
+            // Extract a preview from the content (first 300 chars, strip markdown)
+            const contentPreview = summarized.content
+              .slice(0, 300)
+              .replace(/[#*_`]/g, "")
+              .replace(/\n+/g, " ")
+              .trim();
             await callback({
-              text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}${ELIZA_FOOTER}`,
+              text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...\n\n💡 Want me to turn this into a **tweet thread** or **substack**?${ELIZA_FOOTER}`,
               actions: ["UPLOAD"],
               success: true,
             });
@@ -747,8 +762,14 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" },
             );
             if (callback && fileResult.success && fileResult.file) {
+              // Extract a preview from the content (first 300 chars, strip markdown)
+              const contentPreview = content
+                .slice(0, 300)
+                .replace(/[#*_`]/g, "")
+                .replace(/\n+/g, " ")
+                .trim();
               await callback({
-                text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}${ELIZA_FOOTER}`,
+                text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...\n\n💡 Want me to turn this into a **tweet thread** or **substack**?${ELIZA_FOOTER}`,
                 actions: ["UPLOAD"],
                 success: true,
               });
