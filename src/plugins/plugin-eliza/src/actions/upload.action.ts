@@ -681,7 +681,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               .replace(/\n+/g, " ")
               .trim();
             await callback({
-              text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...${ELIZA_FOOTER}`,
+              text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...\n\n💡 Want me to turn this into a **tweet thread** or **substack**?${ELIZA_FOOTER}`,
               actions: ["UPLOAD"],
               success: true,
             });
@@ -769,7 +769,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
                 .replace(/\n+/g, " ")
                 .trim();
               await callback({
-                text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...${ELIZA_FOOTER}`,
+                text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${contentPreview}...\n\n💡 Want me to turn this into a **tweet thread** or **substack**?${ELIZA_FOOTER}`,
                 actions: ["UPLOAD"],
                 success: true,
               });
