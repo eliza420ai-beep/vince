@@ -51,16 +51,39 @@ export function loadPlacesAllowlist(): string[] {
   }
 }
 
-/** True if every extracted name is on the allowlist (or allowlist is empty / guard disabled). */
+/** Normalize for matching: lowercase, collapse spaces, strip common articles/accents for fuzzy match. */
+function normalizeForMatch(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(le |la |les |l')\s*/i, "");
+}
+
+/** True if every extracted name is on the allowlist (or allowlist is empty / guard disabled). Uses fuzzy matching: "Le X" / "X" and minor variants count as on-list. */
 export function allNamesOnAllowlist(
   text: string,
   allowlist: string[],
 ): boolean {
   if (allowlist.length === 0) return true;
   const names = extractRecommendationNames(text);
-  const lowerList = allowlist.map((a) => a.toLowerCase());
+  const normalizedList = allowlist.map((a) => normalizeForMatch(a));
   return names.every((n) => {
-    const lower = n.toLowerCase();
-    return lowerList.some((a) => a.includes(lower) || lower.includes(a));
+    const norm = normalizeForMatch(n);
+    return normalizedList.some((a) => a.includes(norm) || norm.includes(a));
+  });
+}
+
+/** Returns recommendation names that are not on the allowlist. Use with context check: if any off-list name appears in knowledgeSnippet, allow the response (cited context). */
+export function getNamesOffAllowlist(
+  text: string,
+  allowlist: string[],
+): string[] {
+  if (allowlist.length === 0) return [];
+  const names = extractRecommendationNames(text);
+  const normalizedList = allowlist.map((a) => normalizeForMatch(a));
+  return names.filter((n) => {
+    const norm = normalizeForMatch(n);
+    return !normalizedList.some((a) => a.includes(norm) || norm.includes(a));
   });
 }

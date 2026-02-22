@@ -20,6 +20,8 @@ const EXPERIENCE_TRIGGERS = [
   "wine tasting",
   "spa day",
   "spa experience",
+  "spa",
+  "wellness",
   "cooking class",
   "guided tour",
   "something special to do",
