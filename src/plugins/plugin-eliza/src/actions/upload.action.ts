@@ -762,7 +762,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               await callback({
                 text: `🐦 **Fetching tweet...**\n\n@${tweet.username}: ${tweet.text.slice(0, 200)}...`,
                 actions: ["UPLOAD"],
-                success: false,
+                success: true,
               });
             }
           } catch (xErr) {
