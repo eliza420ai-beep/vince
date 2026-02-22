@@ -106,6 +106,7 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | lifestyle/dress-code-guide.md     | What to wear, occasions                 |
 | lifestyle/photography-guide.md    | Hasselblad, technique, editing         |
 | lifestyle/fishing-guide.md       | Shore, deep sea, spearfishing          |
+| lifestyle/local-services-guide.md | Doctors, mechanics, emergency contacts |
 | travel/basque-country-spain.md    | San Sebastián, Bilbao, pintxos trips     |
 | travel/weekend-itineraries.md     | Ready-made weekend plans                 |
 | surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics   |
