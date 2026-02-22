@@ -1303,7 +1303,7 @@ NO individual tweets. Synthesize the vibe.`;
           });
           const ideaText = String(idea ?? "").trim();
           if (ideaText) {
-            sentimentBlock += `\n\n**X hook:** ${ideaText}`;
+            sentimentBlock += `\n\n**Draft X hook (you post):** ${ideaText}`;
           }
         } else {
           sentimentBlock += generateBasicVibe(allTweets);
