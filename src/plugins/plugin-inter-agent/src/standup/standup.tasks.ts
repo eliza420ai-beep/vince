@@ -332,7 +332,7 @@ export async function buildAndSaveSharedDailyInsights(
   }).join(" | ");
   
   // Prepend scorecard to the content
-  const content = "# " + sections[0].slice(2) + "\n\n**Scorecard:** " + scorecardLine + "\n\n" + sections.slice(1).join("\n");
+  const content = sections[0] + "\n**Scorecard:** " + scorecardLine + "\n\n" + sections.slice(1).join("\n");
   await saveSharedDailyInsights(content);
 }
 
