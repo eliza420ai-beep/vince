@@ -2103,7 +2103,46 @@ export async function fetchAgentData(
       return fetchClawtermData(runtime, contextHints);
     case "eliza":
       return fetchElizaData(runtime);
+    case "naval":
+      return fetchNavalData(runtime);
     default:
       return null;
   }
+}
+
+// Naval: philosophy, frameworks, team guidance
+export async function fetchNavalData(runtime: IAgentRuntime): Promise<string> {
+  const sections: string[] = [];
+
+  // Quote/wisdom for the day - short and punchy
+  if (runtime.useModel) {
+    try {
+      const wisdom = await runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt: `Give one short Naval-style insight relevant to running a crypto trading project with AI agents. 1-2 sentences max. Include the theme: push not pull, thesis first, agents as leverage, or wealth compounding.`,
+        maxTokens: 80,
+        temperature: 0.6,
+      });
+      const text = String(wisdom ?? "").trim();
+      if (text && text.length > 10) {
+        sections.push(`**Today's Naval:** ${text}`);
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  // Team framework - what's the mental model for the team
+  sections.push(
+    "**Team Frameworks:** Push not pull. Thesis first. Signal not hype. Paper before live. One team, one dream."
+  );
+
+  // Agent philosophy - leverage lesson
+  sections.push(
+    "**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VINCE = our first product."
+  );
+
+  // Career audit / OpenClaw guidance
+  sections.push(
+    "**OpenClaw Path:** Build specific knowledge. Ship early. Let agents do the work. Compound the edge."
+  );
+
+  return sections.join("\n\n");
 }
