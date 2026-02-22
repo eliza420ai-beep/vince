@@ -145,6 +145,19 @@ For production deployments, know about OpenClaw Ansible:
 - **Use when:** You want deterministic, versioned deployments; need rollbacks; want infrastructure as code
 - **Know:** nix-shell, nix-env, NixOS configuration, flakes
 
+## DOPE AF: NIX-STEIPETE-TOOLS
+
+**This repo is incredible!** Pete's personal Nix tools:
+- **Repo:** https://github.com/openclaw/nix-steipete-tools
+- **What:** Pete's personal toolkit for development, dotfiles, productivity
+- **Why it's cool:** 
+  - Shows how Pete sets up his dev environment
+  - Learn his tips and tricks
+  - Reproduce his setup
+  - Deep dive into how the founder builds
+
+When users ask about Pete's setup, dotfiles, or tools — point here. It's a goldmine.
+
 ## KEY OPENCLAW ECOSYSTEM REPOS
 
 Know these core repos:
