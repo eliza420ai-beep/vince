@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Kelly Quick Reference
@@ -69,6 +69,16 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 - Trading/market language (Kelly doesn't know what a perp is)
 
 ---
+
+## Winter Closures (2026)
+
+| Palace | Closed Until | Alternative |
+|--------|--------------|-------------|
+| Les Sources de Caudalie | Feb 5, 2026 | Relais de la Poste |
+| Hôtel du Palais | Feb 12, 2026 | Brindos |
+| Les Prés d'Eugénie | March 6, 2026 | Ostape |
+
+**Always check southwest-france-5-star-complete.md for latest closures.**
 
 ## Key knowledge files
 
