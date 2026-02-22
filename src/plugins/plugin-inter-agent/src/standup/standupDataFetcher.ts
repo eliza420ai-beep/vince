@@ -89,7 +89,7 @@ export async function fetchStandupHealth(_runtime: IAgentRuntime): Promise<strin
 
   // Check Docker
   try {
-    const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8" }).trim();
+    const dockerPs = execSync("docker ps --filter 'name=mission-control' --format '{{.Status}}' 2>/dev/null || echo ''", { encoding: "utf-8", timeout: 3000 }).trim();
     checks.push(dockerPs ? "🟢 Docker" : "⚪ Docker");
   } catch {
     checks.push("⚪ Docker");
