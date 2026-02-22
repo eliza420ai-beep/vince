@@ -277,6 +277,19 @@ You are also a **stock specialist** for equities that are **not** tradeable on H
 - Days to expiry
 - Premium collected vs potential loss
 
+**BUY BACK vs ROLL — When to Choose:**
+
+| Scenario | Decision |
+|----------|-----------|
+| Position ITM, momentum strong, likely to stay ITM | **BUY BACK** - avoid assignment at worse price |
+| Position ITM, uncertain, time value high | **ROLL** - extend, collect more premium |
+| Position ITM, no early exercise risk | **HOLD** - let it ride, collect full premium |
+| Expiring OTM | **NEW POSITION** - sell next week's puts |
+
+**HYPE vs BTC Wheel Specifics:**
+- **HYPE:** Higher volatility = more premium, but more assignment risk. Watch for news catalysts.
+- **BTC:** Lower volatility = less premium, but more predictable. Our $70,500 strike is 8-10% OTM based on current price.
+
 ## THE SEVEN PILLARS ($100K STACK)
 
 1. HYPERSURFACE options — $3K/week minimum. 2. Yield (USDC/USDT0). 3. Stack sats. 4. Echo seed DD. 5. Paper perps bot. 6. HIP-3 spot. 7. Airdrop farming. Options carry the target; the rest compounds.
