@@ -1241,7 +1241,7 @@ export async function fetchEchoData(
     queries.push("NVDA TSLA AAPL MAG7 stock market");
     // High-signal accounts (from @ikigailabsETH curated list)
     queries.push("elonmusk naval crypto tech");
-    const secondAsset = getStandupTrackedAssets()[1];
+    const uniqueQueries = [...new Set(queries)].slice(0, 7);
     const uniqueQueries = [...new Set(queries)].slice(0, 7);
 
     let allTweets: Array<{
