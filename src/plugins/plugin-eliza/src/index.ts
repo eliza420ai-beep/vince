@@ -258,8 +258,105 @@ export const elizaPlugin: Plugin = {
       }
     }, 5000);
 
+    // Patch messageService to intercept X/Twitter URLs and call the UPLOAD
+    // handler directly. This bypasses both shouldRespond (LLM returns IGNORE
+    // for bare URLs in GROUP channels) AND action selection (LLM picks X_THREAD
+    // or REPLY instead of UPLOAD). For YouTube and upload-intent messages, we
+    // still use isMention to let the normal flow handle them.
+    const X_URL_RE =
+      /https?:\/\/(www\.)?(x\.com|twitter\.com)\/\w+\/status\/\d+/i;
+    const YT_URL_RE = /youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+/i;
+    const UPLOAD_RE =
+      /\b(upload|ingest|save this|add to knowledge|remember this)\b/i;
+
+    const patchForUpload = () => {
+      const svc = (runtime as any).messageService;
+      if (!svc || typeof svc.handleMessage !== "function") return;
+      if ((svc.handleMessage as any).__uploadPatched) return;
+
+      const original = svc.handleMessage.bind(svc);
+      svc.handleMessage = async function uploadPatchedHandler(
+        rt: any,
+        message: any,
+        callback?: any,
+        options?: any,
+      ) {
+        const text = message?.content?.text ?? "";
+        const embedUrls = (message?.content?.embeds ?? [])
+          .map((e: any) => e?.url ?? "")
+          .join(" ");
+        const combined = `${text} ${embedUrls}`;
+
+        // X/Twitter URLs: call UPLOAD handler directly, skip LLM action selection
+        if (X_URL_RE.test(combined)) {
+          logger.info(
+            "[Eliza Plugin] X URL detected — calling UPLOAD handler directly (bypassing LLM action selection)",
+          );
+          try {
+            // Save the message to memory first (like bootstrap would)
+            try {
+              await runtime.createMemory(
+                {
+                  entityId: message.entityId,
+                  agentId: runtime.agentId,
+                  roomId: message.roomId,
+                  content: message.content,
+                  createdAt: Date.now(),
+                },
+                "messages",
+              );
+            } catch {
+              // Memory creation might fail if already saved; continue
+            }
+
+            await uploadAction.handler(
+              runtime,
+              message,
+              undefined,
+              undefined,
+              callback,
+            );
+            return {
+              didRespond: true,
+              responseContent: null,
+              responseMessages: [],
+              state: { values: {}, data: {}, text: "" },
+              mode: "none",
+            };
+          } catch (err) {
+            logger.error(
+              { err },
+              "[Eliza Plugin] Direct UPLOAD handler failed for X URL",
+            );
+            // Fall through to normal flow
+          }
+        }
+
+        // YouTube and upload-intent: force isMention so shouldRespond passes,
+        // then let the normal LLM action selection pick UPLOAD
+        if (YT_URL_RE.test(combined) || UPLOAD_RE.test(text)) {
+          if (!message.content) message.content = {};
+          if (!message.content.mentionContext)
+            message.content.mentionContext = {};
+          message.content.mentionContext.isMention = true;
+          logger.info(
+            "[Eliza Plugin] Upload-eligible message — forcing isMention for shouldRespond bypass",
+          );
+        }
+        return original(rt, message, callback, options);
+      };
+      (svc.handleMessage as any).__uploadPatched = true;
+      logger.info(
+        "[Eliza Plugin] Patched messageService — X URLs direct-handle, YouTube/upload isMention bypass",
+      );
+    };
+
+    // Retry with delays since messageService registers after services start
+    setTimeout(patchForUpload, 6000);
+    setTimeout(patchForUpload, 15000);
+
     logger.info(
-      `[Eliza Plugin] ✅ Ready — 15 actions | Voice: ✓ | Research: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
+      `[Eliza Plugin] ✅ Ready — 15 actions | Voice: ✓ | Research: ✓ | Summarize: ${hasSummarize ? "✓" : "yes"}`,
     );
   },
 };

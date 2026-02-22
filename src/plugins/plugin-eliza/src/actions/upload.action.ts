@@ -26,6 +26,11 @@ import type {
   IKnowledgeGenerationResult,
 } from "../types/upload";
 import { getKnowledgeRoot } from "../config/paths";
+import {
+  initXClientFromEnv,
+  getXClient,
+} from "../../../plugin-x-research/src/services/xClient.service";
+import { XThreadsService } from "../../../plugin-x-research/src/services/xThreads.service";
 
 const MIN_TEXT_LENGTH = 50;
 
@@ -136,6 +141,9 @@ const SUMMARY_LENGTH_PRESETS = [
   "xxl",
 ] as const;
 
+// Custom word counts (e.g. "3000", "5k", "10000") are also valid for the CLI
+const CUSTOM_LENGTH_RE = /^\d+k?$/i;
+
 function getSummarizeCommand(cliArgs: string[]): {
   command: string;
   args: string[];
@@ -170,38 +178,45 @@ async function runSummarizeCli(
   } = {},
 ): Promise<SummarizeResult | null> {
   const { isYouTube = false, extractOnly } = options;
+  // YouTube defaults to extract mode (full transcript) unless explicitly disabled.
+  // Model output limits (~4096 tokens) make summaries too short for long podcasts.
+  // Full transcripts are better for RAG anyway. Set VINCE_UPLOAD_EXTRACT_ONLY=false to force summary mode.
+  const envExtract = process.env.VINCE_UPLOAD_EXTRACT_ONLY?.toLowerCase();
   const useExtractOnly =
     extractOnly ??
-    (process.env.VINCE_UPLOAD_EXTRACT_ONLY === "true" ||
-      process.env.VINCE_UPLOAD_EXTRACT_ONLY === "1");
+    (envExtract === "true" || envExtract === "1"
+      ? true
+      : envExtract === "false" || envExtract === "0"
+        ? false
+        : isYouTube);
   const youtubeSlides =
     isYouTube &&
     (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "true" ||
       process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "1");
-  // Default changed from "long" to "xl" (matches CLI default) - longer content needs "xxl"
-  const lengthEnv = (
-    process.env.VINCE_UPLOAD_SUMMARY_LENGTH ?? "xl"
-  ).toLowerCase();
-  const length = SUMMARY_LENGTH_PRESETS.includes(
+  // Accepts presets (short/medium/long/xl/xxl) or custom word counts (e.g. "3000", "5k")
+  const lengthEnv = (process.env.VINCE_UPLOAD_SUMMARY_LENGTH ?? "xl")
+    .toLowerCase()
+    .trim();
+  const isPreset = SUMMARY_LENGTH_PRESETS.includes(
     lengthEnv as (typeof SUMMARY_LENGTH_PRESETS)[number],
-  )
-    ? lengthEnv
-    : "xl"; // fallback to xl instead of long
+  );
+  const isCustom = CUSTOM_LENGTH_RE.test(lengthEnv);
+  const length = isPreset || isCustom ? lengthEnv : "xl";
   // Allow setting max output tokens for even longer summaries (e.g., 8000 for 90-min interviews)
   const maxOutputTokens = process.env.VINCE_UPLOAD_MAX_TOKENS;
   // Longer timeouts for xl/xxl content
   const isLongContent =
     length === "xl" || length === "xxl" || !!maxOutputTokens;
-  let timeoutMs = isYouTube ? (isLongContent ? 180_000 : 120_000) : 90_000;
-  if (youtubeSlides) timeoutMs = 240_000; // slides need more time
+  let timeoutMs = isYouTube ? (isLongContent ? 360_000 : 240_000) : 90_000;
+  if (youtubeSlides) timeoutMs = 360_000;
   const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
   const timeoutArg =
     timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
 
   const cliArgs = [url, "--plain", "--no-color", "--timeout", timeoutArg];
   if (useExtractOnly) {
-    cliArgs.push("--extract");
-    if (!isYouTube) cliArgs.push("--format", "md");
+    cliArgs.push("--extract", "--format", "md");
+    if (isYouTube) cliArgs.push("--markdown-mode", "llm");
   } else {
     cliArgs.push("--length", length);
     // Allow extra output tokens for very long content (e.g., 8000 for 90-min interviews)
@@ -233,6 +248,11 @@ async function runSummarizeCli(
 
   const { command: summarizeCommand, args: summarizeArgs } =
     getSummarizeCommand(cliArgs);
+
+  logger.info(
+    { cmd: summarizeCommand, args: summarizeArgs.join(" ") },
+    "[UPLOAD] summarize CLI command",
+  );
 
   const runOne = (): Promise<SummarizeResult | null> =>
     new Promise((resolve) => {
@@ -395,7 +415,30 @@ function generateTitle(content: string): string {
 }
 
 function detectSimpleCategory(content: string): KnowledgeCategory {
-  const lowerContent = content.toLowerCase();
+  // For X/Twitter content, strip author/metadata lines to avoid false positives
+  // from handles (e.g. "ikigailabsETH" triggering "altcoins" via "eth ")
+  const isXContent =
+    content.startsWith("Tweet by @") ||
+    content.startsWith("Thread by @") ||
+    content.startsWith("Twitter Article by @");
+  let textForMatching = content;
+  if (isXContent) {
+    textForMatching = content
+      .split("\n")
+      .filter((line) => {
+        const l = line.trim().toLowerCase();
+        return (
+          !l.startsWith("tweet by @") &&
+          !l.startsWith("thread by @") &&
+          !l.startsWith("twitter article by @") &&
+          !l.startsWith("source:") &&
+          !l.startsWith("engagement:") &&
+          !l.startsWith("posted:")
+        );
+      })
+      .join("\n");
+  }
+  const lowerContent = textForMatching.toLowerCase();
   if (
     lowerContent.includes("openclaw") ||
     lowerContent.includes("clawdbot") ||
@@ -410,10 +453,15 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
   )
     return "perps-trading";
   if (
-    lowerContent.includes("option") ||
-    lowerContent.includes("strike") ||
-    lowerContent.includes("delta") ||
-    lowerContent.includes("covered call")
+    /\boptions?\s+(chain|trading|strategy|spread|premium|expir)/i.test(
+      textForMatching,
+    ) ||
+    lowerContent.includes("covered call") ||
+    lowerContent.includes("put option") ||
+    lowerContent.includes("call option") ||
+    lowerContent.includes("strike price") ||
+    lowerContent.includes("implied volatility") ||
+    (lowerContent.includes("strike") && lowerContent.includes("expir"))
   )
     return "options";
   if (
@@ -429,6 +477,23 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
     lowerContent.includes("pump.fun")
   )
     return "grinding-the-trenches";
+  // Specific categories first (venture-capital, macro) before broad ones (altcoins)
+  if (
+    lowerContent.includes("venture") ||
+    lowerContent.includes("vc ") ||
+    lowerContent.includes("fundrais") ||
+    lowerContent.includes("fund raise") ||
+    lowerContent.includes("lp ") ||
+    lowerContent.includes("limited partner")
+  )
+    return "venture-capital";
+  if (
+    lowerContent.includes("macro") ||
+    lowerContent.includes("fed") ||
+    lowerContent.includes("inflation") ||
+    lowerContent.includes("interest rate")
+  )
+    return "macro-economy";
   if (
     lowerContent.includes("bitcoin") ||
     lowerContent.includes("btc") ||
@@ -447,19 +512,6 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
     lowerContent.includes("ethereum")
   )
     return "altcoins";
-  if (
-    lowerContent.includes("macro") ||
-    lowerContent.includes("fed") ||
-    lowerContent.includes("inflation") ||
-    lowerContent.includes("interest rate")
-  )
-    return "macro-economy";
-  if (
-    lowerContent.includes("venture") ||
-    lowerContent.includes("vc ") ||
-    lowerContent.includes("fundrais")
-  )
-    return "venture-capital";
   if (
     lowerContent.includes("setup") ||
     lowerContent.includes("install") ||
@@ -499,6 +551,19 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
     (lowerContent.includes("collect") &&
       (lowerContent.includes("art") || lowerContent.includes("nft")));
   if (artLike) return "art-collections";
+  if (
+    lowerContent.includes("ai agent") ||
+    lowerContent.includes("ai agents") ||
+    lowerContent.includes("agent framework") ||
+    lowerContent.includes("elizaos") ||
+    lowerContent.includes("eliza os") ||
+    lowerContent.includes("autonomous agent") ||
+    lowerContent.includes("multi-agent") ||
+    lowerContent.includes("agent economy") ||
+    lowerContent.includes("agent infrastructure")
+  )
+    return "ai-agents";
+  if (isXContent) return "x-posts";
   return "uncategorized";
 }
 
@@ -598,16 +663,22 @@ export const uploadAction: Action = {
     "REMEMBER",
     "ADD_KNOWLEDGE",
     "STORE_KNOWLEDGE",
+    "FETCH_TWEET",
+    "SAVE_TWEET",
+    "FETCH_THREAD",
   ],
-  description: `Upload content to the knowledge base. Supports text, URLs, and YouTube videos.
+  description: `Upload content to the knowledge base. Supports text, URLs, YouTube videos, and X/Twitter posts and threads.
+
+IMPORTANT: When the user shares an X (twitter.com or x.com) link, ALWAYS use this action. This action fetches the full tweet or thread via the X API and saves it to the knowledge base. Do NOT reply with advice to copy-paste — this action handles X links directly.
 
 TRIGGERS:
-- "upload:", "save this:", "ingest:", "remember:" — Saves content to knowledge/
+- X/Twitter URLs (x.com/*/status/* or twitter.com/*/status/*) — Fetches tweet or full thread via API and saves
 - YouTube URLs — Transcribes video and saves transcript + summary
 - Article/PDF URLs — Fetches and summarizes via summarize CLI
+- "upload:", "save this:", "ingest:", "remember:" — Saves content to knowledge/
 - Long pasted content (1000+ chars) — Auto-ingests
 
-Use this for expanding the knowledge corpus with research, articles, videos, and frameworks.`,
+Use this for expanding the knowledge corpus with research, articles, videos, tweets, threads, and frameworks.`,
 
   validate: async (
     runtime: IAgentRuntime,
@@ -653,10 +724,11 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
     callback?: HandlerCallback,
   ): Promise<void> => {
     const text = message.content?.text || "";
+    const fullText = getMessageTextForUrlCheck(message);
     const startTime = Date.now();
 
     try {
-      const youtubeUrl = extractYouTubeUrl(text);
+      const youtubeUrl = extractYouTubeUrl(fullText);
       if (youtubeUrl) {
         if (callback) {
           await callback({
@@ -715,87 +787,269 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
       }
 
       let content = extractContent(text);
+      // Check text first, then fall back to fullText (which includes embeds/attachments)
       const singleUrl =
-        content.trim().length < 500 && extractSingleUrl(content);
-      if (singleUrl && hasUploadIntent(text)) {
-        if (isXOrTwitterUrl(singleUrl)) {
-          // Try to fetch the tweet using X research service
-          try {
-            // Dynamic import to avoid loading X service unnecessarily
-            const { initXClientFromEnv } =
-              await import("../../../plugin-x-research/src/services/xClient.service");
-            initXClientFromEnv(runtime);
+        (content.trim().length < 500 && extractSingleUrl(content)) ||
+        extractSingleUrl(fullText);
 
-            // Get the X client service
-            const { getXClient } =
-              await import("../../../plugin-x-research/src/services/xClient.service");
-            const xClient = getXClient();
+      // ── X/Twitter URL: fetch tweet or thread via API ──────────────
+      // Auto-triggers on X links (no "upload" keyword required)
+      if (singleUrl && isXOrTwitterUrl(singleUrl)) {
+        try {
+          initXClientFromEnv(runtime);
+          const xClient = getXClient();
 
-            if (!xClient) {
-              if (callback) {
-                await callback({
-                  text: `⚠️ **X API not configured**\n\nSet ELIZA_X_BEARER_TOKEN or X_BEARER_TOKEN in your .env to fetch tweets.${ELIZA_FOOTER}`,
-                  actions: ["UPLOAD"],
-                  success: false,
-                });
-              }
-              return;
-            }
-
-            // Extract tweet ID from URL
-            const tweetIdMatch = singleUrl.match(
-              /(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/,
-            );
-            if (!tweetIdMatch) {
-              if (callback) {
-                await callback({
-                  text: `⚠️ **Couldn't parse tweet ID from URL**\n\n${singleUrl}${ELIZA_FOOTER}`,
-                  actions: ["UPLOAD"],
-                  success: false,
-                });
-              }
-              return;
-            }
-
-            const tweetId = tweetIdMatch[1];
-            const tweet = await xClient.getTweet(tweetId);
-
-            if (!tweet) {
-              if (callback) {
-                await callback({
-                  text: `⚠️ **Tweet not found**\n\nThe tweet may be deleted or private.${ELIZA_FOOTER}`,
-                  actions: ["UPLOAD"],
-                  success: false,
-                });
-              }
-              return;
-            }
-
-            // Build tweet content for summarization
-            const tweetContent = `Tweet by @${tweet.author?.username ?? tweet.authorId}:\n\n${tweet.text}\n\n---\nLikes: ${tweet.metrics?.likeCount ?? 0} | Retweets: ${tweet.metrics?.retweetCount ?? 0} | Replies: ${tweet.metrics?.replyCount ?? 0}`;
-
-            // Continue with the normal upload flow using tweet content
-            content = tweetContent;
-
+          if (!xClient) {
             if (callback) {
               await callback({
-                text: `🐦 **Fetching tweet...**\n\n@${tweet.author?.username ?? tweet.authorId}: ${tweet.text.slice(0, 200)}...`,
-                actions: ["UPLOAD"],
-                success: true,
-              });
-            }
-          } catch (xErr) {
-            console.error("[UPLOAD] X fetch error:", xErr);
-            if (callback) {
-              await callback({
-                text: `⚠️ **Couldn't fetch tweet**\n\nMake sure X_BEARER_TOKEN is set in your .env. Alternatively, paste the tweet text and say **"upload that"** to save it.${ELIZA_FOOTER}`,
+                text: `X API not configured. Set ELIZA_X_BEARER_TOKEN or X_BEARER_TOKEN in your .env to fetch tweets and threads.${ELIZA_FOOTER}`,
                 actions: ["UPLOAD"],
                 success: false,
               });
             }
             return;
           }
+
+          const tweetIdMatch = singleUrl.match(
+            /(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/,
+          );
+          if (!tweetIdMatch) {
+            if (callback) {
+              await callback({
+                text: `Couldn't parse tweet ID from that URL: ${singleUrl}${ELIZA_FOOTER}`,
+                actions: ["UPLOAD"],
+                success: false,
+              });
+            }
+            return;
+          }
+
+          const tweetId = tweetIdMatch[1];
+
+          if (callback) {
+            await callback({
+              text: `Fetching from X...\n\n${singleUrl}`,
+              actions: ["UPLOAD"],
+            });
+          }
+
+          // Try thread fetch first (handles both single tweets and threads)
+          let threadTweets: Array<{
+            text: string;
+            author?: { username?: string; name?: string };
+            authorId?: string;
+            metrics?: {
+              likeCount?: number;
+              retweetCount?: number;
+              replyCount?: number;
+            };
+            id: string;
+            createdAt?: string;
+          }> = [];
+          try {
+            const threadsService = new XThreadsService(xClient);
+            threadTweets = await threadsService.getThread(tweetId);
+          } catch (threadErr) {
+            logger.debug(
+              { threadErr },
+              "[UPLOAD] Thread fetch failed, falling back to single tweet",
+            );
+          }
+
+          // Fallback: single tweet
+          if (threadTweets.length === 0) {
+            const tweet = await xClient.getTweet(tweetId);
+            if (tweet) {
+              threadTweets = [tweet];
+            }
+          }
+
+          if (threadTweets.length === 0) {
+            if (callback) {
+              await callback({
+                text: `Tweet not found — it may be deleted or private.${ELIZA_FOOTER}`,
+                actions: ["UPLOAD"],
+                success: false,
+              });
+            }
+            return;
+          }
+
+          const rootTweet = threadTweets[0];
+          const authorHandle =
+            rootTweet.author?.username ?? rootTweet.authorId ?? "unknown";
+          const authorName = rootTweet.author?.name ?? authorHandle;
+          const isThread = threadTweets.length > 1;
+
+          // Detect Twitter Articles / t.co-only tweets: if all tweets are just
+          // t.co links, the real content is the article behind the link. Fetch it.
+          const TCO_ONLY_RE = /^https?:\/\/t\.co\/\w+$/;
+          const allTco = threadTweets.every((t) =>
+            TCO_ONLY_RE.test(t.text.trim()),
+          );
+
+          if (allTco) {
+            // Twitter Article: the tweet text is just a t.co redirect to an
+            // X-hosted article. X blocks scrapers, so we can't fetch the body.
+            // But the API gives us article.title. Save what we have and tell
+            // the user to paste the full text if they want the body.
+            const articleTitle = (rootTweet as any).article?.title as
+              | string
+              | undefined;
+            const totalLikes = threadTweets.reduce(
+              (s, t) => s + (t.metrics?.likeCount ?? 0),
+              0,
+            );
+            const totalRTs = threadTweets.reduce(
+              (s, t) => s + (t.metrics?.retweetCount ?? 0),
+              0,
+            );
+            const totalReplies = threadTweets.reduce(
+              (s, t) => s + (t.metrics?.replyCount ?? 0),
+              0,
+            );
+
+            if (articleTitle) {
+              logger.info(
+                { articleTitle },
+                "[UPLOAD] Twitter Article detected — saving title and metadata",
+              );
+              const timestamp = Date.now();
+              const articleContent = [
+                `Twitter Article by @${authorHandle} (${authorName})`,
+                "",
+                `# ${articleTitle}`,
+                "",
+                `> This is a Twitter Article (long-form post hosted on X). The full article body`,
+                `> is only available on x.com. To add the full text: open the link, copy the`,
+                `> article content, paste it here, and say "upload that."`,
+                "",
+                "---",
+                `Source: ${singleUrl}`,
+                `Engagement: ${totalLikes} likes | ${totalRTs} retweets | ${totalReplies} replies`,
+                rootTweet.createdAt ? `Posted: ${rootTweet.createdAt}` : "",
+              ]
+                .filter(Boolean)
+                .join("\n");
+
+              const fileResult = await simpleFallbackStorage(
+                runtime,
+                articleContent,
+                `${authorHandle}-${articleTitle}`,
+                timestamp,
+                { sourceUrl: singleUrl, ingestedWith: "x-api" },
+              );
+              if (callback && fileResult.success && fileResult.file) {
+                await callback({
+                  text: `**Twitter Article saved (metadata)**\n\n**Title**: ${articleTitle}\n**Author**: @${authorHandle}\n**Source**: ${singleUrl}\n**Category**: \`${fileResult.file.category}\`\n**Engagement**: ${totalLikes} likes, ${totalRTs} RTs, ${totalReplies} replies\n\nThis is a Twitter Article — X doesn't expose the full body via API. To get the full text into the corpus: open the link, copy the article content, paste it here, and say **"upload that"**.${ELIZA_FOOTER}`,
+                  actions: ["UPLOAD"],
+                  success: true,
+                });
+              } else if (callback && !fileResult.success) {
+                await callback({
+                  text: `Save failed: ${fileResult.error ?? "Unknown"}${ELIZA_FOOTER}`,
+                  actions: ["UPLOAD"],
+                  success: false,
+                });
+              }
+              return;
+            }
+            // No article title — fall through to save raw tweet
+            logger.debug(
+              "[UPLOAD] t.co tweet with no article title, saving as-is",
+            );
+          }
+
+          // Build formatted content
+          const header = isThread
+            ? `Thread by @${authorHandle} (${authorName}) — ${threadTweets.length} tweets`
+            : `Tweet by @${authorHandle} (${authorName})`;
+
+          const tweetBlocks = threadTweets.map((t, i) => {
+            const prefix = isThread
+              ? `**[${i + 1}/${threadTweets.length}]** `
+              : "";
+            return `${prefix}${t.text}`;
+          });
+
+          const totalLikes = threadTweets.reduce(
+            (s, t) => s + (t.metrics?.likeCount ?? 0),
+            0,
+          );
+          const totalRTs = threadTweets.reduce(
+            (s, t) => s + (t.metrics?.retweetCount ?? 0),
+            0,
+          );
+          const totalReplies = threadTweets.reduce(
+            (s, t) => s + (t.metrics?.replyCount ?? 0),
+            0,
+          );
+
+          const tweetContent = [
+            header,
+            "",
+            ...tweetBlocks,
+            "",
+            "---",
+            `Source: ${singleUrl}`,
+            `Engagement: ${totalLikes} likes | ${totalRTs} retweets | ${totalReplies} replies`,
+            rootTweet.createdAt ? `Posted: ${rootTweet.createdAt}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+          // Save to knowledge
+          const timestamp = Date.now();
+          const title = isThread
+            ? `${authorHandle}-thread-${rootTweet.text
+                .slice(0, 60)
+                .replace(/[^a-zA-Z0-9 ]/g, "")
+                .trim()}`
+            : `${authorHandle}-${rootTweet.text
+                .slice(0, 60)
+                .replace(/[^a-zA-Z0-9 ]/g, "")
+                .trim()}`;
+
+          const fileResult = await simpleFallbackStorage(
+            runtime,
+            tweetContent,
+            title,
+            timestamp,
+            { sourceUrl: singleUrl, ingestedWith: "x-api" },
+          );
+
+          if (callback && fileResult.success && fileResult.file) {
+            const preview = rootTweet.text.slice(0, 200);
+            const typeLabel = isThread
+              ? `Thread (${threadTweets.length} tweets)`
+              : "Tweet";
+            await callback({
+              text: `**${typeLabel} saved to knowledge**\n\n**Author**: @${authorHandle}\n**Source**: ${singleUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n> ${preview}...${ELIZA_FOOTER}`,
+              actions: ["UPLOAD"],
+              success: true,
+            });
+          } else if (callback && !fileResult.success) {
+            await callback({
+              text: `Save failed: ${fileResult.error ?? "Unknown"}${ELIZA_FOOTER}`,
+              actions: ["UPLOAD"],
+              success: false,
+            });
+          }
+          return;
+        } catch (xErr) {
+          logger.error({ error: xErr }, "[UPLOAD] X fetch error");
+          if (callback) {
+            await callback({
+              text: `Couldn't fetch that X post. Make sure X_BEARER_TOKEN is set in your .env. Alternatively, copy the text and paste it here, then say **"upload that"**.${ELIZA_FOOTER}`,
+              actions: ["UPLOAD"],
+              success: false,
+            });
+          }
+          return;
         }
+      }
+
+      if (singleUrl && hasUploadIntent(text)) {
         if (singleUrl.includes("guide.michelin.com")) {
           if (callback) {
             await callback({
@@ -996,6 +1250,36 @@ Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${
   },
 
   examples: [
+    [
+      {
+        name: "{{user}}",
+        content: {
+          text: "https://x.com/gregisenberg/status/20252691991578259",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Fetching from X...\n\nhttps://x.com/gregisenberg/status/20252691991578259",
+          actions: ["UPLOAD"],
+        },
+      },
+    ],
+    [
+      {
+        name: "{{user}}",
+        content: {
+          text: "https://twitter.com/elaboratedhack/status/1234567890",
+        },
+      },
+      {
+        name: "{{agent}}",
+        content: {
+          text: "Fetching from X...\n\nhttps://twitter.com/elaboratedhack/status/1234567890",
+          actions: ["UPLOAD"],
+        },
+      },
+    ],
     [
       {
         name: "{{user}}",

@@ -22,6 +22,9 @@ export interface XTweet {
   // Entities
   entities?: XTweetEntities;
 
+  // Twitter Article (long-form content)
+  article?: { title?: string };
+
   // Computed fields (added by our analysis)
   computed?: {
     velocity?: number; // Likes per hour
