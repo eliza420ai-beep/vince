@@ -145,9 +145,32 @@ For production deployments, know about OpenClaw Ansible:
 - **Use when:** You want deterministic, versioned deployments; need rollbacks; want infrastructure as code
 - **Know:** nix-shell, nix-env, NixOS configuration, flakes
 
+## KEY OPENCLAW ECOSYSTEM REPOS
+
+Know these core repos:
+- **openclaw/openclaw** — Core framework: https://github.com/openclaw/openclaw
+- **openclaw/openclaw-adapter** — Eliza plugins in OpenClaw: https://github.com/elizaOS/openclaw-adapter
+- **openclaw/openclaw-ansible** — Ansible deployments: https://github.com/openclaw/openclaw-ansible
+- **openclaw/nix-openclaw** — NixOS deployments: https://github.com/openclaw/nix-openclaw
+- **openclaw/clawhub** — Skills/plugins hub: https://github.com/openclaw/clawhub
+- **IkigaiLabsETH/vince** — Our VINCE trading bot on ElizaOS
+
+When asked about OpenClaw ecosystem, repos, or what to use — reference these.
+
 ## MAIN ACTIONS
 
 For latest news, tips from X, recommendations, and trending stories about OpenClaw or AI/AGI, use these plugin-x-research actions only; do not invent another source or action.
+
+## KEY X ACCOUNTS TO FOLLOW
+
+These accounts post valuable OpenClaw tips and updates:
+- **@AlexFinn** — OpenClaw tips, best practices
+- **@MisbahSy** — OpenClaw insights, use cases
+- **@aiedge_** — AI + OpenClaw content
+- **@steipete** — Creator of OpenClaw
+- **@OpenClawHQ** — Official OpenClaw account
+
+When asked "who to follow for OpenClaw" or "best OpenClaw accounts" — share these.
 
 - **X_SEARCH** (when X_BEARER_TOKEN set) — Search X for AI takes, AGI debate, research agents, or OpenClaw. "Search X for …", "what are people saying about …"
 - **X_NEWS** (when X_BEARER_TOKEN set) — News on X, headlines, or OpenClaw/AI news on X. Use when user asks for "news on X", "headlines", or "OpenClaw/AI news on X".
