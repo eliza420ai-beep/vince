@@ -1,30 +1,33 @@
 ---
-date: 2026-02-21T21:00:25.035Z
+date: 2026-02-22T02:31:33.042Z
 type: shared-daily-insights
 ---
 
-# Shared Daily Insights — 2026-02-21
+# Shared Daily Insights — 2026-02-22
 
 ## VINCE
+### Delta vs Yesterday
+Signal: short (52%) → short (47%)
+
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $68,180 +0.7% | F:0.001% L/S:1.75 Vol:1.0x | bearish |
-| SOL | $85.441 +1.0% | F:-0.003% L/S:2.31 Vol:1.0x | bearish |
-| HYPE | $29.651 -1.6% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $68,044 +0.0% | F:0.051% L/S:1.77 Vol:1.0x | bearish |
+| SOL | $85.055 +0.2% | F:-0.399% L/S:2.38 Vol:1.0x | bearish |
+| HYPE | $29.779 -2.0% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
-**Fear & Greed:** 8 (extreme fear)
+**Fear & Greed:** 9 (extreme fear)
 
-**Signal (BTC):** short (52% conf, CoinGlass,BinanceTakerFlow,BinanceLongShort,NewsSentiment,XSentiment,DeribitIVSkew,MarketRegime,HyperliquidBias,HyperliquidFundingExtreme,DeribitPutCallRatio sources)
+**Signal (BTC):** short (47% conf, CoinGlass,BinanceTakerFlow,BinanceLongShort,NewsSentiment,XSentiment,DeribitIVSkew,MarketRegime,HyperliquidBias,HyperliquidFundingExtreme,DeribitPutCallRatio sources)
 
-**Paper:** No trades yet | 21 open, 0 pending
+**Paper:** No trades yet | 30 open, 0 pending
 
 **ML Loop:** 1+ trades in feature store | SQ:50% |  (TP: 0:0%, 1:39%) [tuning: strength≥5500%, conf≥5000%]
 
 **Self-tuning:** minStr=8000% | minConf=7500% | AUTO-TUNED | [undefined:NaN%→NaN%, undefined:NaN%→NaN%]
 
-**Risk:** 21 trades
+**Risk:** 30 trades
 
-**Portfolio:** $88268 | ret:-1173.2% | 21 positions
+**Portfolio:** $85726 | ret:-1427.4% | 30 positions
 
 **MandoMinutes:** Risk-on: regulatory. Themes: other, meme, macro, institutional
 News sentiment: bullish (64% conf)
@@ -36,55 +39,61 @@ Headlines:
 🟢 Record fund inflows to Europe equities
 ⚪ Top Gainers: NIGHT, RENDER, TRUMP, AVAX, MORPHO
 
-**Liquidations (5m):** Longs | 14 long ($31k) / 1 short ($1k) | intensity 1%
+**Liquidations (5m):** Longs | 5 long ($3k) / 0 short ($0k) | intensity 0%
 
-**OI (24h Δ):** BTC $5.6B (+3.7%) | SOL $847M (+7.0%)
+**OI (24h Δ):** BTC $45.3B (-0.6%) | SOL $5.2B (+0.5%)
 
-**Regime (BTC):** ranging ADX 16.603662138216183 | size 0.8x
+**Regime (BTC):** ranging ADX 19.897104218727033 | size 0.8x
 
 ## Eliza
-**Yesterday TL;DR:** Everything's green but fear's at 7—institutions are buying while we're selling premium into consolid
+**Yesterday TL;DR:** Fear at 8 but institutions are loading; we're selling premium into consolidation while waiting for t
 
-**Today (from shared insights):** | BTC | $68,008 +0.2% | F:0.001% L/S:1.93 Vol:1.0x | bearish | | SOL | $84.698 +1.3% | F:-0.010% L/S:2.67 Vol:1.0x | bearish | | HYPE | $30.307 +4.4% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+**Today:** Shared insights not yet built.
 
 **Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.
 
 **Recent facts in memory (5):**
-- [Standup lesson] Fear harvest with thin conviction is a patience game—BTC below 67K Thursday or Iran Feb 28 odds above 3
-- [Standup lesson] Setup-to-production workflows and skill enablement are the trending builder signals; friction points li
-- [Standup lesson] Bankr wallet setup is the blocking task; balance check and DefiLlama yield scanning follow once …
+- [Standup lesson] Email Command Center skill is high-signal use case; hardened reference with ACIP/PromptGuard baked in b
+- [Standup lesson] Log noise reduction and duplicate signal dedup shipped; type def fix unblocked build; end-to-end inter-
+- [Standup lesson] Bankr wallet friction is the blocker; once EVM/Solana keys are live and balance verified, DefiLlama yie
+- [Standup lesson] Weak upside call premium and 25% assignment probability on 70k covered call favor consolidation; dry po
+- [Standup lesson] Warsh Fed chair at 95% consensus …
 
 ## ECHO
 ## ECHO — Structured Sentiment
 
-### Asset Sentiment (19 posts, last 24h) [queries: SOL crypto sentiment, BTC crypto market sentiment]
+### Asset Sentiment (20 posts, last 24h) [queries: BTC crypto market sentiment, SOL crypto sentiment]
 
 | Asset | CT Sentiment | Dominant Narrative | Signal |
 |-------|--------------|-------------------|--------|
-| BTC | bearish (63%) | Tired of missing alpha because you're overwhelmed by crypto ... | SHORT |
-| SOL | bullish (63%) | Sentiment is low —
+| BTC | bullish (62%) | Breaking news in crypto.
+
+On-chain data shows whales scoopin... | LONG |
+| SOL | bullish (60%) | Sentiment is low —
 
 this is when smart money accumulates.
 
-A... | LONG |
+A... | SHIFT-UP |
 
 ### Contrarian Alert
-No clear consensus in CT sentiment.
+Consensus: CT is bullish. Edge: contrarians may be right in near-term.
 
 ### Actionable Takeaway
-BTC: CT bearish (63% conf). Narrative: "Tired of missing alpha because you're overwhelmed by crypto ...". → Watch for shorts or wait for flip.
+BTC: CT bullish (62% conf). Narrative: "Breaking news in crypto.
 
-**X content ideas:** # Post Ideas for LIVETHELIFETV
+On-chain data shows whales scoopin...". → Consider long on momentum.
 
-**1. Contrarian accumulation angle:**
-"Low sentiment = smart money loading. The question isn't *if* they're buying—it's *what* they're buying. (Hint: check on-chain flows, not CT vibes.)"
+**X content ideas:** # CT Pulse → Post Ideas
 
-**2. Data-overwhelm solve:**
-"Drowning in signals? The alpha isn't in more data—it's in *filtering* the noise. On-chain + sentiment + structure. That's the stack."
+**Post 1 (Contrarian angle):**
+"Whales loading $2B in BTC while retail sentiment screams 'crypto winter'—classic divergence setup, or are they front-running capitulation?" 🐋⚠️
+
+**Post 2 (Vibe-ride angle):**
+"BTC momentum creeping higher into resistance; when whale accumulation + slow grind = the market nobody's talking about yet." 📈
 
 ---
 
-**Why these work:** Fi…
+**Why these wor…
 
 ## Oracle
 | Priority market | YES% | condition_id |
@@ -101,9 +110,9 @@ BTC: CT bearish (63% conf). Narrative: "Tired of missing alpha because you're ov
 Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
 
 ## Solus
-**Today:** Saturday, 2026-02-21. Hypersurface weekly options settle Friday 08:00 UTC.
+**Today:** Sunday, 2026-02-22. Hypersurface weekly options settle Friday 08:00 UTC.
 
-**Live spot (use these — do not guess):** [Hypersurface spot USD] BTC $68,293, ETH $1,976.98, SOL $85.56, HYPE $29.76
+**Live spot (use these — do not guess):** [Hypersurface spot USD] BTC $68,042, ETH $1,974.81, SOL $85.11, HYPE $29.81
 
 **Last week's strategy:** # Weekly options context (Solus)
 
@@ -126,7 +135,7 @@ Example:
 
 
 
-#…
+###…
 
 ## Otaku
 **Status:** Under construction -- no wallet execution yet.
@@ -156,15 +165,15 @@ e5208287 Update src/plugins/plugin-inter-agent/src/standup/standup.tasks.ts
 **Recent PRDs:** 2026-02-21-prd-test-prd-for-v2-1-0-release-notes-smoke-test.md, 2026-02-21-prd-list-test-prd.md, 2026-02-20-prd-test-prd-for-v2-1-0-release-notes-smoke-test.md
 
 **Macro news:**
-Learn how Federal Reserve rate hikes, cuts and guidance impact crypto prices. Explore key mechanisms, past examples and what to expect at future Fed
-He said the Fed is “pre…
+It signals that the Fed is trying to slow down inflation or prevent the economy from overheating. For crypto, it may lead to short-term bearish sentiments:
+After three inte…
 
 ## Clawterm
-**Standup Summary**
+**Daily Standup — OpenClaw Trends**
 
-JavaScript Mastery dropped a full OpenClaw deployment course (1.2M subs, 1.5K views) covering VPS setup, Telegram integration, and five real use cases: phone-based deployments, email command center, research on demand, persistent memory, and custom skills. A hardened enterprise checklist doc is circulating that flags the core risk pattern: unsafe skill installs, exposed Gateway ports, and plaintext credentials—not rogue AI. X is quiet on OpenClaw in the last 24h.
+Memory layer (memU, 6.3k stars) is the hot skill for 24/7 proactive agents; builders are shipping Telegram + voice integrations and Docker-sandboxed setups. Tech With Tim's full course (VPS, Gateway, skills, IDENTITY/SOUL/HEARTBEAT markdown, cronjobs) and freeCodeCamp's 1-hour intro are driving adoption—focus is hands-on setup, not theory. Security-first mindset is embedded: every tutorial leads with VPS hardening, Gateway auth, and safe skill installs. No vaporware—shipping is real (Telegram bots, speech-to-text, coding skills, memory persistence).
 
-**One concrete suggestion:** Team should test and document the **Email Command Center** skill (Case #2 from the JS Mastery video) as a reference implementation—it's a high-signal use case that bridges messaging, task automation, and real workflows. Ship a hardened example with ACIP/PromptGuard baked in.
+**Concrete next move:** Build and ship a **memU + Telegram skill template** (pre-wired memory layer + Telegram input/output) so new builders can fork it, configure auth in 5 min, and have a working 24/7 agent. Lower the friction from "watch 1-hour course" to "clone, run, done."
 
 ## Naval
 (no data)

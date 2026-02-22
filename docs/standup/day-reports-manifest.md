@@ -35,3 +35,5 @@
 | 2026-02-20 | Extreme fear (7/10) but prices grinding higher—classic premium harvest setup whi | [View](day-reports/2026-02-20-day-report.md) |
 | 2026-02-20 | Everything's green but fear's at 7—institutions are buying while we're selling p | [View](day-reports/2026-02-20-day-report.md) |
 | 2026-02-21 | Fear at 8 while institutions stack—we're selling premium into the range and wait | [View](day-reports/2026-02-21-day-report.md) |
+| 2026-02-21 | Fear at 8 but institutions are loading; we're selling premium into consolidation | [View](day-reports/2026-02-21-day-report.md) |
+| 2026-02-22 | Fear at 9 but whales loading, we're harvesting options premium while institution | [View](day-reports/2026-02-22-day-report.md) |
