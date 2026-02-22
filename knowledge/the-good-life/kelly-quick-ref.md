@@ -93,6 +93,7 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | swimming-daily-winter-pools.md     | Daily 1000m, sets, palace reopen dates      |
 | home-cooking.md                    | Green Egg, Thermomix, oven — dinner at home |
 | wine-tasting/sommelier-playbook.md | Tasting language, pairings, service         |
+| lifestyle/spa-wellness-guide.md    | Thalasso, thermal spas, day spa options    |
 | surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics       |
 | kelly-backstory.md                 | Character backstory (investments, origin)   |
 | kelly-interview-questions.md       | Deep-life / interview-style answers         |
