@@ -1783,7 +1783,7 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     try {
       const context = sections.join("\n");
       const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines. PRIORITIZE the "Recent uploads" section — these are fresh knowledge that can inspire content:\n**Substack idea:** [One specific, timely content topic for Ikigai Studio Substack — MUST reference a specific upload. E.g., "Write about the Jeff Yan Hyperliquid interview we just uploaded — his views on $30 HYPE and the bear market..." Include a one-line HOOK if possible."]\n**Knowledge to expand:** [One specific area in the knowledge/ directory to add or update — name the category and what's missing]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines. PRIORITIZE the "Recent uploads" and "Stale categories" sections:\n**Substack idea:** [One specific, timely content topic for Ikigai Studio Substack — MUST reference a specific upload. E.g., "Write about the Jeff Yan Hyperliquid interview we just uploaded..." Include a one-line HOOK if possible.]\n**Knowledge to expand:** [One specific file to update in knowledge/ — E.g., "Update kelly-btc/satoshis-knowledge/bitcoin/latest.md with current BTC price and MSTR holdings" or "Add Hyperliquid section to defi-metrics/README.md". Name the exact file and what to add.]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
         maxTokens: 300,
         temperature: 0.7,
       });
