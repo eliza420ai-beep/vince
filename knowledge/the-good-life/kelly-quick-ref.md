@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Kelly Quick Reference
@@ -70,6 +70,16 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 
 ---
 
+## Winter Closures (2026)
+
+| Palace | Closed Until | Alternative |
+|--------|--------------|-------------|
+| Les Sources de Caudalie | Feb 5, 2026 | Relais de la Poste |
+| Hôtel du Palais | Feb 12, 2026 | Brindos |
+| Les Prés d'Eugénie | March 6, 2026 | Ostape |
+
+**Always check southwest-france-5-star-complete.md for latest closures.**
+
 ## Key knowledge files
 
 | File                               | Use for                                     |
@@ -83,7 +93,28 @@ Action routing, defaults, and voice. The one-page cheat sheet.
 | swimming-daily-winter-pools.md     | Daily 1000m, sets, palace reopen dates      |
 | home-cooking.md                    | Green Egg, Thermomix, oven — dinner at home |
 | wine-tasting/sommelier-playbook.md | Tasting language, pairings, service         |
-| surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics       |
+| wine-tasting/italy-wines.md      | Italy: Barolo, Tuscany, Veneto            |
+| wine-tasting/spain-wines.md      | Spain: Rioja, Ribera, Priorat, Albariño    |
+| wine-tasting/french-wine-basics.md | French wine region overview              |
+| lifestyle/spa-wellness-guide.md    | Thalasso, thermal spas, day spa options    |
+| lifestyle/travel-aviation-guide.md | Private jet, first class, airports         |
+| lifestyle/golf-guide.md            | Golf courses near SW France               |
+| lifestyle/ski-guide.md             | Pyrénées ski resorts, day trips           |
+| lifestyle/local-markets-guide.md   | Markets for provisions                   |
+| lifestyle/cycling-guide.md         | Road cycling routes, climbs              |
+| lifestyle/spirits-cocktails.md   | Spirits, cocktails, French spirits      |
+| lifestyle/dress-code-guide.md     | What to wear, occasions                 |
+| lifestyle/photography-guide.md    | Hasselblad, technique, editing         |
+| lifestyle/fishing-guide.md       | Shore, deep sea, spearfishing          |
+| lifestyle/local-services-guide.md | Doctors, mechanics, emergency contacts |
+| michelin-restaurants/belgium-stars.md | Michelin-starred restaurants in Belgium   |
+| luxury-hotels/belgium-5star.md       | 5-star hotels in Brussels, Bruges, Antwerp |
+| travel/basque-country-complete.md  | Full Basque guide (FR + ES)              |
+| travel/pyrenees-complete.md        | Full Pyrénées guide (ski, hiking)       |
+| travel/alps-complete.md           | French Alps (Courchevel, Chamonix)     |
+| travel/cote-dazur-complete.md    | French Riviera (Nice, Cannes, Monaco)  |
+| travel/weekend-itineraries.md    | Ready-made weekend plans               |
+| surf/surf-ocean-voice.md           | Voice for surf/ocean/rebalance topics   |
 | kelly-backstory.md                 | Character backstory (investments, origin)   |
 | kelly-interview-questions.md       | Deep-life / interview-style answers         |
 
