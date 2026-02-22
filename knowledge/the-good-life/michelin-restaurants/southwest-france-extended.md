@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Southwest France - Extended Fine Dining
@@ -9,6 +9,7 @@ last_reviewed: 2026-02-17
 > **Region**: Biarritz, Landes, Bordeaux Area
 > **Vibe**: Luxury hotels, spas & restaurants, Atlantic coast meets countryside
 > **Distance Reference**: 20-150 km from Southwest France base
+> **See also:** landes-locals.md (day-by-day lunch), landes-coast.md, landes-interior.md, basque-coast.md, biarritz-region.md, bordeaux-region.md, southwest-france-michelin-stars-complete.md for per-venue detail.
 
 ---
 
@@ -18,8 +19,9 @@ last_reviewed: 2026-02-17
 
 - **Address**: 1 Av. Louis Gaume, 33115 La Teste-de-Buch/Pyla-sur-Mer
 - **Distance**: 77 km
-- **Chef**: [Chef name]
+- **Chef**: See guide.michelin.com or hotel website (Skiff Club)
 - **Stars**: 2 Michelin Stars (Skiff Club restaurant)
+- **Open**: Check schedule; reserve ahead for lunch or dinner
 - **Region**: Pyla-sur-Mer, Landes
 
 **Details**:
@@ -57,9 +59,10 @@ last_reviewed: 2026-02-17
 
 - **Address**: 24 Av. de Maremne, 40140 Soustons/Magescq
 - **Distance**: 30 km
-- **Chef**: [Chef name]
+- **Chef**: Jean Coussau
 - **Stars**: 2 Michelin Stars
 - **Phone**: +33 5 58 47 70 25
+- **Open**: Wed–Sun 12:00–13:30 lunch; closed Mon–Tue
 
 **Details**:
 
@@ -81,6 +84,7 @@ last_reviewed: 2026-02-17
 - **Distance**: 51 km
 - **Chef**: Michel Guérard
 - **Stars**: 3 Michelin Stars
+- **Open**: Check schedule; reserve 3–4 weeks ahead (thermal resort, multiple restaurants)
 
 **Details**:
 
@@ -104,6 +108,7 @@ last_reviewed: 2026-02-17
 - **Stars**: 1 Michelin Star
 - **Website**: https://freresibarboure.com/
 - **Phone**: +33 5 59 47 58 30
+- **Open**: Check schedule; closed 4–30 Jan 2026 (reopens 31 Jan); reserve 1 week ahead
 
 **Details**:
 
@@ -128,6 +133,7 @@ last_reviewed: 2026-02-17
 - **Stars**: 1 Michelin Star
 - **Website**: https://www.briketenia.com/
 - **Phone**: +33 5 59 26 51 34
+- **Open**: Check schedule; reserve 3–4 days ahead; Briket' Côté Bistrot same team
 
 **Details**:
 
@@ -231,3 +237,7 @@ last_reviewed: 2026-02-17
 | Hôtel-Restaurant Berria | -     | Biarritz           | 69 km    | Hotel dining            |
 
 ### Other (Nouvelle-Aquitaine)
+
+---
+
+**See also:** landes-locals.md (day-by-day lunch), landes-coast.md, landes-interior.md, basque-coast.md, biarritz-region.md, bordeaux-region.md, southwest-france-michelin-stars-complete.md.

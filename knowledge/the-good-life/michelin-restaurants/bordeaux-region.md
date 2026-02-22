@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Bordeaux Region Fine Dining
@@ -129,3 +129,7 @@ last_reviewed: 2026-02-17
 - Winter: Best rates, quieter (our preferred time)
 
 ### Arcachon / Bassin
+
+---
+
+**See also:** landes-locals.md, landes-coast.md, landes-interior.md, basque-coast.md, biarritz-region.md, southwest-france-extended.md, southwest-france-michelin-stars-complete.md.

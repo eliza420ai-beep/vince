@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Landes Coast Fine Dining
@@ -161,3 +161,7 @@ last_reviewed: 2026-02-17
 | 70 Hectares SEI   | -     | Seignosse | €€-€€€      | Japanese fusion   |
 | La Co(o)rniche    | -     | Pyla      | €€€         | Sunset + views    |
 | Ha(a)ïtza Skiff   | 2\*   | Pyla      | €€€€        | Fine dining       |
+
+---
+
+**See also:** landes-locals.md (day-by-day lunch), landes-interior.md, basque-coast.md, biarritz-region.md, bordeaux-region.md, southwest-france-extended.md, southwest-france-michelin-stars-complete.md.

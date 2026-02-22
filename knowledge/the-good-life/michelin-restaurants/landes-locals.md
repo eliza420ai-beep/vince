@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Landes Local Favorites
@@ -100,7 +100,7 @@ last_reviewed: 2026-02-17
 ### TUESDAY (Dining Day)
 
 **Go-to**: Auberge du Lavoir (only confirmed local open)
-**Backup**: Check Villa Pomade, La Forge, or Green Fourchette (hours TBD)
+**Backup**: Check Villa Pomade (call 05 58 47 25 76), La Forge (Fri–Sun lunch), or Green Fourchette — hours TBD; call before visiting.
 
 ### THURSDAY (Dining Day)
 
@@ -126,3 +126,7 @@ All restaurants open - full choice including La Table du Marensin
 | Auberge du Lavoir     | 05 58 08 16 20 |
 | La Table du Marensin  | 09 70 22 90 21 |
 | Le Relais de la Poste | 05 58 47 70 25 |
+
+---
+
+**See also:** landes-coast.md, landes-interior.md, basque-coast.md, biarritz-region.md, bordeaux-region.md, southwest-france-extended.md, southwest-france-michelin-stars-complete.md.

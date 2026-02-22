@@ -1,14 +1,17 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Michelin Restaurants: Biarritz & Basque Country
 
+> **Region**: Biarritz, Guéthary, Saint-Jean-de-Luz, Bayonne (France); San Sebastián (Spain, ~30 min from Biarritz)
+> **Vibe**: Atlantic seafood, Basque traditions, proximity to San Sebastián—one of the world's highest concentrations of Michelin stars per capita.
+
 ## Overview
 
-The Basque Country straddles France and Spain, creating a unique gastronomic culture. The French side offers Atlantic seafood, Basque traditions, and proximity to San Sebastián—one of the world's highest concentrations of Michelin stars per capita.
+The Basque Country straddles France and Spain. The French side offers Atlantic seafood and Basque traditions; San Sebastián (Spain) is ~30 min from Biarritz and has exceptional 3\* and pintxos culture.
 
 ## 3-Star Restaurants
 
@@ -33,9 +36,9 @@ The Basque Country straddles France and Spain, creating a unique gastronomic cul
 
 ### Maison Bras (Laguiole - Aveyron)
 
-- **Distance**: 3 hours (roadtrip destination)
+- **Distance**: ~3h from Biarritz (roadtrip destination)
 - **Style**: Terroir-driven, wild ingredients
-- **Notes**: Worth special journey through countryside
+- **Notes**: Roadtrip only — not within 2h of home. Worth special journey through countryside.
 
 ## 1-Star Restaurants
 
@@ -43,28 +46,37 @@ The Basque Country straddles France and Spain, creating a unique gastronomic cul
 
 #### L'Impertinent (Biarritz)
 
+- **Address**: Check guide.michelin.com or restaurant website
 - **Style**: Contemporary French
 - **Chef**: Fabian Feldmann
+- **Open**: Check schedule; reserve ahead
 - **Notes**: Biarritz's own starred address
 
 #### Briketenia (Guéthary)
 
+- **Address**: 142 Rue de l'Église, 64210 Guéthary
+- **Phone**: +33 5 59 26 51 34
+- **Website**: https://www.briketenia.com/
 - **Style**: Basque contemporary
-- **Chef**: Martin Arrieta
-- **Setting**: Surf village charm
-- **Notes**: Casual starred, excellent value
+- **Chef**: Martin & David Ibarboure (father & son, 4 hands)
+- **Open**: Check schedule; reserve 3–4 days ahead
+- **Notes**: Surf village charm, casual starred, excellent value; Briket' Côté Bistrot same team
 
 #### Zoko Moko (Saint-Jean-de-Luz)
 
+- **Address**: Check guide.michelin.com or restaurant website
 - **Style**: Modern Basque
+- **Open**: Check schedule; reserve recommended
 - **Notes**: Charming port town setting
 
 ### Bayonne
 
 #### L'Auberge du Cheval Blanc
 
+- **Address**: Check guide.michelin.com or hotel website
 - **Style**: Classic Basque
-- **Notes**: Historic Bayonne address
+- **Open**: Check schedule; reserve ahead
+- **Notes**: Historic Bayonne address, hotel + gastronomy
 
 #### Germaine (Bayonne)
 
@@ -76,7 +88,9 @@ The Basque Country straddles France and Spain, creating a unique gastronomic cul
 - **Style**: Counter 15 covers, single menu (not blind); fermentation, robatayaki, citrus, seaweed
 - **Notes**: Nouveau in the Guide; creative lunch spot we want to try
 
-## San Sebastián (30 minutes)
+## San Sebastián (Spain, ~30 min from Biarritz)
+
+San Sebastián is in Spain (Basque Country). Same time zone; border crossing quick. Book 2–3 months for 3\*; lunch easier than dinner.
 
 ### 3-Star Restaurants
 
@@ -191,3 +205,7 @@ Not Michelin-starred, but essential:
 - No reservation needed
 - Thursday-Saturday best atmosphere
 - Arrive early for best selection
+
+---
+
+**See also:** landes-locals.md, landes-coast.md, basque-coast.md, bordeaux-region.md, southwest-france-extended.md, southwest-france-michelin-stars-complete.md, basque-country-northern-spain.md.

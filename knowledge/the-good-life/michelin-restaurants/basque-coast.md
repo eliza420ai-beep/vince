@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Basque Coast Fine Dining
@@ -50,6 +50,8 @@ last_reviewed: 2026-02-17
 
 **Also**: Briket' Côté Bistrot - gourmet bistro by same team
 
+- **Open**: Check schedule; reserve 3–4 days ahead; Briket' Côté Bistrot by same team
+
 **Best For**: Authentic family gastronomy, village charm, 10 min to beaches
 
 ---
@@ -72,7 +74,8 @@ last_reviewed: 2026-02-17
 
 **Philosophy**: Ecologically responsible, local producers, sea-mountain cuisine
 
-**Closure**: January 4-30, 2026 (reopens January 31)
+- **Open**: Check schedule; closed 4–30 Jan 2026 (reopens 31 Jan); reserve 1 week ahead
+- **Closure**: January 4-30, 2026 (reopens January 31)
 
 **Best For**: Brother duo excellence, MOF pastry, peaceful forest setting
 
@@ -96,6 +99,8 @@ last_reviewed: 2026-02-17
 **Hotel**: 5\*, 26 rooms across 5 houses, 45-hectare estate with springs
 
 **Values**: Sustainability, local artisans, traditional savoir-faire
+
+- **Open**: Check schedule; Lore Ttipia restaurant (1\*); reserve ahead
 
 **Best For**: Deep countryside immersion, nature therapy, intimate dining
 
@@ -173,3 +178,7 @@ last_reviewed: 2026-02-17
 | Brindos            | -     | Anglet        | €€€   | Lakeside luxury |
 | Maison Chiberta    | -     | Anglet        | €€€   | Juan Arbelaez   |
 | Le Garage          | -     | Biarritz      | €€    | Design bistro   |
+
+---
+
+**See also:** landes-locals.md, landes-coast.md, biarritz-region.md, bordeaux-region.md, southwest-france-extended.md, southwest-france-michelin-stars-complete.md, basque-country-northern-spain.md.

@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Basque Country / Northern Spain Fine Dining
@@ -278,3 +278,7 @@ last_reviewed: 2026-02-17
 | Amelia                 | -     | San Sebastian | 110 km   | Paulo Airaudo          |
 | Zarate                 | -     | Zarautz       | 180 km   | Coastal jatetxea       |
 | Palacio Arriluce       | -     | Getxo         | 181 km   | Historic palace        |
+
+---
+
+**See also:** biarritz-region.md (San Sebastián intro), basque-coast.md, landes-coast.md, southwest-france-extended.md, southwest-france-michelin-stars-complete.md.

@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Allowlist Life — Places I Say Yes To
@@ -105,21 +105,30 @@ The curated list. Kelly suggests from here first. No reviews, just the names and
 | **Arpège**                             | Paris                                 | 3★    | Alain Passard, vegetable-forward.                                                      | €170–280       | Required — 2–4 weeks ahead                 | Smart-casual |
 | **Arzak**                              | San Sebastián                         | 3★    | Elena Arzak, 4th generation. Exotic flavors. Source: The Good Life (thegoodlife.fr)    | €150–250       | Required — 2–3 weeks ahead                 | Smart-casual |
 | **Akelarre**                           | San Sebastián                         | 3★    | Pedro Subijana, nueva cocina vasca. Gulf views. Source: The Good Life (thegoodlife.fr) | €150–250       | Required — 2–3 weeks ahead                 | Smart-casual |
+| **Nobu**                               | San Sebastián (La Concha)             | -     | Nobu Matsuhisa, Belle Époque villa. Japanese-Basque. Source: The Good Life              | €80–120        | Required — 2–3 weeks ahead                 | Smart-casual |
 
 ### Local favorites (Landes & Basque)
 
 | Restaurant                      | Location               | Day                                | Notes                                                                                      | €/person lunch | Reservation                    | Dress code   |
 | ------------------------------- | ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------ | -------------- | ------------------------------ | ------------ |
-| **Côté Quillier**               | Magescq                | Wed–Sun                            | Bistro at Relais de la Poste.                                                              | €30–50         | Recommended — call day before  | Casual       |
-| **Maison Devaux**               | Rion-des-Landes        | Wed–Sun                            | Bib Gourmand. Locavore, modern bistrot.                                                    | €25–40         | Recommended — call day before  | Casual       |
-| **Auberge du Lavoir**           | Garrosse               | Tue–Thu, Sun                       | Traditional French. Family.                                                                | €20–30         | Not required — walk-in OK      | Casual       |
+| **Côté Quillier**               | Magescq                | Wed–Sun 12:00–13:45                | Bistro at Relais de la Poste. Closed Mon–Tue.                                              | €30–50         | Recommended — call day before  | Casual       |
+| **Maison Devaux**               | Rion-des-Landes        | Wed–Sun 12:30–14:00               | Bib Gourmand. Locavore, modern bistrot. Closed Mon–Tue.                                  | €25–40         | Recommended — call day before  | Casual       |
+| **Auberge du Lavoir**           | Garrosse               | Tue–Thu, Sun 12:00–13:30           | Traditional French. Family. Only option most Tuesdays.                                     | €20–30         | Not required — walk-in OK      | Casual       |
+| **La Forge d'Uza**              | Uza                    | Fri–Sun lunch 12:00–13:30; Wed–Thu dinner only | Domaine d'Uza. Simple, lakeside. Closed Mon–Tue.   | €25–40         | Recommended                    | Casual       |
+| **Villa Pomade**                | Rion-des-Landes        | TBD — call 05 58 47 25 76          | Local spot. Confirm hours.                                                                 | €20–35         | Call ahead                      | Casual       |
+| **Green Fourchette**            | Saint-Julien-en-Born   | TBD                                | Sandwicherie, coffee, ice cream. Quick lunch.                                             | €15–25         | Walk-in                         | Casual       |
+| **Moulin de Poustagnacq**       | Saint-Paul-lès-Dax     | Check schedule                     | Historic mill, lakeside. Gascon. Thierry Berthelier 30+ years.                             | €40–65         | Required — call ahead           | Smart-casual |
+| **Jean des Sables**             | Hossegor               | Check schedule                     | Seafood, Basque-Landais. Check current star status.                                         | €40–65         | Recommended                     | Smart-casual |
+| **Ithurria**                    | Ainhoa                 | Check schedule                     | Traditional Basque village.                                                                 | €35–55         | Recommended                     | Casual       |
+| **Le Kaiku**                    | Saint-Jean-de-Luz      | Check schedule                     | Coastal seafood, local focus.                                                              | €35–55         | Recommended                     | Casual       |
+| **Hôtel-Restaurant Berria**     | Biarritz               | Check schedule                     | Hotel restaurant, local specialties.                                                      | €35–55         | Recommended                     | Smart-casual |
 | **La Table du Marensin**        | Uza                    | Wed, Fri–Sun lunch; Thu–Sat dinner | Gastronomic.                                                                               | €40–65         | Required — call 2–3 days ahead | Smart-casual |
 | **La Table d'Aurélien Largeau** | Near Hossegor          | Check schedule                     | Fine bistro.                                                                               | €35–55         | Recommended                    | Smart-casual |
 | **L'Impertinent**               | Biarritz area          | Check schedule                     | Creative.                                                                                  | €35–55         | Recommended                    | Smart-casual |
 | **Briketenia**                  | Guéthary               | Check schedule                     | Basque coast institution.                                                                  | €45–70         | Required — 3–4 days ahead      | Smart-casual |
 | **Zoko Moko**                   | Saint-Jean-de-Luz      | Check schedule                     | Modern Basque.                                                                             | €35–55         | Recommended                    | Casual       |
-| **Les Frères Ibarboure**        | Bidart                 | Check schedule (Jan 4–30 closed)   | Basque family, starred.                                                                    | €50–80         | Required — 1 week ahead        | Smart-casual |
-| **Lore Ttipia**                 | Saint-Jean-de-Luz area | Check schedule                     | Traditional Basque.                                                                        | €35–55         | Recommended                    | Casual       |
+| **Les Frères Ibarboure**        | Bidart                 | Check schedule; closed 4–30 Jan (reopens 31 Jan) | Basque family, starred.                                    | €50–80         | Required — 1 week ahead        | Smart-casual |
+| **Lore Ttipia**                 | Ostape, Bidarray      | Check schedule                     | At Auberge Ostape. Fire cooking, 45ha estate.              | €35–55         | Recommended                    | Casual       |
 | **Orama**                       | Biarritz area          | Check schedule                     | Contemporary.                                                                              | €40–60         | Recommended                    | Smart-casual |
 | **Skiff Club**                  | Hossegor               | Check schedule                     | Lake-side, casual fine.                                                                    | €30–50         | Recommended for weekends       | Casual       |
 | **Haïtza**                      | Pyla-sur-Mer           | Check schedule                     | Beach, design hotel restaurant.                                                            | €40–65         | Required — 2–3 days ahead      | Smart-casual |

@@ -1,7 +1,7 @@
 ---
 tags: [lifestyle]
 agents: [kelly, eliza]
-last_reviewed: 2026-02-17
+last_reviewed: 2026-02-22
 ---
 
 # Landes Interior Fine Dining
@@ -108,3 +108,7 @@ For current opening hours call +33 5 58 44 14 14 or see villamirasol.fr.
 **Villa Mirasol**: Midweek lunch great value
 **Poustagnacq**: Perfect for private events (they do catering too)
 **Table du Marensin**: Check seasonal closures, limited covers
+
+---
+
+**See also:** landes-locals.md (day-by-day lunch), landes-coast.md, basque-coast.md, biarritz-region.md, bordeaux-region.md, southwest-france-extended.md, southwest-france-michelin-stars-complete.md.
