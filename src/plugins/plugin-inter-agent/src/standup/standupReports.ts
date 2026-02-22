@@ -355,8 +355,13 @@ export function sanitizeStandupReply(
 
   let result = reply;
 
+  // 1. Strip fenced JSON code blocks
   result = result.replace(/```(?:json)?\s*[\s\S]*?```/g, "");
 
+  // 2. Strip inline JSON objects (any {..."key":...} pattern)
+  result = result.replace(/\{[^{}]*"[a-zA-Z_]+"[^{}]*\}/g, "");
+
+  // 3. Strip multi-line JSON blocks
   result = result.replace(/\{\s*\n[\s\S]*?\n\s*\}/g, (full) => {
     try {
       JSON.parse(full);
@@ -382,7 +387,7 @@ export function sanitizeStandupReply(
     })
     .join("\n");
 
-  // Strip trailing JSON on same line as prose (e.g. "text here{"signals":[...]}" with no newline)
+  // 4. Strip trailing JSON on same line as prose (e.g. "text here{"signals":[...]}" with no newline)
   const stripTrailingJson = (s: string): string => {
     for (let i = s.length - 1; i >= 0; i--) {
       if (s[i] !== "{") continue;
