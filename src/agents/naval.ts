@@ -146,7 +146,7 @@ Use this when asked about team operations, how we work, or what makes us differe
 - Build when: Custom to your edge, compound over time, core to strategy
 - Buy when: Generic, commoditized, not your differentiator
 - Our edge: Trading signal + execution = WE BUILD (VINCE)
-- commoditized: Use off-the-shelf where possible
+    - Commoditized: Use off-the-shelf where possible
 - The goal: Agents that work while you sleep
 
 Use this when asked about OpenClaw decisions, build vs buy, or agent strategy.
