@@ -5164,6 +5164,10 @@ export default function LeaderboardPage({
                         let totalNotionalUsd = 0;
                         let potentialLossAtSl = 0;
                         let potentialProfitAtTp = 0;
+                        const pnlValue =
+                          positions.length > 0
+                            ? (paperData.portfolio.unrealizedPnl ?? 0)
+                            : (paperData.portfolio.realizedPnl ?? 0);
                         for (const pos of positions) {
                           const marginUsd =
                             pos.marginUsd ??
@@ -5205,20 +5209,20 @@ export default function LeaderboardPage({
                             </div>
                             <div>
                               <p className="text-xs font-semibold text-muted-foreground uppercase">
-                                Realized P&L
+                                {positions.length > 0
+                                  ? "Unrealized P&L"
+                                  : "Realized P&L"}
                               </p>
                               <p
                                 className={cn(
                                   "font-mono font-semibold",
-                                  (paperData.portfolio.realizedPnl ?? 0) >= 0
+                                  pnlValue >= 0
                                     ? "text-green-600 dark:text-green-400"
                                     : "text-red-600 dark:text-red-400",
                                 )}
                               >
-                                $
-                                {(
-                                  paperData.portfolio.realizedPnl ?? 0
-                                ).toLocaleString(undefined, {
+                                {pnlValue >= 0 ? "+" : "-"}$
+                                {Math.abs(pnlValue).toLocaleString(undefined, {
                                   maximumFractionDigits: 0,
                                 })}
                               </p>
