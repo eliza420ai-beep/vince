@@ -22,6 +22,8 @@ import { kellyRecommendEntertainmentAction } from "../actions/recommendEntertain
 import { kellyRecommendCreativeAction } from "../actions/recommendCreative.action";
 import { kellyRecommendRowingAction } from "../actions/recommendRowing.action";
 import { kellyInterestingQuestionAction } from "../actions/interestingQuestion.action";
+import { kellyWeeklyReviewAction } from "../actions/kellyWeeklyReview.action";
+import { kelly100kPaceAction } from "../actions/kelly100kPace.action";
 import type { Action } from "@elizaos/core";
 import {
   createMockRuntime,
@@ -51,6 +53,11 @@ const KELLY_QUICK_ACTIONS: { label: string; message: string }[] = [
   { label: "Touch grass", message: "I've been grinding—need to rebalance" },
   { label: "Make something", message: "Creative tips—what should I work on?" },
   { label: "Ask me something", message: "Ask me an interesting question" },
+  {
+    label: "Weekly Scorecard",
+    message: "Weekly review — how did we do this week?",
+  },
+  { label: "$100K pace", message: "Are we on track for $100K?" },
 ];
 
 const ALL_KELLY_ACTIONS: Action[] = [
@@ -69,6 +76,8 @@ const ALL_KELLY_ACTIONS: Action[] = [
   kellyRecommendCreativeAction,
   kellyRecommendRowingAction,
   kellyInterestingQuestionAction,
+  kellyWeeklyReviewAction,
+  kelly100kPaceAction,
 ];
 
 describe("Kelly quick actions", () => {

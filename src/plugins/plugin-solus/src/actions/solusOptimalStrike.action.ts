@@ -64,7 +64,11 @@ export const solusOptimalStrikeAction: Action = {
   ): Promise<void | ActionResult> => {
     logger.debug("[SOLUS_OPTIMAL_STRIKE] Action fired");
     try {
-      const state = await runtime.composeState(message);
+      const state = await runtime.composeState(
+        message,
+        ["VINCE_OPTIONS_INJECTOR", "VINCE_STRIKE_SUGGESTION"],
+        true,
+      );
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 

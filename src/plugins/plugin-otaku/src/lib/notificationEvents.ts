@@ -19,7 +19,8 @@ export type NotificationEventAction =
   | "morpho_withdraw"
   | "stop_loss_created"
   | "nft_minted"
-  | "vince_signal_completed";
+  | "vince_signal_completed"
+  | "vince_signal_ready";
 
 export interface NotificationEvent {
   id: string;

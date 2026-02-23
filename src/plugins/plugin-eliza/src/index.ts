@@ -69,6 +69,7 @@ import * as sourceQualityService from "./services/sourceQuality.service";
 import * as styleGuideService from "./services/styleGuide.service";
 import * as researchAgendaService from "./services/researchAgenda.service";
 import { substackContextProvider } from "./providers/substackContext.provider";
+import { tradingPerformanceProvider } from "./providers/tradingPerformance.provider";
 import {
   getSubstackFeedUrl,
   fetchSubstackPosts,
@@ -126,7 +127,7 @@ export const elizaPlugin: Plugin = {
 - CONTENT_AUDIT: Top posts analysis from top X posts (hooks, topics, formats). Uses plugin-x-research for X data; set ELIZA_X_BEARER_TOKEN for Eliza.
 - SUBSTACK_CONTEXT provider: Recent Ikigai Studio Substack posts (RSS) + optional profile (Substack API). Set SUBSTACK_FEED_URL / ELIZA_SUBSTACK_LINKEDIN_HANDLE.`,
 
-  providers: [substackContextProvider],
+  providers: [substackContextProvider, tradingPerformanceProvider],
 
   routes: [
     {

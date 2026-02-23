@@ -1,8 +1,11 @@
 /**
  * Sentinel weekly suggestions task.
  * Runs on an interval (default 7 days); composes state, generates suggestions and investor update, optionally pushes to Discord channels named "sentinel" or "ops".
+ * Includes recent post-mortems (docs/standup/post-mortems/) when present. PRD: One Dream — Agent Synergy (§Phase 2).
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {
   type IAgentRuntime,
   type Memory,
@@ -46,6 +49,69 @@ async function generateWeeklySuggestions(
 }
 
 const PUSH_SOURCES = ["discord", "slack", "telegram"] as const;
+
+/** Build a short pattern summary and suggested PRD from recent post-mortem files. PRD: One Dream Phase 3 (#13). */
+async function buildPostMortemPatternSummary(
+  runtime: IAgentRuntime,
+  postMortemsDir: string,
+): Promise<string> {
+  if (!fs.existsSync(postMortemsDir)) return "";
+  const files = fs
+    .readdirSync(postMortemsDir)
+    .filter((f) => f.endsWith(".md") && f !== "README.md")
+    .map((f) => ({
+      name: f,
+      mtime: fs.statSync(path.join(postMortemsDir, f)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, 5);
+  if (files.length === 0) return "";
+  const contents: string[] = [];
+  for (const f of files) {
+    try {
+      const body = fs.readFileSync(path.join(postMortemsDir, f.name), "utf-8");
+      contents.push(`## ${f.name}\n${body}`);
+    } catch {
+      // skip
+    }
+  }
+  if (contents.length === 0) return "";
+  const combined = contents.join("\n\n");
+  const prompt = `You are Sentinel. Below are post-mortem notes from losing paper trades (Echo, Oracle, Solus feedback). From these, extract 1–3 recurring patterns in one short sentence each (e.g. "Bearish sentiment ignored", "Position sizing too large"). Then suggest one PRD title that would address the main pattern. Reply in this exact format, no other text:\nPatterns: <sentence1>; <sentence2>; ...\nSuggested PRD: <title>\n\nPost-mortems:\n${combined.slice(0, 12000)}`;
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
+    const text =
+      typeof response === "string"
+        ? response
+        : ((response as { text?: string })?.text ?? String(response));
+    const trimmed = text.trim();
+    if (!trimmed) return "";
+    const writePrd = process.env.SENTINEL_POST_MORTEM_PRD_WRITE === "true";
+    if (writePrd) {
+      const prdsDir = path.join(process.cwd(), "docs", "standup", "prds");
+      const date = new Date().toISOString().slice(0, 10);
+      const stubPath = path.join(
+        prdsDir,
+        `PRD_POST_MORTEM_PATTERNS_${date}.md`,
+      );
+      try {
+        if (!fs.existsSync(prdsDir)) fs.mkdirSync(prdsDir, { recursive: true });
+        fs.writeFileSync(
+          stubPath,
+          `# Post-mortem patterns (auto-generated)\n\nGenerated: ${new Date().toISOString()}\n\n${trimmed}\n`,
+          "utf-8",
+        );
+        logger.debug(`[SentinelWeekly] Wrote PRD stub: ${stubPath}`);
+      } catch (e) {
+        logger.warn("[SentinelWeekly] Failed to write PRD stub:", e);
+      }
+    }
+    return trimmed;
+  } catch (e) {
+    logger.debug("[SentinelWeekly] Post-mortem pattern summary failed:", e);
+    return "";
+  }
+}
 
 async function pushToSentinelChannels(
   runtime: IAgentRuntime,
@@ -166,10 +232,58 @@ export async function registerSentinelWeeklyTask(
           }
         }
 
+        const postMortemsDir = path.join(
+          process.cwd(),
+          "docs",
+          "standup",
+          "post-mortems",
+        );
+        let postMortemsBlock = "";
+        let patternSummary = "";
+        try {
+          if (fs.existsSync(postMortemsDir)) {
+            const files = fs
+              .readdirSync(postMortemsDir)
+              .filter((f) => f.endsWith(".md") && f !== "README.md")
+              .map((f) => ({
+                name: f,
+                mtime: fs.statSync(path.join(postMortemsDir, f)).mtimeMs,
+              }))
+              .sort((a, b) => b.mtime - a.mtime)
+              .slice(0, 5);
+            if (files.length > 0) {
+              postMortemsBlock = [
+                "",
+                "**Recent post-mortems (losing trades):**",
+                files.map((f) => `• \`${f.name}\``).join("\n"),
+                "_Consider reviewing for recurring patterns (sentiment, regime, sizing)._",
+              ].join("\n");
+              patternSummary = await buildPostMortemPatternSummary(
+                rt,
+                postMortemsDir,
+              );
+            }
+          }
+        } catch (_) {
+          // ignore
+        }
+
+        const patternBlock = patternSummary
+          ? [
+              "",
+              "**Patterns from post-mortems & suggested PRD:**",
+              "```",
+              patternSummary,
+              "```",
+            ].join("\n")
+          : "";
+
         const suggestionsMessage = [
           "**Sentinel — weekly suggestions**",
           "",
           listTrimmed,
+          postMortemsBlock,
+          patternBlock,
           "",
           "---",
           "_Ask me: suggest, what should we improve, task brief for Claude 4.6, ONNX status, openclaw guide, best settings, art gems._",

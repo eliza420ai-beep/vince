@@ -1,7 +1,79 @@
 # PRD: One Dream — Agent Synergy & the $100K Trading System
 
-**Status:** Draft  
+**Status:** Phase 1, 2, 3 & 4 Implemented  
 **Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click.
+
+### Implementation status (Phase 1)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 1 | `vinceOptionsInjector.provider.ts` (Solus) | ✅ | Dynamic provider; strike ritual & optimal strike include it |
+| 2 | `echoSentiment.provider.ts` (Vince) | ✅ | Dynamic; 1–10 score + label, 15 min cache |
+| 3 | `oracleRegime.provider.ts` (Vince) | ✅ | Dynamic; risk-on/risk-off/uncertain, 15 min cache |
+| 4 | `KELLY_WEEKLY_REVIEW` action + chip | ✅ | Unified scorecard via in-process ASK_AGENT; "Weekly Scorecard" chip |
+| 5 | `tradingPerformance.provider.ts` (Eliza) | ✅ | Dynamic; Vince P&L + Solus premium, 1 hr cache |
+| 6 | WRITE_ESSAY / DRAFT_TWEETS use trading data | ✅ | Compose with TRADING_PERFORMANCE when user asks for weekly/results |
+| 7 | Quick-action validation (Kelly) | ✅ | KELLY_WEEKLY_REVIEW in quickActions.test.ts |
+
+### Implementation status (Phase 2)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 1 | Sentiment gate | ✅ | `vinceSentimentGate.ts`: size multiplier, skip longs/shorts from Echo/Oracle cache |
+| 2 | Wire gate into paper trading | ✅ | `evaluateAndTrade()`: skip when skipLongs/skipShorts; apply sizeMultiplier; pass sentimentMeta to openTrade/journal |
+| 3 | Post-mortem on loss | ✅ | `postMortem.ts`: ask Echo, Oracle, Solus via getElizaOS; write `docs/standup/post-mortems/YYYY-MM-DD-{asset}-post-mortem.md`; triggered from `closeTrade()` when pnl < 0 |
+| 4 | VINCE_POST_MORTEM action + chip | ✅ | Manual post-mortem for last losing trade; "Post-mortem (last loss)" chip |
+| 5 | VINCE_SENTIMENT_CHECK action + chip | ✅ | "What does Echo and Oracle say about my next trade?"; "Sentiment check" chip |
+| 6 | Sentinel weekly + post-mortems | ✅ | Weekly task includes recent `post-mortems/*.md` in message; suggest reviewing for patterns |
+
+### Implementation status (Phase 3)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 12 | Kelly scheduled daily briefing with real data | ✅ | Existing standup: `STANDUP_ENABLED=true`, `STANDUP_UTC_HOURS` (default 9 UTC). `buildAndSaveSharedDailyInsights` + `runStandupRoundRobin` + day report. |
+| 13 | Sentinel auto-PRD from post-mortem patterns | ✅ | Weekly task calls `buildPostMortemPatternSummary()`: reads recent post-mortems, LLM extracts patterns + suggested PRD; optional `SENTINEL_POST_MORTEM_PRD_WRITE=true` writes stub to `docs/standup/prds/PRD_POST_MORTEM_PATTERNS_YYYY-MM-DD.md`. |
+| 14 | Otaku opt-in auto-execute when paper confidence > threshold | ✅ | `OTAKU_AUTO_EXECUTE_ENABLED`, `OTAKU_AUTO_EXECUTE_MIN_CONFIDENCE` (default 75). Task `OTAKU_AUTO_EXECUTE_CHECK` every 15 min; when cache has `confidence`/`strength` ≥ threshold, appends `vince_signal_ready` notification (execute when ready). |
+| 15 | Echo watchlist → Vince signal pipeline | ✅ | `getPaperTradeAssetsWithWatchlist(runtime)`; `VINCE_PAPER_WATCHLIST_ENABLED=true` merges watchlist tokens (in ALL_TRACKED_ASSETS) into paper bot universe and signal aggregator. |
+
+---
+
+## Phase 4 — Measurement, Readiness & Content
+
+**Theme:** Make the $100K goal measurable at a glance, make “go live” a clear checklist, and close the content flywheel with one-tap drafts.
+
+| # | Task | Agent | Priority | Notes |
+|---|------|-------|----------|-------|
+| 16 | **$100K pace at a glance** | Kelly / Vince | P1 | Single provider or chip: “Are we on track?” — target $1,923/wk, this week actual, YTD annualized, yes/no. Surfaces in Kelly weekly and/or a dedicated “$100K pace” chip. |
+| 17 | **Vince → Solus strike handoff (no copy/paste)** | Vince + Solus | P2 | When Vince (report or paper bot) suggests an options trade, write a “vince:strike_suggestion” cache (underlying, direction, expiry hint). Solus strike ritual provider reads it so Solus state includes “Vince suggests …” automatically. |
+| 18 | **Confidence in signal cache** | Vince | P1 | Paper bot or daily report, when suggesting swap/bridge, set `confidence` (0–100) on `vince:latest_trade_signal` so Otaku’s auto-execute notification (Phase 3 #14) can fire. |
+| 19 | **Weekly performance content (scheduled or one-tap)** | Eliza + Kelly | P2 | Kelly chip “Draft weekly performance post” → triggers Eliza with TRADING_PERFORMANCE; optional scheduled task (e.g. Friday) to auto-draft one Substack + 3–5 tweets from the week’s numbers. |
+| 20 | **Sentiment accuracy tracking** | Vince / Echo | P2 | At trade entry, store Echo sentiment score + Oracle regime; at close, compare outcome. Compute “sentiment vs price” accuracy; feed into weekly review and post-mortems. |
+| 21 | **Go-live readiness checklist** | Otaku / Kelly | P2 | Before executing Vince signal with real money: show checklist (paper win rate > X%, sentiment check, user confirm). Provider or action “Ready to execute?” that aggregates: bot stats, last sentiment, and requires explicit confirm. |
+
+**Success criteria for Phase 4**
+
+- User sees one number or card: “$100K pace: on track / behind” with weekly and YTD context.
+- Solus strike ritual shows “Vince suggests …” when Vince has written a strike suggestion (no copy/paste).
+- Otaku’s “Vince signal above threshold” notification fires when the paper bot (or report) writes a high-confidence signal.
+- One chip or schedule produces a weekly performance Substack draft + tweets from real numbers.
+- Every trade (or sample) has sentiment-at-entry stored and accuracy can be reported in the weekly scorecard.
+- “Execute Vince signal” flow can show a readiness checklist (paper performance + sentiment) before proceeding.
+
+**Out of scope for Phase 4**
+
+- Full live execution without user confirm (opt-in and checklist only).
+- Replacing or duplicating the weekly review; Phase 4 extends it with pace and accuracy.
+
+### Implementation status (Phase 4)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 16 | $100K pace at a glance | ✅ | `KELLY_100K_PACE` action + "$100K pace" chip; asks Vince + Solus for this week, target $1,923/wk, on-track yes/no. |
+| 17 | Vince → Solus strike handoff | ✅ | Cache `vince:strike_suggestion`; `VINCE_STRIKE_SUGGESTION` provider on Solus; strike ritual + optimal strike include it. Vince (or report) can write cache when suggesting options. |
+| 18 | Confidence in signal cache | ✅ | `setVinceSignalCache()` in plugin-vince utils; cache shape supports `confidence`/`strength` (0–100). Otaku auto-execute notification uses it. |
+| 19 | Weekly performance content | ✅ | `KELLY_DRAFT_WEEKLY_PERFORMANCE` action; asks Eliza to draft Substack + 3–5 tweets from this week's trading (trading performance context). |
+| 20 | Sentiment accuracy tracking | ✅ | At close: `sentimentCorrect` computed from sentiment at entry vs outcome; stored on journal exit. `getSentimentAccuracy()` on journal for reporting. |
+| 21 | Go-live readiness checklist | ✅ | `OTAKU_READY_TO_EXECUTE` action + "Ready to execute?" chip; aggregates paper bot stats + Echo sentiment + Vince signal; confirm to execute. |
 
 ---
 

@@ -118,6 +118,8 @@ import { vinceBotStatusAction } from "./actions/vinceBotStatus.action";
 import { vinceBotPauseAction } from "./actions/vinceBotPause.action";
 import { vinceWhyTradeAction } from "./actions/vinceWhyTrade.action";
 import { vinceBotAction } from "./actions/bot.action";
+import { vincePostMortemAction } from "./actions/vincePostMortem.action";
+import { vinceSentimentCheckAction } from "./actions/vinceSentimentCheck.action";
 
 // Actions - Knowledge (ingestion moved to plugin-eliza: UPLOAD, ADD_MICHELIN)
 import { vinceCodeTaskAction } from "./actions/codeTask.action";
@@ -138,6 +140,8 @@ import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 import { teammateContextProvider } from "./providers/teammateContext.provider";
 import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
+import { echoSentimentProvider } from "./providers/echoSentiment.provider";
+import { oracleRegimeProvider } from "./providers/oracleRegime.provider";
 import { bankrOrdersProvider } from "./providers/bankrOrders.provider";
 
 // Tasks
@@ -242,6 +246,8 @@ export const vincePlugin: Plugin = {
     vinceBotStatusAction,
     vinceBotPauseAction,
     vinceWhyTradeAction,
+    vincePostMortemAction,
+    vinceSentimentCheckAction,
     vinceBotAction,
     vinceCodeTaskAction,
     vinceGrokExpertAction,
@@ -629,6 +635,8 @@ export const vincePlugin: Plugin = {
     vinceContextProvider,
     trenchKnowledgeProvider,
     bankrOrdersProvider, // Cross-agent: active BANKR orders from Otaku
+    echoSentimentProvider, // Cross-agent: Echo CT sentiment (dynamic)
+    oracleRegimeProvider, // Cross-agent: Oracle Polymarket regime (dynamic)
   ],
 
   // Evaluators - Self-Improving Architecture

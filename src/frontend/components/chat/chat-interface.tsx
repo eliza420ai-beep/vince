@@ -157,6 +157,14 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       label: "Bot Performance",
       message: "bot performance report — wins, losses, edge, what to adjust",
     },
+    {
+      label: "Post-mortem (last loss)",
+      message: "Post-mortem on the last losing trade",
+    },
+    {
+      label: "Sentiment check",
+      message: "What does Echo and Oracle say about my next trade?",
+    },
   ],
   // Eliza (CEO): vision, knowledge, research, GTM, Substack.
   eliza: [
@@ -206,6 +214,14 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "Creative tips—what should I work on?",
     },
     { label: "Ask me something", message: "Ask me an interesting question" },
+    {
+      label: "Weekly Scorecard",
+      message: "Weekly review — how did we do this week?",
+    },
+    {
+      label: "$100K pace",
+      message: "Are we on track for $100K?",
+    },
   ],
   // Solus (CFO): on-chain options expert, Hypersurface mechanics, strike ritual, plan and call.
   solus: [
@@ -305,6 +321,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     {
       label: "Execute Vince Signal",
       message: "Execute latest Vince signal",
+    },
+    {
+      label: "Ready to execute?",
+      message: "Ready to execute? Should I execute Vince signal?",
     },
   ],
   // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research). What's the trade = belief-router (thesis → one expression).
