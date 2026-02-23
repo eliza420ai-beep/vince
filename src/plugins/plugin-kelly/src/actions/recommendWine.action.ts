@@ -17,8 +17,10 @@ import { extractRecommendationNames } from "../utils/recommendationGuards";
 
 const WINE_TRIGGERS = [
   "recommend wine",
+  "recommend a wine",
   "what wine",
   "wine for dinner",
+  "wine for tonight",
   "pairing for",
   "bottle for tonight",
   "wine with",
