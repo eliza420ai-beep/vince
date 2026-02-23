@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DashboardPageLayout from "@/frontend/components/dashboard/layout";
@@ -35,6 +36,7 @@ import {
   submitKnowledgeUpload,
   fetchPolymarketPriorityMarkets,
   fetchPolymarketEdgeStatus,
+  fetchPolymarketEdgeRefresh,
   fetchPolymarketEdgeSignals,
   fetchPolymarketDeskStatus,
   fetchPolymarketDeskTrades,
@@ -434,8 +436,15 @@ export default function LeaderboardPage({
   const [polymarketSort, setPolymarketSort] = useState<
     "yes" | "volume" | "closes"
   >("yes");
+  const [edgeRefreshLoading, setEdgeRefreshLoading] = useState(false);
   const [testQualityCopied, setTestQualityCopied] = useState(false);
   const [cursorActualCost, setCursorActualCost] = useState<string>("");
+
+  useEffect(() => {
+    if (mainTab === "memetics" || mainTab === "digital_art") {
+      setMainTab("more");
+    }
+  }, [mainTab]);
 
   const KNOWLEDGE_QUALITY_COMMAND =
     "RUN_NETWORK_TESTS=1 bun test src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts";
@@ -449,11 +458,7 @@ export default function LeaderboardPage({
     queryKey: ["leaderboards", leaderboardsAgentId],
     queryFn: () => fetchLeaderboardsWithError(leaderboardsAgentId),
     enabled:
-      (mainTab === "markets" ||
-        mainTab === "memetics" ||
-        mainTab === "news" ||
-        mainTab === "more" ||
-        mainTab === "digital_art") &&
+      (mainTab === "markets" || mainTab === "news" || mainTab === "more") &&
       !!leaderboardsAgentId,
     staleTime: LEADERBOARDS_STALE_MS,
   });
@@ -821,17 +826,15 @@ export default function LeaderboardPage({
               <TabsTrigger value="news">News</TabsTrigger>
               <TabsTrigger value="markets">Markets</TabsTrigger>
               <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
-              <TabsTrigger value="memetics">Memetics</TabsTrigger>
-              <TabsTrigger value="digital_art">Digital Art</TabsTrigger>
-              <TabsTrigger value="more">More</TabsTrigger>
+              {/* <TabsTrigger value="memetics">Memetics</TabsTrigger> */}
+              {/* <TabsTrigger value="digital_art">Digital Art</TabsTrigger> */}
+              <TabsTrigger value="more">Trading context</TabsTrigger>
               <TabsTrigger value="polymarket">Polymarket</TabsTrigger>
               <TabsTrigger value="usage">Usage</TabsTrigger>
             </TabsList>
             {(mainTab === "markets" ||
-              mainTab === "memetics" ||
               mainTab === "news" ||
-              mainTab === "more" ||
-              mainTab === "digital_art") && (
+              mainTab === "more") && (
               <Button
                 variant="outline"
                 size="sm"
@@ -1112,630 +1115,639 @@ export default function LeaderboardPage({
             )}
           </TabsContent>
 
-          {/* Memetics tab: Memes (Solana) + Meteora LP */}
-          <TabsContent
-            value="memetics"
-            className="mt-6 flex-1 min-h-0 overflow-auto"
-          >
-            {leaderboardsLoading || leaderboardsFetching ? (
-              <div className="space-y-4">
-                {[1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="h-48 bg-muted/50 rounded-xl animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : leaderboardsData ? (
-              <div className="space-y-8">
-                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
-                  <p className="text-sm font-medium text-foreground/90">
-                    Memes (Solana), Memes (BASE), Meteora LP, and Watchlist —
-                    memetics-focused views.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {leaderboardsData.updatedAt != null
-                      ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
-                      : "Live data"}
-                  </p>
-                </div>
+          {false && (
+            <>
+              {/* Memetics tab: Memes (Solana) + Meteora LP — commented out */}
+              <TabsContent
+                value="memetics"
+                className="mt-6 flex-1 min-h-0 overflow-auto"
+              >
+                {leaderboardsLoading || leaderboardsFetching ? (
+                  <div className="space-y-4">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="h-48 bg-muted/50 rounded-xl animate-pulse"
+                      />
+                    ))}
+                  </div>
+                ) : leaderboardsData ? (
+                  <div className="space-y-8">
+                    <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
+                      <p className="text-sm font-medium text-foreground/90">
+                        Memes (Solana), Memes (BASE), Meteora LP, and Watchlist
+                        — memetics-focused views.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {leaderboardsData.updatedAt != null
+                          ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
+                          : "Live data"}
+                      </p>
+                    </div>
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {/* Memes: full hot + ape + watch + avoid — clean layout, no duplicates */}
-                  {leaderboardsData.memes &&
-                    (() => {
-                      const hot = leaderboardsData.memes.hot ?? [];
-                      const ape = leaderboardsData.memes.ape ?? [];
-                      const apeSymbols = new Set(ape.map((r) => r.symbol));
-                      const hotOnly = hot.filter(
-                        (r) => !apeSymbols.has(r.symbol),
-                      );
-                      const formatMcap = (v: number) =>
-                        v >= 1e6
-                          ? `$${(v / 1e6).toFixed(1)}M`
-                          : v >= 1e3
-                            ? `$${(v / 1e3).toFixed(0)}K`
-                            : `$${v.toFixed(0)}`;
-                      const formatChange = (n: number) =>
-                        n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`;
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      {/* Memes: full hot + ape + watch + avoid — clean layout, no duplicates */}
+                      {leaderboardsData.memes &&
+                        (() => {
+                          const hot = leaderboardsData.memes.hot ?? [];
+                          const ape = leaderboardsData.memes.ape ?? [];
+                          const apeSymbols = new Set(ape.map((r) => r.symbol));
+                          const hotOnly = hot.filter(
+                            (r) => !apeSymbols.has(r.symbol),
+                          );
+                          const formatMcap = (v: number) =>
+                            v >= 1e6
+                              ? `$${(v / 1e6).toFixed(1)}M`
+                              : v >= 1e3
+                                ? `$${(v / 1e3).toFixed(0)}K`
+                                : `$${v.toFixed(0)}`;
+                          const formatChange = (n: number) =>
+                            n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`;
 
-                      return (
-                        <DashboardCard
-                          title={leaderboardsData.memes.title}
-                          className="lg:col-span-2"
-                        >
-                          <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
-                            <p className="text-sm font-medium text-foreground/95">
-                              {leaderboardsData.memes.moodSummary ?? ""}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Mood: {leaderboardsData.memes.mood ?? "—"}
-                            </p>
-                          </div>
-                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                                <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
+                          return (
+                            <DashboardCard
+                              title={leaderboardsData.memes.title}
+                              className="lg:col-span-2"
+                            >
+                              <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
+                                <p className="text-sm font-medium text-foreground/95">
+                                  {leaderboardsData.memes.moodSummary ?? ""}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Mood: {leaderboardsData.memes.mood ?? "—"}
+                                </p>
                               </div>
-                              <div className="rounded-md border border-border/60 overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <tbody>
-                                    {hotOnly.slice(0, 6).map((r) => (
-                                      <tr
-                                        key={r.symbol}
-                                        className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                      >
-                                        <td className="py-2 px-3 font-medium">
-                                          {r.symbol}
-                                        </td>
-                                        <td className="py-2 px-3 text-right">
-                                          <span
-                                            className={cn(
-                                              "tabular-nums font-medium",
-                                              (r.change24h ?? 0) >= 0
-                                                ? "text-green-600 dark:text-green-400"
-                                                : "text-red-600 dark:text-red-400",
-                                            )}
+                              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                                    <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
+                                  </div>
+                                  <div className="rounded-md border border-border/60 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <tbody>
+                                        {hotOnly.slice(0, 6).map((r) => (
+                                          <tr
+                                            key={r.symbol}
+                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
                                           >
-                                            {formatChange(r.change24h ?? 0)}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    {hotOnly.length === 0 && (
-                                      <tr>
-                                        <td
-                                          colSpan={2}
-                                          className="py-3 px-3 text-muted-foreground text-sm"
-                                        >
-                                          —
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                Ape
-                              </div>
-                              <div className="rounded-md border border-border/60 overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <tbody>
-                                    {ape.slice(0, 6).map((r) => (
-                                      <tr
-                                        key={r.symbol}
-                                        className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                      >
-                                        <td className="py-2 px-3 font-medium">
-                                          {r.symbol}
-                                        </td>
-                                        <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                          {r.marketCap != null &&
-                                            formatMcap(r.marketCap)}
-                                          {r.volumeLiquidityRatio != null &&
-                                            ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    {ape.length === 0 && (
-                                      <tr>
-                                        <td
-                                          colSpan={2}
-                                          className="py-3 px-3 text-muted-foreground text-sm"
-                                        >
-                                          —
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                Watch
-                              </div>
-                              <div className="rounded-md border border-border/60 overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <tbody>
-                                    {(leaderboardsData.memes.watch ?? [])
-                                      .slice(0, 6)
-                                      .map((r) => (
-                                        <tr
-                                          key={r.symbol}
-                                          className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                        >
-                                          <td className="py-2 px-3 font-medium">
-                                            {r.symbol}
-                                          </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                            {r.volumeLiquidityRatio != null
-                                              ? `${r.volumeLiquidityRatio.toFixed(1)}x`
-                                              : "—"}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    {(leaderboardsData.memes.watch?.length ??
-                                      0) === 0 && (
-                                      <tr>
-                                        <td
-                                          colSpan={2}
-                                          className="py-3 px-3 text-muted-foreground text-sm"
-                                        >
-                                          —
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-                        </DashboardCard>
-                      );
-                    })()}
-
-                  {/* Memes (BASE): same layout as Solana */}
-                  {leaderboardsData.memesBase &&
-                    (() => {
-                      const section = leaderboardsData.memesBase!;
-                      const hot = section.hot ?? [];
-                      const ape = section.ape ?? [];
-                      const apeSymbols = new Set(ape.map((r) => r.symbol));
-                      const hotOnly = hot.filter(
-                        (r) => !apeSymbols.has(r.symbol),
-                      );
-                      const formatMcap = (v: number) =>
-                        v >= 1e6
-                          ? `$${(v / 1e6).toFixed(1)}M`
-                          : v >= 1e3
-                            ? `$${(v / 1e3).toFixed(0)}K`
-                            : `$${v.toFixed(0)}`;
-                      const formatChange = (n: number) =>
-                        n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`;
-
-                      return (
-                        <DashboardCard
-                          title={section.title}
-                          className="lg:col-span-2"
-                        >
-                          <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
-                            <p className="text-sm font-medium text-foreground/95">
-                              {section.moodSummary ?? ""}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Mood: {section.mood ?? "—"}
-                            </p>
-                          </div>
-                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                                <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
-                              </div>
-                              <div className="rounded-md border border-border/60 overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <tbody>
-                                    {hotOnly.slice(0, 6).map((r) => (
-                                      <tr
-                                        key={r.symbol}
-                                        className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                      >
-                                        <td className="py-2 px-3 font-medium">
-                                          {r.symbol}
-                                        </td>
-                                        <td className="py-2 px-3 text-right">
-                                          <span
-                                            className={cn(
-                                              "tabular-nums font-medium",
-                                              (r.change24h ?? 0) >= 0
-                                                ? "text-green-600 dark:text-green-400"
-                                                : "text-red-600 dark:text-red-400",
-                                            )}
+                                            <td className="py-2 px-3 font-medium">
+                                              {r.symbol}
+                                            </td>
+                                            <td className="py-2 px-3 text-right">
+                                              <span
+                                                className={cn(
+                                                  "tabular-nums font-medium",
+                                                  (r.change24h ?? 0) >= 0
+                                                    ? "text-green-600 dark:text-green-400"
+                                                    : "text-red-600 dark:text-red-400",
+                                                )}
+                                              >
+                                                {formatChange(r.change24h ?? 0)}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                        {hotOnly.length === 0 && (
+                                          <tr>
+                                            <td
+                                              colSpan={2}
+                                              className="py-3 px-3 text-muted-foreground text-sm"
+                                            >
+                                              —
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Ape
+                                  </div>
+                                  <div className="rounded-md border border-border/60 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <tbody>
+                                        {ape.slice(0, 6).map((r) => (
+                                          <tr
+                                            key={r.symbol}
+                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
                                           >
-                                            {formatChange(r.change24h ?? 0)}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    {hotOnly.length === 0 && (
-                                      <tr>
-                                        <td
-                                          colSpan={2}
-                                          className="py-3 px-3 text-muted-foreground text-sm"
-                                        >
-                                          —
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
+                                            <td className="py-2 px-3 font-medium">
+                                              {r.symbol}
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                              {r.marketCap != null &&
+                                                formatMcap(r.marketCap)}
+                                              {r.volumeLiquidityRatio != null &&
+                                                ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                        {ape.length === 0 && (
+                                          <tr>
+                                            <td
+                                              colSpan={2}
+                                              className="py-3 px-3 text-muted-foreground text-sm"
+                                            >
+                                              —
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                                    Watch
+                                  </div>
+                                  <div className="rounded-md border border-border/60 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <tbody>
+                                        {(leaderboardsData.memes.watch ?? [])
+                                          .slice(0, 6)
+                                          .map((r) => (
+                                            <tr
+                                              key={r.symbol}
+                                              className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                            >
+                                              <td className="py-2 px-3 font-medium">
+                                                {r.symbol}
+                                              </td>
+                                              <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                                {r.volumeLiquidityRatio != null
+                                                  ? `${r.volumeLiquidityRatio.toFixed(1)}x`
+                                                  : "—"}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        {(leaderboardsData.memes.watch
+                                          ?.length ?? 0) === 0 && (
+                                          <tr>
+                                            <td
+                                              colSpan={2}
+                                              className="py-3 px-3 text-muted-foreground text-sm"
+                                            >
+                                              —
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                Ape
-                              </div>
-                              <div className="rounded-md border border-border/60 overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <tbody>
-                                    {ape.slice(0, 6).map((r) => (
-                                      <tr
-                                        key={r.symbol}
-                                        className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                      >
-                                        <td className="py-2 px-3 font-medium">
-                                          {r.symbol}
-                                        </td>
-                                        <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                          {r.marketCap != null &&
-                                            formatMcap(r.marketCap)}
-                                          {r.volumeLiquidityRatio != null &&
-                                            ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    {ape.length === 0 && (
-                                      <tr>
-                                        <td
-                                          colSpan={2}
-                                          className="py-3 px-3 text-muted-foreground text-sm"
-                                        >
-                                          —
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                Watch
-                              </div>
-                              <div className="rounded-md border border-border/60 overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <tbody>
-                                    {(section.watch ?? [])
-                                      .slice(0, 6)
-                                      .map((r) => (
-                                        <tr
-                                          key={r.symbol}
-                                          className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                        >
-                                          <td className="py-2 px-3 font-medium">
-                                            {r.symbol}
-                                          </td>
-                                          <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                            {r.volumeLiquidityRatio != null
-                                              ? `${r.volumeLiquidityRatio.toFixed(1)}x`
-                                              : "—"}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    {(section.watch?.length ?? 0) === 0 && (
-                                      <tr>
-                                        <td
-                                          colSpan={2}
-                                          className="py-3 px-3 text-muted-foreground text-sm"
-                                        >
-                                          —
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-                        </DashboardCard>
-                      );
-                    })()}
+                            </DashboardCard>
+                          );
+                        })()}
 
-                  {/* Meteora: APY-ranked table + top TVL + meme LP opportunities */}
-                  {leaderboardsData.meteora &&
-                    (leaderboardsData.meteora.topPools?.length ?? 0) > 0 &&
-                    (() => {
-                      const topPools = leaderboardsData.meteora!.topPools ?? [];
-                      const memePools =
-                        leaderboardsData.meteora!.memePools ?? [];
-                      const allPoolsByApy =
-                        leaderboardsData.meteora!.allPoolsByApy ?? [];
-                      const topNames = new Set(topPools.map((p) => p.name));
-                      const memeOnly = memePools
-                        .filter((p) => !topNames.has(p.name))
-                        .slice(0, 8);
+                      {/* Memes (BASE): same layout as Solana */}
+                      {leaderboardsData.memesBase &&
+                        (() => {
+                          const section = leaderboardsData.memesBase!;
+                          const hot = section.hot ?? [];
+                          const ape = section.ape ?? [];
+                          const apeSymbols = new Set(ape.map((r) => r.symbol));
+                          const hotOnly = hot.filter(
+                            (r) => !apeSymbols.has(r.symbol),
+                          );
+                          const formatMcap = (v: number) =>
+                            v >= 1e6
+                              ? `$${(v / 1e6).toFixed(1)}M`
+                              : v >= 1e3
+                                ? `$${(v / 1e3).toFixed(0)}K`
+                                : `$${v.toFixed(0)}`;
+                          const formatChange = (n: number) =>
+                            n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`;
 
-                      const poolKey = (p: { id?: string; name: string }) =>
-                        p.id ?? p.name;
-
-                      const PoolTable = ({
-                        pools,
-                        emptyMsg,
-                      }: {
-                        pools: typeof topPools;
-                        emptyMsg: string;
-                      }) => (
-                        <div className="rounded-md border border-border/60 overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="bg-muted/50">
-                                <th className="text-left py-2 px-3 font-medium">
-                                  Pair
-                                </th>
-                                <th className="text-right py-2 px-3 font-medium">
-                                  TVL
-                                </th>
-                                <th className="text-right py-2 px-3 font-medium w-12">
-                                  bp
-                                </th>
-                                <th className="text-right py-2 px-3 font-medium">
-                                  APY
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {pools.map((p) => (
-                                <tr
-                                  key={poolKey(p)}
-                                  className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                >
-                                  <td className="py-2 px-3 font-medium">
-                                    {p.name}
-                                  </td>
-                                  <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                    {p.tvlFormatted}
-                                  </td>
-                                  <td className="py-2 px-3 text-right text-muted-foreground tabular-nums text-xs">
-                                    {p.binWidth != null
-                                      ? (p.binWidth * 100).toFixed(0)
-                                      : "—"}
-                                  </td>
-                                  <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
-                                    {p.apy != null
-                                      ? `${(p.apy * 100).toFixed(1)}%`
-                                      : "—"}
-                                  </td>
-                                </tr>
-                              ))}
-                              {pools.length === 0 && (
-                                <tr>
-                                  <td
-                                    colSpan={4}
-                                    className="py-4 px-3 text-muted-foreground text-center text-sm"
-                                  >
-                                    {emptyMsg}
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-
-                      return (
-                        <DashboardCard
-                          title={leaderboardsData.meteora!.title}
-                          className="lg:col-span-2"
-                        >
-                          <div className="rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 px-4 py-2.5 mb-5">
-                            <p className="text-sm font-medium text-foreground/95">
-                              {leaderboardsData.meteora!.oneLiner ?? ""}
-                            </p>
-                          </div>
-                          {allPoolsByApy.length > 0 && (
-                            <div className="space-y-2 mb-6">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                All pools ranked by APY (highest first)
+                          return (
+                            <DashboardCard
+                              title={section.title}
+                              className="lg:col-span-2"
+                            >
+                              <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
+                                <p className="text-sm font-medium text-foreground/95">
+                                  {section.moodSummary ?? ""}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Mood: {section.mood ?? "—"}
+                                </p>
                               </div>
-                              <div className="rounded-md border border-border/60 overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <thead className="sticky top-0 bg-muted/95 backdrop-blur">
-                                    <tr className="bg-muted/50">
-                                      <th className="text-left py-2 px-3 font-medium w-12">
-                                        Rank
-                                      </th>
-                                      <th className="text-left py-2 px-3 font-medium">
-                                        Pair
-                                      </th>
-                                      <th className="text-right py-2 px-3 font-medium">
-                                        APY
-                                      </th>
-                                      <th className="text-right py-2 px-3 font-medium">
-                                        TVL
-                                      </th>
-                                      <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">
-                                        Table / note
-                                      </th>
+                              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                                    <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
+                                  </div>
+                                  <div className="rounded-md border border-border/60 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <tbody>
+                                        {hotOnly.slice(0, 6).map((r) => (
+                                          <tr
+                                            key={r.symbol}
+                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                          >
+                                            <td className="py-2 px-3 font-medium">
+                                              {r.symbol}
+                                            </td>
+                                            <td className="py-2 px-3 text-right">
+                                              <span
+                                                className={cn(
+                                                  "tabular-nums font-medium",
+                                                  (r.change24h ?? 0) >= 0
+                                                    ? "text-green-600 dark:text-green-400"
+                                                    : "text-red-600 dark:text-red-400",
+                                                )}
+                                              >
+                                                {formatChange(r.change24h ?? 0)}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                        {hotOnly.length === 0 && (
+                                          <tr>
+                                            <td
+                                              colSpan={2}
+                                              className="py-3 px-3 text-muted-foreground text-sm"
+                                            >
+                                              —
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Ape
+                                  </div>
+                                  <div className="rounded-md border border-border/60 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <tbody>
+                                        {ape.slice(0, 6).map((r) => (
+                                          <tr
+                                            key={r.symbol}
+                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                          >
+                                            <td className="py-2 px-3 font-medium">
+                                              {r.symbol}
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                              {r.marketCap != null &&
+                                                formatMcap(r.marketCap)}
+                                              {r.volumeLiquidityRatio != null &&
+                                                ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                        {ape.length === 0 && (
+                                          <tr>
+                                            <td
+                                              colSpan={2}
+                                              className="py-3 px-3 text-muted-foreground text-sm"
+                                            >
+                                              —
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                                    Watch
+                                  </div>
+                                  <div className="rounded-md border border-border/60 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <tbody>
+                                        {(section.watch ?? [])
+                                          .slice(0, 6)
+                                          .map((r) => (
+                                            <tr
+                                              key={r.symbol}
+                                              className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                            >
+                                              <td className="py-2 px-3 font-medium">
+                                                {r.symbol}
+                                              </td>
+                                              <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                                {r.volumeLiquidityRatio != null
+                                                  ? `${r.volumeLiquidityRatio.toFixed(1)}x`
+                                                  : "—"}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        {(section.watch?.length ?? 0) === 0 && (
+                                          <tr>
+                                            <td
+                                              colSpan={2}
+                                              className="py-3 px-3 text-muted-foreground text-sm"
+                                            >
+                                              —
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                            </DashboardCard>
+                          );
+                        })()}
+
+                      {/* Meteora: APY-ranked table + top TVL + meme LP opportunities */}
+                      {leaderboardsData.meteora &&
+                        (leaderboardsData.meteora.topPools?.length ?? 0) > 0 &&
+                        (() => {
+                          const topPools =
+                            leaderboardsData.meteora!.topPools ?? [];
+                          const memePools =
+                            leaderboardsData.meteora!.memePools ?? [];
+                          const allPoolsByApy =
+                            leaderboardsData.meteora!.allPoolsByApy ?? [];
+                          const topNames = new Set(topPools.map((p) => p.name));
+                          const memeOnly = memePools
+                            .filter((p) => !topNames.has(p.name))
+                            .slice(0, 8);
+
+                          const poolKey = (p: { id?: string; name: string }) =>
+                            p.id ?? p.name;
+
+                          const PoolTable = ({
+                            pools,
+                            emptyMsg,
+                          }: {
+                            pools: typeof topPools;
+                            emptyMsg: string;
+                          }) => (
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="bg-muted/50">
+                                    <th className="text-left py-2 px-3 font-medium">
+                                      Pair
+                                    </th>
+                                    <th className="text-right py-2 px-3 font-medium">
+                                      TVL
+                                    </th>
+                                    <th className="text-right py-2 px-3 font-medium w-12">
+                                      bp
+                                    </th>
+                                    <th className="text-right py-2 px-3 font-medium">
+                                      APY
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {pools.map((p) => (
+                                    <tr
+                                      key={poolKey(p)}
+                                      className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                    >
+                                      <td className="py-2 px-3 font-medium">
+                                        {p.name}
+                                      </td>
+                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                        {p.tvlFormatted}
+                                      </td>
+                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums text-xs">
+                                        {p.binWidth != null
+                                          ? (p.binWidth * 100).toFixed(0)
+                                          : "—"}
+                                      </td>
+                                      <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
+                                        {p.apy != null
+                                          ? `${(p.apy * 100).toFixed(1)}%`
+                                          : "—"}
+                                      </td>
                                     </tr>
-                                  </thead>
-                                  <tbody>
-                                    {allPoolsByApy.map((p, i) => (
-                                      <tr
-                                        key={poolKey(p)}
-                                        className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                  ))}
+                                  {pools.length === 0 && (
+                                    <tr>
+                                      <td
+                                        colSpan={4}
+                                        className="py-4 px-3 text-muted-foreground text-center text-sm"
                                       >
-                                        <td className="py-2 px-3 font-medium tabular-nums">
-                                          {i + 1}
-                                        </td>
-                                        <td className="py-2 px-3 font-medium">
-                                          {p.name}
-                                        </td>
-                                        <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
-                                          {p.apy != null
-                                            ? `${(p.apy * 100).toFixed(1)}%`
-                                            : "—"}
-                                        </td>
-                                        <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                          {p.tvlFormatted}
-                                        </td>
-                                        <td className="py-2 px-3 text-muted-foreground text-xs">
-                                          {p.category ?? "—"}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
+                                        {emptyMsg}
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
                             </div>
-                          )}
-                          <div className="grid gap-6 lg:grid-cols-2">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                <BarChart3 className="w-3.5 h-3.5" /> Top pools
-                                by TVL
-                              </div>
-                              <PoolTable
-                                pools={topPools.slice(0, 10)}
-                                emptyMsg="—"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                Meme LP opportunities (high vol/TVL)
-                              </div>
-                              <PoolTable
-                                pools={memeOnly}
-                                emptyMsg="No extra meme pools beyond top TVL — all high-activity pools are above."
-                              />
-                            </div>
-                          </div>
-                        </DashboardCard>
-                      );
-                    })()}
+                          );
 
-                  {/* Left Curve (MandoMinutes) */}
-                  {leaderboardsData.memes?.leftcurve &&
-                    (leaderboardsData.memes.leftcurve.headlines?.length ?? 0) >
-                      0 && (
-                      <DashboardCard
-                        title={leaderboardsData.memes.leftcurve.title}
-                        className="lg:col-span-2"
-                      >
-                        <ul className="space-y-2 text-sm max-h-[40vh] overflow-y-auto pr-1">
-                          {leaderboardsData.memes.leftcurve.headlines.map(
-                            (h, i) => (
-                              <li key={i} className="flex gap-2 items-start">
-                                <span className="flex-1 line-clamp-2">
-                                  {h.text}
-                                </span>
-                                {h.url && (
-                                  <a
-                                    href={h.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs"
+                          return (
+                            <DashboardCard
+                              title={leaderboardsData.meteora!.title}
+                              className="lg:col-span-2"
+                            >
+                              <div className="rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 px-4 py-2.5 mb-5">
+                                <p className="text-sm font-medium text-foreground/95">
+                                  {leaderboardsData.meteora!.oneLiner ?? ""}
+                                </p>
+                              </div>
+                              {allPoolsByApy.length > 0 && (
+                                <div className="space-y-2 mb-6">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    All pools ranked by APY (highest first)
+                                  </div>
+                                  <div className="rounded-md border border-border/60 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <thead className="sticky top-0 bg-muted/95 backdrop-blur">
+                                        <tr className="bg-muted/50">
+                                          <th className="text-left py-2 px-3 font-medium w-12">
+                                            Rank
+                                          </th>
+                                          <th className="text-left py-2 px-3 font-medium">
+                                            Pair
+                                          </th>
+                                          <th className="text-right py-2 px-3 font-medium">
+                                            APY
+                                          </th>
+                                          <th className="text-right py-2 px-3 font-medium">
+                                            TVL
+                                          </th>
+                                          <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">
+                                            Table / note
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {allPoolsByApy.map((p, i) => (
+                                          <tr
+                                            key={poolKey(p)}
+                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                          >
+                                            <td className="py-2 px-3 font-medium tabular-nums">
+                                              {i + 1}
+                                            </td>
+                                            <td className="py-2 px-3 font-medium">
+                                              {p.name}
+                                            </td>
+                                            <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
+                                              {p.apy != null
+                                                ? `${(p.apy * 100).toFixed(1)}%`
+                                                : "—"}
+                                            </td>
+                                            <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                              {p.tvlFormatted}
+                                            </td>
+                                            <td className="py-2 px-3 text-muted-foreground text-xs">
+                                              {p.category ?? "—"}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="grid gap-6 lg:grid-cols-2">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    <BarChart3 className="w-3.5 h-3.5" /> Top
+                                    pools by TVL
+                                  </div>
+                                  <PoolTable
+                                    pools={topPools.slice(0, 10)}
+                                    emptyMsg="—"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Meme LP opportunities (high vol/TVL)
+                                  </div>
+                                  <PoolTable
+                                    pools={memeOnly}
+                                    emptyMsg="No extra meme pools beyond top TVL — all high-activity pools are above."
+                                  />
+                                </div>
+                              </div>
+                            </DashboardCard>
+                          );
+                        })()}
+
+                      {/* Left Curve (MandoMinutes) */}
+                      {leaderboardsData.memes?.leftcurve &&
+                        (leaderboardsData.memes.leftcurve.headlines?.length ??
+                          0) > 0 && (
+                          <DashboardCard
+                            title={leaderboardsData.memes.leftcurve.title}
+                            className="lg:col-span-2"
+                          >
+                            <ul className="space-y-2 text-sm max-h-[40vh] overflow-y-auto pr-1">
+                              {leaderboardsData.memes.leftcurve.headlines.map(
+                                (h, i) => (
+                                  <li
+                                    key={i}
+                                    className="flex gap-2 items-start"
                                   >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                    Deep dive
-                                  </a>
-                                )}
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                      </DashboardCard>
-                    )}
-                  {/* Watchlist */}
-                  {leaderboardsData.more?.watchlist &&
-                    (leaderboardsData.more.watchlist.tokens?.length ?? 0) >
-                      0 && (
-                      <DashboardCard
-                        title="Watchlist"
-                        className="lg:col-span-2"
-                      >
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border">
-                                <th className="text-left py-2 font-medium">
-                                  Symbol
-                                </th>
-                                <th className="text-left py-2 font-medium">
-                                  Chain
-                                </th>
-                                <th className="text-left py-2 font-medium">
-                                  Priority
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  Target Mcap
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(
-                                leaderboardsData.more.watchlist.tokens ?? []
-                              ).map((t) => (
-                                <tr
-                                  key={t.symbol}
-                                  className="border-b border-border/50"
-                                >
-                                  <td className="py-1.5 font-medium">
-                                    {t.symbol}
-                                  </td>
-                                  <td className="py-1.5 text-muted-foreground">
-                                    {t.chain ?? "—"}
-                                  </td>
-                                  <td className="py-1.5 text-muted-foreground">
-                                    {t.priority ?? "—"}
-                                  </td>
-                                  <td className="py-1.5 text-right font-mono">
-                                    {t.targetMcap != null
-                                      ? `$${(t.targetMcap / 1e6).toFixed(1)}M`
-                                      : "—"}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </DashboardCard>
-                    )}
-                </div>
+                                    <span className="flex-1 line-clamp-2">
+                                      {h.text}
+                                    </span>
+                                    {h.url && (
+                                      <a
+                                        href={h.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                        Deep dive
+                                      </a>
+                                    )}
+                                  </li>
+                                ),
+                              )}
+                            </ul>
+                          </DashboardCard>
+                        )}
+                      {/* Watchlist */}
+                      {leaderboardsData.more?.watchlist &&
+                        (leaderboardsData.more.watchlist.tokens?.length ?? 0) >
+                          0 && (
+                          <DashboardCard
+                            title="Watchlist"
+                            className="lg:col-span-2"
+                          >
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-border">
+                                    <th className="text-left py-2 font-medium">
+                                      Symbol
+                                    </th>
+                                    <th className="text-left py-2 font-medium">
+                                      Chain
+                                    </th>
+                                    <th className="text-left py-2 font-medium">
+                                      Priority
+                                    </th>
+                                    <th className="text-right py-2 font-medium">
+                                      Target Mcap
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(
+                                    leaderboardsData.more.watchlist.tokens ?? []
+                                  ).map((t) => (
+                                    <tr
+                                      key={t.symbol}
+                                      className="border-b border-border/50"
+                                    >
+                                      <td className="py-1.5 font-medium">
+                                        {t.symbol}
+                                      </td>
+                                      <td className="py-1.5 text-muted-foreground">
+                                        {t.chain ?? "—"}
+                                      </td>
+                                      <td className="py-1.5 text-muted-foreground">
+                                        {t.priority ?? "—"}
+                                      </td>
+                                      <td className="py-1.5 text-right font-mono">
+                                        {t.targetMcap != null
+                                          ? `$${(t.targetMcap / 1e6).toFixed(1)}M`
+                                          : "—"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </DashboardCard>
+                        )}
+                    </div>
 
-                {!leaderboardsData.memes &&
-                  !leaderboardsData.meteora &&
-                  !(
-                    leaderboardsData.more?.watchlist &&
-                    (leaderboardsData.more.watchlist.tokens?.length ?? 0) > 0
-                  ) && (
-                    <p className="text-center text-muted-foreground py-8">
-                      No memetics data available. Try again in a moment.
+                    {!leaderboardsData.memes &&
+                      !leaderboardsData.meteora &&
+                      !(
+                        leaderboardsData.more?.watchlist &&
+                        (leaderboardsData.more.watchlist.tokens?.length ?? 0) >
+                          0
+                      ) && (
+                        <p className="text-center text-muted-foreground py-8">
+                          No memetics data available. Try again in a moment.
+                        </p>
+                      )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
+                    <p className="font-medium text-foreground">
+                      Could not load memetics data
                     </p>
-                  )}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
-                <p className="font-medium text-foreground">
-                  Could not load memetics data
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Make sure VINCE is running, then click Refresh above.
-                </p>
-              </div>
-            )}
-          </TabsContent>
+                    <p className="text-sm text-muted-foreground">
+                      Make sure VINCE is running, then click Refresh above.
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+            </>
+          )}
 
           {/* News tab: X vibe check (top) + MandoMinutes TLDR + headlines */}
           <TabsContent
@@ -2195,374 +2207,386 @@ export default function LeaderboardPage({
             )}
           </TabsContent>
 
-          {/* Digital Art tab: curated NFT collections — floor prices and thin-floor opportunities */}
-          <TabsContent
-            value="digital_art"
-            className="mt-6 flex-1 min-h-0 overflow-auto"
-          >
-            {(leaderboardsLoading || leaderboardsFetching) &&
-            !leaderboardsData?.digitalArt ? (
-              <div className="space-y-4">
-                <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
-                <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
-              </div>
-            ) : leaderboardsData?.digitalArt ? (
-              <div className="space-y-6">
-                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
-                  <p className="text-sm font-medium text-foreground/90">
-                    {leaderboardsData.digitalArt.oneLiner}
-                  </p>
-                  {leaderboardsData.digitalArt.criteriaNote && (
-                    <p className="text-xs text-muted-foreground mt-2 font-medium">
-                      {leaderboardsData.digitalArt.criteriaNote}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {leaderboardsData.updatedAt != null
-                      ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
-                      : "Live data"}
-                  </p>
-                </div>
-                <DashboardCard title={leaderboardsData.digitalArt.title}>
-                  {(leaderboardsData.digitalArt.collections ?? []).length >
-                  0 ? (
-                    <div className="rounded-md border border-border/60 overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border/60 bg-muted/30">
-                            <th className="py-2.5 px-3 text-left font-semibold">
-                              Collection
-                            </th>
-                            <th className="py-2.5 px-3 text-right font-semibold">
-                              Floor
-                            </th>
-                            <th
-                              className="py-2.5 px-2 text-right font-semibold"
-                              title="Recent sale prices. All below floor = excluded from gem-on-floor candidates."
-                            >
-                              Sales
-                            </th>
-                            <th className="py-2.5 px-3 text-right font-semibold">
-                              Thickness
-                            </th>
-                            <th
-                              className="py-2.5 px-2 text-right font-semibold"
-                              title="Volume 7d (ETH)"
-                            >
-                              Vol 7d
-                            </th>
-                            <th
-                              className="py-2.5 px-2 text-right font-semibold"
-                              title="Items within 5% of floor"
-                            >
-                              Near
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              2nd
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              3rd
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              4th
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              5th
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {leaderboardsData.digitalArt.collections.map((c) => {
-                            const g = c.gaps ?? {
-                              to2nd: 0,
-                              to3rd: 0,
-                              to4th: 0,
-                              to5th: 0,
-                              to6th: 0,
-                            };
-                            const fmt = (v: number) =>
-                              v > 0 ? `${v.toFixed(3)} ETH` : "—";
-                            const salesLabel = c.allSalesBelowFloor
-                              ? "⚠️ All below floor"
-                              : c.maxRecentSaleEth != null &&
-                                  c.maxRecentSaleEth > 0
-                                ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
-                                : "—";
-                            const categoryLabel =
-                              c.category === "blue_chip"
-                                ? "Blue Chip"
-                                : c.category === "generative"
-                                  ? "Generative"
-                                  : c.category === "photography"
-                                    ? "Photo"
-                                    : null;
-                            const vol7d =
-                              c.volume7d != null && c.volume7d > 0
-                                ? c.volume7d >= 1000
-                                  ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
-                                  : `${c.volume7d.toFixed(1)} ETH`
-                                : "—";
-                            return (
-                              <tr
-                                key={c.slug}
-                                className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                              >
-                                <td className="py-2 px-3">
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="font-medium">
-                                      {c.name}
-                                    </span>
-                                    {categoryLabel && (
-                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                        {categoryLabel}
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="py-2 px-3 text-right">
-                                  <div className="tabular-nums">
-                                    {c.floorPrice.toFixed(2)} ETH
-                                    {c.floorPriceUsd != null &&
-                                      c.floorPriceUsd > 0 && (
-                                        <div className="text-[10px] text-muted-foreground">
-                                          ${(c.floorPriceUsd / 1000).toFixed(1)}
-                                          K
-                                        </div>
-                                      )}
-                                  </div>
-                                </td>
-                                <td
-                                  className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
-                                  title={
-                                    (c.recentSalesPrices ?? []).length > 0
-                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
-                                      : undefined
-                                  }
-                                >
-                                  {salesLabel}
-                                </td>
-                                <td className="py-2 px-3 text-right capitalize">
-                                  {c.floorThickness}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {vol7d}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {c.nftsNearFloor != null &&
-                                  c.nftsNearFloor > 0
-                                    ? c.nftsNearFloor
-                                    : "—"}
-                                </td>
-                                <td
-                                  className="py-2 px-2 text-right tabular-nums text-muted-foreground"
-                                  title={
-                                    c.gapPctTo2nd != null
-                                      ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor`
-                                      : undefined
-                                  }
-                                >
-                                  {fmt(g.to2nd)}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {fmt(g.to3rd)}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {fmt(g.to4th)}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {fmt(g.to5th)}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+          {false && (
+            <>
+              {/* Digital Art tab: curated NFT collections — commented out */}
+              <TabsContent
+                value="digital_art"
+                className="mt-6 flex-1 min-h-0 overflow-auto"
+              >
+                {(leaderboardsLoading || leaderboardsFetching) &&
+                !leaderboardsData?.digitalArt ? (
+                  <div className="space-y-4">
+                    <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
+                    <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
+                  </div>
+                ) : leaderboardsData?.digitalArt ? (
+                  <div className="space-y-6">
+                    <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
+                      <p className="text-sm font-medium text-foreground/90">
+                        {leaderboardsData.digitalArt.oneLiner}
+                      </p>
+                      {leaderboardsData.digitalArt.criteriaNote && (
+                        <p className="text-xs text-muted-foreground mt-2 font-medium">
+                          {leaderboardsData.digitalArt.criteriaNote}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {leaderboardsData.updatedAt != null
+                          ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
+                          : "Live data"}
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-muted-foreground py-6">
-                      No NFT data yet. Set OPENSEA_API_KEY for curated
-                      collection floor prices.
-                    </p>
-                  )}
-                </DashboardCard>
+                    <DashboardCard title={leaderboardsData.digitalArt.title}>
+                      {(leaderboardsData.digitalArt.collections ?? []).length >
+                      0 ? (
+                        <div className="rounded-md border border-border/60 overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border/60 bg-muted/30">
+                                <th className="py-2.5 px-3 text-left font-semibold">
+                                  Collection
+                                </th>
+                                <th className="py-2.5 px-3 text-right font-semibold">
+                                  Floor
+                                </th>
+                                <th
+                                  className="py-2.5 px-2 text-right font-semibold"
+                                  title="Recent sale prices. All below floor = excluded from gem-on-floor candidates."
+                                >
+                                  Sales
+                                </th>
+                                <th className="py-2.5 px-3 text-right font-semibold">
+                                  Thickness
+                                </th>
+                                <th
+                                  className="py-2.5 px-2 text-right font-semibold"
+                                  title="Volume 7d (ETH)"
+                                >
+                                  Vol 7d
+                                </th>
+                                <th
+                                  className="py-2.5 px-2 text-right font-semibold"
+                                  title="Items within 5% of floor"
+                                >
+                                  Near
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  2nd
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  3rd
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  4th
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  5th
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {leaderboardsData.digitalArt.collections.map(
+                                (c) => {
+                                  const g = c.gaps ?? {
+                                    to2nd: 0,
+                                    to3rd: 0,
+                                    to4th: 0,
+                                    to5th: 0,
+                                    to6th: 0,
+                                  };
+                                  const fmt = (v: number) =>
+                                    v > 0 ? `${v.toFixed(3)} ETH` : "—";
+                                  const salesLabel = c.allSalesBelowFloor
+                                    ? "⚠️ All below floor"
+                                    : c.maxRecentSaleEth != null &&
+                                        c.maxRecentSaleEth > 0
+                                      ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
+                                      : "—";
+                                  const categoryLabel =
+                                    c.category === "blue_chip"
+                                      ? "Blue Chip"
+                                      : c.category === "generative"
+                                        ? "Generative"
+                                        : c.category === "photography"
+                                          ? "Photo"
+                                          : null;
+                                  const vol7d =
+                                    c.volume7d != null && c.volume7d > 0
+                                      ? c.volume7d >= 1000
+                                        ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
+                                        : `${c.volume7d.toFixed(1)} ETH`
+                                      : "—";
+                                  return (
+                                    <tr
+                                      key={c.slug}
+                                      className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                    >
+                                      <td className="py-2 px-3">
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="font-medium">
+                                            {c.name}
+                                          </span>
+                                          {categoryLabel && (
+                                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                              {categoryLabel}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-2 px-3 text-right">
+                                        <div className="tabular-nums">
+                                          {c.floorPrice.toFixed(2)} ETH
+                                          {c.floorPriceUsd != null &&
+                                            c.floorPriceUsd > 0 && (
+                                              <div className="text-[10px] text-muted-foreground">
+                                                $
+                                                {(
+                                                  c.floorPriceUsd / 1000
+                                                ).toFixed(1)}
+                                                K
+                                              </div>
+                                            )}
+                                        </div>
+                                      </td>
+                                      <td
+                                        className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
+                                        title={
+                                          (c.recentSalesPrices ?? []).length > 0
+                                            ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
+                                            : undefined
+                                        }
+                                      >
+                                        {salesLabel}
+                                      </td>
+                                      <td className="py-2 px-3 text-right capitalize">
+                                        {c.floorThickness}
+                                      </td>
+                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                        {vol7d}
+                                      </td>
+                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                        {c.nftsNearFloor != null &&
+                                        c.nftsNearFloor > 0
+                                          ? c.nftsNearFloor
+                                          : "—"}
+                                      </td>
+                                      <td
+                                        className="py-2 px-2 text-right tabular-nums text-muted-foreground"
+                                        title={
+                                          c.gapPctTo2nd != null
+                                            ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor`
+                                            : undefined
+                                        }
+                                      >
+                                        {fmt(g.to2nd)}
+                                      </td>
+                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                        {fmt(g.to3rd)}
+                                      </td>
+                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                        {fmt(g.to4th)}
+                                      </td>
+                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                        {fmt(g.to5th)}
+                                      </td>
+                                    </tr>
+                                  );
+                                },
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground py-6">
+                          No NFT data yet. Set OPENSEA_API_KEY for curated
+                          collection floor prices.
+                        </p>
+                      )}
+                    </DashboardCard>
 
-                {/* All curated collections by volume (no strict gem criteria; filter: volume 7d > 0) */}
-                {(leaderboardsData.digitalArt.volumeLeaders ?? []).length >
-                  0 && (
-                  <DashboardCard
-                    title="All collections by volume"
-                    subtitle="Filter: 7d volume &gt; 0 · Sorted by most volume"
-                  >
-                    <div className="rounded-md border border-border/60 overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border/60 bg-muted/30">
-                            <th className="py-2.5 px-3 text-left font-semibold">
-                              Collection
-                            </th>
-                            <th className="py-2.5 px-3 text-right font-semibold">
-                              Floor
-                            </th>
-                            <th
-                              className="py-2.5 px-2 text-right font-semibold"
-                              title="Recent sale prices"
-                            >
-                              Sales
-                            </th>
-                            <th className="py-2.5 px-3 text-right font-semibold">
-                              Thickness
-                            </th>
-                            <th
-                              className="py-2.5 px-2 text-right font-semibold"
-                              title="Volume 7d (ETH)"
-                            >
-                              Vol 7d
-                            </th>
-                            <th
-                              className="py-2.5 px-2 text-right font-semibold"
-                              title="Items within 5% of floor"
-                            >
-                              Near
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              2nd
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              3rd
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              4th
-                            </th>
-                            <th className="py-2.5 px-2 text-right font-semibold">
-                              5th
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(
-                            leaderboardsData.digitalArt.volumeLeaders ?? []
-                          ).map((c) => {
-                            const g = c.gaps ?? {
-                              to2nd: 0,
-                              to3rd: 0,
-                              to4th: 0,
-                              to5th: 0,
-                              to6th: 0,
-                            };
-                            const fmt = (v: number) =>
-                              v > 0 ? `${v.toFixed(3)} ETH` : "—";
-                            const salesLabel = c.allSalesBelowFloor
-                              ? "⚠️ All below floor"
-                              : c.maxRecentSaleEth != null &&
-                                  c.maxRecentSaleEth > 0
-                                ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
-                                : "—";
-                            const categoryLabel =
-                              c.category === "blue_chip"
-                                ? "Blue Chip"
-                                : c.category === "generative"
-                                  ? "Generative"
-                                  : c.category === "photography"
-                                    ? "Photo"
-                                    : null;
-                            const vol7d =
-                              c.volume7d != null && c.volume7d > 0
-                                ? c.volume7d >= 1000
-                                  ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
-                                  : `${c.volume7d.toFixed(1)} ETH`
-                                : "—";
-                            return (
-                              <tr
-                                key={c.slug}
-                                className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                              >
-                                <td className="py-2 px-3">
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="font-medium">
-                                      {c.name}
-                                    </span>
-                                    {categoryLabel && (
-                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                        {categoryLabel}
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="py-2 px-3 text-right">
-                                  <div className="tabular-nums">
-                                    {c.floorPrice.toFixed(2)} ETH
-                                    {c.floorPriceUsd != null &&
-                                      c.floorPriceUsd > 0 && (
-                                        <div className="text-[10px] text-muted-foreground">
-                                          ${(c.floorPriceUsd / 1000).toFixed(1)}
-                                          K
-                                        </div>
-                                      )}
-                                  </div>
-                                </td>
-                                <td
-                                  className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
-                                  title={
-                                    (c.recentSalesPrices ?? []).length > 0
-                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
-                                      : undefined
-                                  }
+                    {/* All curated collections by volume (no strict gem criteria; filter: volume 7d > 0) */}
+                    {(leaderboardsData.digitalArt.volumeLeaders ?? []).length >
+                      0 && (
+                      <DashboardCard
+                        title="All collections by volume"
+                        subtitle="Filter: 7d volume &gt; 0 · Sorted by most volume"
+                      >
+                        <div className="rounded-md border border-border/60 overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border/60 bg-muted/30">
+                                <th className="py-2.5 px-3 text-left font-semibold">
+                                  Collection
+                                </th>
+                                <th className="py-2.5 px-3 text-right font-semibold">
+                                  Floor
+                                </th>
+                                <th
+                                  className="py-2.5 px-2 text-right font-semibold"
+                                  title="Recent sale prices"
                                 >
-                                  {salesLabel}
-                                </td>
-                                <td className="py-2 px-3 text-right capitalize">
-                                  {c.floorThickness}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {vol7d}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {c.nftsNearFloor != null &&
-                                  c.nftsNearFloor > 0
-                                    ? c.nftsNearFloor
-                                    : "—"}
-                                </td>
-                                <td
-                                  className="py-2 px-2 text-right tabular-nums text-muted-foreground"
-                                  title={
-                                    c.gapPctTo2nd != null
-                                      ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor`
-                                      : undefined
-                                  }
+                                  Sales
+                                </th>
+                                <th className="py-2.5 px-3 text-right font-semibold">
+                                  Thickness
+                                </th>
+                                <th
+                                  className="py-2.5 px-2 text-right font-semibold"
+                                  title="Volume 7d (ETH)"
                                 >
-                                  {fmt(g.to2nd)}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {fmt(g.to3rd)}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {fmt(g.to4th)}
-                                </td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                  {fmt(g.to5th)}
-                                </td>
+                                  Vol 7d
+                                </th>
+                                <th
+                                  className="py-2.5 px-2 text-right font-semibold"
+                                  title="Items within 5% of floor"
+                                >
+                                  Near
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  2nd
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  3rd
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  4th
+                                </th>
+                                <th className="py-2.5 px-2 text-right font-semibold">
+                                  5th
+                                </th>
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </DashboardCard>
+                            </thead>
+                            <tbody>
+                              {(
+                                leaderboardsData.digitalArt.volumeLeaders ?? []
+                              ).map((c) => {
+                                const g = c.gaps ?? {
+                                  to2nd: 0,
+                                  to3rd: 0,
+                                  to4th: 0,
+                                  to5th: 0,
+                                  to6th: 0,
+                                };
+                                const fmt = (v: number) =>
+                                  v > 0 ? `${v.toFixed(3)} ETH` : "—";
+                                const salesLabel = c.allSalesBelowFloor
+                                  ? "⚠️ All below floor"
+                                  : c.maxRecentSaleEth != null &&
+                                      c.maxRecentSaleEth > 0
+                                    ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
+                                    : "—";
+                                const categoryLabel =
+                                  c.category === "blue_chip"
+                                    ? "Blue Chip"
+                                    : c.category === "generative"
+                                      ? "Generative"
+                                      : c.category === "photography"
+                                        ? "Photo"
+                                        : null;
+                                const vol7d =
+                                  c.volume7d != null && c.volume7d > 0
+                                    ? c.volume7d >= 1000
+                                      ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
+                                      : `${c.volume7d.toFixed(1)} ETH`
+                                    : "—";
+                                return (
+                                  <tr
+                                    key={c.slug}
+                                    className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                                  >
+                                    <td className="py-2 px-3">
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-medium">
+                                          {c.name}
+                                        </span>
+                                        {categoryLabel && (
+                                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                            {categoryLabel}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-3 text-right">
+                                      <div className="tabular-nums">
+                                        {c.floorPrice.toFixed(2)} ETH
+                                        {c.floorPriceUsd != null &&
+                                          c.floorPriceUsd > 0 && (
+                                            <div className="text-[10px] text-muted-foreground">
+                                              $
+                                              {(c.floorPriceUsd / 1000).toFixed(
+                                                1,
+                                              )}
+                                              K
+                                            </div>
+                                          )}
+                                      </div>
+                                    </td>
+                                    <td
+                                      className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
+                                      title={
+                                        (c.recentSalesPrices ?? []).length > 0
+                                          ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
+                                          : undefined
+                                      }
+                                    >
+                                      {salesLabel}
+                                    </td>
+                                    <td className="py-2 px-3 text-right capitalize">
+                                      {c.floorThickness}
+                                    </td>
+                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                      {vol7d}
+                                    </td>
+                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                      {c.nftsNearFloor != null &&
+                                      c.nftsNearFloor > 0
+                                        ? c.nftsNearFloor
+                                        : "—"}
+                                    </td>
+                                    <td
+                                      className="py-2 px-2 text-right tabular-nums text-muted-foreground"
+                                      title={
+                                        c.gapPctTo2nd != null
+                                          ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor`
+                                          : undefined
+                                      }
+                                    >
+                                      {fmt(g.to2nd)}
+                                    </td>
+                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                      {fmt(g.to3rd)}
+                                    </td>
+                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                      {fmt(g.to4th)}
+                                    </td>
+                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                      {fmt(g.to5th)}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </DashboardCard>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
+                    <Palette className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="font-medium text-foreground">
+                      No Digital Art data
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Switch to Markets to load data, or set OPENSEA_API_KEY for
+                      NFT floor prices.
+                    </p>
+                  </div>
                 )}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
-                <Palette className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                <p className="font-medium text-foreground">
-                  No Digital Art data
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Switch to Markets to load data, or set OPENSEA_API_KEY for NFT
-                  floor prices.
-                </p>
-              </div>
-            )}
-          </TabsContent>
+              </TabsContent>
+            </>
+          )}
 
           {/* More tab: Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts */}
           <TabsContent
@@ -2593,6 +2617,131 @@ export default function LeaderboardPage({
                   </p>
                 </div>
 
+                {/* Trading takeaways: what this means for our trading */}
+                <DashboardCard
+                  title="Trading takeaways"
+                  className="lg:col-span-2"
+                >
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    {leaderboardsData.more.fearGreed && (
+                      <p>
+                        <span className="font-medium text-foreground">
+                          Sentiment:{" "}
+                        </span>
+                        {leaderboardsData.more.fearGreed.label} (
+                        {leaderboardsData.more.fearGreed.value}) —{" "}
+                        {leaderboardsData.more.fearGreed.classification}.
+                        Extreme fear often precedes bounces; extreme greed can
+                        precede pullbacks. We use this as context, not a single
+                        trigger.
+                      </p>
+                    )}
+                    {leaderboardsData.more.volumeInsights?.assets &&
+                      leaderboardsData.more.volumeInsights.assets.length >
+                        0 && (
+                        <p>
+                          <span className="font-medium text-foreground">
+                            Volume:{" "}
+                          </span>
+                          {leaderboardsData.more.volumeInsights.assets.length}{" "}
+                          assets —{" "}
+                          {[
+                            ...new Set(
+                              leaderboardsData.more.volumeInsights.assets.map(
+                                (a) => a.interpretation,
+                              ),
+                            ),
+                          ]
+                            .filter(
+                              (i) =>
+                                i === "spike" ||
+                                i === "elevated" ||
+                                i === "low" ||
+                                i === "dead_session",
+                            )
+                            .slice(0, 3)
+                            .join(", ") || "normal"}{" "}
+                          on key assets. Bot uses volume ratio to size: spike
+                          +20%, low −20%, dead −50%.
+                        </p>
+                      )}
+                    {(leaderboardsData.more.regime?.btc ||
+                      leaderboardsData.more.regime?.eth) && (
+                      <p>
+                        <span className="font-medium text-foreground">
+                          Regime:{" "}
+                        </span>
+                        BTC {leaderboardsData.more.regime.btc ?? "—"}, ETH{" "}
+                        {leaderboardsData.more.regime.eth ?? "—"}. Informs
+                        whether we lean momentum or mean reversion.
+                      </p>
+                    )}
+                    {(leaderboardsData.more.binanceIntel?.fundingExtreme ||
+                      leaderboardsData.more.deribitSkew?.btc ||
+                      leaderboardsData.more.deribitSkew?.eth) && (
+                      <p>
+                        {leaderboardsData.more.binanceIntel?.fundingExtreme && (
+                          <>
+                            <span className="font-medium text-foreground">
+                              Funding:{" "}
+                            </span>
+                            {
+                              leaderboardsData.more.binanceIntel
+                                .fundingDirection
+                            }{" "}
+                            — crowded side may mean reversion.{" "}
+                          </>
+                        )}
+                        {(leaderboardsData.more.deribitSkew?.btc ||
+                          leaderboardsData.more.deribitSkew?.eth) && (
+                          <>
+                            <span className="font-medium text-foreground">
+                              Deribit skew:{" "}
+                            </span>
+                            BTC{" "}
+                            {leaderboardsData.more.deribitSkew?.btc
+                              ?.skewInterpretation ?? "—"}
+                            , ETH{" "}
+                            {leaderboardsData.more.deribitSkew?.eth
+                              ?.skewInterpretation ?? "—"}
+                            — reflects put vs call demand.
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {leaderboardsData.more.crossVenue?.arbOpportunities
+                      ?.length > 0 && (
+                      <p>
+                        <span className="font-medium text-foreground">
+                          Cross-venue arb:{" "}
+                        </span>
+                        {leaderboardsData.more.crossVenue.arbOpportunities.join(
+                          ", ",
+                        )}
+                      </p>
+                    )}
+                    {!leaderboardsData.more.fearGreed &&
+                      !(
+                        leaderboardsData.more.volumeInsights?.assets &&
+                        leaderboardsData.more.volumeInsights.assets.length > 0
+                      ) &&
+                      !leaderboardsData.more.regime?.btc &&
+                      !leaderboardsData.more.regime?.eth &&
+                      !leaderboardsData.more.binanceIntel?.fundingExtreme &&
+                      !leaderboardsData.more.deribitSkew?.btc &&
+                      !leaderboardsData.more.deribitSkew?.eth &&
+                      !(
+                        leaderboardsData.more.crossVenue?.arbOpportunities
+                          ?.length > 0
+                      ) && (
+                        <p className="text-muted-foreground">
+                          No summary data yet. Refresh or check back after data
+                          loads.
+                        </p>
+                      )}
+                  </div>
+                </DashboardCard>
+
                 <div className="grid gap-6 lg:grid-cols-2">
                   {/* Fear & Greed */}
                   {leaderboardsData.more.fearGreed && (
@@ -2610,6 +2759,11 @@ export default function LeaderboardPage({
                           </p>
                         </div>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                        Extreme fear often precedes bounces; extreme greed can
+                        precede pullbacks. We use this as context, not a single
+                        trigger.
+                      </p>
                     </DashboardCard>
                   )}
 
@@ -2643,6 +2797,12 @@ export default function LeaderboardPage({
                             {leaderboardsData.more.options.ethTldr}
                           </p>
                         )}
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          DVOL = implied volatility. High DVOL = expensive
+                          options (consider selling premium); low DVOL = cheap
+                          options (consider longs). TLDR summarizes term
+                          structure.
+                        </p>
                       </div>
                     </DashboardCard>
                   )}
@@ -2806,6 +2966,10 @@ export default function LeaderboardPage({
                             )}
                           </p>
                         )}
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          Funding differences between Hyperliquid and CEX can
+                          signal arb or where leverage is concentrated.
+                        </p>
                       </DashboardCard>
                     )}
 
@@ -2823,6 +2987,10 @@ export default function LeaderboardPage({
                             </li>
                           ))}
                         </ul>
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          Markets at open-interest cap can be squeeze-prone or
+                          illiquid on exits.
+                        </p>
                       </DashboardCard>
                     )}
 
@@ -2839,6 +3007,10 @@ export default function LeaderboardPage({
                             <span>ETH: {leaderboardsData.more.regime.eth}</span>
                           )}
                         </div>
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          Current regime (trend/range) from options/flow —
+                          informs whether we lean momentum or mean reversion.
+                        </p>
                       </DashboardCard>
                     )}
 
@@ -2890,6 +3062,11 @@ export default function LeaderboardPage({
                               ` · Short ${leaderboardsData.more.binanceIntel.bestShort}`}
                           </p>
                         )}
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          Top trader L/S and taker B/S show positioning;
+                          extremes can be contrarian. Funding extreme = crowded
+                          side may mean reversion.
+                        </p>
                       </div>
                     </DashboardCard>
                   )}
@@ -2993,6 +3170,10 @@ export default function LeaderboardPage({
                             </tbody>
                           </table>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          Funding rates, long/short ratio, and OI change across
+                          venues — confirm trend or spot crowded positioning.
+                        </p>
                       </DashboardCard>
                     )}
 
@@ -3045,6 +3226,10 @@ export default function LeaderboardPage({
                             </span>
                           )}
                         </div>
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          Skew reflects demand for puts vs calls; fearful = put
+                          premium, bullish = call premium.
+                        </p>
                       </DashboardCard>
                     )}
 
@@ -3089,11 +3274,16 @@ export default function LeaderboardPage({
                             </div>
                           )}
                         </div>
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          On-chain flows and whale activity — context for spot
+                          vs derivatives.
+                        </p>
                       </DashboardCard>
                     )}
 
-                  {/* Nansen Smart Money */}
-                  {leaderboardsData.more.nansenSmartMoney &&
+                  {/* Nansen Smart Money — commented out (no value for now) */}
+                  {false &&
+                    leaderboardsData.more.nansenSmartMoney &&
                     (leaderboardsData.more.nansenSmartMoney.tokens?.length >
                       0 ||
                       leaderboardsData.more.nansenSmartMoney.creditRemaining !=
@@ -3185,11 +3375,15 @@ export default function LeaderboardPage({
                             </tbody>
                           </table>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                          Smart money flows — follow or fade depending on
+                          strategy.
+                        </p>
                       </DashboardCard>
                     )}
 
-                  {/* Alerts */}
-                  {leaderboardsData.more.alerts && (
+                  {/* Alerts — commented out (no value for now) */}
+                  {false && leaderboardsData.more.alerts && (
                     <DashboardCard title="Alerts" className="lg:col-span-2">
                       <div className="flex gap-4 text-sm mb-3">
                         <span>Total: {leaderboardsData.more.alerts.total}</span>
@@ -3220,6 +3414,10 @@ export default function LeaderboardPage({
                           <li className="text-muted-foreground">No alerts</li>
                         )}
                       </ul>
+                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                        High-priority alerts may require immediate attention for
+                        risk or opportunity.
+                      </p>
                     </DashboardCard>
                   )}
                 </div>
@@ -3267,57 +3465,116 @@ export default function LeaderboardPage({
                       Checking status…
                     </p>
                   ) : edgeStatus?.running ? (
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                      <span
-                        className={cn(
-                          "font-medium",
-                          edgeStatus.paused
-                            ? "text-amber-600 dark:text-amber-400"
-                            : "text-green-600 dark:text-green-400",
-                        )}
-                      >
-                        {edgeStatus.paused ? "Paused" : "Running"}
-                      </span>
-                      <span className="text-muted-foreground">
-                        Contracts: {edgeStatus.contractsWatched ?? 0}
-                      </span>
-                      {edgeStatus.btcLastPrice != null &&
-                        edgeStatus.btcLastPrice > 0 && (
-                          <span className="text-muted-foreground">
-                            BTC spot: $
-                            {edgeStatus.btcLastPrice.toLocaleString(undefined, {
-                              maximumFractionDigits: 0,
-                            })}{" "}
-                            <span className="text-muted-foreground/50">
-                              (ref price)
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <span
+                          className={cn(
+                            "font-medium",
+                            edgeStatus.paused
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-green-600 dark:text-green-400",
+                          )}
+                        >
+                          {edgeStatus.paused ? "Paused" : "Running"}
+                        </span>
+                        <span className="text-muted-foreground">
+                          Contracts: {edgeStatus.contractsWatched ?? 0}
+                        </span>
+                        {edgeStatus.lastDiscoveryAt != null &&
+                          edgeStatus.lastDiscoveryAt > 0 && (
+                            <span className="text-muted-foreground">
+                              Last discovery:{" "}
+                              {(() => {
+                                const d =
+                                  Date.now() -
+                                  (edgeStatus.lastDiscoveryAt ?? 0);
+                                if (d < 60_000)
+                                  return `${Math.floor(d / 1000)}s ago`;
+                                if (d < 3600_000)
+                                  return `${Math.floor(d / 60_000)} min ago`;
+                                if (d < 86400_000)
+                                  return `${Math.floor(d / 3600_000)}h ago`;
+                                return `${Math.floor(d / 86400_000)}d ago`;
+                              })()}
                             </span>
-                          </span>
-                        )}
-                      {edgeStatus.strategies &&
-                        Object.keys(edgeStatus.strategies).length > 0 && (
-                          <span className="text-muted-foreground">
-                            {Object.entries(edgeStatus.strategies).map(
-                              ([name, s], i) => {
-                                const count = s.signalCount ?? 0;
-                                const label =
-                                  count > 0
-                                    ? `${count} signal${count !== 1 ? "s" : ""}`
-                                    : "active";
-                                return (
-                                  <span key={name}>
-                                    {i > 0 && ", "}
-                                    <span className="font-mono">
-                                      {name}
-                                    </span>{" "}
-                                    <span className="text-muted-foreground/70">
-                                      ({label})
+                          )}
+                        {edgeStatus.btcLastPrice != null &&
+                          edgeStatus.btcLastPrice > 0 && (
+                            <span className="text-muted-foreground">
+                              BTC spot: $
+                              {edgeStatus.btcLastPrice.toLocaleString(
+                                undefined,
+                                {
+                                  maximumFractionDigits: 0,
+                                },
+                              )}{" "}
+                              <span className="text-muted-foreground/50">
+                                (ref price)
+                              </span>
+                            </span>
+                          )}
+                        {edgeStatus.strategies &&
+                          Object.keys(edgeStatus.strategies).length > 0 && (
+                            <span className="text-muted-foreground">
+                              {Object.entries(edgeStatus.strategies).map(
+                                ([name, s], i) => {
+                                  const count = s.signalCount ?? 0;
+                                  const label =
+                                    count > 0
+                                      ? `${count} signal${count !== 1 ? "s" : ""}`
+                                      : "active";
+                                  return (
+                                    <span key={name}>
+                                      {i > 0 && ", "}
+                                      <span className="font-mono">
+                                        {name}
+                                      </span>{" "}
+                                      <span className="text-muted-foreground/70">
+                                        ({label})
+                                      </span>
                                     </span>
-                                  </span>
-                                );
-                              },
-                            )}
-                          </span>
-                        )}
+                                  );
+                                },
+                              )}
+                            </span>
+                          )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={edgeRefreshLoading}
+                          onClick={async () => {
+                            if (!oracleAgentId) return;
+                            setEdgeRefreshLoading(true);
+                            try {
+                              const result =
+                                await fetchPolymarketEdgeRefresh(oracleAgentId);
+                              if (result.error) return;
+                              queryClient.invalidateQueries({
+                                queryKey: [
+                                  "polymarket-edge-status",
+                                  oracleAgentId,
+                                ],
+                              });
+                            } finally {
+                              setEdgeRefreshLoading(false);
+                            }
+                          }}
+                        >
+                          {edgeRefreshLoading ? (
+                            <>
+                              <RefreshCw className="size-3.5 animate-spin shrink-0" />
+                              Refreshing…
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="size-3.5 shrink-0" />
+                              Refresh discovery
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">

@@ -15,7 +15,8 @@ export type StandupActionItemType =
   | "trades"
   | "good_life"
   | "prd"
-  | "integration_instructions";
+  | "integration_instructions"
+  | "research";
 
 export interface StandupActionItem {
   assigneeAgentName: string;
@@ -40,6 +41,7 @@ const VALID_ACTION_ITEM_TYPES: StandupActionItemType[] = [
   "good_life",
   "prd",
   "integration_instructions",
+  "research",
 ];
 
 const StandupActionItemSchema = z.object({
@@ -68,7 +70,7 @@ const PARSE_PROMPT = `You are parsing a standup transcript between AI agents. Ex
 
 Output format (strict JSON):
 {
-  "actionItems": [ { "assigneeAgentName": "AgentName", "description": "what to do", "type": "build" or "remind" or "essay" or "tweets" or "x_article" or "trades" or "good_life" or "prd" or "integration_instructions" } ],
+  "actionItems": [ { "assigneeAgentName": "AgentName", "description": "what to do", "type": "build" or "remind" or "essay" or "tweets" or "x_article" or "trades" or "good_life" or "prd" or "integration_instructions" or "research" } ],
   "lessonsByAgentName": { "AgentName": "one short lesson learned sentence" },
   "disagreements": [ { "agentA": "Name1", "agentB": "Name2" } ],
   "suggestions": [ "optional: one short sentence per agent-proposed improvement" ]
@@ -76,7 +78,7 @@ Output format (strict JSON):
 
 Rules:
 - assigneeAgentName must be one of the agent names that spoke in the transcript.
-- For each action item, set "type" as follows. Use "build" only if the description clearly asks to build, write, implement, or ship a feature, script, or code. Use "essay" if it asks for a long-form essay for Substack or Ikigai Studio. Use "tweets" if it asks for banger tweets or viral tweet suggestions. Use "x_article" if it asks for a long-form story or article to publish on X. Use "trades" if it asks for suggested trades, perps (Hyperliquid), or options (HypeSurface) for BTC, SOL, ETH, or HYPE. Use "good_life" if it asks for founder lifestyle suggestions, things to do to live well, travel, dining, wine, health, fitness, or Kelly-style good-life advice. Use "prd" if it asks for a PRD, product requirements document, spec for Cursor, or implementation brief for Claude/Cursor. Use "integration_instructions" if it asks for instructions for Milaidy, OpenClaw, or how to integrate/run them with VINCE. Otherwise set "type": "remind".
+- For each action item, set "type" as follows. Use "build" only if the description clearly asks to build, write, implement, or ship a feature, script, or code. Use "essay" if it asks for a long-form essay for Substack or Ikigai Studio. Use "tweets" if it asks for banger tweets or viral tweet suggestions. Use "x_article" if it asks for a long-form story or article to publish on X. Use "trades" if it asks for suggested trades, perps (Hyperliquid), or options (HypeSurface) for BTC, SOL, ETH, or HYPE. Use "good_life" if it asks for founder lifestyle suggestions, things to do to live well, travel, dining, wine, health, fitness, or Kelly-style good-life advice. Use "prd" if it asks for a PRD, product requirements document, spec for Cursor, or implementation brief for Claude/Cursor. Use "integration_instructions" if it asks for instructions for Milaidy, OpenClaw, or how to integrate/run them with VINCE. Use "research" if it asks for a research brief, deep dive on a topic, or to run AUTO_RESEARCH / RESEARCH_BRIEF (e.g. "Eliza: research X from the uploads"). Otherwise set "type": "remind".
 - lessonsByAgentName: one key per agent that spoke; value is one short sentence.
 - disagreements: only include if two agents clearly disagreed or argued.
 - suggestions: if agents proposed a new topic for future standups, a new tool, or a change to how they work, list one short sentence per suggestion; otherwise use empty array.

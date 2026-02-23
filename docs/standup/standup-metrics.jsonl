@@ -39,3 +39,4 @@
 {"date":"2026-02-22","type":"scheduled","agentCount":9,"totalEstimatedTokens":31293,"estimatedCost":0.1878,"crossAgentLinks":0,"actionItems":5,"lessons":8,"disagreements":0}
 {"date":"2026-02-22","type":"scheduled","agentCount":9,"totalEstimatedTokens":29222,"estimatedCost":0.1753,"crossAgentLinks":0,"actionItems":6,"lessons":9,"disagreements":0}
 {"date":"2026-02-22","type":"scheduled","agentCount":9,"totalEstimatedTokens":30336,"estimatedCost":0.182,"crossAgentLinks":0,"actionItems":6,"lessons":8,"disagreements":0}
+{"date":"2026-02-22","type":"hybrid","agentCount":9,"totalEstimatedTokens":31381,"estimatedCost":0.1883,"crossAgentLinks":1,"actionItems":5,"lessons":7,"disagreements":0}

@@ -354,6 +354,7 @@ export interface PolymarketEdgeStatus {
   paused: boolean;
   contractsWatched: number;
   btcLastPrice: number | null;
+  lastDiscoveryAt?: number | null;
   strategies: Record<string, { lastSignalAt?: number; signalCount: number }>;
   error?: string;
   hint?: string;
@@ -437,6 +438,38 @@ export async function fetchPolymarketEdgeStatus(
       method: "GET",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketEdgeStatus,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+/** POST edge/refresh: run discovery once and return status (same shape as fetchPolymarketEdgeStatus). */
+export async function fetchPolymarketEdgeRefresh(
+  agentId: string,
+): Promise<PolymarketEdgeStatusFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-edge/edge/refresh`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {

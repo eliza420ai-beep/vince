@@ -41,7 +41,10 @@ import {
 } from "./crossAgentValidation";
 import { getElizaOS, type IElizaOSRegistry } from "../types";
 import { executeBuildActionItem, isNorthStarType } from "./standup.build";
-import { generateAndSaveDayReport } from "./standupDayReport";
+import {
+  generateAndSaveDayReport,
+  extractElizaSuggestionsFromSharedInsights,
+} from "./standupDayReport";
 import {
   getPendingActionItems,
   claimActionItem,
@@ -1473,11 +1476,30 @@ export async function registerStandupTask(
         let dayReportPath: string | null = null;
         let reportText: string | null = null;
         try {
+          let dayReportExtraPrompt: string | undefined;
+          const sharedContent = await loadSharedDailyInsights();
+          if (sharedContent) {
+            const suggestions =
+              extractElizaSuggestionsFromSharedInsights(sharedContent);
+            const parts: string[] = [];
+            if (suggestions.substackIdea)
+              parts.push(`**Substack idea:** ${suggestions.substackIdea}`);
+            if (suggestions.knowledgeToExpand)
+              parts.push(
+                `**Knowledge to expand:** ${suggestions.knowledgeToExpand}`,
+              );
+            if (suggestions.researchToDo)
+              parts.push(`**Research to do:** ${suggestions.researchToDo}`);
+            if (parts.length > 0) {
+              dayReportExtraPrompt = `Pre-computed from today's knowledge uploads (use these if the transcript doesn't contradict):\n${parts.join("\n")}`;
+            }
+          }
           const result = await generateAndSaveDayReport(rt, transcript, {
             replies: replies.map((r) => ({
               agentName: r.agentName,
               structuredSignals: r.structuredSignals,
             })),
+            extraPrompt: dayReportExtraPrompt,
           });
           dayReportPath = result.savedPath;
           reportText = result.reportText ?? null;

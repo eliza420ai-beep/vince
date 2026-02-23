@@ -148,7 +148,7 @@ Standup is turn-based. **Kelly** kicks off and acts only as coordinator (very sh
 
 The **Day Report** includes: **Essential question**, **Solus's call** (Above/Below/Uncertain + one sentence), TL;DR, signals table, and an action plan table (WHAT / HOW / WHY / OWNER). Full behavior and quality bar are in `docs/standup/prds/` (e.g. 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md).
 
-**Shared daily insights:** For the **scheduled** standup, a shared daily insights file is written **before** the meeting to `docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md`. The kickoff includes this so the conversation is synthesis-first. North star = shared knowledge > sum of individual silos. See [docs/MULTI_AGENT.md](../../../docs/MULTI_AGENT.md) § Standup: shared daily insights.
+**Shared daily insights:** For the **scheduled** standup, a shared daily insights file is written **before** the meeting to `docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md`. The kickoff includes this so the conversation is synthesis-first. North star = shared knowledge > sum of individual silos. See [docs/MULTI_AGENT.md](../../../docs/MULTI_AGENT.md) § Standup: shared daily insights. **Knowledge → Standup & Day Report:** Recent uploads (last 48h in `knowledge/`) drive Eliza's Substack idea, Knowledge to expand, and Research to do; the Day Report surfaces Essay idea and Research so uploads are visibly leveraged.
 
 **Essential question** is configurable via `ESSENTIAL_STANDUP_BTC_LEVEL` (e.g. `70000`); default: "Based on current market sentiment, do you think BTC will be above $70K by next Friday?"
 

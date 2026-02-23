@@ -66,6 +66,7 @@ export class EdgeEngineService extends Service {
     string,
     { lastSignalAt?: number; signalCount: number }
   > = {};
+  private lastDiscoveryAt = 0;
 
   constructor(runtime: IAgentRuntime) {
     super();
@@ -159,6 +160,7 @@ export class EdgeEngineService extends Service {
       contractsWatched: this.contracts.length,
       btcLastPrice: btcLast,
       volatility: vol,
+      lastDiscoveryAt: this.lastDiscoveryAt,
       strategies: this.strategyStats,
       whyOnlySomeStrategies: {
         model_fair_value: `needs BTC threshold markets (strikeUsd>0): ${contractsWithStrike} of ${this.contracts.length} watched`,
@@ -180,6 +182,11 @@ export class EdgeEngineService extends Service {
 
   getContracts(): ContractMeta[] {
     return [...this.contracts];
+  }
+
+  /** Run discovery once (e.g. for quick-action refresh). Use so both strategies can see fresh contracts without waiting for the 5-min interval. */
+  async refreshDiscovery(): Promise<void> {
+    await this.runDiscovery();
   }
 
   async emit(signal: EdgeSignal): Promise<string | null> {
@@ -313,6 +320,10 @@ export class EdgeEngineService extends Service {
     const { discoverContracts } = await import("./contractDiscovery");
     const list = await discoverContracts();
     this.contracts = list;
+    const strikeCount = list.filter((c) => c.strikeUsd > 0).length;
+    logger.info(
+      `[EdgeEngine] Discovery: ${list.length} contracts (${strikeCount} with strike for model_fair_value)`,
+    );
     const poly = this.runtime.getService(CLOB_WS) as {
       setSubscribedTokenIds?: (ids: string[]) => void;
     } | null;
@@ -320,5 +331,6 @@ export class EdgeEngineService extends Service {
       const tokenIds = list.flatMap((c) => [c.yesTokenId, c.noTokenId]);
       poly.setSubscribedTokenIds(tokenIds);
     }
+    this.lastDiscoveryAt = Date.now();
   }
 }

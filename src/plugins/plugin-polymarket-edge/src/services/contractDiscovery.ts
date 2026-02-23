@@ -260,6 +260,54 @@ export async function discoverContracts(
     }
   }
 
+  // Fallback: we have binaries but no BTC threshold contracts (model_fair_value needs strikeUsd > 0)
+  const contractsWithStrike = results.filter((r) => r.strikeUsd > 0).length;
+  if (contractsWithStrike === 0 && results.length > 0) {
+    try {
+      const url = `${base}${GAMMA_MARKETS_PATH}?active=true&closed=false&limit=500`;
+      const controller = new AbortController();
+      const to = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(to);
+      if (res.ok) {
+        const data = (await res.json()) as
+          | GammaMarketRow[]
+          | { data?: GammaMarketRow[] };
+        const rows = Array.isArray(data)
+          ? data
+          : ((data as { data?: GammaMarketRow[] }).data ?? []);
+        for (const row of rows) {
+          const conditionId = row.conditionId ?? row.id;
+          if (!conditionId || seen.has(conditionId)) continue;
+          const question = row.question ?? "";
+          const expiryMs = parseExpiryMs(row);
+          const tokens = getTokenIds(row);
+          if (!tokens || expiryMs == null || expiryMs <= Date.now()) continue;
+          if (isBtcThresholdQuestion(question)) {
+            const strike = parseStrikeFromQuestion(question);
+            if (strike == null) continue;
+            seen.add(conditionId);
+            results.push(
+              toContractMeta(
+                row,
+                String(conditionId),
+                question,
+                tokens,
+                expiryMs,
+                strike,
+              ),
+            );
+          }
+        }
+      }
+    } catch (err) {
+      logger.debug(
+        "[ContractDiscovery] Fallback fetch for BTC threshold: " +
+          (err instanceof Error ? err.message : String(err)),
+      );
+    }
+  }
+
   logger.info(
     "[ContractDiscovery] Discovered " + results.length + " contracts",
   );

@@ -22,6 +22,7 @@ const NORTH_STAR_TYPES: StandupActionItemType[] = [
   "good_life",
   "prd",
   "integration_instructions",
+  "research",
 ];
 
 export interface BuildActionResult {
@@ -189,6 +190,8 @@ function northStarSubdir(type: StandupActionItemType): string {
       return "prds";
     case "integration_instructions":
       return "integration-instructions";
+    case "research":
+      return "research";
     default:
       return "north-star";
   }
@@ -224,6 +227,8 @@ const NORTH_STAR_PROMPTS: Record<
 > = {
   essay: (description, assignee) =>
     `You are writing a long-form essay for the Ikigai Studio Substack. Output only the essay body in markdown: no title block, no "here is the essay" — just the content ready to paste into Substack. Voice: benefit-led (Apple-style), confident and craft-focused (Porsche OG). No AI-slop jargon (no leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless). One clear idea per piece. Request from standup: ${description}. Assignee: ${assignee}. Output only valid markdown.`,
+  research: (description, assignee) =>
+    `You are Eliza (CEO, Knowledge & Research). Produce a short research brief that could be handed to RESEARCH_BRIEF or AUTO_RESEARCH. Output markdown: (1) research question or topic, (2) why it matters now, (3) suggested sources or knowledge/ files to update, (4) one paragraph of key points to investigate. No preamble. Request from standup: ${description}. Assignee: ${assignee}. Output only the markdown.`,
   tweets: (description, assignee) =>
     `You are suggesting banger tweets with viral potential for the Ikigai / crypto / good-life brand. Output a markdown file: a short intro line, then each tweet as a numbered item (one per line or block). Optionally one sentence per tweet on why it could go viral. Request from standup: ${description}. Assignee: ${assignee}. Output only the markdown.`,
   x_article: (description, assignee) =>

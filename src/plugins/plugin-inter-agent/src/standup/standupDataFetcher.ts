@@ -1858,7 +1858,27 @@ async function buildDeltaReport(): Promise<string> {
   return lines.join("\n\n");
 }
 
-/** Get recent knowledge uploads (last 48 hours) for standup */
+const DEFAULT_RECENT_UPLOADS_PREVIEW_MAX_CHARS = 200;
+
+/** Strip frontmatter and take first line or first N chars of body for preview */
+function extractPreview(content: string, maxChars: number): string {
+  let body = content;
+  const fmMatch = content.match(/^---\s*\n[\s\S]*?\n---\s*\n?/);
+  if (fmMatch) body = content.slice(fmMatch[0].length);
+  const afterFirstH2 = body.match(/\n##\s+([^\n]+)/);
+  const firstLine = afterFirstH2
+    ? afterFirstH2[1].trim()
+    : (body
+        .split(/\n/)
+        .find((l) => l.trim().length > 0)
+        ?.trim() ?? "");
+  const fromBody = body.replace(/\s+/g, " ").trim().slice(0, maxChars);
+  const preview =
+    firstLine.length > 0 && firstLine.length <= maxChars ? firstLine : fromBody;
+  return preview ? `${preview}${preview.length >= maxChars ? "…" : ""}` : "";
+}
+
+/** Get recent knowledge uploads (last 48 hours) for standup, with content preview for Substack/Research LLM */
 async function getRecentUploads(): Promise<string> {
   try {
     const knowledgeRoot = path.join(process.cwd(), "knowledge");
@@ -1866,7 +1886,15 @@ async function getRecentUploads(): Promise<string> {
       return "**Recent uploads:** Knowledge folder not found.";
     }
 
-    // Get files from last 48 hours
+    const previewMax = Math.min(
+      500,
+      parseInt(
+        process.env.STANDUP_RECENT_UPLOADS_PREVIEW_MAX_CHARS ??
+          String(DEFAULT_RECENT_UPLOADS_PREVIEW_MAX_CHARS),
+        10,
+      ) || DEFAULT_RECENT_UPLOADS_PREVIEW_MAX_CHARS,
+    );
+
     const now = Date.now();
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const recentFiles: {
@@ -1874,9 +1902,9 @@ async function getRecentUploads(): Promise<string> {
       mtime: number;
       category: string;
       words: number;
+      preview: string;
     }[] = [];
 
-    // Walk knowledge directory
     const categories = fs.readdirSync(knowledgeRoot, { withFileTypes: true });
     for (const cat of categories) {
       if (!cat.isDirectory()) continue;
@@ -1888,11 +1916,12 @@ async function getRecentUploads(): Promise<string> {
         const stats = fs.statSync(filePath);
         const ageMs = now - stats.mtimeMs;
         if (ageMs < TWO_DAYS_MS) {
-          // Quick word count estimate
           let wordCount = 0;
+          let preview = "";
           try {
             const content = fs.readFileSync(filePath, "utf-8");
             wordCount = content.split(/\s+/).filter((w) => w.length > 0).length;
+            preview = extractPreview(content, previewMax);
           } catch {
             wordCount = 0;
           }
@@ -1901,6 +1930,7 @@ async function getRecentUploads(): Promise<string> {
             mtime: stats.mtimeMs,
             category: cat.name,
             words: wordCount,
+            preview,
           });
         }
       }
@@ -1910,16 +1940,15 @@ async function getRecentUploads(): Promise<string> {
       return "**Recent uploads:** No new uploads in last 48h.";
     }
 
-    // Sort by newest first
     recentFiles.sort((a, b) => b.mtime - a.mtime);
 
-    // Format: take top 5, show category + filename + word count (substantial = good for essays)
     const top5 = recentFiles.slice(0, 5);
     const lines = top5.map((f) => {
       const nameWithoutExt = f.name.replace(/\.md$/, "");
       const truncated = nameWithoutExt.slice(0, 40);
       const sizeLabel = f.words > 2000 ? "📄" : f.words > 500 ? "📝" : "📋";
-      return `- ${sizeLabel} **${f.category}:** ${truncated} (${f.words} words)`;
+      const previewPart = f.preview ? ` — Preview: ${f.preview}` : "";
+      return `- ${sizeLabel} **${f.category}:** ${truncated} (${f.words} words)${previewPart}`;
     });
     const more =
       recentFiles.length > 5 ? ` (+${recentFiles.length - 5} more)` : "";
@@ -2015,26 +2044,39 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     sections.push("**Facts:** Query failed.");
   }
 
-  // Substack + knowledge expansion suggestions via LLM (with clear labels)
+  // Substack + knowledge expansion + research suggestions via LLM (with clear labels)
   if (runtime.useModel) {
     try {
       const context = sections.join("\n");
       const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines. PRIORITIZE the "Recent uploads" and "Stale categories" sections. Focus on AI agents, OpenClaw, DeFi, options/perps, macro, lifestyle. SKIP memes, memetics, NFTs:\n**Substack idea:** [One specific substack essay with a CONTRARIAN or UNIQUE angle — MUST reference a specific upload. E.g., "Write: Hyperliquid at $30 is the bear case for the next bull — hook: We watched $1→$60, missed 8-figures, still bullish." Include: topic + hook + angle.]\n**Knowledge to expand:** [One specific file to update in knowledge/ — E.g., "Update kelly-btc/satoshis-knowledge/bitcoin/latest.md with current BTC price and MSTR holdings" or "Add Hyperliquid section to defi-metrics/README.md". Name the exact file and what to add.]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
-        maxTokens: 300,
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly three labeled lines. PRIORITIZE the "Recent uploads" and "Stale categories" sections. Focus on AI agents, OpenClaw, DeFi, options/perps, macro, lifestyle. SKIP memes, memetics, NFTs:
+
+**Substack idea:** [One specific substack essay with a CONTRARIAN or UNIQUE angle — MUST reference a specific upload. E.g., "Write: Hyperliquid at $30 is the bear case for the next bull — hook: We watched $1→$60, missed 8-figures, still bullish." Include: topic + hook + angle.]
+
+**Knowledge to expand:** [One specific file to update in knowledge/ — E.g., "Update kelly-btc/satoshis-knowledge/bitcoin/latest.md with current BTC price and MSTR holdings" or "Add Hyperliquid section to defi-metrics/README.md". Name the exact file and what to add.]
+
+**Research to do:** [One specific topic or question to research, inspired by recent uploads. E.g., "Compare Hyperliquid OI growth to Binance in the last 30 days" or "Update macro-economy with latest Fed dot plot and Warsh odds."]
+
+One sentence each. No filler, no intro.
+
+Context:
+${context}`,
+        maxTokens: 400,
         temperature: 0.7,
       });
       const text = String(suggestion ?? "").trim();
       if (text && text.length > 20) {
         const hasLabels =
           text.includes("**Substack idea:**") ||
-          text.includes("**Knowledge to expand:**");
+          text.includes("**Knowledge to expand:**") ||
+          text.includes("**Research to do:**");
         if (hasLabels) {
           sections.push(text);
         } else {
           const lines = text.split("\n").filter((l) => l.trim());
           sections.push(`**Substack idea:** ${lines[0] ?? text}`);
           if (lines[1]) sections.push(`**Knowledge to expand:** ${lines[1]}`);
+          if (lines[2]) sections.push(`**Research to do:** ${lines[2]}`);
         }
       }
     } catch {
@@ -2044,6 +2086,9 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
       sections.push(
         "**Knowledge to expand:** [LLM unavailable -- review knowledge/INDEX.md for stale categories]",
       );
+      sections.push(
+        "**Research to do:** [LLM unavailable -- pick one topic from Recent uploads to research]",
+      );
     }
   } else {
     sections.push(
@@ -2051,6 +2096,9 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     );
     sections.push(
       "**Knowledge to expand:** Check knowledge/FRESHNESS.md for stale categories to update.",
+    );
+    sections.push(
+      "**Research to do:** Pick one topic from Recent uploads to research (e.g. OI comparison, Fed odds).",
     );
   }
 

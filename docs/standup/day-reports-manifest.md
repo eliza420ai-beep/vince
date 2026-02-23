@@ -43,3 +43,4 @@
 | 2026-02-22 | Fear index hit 9 while institutions keep loading—classic capitulation setup with | [View](day-reports/2026-02-22-day-report.md) |
 | 2026-02-22 | Fear at 12 but institutions loading $2B in BTC while we hold covered calls and c | [View](day-reports/2026-02-22-day-report.md) |
 | 2026-02-22 | Fear at 9, institutions loading quietly while retail searches "Bitcoin to zero"— | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-22 | Fear spiked to 9 while institutions load, we're holding premium on both strikes  | [View](day-reports/2026-02-22-day-report.md) |
