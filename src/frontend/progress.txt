@@ -1,5 +1,5 @@
 # VINCE Frontend Progress Tracker
-# Last updated: 2026-02-07
+# Last updated: 2026-02-23
 # Otaku-style UI (Vite) integrated and branded as VINCE. Update after feature or fix.
 
 ================================================================================
@@ -258,3 +258,9 @@ SESSION NOTES
   categories grid/stack), 503/404 handling with actionable hints. Rebels ranking (gamification) when
   available. README.md: new § "Leaderboard page (dashboard hub)" with tab table, why we built it,
   and key file paths; added to Contents and Features.
+
+2026-02-23:
+- Progress file refreshed; consolidated view synced via scripts/sync-sentinel-docs.sh.
+- v3.9.0 frontend: Leaderboard rework: Polymarket desk leaderboard and "Why this position" from
+  edge metadata in leaderboards API; leaderboard page and leaderboardsApi updated accordingly.
+  Portfolio: Unrealized P&L when positions are open, Realized P&L when none (b51f7c8b).

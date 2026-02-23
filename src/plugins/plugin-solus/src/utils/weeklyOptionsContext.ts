@@ -18,10 +18,24 @@ export interface WeeklyOptionsContext {
 
 const DEFAULT_DIR = "docs/standup";
 const FILENAME = "weekly-options-context.md";
+const DEFAULT_LOCAL_POSITIONS_PATH = "local/solus-current-positions.md";
 
 function getFilePath(): string {
   const dir = process.env.STANDUP_DELIVERABLES_DIR?.trim() || DEFAULT_DIR;
   return path.join(process.cwd(), dir, FILENAME);
+}
+
+/**
+ * Path to local-only current positions file (gitignored). Used when present for portfolio + open positions block.
+ */
+function getLocalPositionsPath(): string {
+  const envPath = process.env.SOLUS_CURRENT_POSITIONS_PATH?.trim();
+  if (envPath) {
+    return path.isAbsolute(envPath)
+      ? envPath
+      : path.join(process.cwd(), envPath);
+  }
+  return path.join(process.cwd(), DEFAULT_LOCAL_POSITIONS_PATH);
 }
 
 /**
@@ -119,11 +133,21 @@ export function getWeeklyOptionsContext(): WeeklyOptionsContext {
 
 /**
  * Combined portfolio + open positions block for injection into Solus context.
- * If SOLUS_PORTFOLIO_CONTEXT is set, returns that (override). Otherwise builds from file sections.
+ * Precedence: SOLUS_PORTFOLIO_CONTEXT (env) > local file (SOLUS_CURRENT_POSITIONS_PATH or local/solus-current-positions.md) > standup weekly-options-context.md.
  */
 export function getPortfolioContextBlock(): string {
   const env = process.env.SOLUS_PORTFOLIO_CONTEXT?.trim();
   if (env) return env;
+
+  const localPath = getLocalPositionsPath();
+  try {
+    if (fs.existsSync(localPath)) {
+      const content = fs.readFileSync(localPath, "utf-8").trim();
+      if (content) return content;
+    }
+  } catch {
+    /* non-fatal; fall through to standup file */
+  }
 
   const { portfolioSection, openPositionsSection } = getWeeklyOptionsContext();
   const parts: string[] = [];
@@ -134,8 +158,11 @@ export function getPortfolioContextBlock(): string {
 
 /**
  * Whether we have any open positions (for standup daily question).
+ * True when portfolio/positions block is non-empty from any source (env, local file, or standup file).
  */
 export function hasOpenPositions(): boolean {
+  const block = getPortfolioContextBlock();
+  if (block.length > 0) return true;
   const { openPositionsSection } = getWeeklyOptionsContext();
   return openPositionsSection.length > 0;
 }

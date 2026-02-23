@@ -1,6 +1,6 @@
 # Supabase Migration — Production-Grade Persistence
 
-**Purpose:** Move from PGLite (ephemeral) to Supabase Postgres so all runtime data and paper-bot features persist across redeploys. See [FEATURE-STORE.md](FEATURE-STORE.md) and [DEPLOY.md](DEPLOY.md) for related setup.
+Move from PGLite (ephemeral) to Supabase Postgres so all runtime data and paper-bot features persist across redeploys. See [FEATURE-STORE.md](FEATURE-STORE.md) and [DEPLOY.md](DEPLOY.md) for related setup.
 
 ---
 

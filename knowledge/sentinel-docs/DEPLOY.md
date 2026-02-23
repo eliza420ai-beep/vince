@@ -128,6 +128,16 @@ Error      [SERVICE:MESSAGE-BUS] Error fetching channels from server (messageSer
 
 The agent **is** running (you’ll see e.g. "Received message from central bus", "Discovered new channel", and paper trading logs); the break is in **sending the response** back to the client because the bus never got a valid server/channel list.
 
+## Discord: audit log warning
+
+If you see in the terminal:
+
+```text
+Warn  [PLUGIN:DISCORD] Cannot access audit logs - permission change alerts will not include executor info (error=Missing Permissions)
+```
+
+this comes from **@elizaos/plugin-discord**. The bot does not have the **View Audit Log** permission in the Discord server, so permission-change alerts cannot include who made the change. To remove the warning and enable executor info in those alerts: in the Discord server go to **Server Settings → Integrations → [Your bot]** and grant the **View Audit Log** permission (or add it to the bot's role).
+
 ## Env vars for production
 
 | Env                 | Required            | Used by                                                                                                      |
@@ -150,7 +160,7 @@ The agent **is** running (you’ll see e.g. "Received message from central bus",
 
 ### Rate limits and standup
 
-To reduce token use and stay under LLM rate limits (e.g. Anthropic 200K input tokens/min), use standup single-responder and skip reflection in standup. See [docs/RATE_LIMIT_AND_STANDUP.md](docs/RATE_LIMIT_AND_STANDUP.md). Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`, `REFLECTION_SKIP_STANDUP=true`; optionally lower conversation length if your ElizaOS version supports it.
+To reduce token use and stay under LLM rate limits (e.g. Anthropic 200K input tokens/min), use standup single-responder and skip reflection in standup. See [RATE_LIMIT_AND_STANDUP.md](RATE_LIMIT_AND_STANDUP.md). Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`, `REFLECTION_SKIP_STANDUP=true`; optionally lower conversation length if your ElizaOS version supports it.
 
 Optional (plugin-vince features):
 

@@ -66,7 +66,7 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
   ) {
     hints.push("volume spike");
   }
-  return [...new Set(hints)].slice(0, 5);
+  return Array.from(new Set(hints)).slice(0, 5);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -182,10 +182,74 @@ async function fetchFearGreed(runtime: IAgentRuntime): Promise<string> {
 
 async function fetchHIP3Pulse(runtime: IAgentRuntime): Promise<string> {
   const hip3 = runtime.getService("VINCE_HIP3_SERVICE") as {
-    getHIP3Pulse?: () => Promise<{ tldr: string } | null>;
+    getHIP3Pulse?: () => Promise<{
+      tldr?: string;
+      summary?: {
+        overallBias?: string;
+        topPerformer?: { symbol?: string; change24h?: number };
+        worstPerformer?: { symbol?: string; change24h?: number };
+        goldVsBtc?: {
+          goldChange?: number;
+          btcChange?: number;
+          winner?: string;
+        };
+        tradFiVsCrypto?: string;
+      };
+      sectorStats?: {
+        hottestSector?: string;
+        commodities?: { avgChange?: number };
+        indices?: { avgChange?: number };
+        stocks?: { avgChange?: number };
+      };
+      fundingExtremes?: {
+        crowdedLongs?: string[];
+        crowdedShorts?: string[];
+      };
+    } | null>;
   } | null;
   const data = (await hip3?.getHIP3Pulse?.().catch(() => null)) ?? null;
-  return data?.tldr ? `**HIP-3:** ${data.tldr}` : "";
+  if (!data) return "";
+
+  const lines: string[] = [];
+  const s = data.summary;
+  const ss = data.sectorStats;
+  const fe = data.fundingExtremes;
+
+  const biasStr = s?.overallBias ?? "unknown";
+  const hottestStr = ss?.hottestSector ?? "";
+  const hottestAvg = ss?.[hottestStr as keyof typeof ss];
+  const hottestPct =
+    typeof hottestAvg === "object" && hottestAvg && "avgChange" in hottestAvg
+      ? ` (${(hottestAvg as { avgChange?: number }).avgChange?.toFixed(1) ?? "?"}%)`
+      : "";
+  const rotationStr = s?.tradFiVsCrypto ?? "";
+  lines.push(
+    `**HIP-3:** bias ${biasStr}${hottestStr ? ` | hottest: ${hottestStr}${hottestPct}` : ""}${rotationStr ? ` | rotation: ${rotationStr}` : ""}`,
+  );
+
+  const topParts: string[] = [];
+  if (s?.topPerformer?.symbol)
+    topParts.push(
+      `Top: ${s.topPerformer.symbol} ${s.topPerformer.change24h != null ? (s.topPerformer.change24h >= 0 ? "+" : "") + s.topPerformer.change24h.toFixed(1) + "%" : ""}`,
+    );
+  if (s?.worstPerformer?.symbol)
+    topParts.push(
+      `Worst: ${s.worstPerformer.symbol} ${s.worstPerformer.change24h != null ? (s.worstPerformer.change24h >= 0 ? "+" : "") + s.worstPerformer.change24h.toFixed(1) + "%" : ""}`,
+    );
+  if (s?.goldVsBtc?.winner)
+    topParts.push(
+      `GOLD vs BTC: ${s.goldVsBtc.winner} winning (${s.goldVsBtc.goldChange != null ? (s.goldVsBtc.goldChange >= 0 ? "+" : "") + s.goldVsBtc.goldChange.toFixed(1) + "%" : "?"} vs ${s.goldVsBtc.btcChange != null ? (s.goldVsBtc.btcChange >= 0 ? "+" : "") + s.goldVsBtc.btcChange.toFixed(1) + "%" : "?"})`,
+    );
+  if (topParts.length > 0) lines.push(topParts.join(" | "));
+
+  const crowdParts: string[] = [];
+  if (fe?.crowdedLongs?.length)
+    crowdParts.push(`longs ${fe.crowdedLongs.slice(0, 3).join(", ")}`);
+  if (fe?.crowdedShorts?.length)
+    crowdParts.push(`shorts ${fe.crowdedShorts.slice(0, 3).join(", ")}`);
+  if (crowdParts.length > 0) lines.push(`Crowded: ${crowdParts.join(" | ")}`);
+
+  return lines.join("\n") || (data.tldr ? `**HIP-3:** ${data.tldr}` : "");
 }
 
 async function fetchSignalAggregator(runtime: IAgentRuntime): Promise<string> {
@@ -661,38 +725,78 @@ async function fetchGoalTracker(runtime: IAgentRuntime): Promise<string> {
 async function fetchMandoMinutes(runtime: IAgentRuntime): Promise<string> {
   const newsSvc = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as {
     refreshData?: (force?: boolean) => Promise<void>;
-    getTopHeadlines?: (
-      limit: number,
-    ) => Array<{ title: string; sentiment: string; impact: string }>;
+    getTopHeadlines?: (limit: number) => Array<{
+      title: string;
+      sentiment: string;
+      impact: string;
+      source?: string;
+      assets?: string[];
+    }>;
     getVibeCheck?: () => string;
     getTLDR?: () => string;
     getOverallSentiment?: () => { sentiment: string; confidence: number };
+    getCriticalRiskEvents?: () => Array<{
+      type: string;
+      description: string;
+      severity: string;
+      assets?: string[];
+    }>;
+    groupByTheme?: () => Array<{
+      theme: string;
+      articles: unknown[];
+      topHeadline?: string;
+    }>;
   } | null;
   if (!newsSvc) return "";
   await newsSvc.refreshData?.(true);
-  const vibeCheck = newsSvc.getVibeCheck?.() ?? "";
   const tldr = newsSvc.getTLDR?.() ?? "";
   const sentiment = newsSvc.getOverallSentiment?.();
   const headlines = newsSvc.getTopHeadlines?.(5) ?? [];
-  const headlineLines = headlines.map((h) => {
-    const dot =
-      h.sentiment === "bullish"
-        ? "🟢"
-        : h.sentiment === "bearish"
-          ? "🔴"
-          : "⚪";
-    return `${dot} ${h.title.slice(0, 80)}`;
-  });
-  return [
-    vibeCheck ? `**MandoMinutes:** ${vibeCheck}` : "",
-    sentiment
-      ? `News sentiment: ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)`
-      : "",
-    tldr ? `TLDR: ${tldr}` : "",
-    headlineLines.length > 0 ? `Headlines:\n${headlineLines.join("\n")}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const riskEvents = newsSvc.getCriticalRiskEvents?.() ?? [];
+  const themes = newsSvc.groupByTheme?.() ?? [];
+
+  const parts: string[] = [];
+
+  const sentimentLine = sentiment
+    ? `${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)`
+    : "";
+  parts.push(`**News:** ${tldr || sentimentLine || "No news data"}`);
+
+  if (headlines.length > 0) {
+    const headlineLines = headlines.map((h) => {
+      const dot =
+        h.sentiment === "bullish"
+          ? "🟢"
+          : h.sentiment === "bearish"
+            ? "🔴"
+            : "⚪";
+      const impactMark = h.impact === "high" ? "❗" : "";
+      const source = h.source ? ` (${h.source})` : "";
+      const assets = h.assets?.length ? ` [${h.assets.join(", ")}]` : "";
+      return `${impactMark}${dot} ${h.title.slice(0, 80)}${source}${assets}`;
+    });
+    parts.push(headlineLines.join("\n"));
+  }
+
+  if (themes.length > 0) {
+    const themeStr = themes
+      .filter((t) => t.articles?.length > 0)
+      .sort((a, b) => (b.articles?.length ?? 0) - (a.articles?.length ?? 0))
+      .slice(0, 5)
+      .map((t) => `${t.theme} (${t.articles.length})`)
+      .join(", ");
+    if (themeStr) parts.push(`Themes: ${themeStr}`);
+  }
+
+  if (riskEvents.length > 0) {
+    const riskLines = riskEvents.slice(0, 2).map((r) => {
+      const assets = r.assets?.length ? ` [${r.assets.join(", ")}]` : "";
+      return `⚠️ ${r.type}: ${r.description.slice(0, 80)}${assets}`;
+    });
+    parts.push(`Risk: ${riskLines.join(" | ")}`);
+  }
+
+  return parts.filter(Boolean).join("\n");
 }
 
 async function fetchAlliumOnChain(runtime: IAgentRuntime): Promise<string> {
@@ -1104,7 +1208,7 @@ function extractAssetSignalsFromTweets(
 
   // Generate signals based on sentiment
   const results: AssetSignal[] = [];
-  for (const [asset, signal] of assetMap) {
+  for (const [asset, signal] of Array.from(assetMap.entries())) {
     if (signal.tweetCount === 0) continue;
 
     // Determine signal
@@ -1314,7 +1418,7 @@ export async function fetchEchoData(
     queries.push("NVDA TSLA AAPL MAG7 stock market");
     // High-signal accounts (from @ikigailabsETH curated list)
     queries.push("elonmusk naval crypto tech");
-    const uniqueQueries = [...new Set(queries)].slice(0, 7);
+    const uniqueQueries = Array.from(new Set(queries)).slice(0, 7);
 
     let allTweets: Array<{
       id?: string;
@@ -1361,54 +1465,34 @@ export async function fetchEchoData(
       trackedAssets,
     );
 
-    // VIBE-FOCUSED output - synthesize into a summary, don't show individual tweets
-    let sentimentBlock = `## ECHO — CT VIBE (last 24h)
+    let sentimentBlock = `## ECHO — CT Pulse\n\n`;
 
-`;
-
-    // Use LLM to synthesize vibe
     if (runtime.useModel) {
       try {
-        const vibePrompt = `You are ECHO, the CT VIBE agent. Synthesize these tweets into a CONCISE vibe report.
+        const vibePrompt = `You are ECHO, the CT sentiment agent. Synthesize these tweets into a STRUCTURED sentiment report. Output EXACTLY this format — no preamble, no explanation:
 
-Respond in exactly this format:
+| Asset | Sentiment | Narrative | Signal |
+|-------|-----------|-----------|--------|
+| BTC | [bullish/bearish/neutral + qualifier] | [1 phrase: dominant narrative] | [LEAN LONG / LEAN SHORT / AVOID / WAIT] |
+| ETH | [sentiment] | [narrative] | [signal] |
+| SOL | [sentiment] | [narrative] | [signal] |
+| HYPE | [sentiment] | [narrative] | [signal] |
 
-**What's HOT (+fomo):** [1-2 sentences - what's trending, exciting]
-**What's FUD (-fear):** [1-2 sentences - what's worrying]
-**NEW META:** [1 sentence - new narratives/protocols]
-**CORE:** BTC [bullish/bearish/neutral + vibe] | ETH [vibe] | SOL [vibe] | HYPE [vibe]
-**STOCKS (NVDA/TSLA/AAPL/MAG7):** [1 sentence - key stock sentiment or "not trending"]
-**@hypersurfaceX:** [1 sentence or "not trending"]
-**@elonmusk / @naval / @kevinWSHpod:** [1 sentence - key signal or "not trending"]
-**@autismcapital / @blocknewsdotcom:** [1 sentence - macro/policy or "not trending"]
-
-Curated from @ikigailabsETH follows. Note: @realDonaldTrump hasn't tweeted since early Feb 2026.
-
-NO individual tweets. Synthesize the vibe.`;
+**Contrarian:** [1-2 sentences — where is consensus wrong? Reference Fear & Greed, CME positioning, or institutional flow if visible]
+**Edge:** [1 sentence — where is the edge right now?]
+**Takeaway:** [1 sentence — one clear actionable signal for the team]`;
 
         const vibeText = await runtime.useModel(ModelType.TEXT_SMALL, {
-          prompt: `${vibePrompt}\n\nTweets:\n${allTweets
+          prompt: `${vibePrompt}\n\nTweets (last 24h):\n${allTweets
             .slice(0, 15)
             .map((t) => t.text)
             .join("\n---\n")}`,
           maxTokens: 400,
-          temperature: 0.5,
+          temperature: 0.4,
         });
         const text = String(vibeText ?? "").trim();
         if (text && text.length > 30) {
           sentimentBlock += text;
-
-          // Add X content idea
-          const ideaPrompt = `Based on this vibe, suggest 1 punchy tweet hook for @ikigaistudioxyz. 1 sentence.`;
-          const idea = await runtime.useModel(ModelType.TEXT_SMALL, {
-            prompt: `${text}\n\n${ideaPrompt}`,
-            maxTokens: 80,
-            temperature: 0.7,
-          });
-          const ideaText = String(idea ?? "").trim();
-          if (ideaText) {
-            sentimentBlock += `\n\n**Draft X hook (you post):** ${ideaText}`;
-          }
         } else {
           sentimentBlock += generateBasicVibe(allTweets);
         }
@@ -1481,11 +1565,11 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
 
     const markets = await service.getMarketsByPreferredTags({ totalLimit: 8 });
     if (markets.length === 0) {
-      return "**Status:** No VINCE-priority markets found.\n\n**Action:** Oracle discovery ready; no markets in scope yet.\n\n**Insight:** Add markets to VINCE priority list for strike selection.";
+      return "**Status:** No VINCE-priority markets found. Oracle discovery ready.";
     }
 
     const rows: string[] = [];
-    for (const m of markets) {
+    for (const m of markets.slice(0, 3)) {
       const cid =
         m.conditionId ?? (m as { condition_id?: string }).condition_id ?? "—";
       const shortCid =
@@ -1501,27 +1585,18 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
       rows.push(`| ${question} | ${yesPct} | \`${shortCid}\` |`);
     }
 
+    const moreCount =
+      markets.length > 3 ? ` (+${markets.length - 3} more)` : "";
     sections.push(
-      `**Priority Markets:**\n| Market | YES% | ID |\n|-------|------|----|\n${rows.join("\n")}`,
+      `**Priority Markets${moreCount}:**\n| Market | YES% | ID |\n|-------|------|----|\n${rows.join("\n")}`,
     );
   } catch (err) {
     logger.warn({ err }, "[STANDUP_DATA] Failed to fetch Oracle data");
     sections.push("**Status:** Polymarket fetch failed.");
   }
 
-  // Add actionable insight for strike selection
   sections.push(
-    "**Strike Insight:** Check top 2-3 markets for expiry probabilities — use for Hypersurface weekly strike selection (Solus's call).",
-  );
-
-  // Add edge status query
-  sections.push(
-    "**Edge Engine:** Ask Oracle for EDGE_STATUS to see if any edge opportunities are detected.",
-  );
-
-  // Add what to do next
-  sections.push(
-    "**Next:** Run EDGE_CHECK on BTC or ETH for potential strike signals.",
+    "**Strike Insight:** Use top markets for Hypersurface weekly strike confidence (Solus). Run EDGE_CHECK on BTC/ETH for signals.",
   );
 
   return sections.join("\n\n");
@@ -1582,7 +1657,7 @@ function formatHypersurfaceSpotPrices(prices: Record<string, number>): string {
 
 export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
   let spotBlock = "";
-  const coingecko = runtime.getService("COINGECKO_SERVICE") as {
+  const coingecko = runtime.getService("COINGECKO_SERVICE") as unknown as {
     getSimplePrices: (ids: string[]) => Promise<Record<string, number>>;
   } | null;
   if (coingecko?.getSimplePrices) {
@@ -1660,16 +1735,61 @@ Reference the live spot prices above when present; otherwise VINCE's DVOL, fundi
 If uncertain (like last week), say so and explain why with data.`;
   }
 
+  // Compute distance-to-strike for open positions
+  let distanceBlock = "";
+  if (spotBlock) {
+    try {
+      const btcSpotMatch = spotBlock.match(/BTC\s*\$\s*([\d,]+(?:\.\d+)?)/i);
+      const hypeSpotMatch = spotBlock.match(/HYPE\s*\$\s*([\d,]+(?:\.\d+)?)/i);
+      const btcSpot = btcSpotMatch
+        ? parseFloat(btcSpotMatch[1].replace(/,/g, ""))
+        : null;
+      const hypeSpot = hypeSpotMatch
+        ? parseFloat(hypeSpotMatch[1].replace(/,/g, ""))
+        : null;
+
+      const positionsText = openPositionsBlock + (lastWeek ?? "");
+      const btcStrikeMatch =
+        positionsText.match(
+          /BTC[^$]*?\$\s*([\d,]+(?:\.\d+)?)\s*(?:strike|CC|covered call)/i,
+        ) ?? positionsText.match(/strike\s*\$?\s*([\d,]+).*?BTC/i);
+      const hypeStrikeMatch =
+        positionsText.match(
+          /HYPE[^$]*?\$\s*([\d,]+(?:\.\d+)?)\s*(?:strike|put)/i,
+        ) ?? positionsText.match(/strike\s*\$?\s*([\d,]+).*?HYPE/i);
+
+      const distLines: string[] = [];
+      if (btcSpot && btcStrikeMatch) {
+        const strike = parseFloat(btcStrikeMatch[1].replace(/,/g, ""));
+        if (!isNaN(strike) && strike > 0) {
+          const pct = (((strike - btcSpot) / btcSpot) * 100).toFixed(1);
+          const side = strike > btcSpot ? "OTM" : "ITM";
+          distLines.push(
+            `BTC: $${btcSpot.toLocaleString()} vs $${strike.toLocaleString()} strike = ${pct}% ${side}`,
+          );
+        }
+      }
+      if (hypeSpot && hypeStrikeMatch) {
+        const strike = parseFloat(hypeStrikeMatch[1].replace(/,/g, ""));
+        if (!isNaN(strike) && strike > 0) {
+          const pct = (((strike - hypeSpot) / hypeSpot) * 100).toFixed(1);
+          const side = strike > hypeSpot ? "OTM" : "ITM";
+          distLines.push(
+            `HYPE: $${hypeSpot.toFixed(2)} vs $${strike.toFixed(0)} strike = ${pct}% ${side}`,
+          );
+        }
+      }
+      if (distLines.length > 0) {
+        distanceBlock = `\n**Distance to strike:**\n${distLines.join("\n")}\n`;
+      }
+    } catch {
+      /* non-fatal */
+    }
+  }
+
   return `${dayContext}
 
-${spotBlock}${portfolioLine}${openPositionsBlock}**Last week's strategy:** ${lastWeek}
-
-**IMPORTANT: Use the LIVE SPOT PRICE above for your call. Never use prices from the "open positions" or "last week" context — those are stale.**
-
-**Options context (use VINCE's data from shared insights above):**
-Read VINCE's section for: BTC price, funding, L/S ratio, market regime, DVOL, best covered call strike, signal direction.
-Read Oracle's section for: Polymarket odds that inform confidence.
-
+${spotBlock}${openPositionsBlock}${distanceBlock}
 ${yourJobBlock}`;
 }
 
@@ -1766,23 +1886,53 @@ export async function fetchSentinelData(
 
   // 3. ProjectRadar (if Sentinel has the service)
   const radar = runtime.getService("PROJECT_RADAR_SERVICE") as {
-    getProjectHealth?: () => Promise<{
-      status?: string;
-      blockers?: string[];
+    scanProject?: () => Promise<{
+      allTodos?: Array<{ text: string; checked?: boolean; priority?: string }>;
+      topPriorities?: string[];
+      criticalBlockers?: string[];
+      northStarDeliverables?: Array<{ name?: string; status?: string }>;
     } | null>;
-    getOpenTODOs?: () => Promise<string[] | null>;
+    getProjectSummary?: () => Promise<string | null>;
   } | null;
   if (radar) {
     try {
-      const health =
-        (await radar.getProjectHealth?.().catch(() => null)) ?? null;
-      const todos = (await radar.getOpenTODOs?.().catch(() => null)) ?? null;
-      if (health?.status)
-        sections.push(
-          `**Project:** ${health.status}${health.blockers?.length ? ` | Blockers: ${health.blockers.slice(0, 2).join(", ")}` : ""}`,
+      const state = (await radar.scanProject?.().catch(() => null)) ?? null;
+      if (state) {
+        const blockers = state.criticalBlockers ?? [];
+        if (blockers.length > 0) {
+          sections.push(`**Blockers:** ${blockers.slice(0, 2).join("; ")}`);
+        }
+
+        const openTodos = (state.allTodos ?? []).filter((t) => !t.checked);
+        const highPri = openTodos
+          .filter((t) => t.priority === "high")
+          .slice(0, 3);
+        const medPri = openTodos
+          .filter((t) => t.priority === "medium")
+          .slice(0, 2);
+        const suggestItems = [...highPri, ...medPri].slice(0, 3);
+        if (suggestItems.length > 0) {
+          const suggestLines = suggestItems.map((t) => {
+            const tag = t.priority === "high" ? "[HIGH]" : "[MED]";
+            return `${tag} ${t.text.slice(0, 80)}`;
+          });
+          sections.push(
+            `**Suggested Next:**\n${suggestLines.map((l) => `- ${l}`).join("\n")}`,
+          );
+        }
+
+        const stale = (state.northStarDeliverables ?? []).filter(
+          (d) => d.status === "stale",
         );
-      if (todos?.length)
-        sections.push(`**TODOs:** ${todos.slice(0, 3).join("; ")}`);
+        if (stale.length > 0) {
+          sections.push(
+            `**Stale north stars:** ${stale
+              .slice(0, 2)
+              .map((d) => d.name)
+              .join(", ")}`,
+          );
+        }
+      }
     } catch {
       /* non-fatal */
     }
@@ -1827,13 +1977,6 @@ export async function fetchSentinelData(
     /* non-fatal */
   }
 
-  sections.push(
-    "**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.",
-  );
-
-  sections.push(
-    "**Your job:** Give a proper team overview:\n1. **What shipped** — summarize the week's commits (agent by agent)\n2. **What's next** — what should we focus on building/fixing\n3. **One architecture item** — any structural changes or learnings\n4. **Tech focus** — 1-2 specific things to prioritize (name the file, plugin, or feature)\n5. **Macro** — any news affecting trades\n\nBe concise but substantive. This is the team's compass.",
-  );
   return sections.join("\n\n");
 }
 
@@ -1841,12 +1984,11 @@ export async function fetchSentinelData(
 // Eliza: delta reporter — yesterday vs today, plus facts
 // ═══════════════════════════════════════════════════════════════════════
 
-/** Build delta summary: yesterday's Day Report vs today's shared insights. */
+/** Build delta summary: yesterday's Day Report TL;DR + Solus call tracking. */
 async function buildDeltaReport(): Promise<string> {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayReport = await loadDayReport(yesterday);
-  const todayInsights = await loadSharedDailyInsights(); // today
   const lines: string[] = [];
   if (yesterdayReport) {
     const solusMatch = yesterdayReport.match(
@@ -1867,47 +2009,33 @@ async function buildDeltaReport(): Promise<string> {
       "**Yesterday:** No day report found (first run or missing file).",
     );
   }
-  if (todayInsights) {
-    const vinceBlock = todayInsights.match(/## VINCE[\s\S]*?(?=## |$)/i);
-    if (vinceBlock) {
-      const firstTable = vinceBlock[0].match(
-        /\|[^\n]+\|\n\|[^\n]+\|\n([\s\S]*?)(?=\n\n|\n\*\*|$)/,
-      );
-      if (firstTable)
-        lines.push(
-          `**Today (from shared insights):** ${firstTable[1].replace(/\n/g, " ").slice(0, 200)}`,
-        );
-      else lines.push("**Today:** Shared insights available (see full doc).");
-    } else {
-      lines.push("**Today:** Shared insights available.");
-    }
-  } else {
-    lines.push("**Today:** Shared insights not yet built.");
-  }
-  lines.push(
-    "**Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.",
-  );
   return lines.join("\n\n");
 }
 
 const DEFAULT_RECENT_UPLOADS_PREVIEW_MAX_CHARS = 200;
 
-/** Strip frontmatter and take first line or first N chars of body for preview */
+/** Strip frontmatter, headings, and empty lines; return first meaningful paragraph text. */
 function extractPreview(content: string, maxChars: number): string {
   let body = content;
   const fmMatch = content.match(/^---\s*\n[\s\S]*?\n---\s*\n?/);
   if (fmMatch) body = content.slice(fmMatch[0].length);
-  const afterFirstH2 = body.match(/\n##\s+([^\n]+)/);
-  const firstLine = afterFirstH2
-    ? afterFirstH2[1].trim()
-    : (body
-        .split(/\n/)
-        .find((l) => l.trim().length > 0)
-        ?.trim() ?? "");
-  const fromBody = body.replace(/\s+/g, " ").trim().slice(0, maxChars);
-  const preview =
-    firstLine.length > 0 && firstLine.length <= maxChars ? firstLine : fromBody;
-  return preview ? `${preview}${preview.length >= maxChars ? "…" : ""}` : "";
+  const lines = body.split(/\n/);
+  const meaningful = lines
+    .filter((l) => {
+      const trimmed = l.trim();
+      if (!trimmed) return false;
+      if (/^#{1,6}\s/.test(trimmed)) return false;
+      if (/^\s*[-*]\s*$/.test(trimmed)) return false;
+      if (/^(Content|Preview|---+)$/i.test(trimmed)) return false;
+      return trimmed.length > 15;
+    })
+    .slice(0, 3)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!meaningful) return "";
+  const preview = meaningful.slice(0, maxChars);
+  return preview.length >= maxChars ? preview + "…" : preview;
 }
 
 /** Get recent knowledge uploads (last 48 hours) for standup, with content preview for Substack/Research LLM */
@@ -1993,6 +2121,8 @@ async function getRecentUploads(): Promise<string> {
 
 export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
   const sections: string[] = [];
+
+  // 1. Delta vs yesterday
   try {
     const delta = await buildDeltaReport();
     sections.push(delta);
@@ -2006,25 +2136,24 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     );
   }
 
-  // Recent uploads
+  // 2. Recent uploads (gather data for LLM context)
+  let uploadsText = "";
   try {
-    const uploads = await getRecentUploads();
-    sections.push(uploads);
+    uploadsText = await getRecentUploads();
   } catch (e) {
     logger.debug({ err: e }, "[STANDUP] Recent uploads failed");
   }
 
-  // Stale knowledge categories (from FRESHNESS.md)
+  // 3. Stale categories
+  let staleText = "";
   try {
     const freshnessPath = path.join(process.cwd(), "knowledge", "FRESHNESS.md");
     if (fs.existsSync(freshnessPath)) {
       const freshness = fs.readFileSync(freshnessPath, "utf-8");
-      // Extract high-priority stale categories
       const highPriorityMatch = freshness.match(
         /\*\*High priority\*\*[\s\S]*?\|(\s*\d+\s*)\|/,
       );
       if (highPriorityMatch) {
-        // Get category names from the table
         const staleLines = freshness
           .split("\n")
           .filter(
@@ -2044,9 +2173,7 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
             .filter(Boolean)
             .slice(0, 3);
           if (staleCats.length > 0) {
-            sections.push(
-              `**Stale categories (update needed):** ${staleCats.join(", ")}`,
-            );
+            staleText = `**Stale categories (update needed):** ${staleCats.join(", ")}`;
           }
         }
       }
@@ -2054,6 +2181,55 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
   } catch (e) {
     logger.debug({ err: e }, "[STANDUP] Freshness check failed");
   }
+
+  // 4. Essay Suggestion + Knowledge + Research via LLM (FIRST — most valuable, must not be truncated)
+  if (runtime.useModel) {
+    try {
+      const llmContext = [uploadsText, staleText].filter(Boolean).join("\n\n");
+      const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on the recent uploads and stale categories below, output exactly three labeled lines. PRIORITIZE referencing specific uploads by name. Focus on AI agents, OpenClaw, DeFi, options/perps, macro, lifestyle. SKIP memes, memetics, NFTs:
+
+**Essay Suggestion:** [One specific essay with a CONTRARIAN or UNIQUE angle — MUST reference a specific upload by filename. E.g., "Write: 'The AI Super-Cycle Has Begun' — hook: NVDA at $900 isn't the top, it's the foothills. Based on upload: eliza-upload-the-ai-super-cycle-has-begu." Include: topic + hook + which upload inspired it.]
+
+**Knowledge gap:** [One specific file to update in knowledge/ — name the exact file and what to add.]
+
+**Research:** [One specific topic or question to research, inspired by a recent upload. Name the upload.]
+
+One sentence each. No filler, no intro.
+
+${llmContext}`,
+        maxTokens: 400,
+        temperature: 0.7,
+      });
+      const text = String(suggestion ?? "").trim();
+      if (text && text.length > 20) {
+        const hasLabels =
+          text.includes("**Essay Suggestion:**") ||
+          text.includes("**Knowledge gap:**") ||
+          text.includes("**Research:**");
+        if (hasLabels) {
+          sections.push(text);
+        } else {
+          const lines = text.split("\n").filter((l) => l.trim());
+          sections.push(`**Essay Suggestion:** ${lines[0] ?? text}`);
+          if (lines[1]) sections.push(`**Knowledge gap:** ${lines[1]}`);
+          if (lines[2]) sections.push(`**Research:** ${lines[2]}`);
+        }
+      }
+    } catch {
+      sections.push(
+        "**Essay Suggestion:** [LLM unavailable -- review recent uploads for a timely topic]",
+      );
+    }
+  } else {
+    sections.push(
+      "**Essay Suggestion:** Review recent uploads for a timely Ikigai Studio topic.",
+    );
+  }
+
+  // 5. Uploads and facts (lower priority, can be truncated)
+  if (uploadsText) sections.push(uploadsText);
+  if (staleText) sections.push(staleText);
 
   try {
     const facts = await runtime.getMemories({
@@ -2069,69 +2245,10 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
       );
     if (factLines.length > 0)
       sections.push(
-        `**Recent facts in memory (${factLines.length}):**\n${factLines.join("\n")}`,
+        `**Recent facts (${factLines.length}):**\n${factLines.join("\n")}`,
       );
-    else sections.push("**Recent facts:** None stored yet.");
   } catch {
-    sections.push("**Facts:** Query failed.");
-  }
-
-  // Substack + knowledge expansion + research suggestions via LLM (with clear labels)
-  if (runtime.useModel) {
-    try {
-      const context = sections.join("\n");
-      const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly three labeled lines. PRIORITIZE the "Recent uploads" and "Stale categories" sections. Focus on AI agents, OpenClaw, DeFi, options/perps, macro, lifestyle. SKIP memes, memetics, NFTs:
-
-**Substack idea:** [One specific substack essay with a CONTRARIAN or UNIQUE angle — MUST reference a specific upload. E.g., "Write: Hyperliquid at $30 is the bear case for the next bull — hook: We watched $1→$60, missed 8-figures, still bullish." Include: topic + hook + angle.]
-
-**Knowledge to expand:** [One specific file to update in knowledge/ — E.g., "Update kelly-btc/satoshis-knowledge/bitcoin/latest.md with current BTC price and MSTR holdings" or "Add Hyperliquid section to defi-metrics/README.md". Name the exact file and what to add.]
-
-**Research to do:** [One specific topic or question to research, inspired by recent uploads. E.g., "Compare Hyperliquid OI growth to Binance in the last 30 days" or "Update macro-economy with latest Fed dot plot and Warsh odds."]
-
-One sentence each. No filler, no intro.
-
-Context:
-${context}`,
-        maxTokens: 400,
-        temperature: 0.7,
-      });
-      const text = String(suggestion ?? "").trim();
-      if (text && text.length > 20) {
-        const hasLabels =
-          text.includes("**Substack idea:**") ||
-          text.includes("**Knowledge to expand:**") ||
-          text.includes("**Research to do:**");
-        if (hasLabels) {
-          sections.push(text);
-        } else {
-          const lines = text.split("\n").filter((l) => l.trim());
-          sections.push(`**Substack idea:** ${lines[0] ?? text}`);
-          if (lines[1]) sections.push(`**Knowledge to expand:** ${lines[1]}`);
-          if (lines[2]) sections.push(`**Research to do:** ${lines[2]}`);
-        }
-      }
-    } catch {
-      sections.push(
-        "**Substack idea:** [LLM unavailable -- suggest based on yesterday's delta]",
-      );
-      sections.push(
-        "**Knowledge to expand:** [LLM unavailable -- review knowledge/INDEX.md for stale categories]",
-      );
-      sections.push(
-        "**Research to do:** [LLM unavailable -- pick one topic from Recent uploads to research]",
-      );
-    }
-  } else {
-    sections.push(
-      "**Substack idea:** Review yesterday's delta for a timely Ikigai Studio topic.",
-    );
-    sections.push(
-      "**Knowledge to expand:** Check knowledge/FRESHNESS.md for stale categories to update.",
-    );
-    sections.push(
-      "**Research to do:** Pick one topic from Recent uploads to research (e.g. OI comparison, Fed odds).",
-    );
+    /* non-fatal */
   }
 
   return sections.join("\n\n");
@@ -2265,12 +2382,31 @@ export async function fetchClawtermData(
     if (runtime.useModel) {
       try {
         const summary = await runtime.useModel(ModelType.TEXT_SMALL, {
-          prompt: `You are Clawterm, the OpenClaw terminal. Summarize the data below for the daily standup in 2-4 sentences. Focus on: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Be concrete and specific. No filler intros, no AI slop (banned: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, delve, landscape, dive into). If the data is thin, say so in one sentence. End with **one concrete tech-focus suggestion**: what the team should focus on or try next (OpenClaw skill, setup, or tooling). Be specific and actionable — name the skill or tool.\n\nData:\n${rawData}`,
-          maxTokens: 300,
+          prompt: `You are Clawterm, the OpenClaw terminal. Summarize the data below for the daily standup. Output EXACTLY this format:
+
+[2-3 sentences: what's happening in OpenClaw — skills trending, tutorials, builder activity. Be concrete. No filler intros, no AI slop.]
+
+**Ops Next:** [One concrete, actionable suggestion — name the specific skill, tool, or feature to build/try next. Must be implementable.]
+
+Data:
+${rawData}`,
+          maxTokens: 250,
           temperature: 0.5,
         });
         const text = String(summary ?? "").trim();
-        if (text && text.length > 30) return text;
+        if (text && text.length > 30) {
+          const hasOpsNext = text.includes("**Ops Next:**");
+          if (hasOpsNext) {
+            const isBuildable =
+              /\b(implement|build|add|create|ship|set up|integrate|audit|deploy)\b/i.test(
+                text,
+              );
+            return isBuildable
+              ? text + "\n**Sprint candidate?** Yes — cross-link to Sentinel."
+              : text;
+          }
+          return text;
+        }
       } catch (err) {
         logger.debug(
           { err },
@@ -2340,41 +2476,28 @@ export async function fetchAgentData(
   }
 }
 
-// Naval: philosophy, frameworks, team guidance
 export async function fetchNavalData(runtime: IAgentRuntime): Promise<string> {
-  const sections: string[] = [];
+  const lines: string[] = [];
 
-  // Quote/wisdom for the day - short and punchy
   if (runtime.useModel) {
     try {
       const wisdom = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `Give one short Naval-style insight relevant to running a crypto trading project with AI agents. 1-2 sentences max. Include the theme: push not pull, thesis first, agents as leverage, or wealth compounding.`,
+        prompt: `Give one short Naval-style insight relevant to running a crypto trading project with AI agents. 1-2 sentences max. Theme: push not pull, thesis first, agents as leverage, or wealth compounding.`,
         maxTokens: 80,
         temperature: 0.6,
       });
       const text = String(wisdom ?? "").trim();
       if (text && text.length > 10) {
-        sections.push(`**Today's Naval:** ${text}`);
+        lines.push(`**Today's Naval:** ${text}`);
       }
     } catch {
       /* non-fatal */
     }
   }
 
-  // Team framework - what's the mental model for the team
-  sections.push(
-    "**Team Frameworks:** Push not pull. Thesis first. Signal not hype. Paper before live. One team, one dream.",
+  lines.push(
+    "**Frameworks:** Push not pull. Thesis first. Paper before live. One team, one dream.",
   );
 
-  // Agent philosophy - leverage lesson
-  sections.push(
-    "**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VINCE = our first product.",
-  );
-
-  // Career audit / OpenClaw guidance
-  sections.push(
-    "**OpenClaw Path:** Build specific knowledge. Ship early. Let agents do the work. Compound the edge.",
-  );
-
-  return sections.join("\n\n");
+  return lines.join("\n\n");
 }

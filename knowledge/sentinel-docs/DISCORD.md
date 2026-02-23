@@ -91,6 +91,68 @@ Create six Discord applications (one per agent), invite each bot to the server, 
 
 ---
 
+## Channel invite rules (multi-agent)
+
+Invite each bot **only** to its category channels plus `#daily-standup`. Do not invite all bots to all channels—every bot in a channel receives every message and runs validation, even when it exits early. Channel isolation cuts overhead and token burn.
+
+| Agent        | Invite to                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Eliza**    | CEO category channels (`meet_eliza`, `knowledge`, `research`, `gtm_substack`) + `#daily-standup`                  |
+| **VINCE**    | CDO category channels (`meet_vince`, `daily`, `news`, `lifestyle`, `alerts`, `upload_youtube`) + `#daily-standup` |
+| **Solus**    | CFO category channels (`meet_solus`, `plan_100k`, `strike_ritual`, etc.) + `#daily-standup`                       |
+| **Otaku**    | COO category channels (`meet_otaku`, `token_discovery`, etc.) + `#daily-standup`                                  |
+| **Kelly**    | CHRO category channels (`meet_kelly`, `kelly`, `daily_standup`, etc.) + `#daily-standup`                          |
+| **Sentinel** | CTO category channels (`meet_sentinel`, `sentinel_ops`, etc.) + `#daily-standup`                                  |
+| **Echo**     | Echo channels (if any) + `#daily-standup`                                                                         |
+| **Oracle**   | Oracle channels (if any) + `#daily-standup`                                                                       |
+| **Clawterm** | Clawterm/AI Terminal channels (if any) + `#daily-standup`                                                         |
+
+**Example:** Solus should be in `#meet_solus`, `#plan_100k`, `#daily-standup`—not `#vince-daily-reports`.
+
+### Clawterm in standup
+
+To have **Clawterm** join the daily standup (OpenClaw & AI/AGI report):
+
+1. **Create a Discord application for Clawterm** in the [Discord Developer Portal](https://discord.com/developers/applications) (same as for VINCE, Eliza, etc.). Each agent must have a **distinct** Application ID.
+2. **Invite the Clawterm bot** to the server and to `#daily-standup` (and any Clawterm-specific channels).
+3. **Set env vars** so Clawterm loads the Discord plugin:
+   - `CLAWTERM_DISCORD_APPLICATION_ID` — Clawterm app’s Application ID
+   - `CLAWTERM_DISCORD_API_TOKEN` — Clawterm app’s Bot token
+
+Startup validation will fail if two agents share the same Application ID. Ensure Clawterm’s app is unique.
+
+### Optional: Discord mention IDs for standup turn-taking
+
+When Kelly posts “next agent” in `#daily-standup`, only that agent’s bot should reply. By default the message is `@AgentName, go.` and only the agent whose name appears in the message replies (via `isDirectlyAddressed`). To use **Discord user mentions** so only the mentioned bot gets a notification:
+
+- **Single env (all agents):** `A2A_STANDUP_DISCORD_MENTION_IDS` — comma-separated `AgentName:DiscordBotUserId` (e.g. `VINCE:123456,Eliza:789012,Clawterm:345678`) or JSON `{"vince":"123456","eliza":"789012"}`.
+- **Per-agent env:** `VINCE_DISCORD_BOT_USER_ID`, `ELIZA_DISCORD_BOT_USER_ID`, `CLAWTERM_DISCORD_BOT_USER_ID`, etc. (the **bot’s Discord user ID**, not the Application ID).
+
+When set, the progression and kickoff messages use `<@BOT_USER_ID> go.` instead of `@AgentName, go.` so only that bot is mentioned. If not set, behavior is unchanged (`@AgentName, go.`). If Solus is invited to `#vince-daily-reports`, he receives every VINCE push and runs validation (even though he exits before the LLM).
+
+**Optional:** Add `allowedChannelIds` per agent in `character.settings.discord` when the ElizaOS Discord plugin supports it, for application-level filtering in addition to the invite list.
+
+---
+
+## Multi-agent Discord checklist
+
+From lessons learned running 4–8 agents on one server:
+
+| Item                              | VINCE config                                                                                                                                                          |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Separate bot token per agent**  | Option C: one Discord app per agent. Set `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN` per agent. Do not share.                                                |
+| **Dedicated channels per agent**  | One category per bot; sub-channels by agent focus. See [LiveTheLifeTV C-suite layout](#livethelifetv-c-suite-layout).                                                 |
+| **Channel invite rules**          | Invite each bot only to its category channels + `#daily-standup`. See [Channel invite rules](#channel-invite-rules-multi-agent).                                      |
+| **Standup single-responder**      | Only Kelly responds to humans in standup. Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`. See [RATE_LIMIT_AND_STANDUP.md](RATE_LIMIT_AND_STANDUP.md).                       |
+| **requireMention on specialists** | Solus, Sentinel, Otaku, Echo, Oracle have `shouldRespondOnlyToMentions: true` so they only respond when @mentioned in shared channels. Kelly, VINCE, Eliza stay open. |
+| **Reflection skipped in standup** | Reflection is skipped in standup channels by default. Set `REFLECTION_RUN_IN_STANDUP=true` only if needed.                                                            |
+| **Standup channel naming**        | Channel name must contain `standup` or `daily-standup` (case-insensitive) so `A2A_STANDUP_CHANNEL_NAMES` matches. Otherwise every agent processes every message.      |
+| **Explicit bindings**             | "Bindings" = which channels each bot is invited to + `shouldRespond` logic in OtakuMessageService. No gateway; config and invite changes only.                        |
+
+Get the plumbing right first. The intelligence follows.
+
+---
+
 ## Agent Capabilities
 
 | Agent        | Role                                   | Key Commands / Actions                                                                                                |

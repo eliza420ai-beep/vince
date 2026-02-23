@@ -1,6 +1,6 @@
-# Proof that 24/7 research, extending knowledge, and ONNX self-improvement are worth it
+# Proof: 24/7 Research, Knowledge, and ONNX Self-Improvement
 
-**Thesis:** 24/7 research, extending knowledge, and ONNX self-improvement are worth it because together they give (a) continuous signal coverage and training data, (b) methodology-backed answers instead of raw numbers, and (c) provable parameter improvement from data. This doc states where proof already exists (ONNX) and what evidence means for the other two pillars.
+**Thesis:** 24/7 research, extending knowledge, and ONNX self-improvement are worth it because together they deliver: (a) continuous signal coverage and training data, (b) methodology-backed answers instead of raw numbers, and (c) provable parameter improvement from data. This doc states where proof already exists (ONNX) and what evidence means for the other two pillars.
 
 **Contents:** [Pillar 1 — ONNX](#pillar-1--onnx-self-improvement) · [Pillar 2 — 24/7 research](#pillar-2--247-research) · [Pillar 3 — Extending knowledge](#pillar-3--extending-knowledge) · [Evidence checklist](#evidence-checklist) · [One-command proof (ONNX)](#one-command-proof-onnx)
 

@@ -1,7 +1,7 @@
-# Evaluation: @elizaos/plugin-knowledge for URL → knowledge pipeline
+# Evaluation: @elizaos/plugin-knowledge for URL → Knowledge Pipeline
 
-**Date**: 2026-02-08  
-**Context**: Michelin knowledge in progress; exploring plugin-based solutions (see [docs/todo-michelin-crawlee.md](todo-michelin-crawlee.md)).
+> **Date:** 2026-02-08  
+> **Context:** Michelin knowledge in progress; exploring plugin-based solutions (see [todo-michelin-crawlee.md](todo-michelin-crawlee.md)).
 
 ## Summary
 

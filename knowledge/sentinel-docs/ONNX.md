@@ -41,7 +41,7 @@ _Faster training, better ONNX → quicker predictions on market signals._
 | [**plugin-vince/models/**](../src/plugins/plugin-vince/models/README.md)                   | Ship ONNX for Cloud · copy after training       |
 | [**train_models.py**](../src/plugins/plugin-vince/scripts/train_models.py)                 | XGBoost → ONNX pipeline                         |
 | [**mlInference.service**](../src/plugins/plugin-vince/src/services/mlInference.service.ts) | Load and run ONNX at runtime                    |
-| [**README**](../../README.md)                                                              | Full ML loop · Supabase · deploy                |
+| [**README**](../../README.md)                                                                 | Full ML loop · Supabase · deploy                |
 
 ---
 
@@ -176,6 +176,25 @@ flowchart LR
 
 ---
 
+## 🔬 Recent improvements (train_models.py)
+
+The training pipeline is under active improvement. As of 2026-02:
+
+| Area                | What                                                                                                                                        |
+| :------------------ | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Tuning**          | Optuna hyperparameter search for all 4 models; GridSearchCV fallback                                                                        |
+| **Validation**      | Walk-forward validation with expanding window and purge gap; forward-in-time fold ordering                                                  |
+| **Explainability**  | SHAP TreeExplainer for all 4 models; mean \|SHAP\| and top interactions in improvement report                                               |
+| **Features**        | Lag features (lag1/2/3 + rolling mean per asset); asset dummies when multi-asset                                                            |
+| **Calibration**     | Platt scaling for signal-quality probabilities; saved to metadata and applied at inference                                                  |
+| **Ops**             | Feature name manifests (`{model}_features.json`); ONNX SHA-256 in `training_metadata.json`; `--parallel` for concurrent model training      |
+| **Correctness**     | No StandardScaler (train/serve skew removed); holdout metrics from a fresh model on train split only; no in-place mutation in clip_outliers |
+| **Retrain trigger** | Besides 90+ trades and 24h cooldown, retrain when recent win rate &lt; 45%                                                                  |
+
+See [plugin-vince/scripts/README.md](../src/plugins/plugin-vince/scripts/README.md) and [FEEDBACK.md](../src/plugins/plugin-vince/scripts/FEEDBACK.md) for the full checklist and run commands.
+
+---
+
 ## 📐 Implementation Notes
 
 ### ONNX-compatible operators
@@ -288,7 +307,7 @@ For this project specifically: **bull** = VC is right if you double down on plat
 | **Ship for Cloud**      | Copy from training output into repo                                                                  | `cp .elizadb/.../models/*.onnx src/plugins/plugin-vince/models/` (+ metadata) → commit → deploy                                |
 | **Cloud (no redeploy)** | Train in container at 90+ trades                                                                     | Task uploads to `vince-ml-models`, then `reloadModels()`; next deploy pulls latest from bucket                                 |
 | **Inference**           | `VinceMLInferenceService`                                                                            | Loads ONNX when present; else rule-based signal quality, sizing, TP/SL                                                         |
-| **Docs**                | [FEATURE-STORE.md](FEATURE-STORE.md) · [models/README](../src/plugins/plugin-vince/models/README.md) | [README.md](../../README.md) (full ML loop)                                                                                    |
+| **Docs**                | [FEATURE-STORE.md](FEATURE-STORE.md) · [models/README](../src/plugins/plugin-vince/models/README.md) | [README.md](../../README.md) (full ML loop)                                                                                       |
 
 ---
 

@@ -1,4 +1,4 @@
-# Standup deliverables (code/features)
+# Standup Deliverables (Code/Features)
 
 When standup action items are parsed as **build** (e.g. "build feature X", "write a script for Y"), the worker runs code delivery instead of sending a chat reminder. **North-star deliverables** (essay, tweets, x_article, trades, good_life) are generated in-VINCE and written to subdirs under the same deliverables directory — see [NORTH_STAR_DELIVERABLES.md](NORTH_STAR_DELIVERABLES.md). This doc describes the contract, env vars, and safety.
 
@@ -40,7 +40,7 @@ When Milaidy is not used or returns an error:
 
 ## Agent suggestions
 
-If the standup parse returns `suggestions` (agent-proposed improvements: new topics, tools, or process changes), they are appended to `docs/standup/agent-suggestions.md` with date and list. No automatic application; human reviews and can adopt.
+If the standup parse returns `suggestions` (agent-proposed improvements: new topics, tools, or process changes), they are appended to `docs/standup/agent-suggestions.md` (or `STANDUP_DELIVERABLES_DIR/agent-suggestions.md`) with date and list. No automatic application; human reviews and can adopt.
 
 ## Safety
 

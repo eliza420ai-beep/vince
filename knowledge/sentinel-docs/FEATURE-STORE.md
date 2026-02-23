@@ -1,8 +1,8 @@
 # VINCE Paper Bot Feature Store (ML)
 
-**Purpose:** Where paper-bot trade features (40+ per decision) are stored and how to use them for ML training. For deploy and env setup, see [DEPLOY.md](DEPLOY.md). For the rest of the repo, see [README.md](../../README.md).
+Where paper-bot trade features (40+ per decision) are stored and how to use them for ML training.
 
-**When to read:** Setting up Supabase/PGLite for features, running the training script, or syncing existing JSONL to Supabase.
+**When to read:** Setting up Supabase/PGLite for features, running the training script, or syncing existing JSONL to Supabase. See also: [DEPLOY.md](DEPLOY.md) (deploy and env), [README.md](../../README.md) (project overview).
 
 ---
 
@@ -115,6 +115,8 @@ When the paper bot **evaluates a signal but does not trade** (e.g. “SIGNAL EVA
   - **Filter in SQL/JSONL:** `payload->'avoided' IS NOT NULL` (Supabase) or filter in Python: `r.get('avoided')` to get “evaluated but no trade” rows.
   - **Possible uses:** (1) Train an “should we trade?” / avoid classifier. (2) Counterfactual analysis: e.g. “if we had traded this avoided signal, what would have happened?” using later price action. (3) Analytics: distribution of avoid reasons by regime, asset, or session.
 
+**What's the Trade integration:** Logic and rubric from the [What's the Trade](standup/whats-the-trade/) standup (alignment, edge, payoff, timing, invalidate conditions) can improve the paper bot and `train_models.py`—e.g. WTT-sourced feature fields, edge/liquidity proxies, invalidate-condition labels. See [standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md).
+
 ## Fee-aware PnL (net of costs)
 
 **Realized PnL in the feature store is net of trading fees.** When a position closes, we subtract round-trip fees (open + close, taker) from gross PnL before writing to the position, portfolio, journal, and feature store. So `outcome.realizedPnl` and `outcome.realizedPnlPct` are **after fees**; the improvement report and training labels (profitable, winAmount, lossAmount, rMultiple) are therefore fee-aware. Optional `outcome.feesUsd` is stored so you can see the fee per trade (e.g. for analytics). Fee rate: `FEES.ROUND_TRIP_BPS` (5 bps = 0.05% of notional, Hyperliquid-like) in `paperTradingDefaults.ts`.
@@ -146,6 +148,16 @@ Ways to get to 90+ closed trades (and more avoided snapshots) faster:
     --min-samples 90
   ```
 - **Requires**: Python 3, `pip install -r src/plugins/plugin-vince/scripts/requirements.txt` (xgboost, skl2onnx, onnx, etc.).
+
+### VinceBench and ML
+
+- **`labels.benchScore`** is the VinceBench per-decision score (base contribution for that decision only). It is set **automatically** when a trade closes: the feature store normalizes the record to signatures, loads the bench config (e.g. `bench-dataset/domains-vince.yaml`), and calls `scoreSingleDecision(signatures, config)`. If normalizer or config fails, `benchScore` is left unset and training skips bench-based weighting for that record.
+- **Training** can use VinceBench to learn more from high-quality decisions:
+  - **`--bench-score-weight`** — Upweight samples by `label_benchScore` (normalized to [0,1]); high-quality decisions get higher weight. Used for the signal-quality model. Rows missing `label_benchScore` get a default weight (0.5) so they are still included but downweighted.
+  - **`--min-bench-score <float>`** — Filter the training set to rows with `label_benchScore >=` this value before training (train only on “good process” decisions). Logs how many rows were dropped.
+  - **`--bench-score-quantile <float>`** — Same idea: keep only rows with `label_benchScore` above the given quantile (e.g. `0.5` for median).
+- **Metadata:** When any bench option is used, `training_metadata.json` and the improvement report set **`bench_score_used`**, **`bench_score_weight_enabled`**, and optionally **`min_bench_score`** / **`bench_score_quantile`** so downstream consumers know the run was influenced by VinceBench.
+- **Backfilling:** For existing JSONL that already have `outcome` and `labels` but no `benchScore`, an optional one-time script adds it: `bun run src/plugins/plugin-vince/scripts/backfill-bench-scores.ts --input .elizadb/vince-paper-bot/features`. This overwrites files with a `.bak` copy first; or use `--output` to write to a new file. New closed trades get `benchScore` automatically; the script is only for historical records.
 
 ## ML script (500+ records)
 
@@ -203,6 +215,28 @@ Base (always): `market_priceChange24h`, `market_volumeRatio`, `market_fundingPer
 3. **Inference:** In `mlInference.service.ts`, add the field to `SignalQualityInput` (or the relevant input type), and in `getSignalQualityFeatureValue()` add a `case "flattened_column_name": return ...` so the vector built from `signal_quality_feature_names` gets the correct value.
 
 After retraining, `training_metadata.signal_quality_feature_names` defines the exact order; inference uses that list and does not need a code change for dimension.
+
+---
+
+## VinceBench (decision-quality benchmark)
+
+Feature-store JSONL is the primary input for **VinceBench**, a reproducible benchmark that scores _decision quality_ (process, not PnL) via typed signatures across domains (signal quality, risk discipline, timing, regime, etc.). Run from repo root or plugin directory:
+
+- **Score all feature-store data:** `bun run src/plugins/plugin-vince/scripts/run-bench.ts` (or from plugin: `bun run run-bench`)
+- **Output to standup reports:** `bun run src/plugins/plugin-vince/scripts/run-bench.ts --output docs/standup/bench-reports`
+- **LLM improvement loop:** `bun run src/plugins/plugin-vince/scripts/bench-improve.ts` (requires `OPENAI_API_KEY`; appends to `.elizadb/vince-paper-bot/bench-improvements.md`)
+- **Extract scenario sets:** `bun run src/plugins/plugin-vince/scripts/extract-scenarios.ts --regime bear --out src/plugins/plugin-vince/bench-dataset/scenarios`
+
+Bench config: `src/plugins/plugin-vince/bench-dataset/domains-vince.yaml`. HiaN (signal-extraction) scenarios: `bench-dataset/hian/`. See the VinceBench plan in the repo for full architecture.
+
+### Improving the score
+
+- **Recommended run:** Use `--limit 500` and keep `per_signature_cap: 500` in `domains-vince.yaml` for readable scores and to avoid penalizing "always do the right thing" signatures (e.g. circuit breaker on every trade).
+- **Avoidance quality:** Improves when the paper bot records varied avoid reasons (circuit breaker, cooldown, low quality, similarity avoid, book imbalance, time filter). Rejection reasons use consistent substrings so the normalizer can map them to distinct avoid.\* signatures.
+- **Position management:** Improves when the feature store records `usedPullbackEntry` (and optionally sizing source). Pullback fills set `usedPullbackEntry: true` so the normalizer can emit `entry.pullback_used`.
+- **Timing:** Improves when the scenario set includes diverse session data (weekend, non-overlap, etc.). Extract scenarios that mix sessions or run without strict regime filters to get more timing variety.
+
+**Example run:** `bun run src/plugins/plugin-vince/scripts/run-bench.ts --limit 500 --output docs/standup/bench-reports`. Reports are written under the given `--output` directory (e.g. `docs/standup/bench-reports`).
 
 ---
 

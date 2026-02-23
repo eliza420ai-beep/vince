@@ -77,15 +77,16 @@ const STANDUP_SOURCE = "standup";
 
 /** Default per-agent caps (chars). Raised so every agent can bring enough value; override via STANDUP_INSIGHTS_CAP_<AGENT>=N. */
 const DEFAULT_INSIGHTS_CAP_BY_AGENT: Record<string, number> = {
-  vince: 2800,
-  oracle: 1200,
-  echo: 1100,
+  vince: 3200,
+  oracle: 900,
+  echo: 1400,
   solus: 1000,
-  sentinel: 1200,
+  sentinel: 1400,
   clawterm: 1200,
-  eliza: 900,
+  eliza: 1400,
   otaku: 500,
   kelly: 400,
+  naval: 300,
 };
 
 function getSharedInsightsCapForAgent(displayName: string): number {
@@ -116,6 +117,127 @@ function truncateAtBoundary(text: string, cap: number): string {
     return truncated.slice(0, lastBreak + 1).trimEnd();
   }
   return truncated.trimEnd() + "…";
+}
+
+/**
+ * Build executive summary (TL;DR) from agent sections via regex extraction.
+ * No new API calls -- pure text parsing of already-fetched data.
+ */
+function buildExecutiveSummary(sections: string[]): string {
+  const all = sections.join("\n");
+
+  // Extract Fear & Greed
+  const fgMatch = all.match(/Fear & Greed:\*?\*?\s*(\d+)\s*\(([^)]+)\)/i);
+  const fgValue = fgMatch ? fgMatch[1] : "";
+  const fgLabel = fgMatch ? fgMatch[2] : "";
+
+  // Extract prices from VINCE table rows
+  const btcPrice = all.match(
+    /BTC\s*\|\s*\$\s*([\d,]+(?:\.\d+)?)\s*([+-][\d.]+%)?/i,
+  );
+  const solPrice = all.match(
+    /SOL\s*\|\s*\$\s*([\d,]+(?:\.\d+)?)\s*([+-][\d.]+%)?/i,
+  );
+  const hypePrice = all.match(
+    /HYPE\s*\|\s*\$\s*([\d,]+(?:\.\d+)?)\s*([+-][\d.]+%)?/i,
+  );
+
+  const prices: string[] = [];
+  if (btcPrice) prices.push(`BTC $${btcPrice[1]} ${btcPrice[2] ?? ""}`);
+  if (solPrice) prices.push(`SOL $${solPrice[1]} ${solPrice[2] ?? ""}`);
+  if (hypePrice) prices.push(`HYPE $${hypePrice[1]} ${hypePrice[2] ?? ""}`);
+
+  // Extract signal
+  const signalMatch = all.match(
+    /Signal[^:]*:\*?\*?\s*(\w+)\s*\((\d+)%\s*conf/i,
+  );
+  const signalDir = signalMatch ? signalMatch[1] : "";
+  const signalConf = signalMatch ? parseInt(signalMatch[2], 10) : 0;
+
+  // Extract paper bot status
+  const paperMatch =
+    all.match(/Paper[^:]*:\*?\*?\s*(?:No trades yet\s*\|)?\s*(\d+)\s*open/i) ??
+    all.match(/(\d+)\s*open.*?(\d+)\s*pending/i);
+  const openTrades = paperMatch ? paperMatch[1] : "";
+
+  // Extract MandoMinutes TLDR
+  const newsMatch =
+    all.match(/\*\*News:\*\*\s*([^\n]+)/i) ?? all.match(/TLDR:\s*([^\n]+)/i);
+  const newsTldr = newsMatch ? newsMatch[1].trim().slice(0, 100) : "";
+
+  // Build conviction meter (0-10)
+  let conviction = 5;
+  if (fgValue) {
+    const fg = parseInt(fgValue, 10);
+    if (fg < 15) conviction -= 2;
+    else if (fg < 30) conviction -= 1;
+    else if (fg > 70) conviction += 1;
+  }
+  if (signalConf > 70) conviction += 1;
+  else if (signalConf < 55) conviction -= 1;
+
+  const echoSection = sections.find((s) => s.includes("ECHO"));
+  if (echoSection) {
+    const echoSent = echoSection
+      .match(/(bullish|bearish|neutral)/i)?.[1]
+      ?.toLowerCase();
+    const vinceSent = signalDir.toLowerCase();
+    if (echoSent && vinceSent && echoSent !== vinceSent) conviction -= 1;
+    if (echoSent === vinceSent) conviction += 1;
+  }
+  conviction = Math.max(0, Math.min(10, conviction));
+  const filled = "=".repeat(conviction);
+  const empty = "-".repeat(10 - conviction);
+  const convictionReasons: string[] = [];
+  if (fgValue && parseInt(fgValue, 10) < 20)
+    convictionReasons.push("fear extreme");
+  if (signalConf < 60) convictionReasons.push("signal weak");
+  if (conviction < 4) convictionReasons.push("low alignment");
+  const reasonStr =
+    convictionReasons.length > 0 ? ` (${convictionReasons.join(", ")})` : "";
+
+  const parts: string[] = [];
+  if (fgValue) parts.push(`Fear & Greed ${fgValue} (${fgLabel}).`);
+  if (prices.length > 0) parts.push(prices.join(", ") + ".");
+  if (signalDir)
+    parts.push(`Signal ${signalDir} at ${signalConf}% confidence.`);
+  if (openTrades) parts.push(`Paper: ${openTrades} open.`);
+  if (newsTldr) parts.push(newsTldr);
+
+  if (parts.length === 0) return "";
+
+  return `## TL;DR\n\n${parts.join(" ")}\n\n**Conviction:** [${filled}${empty}] ${conviction}/10${reasonStr}`;
+}
+
+/** Extract a key stat from an agent section for the enhanced scorecard. */
+function extractAgentStat(section: string, agentName: string): string {
+  const lower = agentName.toLowerCase();
+  if (lower === "vince") {
+    const sig = section.match(/Signal[^:]*:\*?\*?\s*(\w+)\s*\((\d+)%/i);
+    return sig ? `${sig[1]} ${sig[2]}%` : "";
+  }
+  if (lower === "echo") {
+    const sent = section.match(/(bullish|bearish|neutral)/i);
+    return sent ? `${sent[1]} CT` : "";
+  }
+  if (lower === "oracle") {
+    const mkts = section.match(/(\d+)\s*(?:more\)|markets?)/i);
+    const total = section.match(/Priority Markets(?:\s*\(\+(\d+)\s*more\))?/i);
+    const shown = (section.match(/\|[^|]+\|[^|]+\|[^|]+\|/g) ?? []).length - 1;
+    const extra = total?.[1] ? parseInt(total[1], 10) : 0;
+    return shown > 0 ? `${shown + extra} mkts` : "";
+  }
+  if (lower === "solus") {
+    const pos = section.match(/positions?|strike/gi);
+    return pos ? `${pos.length} pos` : "";
+  }
+  if (lower === "sentinel") {
+    const release = section.match(/release\s*(v[\d.]+)/i);
+    if (release) return release[1];
+    const shipped = section.match(/shipped/i);
+    return shipped ? "shipped" : "";
+  }
+  return "";
 }
 
 /** Channel name keywords for Discord push (one team, one dream). Create #daily-standup and invite the coordinator (Kelly). */
@@ -276,21 +398,21 @@ export async function buildAndSaveSharedDailyInsights(
         displayName: a.character?.name ?? name,
       });
   }
-  const sections: string[] = [];
+  const agentSections: string[] = [];
   const date = new Date().toISOString().slice(0, 10);
-  sections.push(`# Shared Daily Insights — ${date}\n`);
 
-  // Add scorecard - will be updated as agents report
   const scorecardEmoji: Record<string, string> = {};
+  const scorecardStat: Record<string, string> = {};
   for (const displayName of STANDUP_REPORT_ORDER) {
-    scorecardEmoji[displayName] = "⚪"; // pending
+    scorecardEmoji[displayName] = "⚪";
+    scorecardStat[displayName] = "";
   }
   let vinceContextHints: string[] = [];
   for (const displayName of STANDUP_REPORT_ORDER) {
     const entry = byName.get(displayName.toLowerCase());
     if (!entry) {
       if (displayName === "Health") continue;
-      sections.push(`## ${displayName}\n(no agent in registry)\n`);
+      agentSections.push(`## ${displayName}\n(no agent in registry)\n`);
       continue;
     }
     let agentRuntime: IAgentRuntime | undefined;
@@ -301,11 +423,11 @@ export async function buildAndSaveSharedDailyInsights(
         { err, agent: displayName },
         "[Standup] getAgent() failed for shared insights",
       );
-      sections.push(`## ${displayName}\n(runtime unavailable)\n`);
+      agentSections.push(`## ${displayName}\n(runtime unavailable)\n`);
       continue;
     }
     if (!agentRuntime) {
-      sections.push(`## ${displayName}\n(no runtime)\n`);
+      agentSections.push(`## ${displayName}\n(no runtime)\n`);
       continue;
     }
     const normalized = displayName.toLowerCase();
@@ -319,7 +441,6 @@ export async function buildAndSaveSharedDailyInsights(
         entry.displayName,
         contextHints,
       );
-      // Update scorecard on success
       scorecardEmoji[displayName] =
         data && !data.includes("(no data)") && !data.includes("(fetch failed)")
           ? "✅"
@@ -328,49 +449,49 @@ export async function buildAndSaveSharedDailyInsights(
       if (normalized === "vince") {
         vinceContextHints = extractKeyEventsFromVinceData(data);
       }
+      scorecardStat[displayName] = extractAgentStat(data, displayName);
       const cap = getSharedInsightsCapForAgent(displayName);
       if (data.length > cap) {
         data = truncateAtBoundary(data, cap);
       }
-      sections.push(`## ${displayName}\n${data}\n`);
+      agentSections.push(`## ${displayName}\n${data}\n`);
     } catch (err) {
       logger.warn(
         { err, agent: displayName },
         "[Standup] fetchAgentData failed for shared insights",
       );
-      sections.push(`## ${displayName}\n(fetch failed)\n`);
+      agentSections.push(`## ${displayName}\n(fetch failed)\n`);
     }
   }
 
-  // Add cross-agent links section
-  const crossAgentLinks = generateCrossAgentLinks(sections);
-  if (crossAgentLinks) {
-    sections.push(crossAgentLinks);
-  }
+  const crossAgentLinks = generateCrossAgentLinks(agentSections);
+  const actionItems = generateActionItems(agentSections);
 
-  // Add action items / tomorrow's focus derived from agent data
-  const actionItems = generateActionItems(sections);
-  if (actionItems) {
-    sections.push(actionItems);
-  }
-
-  // Build scorecard from collected emojis (omit Health when no agent in registry)
+  // Build enhanced scorecard with per-agent stats
   const scorecardLine = STANDUP_REPORT_ORDER.filter(
     (name) => name !== "Health" || byName.has("health"),
   )
     .map((name) => {
       const emoji = scorecardEmoji[name] || "⚪";
-      return `${emoji} ${name}`;
+      const stat = scorecardStat[name];
+      return stat ? `${emoji} ${name} (${stat})` : `${emoji} ${name}`;
     })
     .join(" | ");
 
-  // Prepend scorecard to the content
-  const content =
-    sections[0] +
-    "\n**Scorecard:** " +
-    scorecardLine +
-    "\n\n" +
-    sections.slice(1).join("\n");
+  // Build executive summary from agent sections
+  const execSummary = buildExecutiveSummary(agentSections);
+
+  // Assemble final document with separators
+  const parts: string[] = [];
+  parts.push(`# Shared Daily Insights — ${date}\n`);
+  parts.push(`**Scorecard:** ${scorecardLine}\n`);
+  if (execSummary) parts.push(execSummary + "\n");
+  parts.push("---\n");
+  parts.push(agentSections.join("\n---\n\n"));
+  if (crossAgentLinks) parts.push("\n---\n\n" + crossAgentLinks);
+  if (actionItems) parts.push("\n" + actionItems);
+
+  const content = parts.join("\n");
   await saveSharedDailyInsights(content);
 }
 
@@ -401,70 +522,76 @@ function generateCrossAgentLinks(sections: string[]): string {
     (s) => s.startsWith("## Clawterm") || s.includes("Clawterm\n"),
   );
 
-  // VINCE → Oracle: include actual signal direction and top Polymarket market
+  // VINCE → Oracle: specific signal + macro market odds
   if (vinceSection && oracleSection) {
     const signalMatch =
-      vinceSection.match(/signal\s*\([^)]*\)[:\s]*(\w+)\s*\((\d+)%/i) ??
+      vinceSection.match(/Signal[^:]*:\*?\*?\s*(\w+)\s*\((\d+)%/i) ??
       vinceSection.match(/signal:\s*(\w+)\s*\((\d+)%/i);
-    const warshMatch = oracleSection.match(
-      /Kevin Warsh[\s\S]*?(\d+)%|(\d+)%[\s\S]*?Warsh/i,
-    );
     const iranMatch = oracleSection.match(
       /Iran[\s\S]*?(\d+)%|(\d+)%[\s\S]*?Iran/i,
     );
     const signalDir = signalMatch?.[1] ?? "";
     const signalPct = signalMatch?.[2] ?? "";
-    const warshPct = warshMatch?.[1] ?? warshMatch?.[2];
     const iranPct = iranMatch?.[1] ?? iranMatch?.[2];
-    if (signalDir && (warshPct || iranPct)) {
-      const macro = warshPct
-        ? `Warsh ${warshPct}%`
-        : iranPct
-          ? `Iran ${iranPct}%`
-          : "";
+    if (signalDir && iranPct) {
+      const iranNum = parseInt(iranPct, 10);
+      const edge =
+        iranNum > 25
+          ? "geo risk elevated — hedge"
+          : "geo risk priced in; no edge unless >25%";
       links.push(
-        `• VINCE → Oracle: ${signalDir} (${signalPct}%) + ${macro} — check for edge`,
+        `• VINCE ${signalDir} ${signalPct}% + Oracle Iran ${iranPct}% → ${edge}`,
+      );
+    } else if (signalDir) {
+      links.push(
+        `• VINCE signal ${signalDir} ${signalPct}% — align with Solus strike`,
       );
     }
   }
 
-  // ECHO → VINCE: include sentiment vs signal (support neutral)
+  // ECHO → VINCE: sentiment alignment with specific data
   if (echoSection && vinceSection) {
     const echoSentiment = echoSection.match(/(bullish|bearish|neutral)/i)?.[1];
-    const vinceSignal = vinceSection.match(
-      /signal.*?(long|short|neutral)/i,
-    )?.[1];
+    const vinceSignal = vinceSection.match(/Signal[^:]*:\*?\*?\s*(\w+)/i)?.[1];
     if (echoSentiment && vinceSignal) {
       const es = echoSentiment.toLowerCase();
       const vs = vinceSignal.toLowerCase();
-      if (es === vs) {
-        links.push(`• ECHO → VINCE: CT ${es} aligns with signal (${vs})`);
+      if (
+        es === vs ||
+        (es === "bullish" && vs === "long") ||
+        (es === "bearish" && vs === "short")
+      ) {
+        links.push(
+          `• ECHO ${es} CT aligns with VINCE ${vs} — higher confidence`,
+        );
       } else {
-        links.push(`• ECHO → VINCE: CT ${es} vs signal ${vs} — reconsider?`);
+        links.push(
+          `• ECHO ${es} CT vs VINCE ${vs} — divergence, lean VINCE (data > vibes)`,
+        );
       }
     }
   }
 
-  // Solus: include distance-to-strike when parseable
+  // Solus: distance-to-strike from the computed block
   if (solusSection) {
-    const spotMatch = solusSection.match(/BTC\s*\$\s*([\d,]+(?:\.\d+)?)/i);
-    const strikeMatch = solusSection.match(
-      /\$\s*70,?\s*500|\$70\s*500|strike\s*\$?([\d,]+)/i,
+    const distMatch = solusSection.match(
+      /(\w+):\s*\$([\d,.]+)\s*vs\s*\$([\d,.]+)\s*strike\s*=\s*([+-]?[\d.]+%)\s*(OTM|ITM)/gi,
     );
-    const strike70 = solusSection.match(/70,?500|70\s*500/);
-    const btcPrice = spotMatch?.[1]?.replace(/,/g, "");
-    const strikePrice = strike70
-      ? "70500"
-      : strikeMatch?.[1]?.replace(/,/g, "");
-    if (btcPrice && strikePrice) {
-      const btc = parseFloat(btcPrice);
-      const strike = parseFloat(strikePrice);
-      if (!isNaN(btc) && !isNaN(strike) && strike > 0) {
-        const pct = (((strike - btc) / btc) * 100).toFixed(1);
-        const side = strike > btc ? "OTM" : "ITM";
-        links.push(
-          `• Solus: BTC $${btc.toLocaleString()} vs $${strike.toLocaleString()} strike ≈ ${pct}% ${side} — hold/buy-back?`,
+    if (distMatch) {
+      for (const m of distMatch.slice(0, 2)) {
+        const parts = m.match(
+          /(\w+):\s*\$([\d,.]+)\s*vs\s*\$([\d,.]+)\s*strike\s*=\s*([+-]?[\d.]+%)\s*(OTM|ITM)/i,
         );
+        if (parts) {
+          const side = parts[5];
+          const action =
+            side === "OTM"
+              ? "hold, let theta work"
+              : "monitor — may need buy-back";
+          links.push(
+            `• Solus: ${parts[1]} $${parts[2]} vs $${parts[3]} strike = ${parts[4]} ${side} → ${action}`,
+          );
+        }
       }
     }
     if (links.every((l) => !l.includes("Solus:"))) {
@@ -475,25 +602,54 @@ function generateCrossAgentLinks(sections: string[]): string {
     }
   }
 
-  // Sentinel: only when recent activity (release or merge in first 500 chars)
-  if (sentinelSection) {
-    const head = sentinelSection.slice(0, 500);
-    const hasRecent =
-      /chore:\s*release|Merge pull|^[a-f0-9]+\s+(feat|fix|release)/im.test(
-        head,
-      );
-    if (hasRecent) {
-      links.push("• Sentinel: Recent ship — track for next sprint");
+  // HIP-3: rotation signal
+  if (vinceSection) {
+    const hip3Match = vinceSection.match(/HIP-3:.*?rotation:\s*([^\n|]+)/i);
+    const goldMatch = vinceSection.match(/GOLD vs BTC:\s*(\w+)\s*winning/i);
+    if (hip3Match || goldMatch) {
+      const rotation = hip3Match?.[1]?.trim() ?? "";
+      const gold = goldMatch?.[1] ?? "";
+      const parts: string[] = [];
+      if (gold)
+        parts.push(
+          `GOLD ${gold === "gold" ? "outperforming" : "underperforming"} BTC`,
+        );
+      if (rotation) parts.push(rotation);
+      if (parts.length > 0) links.push(`• HIP-3: ${parts.join(" — ")}`);
     }
   }
 
-  // Clawterm: only when concrete next focus (not generic)
+  // Sentinel: specific shipped version or suggestion
+  if (sentinelSection) {
+    const release = sentinelSection.match(/release\s*(v[\d.]+)/i);
+    const nextMatch = sentinelSection.match(/\[HIGH\]\s*([^\n]+)/i);
+    if (release && nextMatch) {
+      links.push(
+        `• Sentinel: shipped ${release[1]} | next: ${nextMatch[1].trim().slice(0, 60)}`,
+      );
+    } else if (release) {
+      links.push(`• Sentinel: shipped ${release[1]} — track for sprint`);
+    } else if (nextMatch) {
+      links.push(
+        `• Sentinel: next priority: ${nextMatch[1].trim().slice(0, 60)}`,
+      );
+    }
+  }
+
+  // Clawterm → Sentinel: cross-link ops suggestion
   if (clawtermSection) {
-    const hasFocus = clawtermSection.match(
-      /Concrete next focus|next focus:|focus:\s*[A-Z]/i,
-    );
-    if (hasFocus) {
-      links.push("• Clawterm: Has concrete focus — check integration");
+    const opsMatch = clawtermSection.match(/\*\*Ops Next:\*\*\s*([^\n]+)/i);
+    const sprintCandidate = clawtermSection.includes("Sprint candidate?");
+    if (opsMatch && sprintCandidate) {
+      links.push(
+        `• Clawterm → Sentinel: ${opsMatch[1].trim().slice(0, 60)} = sprint candidate`,
+      );
+    } else if (opsMatch) {
+      links.push(`• Clawterm ops: ${opsMatch[1].trim().slice(0, 60)}`);
+    } else {
+      const hasFocus = clawtermSection.match(/focus|suggestion|next/i);
+      if (hasFocus)
+        links.push("• Clawterm: Has concrete focus — check integration");
     }
   }
 
@@ -526,55 +682,101 @@ function generateCrossAgentLinks(sections: string[]): string {
  */
 function generateActionItems(sections: string[]): string {
   const bullets: string[] = [];
+  const allContent = sections.join("\n");
 
+  const vinceSection = sections.find(
+    (s) => s.startsWith("## VINCE") || s.includes("VINCE\n"),
+  );
   const solusSection = sections.find(
     (s) => s.startsWith("## Solus") || s.includes("Solus\n"),
   );
-  if (solusSection) {
-    if (/FRIDAY|settlement day|NEXT WEEK's strike/i.test(solusSection)) {
+  const oracleSection = sections.find(
+    (s) => s.startsWith("## Oracle") || s.includes("Oracle\n"),
+  );
+
+  // VINCE signal + regime (always show)
+  if (vinceSection) {
+    const regime =
+      vinceSection.match(/Regime[^:]*:\*?\*?\s*(\w+)/i)?.[1] ??
+      vinceSection.match(/regime\s*\|\s*(\w+)/i)?.[1];
+    const signal = vinceSection.match(/Signal[^:]*:\*?\*?\s*(\w+)\s*\((\d+)%/i);
+    const signalDir = signal?.[1] ?? "";
+    const signalConf = signal?.[2] ?? "";
+    if (regime || signalDir) {
+      const parts = [
+        signalDir && `signal ${signalDir} ${signalConf}%`,
+        regime && `regime ${regime}`,
+      ].filter(Boolean);
       bullets.push(
-        "- **Tomorrow:** Solus — settlement or next week's strike proposal",
-      );
-    } else if (/BUY BACK|HOLD|ROLL/i.test(solusSection)) {
-      bullets.push(
-        "- **Tomorrow:** Solus — hold / buy back / roll call for BTC CC and HYPE puts",
+        `- **Focus:** VINCE ${parts.join(" + ")} — align Solus strike`,
       );
     }
   }
 
-  const oracleSection = sections.find(
-    (s) => s.startsWith("## Oracle") || s.includes("Oracle\n"),
-  );
+  // Day-of-week aware Solus actions
+  const dayOfWeek = new Date().getDay();
+  if (solusSection) {
+    if (dayOfWeek === 1) {
+      bullets.push(
+        "- **Monday:** Solus — review last week P&L, propose this week's strikes",
+      );
+    } else if (dayOfWeek === 4) {
+      bullets.push(
+        "- **Thursday:** Solus — pre-settlement check, early exercise risk, roll decision",
+      );
+    } else if (dayOfWeek === 5) {
+      bullets.push(
+        "- **Friday:** Solus — settlement day, next week's strike proposal",
+      );
+    } else if (/BUY BACK|HOLD|ROLL/i.test(solusSection)) {
+      bullets.push(
+        "- **Solus:** Monitor options — hold / buy back / roll decision",
+      );
+    }
+  }
+
+  // Oracle watchlist
   if (oracleSection) {
-    const warsh = oracleSection.match(/Warsh[\s\S]*?(\d+)%/i)?.[1];
-    const iran = oracleSection.match(/Iran[\s\S]*?(\d+)%/i)?.[1];
+    const iranMatch = oracleSection.match(/Iran[\s\S]*?(\d+)%/i);
     const watch: string[] = [];
-    if (warsh) watch.push(`Warsh ${warsh}%`);
-    if (iran) watch.push(`Iran ${iran}%`);
+    if (iranMatch) watch.push(`Iran ${iranMatch[1]}%`);
+    const firstMarket = oracleSection.match(/\|\s*([^|]+?)\s*\|\s*(\d+)%\s*\|/);
+    if (firstMarket && !watch.some((w) => firstMarket[1].includes("Iran"))) {
+      watch.push(`${firstMarket[1].trim().slice(0, 30)} ${firstMarket[2]}%`);
+    }
     if (watch.length > 0) {
       bullets.push(`- **Watchlist:** Oracle — ${watch.join(", ")}`);
     }
   }
 
-  const vinceSection = sections.find(
-    (s) => s.startsWith("## VINCE") || s.includes("VINCE\n"),
-  );
-  if (vinceSection && bullets.length < 3) {
-    const regime = vinceSection.match(/Regime.*?(\w+)\s+ADX/i)?.[1];
-    const signal = vinceSection.match(/Signal.*?(\w+)\s*\(\d+%/i)?.[1];
-    if (regime || signal) {
-      const parts = [
-        regime && `regime ${regime}`,
-        signal && `signal ${signal}`,
-      ].filter(Boolean);
+  // Fear-level trigger
+  const fgMatch = allContent.match(/Fear & Greed:\*?\*?\s*(\d+)/i);
+  if (fgMatch) {
+    const fg = parseInt(fgMatch[1], 10);
+    if (fg < 15) {
       bullets.push(
-        `- **Focus:** VINCE ${parts.join(" / ")} — align Solus strike with regime`,
+        `- **Alert:** Extreme fear (${fg}) — review contrarian playbook, watch for reversal signals`,
+      );
+    } else if (fg > 80) {
+      bullets.push(
+        `- **Alert:** Extreme greed (${fg}) — tighten stops, reduce exposure`,
+      );
+    }
+  }
+
+  // ML quality trigger
+  const mlMatch = allContent.match(/SQ[:\s]*(\d+)%/i);
+  if (mlMatch) {
+    const sq = parseInt(mlMatch[1], 10);
+    if (sq < 60) {
+      bullets.push(
+        `- **ML:** Signal quality ${sq}% — review feature store, consider pausing auto-trades`,
       );
     }
   }
 
   if (bullets.length === 0) return "";
-  return `\n## Action Items\n\n${bullets.slice(0, 3).join("\n")}`;
+  return `\n## Action Items\n\n${bullets.slice(0, 5).join("\n")}`;
 }
 
 function extractReplyFromResponse(resp: unknown): string | null {
