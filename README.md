@@ -19,6 +19,14 @@
 
 ---
 
+## Core Focus
+
+**We are focused on [One Dream — Agent Synergy & the $100K Trading System](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md).**
+
+That PRD turns the ten agents into a single compounding loop: data → thesis → plan → execute → measure → learn → better data. Working on it means: automated cross-agent signals (Echo/Oracle into Vince risk, Vince options into Solus), Kelly’s weekly scorecard, sentiment-adjusted position sizing, post-mortem learning, and the content flywheel (Eliza publishing real trading results). The goal is $100K/year from on-chain options and perps, with the system improving itself. All feature work, plugins, and prioritization should align with that PRD.
+
+---
+
 ## Why
 
 Humans are not wired to win in modern markets.
@@ -218,6 +226,7 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 
 | Doc | What |
 | :--- | :--- |
+| **[PRD: One Dream — Agent Synergy](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md)** | **Core focus:** $100K trading system, cross-agent handoffs, weekly scorecard, sentiment→risk, post-mortem loop |
 | [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, priorities, what we merge |
 | [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML, paper bot, feature store |

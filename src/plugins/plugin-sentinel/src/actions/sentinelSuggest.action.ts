@@ -55,6 +55,11 @@ const SUGGEST_TRIGGERS = [
   "what to work on",
   "next steps",
   "roadmap",
+  "what should we fix",
+  "what to fix",
+  "fix next",
+  "code quality",
+  "tech debt",
 ];
 
 const TASK_BRIEF_TRIGGERS = [

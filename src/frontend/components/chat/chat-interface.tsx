@@ -59,6 +59,10 @@ import {
   MessageSquare,
   Megaphone,
   Shield,
+  DollarSign,
+  PlayCircle,
+  Wrench,
+  FileText,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -149,6 +153,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Memes", message: "meme scanner" },
     { label: "NFT Floor", message: "nft floor" },
     { label: "Intel", message: "intel" },
+    {
+      label: "Bot Performance",
+      message: "bot performance report — wins, losses, edge, what to adjust",
+    },
   ],
   // Eliza (CEO): vision, knowledge, research, GTM, Substack.
   eliza: [
@@ -164,6 +172,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Draft tweets", message: "draft tweets" },
     { label: "Positioning", message: "what's our positioning?" },
     { label: "Research agenda", message: "research agenda" },
+    {
+      label: "Research → Substack",
+      message: "Draft Substack from this week's research",
+    },
   ],
   // Kelly (CVO): lifestyle concierge — benefit-led, concrete, evocative. Live the life.
   kelly: [
@@ -224,6 +236,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
         "Give me size, skip, or watch and invalidation — I'll paste context",
     },
     { label: "$100K Plan", message: "full $100K plan" },
+    { label: "Weekly Premium P&L", message: "weekly premium P&L report" },
     { label: "What's Your Call?", message: "what's your call?" },
     // Stock research (Finnhub + FMP)
     { label: "Analyze NVDA", message: "analyze NVDA" },
@@ -251,6 +264,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "What to Ship?", message: "what should we ship" },
     { label: "Security Checklist", message: "security checklist" },
     { label: "Investor Report", message: "investor report" },
+    {
+      label: "What Should We Fix?",
+      message: "What should we fix next? Code quality, tech debt, blockers",
+    },
   ],
   // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/bridge/DCA/orders).
   otaku: [
@@ -285,6 +302,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "Set stop-loss at $1800 and take-profit at $2200 for 1 ETH",
     },
     { label: "NFT mint", message: "Mint an NFT" },
+    {
+      label: "Execute Vince Signal",
+      message: "Execute latest Vince signal",
+    },
   ],
   // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research). What's the trade = belief-router (thesis → one expression).
   echo: [
