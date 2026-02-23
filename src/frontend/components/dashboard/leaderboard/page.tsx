@@ -3634,7 +3634,7 @@ export default function LeaderboardPage({
                         {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
                           <>
                             <span className="text-muted-foreground">
-                              Open positions:{" "}
+                              Pending orders:{" "}
                               {deskPositionsBody?.positions?.length ?? 0}
                             </span>
                             <span
@@ -3696,13 +3696,13 @@ export default function LeaderboardPage({
                 </DashboardCard>
               )}
 
-              {/* Open paper positions (pending sized orders with live P&L) */}
+              {/* Pending orders (sized orders awaiting Otaku execution) */}
               {oracleAgentId && (
-                <DashboardCard title="Open paper positions">
+                <DashboardCard title="Pending orders">
                   {(deskPositionsLoading || deskPositionsFetching) &&
                   !deskPositionsData ? (
                     <p className="text-sm text-muted-foreground">
-                      Loading positions…
+                      Loading pending orders…
                     </p>
                   ) : (deskPositionsBody?.positions?.length ?? 0) === 0 ? (
                     <div className="text-sm text-muted-foreground py-4 space-y-2">
@@ -3711,7 +3711,7 @@ export default function LeaderboardPage({
                           <p>
                             You have{" "}
                             <strong>
-                              {deskStatus?.pendingSizedOrdersCount} open paper
+                              {deskStatus?.pendingSizedOrdersCount} pending
                               order(s)
                             </strong>
                             . The list is capped so the API doesn’t timeout. If
@@ -3728,7 +3728,10 @@ export default function LeaderboardPage({
                           )}
                         </>
                       ) : (
-                        <p>No open paper positions yet.</p>
+                        <p>
+                          No pending orders — all sized orders have been
+                          executed.
+                        </p>
                       )}
                       {deskPositionsData?.error &&
                         !(deskStatus?.pendingSizedOrdersCount ?? 0) && (
@@ -3743,8 +3746,7 @@ export default function LeaderboardPage({
                         <p className="text-xs text-muted-foreground">
                           Showing first{" "}
                           {deskPositionsBody?.positions?.length ?? 0} of{" "}
-                          {deskPositionsBody?.totalPending ?? 0} open paper
-                          positions.
+                          {deskPositionsBody?.totalPending ?? 0} pending orders.
                           {deskPositionsBody?.livePricesSkipped &&
                             " Current price and P&L use entry (live prices skipped for capped list)."}
                           {" Reduce backlog (execute or cancel) to see fewer."}
@@ -3877,9 +3879,9 @@ export default function LeaderboardPage({
                 </DashboardCard>
               )}
 
-              {/* Polymarket paper trading — Recent trades (desk fills) */}
+              {/* Polymarket paper trading — Filled positions (desk fills) */}
               {oracleAgentId && (
-                <DashboardCard title="Polymarket paper trading — Recent trades">
+                <DashboardCard title="Polymarket paper trading — Filled positions">
                   {(deskTradesLoading || deskTradesFetching) &&
                   !deskTradesData ? (
                     <p className="text-sm text-muted-foreground">
@@ -3922,7 +3924,7 @@ export default function LeaderboardPage({
                       {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
                         <div className="pt-3 border-t border-border/50">
                           <p className="text-xs font-medium text-foreground/80 mb-1">
-                            Open positions (not yet closed)
+                            Pending orders (awaiting execution)
                           </p>
                           <ul className="text-xs space-y-0.5">
                             {[...(deskPositionsBody?.positions ?? [])]

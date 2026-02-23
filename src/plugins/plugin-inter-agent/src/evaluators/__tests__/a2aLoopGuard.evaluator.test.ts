@@ -26,6 +26,8 @@ describe("A2A Loop Guard Evaluator", () => {
       agentId: mockAgentId,
       character: { name: "TestAgent" },
       getMemories: mock(() => Promise.resolve(memories)),
+      getRoom: mock(() => Promise.resolve(null)),
+      getSetting: mock(() => undefined),
     }) as unknown as IAgentRuntime;
 
   const createMockMemory = (overrides: Partial<Memory> = {}): Memory => ({
@@ -181,6 +183,8 @@ describe("A2A Loop Guard Evaluator", () => {
         agentId: mockAgentId,
         character: { name: "TestAgent" },
         getMemories: mock(() => Promise.reject(new Error("DB error"))),
+        getRoom: mock(() => Promise.resolve(null)),
+        getSetting: mock(() => undefined),
       } as unknown as IAgentRuntime;
       const memory = createMockMemory();
 
