@@ -44,3 +44,4 @@
 | 2026-02-22 | Fear at 12 but institutions loading $2B in BTC while we hold covered calls and c | [View](day-reports/2026-02-22-day-report.md) |
 | 2026-02-22 | Fear at 9, institutions loading quietly while retail searches "Bitcoin to zero"— | [View](day-reports/2026-02-22-day-report.md) |
 | 2026-02-22 | Fear spiked to 9 while institutions load, we're holding premium on both strikes  | [View](day-reports/2026-02-22-day-report.md) |
+| 2026-02-23 | Markets bleeding red (BTC -3.3%, SOL -7.3%) with extreme fear at 5, but bullish  | [View](day-reports/2026-02-23-day-report.md) |

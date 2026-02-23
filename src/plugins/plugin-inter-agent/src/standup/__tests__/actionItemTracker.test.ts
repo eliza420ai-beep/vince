@@ -96,7 +96,9 @@ describe("actionItemTracker", () => {
         },
       ];
       const table = formatActionItemsTable(items);
-      expect(table).toContain("| Date | Action | Owner | Status | Outcome |");
+      expect(table).toContain(
+        "| Date | Action | Owner | Due | Status | Outcome |",
+      );
       expect(table).toContain("Sentinel");
       expect(table).toContain("🔵");
     });

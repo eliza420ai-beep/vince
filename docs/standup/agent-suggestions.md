@@ -101,3 +101,7 @@
 
 - Clawterm and Sentinel should coordinate on memU + OpenClaw integration docs to avoid duplication with OPENCLAW.md updates.
 - Eliza and Solus should sync on institution flow tracking weekly so macro thesis and options context stay aligned.
+## 2026-02-23
+
+- Clawterm: implement ClawHub Certified badge system with automated supply-chain checks to address security concerns exposed by viral OpenClaw tutorials.
+- Eliza: audit knowledge against AI super-cycle thesis and provide institutional positioning framework for Solus to execute on vol surface reshaping.

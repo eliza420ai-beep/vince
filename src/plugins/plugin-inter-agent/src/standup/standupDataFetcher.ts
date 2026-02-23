@@ -298,12 +298,18 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
 
   let line = "";
   if (stats && stats.totalTrades > 0) {
-    // Show: W/L, PnL, win rate, profit factor
+    // Show: W/L, PnL, win rate, profit factor (clamp winRate 0-1; PF undefined when 0 losses)
     const pnlStr = `${stats.totalPnl >= 0 ? "+" : ""}$${stats.totalPnl.toFixed(0)}`;
-    const winRateStr = `${(stats.winRate * 100).toFixed(0)}%`;
+    const winRatePct = Math.min(Math.max(stats.winRate, 0), 1) * 100;
+    const winRateStr = `${winRatePct.toFixed(0)}%`;
     const pfStr =
-      stats.profitFactor > 0 ? `PF:${stats.profitFactor.toFixed(1)}` : "";
-    line = `**Paper:** ${stats.winCount}W/${stats.lossCount}L ${pnlStr} | WR:${winRateStr} ${pfStr}`;
+      stats.lossCount === 0
+        ? "PF:--"
+        : stats.profitFactor > 0
+          ? `PF:${stats.profitFactor.toFixed(1)}`
+          : "";
+    line =
+      `**Paper:** ${stats.winCount}W/${stats.lossCount}L ${pnlStr} | WR:${winRateStr} ${pfStr}`.trimEnd();
   } else {
     line = "**Paper:** No trades yet";
   }
@@ -506,10 +512,16 @@ async function fetchParameterTuner(runtime: IAgentRuntime): Promise<string> {
       parts.push(`AUTO-TUNED`);
     }
 
-    // Show recent adjustments (last 2)
+    // Show recent adjustments (last 2); skip entries with missing data to avoid undefined:NaN%
     if (status.recentAdjustments?.length > 0) {
       const recent = status.recentAdjustments
         .slice(-2)
+        .filter(
+          (a) =>
+            a.param != null &&
+            typeof a.oldVal === "number" &&
+            typeof a.newVal === "number",
+        )
         .map(
           (a) =>
             `${a.param}:${(a.oldVal * 100).toFixed(0)}%→${(a.newVal * 100).toFixed(0)}%`,
@@ -607,11 +619,13 @@ async function fetchPortfolioSummary(runtime: IAgentRuntime): Promise<string> {
       parts.push(`$${status.portfolioValue.toFixed(0)}`);
     }
 
-    // Return %
+    // Return % (if |returnPct| > 10 assume already in percentage form to avoid -2603%-style double-multiplication)
     if (status.returnPct !== 0) {
-      parts.push(
-        `ret:${status.returnPct >= 0 ? "+" : ""}${(status.returnPct * 100).toFixed(1)}%`,
-      );
+      const pct =
+        Math.abs(status.returnPct) > 10
+          ? status.returnPct
+          : status.returnPct * 100;
+      parts.push(`ret:${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`);
     }
 
     // Open positions
@@ -655,7 +669,7 @@ async function fetchMandoMinutes(runtime: IAgentRuntime): Promise<string> {
     getOverallSentiment?: () => { sentiment: string; confidence: number };
   } | null;
   if (!newsSvc) return "";
-  await newsSvc.refreshData?.();
+  await newsSvc.refreshData?.(true);
   const vibeCheck = newsSvc.getVibeCheck?.() ?? "";
   const tldr = newsSvc.getTLDR?.() ?? "";
   const sentiment = newsSvc.getOverallSentiment?.();
@@ -1474,6 +1488,8 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
     for (const m of markets) {
       const cid =
         m.conditionId ?? (m as { condition_id?: string }).condition_id ?? "—";
+      const shortCid =
+        cid.length > 12 ? `${cid.slice(0, 6)}...${cid.slice(-3)}` : cid;
       const prices = service.getPricesFromMarketPayload(m);
       const yesPct =
         prices?.yes_price != null
@@ -1482,7 +1498,7 @@ export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
       const question =
         (m.question ?? "").slice(0, 50) +
         (m.question && m.question.length > 50 ? "…" : "");
-      rows.push(`| ${question} | ${yesPct} | \`${cid}\` |`);
+      rows.push(`| ${question} | ${yesPct} | \`${shortCid}\` |`);
     }
 
     sections.push(
@@ -1521,6 +1537,22 @@ const HYPERSURFACE_COIN_IDS = [
   "solana",
   "hyperliquid",
 ] as const;
+
+/** Strip README/meta blocks from weekly-options-context so "Last week's strategy" doesn't leak File location etc. */
+function stripSolusMetaFromLastWeek(raw: string): string {
+  if (!raw?.trim()) return raw;
+  let s = raw.trim();
+  s = s
+    .replace(/^#\s+Weekly options context[\s\S]*?(?=\n##\s|\n\n##\s|$)/im, "")
+    .trim();
+  s = s
+    .replace(/\n?##\s+File location\s*[\s\S]*?(?=\n##\s|\n###\s|$)/im, "")
+    .trim();
+  s = s
+    .replace(/\n?##\s+File format\s*[\s\S]*?(?=\n##\s|\n###\s|$)/im, "")
+    .trim();
+  return s || raw;
+}
 
 function formatHypersurfaceSpotPrices(prices: Record<string, number>): string {
   const btc = prices.bitcoin;
@@ -1581,7 +1613,7 @@ export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
   } = getWeeklyOptionsContext();
   const lastWeek =
     process.env.SOLUS_LAST_WEEK_STRATEGY?.trim() ||
-    lastWeekFromFile ||
+    stripSolusMetaFromLastWeek(lastWeekFromFile) ||
     "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create docs/standup/weekly-options-context.md (or STANDUP_DELIVERABLES_DIR).";
 
   const portfolioLine =

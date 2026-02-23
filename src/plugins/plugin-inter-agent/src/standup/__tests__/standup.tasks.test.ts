@@ -50,6 +50,7 @@ describe("standup.tasks", () => {
   describe("runStandupRoundRobin", () => {
     it("invokes agents in STANDUP_REPORT_ORDER even when getAgents returns wrong order", async () => {
       const wrongOrder = [
+        "Health",
         "Solus",
         "Kelly",
         "VINCE",

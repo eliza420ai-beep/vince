@@ -1,0 +1,25 @@
+{
+  "date": "2026-02-23",
+  "thesis": "PLTR outperforms NVDA as defense AI spending accelerates faster than commercial AI adoption, creating a relative value gap the market hasn't priced.",
+  "primaryTicker": "PLTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 133.96,
+  "primaryRiskUsd": 2000,
+  "invalidateCondition": "NVDA +15% in one week or PLTR < $125",
+  "killConditions": [
+    "NVDA announces blowout quarter",
+    "Major enterprise AI breakthrough from NVDA",
+    "PLTR government contract delayed or lost"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "NVDA",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 8
+}

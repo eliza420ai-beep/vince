@@ -283,7 +283,7 @@ Conclusion slot.`;
       const prompt = buildStandupPrompt("Eliza", shared, transcript, dateStr);
       expect(prompt).toContain("CEO");
       expect(prompt).toContain("Day Report");
-      expect(prompt).toContain("60 words");
+      expect(prompt).toContain("150 words");
     });
   });
 

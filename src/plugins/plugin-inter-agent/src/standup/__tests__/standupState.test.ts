@@ -82,16 +82,21 @@ describe("standupState", () => {
     it("marks agent as reported and getNextUnreportedAgent returns next in order", async () => {
       await startStandupSession(roomId);
       const first = getNextUnreportedAgent();
-      expect(first).toBe("vince");
+      expect(first).toBe("health");
+      expect(hasAgentReported("Health")).toBe(false);
+      markAgentReported("Health");
+      expect(hasAgentReported("Health")).toBe(true);
+      const second = getNextUnreportedAgent();
+      expect(second).toBe("vince");
       expect(hasAgentReported("VINCE")).toBe(false);
       markAgentReported("VINCE");
       expect(hasAgentReported("VINCE")).toBe(true);
       expect(hasAgentReported("vince")).toBe(true);
-      const second = getNextUnreportedAgent();
-      expect(second).toBe("eliza");
-      markAgentReported("Eliza");
       const third = getNextUnreportedAgent();
-      expect(third).toBe("echo");
+      expect(third).toBe("eliza");
+      markAgentReported("Eliza");
+      const fourth = getNextUnreportedAgent();
+      expect(fourth).toBe("echo");
       await endStandupSession();
     });
 
