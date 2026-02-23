@@ -1,5 +1,12 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { existsSync } from "fs";
+
+// Only alias @elizaos/core to local core when present (e.g. in eliza monorepo); else use node_modules
+const localCore = path.resolve(__dirname, "../../core/src");
+const resolveAlias = existsSync(localCore)
+  ? { "@elizaos/core": localCore }
+  : {};
 
 export default defineConfig({
   test: {
@@ -11,8 +18,6 @@ export default defineConfig({
     exclude: ["node_modules", "dist"],
   },
   resolve: {
-    alias: {
-      "@elizaos/core": path.resolve(__dirname, "../../core/src"),
-    },
+    alias: resolveAlias,
   },
 });

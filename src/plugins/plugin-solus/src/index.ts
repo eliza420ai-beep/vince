@@ -20,6 +20,7 @@ import {
   solusOptimalStrikeAction,
   solusAnalyzeAction,
   solusEarningsCalendarAction,
+  solusPremiumPnlAction,
   mcRegisterSatoshiAction,
   mcAssignTaskAction,
   mcListTasksAction,
@@ -48,6 +49,7 @@ export const solusPlugin: Plugin = {
     solusOptimalStrikeAction,
     solusAnalyzeAction,
     solusEarningsCalendarAction,
+    solusPremiumPnlAction,
     mcRegisterSatoshiAction,
     mcAssignTaskAction,
     mcListTasksAction,
@@ -87,6 +89,7 @@ export { solusPositionAssessAction } from "./actions/solusPositionAssess.action"
 export { solusOptimalStrikeAction } from "./actions/solusOptimalStrike.action";
 export { solusAnalyzeAction } from "./actions/solusAnalyze.action";
 export { solusEarningsCalendarAction } from "./actions/solusEarningsCalendar.action";
+export { solusPremiumPnlAction } from "./actions/solusPremiumPnl.action";
 export { mcRegisterSatoshiAction } from "./actions/missionControl.actions";
 export { mcAssignTaskAction } from "./actions/missionControl.actions";
 export { mcListTasksAction } from "./actions/missionControl.actions";
