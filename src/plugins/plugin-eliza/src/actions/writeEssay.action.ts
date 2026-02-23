@@ -264,12 +264,35 @@ Target: ${SUBSTACK_URL}`,
       // Get voice profile for brand consistency
       const voiceAddition = getVoicePromptAddition();
 
+      // When user asks for this week's trading/results, pull trading performance (Vince P&L, Solus premium)
+      const wantsTradingContext =
+        /this week'?s (trading|research|results)|weekly (trading|results|performance)|from this week|trading results/i.test(
+          text,
+        );
+      let tradingBlock = "";
+      if (wantsTradingContext) {
+        const state = await runtime.composeState(
+          message,
+          ["TRADING_PERFORMANCE"],
+          true,
+        );
+        const summary =
+          state?.values?.tradingPerformanceSummary ??
+          (typeof state?.text === "string" &&
+          state.text.includes("Trading performance")
+            ? state.text
+            : "");
+        if (summary) {
+          tradingBlock = `\n\nUse this real performance data in your essay when relevant (concrete numbers beat hypotheticals):\n${summary}\n`;
+        }
+      }
+
       // Build the prompt
       const userPrompt = `Write a ${style} essay about: ${topic}
 
 ${stylePrompt}
 
-Target length: 1500-2500 words. Make it publishable on Substack.
+Target length: 1500-2500 words. Make it publishable on Substack.${tradingBlock}${tradingBlock ? "\nWeave in the concrete numbers above where they strengthen the narrative." : ""}
 
 Start with the title (# Title) and subtitle, then the essay.`;
 

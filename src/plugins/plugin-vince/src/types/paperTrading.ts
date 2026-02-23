@@ -258,6 +258,9 @@ export interface TradeJournalEntry {
   /** Duration of trade in ms (for exits) */
   durationMs?: number;
 
+  /** Sentiment at entry was correct vs outcome (for exits with sentimentScore at open). PRD Phase 4 #20 */
+  sentimentCorrect?: boolean;
+
   /** Timestamp */
   timestamp: number;
 }

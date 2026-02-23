@@ -2,7 +2,8 @@
  * Vince Trade Signal Provider – cross-agent trade loop.
  * Injects Vince's latest trade suggestion into Otaku context so the user can say "execute it".
  * Vince (or any agent) should set cache key "vince:latest_trade_signal" with shape:
- * { action: 'swap', sellToken, buyToken, amount, chain? } | { action: 'bridge', token, amount, fromChain, toChain }
+ * { action: 'swap', sellToken, buyToken, amount, chain?, confidence? } | { action: 'bridge', ... }
+ * Optional confidence (0–100) or strength: when >= OTAKU_AUTO_EXECUTE_MIN_CONFIDENCE, Otaku can notify "execute when ready". PRD: One Dream Phase 4 (#18).
  */
 
 import type { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";

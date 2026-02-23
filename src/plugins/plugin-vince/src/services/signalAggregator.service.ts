@@ -61,7 +61,10 @@ import {
 } from "../utils/sessionFilters";
 
 // V3: Dynamic Configuration (Self-Improving Architecture)
-import { getPaperTradeAssets } from "../constants/paperTradingDefaults";
+import {
+  getPaperTradeAssets,
+  getPaperTradeAssetsWithWatchlist,
+} from "../constants/paperTradingDefaults";
 import {
   dynamicConfig,
   getSourceWeight as getDynamicSourceWeight,
@@ -2539,7 +2542,7 @@ export class VinceSignalAggregatorService extends Service {
    * Get signals for all tracked assets (respects vince_paper_assets: e.g. "BTC" only)
    */
   async getAllSignals(): Promise<AggregatedSignal[]> {
-    const assets = getPaperTradeAssets(this.runtime);
+    const assets = getPaperTradeAssetsWithWatchlist(this.runtime);
     return Promise.all(assets.map((asset) => this.getSignal(asset)));
   }
 

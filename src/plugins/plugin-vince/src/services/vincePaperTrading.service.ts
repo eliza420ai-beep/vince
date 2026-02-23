@@ -53,6 +53,7 @@ import {
   MAX_SL_PCT_AGGRESSIVE,
   MIN_SL_ATR_MULTIPLIER_AGGRESSIVE,
   getPaperTradeAssets,
+  getPaperTradeAssetsWithWatchlist,
   getAssetMaxLeverage,
   TIMING,
   PERSISTENCE_DIR,
@@ -82,6 +83,8 @@ import {
   getContextAdjustmentMultiplier,
   recordContextOutcome,
 } from "../utils/contextFeatureStats";
+import { getSentimentGateForDirection } from "./vinceSentimentGate";
+import { runPostMortem } from "../utils/postMortem";
 
 // ==========================================
 // Pending Entry Types
@@ -676,9 +679,16 @@ Reply format: APPROVE reason or VETO reason`;
   /** Recent closed trades (contributingSources only) for dashboard "X contributed to N of K" */
   private static readonly MAX_RECENT_CLOSED_TRADES = 50;
   private recentClosedTrades: Array<{ contributingSources?: string[] }> = [];
+  /** Last closed position with realizedPnl < 0 (for VINCE_POST_MORTEM action). */
+  private lastClosedLosingPosition: Position | null = null;
 
   getRecentClosedTrades(): Array<{ contributingSources?: string[] }> {
     return [...this.recentClosedTrades];
+  }
+
+  /** Returns the most recent closed position that was a loss; null if none. */
+  getLastClosedLosingPosition(): Position | null {
+    return this.lastClosedLosingPosition;
   }
 
   /** Recent "recorded data / ML influenced the algo" events for dashboard (bounded) */
@@ -1133,7 +1143,7 @@ Reply format: APPROVE reason or VETO reason`;
     // WTT: if enabled, try to open today's pick first (perp/HIP-3 eligible only)
     if (isWttEnabled(this.runtime)) await this.evaluateWttPick();
 
-    const assets = getPaperTradeAssets(this.runtime);
+    const assets = getPaperTradeAssetsWithWatchlist(this.runtime);
     for (const asset of assets) {
       try {
         // Skip if we already have a position in this asset
@@ -1446,6 +1456,46 @@ Reply format: APPROVE reason or VETO reason`;
           continue;
         }
 
+        // Sentiment gate: Echo/Oracle can skip new longs (bearish) or reduce size (risk-off)
+        const sentimentGate = await getSentimentGateForDirection(
+          this.runtime,
+          signal.direction as "long" | "short",
+        );
+        if (
+          signal.direction === "long" &&
+          sentimentGate.skipLongs &&
+          signal.strength > 30
+        ) {
+          this.logSignalRejection(
+            asset,
+            tradeSignal,
+            `Sentiment gate: ${sentimentGate.adjustmentApplied} (skip new longs)`,
+          );
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
+          );
+          continue;
+        }
+        if (
+          signal.direction === "short" &&
+          sentimentGate.skipShorts &&
+          signal.strength > 30
+        ) {
+          this.logSignalRejection(
+            asset,
+            tradeSignal,
+            `Sentiment gate: ${sentimentGate.adjustmentApplied} (skip new shorts)`,
+          );
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
+          );
+          continue;
+        }
+
         // Validate signal
         const signalValidation = riskManager.validateSignal(tradeSignal);
         if (!signalValidation.valid) {
@@ -1708,6 +1758,14 @@ Reply format: APPROVE reason or VETO reason`;
           }
         }
 
+        // Sentiment gate size multiplier (Echo/Oracle: risk-off halve, bearish reduce)
+        if (sentimentGate.sizeMultiplier !== 1.0) {
+          baseSizeUsd = baseSizeUsd * sentimentGate.sizeMultiplier;
+          logger.debug(
+            `[VincePaperTrading] ${asset} sentiment gate: size ${sentimentGate.sizeMultiplier}x (${sentimentGate.adjustmentApplied})`,
+          );
+        }
+
         // Validate trade
         const tradeValidation = riskManager.validateTrade({
           sizeUsd: baseSizeUsd,
@@ -1765,6 +1823,11 @@ Reply format: APPROVE reason or VETO reason`;
           signal: tradeSignal,
           usedPullbackEntry: false,
           contextBucketKeys: contextKeys.length > 0 ? contextKeys : undefined,
+          sentimentMeta: {
+            sentimentScore: sentimentGate.sentimentScore,
+            regime: sentimentGate.regime,
+            adjustmentApplied: sentimentGate.adjustmentApplied,
+          },
         });
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
@@ -1923,6 +1986,12 @@ Reply format: APPROVE reason or VETO reason`;
     usedPullbackEntry?: boolean;
     /** Context bucket keys for context_adjustment learning (recorded on close). */
     contextBucketKeys?: string[];
+    /** Echo/Oracle sentiment gate snapshot for journal (recorded on open). */
+    sentimentMeta?: {
+      sentimentScore: number;
+      regime: string;
+      adjustmentApplied: string;
+    };
   }): Promise<Position | null> {
     const {
       asset,
@@ -1932,6 +2001,7 @@ Reply format: APPROVE reason or VETO reason`;
       signal,
       usedPullbackEntry = false,
       contextBucketKeys,
+      sentimentMeta,
     } = params;
 
     const positionManager = this.getPositionManager();
@@ -2357,6 +2427,13 @@ Reply format: APPROVE reason or VETO reason`;
         ...(contextBucketKeys && contextBucketKeys.length > 0
           ? { contextBucketKeys }
           : {}),
+        ...(sentimentMeta
+          ? {
+              sentimentScore: sentimentMeta.sentimentScore,
+              regime: sentimentMeta.regime,
+              adjustmentApplied: sentimentMeta.adjustmentApplied,
+            }
+          : {}),
       },
     });
 
@@ -2507,13 +2584,28 @@ Reply format: APPROVE reason or VETO reason`;
       }
     }
 
-    // Journal exit
+    // Journal exit (sentiment accuracy: was sentiment at entry correct vs outcome? PRD Phase 4 #20)
     if (tradeJournal) {
+      const score = closedPosition.metadata?.sentimentScore as
+        | number
+        | undefined;
+      const pnl = closedPosition.realizedPnl ?? 0;
+      const isWin = pnl > 0;
+      const dir = closedPosition.direction;
+      let sentimentCorrect: boolean | undefined;
+      if (typeof score === "number") {
+        sentimentCorrect =
+          (dir === "long" && isWin && score >= 6) ||
+          (dir === "long" && !isWin && score <= 4) ||
+          (dir === "short" && isWin && score <= 4) ||
+          (dir === "short" && !isWin && score >= 6);
+      }
       tradeJournal.recordExit({
         position: closedPosition,
         exitPrice: closedPosition.markPrice,
         realizedPnl: closedPosition.realizedPnl || 0,
         closeReason: reason || "manual",
+        sentimentCorrect,
       });
     }
 
@@ -2536,6 +2628,15 @@ Reply format: APPROVE reason or VETO reason`;
     // Record trade outcomes for ML learning
     // ==========================================
     await this.recordMLOutcome(closedPosition, reason);
+
+    // Post-mortem: on loss, ask Echo/Oracle/Solus and write docs/standup/post-mortems/
+    const pnlForPm = closedPosition.realizedPnl ?? 0;
+    if (pnlForPm < 0) {
+      this.lastClosedLosingPosition = closedPosition;
+      void runPostMortem(this.runtime, closedPosition).catch((e) =>
+        logger.debug(`[VincePaperTrading] Post-mortem failed: ${e}`),
+      );
+    }
 
     // ==========================================
     // DETAILED TRADE CLOSED LOG (visible in terminal + logger)

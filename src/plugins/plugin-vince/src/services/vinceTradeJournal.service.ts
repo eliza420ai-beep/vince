@@ -93,6 +93,8 @@ export class VinceTradeJournalService extends Service {
     closeReason: string;
     signalDetails?: TradeSignalDetail[];
     marketContext?: TradeMarketContext;
+    /** When sentiment was recorded at entry, was it correct vs outcome? PRD Phase 4 #20 */
+    sentimentCorrect?: boolean;
   }): void {
     const {
       position,
@@ -101,6 +103,7 @@ export class VinceTradeJournalService extends Service {
       closeReason,
       signalDetails,
       marketContext,
+      sentimentCorrect,
     } = params;
 
     const entry: TradeJournalEntry = {
@@ -117,6 +120,7 @@ export class VinceTradeJournalService extends Service {
       realizedPnl,
       closeReason,
       durationMs: Date.now() - position.openedAt,
+      ...(sentimentCorrect !== undefined && { sentimentCorrect }),
       timestamp: Date.now(),
     };
 
@@ -206,6 +210,23 @@ export class VinceTradeJournalService extends Service {
 
   getRecentEntries(count: number = 10): TradeJournalEntry[] {
     return this.entries.slice(-count);
+  }
+
+  /**
+   * Sentiment accuracy from exits that had sentiment at entry. PRD Phase 4 #20.
+   */
+  getSentimentAccuracy(count: number = 50): {
+    correct: number;
+    total: number;
+    pct: number | null;
+  } {
+    const exits = this.entries
+      .filter((e) => e.type === "exit" && e.sentimentCorrect !== undefined)
+      .slice(-count);
+    const total = exits.length;
+    if (total === 0) return { correct: 0, total: 0, pct: null };
+    const correct = exits.filter((e) => e.sentimentCorrect === true).length;
+    return { correct, total, pct: (100 * correct) / total };
   }
 
   getRecentTrades(

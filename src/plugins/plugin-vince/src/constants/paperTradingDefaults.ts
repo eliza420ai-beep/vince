@@ -405,6 +405,33 @@ export function getPaperTradeAssets(runtime: IAgentRuntime): readonly string[] {
   return isHip3Enabled(runtime) ? TRADEABLE_ASSETS : [...CORE_ASSETS];
 }
 
+/**
+ * Paper trade assets plus watchlist tokens that are in ALL_TRACKED_ASSETS.
+ * When VINCE_PAPER_WATCHLIST_ENABLED=true, tokens from VinceWatchlistService
+ * are included so new watchlist tokens are auto-monitored for signals.
+ * PRD: One Dream — Agent Synergy Phase 3 (Echo watchlist → Vince pipeline).
+ */
+export function getPaperTradeAssetsWithWatchlist(
+  runtime: IAgentRuntime,
+): readonly string[] {
+  const base = getPaperTradeAssets(runtime);
+  const watchlistEnabled =
+    runtime.getSetting?.("vince_paper_watchlist_enabled") === true ||
+    runtime.getSetting?.("vince_paper_watchlist_enabled") === "true" ||
+    process.env.VINCE_PAPER_WATCHLIST_ENABLED === "true";
+  if (!watchlistEnabled) return base;
+  const watchlistService = runtime.getService?.("VINCE_WATCHLIST_SERVICE") as {
+    getWatchedTokens?: () => Array<{ symbol: string }>;
+  } | null;
+  const tokens = watchlistService?.getWatchedTokens?.() ?? [];
+  const tracked = new Set(ALL_TRACKED_ASSETS as readonly string[]);
+  const fromWatchlist = tokens
+    .map((t) => t.symbol?.trim().toUpperCase())
+    .filter((s) => s && tracked.has(s));
+  if (fromWatchlist.length === 0) return base;
+  return [...new Set([...base, ...fromWatchlist])];
+}
+
 // ==========================================
 // Signal Source Weights
 // ==========================================

@@ -240,6 +240,28 @@ Requirements:
 - No engagement bait`;
       }
 
+      // When topic suggests real results (weekly performance, trading), inject trading data so tweets use concrete numbers
+      const wantsPerformance =
+        /this week|weekly (results|performance|trading)|trading results|premium (income|collected)|paper (bot )?p&l/i.test(
+          text + " " + topic,
+        );
+      if (wantsPerformance) {
+        const state = await runtime.composeState(
+          message,
+          ["TRADING_PERFORMANCE"],
+          true,
+        );
+        const summary =
+          state?.values?.tradingPerformanceSummary ??
+          (typeof state?.text === "string" &&
+          state.text.includes("Trading performance")
+            ? state.text
+            : "");
+        if (summary) {
+          userPrompt += `\n\nWhen drafting, use this real performance data when relevant—concrete numbers (e.g. "$2,140 in premium this week") beat hypotheticals:\n${summary}`;
+        }
+      }
+
       // Get voice profile for brand consistency
       const voiceAddition = getVoicePromptAddition();
 

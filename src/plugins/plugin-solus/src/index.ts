@@ -9,6 +9,8 @@ import { logger } from "@elizaos/core";
 import { hypersurfaceContextProvider } from "./providers/hypersurfaceContext.provider";
 import { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPrices.provider";
 import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
+import { vinceOptionsInjectorProvider } from "./providers/vinceOptionsInjector.provider";
+import { vinceStrikeSuggestionProvider } from "./providers/vinceStrikeSuggestion.provider";
 import { AlphaVantageService } from "./services/alphaVantage.service";
 import { FinnhubService } from "./services/finnhub.service";
 import { FMPService } from "./services/fmp.service";
@@ -41,6 +43,8 @@ export const solusPlugin: Plugin = {
     hypersurfaceContextProvider,
     hypersurfaceSpotPricesProvider,
     solusStockPulseProvider,
+    vinceOptionsInjectorProvider,
+    vinceStrikeSuggestionProvider,
   ],
   actions: [
     solusStrikeRitualAction,

@@ -17,6 +17,8 @@ import { vinceHIP3Action } from "../actions/hip3.action";
 import { vinceMemesAction } from "../actions/memes.action";
 import { vinceNftFloorAction } from "../actions/nftFloor.action";
 import { vinceIntelAction } from "../actions/intel.action";
+import { vincePostMortemAction } from "../actions/vincePostMortem.action";
+import { vinceSentimentCheckAction } from "../actions/vinceSentimentCheck.action";
 
 const VINCE_QUICK_ACTIONS = [
   { label: "What can the CDO do?", message: "What can you do?" },
@@ -34,6 +36,14 @@ const VINCE_QUICK_ACTIONS = [
   {
     label: "Bot Performance",
     message: "bot performance report — wins, losses, edge, what to adjust",
+  },
+  {
+    label: "Post-mortem (last loss)",
+    message: "Post-mortem on the last losing trade",
+  },
+  {
+    label: "Sentiment check",
+    message: "What does Echo and Oracle say about my next trade?",
   },
 ];
 
@@ -68,6 +78,8 @@ const VINCE_ACTIONS = [
   vinceMemesAction,
   vinceNftFloorAction,
   vinceIntelAction,
+  vincePostMortemAction,
+  vinceSentimentCheckAction,
 ];
 
 describe("VINCE quick actions", () => {
