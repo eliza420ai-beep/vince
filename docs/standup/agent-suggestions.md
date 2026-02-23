@@ -105,3 +105,8 @@
 
 - Clawterm: implement ClawHub Certified badge system with automated supply-chain checks to address security concerns exposed by viral OpenClaw tutorials.
 - Eliza: audit knowledge against AI super-cycle thesis and provide institutional positioning framework for Solus to execute on vol surface reshaping.
+## 2026-02-23
+
+- Clawterm → Sentinel: Cross-link one-click Docker template to Sentinel docs as sprint candidate.
+- Eliza: Pull OpenClaw execution priorities from PRD and map to Cursor workflows to unblock external runtime decisions.
+- Oracle: Monitor BTC/ETH edge if synth forecasts diverge from current lows for Hypersurface strike signal room.

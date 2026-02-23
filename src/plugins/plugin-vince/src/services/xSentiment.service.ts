@@ -302,7 +302,14 @@ export class VinceXSentimentService extends Service {
       const ms = Math.max(0, parseInt(process.env.X_SENTIMENT_JITTER_MS, 10));
       await new Promise((r) => setTimeout(r, ms));
     }
-    await service.refreshOneAsset(0);
+    try {
+      await service.refreshOneAsset(0);
+    } catch (e) {
+      logger.warn(
+        "[VinceXSentimentService] Initial refresh failed, will retry on interval: " +
+          (e as Error).message,
+      );
+    }
     service.staggerIndex = 1; // next tick will do SOL, then ETH, HYPE, then back to BTC
     service.refreshTimer = setInterval(() => {
       const sentimentAssets = getSentimentAssets();

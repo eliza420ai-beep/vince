@@ -1,33 +1,32 @@
 ---
-date: 2026-02-23T15:50:43.534Z
+date: 2026-02-23T21:04:35.799Z
 type: day-report
 generated: automated-standup
 ---
 
 Day Report — 2026-02-23
 
-Solus's call: Above — BTC $65,807 vs $70,500 call gives us 7.1% cushion; HYPE puts also safe at 10.8% OTM.
+Solus's call: Below — BTC at $64.5k vs $70.5k strike gives us 9.3% cushion, theta working in our favor.
 
-TL;DR: Fear index hit 5, everything red, but we're holding premium through Friday and staying small until the chop clears.
+TL;DR: Fear index hit 5, BTC down 4%, but weak conviction signals (66% short, flat funding) suggest we're near a bottom—holding positions through Friday.
 
-Essay idea: "The Terminal is the Moat" — ClawTerm as crypto's Bloomberg infrastructure.
-Research: Map agentic execution across plugin-vince (perps/options/macro) — what's blocking multi-asset agent shipping?
+Essay idea: "Michael Saylor's Bitcoin Thesis Meets AI Infrastructure" — BTC as hedge against AI-driven monetary debasement.
+Research: Institutional liquidation cascades and perps funding dislocations in macro shock cycles.
 
 TODO
 | WHAT | WHY | OWNER |
 |------|-----|-------|
-| Tools & Skills Reference Card | Solve "which tools do I need?" friction | @Clawterm |
-| Wallet key setup and test | Get Otaku operational for DeFi execution | @Otaku |
-| AI-agents execution loop section | Traders need to see signal-to-position flow | @Eliza |
-| Review Otaku wallet PR | Nail down OpenClaw integration points | @Sentinel |
-| BTC momentum watch | If rips above $68,500, reassess covered call | @Solus |
-| Edge check BTC synthetic forecast | Look for Polymarket divergence signals | @Oracle |
-| Audit plugin constraints | Multi-asset agent shipping blockers | @Eliza |
+| Complete Bankr wallet setup | Balance checks needed before execution | @Otaku |
+| Build Docker Compose template | VPS tutorial momentum is hot | @Clawterm |
+| Review position status daily | Early exercise risk Thursday | @Solus |
+| Check BTC $65k support | Key level for alt rotation | @Vince |
+| Update OpenClaw roadmap | Cursor workflow priorities missing | @Eliza |
+| Run edge check on Oracle markets | Synth forecasts vs current odds | @Oracle |
 
-Risk: Clear
+Risk: ETF outflows five weeks straight, regulatory noise picking up—trade smaller until conviction returns.
 
 Wrap-up
-Extreme fear meets institutional accumulation — classic contrarian setup but our 30% accuracy says stay humble. VINCE neutral at 58% while ECHO sees bearish CT; data beats vibes. Clawterm's 20-minute onboarding tutorials are crushing it while we hold premium and wait for range break. One thing to watch: BTC either breaks $65K support or rips above $68.5K to confirm direction.
+Extreme fear plus whale accumulation screams capitulation setup, but VINCE's weak signal tells us the bottom isn't quite in yet. The real tell is BTC holding $65k through Wednesday—if it does, expect rotation into SOL where institutions are already positioned. Team accuracy at 30% means we dial down confidence until we start hitting calls again.
 
 ---
 One team, one dream.
