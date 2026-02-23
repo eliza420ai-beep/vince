@@ -50,6 +50,16 @@ function extractPlaceQuery(text: string): string {
   ) {
     return "the area";
   }
+  // "Where should I stay this weekend?" / "where to stay?" = no specific place → default region so we pull full the-good-life (hotels, Landes, Basque, etc.)
+  if (
+    /\bwhere\s+(?:should\s+I|to|can\s+I)\s+stay\b/i.test(text) &&
+    (/\b(this\s+weekend|next\s+week|(?:for\s+)?the\s+weekend|somewhere|a\s+place)\b/i.test(
+      lower,
+    ) ||
+      /\bwhere\s+(?:should\s+I|to|can\s+I)\s+stay\s*[?.!]*$/i.test(text.trim()))
+  ) {
+    return "the area";
+  }
   const patterns = [
     // "eat in X", "go eat in X", "lunch in X", "dinner in X" + optional "tomorrow"/"today"
     /(?:eat|go eat|wanna go eat|lunch|dinner)\s+(?:in|at)\s+([A-Za-z\s\-']+?)(?:\s+tomorrow|\s+today|\s*\?|$|\.|,)/i,
@@ -141,6 +151,7 @@ export const kellyRecommendPlaceAction: Action = {
           text.includes("best hotel") ||
           text.includes("best restaurant"))) ||
       text.includes("where to stay") ||
+      /where\s+(?:should\s+I|to|can\s+I)\s+stay/i.test(text) ||
       text.includes("where to eat") ||
       text.includes("open now") ||
       text.includes("open today") ||
