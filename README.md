@@ -148,17 +148,42 @@ Signals flow into trades, trades flow into the feature store, the feature store 
 
 **VinceBench** scores every closed trade on process quality (signal, risk, timing, regime). The score trains the signal-quality model to learn more from high-quality decisions.
 
-**Re-run training:**
+### Re-run training
 
 ```bash
-python3 src/plugins/plugin-vince/scripts/train_models.py \
-  --data .elizadb/vince-paper-bot/features \
-  --output .elizadb/vince-paper-bot/models \
-  --min-samples 90 \
-  --bench-score-weight
+bun run train-models -- --bench-score-weight
 ```
 
-Or: `bun run train-models -- --bench-score-weight`. Restart the agent after training.
+Or with recency weighting: `bun run train-models:recency`. Restart the agent after training.
+
+### Validate ML improvement
+
+After training, validate that ML-derived thresholds (min strength / min confidence) would have improved selectivity on historical data:
+
+```bash
+bun run validate-ml
+```
+
+Or directly:
+
+```bash
+python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py \
+  --data .elizadb/vince-paper-bot/features
+```
+
+The script loads the same feature-store data, computes suggested tuning (Q0.25 of profitable trades), and reports baseline win rate vs filtered win rate and % of skipped trades that were losers.
+
+**Example run (Feb 2026, 158 closed trades):**
+
+| Metric | Value |
+|--------|--------|
+| Total trades with outcome | 158 |
+| Baseline win rate (all trades) | 23.4% (37 wins) |
+| Suggested tuning (Q0.25 profitable) | min_strength=56, min_confidence=50 |
+| If we had used suggested_tuning | 121 trades taken (20.7% win rate), 37 skipped (68% of skipped were losers) |
+| Result | On this dataset, suggested_tuning did not improve win rate (filtered 20.7% vs baseline 23.4%). Small samples or weak strength/confidence signal; re-run after more trades. |
+
+Conclusion: the ML logic can adjust parameters from data; improvement on live data depends on regime and data quality. Re-run after more closed trades.
 
 Full loop: [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md). ONNX details: [ONNX.md](docs/ONNX.md). Feature store: [FEATURE-STORE.md](docs/FEATURE-STORE.md).
 
@@ -182,6 +207,7 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | `bun run sync:supabase` | Backfill features to Supabase |
 | `bun run db:check` | Verify DB migrations |
 | `bun run train-models` | Train ML models |
+| `bun run validate-ml` | Validate ML thresholds on feature-store data |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |
 
