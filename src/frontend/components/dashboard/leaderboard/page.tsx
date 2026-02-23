@@ -5,6 +5,7 @@ import DashboardPageLayout from "@/frontend/components/dashboard/layout";
 import RebelsRanking from "@/frontend/components/dashboard/rebels-ranking";
 import DashboardCard from "@/frontend/components/dashboard/card";
 import { MarketLeaderboardSection } from "@/frontend/components/dashboard/leaderboard/market-leaderboard-section";
+import { ChartsTab } from "@/frontend/components/dashboard/leaderboard/charts-tab";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
 import {
@@ -380,6 +381,7 @@ function signalSourceDisplayName(name: string): string {
 type MainTab =
   | "knowledge"
   | "markets"
+  | "charts"
   | "memetics"
   | "news"
   | "more"
@@ -805,7 +807,9 @@ export default function LeaderboardPage({
                   ? "Session token usage and estimated cost (TREASURY)"
                   : mainTab === "polymarket"
                     ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
-                    : "No tilt. Every decision explained. Every outcome learned.";
+                    : mainTab === "charts"
+                      ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
+                      : "No tilt. Every decision explained. Every outcome learned.";
 
   return (
     <DashboardPageLayout
@@ -826,6 +830,7 @@ export default function LeaderboardPage({
               <TabsTrigger value="news">News</TabsTrigger>
               <TabsTrigger value="markets">Markets</TabsTrigger>
               <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
+              <TabsTrigger value="charts">Charts</TabsTrigger>
               {/* <TabsTrigger value="memetics">Memetics</TabsTrigger> */}
               {/* <TabsTrigger value="digital_art">Digital Art</TabsTrigger> */}
               <TabsTrigger value="more">Trading context</TabsTrigger>
@@ -1113,6 +1118,14 @@ export default function LeaderboardPage({
                 </p>
               </div>
             )}
+          </TabsContent>
+
+          {/* Charts tab: TradingView embed — BTC and core pairs */}
+          <TabsContent
+            value="charts"
+            className="mt-6 flex-1 min-h-0 flex flex-col"
+          >
+            <ChartsTab />
           </TabsContent>
 
           {false && (

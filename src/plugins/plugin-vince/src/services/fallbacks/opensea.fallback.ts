@@ -29,6 +29,11 @@ const DEFAULT_ETH_PRICE_USD = 3000;
 
 /** Log 401 (missing/invalid API key) once to avoid spamming every collection */
 let hasLogged401 = false;
+/** Throttle 5xx logs: log once per window to avoid spam when OpenSea is down */
+let last5xxLogMs = 0;
+const FIVE_XX_LOG_THROTTLE_MS = 120_000; // 2 minutes
+/** After a 5xx, pause requests briefly so we don't hammer a failing API */
+const SERVER_ERROR_BACKOFF_MS = 90_000; // 90 seconds
 
 interface CacheEntry<T> {
   data: T;
@@ -114,6 +119,8 @@ export class OpenSeaFallbackService implements IOpenSeaService {
   private lastRequestTime = 0;
   /** After 429, no requests until this time (ms). Prevents repeated 429s. */
   private rateLimitedUntilMs = 0;
+  /** After 5xx from OpenSea, pause requests to avoid hammering a failing API. */
+  private serverErrorUntilMs = 0;
   private apiKey: string | null = null;
   private ethPriceUsd = DEFAULT_ETH_PRICE_USD;
 
@@ -174,6 +181,14 @@ export class OpenSeaFallbackService implements IOpenSeaService {
       );
       await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
+    // After 5xx (OpenSea server error), pause to avoid hammering a failing API
+    if (now < this.serverErrorUntilMs) {
+      const waitMs = this.serverErrorUntilMs - now;
+      logger.debug(
+        `[OpenSeaFallback] In server-error backoff, waiting ${Math.ceil(waitMs / 1000)}s`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
 
     // Throttle: minimum spacing between requests
     const timeSinceLastRequest = Date.now() - this.lastRequestTime;
@@ -220,7 +235,20 @@ export class OpenSeaFallbackService implements IOpenSeaService {
           }
           return null;
         }
-        logger.error(`[OpenSeaFallback] HTTP error: ${response.status}`);
+        if (response.status >= 500) {
+          this.serverErrorUntilMs = Date.now() + SERVER_ERROR_BACKOFF_MS;
+          const throttle = now - last5xxLogMs >= FIVE_XX_LOG_THROTTLE_MS;
+          if (throttle) {
+            last5xxLogMs = Date.now();
+            logger.warn(
+              `[OpenSeaFallback] OpenSea API server error (${response.status}). Pausing requests for ${SERVER_ERROR_BACKOFF_MS / 1000}s. Endpoint: ${endpoint}`,
+            );
+          }
+          return null;
+        }
+        logger.error(
+          `[OpenSeaFallback] HTTP error: ${response.status} for ${endpoint}`,
+        );
         return null;
       }
 
