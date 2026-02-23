@@ -393,7 +393,8 @@ Combines Auto-Monitor, Knowledge Graph, Deduplication, and Source Quality servic
       text.includes("quality") ||
       text.includes("provenance") ||
       text.includes("dismiss suggestion") ||
-      (text.includes("archive") && text.includes("file"))
+      (text.includes("archive") && text.includes("file")) ||
+      (text.includes("explore") && text.includes("knowledge"))
     );
   },
 

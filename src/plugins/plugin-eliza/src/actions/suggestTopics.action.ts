@@ -333,7 +333,9 @@ Analyzes the knowledge base and suggests:
       (text.includes("what") &&
         text.includes("missing") &&
         text.includes("knowledge")) ||
-      text.includes("what needs writing")
+      text.includes("what needs writing") ||
+      text.includes("brainstorm") ||
+      text.includes("positioning")
     );
   },
 

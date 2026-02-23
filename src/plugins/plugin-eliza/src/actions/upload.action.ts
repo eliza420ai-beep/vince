@@ -698,8 +698,8 @@ Use this for expanding the knowledge corpus with research, articles, videos, twe
     // Auto-trigger on X/Twitter links - no keyword needed
     if (extractSingleUrl(text) && isXOrTwitterUrl(extractSingleUrl(text)!))
       return true;
-    if (text.length < MIN_TEXT_LENGTH) return false;
     if (hasUploadIntent(text)) return true;
+    if (text.length < MIN_TEXT_LENGTH) return false;
     if (text.length >= AUTO_INGEST_LENGTH && looksPastedNotConversational(text))
       return true;
     if (text.length >= LONG_DUMP_LENGTH) {
