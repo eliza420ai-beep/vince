@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-22",
+  "thesis": "Defense spending acceleration creates asymmetry where PLTR benefits from AI military contracts while NVDA faces consumer demand headwinds.",
+  "primaryTicker": "PLTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 134.44,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "tech sector -10%",
+  "killConditions": [
+    "dies if tech sector -10%",
+    "government contracts take time to flow through to earnings"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "NVDA",
+  "altDirection": "short",
+  "altInstrument": "spot",
+  "evThresholdPct": 15
+}

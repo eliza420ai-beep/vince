@@ -11,6 +11,7 @@ import { edgeSchema } from "./schema/edge";
 import { edgeStatusAction } from "./actions/edgeStatus.action";
 import { edgeControlAction } from "./actions/edgeControl.action";
 import { buildEdgeStatusHandler } from "./routes/edgeStatus";
+import { buildEdgeRefreshHandler } from "./routes/edgeRefresh";
 import { buildEdgeSignalsHandler } from "./routes/edgeSignals";
 import { BinanceSpotWsService } from "./services/binanceSpotWs.service";
 import { PolymarketClobWsService } from "./services/polymarketClobWs.service";
@@ -29,6 +30,12 @@ export const pluginPolymarketEdge: Plugin = {
       path: "/edge/status",
       type: "GET",
       handler: buildEdgeStatusHandler(),
+    },
+    {
+      name: "edge-refresh",
+      path: "/edge/refresh",
+      type: "POST",
+      handler: buildEdgeRefreshHandler(),
     },
     {
       name: "edge-signals",

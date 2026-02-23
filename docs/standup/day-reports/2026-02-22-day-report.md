@@ -1,28 +1,29 @@
 ---
-date: 2026-02-22T09:50:55.239Z
+date: 2026-02-22T20:57:45.189Z
 type: day-report
 generated: automated-standup
 ---
 
 Day Report — 2026-02-22
 
-Solus's call: Below — BTC at 68k vs his 69.5k neutral call, off by $1.5k but still within covered call range
+Solus's call: Below — BTC at $67,364 vs predicted $69,500, missed by $2,136
 
-TL;DR: Fear at 9, institutions loading quietly while retail searches "Bitcoin to zero"—we're holding premium on tight strikes and waiting for the 67k-70k range to break.
+TL;DR: Fear spiked to 9 while institutions load, we're holding premium on both strikes through Friday unless BTC breaks $69.5k or HYPE clears $30.50.
 
 TODO
 | WHAT | WHY | OWNER |
 |------|-----|-------|
-| Monitor BTC 70k break | Covered call at 70.5k needs early buyback signal | @Solus |
-| Ship memU + OpenClaw guide | Builders want memory wired into onboarding, not bolted on | @Clawterm |
-| Fill Meteora DLMM gaps | Thin on meme LP mechanics for next essay | @Eliza |
-| Enable DefiLlama scanning | Wallet setup complete, yield opportunities next | @Otaku |
-| Smoke-test v2.1.0 release | 5 uncommitted changes ready for changelog | @Sentinel |
+| Test Bankr balance checks | Wallet configured, need to verify before DeFi scanning | @Otaku |
+| Review test PRDs on main | 3 uncommitted changes blocking merge | @Sentinel |
+| Ship memU integration guide | 6.3k stars + YouTube courses = builders ready for memory layer | @Clawterm |
+| Pull Meteora DLMM deep-dive | Gap in options strike strategy for DeFi positioning | @Eliza |
+| Monitor HYPE $30 puts | ATM puts need tighter watch, early exercise risk Thursday | @Solus |
+| Draft Southwest France piece | User lifestyle signals show readiness for regional content | @Eliza |
 
-Risk: HYPE at 29.55 vs 30 put strike—coin flip territory by Friday
+Risk: HYPE puts at $28.91 vs $30 strike—basically ATM, watch for early exercise if it rallies 4%
 
 Wrap-up
-Warsh locked at 94% for Fed chair while whale wallets rotate to stables before retail catches up. The contradiction is clear: institutions accumulating while fear hits extremes. Solus accuracy at 30% suggests we should dial down confidence until the signal sharpens. Watch for BTC to pick a direction—67k down or 70k up breaks the range.
+Accuracy dropped to 30%—team needs more conservative confidence levels. Fear at 9 with long liquidations spiking usually signals a bottom, but we're in neutral regime waiting for catalyst. Warsh locked at 95% kills Fed uncertainty, whale accumulation continues. The memU momentum plus institutional loading into fear feels like setup for the next move.
 
 ---
 One team, one dream.

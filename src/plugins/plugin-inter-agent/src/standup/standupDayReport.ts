@@ -5,7 +5,6 @@
 
 import type { IAgentRuntime } from "@elizaos/core";
 import { ModelType } from "@elizaos/core";
-import { getEssentialStandupQuestion } from "./standup.constants";
 import { formatReportDate } from "./standupReports";
 import { ALOHA_STYLE_BLOCK } from "./standupStyle";
 import { saveDayReport, updateDayReportManifest } from "./dayReportPersistence";
@@ -28,13 +27,38 @@ import {
   type StandupSignalEntry,
 } from "./standupSignals";
 
+export interface ElizaSuggestionsFromInsights {
+  substackIdea?: string;
+  knowledgeToExpand?: string;
+  researchToDo?: string;
+}
+
+/**
+ * Extract **Substack idea:**, **Knowledge to expand:**, **Research to do:** from shared insights or Eliza section.
+ * Used to inject pre-computed suggestions into the Day Report so uploads are visibly leveraged.
+ */
+export function extractElizaSuggestionsFromSharedInsights(
+  sharedInsights: string,
+): ElizaSuggestionsFromInsights {
+  const out: ElizaSuggestionsFromInsights = {};
+  for (const line of sharedInsights.split("\n")) {
+    const t = line.trim();
+    if (t.startsWith("**Substack idea:**"))
+      out.substackIdea = t.slice("**Substack idea:**".length).trim();
+    else if (t.startsWith("**Knowledge to expand:**"))
+      out.knowledgeToExpand = t.slice("**Knowledge to expand:**".length).trim();
+    else if (t.startsWith("**Research to do:**"))
+      out.researchToDo = t.slice("**Research to do:**".length).trim();
+  }
+  return out;
+}
+
 /**
  * Build the core Day Report prompt from conversation context.
  * Single source of truth for the Day Report format.
  * Reads like a quick update you'd send the team in chat — scannable but human, not a formal log.
  */
 export function buildDayReportPrompt(conversationContext: string): string {
-  const essentialQ = getEssentialStandupQuestion();
   const date = formatReportDate();
   return `You are Kelly. Write the Day Report for ${date} like you're texting the team a quick recap. Not a formal document. Not a slide. A message.
 
@@ -47,6 +71,9 @@ Day Report — ${date}
 
 Solus's call: [Above/Below/Uncertain] — [why, one sentence]
 TL;DR: [One sentence you'd text a friend. What's happening, what we're doing.]
+
+Essay idea: [One Substack idea from today's uploads or standup — or "None" if not discussed.]
+Research: [One topic to dig into from uploads — or "None".]
 
 TODO
 | WHAT | WHY | OWNER |
@@ -66,6 +93,7 @@ HARD RULES:
 - Total output under 300 words. If it's longer, you failed.
 - No "Essential question" header. No "###" headers. No "In brief" header. Just the content.
 - TL;DR = one sentence. Risk = one line.
+- Essay idea and Research = one line each. Use values from the pre-computed block below if provided and the transcript doesn't contradict; otherwise use transcript or "None".
 - Wrap-up = a short paragraph, not bullets. Something you'd actually say.
 - No: leverage, utilize, streamline, paradigm, holistic, delve, landscape, notably, interestingly, circle back, touch base.`;
 }

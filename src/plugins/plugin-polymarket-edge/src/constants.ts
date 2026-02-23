@@ -44,7 +44,7 @@ export const ENV_OVERREACTION_MAX_UNDERDOG_PRICE =
 export const ENV_OVERREACTION_COOLDOWN_MS = "EDGE_OVERREACTION_COOLDOWN_MS";
 export const DEFAULT_OVERREACTION_VELOCITY_PCT = 5;
 export const DEFAULT_OVERREACTION_WINDOW_MS = 300_000; // 5 min
-export const DEFAULT_OVERREACTION_MAX_UNDERDOG_PRICE = 0.15;
+export const DEFAULT_OVERREACTION_MAX_UNDERDOG_PRICE = 0.2; // allow more underdogs to qualify (was 0.15)
 export const DEFAULT_OVERREACTION_COOLDOWN_MS = 900_000; // 15 min
 
 /** Model fair value strategy */
@@ -93,12 +93,15 @@ export const DEFAULT_DISCOVERY_TAG_SLUGS = [
   "monthly",
 ] as const;
 
-/** Regex to detect BTC price threshold questions (discovery) */
+/** Regex to detect BTC price threshold questions (discovery). First capture group = strike (digits + optional k/K or commas). */
 export const BTC_THRESHOLD_QUESTION_PATTERNS = [
   /will\s+btc\s+(?:be\s+)?(?:above|reach|hit|exceed)\s+\$?([\d,]+(?:k|K)?)/i,
+  /will\s+bitcoin\s+(?:be\s+)?(?:above|reach|hit|exceed)\s+\$?([\d,]+(?:k|K)?)/i,
   /bitcoin\s+(?:above|reach|hit|exceed)\s+\$?([\d,]+(?:k|K)?)/i,
   /btc\s+price\s+(?:above|reach|over)\s+\$?([\d,]+(?:k|K)?)/i,
   /btc\s+(?:above|over)\s+\$?([\d,]+(?:k|K)?)/i,
+  /** "BTC $100k by …" / "Bitcoin $100,000 by …" */
+  /(?:btc|bitcoin)\s+\$?([\d,]+(?:k|K)?)\s+(?:by|before|at|by\s+end)/i,
   /(?:above|over)\s+\$?([\d,]+(?:k|K)?)\s+(?:by|before|at)/i,
 ] as const;
 

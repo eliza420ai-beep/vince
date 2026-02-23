@@ -78,6 +78,86 @@ After a fresh server restart you may see only **overreaction** in paper position
 
 **What to do:** Ask Oracle for “edge status” (or open Leaderboard → Polymarket tab → Edge status). The response now includes **Why only some strategies may fire** (e.g. `model_fair_value: needs BTC threshold markets (strikeUsd>0): 0 of 12 watched`, `synth: SYNTH_API_KEY not set`, `maker_rebate: needs 5-min BTC markets with expiry in 0–10s: 0 right now`). To get more variety: set `SYNTH_API_KEY` for synth; ensure discovery tags include markets that have BTC threshold questions for model_fair_value; for maker_rebate, ensure 5-min BTC markets are in the discovery tag set and that the engine is running when those windows occur.
 
+### 3.6 Synth and model_fair_value: why they don't fire
+
+**Synth**
+
+- The synth strategy **does not run without a Synth API key**. In code it returns `null` immediately when `SYNTH_API_KEY` is missing ([synthForecast.ts](src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts): `if (!process.env.SYNTH_API_KEY?.trim()) return null`). So until you have Synth API access and set the key, synth will never emit signals.
+
+**Model fair value**
+
+- Model fair value only considers contracts where **`strikeUsd > 0`**. Those come from [contractDiscovery](src/plugins/plugin-polymarket-edge/src/services/contractDiscovery.ts): the market **question** must match BTC threshold patterns (e.g. "Will BTC hit $100k?", "Bitcoin above $80,000") and parse to a numeric strike. Discovery fetches by **tag** (`EDGE_DISCOVERY_TAGS`, default `bitcoin,daily,weekly,monthly,ethereum,solana`). So model_fair_value is "never triggered" when:
+  - **None of the discovered markets** have a question that matches the threshold regex (e.g. "Will BTC be above $100000 by end of 2025?"), or
+  - Gamma returns different wording (e.g. "100,000" without "k", or "reach 100k" in a form the regex doesn't match), or
+  - Those markets are closed/inactive and filtered out.
+- Edge status reports: `model_fair_value: needs BTC threshold markets (strikeUsd>0): X of Y watched`. If X is 0, discovery is not supplying any BTC threshold contracts; add or adjust tags, or extend [BTC_THRESHOLD_QUESTION_PATTERNS](src/plugins/plugin-polymarket-edge/src/constants.ts) if Gamma uses different question phrasing.
+
+**What to do so model_fair_value can trigger**
+
+1. **Check edge status**  
+   Ask Oracle for edge status (or Leaderboard → Polymarket tab). Note: `model_fair_value: needs BTC threshold markets (strikeUsd>0): X of Y watched`. If **X stays 0**, no discovered contract has a BTC threshold question.
+
+2. **Ensure discovery can see BTC threshold markets**  
+   Discovery fetches from Gamma by **tags** (`EDGE_DISCOVERY_TAGS`, default `bitcoin,daily,weekly,monthly,ethereum,solana`). Gamma must return at least one **active, non-closed** market whose **question**:
+   - contains "btc" or "bitcoin", and
+   - matches one of the [BTC_THRESHOLD_QUESTION_PATTERNS](src/plugins/plugin-polymarket-edge/src/constants.ts) and yields a numeric strike (e.g. $100k → 100000).
+
+   Examples that **do** match today: "Will BTC hit $100k by December 2025?", "Bitcoin above $80,000", "BTC price above $95k".  
+   If Gamma uses different wording (e.g. "Will Bitcoin reach 100000 dollars?" or "BTC $100k by end of year?"), add or adjust patterns in `constants.ts` (see step 3).
+
+3. **Optional: add regex patterns for Gamma’s wording**  
+   In [constants.ts](src/plugins/plugin-polymarket-edge/src/constants.ts), extend `BTC_THRESHOLD_QUESTION_PATTERNS` so the **first capture group** is the number (with optional "k"/"K" or commas). For example:
+   - To match "BTC $100k by …" add something like: `/btc\s+\$?([\d,]+(?:k|K)?)\s+(?:by|before|at|by\s+end)/i`.
+   - To match "… reach 100,000 …" (no dollar sign) ensure a pattern has `(?:reach|hit)\s+\$?([\d,]+(?:k|K)?)` and that the question still passes `isBtcThresholdQuestion` (contains "btc" or "bitcoin").
+
+4. **Optional: log what discovery sees**  
+   Temporarily log or inspect `row.question` in [contractDiscovery.ts](src/plugins/plugin-polymarket-edge/src/services/contractDiscovery.ts) for the tags you use, to see exact Gamma question text and add matching patterns.
+
+Once at least one contract has `strikeUsd > 0`, model_fair_value will consider it (Black–Scholes vs CLOB price, edge ≥ threshold, forecast in 5–95%, cooldown). Edge status will then show `X of Y` with X ≥ 1 for model_fair_value.
+
+### 3.7 How to get both overreaction and model_fair_value to trigger
+
+- **Overreaction** needs: discovered binaries (`EDGE_DISCOVERY_ANY_BINARY` true), CLOB and Binance WS running (Oracle with plugin-polymarket-edge), and at least one contract meeting underdog ≤ 0.20 (default), favorite ≥ 0.7, velocity spike (default 5% in 5 min), and edge ≥ 200 bps. Optional tuning: `EDGE_OVERREACTION_VELOCITY_PCT=3` for more signals, `EDGE_OVERREACTION_MAX_UNDERDOG_PRICE` (default 0.2).
+- **Model fair value** needs: at least one discovered contract with `strikeUsd > 0` (BTC threshold question). Discovery runs a fallback fetch when tag-based results have no such contracts, and [BTC_THRESHOLD_QUESTION_PATTERNS](src/plugins/plugin-polymarket-edge/src/constants.ts) are extended for common phrasings. Check edge status for "X of Y watched" (X ≥ 1 when eligible) and logs for "Discovery: N contracts (M with strike for model_fair_value)".
+- If neither strategy runs: ensure Oracle (and edge engine) is running with Binance + CLOB WS; leave `EDGE_STRATEGIES_ENABLED` unset so all strategies are enabled; confirm discovery returns N > 0 in the log.
+
+### 3.8 How to check edge status ("X of Y")
+
+To see whether model_fair_value has eligible contracts (e.g. "model_fair_value: needs BTC threshold markets (strikeUsd>0): **X** of **Y** watched" with X ≥ 1):
+
+1. **Chat with Oracle**
+   In your chat client (web UI, Discord, etc.), open a conversation with the **Oracle** agent and say: **"edge status"** or **"Polymarket edge status"**. Oracle runs the EDGE_STATUS action and replies with engine status, contracts watched, and a "Why only some strategies may fire" section that includes the X of Y line for model_fair_value.
+
+2. **Leaderboard (Polymarket tab)**
+   If you use the VINCE web UI, open the **Leaderboard**, switch to the **Polymarket** tab, and look for the **Edge engine** or **Edge status** block. It calls the same status API and shows contracts watched and why each strategy may or may not fire.
+
+3. **HTTP API**
+   With the app running (e.g. `bun start`), call the status route with the **Oracle** agent ID:
+   ```http
+   GET /api/agents/{oracleAgentId}/plugins/polymarket-edge/edge/status
+   ```
+   The JSON response includes `whyOnlySomeStrategies.model_fair_value` (the "X of Y" message). You can get Oracle's agent ID from the agents list (e.g. `GET /api/agents`) or from the UI when you have a chat with Oracle open.
+
+4. **Quick action: refresh then status**
+   To run discovery **once** and get current status without waiting for the 5‑minute discovery interval (so both **overreaction** and **model_fair_value** can see fresh contracts as soon as Gamma has them):
+   ```http
+   POST /api/agents/{oracleAgentId}/plugins/polymarket-edge/edge/refresh
+   ```
+   The response has the same shape as `GET .../edge/status` plus `refreshed: true`. Use this after startup or when you want to force a fresh discovery and immediately see "X of Y". The status response (and Leaderboard) also include `lastDiscoveryAt` (ms since epoch); the Leaderboard has a **Refresh discovery** button that calls this same quick action and then refreshes the status display.
+
+### 3.9 Ensuring both strategies can trigger (env 137–168)
+
+With your `.env` block (Polymarket API URLs, desk config, `EDGE_DISCOVERY_TAGS`, `EDGE_DISCOVERY_ANY_BINARY`, overreaction and model_fair_value params):
+
+- **Discovery** runs on startup and then every 5 minutes. It uses tags and, when the tag-based result has no contracts with `strikeUsd > 0`, a fallback Gamma fetch so BTC threshold markets can appear for **model_fair_value**.
+- **Overreaction** can fire on any discovered binary (underdog ≤ max, favorite ≥ 0.7, velocity spike). **Model_fair_value** needs at least one contract with `strikeUsd > 0` in the watched set.
+
+To make sure both can trigger when conditions are met:
+
+1. Set `EDGE_DISCOVERY_TAGS` and `EDGE_DISCOVERY_ANY_BINARY=true` so discovery returns a non-empty list.
+2. After startup (or anytime), call **POST .../edge/refresh** once. Check the response: if `whyOnlySomeStrategies.model_fair_value` shows "**X** of **Y**" with **X ≥ 1** and `contractsWatched > 0`, both strategies have eligible contracts; they will fire when their own conditions (velocity, edge %, cooldowns) are satisfied.
+3. If X stays 0, Gamma may not have BTC threshold markets for your tags yet, or you can add tags that include BTC price threshold questions.
+
 ---
 
 ## 4. Schema: structured signal (Analyst → Risk)
@@ -158,6 +238,35 @@ One row per filled order. Written by Executor; read by Performance for TCA and r
 | **Calibration / strategy notes** | knowledge/polymarket-desk/ (Performance agent writes)                                     | —                                                   |
 
 DB tables live in the same database as ElizaOS (PGLite when no `POSTGRES_URL`, else Postgres). A new plugin `plugin-polymarket-desk` (or similar) registers the schema so migrations create `plugin_polymarket_desk.signals`, `plugin_polymarket_desk.sized_orders`, `plugin_polymarket_desk.trade_log`, and optionally `plugin_polymarket_desk.risk_config`.
+
+---
+
+## 7.1 Why paper P&L often looks similar (and how to vary it)
+
+The leaderboard **“Polymarket paper trading — Recent trades”** table shows TIME, SIDE, MARKET, STRATEGY, SIZE, ENTRY, NOW, P&L. Many rows can show nearly the same P&L (e.g. +$24.50–$24.90) because:
+
+1. **Same strategy and sizing**  
+   Most signals are from one strategy (e.g. **overreaction**). Strategies do not set `suggested_size_usd`, so Risk uses the same formula for every signal: Kelly from `edge_bps` and `confidence`, then clamped to `POLYMARKET_DESK_MIN_SIZE_USD`–`POLYMARKET_DESK_MAX_SIZE_USD`. With the same bankroll and similar edge, **SIZE** clusters (e.g. $25).
+
+2. **“Now” is live Polymarket price**  
+   **NOW** and **P&L** come from [deskTrades.ts](src/plugins/plugin-polymarket-desk/src/routes/deskTrades.ts): for each trade we call Polymarket discovery `getMarketPrices(market_id)`. So **currentPrice** (NOW) is the **live CLOB price**. When many markets have resolved or trade near 99.9% YES, NOW is 99.9% for all of them.
+
+3. **P&L formula**  
+   Mark-to-market P&L is `(currentPrice - entryPrice) * size_usd` for YES (and the NO equivalent). With fixed size and currentPrice ≈ 0.999, P&L is `≈ (0.999 - entry) * size`, so it clusters unless ENTRY or SIZE varies.
+
+**Ways to get more varied P&L:**
+
+| Lever | Where | What to do |
+| ----- | ----- | ---------- |
+| **Size by strategy** | Risk approve | Use `POLYMARKET_DESK_STRATEGY_SIZE_MULTIPLIERS` (JSON, e.g. `{"overreaction":0.6,"synth":1.2}`) so overreaction gets smaller size, synth larger → different dollar P&L. |
+| **Size by edge tier** | Risk approve | Scale size by `edge_bps` (e.g. edge &gt; 500 bps → 1.2×, &gt; 1000 bps → 1.5×, capped by max). |
+| **Strategy suggested size** | Edge strategies | In [overreaction.ts](src/plugins/plugin-polymarket-edge/src/strategies/overreaction.ts), [synthForecast.ts](src/plugins/plugin-polymarket-edge/src/strategies/synthForecast.ts), etc., set `suggested_size_usd` from confidence/edge so Risk uses it (with fallback). |
+| **Entry variation** | Already varies | ENTRY comes from signal `market_price`; different markets/strategies already give different ENTRY, which explains the smaller P&L spread (e.g. +$22 for 8.6% entry vs +$24.75 for 0.9%). |
+
+**Code references:**
+
+- **P&L and NOW:** [deskTrades.ts](src/plugins/plugin-polymarket-desk/src/routes/deskTrades.ts) — `enrichment.currentPrice` from `getMarketPrices()`, `mtmPnlUsd = (currentPrice - entryPrice) * size_usd`.
+- **Size:** [polymarketRiskApprove.action.ts](src/plugins/plugin-polymarket-desk/src/actions/polymarketRiskApprove.action.ts) — `sizeUsd` from Kelly + clamp; optional strategy multiplier applied when `POLYMARKET_DESK_STRATEGY_SIZE_MULTIPLIERS` is set.
 
 ---
 

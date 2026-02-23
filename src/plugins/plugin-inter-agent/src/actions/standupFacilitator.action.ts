@@ -49,7 +49,10 @@ import {
   isStandupKickoffRequest,
   getStandupHumanDiscordId,
 } from "../standup/standup.constants";
-import { generateAndSaveDayReport } from "../standup/standupDayReport";
+import {
+  generateAndSaveDayReport,
+  extractElizaSuggestionsFromSharedInsights,
+} from "../standup/standupDayReport";
 import { getElizaOS } from "../types";
 import {
   buildAndSaveSharedDailyInsights,
@@ -165,7 +168,7 @@ async function handleWrapUp(
     signals.push(...extractSignalsFromReport(agent, contextStr));
   }
   const validationContext = buildValidationContext(signals);
-  const extraPrompt = `
+  let extraPrompt = `
 ## Additional Context
 
 ### Previous Action Items
@@ -177,6 +180,24 @@ ${recentReports}
 ### Cross-Agent Validation
 ${validationContext}
 `;
+  const sharedContent = await loadSharedDailyInsights();
+  if (sharedContent) {
+    const suggestions =
+      extractElizaSuggestionsFromSharedInsights(sharedContent);
+    const parts: string[] = [];
+    if (suggestions.substackIdea)
+      parts.push(`**Substack idea:** ${suggestions.substackIdea}`);
+    if (suggestions.knowledgeToExpand)
+      parts.push(`**Knowledge to expand:** ${suggestions.knowledgeToExpand}`);
+    if (suggestions.researchToDo)
+      parts.push(`**Research to do:** ${suggestions.researchToDo}`);
+    if (parts.length > 0) {
+      extraPrompt += `
+
+Pre-computed from today's knowledge uploads (use these if the transcript doesn't contradict):
+${parts.join("\n")}`;
+    }
+  }
   try {
     const { reportText, savedPath, parsedItems } =
       await generateAndSaveDayReport(runtime, contextStr, {
@@ -335,6 +356,23 @@ async function handleRoundRobin(
       );
     }
     try {
+      let dayReportExtraPrompt: string | undefined;
+      if (sharedContent) {
+        const suggestions =
+          extractElizaSuggestionsFromSharedInsights(sharedContent);
+        const parts: string[] = [];
+        if (suggestions.substackIdea)
+          parts.push(`**Substack idea:** ${suggestions.substackIdea}`);
+        if (suggestions.knowledgeToExpand)
+          parts.push(
+            `**Knowledge to expand:** ${suggestions.knowledgeToExpand}`,
+          );
+        if (suggestions.researchToDo)
+          parts.push(`**Research to do:** ${suggestions.researchToDo}`);
+        if (parts.length > 0) {
+          dayReportExtraPrompt = `Pre-computed from today's knowledge uploads (use these if the transcript doesn't contradict):\n${parts.join("\n")}`;
+        }
+      }
       const { reportText, savedPath } = await generateAndSaveDayReport(
         runtime,
         transcript,
@@ -343,6 +381,7 @@ async function handleRoundRobin(
             agentName: r.agentName,
             structuredSignals: r.structuredSignals,
           })),
+          extraPrompt: dayReportExtraPrompt,
         },
       );
       try {

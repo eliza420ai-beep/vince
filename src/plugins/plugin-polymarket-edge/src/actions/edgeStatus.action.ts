@@ -41,10 +41,22 @@ export const edgeStatusAction: Action = {
         return { text, success: false };
       }
       const status = engine.getStatus();
+      const lastDiscoveryAt = status.lastDiscoveryAt as number | undefined;
+      const lastDiscoveryLine =
+        lastDiscoveryAt && lastDiscoveryAt > 0
+          ? (() => {
+              const d = Date.now() - lastDiscoveryAt;
+              if (d < 60_000) return `${Math.floor(d / 1000)}s ago`;
+              if (d < 3600_000) return `${Math.floor(d / 60_000)} min ago`;
+              if (d < 86400_000) return `${Math.floor(d / 3600_000)}h ago`;
+              return `${Math.floor(d / 86400_000)}d ago`;
+            })()
+          : null;
       const lines = [
         "**Edge engine status**",
         `Paused: ${(status.paused as boolean) ?? false}`,
         `Contracts watched: ${(status.contractsWatched as number) ?? 0}`,
+        ...(lastDiscoveryLine ? [`Last discovery: ${lastDiscoveryLine}`] : []),
         `BTC last price: $${(status.btcLastPrice as number) ?? "—"}`,
         `Strategies: ${Object.keys(status.strategies ?? {}).join(", ") || "none"}`,
       ];

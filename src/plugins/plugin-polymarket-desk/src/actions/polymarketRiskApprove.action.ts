@@ -127,6 +127,7 @@ export const polymarketRiskApproveAction: Action = {
         id: string;
         market_id: string;
         side: string;
+        source: string | null;
         suggested_size_usd: number | null;
         confidence: number | null;
         edge_bps: number | null;
@@ -138,13 +139,13 @@ export const polymarketRiskApproveAction: Action = {
 
       if (signalId) {
         const r = await client.query(
-          `SELECT id, market_id, side, suggested_size_usd, confidence, edge_bps, forecast_prob, market_price FROM ${SIGNALS_TABLE} WHERE id = $1 AND status = 'pending'`,
+          `SELECT id, market_id, side, source, suggested_size_usd, confidence, edge_bps, forecast_prob, market_price FROM ${SIGNALS_TABLE} WHERE id = $1 AND status = 'pending'`,
           [signalId],
         );
         signal = (r.rows[0] as SignalRow) ?? null;
       } else {
         const r = await client.query(
-          `SELECT id, market_id, side, suggested_size_usd, confidence, edge_bps, forecast_prob, market_price FROM ${SIGNALS_TABLE} WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1`,
+          `SELECT id, market_id, side, source, suggested_size_usd, confidence, edge_bps, forecast_prob, market_price FROM ${SIGNALS_TABLE} WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1`,
           [],
         );
         signal = (r.rows[0] as SignalRow) ?? null;
@@ -207,6 +208,22 @@ export const polymarketRiskApproveAction: Action = {
           bankrollUsd * kellyPct,
           bankrollUsd * maxPositionPct,
         );
+      }
+      // Optional: strategy-based size multiplier (e.g. {"overreaction":0.6,"synth":1.2}) for more varied P&L
+      const strategyMultiplierJson = runtime.getSetting?.(
+        "POLYMARKET_DESK_STRATEGY_SIZE_MULTIPLIERS",
+      ) as string | undefined;
+      if (strategyMultiplierJson && signal.source) {
+        try {
+          const multipliers = JSON.parse(strategyMultiplierJson) as Record<
+            string,
+            number
+          >;
+          const mult = multipliers[signal.source];
+          if (typeof mult === "number" && mult > 0) sizeUsd *= mult;
+        } catch {
+          // ignore invalid JSON
+        }
       }
       sizeUsd = Math.max(minSizeUsd, Math.min(maxSizeUsd, sizeUsd));
 
