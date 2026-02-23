@@ -45,3 +45,4 @@
 | 2026-02-22 | Fear at 9, institutions loading quietly while retail searches "Bitcoin to zero"— | [View](day-reports/2026-02-22-day-report.md) |
 | 2026-02-22 | Fear spiked to 9 while institutions load, we're holding premium on both strikes  | [View](day-reports/2026-02-22-day-report.md) |
 | 2026-02-23 | Markets bleeding red (BTC -3.3%, SOL -7.3%) with extreme fear at 5, but bullish  | [View](day-reports/2026-02-23-day-report.md) |
+| 2026-02-23 | Fear index hit 5, everything red, but we're holding premium through Friday and s | [View](day-reports/2026-02-23-day-report.md) |
