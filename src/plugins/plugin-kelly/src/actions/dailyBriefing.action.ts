@@ -49,6 +49,9 @@ export const kellyDailyBriefingAction: Action = {
 
     // Positive: only general daily/lifestyle briefing requests
     const wantsBriefing =
+      text.includes("rebalance") ||
+      text.includes("touch grass") ||
+      text.includes("grinding") ||
       text.includes("daily briefing") ||
       text.includes("lifestyle briefing") ||
       text.includes("daily suggestions") ||
