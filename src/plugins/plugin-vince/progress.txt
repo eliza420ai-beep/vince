@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-09 (X research ALOHA-style conclusion)
+# Last updated: 2026-02-23 (progress refresh + v3.9.0)
 # Update this file after every feature completion or session end.
 # Note: Kelly no longer uses plugin-vince; she uses plugin-kelly and KELLY_DAILY_BRIEFING.
 
@@ -684,6 +684,9 @@ X (Twitter) integration – second thoughts:
 ================================================================================
 SESSION NOTES
 ================================================================================
+
+2026-02-23:
+- Progress file refreshed; consolidated synced. v3.9.0: Leaderboard backend (dashboardLeaderboards) serves Polymarket desk leaderboard and "Why this position" from edge metadata where applicable; aligns with frontend leaderboard rework and portfolio P&L (unrealized/realized).
 
 2026-02-06:
 - PRD (Product Requirements Document) integration: Added "PRD – MVP Enhancements (Feb 2026)" section to progress.txt. Captures current vs target metrics (31.3% win rate, 16 trades, -$928.88 → ≥45% win rate, Sharpe >1.2, max DD <20%, AUC >0.75); success criteria; prioritized improvements (High: perf + testing; Medium: real-money safeguards + UI/dashboard; Low: plugin API, ONNX versioning); 5-week timeline (Sprint 1–3); risks and mitigations. PRD-aligned next steps and backlog items added (Optuna, Sortino/VaR, walk-forward, stress tests, RL module, dashboard, live-mode, CI/CD backtests, ONNX versioning). See PRD section and "PRD-aligned next steps" under THINGS TO DO NEXT.

@@ -1,6 +1,7 @@
 ================================================================================
 PLUGIN-KELLY — PROGRESS AND RECOMMENDATIONS
 ================================================================================
+# Last updated: 2026-02-23
 
 --------------------------------------------------------------------------------
 SECTION 1 — PROGRESS (what is done)
@@ -96,6 +97,12 @@ Testing
 
 Code review (2026-02)
   - 16 actions and 2 providers reviewed; aligned with expanded the-good-life knowledge. KELLY_RECOMMEND_EXPERIENCE: added "spa" and "wellness" to validate triggers. Art-collecting, golf/cycling/fishing/dress-code/local-markets remain REPLY + RAG when user asks; optional KELLY_ART_COLLECTING deferred.
+
+v3.9.0 / Feb 2026 (Kelly & The Good Life)
+  - Southwest France: dedicated restaurant profiles and indexes (Landes, Bordeaux, Biarritz, Basque Country, San Sebastián); Michelin docs and allowlist updates; improved place retrieval.
+  - Belgium: Michelin and 5-star guides, regional guides, local services, photography, fishing, spirits, dress code, cycling, weekend itineraries, ski, markets, French wine basics, golf, Basque, spa & wellness; quick-ref and winter closures 2026.
+  - Travel & lifestyle: Alps, Basque (FR + ES), Côte d'Azur, Pyrenees; weekend itineraries; SW France 5-star hotel knowledge; Italy and Spain wine guides; travel and aviation guide.
+  - Recommendations: recommendPlace and recommendation guards updated; new files in quick-ref.
 
 --------------------------------------------------------------------------------
 SECTION 2 — RECOMMENDATIONS (improve the plugin further)

@@ -115,7 +115,7 @@ Eliza has two jobs: absorb knowledge and produce publishable content. Both need 
 
 ### 6. Solus options context: portfolio awareness and daily monitoring
 
-**Status: Implemented.** Portfolio and open positions are read from `docs/standup/weekly-options-context.md` (or `SOLUS_PORTFOLIO_CONTEXT`); the hypersurfaceContext provider injects them into every Solus reply. Standup includes open position status and daily hold/close/adjust when positions exist; strike ritual and optimal-strike respect covered-call mode. See [WEEKLY-OPTIONS-CONTEXT.md](docs/standup/WEEKLY-OPTIONS-CONTEXT.md).
+**Status: Implemented.** Portfolio and open positions are read from a local-only file `local/solus-current-positions.md` (gitignored), or `docs/standup/weekly-options-context.md`, or `SOLUS_PORTFOLIO_CONTEXT`; the hypersurfaceContext provider injects them into every Solus reply. Standup includes open position status and daily hold/close/adjust when positions exist; strike ritual and optimal-strike respect covered-call mode. See [WEEKLY-OPTIONS-CONTEXT.md](docs/standup/WEEKLY-OPTIONS-CONTEXT.md).
 
 Solus advises on weekly BTC covered calls and cash-secured puts on Hypersurface. The following was the original gap (now addressed):
 
@@ -132,7 +132,7 @@ Solus advises on weekly BTC covered calls and cash-secured puts on Hypersurface.
 - Standup data for Solus: `src/plugins/plugin-inter-agent/src/standup/standup.build.ts`
 - North star doc: `docs/SOLUS_NORTH_STAR.md`
 
-**How to contribute:** Keep `docs/standup/weekly-options-context.md` up to date (format in [WEEKLY-OPTIONS-CONTEXT.md](docs/standup/WEEKLY-OPTIONS-CONTEXT.md)). Optional: add tooling to sync positions from Hypersurface when an API becomes available, or extend the shared helper (`src/plugins/plugin-solus/src/utils/weeklyOptionsContext.ts`) if the file format evolves.
+**How to contribute:** Keep position data in `local/solus-current-positions.md` (never committed; see [WEEKLY-OPTIONS-CONTEXT.md](docs/standup/WEEKLY-OPTIONS-CONTEXT.md)) or `docs/standup/weekly-options-context.md`. Optional: add tooling to sync positions from Hypersurface when an API becomes available, or extend the shared helper (`src/plugins/plugin-solus/src/utils/weeklyOptionsContext.ts`) if the file format evolves.
 
 ### 7. Sentinel to OpenClaw: AI agent shipping code improvements
 

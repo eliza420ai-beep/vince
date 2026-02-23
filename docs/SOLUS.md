@@ -63,4 +63,5 @@ Use this doc to draft a next-iteration PRD for Solus: e.g. optional "Solus plus 
 
 - [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — Solus north star and roadmap.
 - [src/plugins/plugin-solus/README.md](src/plugins/plugin-solus/README.md) — Boundaries and dependencies.
+- [docs/standup/WEEKLY-OPTIONS-CONTEXT.md](docs/standup/WEEKLY-OPTIONS-CONTEXT.md) — Portfolio and open positions (local file `local/solus-current-positions.md` or standup file; local is gitignored).
 - [CLAUDE.md](CLAUDE.md) — Three curves; Solus as right curve.
