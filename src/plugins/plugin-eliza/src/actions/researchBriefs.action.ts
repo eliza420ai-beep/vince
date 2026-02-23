@@ -350,7 +350,9 @@ Briefs are saved to knowledge/briefs/ for reference.`,
     return (
       text.includes("brief") ||
       text.includes("quick research") ||
-      text.includes("summarize research")
+      text.includes("summarize research") ||
+      text.includes("what does our research say") ||
+      text.includes("our research say")
     );
   },
 

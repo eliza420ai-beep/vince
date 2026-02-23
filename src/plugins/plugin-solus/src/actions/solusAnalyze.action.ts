@@ -188,7 +188,10 @@ export const solusAnalyzeAction: Action = {
     return (
       text.includes("analyze") ||
       text.includes("analysis") ||
-      text.includes("fundamentals")
+      text.includes("fundamentals") ||
+      text.includes("infrastructure stocks") ||
+      text.includes("ai infrastructure") ||
+      (text.includes("latest on") && text.includes("stocks"))
     );
   },
 

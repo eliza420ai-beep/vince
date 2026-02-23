@@ -110,3 +110,8 @@
 - Clawterm → Sentinel: Cross-link one-click Docker template to Sentinel docs as sprint candidate.
 - Eliza: Pull OpenClaw execution priorities from PRD and map to Cursor workflows to unblock external runtime decisions.
 - Oracle: Monitor BTC/ETH edge if synth forecasts diverge from current lows for Hypersurface strike signal room.
+## 2026-02-23
+
+- Clawterm → Sentinel: Cross-link Skills Configuration Guide with Sentinel docs as sprint candidate.
+- Eliza → Sentinel: Push OpenClaw runtime execution model into ai-agents/FRAMEWORK.md to prevent orphaning.
+- Naval: Monitor BTC $68K intraday break as confirmation signal for bottom-fishing thesis by Thursday close.

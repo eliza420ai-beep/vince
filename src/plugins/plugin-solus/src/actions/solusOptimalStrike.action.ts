@@ -22,6 +22,8 @@ const TRIGGERS = [
   "strike call",
   "which strike",
   "size or skip",
+  "size, skip",
+  "size skip watch",
   "what's your call",
   "bull or bear this week",
   "weekly view",
@@ -29,6 +31,8 @@ const TRIGGERS = [
   "weekly view for eth",
   "weekly view for sol",
   "weekly view for hype",
+  "full $100k plan",
+  "100k plan",
 ];
 
 function wantsOptimalStrike(text: string): boolean {

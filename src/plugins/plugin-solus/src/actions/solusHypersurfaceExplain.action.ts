@@ -27,6 +27,8 @@ const TRIGGERS = [
   "premium reduces cost basis",
   "underwater puts",
   "how do secured puts work",
+  "secured puts vs covered calls",
+  "when do i sell secured puts",
 ];
 
 function wantsExplain(text: string): boolean {
