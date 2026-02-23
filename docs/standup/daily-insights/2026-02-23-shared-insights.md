@@ -1,110 +1,110 @@
 ---
-date: 2026-02-23T09:21:53.538Z
+date: 2026-02-23T15:50:01.213Z
 type: shared-daily-insights
 ---
 
 # Shared Daily Insights — 2026-02-23
 
-**Scorecard:** ⚪ Health | ✅ VINCE | ✅ Eliza | ✅ ECHO | ✅ Oracle | ✅ Solus | ✅ Otaku | ✅ Sentinel | ✅ Clawterm | ✅ Naval
+**Scorecard:** ✅ VINCE (neutral 58%) | ✅ Eliza | ✅ ECHO (Bearish CT) | ✅ Oracle (9 mkts) | ✅ Solus (12 pos) | ✅ Otaku | ✅ Sentinel (v3.9.0) | ✅ Clawterm | ✅ Naval
 
-## Health
-(no agent in registry)
+## TL;DR
+
+Fear & Greed 5 (extreme fear). BTC $65,778 -2.9%, SOL $79.615 -4.7%, HYPE $26.52 -9.2%. Signal short at 71% confidence. Paper: 26 open. REGULATORY NOISE: Choppy ahead - trade smaller
+
+**Conviction:** [===-------] 3/10 (fear extreme, low alignment)
+
+---
 
 ## VINCE
 ### Delta vs Yesterday
-Signal: short (51%) → neutral (58%)
+Signal: neutral (58%) → short (71%)
 
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $65,718 -3.3% | F:-0.290% L/S:2.40 Vol:1.0x | bearish |
-| SOL | $78.797 -7.3% | F:-2.238% L/S:3.58 Vol:1.0x | bearish |
-| HYPE | $27.734 -5.8% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $65,778 -2.9% | F:0.001% L/S:1.91 Vol:1.0x | bearish |
+| SOL | $79.615 -4.7% | F:-0.016% L/S:3.02 Vol:1.0x | bearish |
+| HYPE | $26.52 -9.2% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
 **Fear & Greed:** 5 (extreme fear)
 
-**Signal (BTC):** neutral (58% conf, CoinGlass, BinanceTakerFlow, BinanceLongShort +6 more)
+**HIP-3:** bias bearish | hottest: commodities (-0.1%) | rotation: neutral
+Top: SNDK  | Worst: SPACEX  | GOLD vs BTC: gold winning (+1.3% vs +0.0%)
 
-**Paper:** No trades yet | 35 open, 0 pending
+**Signal (BTC):** short (71% conf, CoinGlass, BinanceLongShort, BinanceFundingExtreme +5 more)
+
+**Paper:** No trades yet | 26 open, 0 pending
 
 **ML Loop:** 1+ trades in feature store | SQ:50% |  (TP: 0:0%, 1:39%) [tuning: strength≥5500%, conf≥5000%]
 
-**Self-tuning:** minStr=8000% | minConf=7500% | AUTO-TUNED | [undefined:NaN%→NaN%, undefined:NaN%→NaN%]
+**Self-tuning:** minStr=8500% | minConf=8000% | AUTO-TUNED
 
-**Risk:** 35 trades
+**Risk:** 26 trades
 
-**Portfolio:** $73968 | ret:-2603.2% | 35 positions
+**Portfolio:** $86714 | ret:-13.3% | 26 positions
 
-**MandoMinutes:** Risk-on: regulatory. Themes: other, meme, macro, institutional
-News sentiment: bullish (64% conf)
-TLDR: BULLISH CATALYST: Institutional flow - lean long
-Headlines:
-⚪ BTC ETFs: -$166m | ETH ETFs: -$130m
-🔴 Analytics tool Parsec winding down operations
-🟢 US ETF inflows nearly double in 2026
-🟢 Record fund inflows to Europe equities
-⚪ Top Gainers: NIGHT, RENDER, TRUMP, AVAX, MORPHO
+**News:** REGULATORY NOISE: Choppy ahead - trade smaller
+❗⚪ BTC ETFs: +$88m | ETH ETFs: -$1m (MandoMinutes) [BTC, ETH]
+❗🔴 BTC ETFs notch 5 straight weeks of outflows (MandoMinutes) [BTC]
+❗🔴 SEC issues guidance on broker stablecoins (cointelegraph)
+❗🔴 Cybersecurity stocks slump on Anthropic tools (MandoMinutes)
+❗🔴 New grad hiring at big tech crashes to 7% (MandoMinutes)
+Themes: other (21), regulatory (6), macro (6), institutional (3), meme (3)
 
-**Liquidations (5m):** Shorts | 0 long ($0k) / 2 short ($1k) | intensity 0%
+**OI (24h Δ):** BTC $5.2B (-3.7%) | SOL $829M (+2.2%)
 
-**OI (24h Δ):** BTC $45.3B (-0.5%) | SOL $5.1B (-2.4%)
+**Regime (BTC):** trending ADX 25.8 | size 1x
 
-**Regime (BTC):** trending ADX 26.5 | size 1x
+---
 
 ## Eliza
 **Yesterday TL;DR:** Fear spiked to 9 while institutions load, we're holding premium on both strikes through Friday unles
 
-**Today:** Shared insights not yet built.
+**Essay Suggestion:** Write "The Terminal is the Moat" — hook: ClawTerm isn't just a tool, it's the infrastructure that turns signal into execution. The unicorn-terminal-roadmap shows us building the Bloomberg for crypto traders who refuse to lose. Based on: sentinel-docs/unicorn-terminal-roadmap.
 
-**Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.
+**Knowledge gap:** Update ai-agents/README.md — add section on agentic execution loops (decision → signal → trade), drawing from plugin-vince-START's execution architecture so traders understand how agents close the loop between research and live positions.
 
-**Recent uploads (73):**
-- 📝 **perps-trading:** eliza-upload-why-the-nasdaq-could-surge- (1946 words) — Preview: Content
-- 📄 **internal-docs:** eliza-upload-the-ai-super-cycle-has-begu (2226 words) — Preview: Content
-- 📄 **perps-trading:** eliza-upload-solana-s-changing-market-mi (2525 words) — Preview: Content
-- 📄 **defi-metrics:** eliza-upload-lyn-alden-how-to-survive-th (2183 words) — Preview: Content
-- 📝 **defi-metrics:** eliza-upload-billionaire-investor-reveal (1861 words) — Preview: Content (+68 more)
+**Research:** How do plugin architectures (plugin-vince-START, plugin-vince-WHAT) enable OpenClaw to scale signal delivery across perps, options, and macro — what's the constraint that keeps us from shipping multi-asset agent execution today?
 
-**Recent facts in memory (5):**
-- [Standup lesson] Macro…
+**Recent uploads (160):**
+- 📄 **sentinel-docs:** unicorn-terminal-roadmap (5738 words) — Preview: **Document Owner:** Sentinel (CTO) **Last Updated:** 2026-02-17 **Status:** Living document — update as milestones hit
+- 📋 **sentinel-docs:** todo-michelin-crawlee (357 words) — Preview: **In progress.** The desired result (reliable, full-detail Michelin entries: address, phone, website, chef, description) is not yet fully achieved.
+
+---
 
 ## ECHO
-## ECHO — CT VIBE (last 24h)
+## ECHO — CT Pulse
 
-**What's HOT (+fomo):** CME smart money slashing shorts signals BTC rebound potential to $85K. Spot BTC buyers see extreme fear (index 8–14) as ideal entry, with megaphone pattern support holding.
+| Asset | Sentiment | Narrative | Signal |
+|-------|-----------|-----------|--------|
+| BTC | Bearish + Extreme Fear (10) | Panic selling at support; CME shorts covering signals potential rebound to $85K, but retail capitulation dominates | LEAN SHORT (near-term) / LEAN LONG (contrarian entry) |
+| ETH | Bearish | Pressure across alts; capital rotating away; no bullish catalysts visible | AVOID |
+| SOL | Bearish | Grouped with broader alt weakness; no isolated sentiment | AVOID |
+| HYPE | Bearish | Meme/altcoin dump cycle; retail panic selling; noise-heavy | AVOID |
 
-**What's FUD (-fear):** Extreme Fear gripping the market (index stuck at 14). BTC slipping under $65K, altcoins bleeding hard (SOL −8%, HYPE −9%, ZEC −8%). Liquidations surging; macro risk + geopolitical pressure (Iran tensions) driving selloff.
+**Contrarian:** Fear & Greed at 9–10 (extreme) historically precedes reversals, not further capitulation. CME smart money aggressively covering shorts suggests institutional conviction for a bounce. But sentiment this bad since 2016/early 2017 — if that comparison holds, we're early in a bear, not at the bottom.
 
-**NEW META:** On-chain tail risk alert — ETH short delta +$30.2M, SOL long concentration 52% in liquidity vacuum. Institutional front-running suspected on HYPE/UNI. XRP holding $1.40 amid SBI tokenized bond news.
+**Edge:** Uncorrelated small-cap catalysts (biotech, tokenized bonds, SBI news) fire regardless of macro panic — while CT obsesses over BTC support, binary events in non-correlated assets offer asymmetric risk/reward.
 
-**CORE:** BTC [bullish contrarian — extreme fear = local bottom hunt | +1.59% down but support intact] | ETH [bearish — −2.21%, short pressure mounting] | SOL [bearish — −8%, below $80 breakdown] | HYPE [bearish — −9%, caught in institutional squeeze]
+**Takeaway:** BTC is at a classic contrarian entry (extreme fear + institutional short covering), but the 2016 comparison warns this could be a bear-market bounce, not a reversal — size accordingly and watch for a break below $65K support to confirm capitulation is real.
 
-**STOCKS (NVDA/TSLA/AAPL/MAG7):** Not trending in this feed.
-
-**@hypersurfaceX:** Not trending.
-
-**@elonmusk / @naval / @kevinWSHpod:** Not trending.
-
-**@auti…
+---
 
 ## Oracle
-**Priority Markets:**
+**Priority Markets (+5 more):**
 | Market | YES% | ID |
 |-------|------|----|
-| Will Trump nominate Judy Shelton as the next Fed c… | 3% | `0x46d40e851b24d9b0af4bc1942ccd86439cae82a9011767da14950df0ad997adf` |
-| Will the Fed decrease interest rates by 50+ bps af… | 1% | `0xdeb615a52cd114e5aa27d8344ae506a72bea81f6ed13f5915f050b615a193c20` |
-| Will the Fed increase interest rates by 25+ bps af… | 1% | `0x25aa90b3cd98305e849189b4e8b770fc77fe89bccb7cf9656468414e01145d38` |
-| Will Trump nominate Kevin Warsh as the next Fed ch… | 94% | `0x61b66d02793b4a68ab0cc25be60d65f517fe18c7d654041281bb130341244fcc` |
-| US strikes Iran by January 31, 2026? | 0% | `0xabb86b080e9858dcb3f46954010e49b6f539c20036856c7f999395bfd58d01e6` |
-| US strikes Iran by February 28, 2026? | 18% | `0x3488f31e6449f9803f99a8b5dd232c7ad883637f1c86e6953305a2ef19c77f20` |
-| Will Trump nominate Kevin Hassett as the next Fed … | 0% | `0xdcc87b9ca36015e396bd0eebca29e854a136ed2b0b701049d1ee9da6bee3eb35` |
-| Will Trump nominate Bill Pulte as the next Fed cha… | 0% | `0xc82669901de7cb0be25c1d8de39fbbe8e2ddc0aacba0a30a663ed13c3b9eb06d` |
+| Will Trump nominate Judy Shelton as the next Fed c… | 3% | `0x46d4...adf` |
+| Will the Fed decrease interest rates by 50+ bps af… | 1% | `0xdeb6...c20` |
+| Will the Fed increase interest rates by 25+ bps af… | 1% | `0x25aa...d38` |
 
-**Strike Insight:** Check top 2-3 markets for expiry probabilities — use for Hypersurface weekly strike…
+**Strike Insight:** Use top markets for Hypersurface weekly strike confidence (Solus). Run EDGE_CHECK on BTC/ETH for signals.
+
+---
 
 ## Solus
 **Today:** Monday, 2026-02-23. Hypersurface weekly options settle Friday ~09:00 Paris Time (08:00 UTC / 00:00 PT).
 
-**Live spot (use these — do not guess):** [Hypersurface spot USD] BTC $65,732, ETH $1,883.60, SOL $78.90, HYPE $27.70
+**Live spot (use these — do not guess):** [Hypersurface spot USD] BTC $65,807, ETH $1,903.49, SOL $79.71, HYPE $26.57
 
 **⚠️ CRITICAL: Current positions this week:**
 - **HYPE:** Secured puts, strike $30 (collected premium, holding USDT collateral)
@@ -114,14 +114,15 @@ Headlines:
 
 This determines what we should focus on and whether to consider BUYING BACK early.
 
-**Last week's strategy:** # Weekly options context (Solus)
 
-Solus reads portfolio and open-option context from a single markdown file so he can advise in "covered call mode" and answer daily hold/close/adjust questions in standup.
+**Distance to strike:**
+BTC: $65,807 vs $70,500 strike = 7.1% OTM
 
-## File location
+**Your job (DAILY MONITORING):** This is no longer just Friday expiry — we track DAILY because we can BUY BACK early to unlock collateral!
 
-- **Path:** `docs/standup/weekly-options-context.md` (or under `STANDUP_DELIVERABLES_DIR` if set).
-- **Env overr…
+(1) Current position status: strike, premium, distance to strike.
+
+---
 
 ## Otaku
 **Status:** Under construction -- no wallet execution yet.
@@ -133,10 +134,13 @@ Solus reads portfolio and open-option context from a single markdown file so he 
 
 **Today's task:** Complete step 1 -- generate or import wallet keys and verify Bankr connection. Report: wallet address, chain, balance.
 
-*Watching team reports for De…
+---
 
 ## Sentinel
 Recent code (git log --oneline):
+12275449 docs: sentinel-docs sync, standup/plugin updates, new knowledge files
+3fe84780 LFG
+4fba32eb test(kelly): add full-coverage test for Kelly agent
 4c23caeb chore: release v3.9.0
 0fc2f53f Standup and Polymarket edge updates; leaderboard, inter-agent, docs and knowledge
 b51f7c8b Portfolio: show Unrealized P&L when positions open, Realized P&L when none
@@ -144,40 +148,52 @@ b51f7c8b Portfolio: show Unrealized P&L when positions open, Realized P&L when n
 6554697b the-good-life: dedicated restaurant profiles + indexes for Landes, Bordeaux, Biarritz, Basque Country, San Sebastián
 712eb70b the-good-life: improve Michelin docs, allowlist, and Kelly place retrieval
 55dc7919 LFG
-56d5304f LFG
-6ffd912b LFG
-2261dcc7 Merge pull request #41 from eliza420ai-beep/satoshi/improve-kelly-lifestyle
 
-**Branch:** main (2 uncommitted)
+**Branch:** main (1 uncommitted)
 
-**Shipped this week:** other: release v3.9.0, Standup and Polymarket edge updates; leaderboard, inter-agent, docs and knowledge, show Unrealized P&L when positions open, Realized P&L when none | kelly: fill Belgium guides with actual names, add Belgium Michelin and 5-star guides, add comprehensive regional guides
+**Shipped this week:** other: sentinel-docs sync, standup/plugin updates, new knowledge files, LFG, add full-coverage test for Kelly agent | kelly: fill Belgium guides with actual names, add Belgium Michelin and 5-star guides
 
 **Recent PRDs:** 2026-02-21-prd-test-prd-for-v2-1-0-release-notes-smoke-test.md, 2026-02-21-prd-list-test-prd.md, 2026-02-20-prd-test-prd-for-v2-1-0-release-notes-smoke-test.md
 
 **Macro news:**
-Interest rate…
+It signals that the Fed is trying to slow down inflation or prevent the economy from overheating. For crypto, it may lead to short-term bearish sentiments:
+
+---
 
 ## Clawterm
-**OpenClaw Daily Standup**
+# OpenClaw Daily Standup
 
-Web momentum is strong: freeCodeCamp published a full 1-hour OpenClaw course (installation, AI models, memory, skills, Docker sandboxing), and multiple tutorials hit the web covering setup-to-Telegram in under 20 minutes. The narrative is clear—OpenClaw is the viral open-source autonomous agent of 2026, shifting from passive chatbots to always-on agents across WhatsApp, Telegram, Slack, Discord. Security is the dominant theme: every tutorial and enterprise guide emphasizes the same risk pattern—unsafe skill installs, exposed Gateway ports, and plaintext credentials—not "AI went rogue." X is quiet (no OpenClaw posts in 24h).
+**Status:** Setup tutorials dominating—20-minute onboarding guides hitting hard, builders discovering the 25 Tools + 53 Skills ecosystem. Key insight: users enabling `message` tool for proactive notifications (Daily Briefs, task reminders), treating OpenClaw as a communication layer for AI goal management. No X chatter in 24h, but web momentum is real—concrete config examples and tool breakdowns driving adoption.
 
-**Concrete next focus:** Audit and harden ClawHub skill vetting. If tutorials are driving installs and security is the #1 concern, the team should implement a verified-skills badge system (e.g., "ClawHub Certified") with automated supply-chain checks (code review, permission audit, sandboxing validation) so new users can install with confidence.
+**Ops Next:** Build a **"Tools & Skills Reference Card"** — one-pager mapping all 25 Tools + 53 Skills with enable/disable recommendations by use case (e.g., "Goal Management" enables `message`, `cron`, `memory_search`; "Web Research" enables `web_search`, `web_fetch`, `browser`). Post to ClawHub, link from setup guide. Solves the "which tools do I actually need?" friction.
+**Sprint candidate?** Yes — cross-link to Sentinel.
+
+---
 
 ## Naval
-**Today's Naval:** **Agents are leverage—code working while you sleep—but only if you push a thesis, not pull trades.** Write down why you're trading before the agent executes; that discipline compounds into an edge.
+**Today's Naval:** **Agents are leverage for your thesis:** write down your signal, let the agent execute while you sleep, and compound edge over time—the wealth comes from the *system* working without you, not from your constant decisions.
 
-**Team Frameworks:** Push not pull. Thesis first. Signal not hype. Paper before live. One team, one dream.
+**Frameworks:** Push not pull. Thesis first.
 
-**AI as Leverage:** Build agents that compound. They work while you sleep. OpenClaw + ElizaOS = labor + code leverage. VINCE = our first product.
 
-**OpenClaw Path:** Build sp…
+---
 
 
 ## Cross-Agent Links
 
-• VINCE signal → Oracle: Macro event in Polymarket - check for edge
-• Solus: Active options context - prepare for strike decision
-• Clawterm: OpenClaw skills or setup - check for integration opportunities
-• Sentinel: Dev/infrastructure update - track for next sprint
-• ML Loop: ONNX models training - feature store accumulating
+• VINCE signal neutral 58% — align with Solus strike
+• ECHO bearish CT vs VINCE neutral — divergence, lean VINCE (data > vibes)
+• Solus: BTC $65,807 vs $70,500 strike = 7.1% OTM → hold, let theta work
+• HIP-3: GOLD outperforming BTC — neutral
+• Sentinel: shipped v3.9.0 — track for sprint
+• Clawterm → Sentinel: Build a **"Tools & Skills Reference Card"** — one-pager mapp = sprint candidate
+• ML Loop: 1 trades in feature store
+
+
+## Action Items
+
+- **Focus:** VINCE signal neutral 58% + regime 0 — align Solus strike
+- **Monday:** Solus — review last week P&L, propose this week's strikes
+- **Watchlist:** Oracle — Will Trump nominate Judy Shelt 3%
+- **Alert:** Extreme fear (5) — review contrarian playbook, watch for reversal signals
+- **ML:** Signal quality 50% — review feature store, consider pausing auto-trades
