@@ -69,7 +69,7 @@ The goal: stay in the game without 12+ hours on screens. Push, not pull.
 
 The paper bot now trades **HIP-3 spot tokens** alongside Hyperliquid perps — stocks, commodities, and crypto on the same signal loop, same feature store, same ML pipeline. The **Polymarket edge engine** went from a single latency-arb strategy to three: Black-Scholes implied probability vs CLOB price, overreaction detection on favorites, and model fair-value comparison — each Kelly-sized, each with a rationale you can read. Every agent speaks with **zero AI slop**: a humanizer-style writing rule enforced across all ten agents, every response, every standup. And the **leaderboard** now shows real cost transparency — AI token spend, data API tiers, burn rate — because if the system can't justify its own costs, it doesn't deserve to run.
 
-Releases: [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
+Releases: [v4.0.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.0.0) · [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -206,7 +206,8 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | `bun run deploy:cloud` | Deploy to Eliza Cloud |
 | `bun run sync:supabase` | Backfill features to Supabase |
 | `bun run db:check` | Verify DB migrations |
-| `bun run train-models` | Train ML models |
+| `bun run train-models` | Train ML models (min 90 closed trades) |
+| `bun run train-models:recency` | Train with recency decay (upweight recent trades) |
 | `bun run validate-ml` | Validate ML thresholds on feature-store data |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |
@@ -222,6 +223,7 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML, paper bot, feature store |
 | [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md) | Signal loop, MandoMinutes, train |
 | [ONNX.md](docs/ONNX.md) | Train, export, deploy |
+| [RELEASE_v4.0.0.md](docs/RELEASE_v4.0.0.md) | v4.0.0 release notes (Paper Bot ML docs, validate-ml) |
 | [MULTI_AGENT.md](docs/MULTI_AGENT.md) | ASK_AGENT, standups, Discord |
 | [OTAKU.md](docs/OTAKU.md) | Executor agent, DeFi |
 | [DEPLOY.md](docs/DEPLOY.md) | Eliza Cloud, env, troubleshooting |

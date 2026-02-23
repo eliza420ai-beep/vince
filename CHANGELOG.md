@@ -2,6 +2,16 @@
 
 All notable changes to the VINCE project will be documented in this file.
 
+## [v4.0.0] - 2026-02-23
+
+### Paper Bot & ML: docs and validation
+
+- **README** — Paper Bot & ML section: re-run training (incl. `train-models:recency`), validate ML improvement with `bun run validate-ml`, example validation run (158 trades), Scripts table entry for `validate-ml`
+- **package.json** — `validate-ml`: runs `validate_ml_improvement.py` on feature-store data; `train-models:recency`: training with `--recency-decay 0.01`
+- **Validation** — One command to check that ML-derived thresholds (min strength / min confidence) would have improved selectivity on historical data; script reports baseline vs filtered win rate and % of skipped trades that were losers
+
+---
+
 ## [v3.1.0] - 2026-02-18
 
 ### VinceBench helps ML automatically
