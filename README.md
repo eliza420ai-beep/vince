@@ -19,11 +19,66 @@
 
 ---
 
-## Core Focus
+## What We Built: The One-Month Hackathon
 
-**We are focused on [One Dream — Agent Synergy & the $100K Trading System](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md).**
+**V4.2.0 — The Genome.** One month, one PRD, 29 tasks across 5 phases, zero shortcuts. We turned ten isolated agents into a self-evolving trading system that observes its own performance, rewrites its own parameters, and earns the right to trade real money through sustained results. The hackathon is closed. Here's what shipped.
 
-That PRD turns ten agents into a single compounding loop: data → thesis → plan → execute → measure → learn → better data. Phases 1–5 are shipped (V4.2.0): automated cross-agent signals, sentiment-adjusted sizing, post-mortem learning, content flywheel, a self-evolving strategy genome, regime profiles, portfolio construction, execution graduation, and the flywheel score. Phase 6 (V4.3.0) is spec'd: pre-mortems, Monte Carlo war room, internal prediction market, Devil's Advocate protocol, narrative radar, temporal coherence, immune system, and dead-end elimination. The goal is $100K/year from on-chain options and perps, with the system improving itself every week. All feature work, plugins, and prioritization align with that PRD.
+### The problem we solved
+
+Every agent was strong solo — Vince had 13 quick actions, Solus had 16, Echo had 11, Otaku was ready to execute — but every cross-agent handoff required copy/paste. Echo knew CT was bearish; Vince didn't care. Losing trades repeated because nobody post-mortemed together. No unified scorecard, no sentiment-adjusted sizing, no learning loop. The user was the bottleneck.
+
+### Phase 1 — Handoffs & Scorecard (7 tasks)
+
+Eliminated copy/paste between agents. Solus gets Vince's options data automatically. Vince gets Echo's sentiment score (1–10 numeric) and Oracle's regime indicator (risk-on/risk-off/uncertain). Eliza gets trading performance for content production. Kelly's `WEEKLY_REVIEW` pulls a unified scorecard from all nine agents — paper bot P&L, premium income, sentiment accuracy, execution history, features shipped, content output — measured against $1,923/week ($100K annualized).
+
+### Phase 2 — Intelligence & Learning (6 tasks)
+
+The paper bot stopped trading in a vacuum. A **sentiment gate** checks Echo and Oracle before every trade: risk-off halves position size, bearish sentiment skips new longs, full size only on bullish + risk-on. Automated **post-mortems** on every losing trade — Vince asks Echo, Oracle, and Solus what they saw, aggregates into structured analysis, Sentinel surfaces patterns weekly. Every trade now records `sentimentScore`, `regime`, and `adjustmentApplied`.
+
+### Phase 3 — Autonomy (4 tasks)
+
+Scheduled daily briefings with real data from all agents. Sentinel auto-generates PRD stubs from recurring post-mortem patterns. Otaku opt-in auto-execute when paper bot confidence exceeds threshold. Echo's watchlist tokens merge into the paper bot's trading universe automatically. The system proactively finds, sizes, and evaluates trades with minimal user intervention.
+
+### Phase 4 — Measurement & Readiness (6 tasks)
+
+`$100K PACE` — one number: on track or behind. Vince → Solus strike handoff via cache (no more copy/paste for options). Confidence scores (0–100) in the signal cache so Otaku's auto-execute fires on high-conviction signals. One-tap weekly Substack draft + tweets from real trading numbers. Sentiment accuracy tracking: did Echo's call match the outcome? Go-live readiness checklist: paper stats + sentiment + explicit confirm before real execution.
+
+### Phase 5 — The Genome (8 tasks)
+
+The system became self-evolving:
+
+- **Counterfactual engine** — Replays every avoided decision. "You were right to skip 73% — but missed 4 winners worth +$840. `minStrength` is 6 pts too high in trending-bull regimes."
+- **Strategy genome** — 15+ tunable parameters as a JSON genome. Weekly: mutate → replay against feature store history → rank by Sharpe × win-rate / drawdown → auto-promote the best variant.
+- **Regime profiles** — Five market personalities (TRENDING_BULL, CHOPPY, CAPITULATION, EUPHORIA, RECOVERY) auto-switch from Oracle + Echo + technicals. Per-profile performance tracked separately.
+- **Grok intelligence** — Daily Grok sub-agent reports parsed into structured signals, registered as a Thompson Sampling arm. Research becomes alpha.
+- **Portfolio construction** — Rolling correlation matrix, portfolio heat caps, Kelly-criterion sizing, opportunity cost analysis (new trade vs weakest open position).
+- **Execution graduation** — Four trust levels (L0 paper-only → L1 notify → L2 confirm-execute → L3 auto-execute), earned through sustained weekly performance, automatic demotion on drawdown, circuit breaker on 3%+ daily loss.
+- **Collective memory** — Weekly intelligence brief synthesized from all agents, stored as shared knowledge. Institutional memory compounds.
+- **Flywheel score** — Composite 0–100 health metric: signal quality (25%), trade performance (25%), sentiment accuracy (15%), content output (10%), knowledge growth (10%), engineering velocity (10%), genome improvement (5%). One number that answers "is the system getting better?"
+
+### By the numbers
+
+| | |
+|---|---|
+| Tasks implemented | 29 |
+| Phases completed | 5 of 6 |
+| Agents involved | 9 |
+| New services (Phase 5) | 8 |
+| Tunable genome parameters | 15+ |
+| Regime profiles | 5 |
+| Trust levels | 4 (L0 → L3) |
+| Flywheel score components | 7 |
+| TypeScript errors | 0 |
+
+### What's next (Phase 6 — spec'd, not built)
+
+Phase 6 turns the system from smart to unkillable: **pre-mortems** (block trades before they fail), **Monte Carlo war room** (1000 simulated futures, optimize the tail not the median), **internal prediction market** (every agent prediction tracked and validated with Brier scores), **Devil's Advocate protocol** (counter-thesis for every trade and genome promotion), **narrative radar** (inception→growth→peak→decline arcs per asset), **temporal coherence** (multi-timeframe alignment), **immune system** (15+ attack pattern recognition that gets stronger with every loss), and **dead-end elimination** (wire every information dead end shut). Eight tasks, all spec'd in the [PRD](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md).
+
+### Prior releases
+
+Earlier versions shipped the paper bot ML loop (feature store, ONNX, VinceBench), HIP-3 spot tokens alongside Hyperliquid perps, the Polymarket edge engine (three strategies, Kelly-sized), zero AI slop across all ten agents, the leaderboard with cost transparency, and the content flywheel (Eliza publishing real results to Substack).
+
+Releases: [v4.2.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.2.0) · [v4.0.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.0.0) · [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -70,16 +125,6 @@ VINCE is built at **Level 5**. Ten agents that research, analyze, paper-trade, e
 The shift from Level 1 to Level 5 is not about replacing human judgment. It is about recognizing that the primary source of competitive advantage has moved from information access to integrated, code-driven research, risk, and execution, running 24/7 with zero emotional drift.
 
 The goal: stay in the game without 12+ hours on screens. Push, not pull.
-
----
-
-## What Shipped
-
-**V4.2.0 — The Genome** is the current release. The system now evolves its own trading strategy. A **strategy genome** (15+ tunable parameters) mutates weekly, replays against historical data, ranks by Sharpe and drawdown, and auto-promotes the best variant. **Regime profiles** detect five market personalities (trending bull, mean-reverting, choppy, risk-off, capitulation) and shift risk limits, sizing, and signal thresholds on the fly. A **counterfactual engine** analyzes every avoided trade to quantify what was left on the table. **Portfolio construction** enforces rolling correlation limits, total heat caps, and Kelly-criterion sizing across all open positions. **Execution graduation** tracks Otaku through four trust levels (paper-only → notify → confirm-execute → auto-execute), earned through sustained performance and revoked by circuit breakers. The **flywheel score** is a composite 0–100 health metric across signal quality, trade performance, sentiment, content, knowledge, and engineering. **Collective memory** synthesizes weekly intelligence briefs from all agents into shared knowledge. And **Grok intelligence** is now a scored signal source inside the Thompson Sampling aggregator.
-
-Prior releases shipped the paper bot ML loop (feature store, ONNX, VinceBench), HIP-3 spot tokens alongside Hyperliquid perps, the Polymarket edge engine (three strategies, Kelly-sized), zero AI slop across all ten agents, the leaderboard with cost transparency, cross-agent signal handoffs (Echo sentiment → Vince risk, Oracle odds → position sizing), and the content flywheel (Eliza publishing real results to Substack).
-
-Releases: [v4.2.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.2.0) · [v4.0.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.0.0) · [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
 
 ---
 

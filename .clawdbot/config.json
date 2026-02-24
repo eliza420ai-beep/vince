@@ -1,0 +1,58 @@
+{
+  "repo": "eliza420ai-beep/vince",
+  "defaultBranch": "main",
+  "packageManager": "bun",
+  "worktreeDir": "../vince-worktrees",
+  "maxConcurrentAgents": 4,
+  "maxRespawnAttempts": 0,
+  "monitorIntervalMinutes": 10,
+  "security": {
+    "sandboxMode": "approval",
+    "note": "Agents run in approval mode — they must ask before executing commands. Attach to the tmux session to approve actions. Set sandboxMode to 'bypass' only on a dedicated isolated machine.",
+    "denyReadPaths": [
+      ".env",
+      ".env.local",
+      ".env.*.local",
+      "~/.ssh/",
+      "~/.gnupg/",
+      "~/.aws/",
+      "~/Library/Keychains/",
+      "~/Library/Cookies/"
+    ]
+  },
+  "agents": {
+    "codex": {
+      "model": "gpt-5.3-codex",
+      "command": "codex",
+      "flags": "",
+      "strength": "Backend logic, complex bugs, multi-file refactors, reasoning across codebase",
+      "defaultEffort": "high"
+    },
+    "claude": {
+      "model": "claude-sonnet-4-20250514",
+      "command": "claude",
+      "flags": "",
+      "strength": "Frontend, git operations, fast iteration, ElizaOS patterns",
+      "defaultEffort": "medium"
+    },
+    "gemini": {
+      "model": "gemini-2.5-pro",
+      "command": "gemini",
+      "flags": "",
+      "strength": "Design sensibility, UI/UX, security review, scalability",
+      "defaultEffort": "medium"
+    }
+  },
+  "definitionOfDone": {
+    "prCreated": true,
+    "branchSynced": true,
+    "ciPassed": true,
+    "codeReviewPassed": true,
+    "screenshotsIncluded": "if UI changes"
+  },
+  "notifications": {
+    "telegram": false,
+    "telegramBotToken": "",
+    "telegramChatId": ""
+  }
+}

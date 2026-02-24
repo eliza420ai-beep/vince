@@ -115,3 +115,7 @@
 - Clawterm → Sentinel: Cross-link Skills Configuration Guide with Sentinel docs as sprint candidate.
 - Eliza → Sentinel: Push OpenClaw runtime execution model into ai-agents/FRAMEWORK.md to prevent orphaning.
 - Naval: Monitor BTC $68K intraday break as confirmation signal for bottom-fishing thesis by Thursday close.
+## 2026-02-24
+
+- Clawterm → Sentinel: Cross-link Skills Discovery CLI sprint candidate with Phase 6 adversarial testing framework.
+- Eliza: Close the gap between ClawTerm roadmap and real perps/options pain points in execution terminals.
