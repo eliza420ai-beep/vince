@@ -711,6 +711,7 @@ async function buildMeteoraSection(
 
 /** Same key as news service – raw Mando cache so we return the full list the terminal shows */
 const MANDO_RAW_CACHE_KEY = "mando_minutes:latest:v9";
+const MANDO_NAV_JUNK_RE = /MinutesAffiliate|PodcastsFollow\s*on/i;
 
 async function buildNewsSection(
   runtime: IAgentRuntime,
@@ -722,6 +723,35 @@ async function buildNewsSection(
 
   const tldr = await safe("News TLDR", () => Promise.resolve(news.getTLDR()));
   const sentiment = (news as any).getSentimentSummary?.() ?? "—";
+  const getHeadlineSentiment = (
+    news as unknown as {
+      getSentimentForHeadline?: (
+        text: string,
+      ) => "bullish" | "bearish" | "neutral";
+    }
+  ).getSentimentForHeadline;
+  let etfDebugLogged = false;
+  const resolveHeadlineSentiment = (
+    title: string,
+    fallback?: string,
+  ): string | undefined => {
+    // Recompute per-headline sentiment from current logic so stale cache values
+    // do not keep old neutral classifications in the News tab.
+    const computed = getHeadlineSentiment?.call(news, title);
+    const emitted = computed ?? fallback;
+    if (
+      !etfDebugLogged &&
+      /\bbtc\b/i.test(title) &&
+      /\beth\b/i.test(title) &&
+      /\betfs?\b/i.test(title)
+    ) {
+      etfDebugLogged = true;
+      logger.info(
+        `[Leaderboards][ETF_DEBUG] title="${title}" fallback=${String(fallback)} computed=${String(computed)} emitted=${String(emitted)}`,
+      );
+    }
+    return emitted;
+  };
 
   // Prefer raw Mando cache so we return ALL headlines (same 36 the terminal shows), even if newsCache was built with old logic
   const rawCache = await safe("News raw cache", () =>
@@ -743,22 +773,27 @@ async function buildNewsSection(
     const byTitle = new Map<string, string | undefined>(
       allHeadlinesRaw.map((n) => [n.title, n.sentiment]),
     );
-    headlines = rawCache.articles.map((a) => ({
-      text: a.title,
-      sentiment: byTitle.get(a.title),
-      ...(a.url && { url: a.url }),
-    }));
+    headlines = rawCache.articles
+      .filter((a) => a?.title && !MANDO_NAV_JUNK_RE.test(a.title))
+      .map((a) => ({
+        text: a.title,
+        sentiment: resolveHeadlineSentiment(a.title, byTitle.get(a.title)),
+        ...(a.url && { url: a.url }),
+      }));
   } else {
     const allHeadlines = await safe("News headlines", () =>
       Promise.resolve((news as any).getAllHeadlines?.() ?? []),
     );
-    headlines = (allHeadlines ?? []).map(
-      (a: { title: string; sentiment?: string; url?: string }) => ({
+    headlines = (allHeadlines ?? [])
+      .filter(
+        (a: { title: string; sentiment?: string; url?: string }) =>
+          a?.title && !MANDO_NAV_JUNK_RE.test(a.title),
+      )
+      .map((a: { title: string; sentiment?: string; url?: string }) => ({
         text: a.title,
-        sentiment: a.sentiment,
+        sentiment: resolveHeadlineSentiment(a.title, a.sentiment),
         ...(a.url && { url: a.url }),
-      }),
-    );
+      }));
   }
 
   const xSentimentService = runtime.getService(

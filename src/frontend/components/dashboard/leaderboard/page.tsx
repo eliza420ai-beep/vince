@@ -458,7 +458,10 @@ export default function LeaderboardPage({
     isFetching: leaderboardsFetching,
   } = useQuery({
     queryKey: ["leaderboards", leaderboardsAgentId],
-    queryFn: () => fetchLeaderboardsWithError(leaderboardsAgentId),
+    queryFn: () =>
+      fetchLeaderboardsWithError(leaderboardsAgentId, {
+        refreshNews: mainTab === "news",
+      }),
     enabled:
       (mainTab === "markets" || mainTab === "news" || mainTab === "more") &&
       !!leaderboardsAgentId,
@@ -844,12 +847,13 @@ export default function LeaderboardPage({
                 variant="outline"
                 size="sm"
                 onClick={() => refetchLeaderboards()}
-                disabled={leaderboardsLoading}
+                disabled={leaderboardsLoading || leaderboardsFetching}
               >
                 <RefreshCw
                   className={cn(
                     "w-4 h-4 mr-2",
-                    leaderboardsLoading && "animate-spin",
+                    (leaderboardsLoading || leaderboardsFetching) &&
+                      "animate-spin",
                   )}
                 />
                 Refresh
@@ -2038,7 +2042,7 @@ export default function LeaderboardPage({
                   title={leaderboardsData.news.title}
                   className="min-h-0 flex-1 flex flex-col"
                 >
-                  <ul className="space-y-2 text-sm max-h-[60vh] overflow-y-auto pr-1">
+                  <ul className="space-y-2 text-sm pr-1">
                     {(leaderboardsData.news.headlines ?? []).map((h, i) => (
                       <li key={i} className="flex gap-2 items-start">
                         {h.sentiment && (

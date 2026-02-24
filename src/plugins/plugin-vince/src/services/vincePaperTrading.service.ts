@@ -1172,6 +1172,42 @@ Reply format: APPROVE reason or VETO reason`;
           );
         }
 
+        // HIP-3 guardrail: if news is driving the trade but asset-specific news
+        // confidence is weak, skip to avoid BTC/ETH sentiment bleed-through.
+        if (
+          isHip3Asset &&
+          Array.isArray(signal.sources) &&
+          signal.sources.includes("NewsSentiment")
+        ) {
+          const newsService = this.runtime.getService(
+            "VINCE_NEWS_SENTIMENT_SERVICE",
+          ) as {
+            getTradingSentiment?: (a: string) => {
+              sentiment: "bullish" | "bearish" | "neutral";
+              confidence: number;
+            };
+          } | null;
+          const ns = newsService?.getTradingSentiment?.(asset);
+          if (
+            ns &&
+            (ns.sentiment === "neutral" || ns.confidence < 65) &&
+            signal.confirmingCount < 3
+          ) {
+            const reason = `HIP-3 news guardrail: ${asset} news confidence ${ns.confidence.toFixed(0)}% (${ns.sentiment})`;
+            this.logSignalRejection(
+              asset,
+              this.toAggregatedTradeSignal(signal),
+              reason,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              reason,
+            );
+            continue;
+          }
+        }
+
         // Block trade when ML quality is below trained threshold (fewer low-quality trades)
         // Skip for HIP-3: models trained on BTC/ETH/SOL/HYPE only — applying to HIP-3 would reject unfamiliar patterns
         const mlService = this.runtime.getService(

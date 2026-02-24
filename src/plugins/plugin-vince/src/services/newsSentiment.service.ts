@@ -12,7 +12,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { Service, type IAgentRuntime, logger } from "@elizaos/core";
+import { Service, type IAgentRuntime, ModelType, logger } from "@elizaos/core";
 import { PuppeteerBrowserService } from "./fallbacks/puppeteer.browser";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import { isVinceAgent, isElizaAgent } from "../utils/dashboard";
@@ -147,6 +147,8 @@ const TRACKED_ASSETS = [
   "DOT",
   "MATIC",
 ];
+
+const CORE_NEWS_ASSETS = ["BTC", "ETH", "SOL", "HYPE"] as const;
 
 // ==========================================
 // Theme Detection for Human Summaries
@@ -340,6 +342,10 @@ export interface NewsItem {
   category?: string;
   /** Optional link for deep dive (from MandoMinutes article) */
   url?: string;
+  /** Optional per-asset sentiment overrides extracted from mixed headlines. */
+  perAssetSentiment?: Partial<
+    Record<"BTC" | "ETH" | "SOL" | "HYPE", "bullish" | "bearish" | "neutral">
+  >;
 }
 
 export interface RiskEvent {
@@ -383,12 +389,18 @@ export class VinceNewsSentimentService extends Service {
   private lastUpdate = 0;
   private lastMandoFetch = 0;
   private lastMandoWarnTime = 0;
+  private llmHeadlineSentimentCache = new Map<
+    string,
+    Partial<Record<string, "bullish" | "bearish" | "neutral">>
+  >();
   /** Inferred Mando publish date (ISO) - used for freshness gate on daily push */
   private lastInferredMandoDate: string | null = null;
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   /** 15 min (match plugin-web-search). Daily push runs at 16:00 UTC, after MandoMinutes update (~4:20 PM Paris). */
   private readonly MANDO_CACHE_TTL_MS = 15 * 60 * 1000;
   private readonly MANDO_WARN_COOLDOWN_MS = 5 * 60 * 1000; // 5 min - avoid repetitive MandoMinutes warn spam
+  /** Reject tiny/bad payloads so nav junk never overwrites good headline sets. */
+  private readonly MANDO_MIN_VALID_HEADLINES = 10;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -409,6 +421,7 @@ export class VinceNewsSentimentService extends Service {
     }
 
     try {
+      await service.repairSharedCacheFromLastKnownGood();
       await service.fetchFromMandoMinutes();
       const stats = service.getDebugStats();
       if (shouldPrint) {
@@ -586,16 +599,55 @@ export class VinceNewsSentimentService extends Service {
           const result = await this.runtime.getCache<MandoCacheData>(cacheKey);
           if (result && result.articles && result.articles.length > 0) {
             if (Date.now() - result.timestamp <= this.MANDO_CACHE_TTL_MS * 2) {
-              cached = result;
-              const ageMinutes = Math.round(
-                (Date.now() - result.timestamp) / 60000,
+              if (this.isValidMandoPayload(result)) {
+                cached = result;
+                const ageMinutes = Math.round(
+                  (Date.now() - result.timestamp) / 60000,
+                );
+                logger.info(
+                  `[VinceNewsSentiment] Found cache at ${cacheKey} with ${result.articles.length} articles (${ageMinutes}m old)`,
+                );
+                break;
+              }
+              logger.warn(
+                `[VinceNewsSentiment] Ignoring low-quality Mando cache at ${cacheKey} (${result.articles.length} items)`,
               );
-              logger.info(
-                `[VinceNewsSentiment] Found cache at ${cacheKey} with ${result.articles.length} articles (${ageMinutes}m old)`,
-              );
-              break;
+              await this.invalidateMandoCache(cacheKey);
             }
           }
+        }
+      }
+
+      // If runtime cache is empty/invalid, try shared file cache used across agents.
+      if (!forceDirect && (!cached || !cached.articles?.length)) {
+        const shared = this.loadSharedMandoCache();
+        if (shared && this.isValidMandoPayload(shared)) {
+          const ageMinutes = Math.round(
+            (Date.now() - shared.timestamp) / 60000,
+          );
+          logger.info(
+            `[VinceNewsSentiment] Using shared Mando cache with ${shared.articles.length} articles (${ageMinutes}m old)`,
+          );
+          cached = shared;
+        } else if (shared) {
+          logger.warn(
+            `[VinceNewsSentiment] Ignoring low-quality shared Mando cache (${shared.articles?.length ?? 0} items)`,
+          );
+        }
+      }
+
+      // Final safety net: restore last-known-good shared snapshot when current
+      // runtime/shared caches are empty or junk.
+      if (!forceDirect && (!cached || !cached.articles?.length)) {
+        const lastGood = this.loadLastGoodSharedMandoCache();
+        if (lastGood && this.isValidMandoPayload(lastGood)) {
+          const ageMinutes = Math.round(
+            (Date.now() - lastGood.timestamp) / 60000,
+          );
+          logger.info(
+            `[VinceNewsSentiment] Restored last-known-good Mando cache (${lastGood.articles.length} articles, ${ageMinutes}m old)`,
+          );
+          cached = lastGood;
         }
       }
 
@@ -617,6 +669,15 @@ export class VinceNewsSentimentService extends Service {
         cached = await this.fetchDirectFromBrowser();
 
         if (!cached) {
+          cached = await this.fetchFromMandoApi();
+        }
+        if (!cached) {
+          return;
+        }
+        if (!this.isValidMandoPayload(cached)) {
+          logger.warn(
+            "[VinceNewsSentiment] Direct Mando payload rejected by quality gate",
+          );
           return;
         }
       }
@@ -629,6 +690,7 @@ export class VinceNewsSentimentService extends Service {
       if (cached.inferredPublishDate) {
         this.lastInferredMandoDate = cached.inferredPublishDate;
       }
+      await this.persistLastKnownGoodMandoCache(cached);
 
       if (isVinceAgent(this.runtime)) {
         startBox();
@@ -670,6 +732,52 @@ export class VinceNewsSentimentService extends Service {
 
         // Detect assets mentioned
         const assets = this.detectAssets(article.title);
+        let perAssetSentiment: Partial<
+          Record<
+            "BTC" | "ETH" | "SOL" | "HYPE",
+            "bullish" | "bearish" | "neutral"
+          >
+        > = {};
+        let riskAssets = assets;
+        if (assets.length > 0) {
+          const extracted = this.extractPerAssetSentimentFromHeadline(
+            article.title,
+            assets,
+            sentiment,
+          );
+          if (extracted.ambiguous && assets.length > 1) {
+            const llm = await this.extractPerAssetSentimentWithLLM(
+              article.title,
+              assets,
+            );
+            if (llm) {
+              perAssetSentiment = llm as Partial<
+                Record<
+                  "BTC" | "ETH" | "SOL" | "HYPE",
+                  "bullish" | "bearish" | "neutral"
+                >
+              >;
+            } else {
+              perAssetSentiment = extracted.perAsset as Partial<
+                Record<
+                  "BTC" | "ETH" | "SOL" | "HYPE",
+                  "bullish" | "bearish" | "neutral"
+                >
+              >;
+            }
+          } else {
+            perAssetSentiment = extracted.perAsset as Partial<
+              Record<
+                "BTC" | "ETH" | "SOL" | "HYPE",
+                "bullish" | "bearish" | "neutral"
+              >
+            >;
+          }
+          riskAssets = this.extractPerAssetRiskFromHeadline(
+            article.title,
+            assets,
+          );
+        }
 
         // Determine impact based on keywords and asset mentions
         const impact = this.determineImpact(article.title, assets);
@@ -694,6 +802,9 @@ export class VinceNewsSentimentService extends Service {
           assets,
           category,
           timestamp: cached.timestamp,
+          ...(Object.keys(perAssetSentiment).length > 0 && {
+            perAssetSentiment,
+          }),
           ...(article.url && { url: article.url }),
         };
         if (existingIdx >= 0) {
@@ -703,7 +814,7 @@ export class VinceNewsSentimentService extends Service {
         }
 
         // Check for risk events
-        this.detectRiskEvents(article.title, assets, cached.timestamp);
+        this.detectRiskEvents(article.title, riskAssets, cached.timestamp);
       }
 
       // Keep only last 150 items (MandoMinutes has 30-50 per day)
@@ -728,8 +839,79 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
+   * Non-browser fallback: use Mando's own API endpoint used by their Latest page.
+   * This avoids agent-browser dependency when navigation fails.
+   */
+  private async fetchFromMandoApi(): Promise<MandoCacheData | null> {
+    try {
+      const urls = [
+        "https://www.mandominutes.com/api/getRecentPost?language=English",
+        "https://www.mandominutes.com/api/getRecentPost",
+      ];
+      let payload: any = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+          if (!res.ok) continue;
+          payload = await res.json();
+          if (payload) break;
+        } catch {
+          // try next url
+        }
+      }
+      if (!payload) return null;
+
+      const richText =
+        payload?.content?.free?.web ??
+        payload?.content?.free?.rss ??
+        payload?.preview_text ??
+        "";
+      if (!richText || typeof richText !== "string") return null;
+
+      const cleaned = this.normalizeMandoApiContent(richText);
+      const inferredDate = this.extractMandoPublishDate(cleaned);
+      const articles = this.parseMandoMinutesContent(cleaned);
+      if (!articles.length) return null;
+
+      const cacheData: MandoCacheData = {
+        articles,
+        timestamp: Date.now(),
+        ...(inferredDate && { inferredPublishDate: inferredDate }),
+      };
+      if (!this.isValidMandoPayload(cacheData)) return null;
+
+      await this.runtime.setCache(MANDO_CACHE_KEYS[0], cacheData);
+      const sharedPath = this.getSharedMandoCachePath();
+      try {
+        const dir = path.dirname(sharedPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(
+          sharedPath,
+          JSON.stringify(cacheData, null, 2),
+          "utf-8",
+        );
+        await this.persistLastKnownGoodMandoCache(cacheData);
+      } catch (err) {
+        logger.debug(
+          `[VinceNewsSentiment] Mando API shared cache write failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      logger.info(
+        `[VinceNewsSentiment] ✅ Mando API fallback SUCCESS: ${articles.length} headlines loaded`,
+      );
+      return cacheData;
+    } catch (error) {
+      logger.debug(
+        `[VinceNewsSentiment] Mando API fallback failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
+  /**
    * Direct fetch from MandoMinutes using native Puppeteer browser
-   * No external plugins required - uses headless Chrome to render JavaScript
+   * via the agent-browser CLI. This is required because the Latest page
+   * is rendered client-side; plain HTTP fetch will not contain headlines.
    */
   private async fetchDirectFromBrowser(): Promise<MandoCacheData | null> {
     const browser = new PuppeteerBrowserService();
@@ -748,7 +930,28 @@ export class VinceNewsSentimentService extends Service {
       if (!navResult.success) {
         const errMsg = navResult.error?.split("\n")[0] || "Unknown error";
         const now = Date.now();
-        if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
+
+        // Make it very clear when agent-browser is missing/misconfigured.
+        if (
+          /agent-browser/i.test(errMsg) ||
+          /command not found/i.test(errMsg) ||
+          /ENOENT/i.test(errMsg) ||
+          /not recognized as an internal or external command/i.test(errMsg)
+        ) {
+          if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
+            this.lastMandoWarnTime = now;
+            logger.warn(
+              `[VinceNewsSentiment] MandoMinutes fetch failed: agent-browser CLI not available (${errMsg}). Install and add "agent-browser" to PATH to restore automatic headlines.`,
+            );
+          } else {
+            logger.debug(
+              `[VinceNewsSentiment] MandoMinutes fetch failed: agent-browser CLI not available (${errMsg}).`,
+            );
+          }
+        } else if (
+          now - this.lastMandoWarnTime >=
+          this.MANDO_WARN_COOLDOWN_MS
+        ) {
           this.lastMandoWarnTime = now;
           logger.warn(
             `[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`,
@@ -823,16 +1026,16 @@ export class VinceNewsSentimentService extends Service {
         ...(inferredDate && { inferredPublishDate: inferredDate }),
       };
 
+      if (!this.isValidMandoPayload(cacheData)) {
+        logger.warn(
+          `[VinceNewsSentiment] Parsed payload failed quality gate (${cacheData.articles.length} items)`,
+        );
+        return null;
+      }
+
       await this.runtime.setCache(MANDO_CACHE_KEYS[0], cacheData);
 
-      const sharedPath =
-        process.env.MANDO_SHARED_CACHE_PATH ||
-        path.join(
-          process.cwd(),
-          ".elizadb",
-          "shared",
-          "mando_minutes_latest_v9.json",
-        );
+      const sharedPath = this.getSharedMandoCachePath();
       try {
         const dir = path.dirname(sharedPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -841,6 +1044,7 @@ export class VinceNewsSentimentService extends Service {
           JSON.stringify(cacheData, null, 2),
           "utf-8",
         );
+        await this.persistLastKnownGoodMandoCache(cacheData);
       } catch (err) {
         logger.debug(
           `[VinceNewsSentiment] Shared cache write failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -1016,7 +1220,7 @@ export class VinceNewsSentimentService extends Service {
 
       // Detect headlines (bullets or substantive lines)
       const headline = this.extractHeadline(line);
-      if (headline && headline.length >= 20) {
+      if (headline) {
         // Look ahead for source
         const source = this.lookAheadForSource(lines, i);
         this.addParsedArticle(
@@ -1034,6 +1238,23 @@ export class VinceNewsSentimentService extends Service {
     );
 
     return articles;
+  }
+
+  /**
+   * Convert API-provided rich text/HTML into parser-friendly plain text while
+   * preserving line boundaries between logical blocks.
+   */
+  private normalizeMandoApiContent(content: string): string {
+    return content
+      .replace(/<(br|\/p|\/div|\/li|\/h[1-6])\b[^>]*>/gi, "\n")
+      .replace(/<(p|div|li|h[1-6])\b[^>]*>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/\r/g, "")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   }
 
   /**
@@ -1074,6 +1295,191 @@ export class VinceNewsSentimentService extends Service {
     );
   }
 
+  private normalizeMandoTitle(title: string): string {
+    return title.toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  private isLikelyMandoNavJunk(title: string): boolean {
+    const normalized = this.normalizeMandoTitle(title);
+    return (
+      normalized.includes("minutesaffiliate") ||
+      normalized.includes("podcastsfollow") ||
+      normalized.includes("affiliatepodcasts")
+    );
+  }
+
+  private isLikelyMandoStyleNoise(title: string): boolean {
+    const t = title.trim();
+    if (!t) return false;
+    if (/[{}]/.test(t)) return true;
+    if (/^[@.#]/.test(t)) return true;
+    if (/^--[a-z0-9-]+/i.test(t)) return true;
+    if (/:\s*#[0-9a-f]{3,8}\b/i.test(t)) return true;
+    if (/var\(--|!important|@font-face|unicode-range/i.test(t)) return true;
+    if (
+      /(font-family|background-color|border-color|line-height|padding|margin|display|width|height|src:\s*url\(|woff2?|rgba?\()/i.test(
+        t,
+      )
+    )
+      return true;
+    // CSS declaration-like lines
+    if (/^[a-z-]+\s*:\s*[^;]+;?$/i.test(t) && t.length < 140) return true;
+    return false;
+  }
+
+  private isSyntheticTestHeadline(title: string): boolean {
+    const t = title.trim();
+    return (
+      /^runtime headline\s+\d+\b/i.test(t) ||
+      /^shared headline\s+\d+\b/i.test(t) ||
+      /^recovered headline\s+\d+\b/i.test(t)
+    );
+  }
+
+  private isValidMandoPayload(
+    payload: MandoCacheData | null | undefined,
+  ): boolean {
+    if (
+      !payload ||
+      !Array.isArray(payload.articles) ||
+      payload.articles.length === 0
+    )
+      return false;
+
+    const titles = payload.articles
+      .map((a) => (a?.title ?? "").trim())
+      .filter((t) => t.length > 0);
+    if (titles.length === 0) return false;
+    if (titles.some((t) => this.isSyntheticTestHeadline(t))) return false;
+
+    const junkCount = titles.filter((t) => this.isLikelyMandoNavJunk(t)).length;
+    const styleNoiseCount = titles.filter((t) =>
+      this.isLikelyMandoStyleNoise(t),
+    ).length;
+    const substantive = titles.filter(
+      (t) =>
+        t.length >= 20 &&
+        !this.isLikelyMandoNavJunk(t) &&
+        !this.isLikelyMandoStyleNoise(t),
+    );
+    const uniqueSubstantive = new Set(
+      substantive.map((t) => this.normalizeMandoTitle(t)),
+    ).size;
+
+    if (junkCount > 0 && uniqueSubstantive === 0) return false;
+    if (
+      styleNoiseCount > 0 &&
+      styleNoiseCount >= Math.max(3, Math.floor(titles.length * 0.25))
+    )
+      return false;
+    if (uniqueSubstantive >= this.MANDO_MIN_VALID_HEADLINES) return true;
+    // Allow occasional shorter editions when content quality is otherwise clean.
+    if (uniqueSubstantive >= 5 && junkCount === 0) return true;
+    return false;
+  }
+
+  private async invalidateMandoCache(cacheKey: string): Promise<void> {
+    try {
+      await this.runtime.setCache(cacheKey, {
+        articles: [],
+        timestamp: Date.now(),
+      } as MandoCacheData);
+    } catch (err) {
+      logger.debug(
+        `[VinceNewsSentiment] Failed to invalidate cache ${cacheKey}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  private getSharedMandoCachePath(): string {
+    return (
+      process.env.MANDO_SHARED_CACHE_PATH ||
+      path.join(
+        process.cwd(),
+        ".elizadb",
+        "shared",
+        "mando_minutes_latest_v9.json",
+      )
+    );
+  }
+
+  private getLastGoodSharedMandoCachePath(): string {
+    const sharedPath = this.getSharedMandoCachePath();
+    if (sharedPath.toLowerCase().endsWith(".json")) {
+      return sharedPath.replace(/\.json$/i, "_last_good.json");
+    }
+    return `${sharedPath}_last_good.json`;
+  }
+
+  private loadSharedMandoCache(): MandoCacheData | null {
+    const sharedPath = this.getSharedMandoCachePath();
+    try {
+      if (!fs.existsSync(sharedPath)) return null;
+      const raw = fs.readFileSync(sharedPath, "utf-8");
+      if (!raw?.trim()) return null;
+      return JSON.parse(raw) as MandoCacheData;
+    } catch (err) {
+      logger.debug(
+        `[VinceNewsSentiment] Shared cache read failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
+
+  private loadLastGoodSharedMandoCache(): MandoCacheData | null {
+    const sharedPath = this.getLastGoodSharedMandoCachePath();
+    try {
+      if (!fs.existsSync(sharedPath)) return null;
+      const raw = fs.readFileSync(sharedPath, "utf-8");
+      if (!raw?.trim()) return null;
+      return JSON.parse(raw) as MandoCacheData;
+    } catch (err) {
+      logger.debug(
+        `[VinceNewsSentiment] Last-good cache read failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
+
+  private async persistLastKnownGoodMandoCache(
+    payload: MandoCacheData | null | undefined,
+  ): Promise<void> {
+    if (!payload || !this.isValidMandoPayload(payload)) return;
+    const sharedPath = this.getLastGoodSharedMandoCachePath();
+    try {
+      const dir = path.dirname(sharedPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(sharedPath, JSON.stringify(payload, null, 2), "utf-8");
+    } catch (err) {
+      logger.debug(
+        `[VinceNewsSentiment] Last-good cache write failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  private async repairSharedCacheFromLastKnownGood(): Promise<void> {
+    const shared = this.loadSharedMandoCache();
+    if (shared && this.isValidMandoPayload(shared)) return;
+
+    const lastGood = this.loadLastGoodSharedMandoCache();
+    if (!lastGood || !this.isValidMandoPayload(lastGood)) return;
+
+    const sharedPath = this.getSharedMandoCachePath();
+    try {
+      const dir = path.dirname(sharedPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(sharedPath, JSON.stringify(lastGood, null, 2), "utf-8");
+      await this.runtime.setCache(MANDO_CACHE_KEYS[0], lastGood);
+      logger.info(
+        `[VinceNewsSentiment] Repaired shared Mando cache from last-known-good (${lastGood.articles.length} articles)`,
+      );
+    } catch (err) {
+      logger.debug(
+        `[VinceNewsSentiment] Shared cache repair failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   /**
    * Add a parsed article with deduplication
    */
@@ -1087,9 +1493,19 @@ export class VinceNewsSentimentService extends Service {
     if (this.isPriceSnapshotLine(headline)) return;
     const normalized = headline.toLowerCase().trim();
 
+    // Reject nav/footer junk that may slip through (e.g. "MinutesAffiliatePodcastsFollow on")
     if (
-      normalized.length >= 15 &&
-      normalized.length <= 300 &&
+      normalized.includes("minutesaffiliate") ||
+      normalized.includes("podcastsfollow") ||
+      this.isLikelyMandoStyleNoise(headline)
+    )
+      return;
+
+    const isAcceptableLength =
+      (normalized.length >= 15 && normalized.length <= 300) ||
+      this.isHighValueShortMandoLine(headline);
+    if (
+      isAcceptableLength &&
       !seen.has(normalized) &&
       !normalized.includes("cookie") &&
       !normalized.includes("subscribe")
@@ -1107,6 +1523,7 @@ export class VinceNewsSentimentService extends Service {
    * Check if a line should be skipped (navigation, footer, etc.)
    */
   private isSkippableLine(line: string): boolean {
+    if (this.isLikelyMandoStyleNoise(line)) return true;
     const skipPatterns = [
       /^Subscribe/i,
       /^Follow/i,
@@ -1124,6 +1541,8 @@ export class VinceNewsSentimentService extends Service {
       /^newsletter/i,
       /^MandoMinutes$/i,
       /^\d+\s*(min|sec|hour|day)s?\s*(ago|read)?$/i,
+      // Site nav concatenated in plain text (e.g. "MinutesAffiliatePodcastsFollow on")
+      /MinutesAffiliate|PodcastsFollow\s*on/i,
     ];
     return skipPatterns.some((p) => p.test(line)) || line.length < 10;
   }
@@ -1135,8 +1554,9 @@ export class VinceNewsSentimentService extends Service {
     // Remove bullet points and leading punctuation
     let clean = line.replace(/^[•\-\*▸►]\s*/, "").trim();
 
-    // Skip if too short
-    if (clean.length < 20) return null;
+    // Skip if too short, unless it's a known compact market headline.
+    if (clean.length < 20 && !this.isHighValueShortMandoLine(clean))
+      return null;
 
     // Skip if it looks like a source name (short, known sources)
     const knownSources =
@@ -1156,6 +1576,22 @@ export class VinceNewsSentimentService extends Service {
       return null;
 
     return clean;
+  }
+
+  /**
+   * Some valid Mando headlines are compact (e.g. "Hot coins: SKR").
+   * Allow a narrow set of short, high-signal patterns without opening junk.
+   */
+  private isHighValueShortMandoLine(line: string): boolean {
+    const t = line.trim();
+    if (t.length < 10) return false;
+    return (
+      /^Hot coins:\s*\S+/i.test(t) ||
+      /^Hot NFTs:\s*\S+/i.test(t) ||
+      /^Top Gainers:\s*\S+/i.test(t) ||
+      /^BTC ETFs?:/i.test(t) ||
+      /^ETH ETFs?:/i.test(t)
+    );
   }
 
   /**
@@ -1254,6 +1690,11 @@ export class VinceNewsSentimentService extends Service {
     let bullishScore = 0;
     let bearishScore = 0;
 
+    // Explicit ETF flow lines like "BTC ETFs: -$206m | ETH ETFs: -$50m"
+    // should be classified by signed net flow, even when "outflow" word is absent.
+    const etfFlowSignal = this.getEtfFlowSentiment(lower);
+    if (etfFlowSignal) return etfFlowSignal;
+
     // Override: "erases gains", "gains wiped" etc. are bearish (gains being lost).
     // Return immediately — these phrases trump bullish keywords like "gains" or "win".
     for (const phrase of VinceNewsSentimentService.NEGATIVE_GAINS_PHRASES) {
@@ -1286,6 +1727,197 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
+   * Parse signed ETF flow headlines and infer direction from net sign.
+   * Returns null when not an ETF flow line or when no signed values are found.
+   */
+  private getEtfFlowSentiment(
+    normalizedText: string,
+  ): "bullish" | "bearish" | null {
+    const byAsset = this.extractEtfFlowByAsset(normalizedText);
+    const vals = Object.values(byAsset);
+    if (!vals.length) return null;
+    const bull = vals.filter((v) => v === "bullish").length;
+    const bear = vals.filter((v) => v === "bearish").length;
+    if (bear > bull) return "bearish";
+    if (bull > bear) return "bullish";
+    return null;
+  }
+
+  private extractEtfFlowByAsset(
+    normalizedText: string,
+  ): Partial<Record<string, "bullish" | "bearish">> {
+    const out: Partial<Record<string, "bullish" | "bearish">> = {};
+    const line = normalizedText.normalize("NFKC");
+    const patterns: Array<{ re: RegExp; asset: string }> = [
+      {
+        re: /\b(btc|bitcoin)\s*etfs?:\s*([+\-−–—])\s*\$?\s*(\d[\d.,]*)\s*([kmbt]?)/i,
+        asset: "BTC",
+      },
+      {
+        re: /\b(eth|ethereum)\s*etfs?:\s*([+\-−–—])\s*\$?\s*(\d[\d.,]*)\s*([kmbt]?)/i,
+        asset: "ETH",
+      },
+    ];
+    for (const p of patterns) {
+      const m = line.match(p.re);
+      if (!m) continue;
+      const sign =
+        m[2] === "-" || m[2] === "−" || m[2] === "–" || m[2] === "—" ? -1 : 1;
+      const raw = (m[3] || "").replace(/,/g, "");
+      const n = Number.parseFloat(raw);
+      if (Number.isNaN(n)) continue;
+      const suffix = (m[4] || "").toLowerCase();
+      const mult =
+        suffix === "k"
+          ? 1e3
+          : suffix === "m"
+            ? 1e6
+            : suffix === "b"
+              ? 1e9
+              : suffix === "t"
+                ? 1e12
+                : 1;
+      const signed = sign * n * mult;
+      if (signed < 0) out[p.asset] = "bearish";
+      else if (signed > 0) out[p.asset] = "bullish";
+    }
+    return out;
+  }
+
+  private normalizeHeadlineKey(text: string): string {
+    return this.normalizeForSentiment(text);
+  }
+
+  private splitHeadlineClauses(text: string): string[] {
+    return text
+      .split(/\s+(?:while|but|whereas|however|vs\.?|versus|as)\s+|[;|]/i)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
+  private extractPerAssetSentimentFromHeadline(
+    text: string,
+    detectedAssets: string[],
+    fallbackSentiment: "bullish" | "bearish" | "neutral",
+  ): {
+    perAsset: Partial<Record<string, "bullish" | "bearish" | "neutral">>;
+    confidence: number;
+    ambiguous: boolean;
+  } {
+    const perAsset: Partial<Record<string, "bullish" | "bearish" | "neutral">> =
+      {};
+    if (!detectedAssets.length) {
+      return { perAsset, confidence: 0, ambiguous: false };
+    }
+
+    const normalized = this.normalizeForSentiment(text);
+    const etfByAsset = this.extractEtfFlowByAsset(normalized);
+    for (const [asset, s] of Object.entries(etfByAsset)) perAsset[asset] = s;
+
+    const clauses = this.splitHeadlineClauses(text);
+    for (const clause of clauses) {
+      const clauseAssets = this.detectAssets(clause);
+      if (!clauseAssets.length) continue;
+      const clauseSent = this.analyzeSentiment(clause);
+      if (clauseSent === "neutral") continue;
+      for (const a of clauseAssets) {
+        if (detectedAssets.includes(a)) perAsset[a] = clauseSent;
+      }
+    }
+
+    // Ensure every detected asset has at least fallback sentiment.
+    for (const a of detectedAssets) {
+      if (!perAsset[a]) perAsset[a] = fallbackSentiment;
+    }
+
+    const unique = new Set(Object.values(perAsset));
+    const ambiguous =
+      detectedAssets.length > 1 &&
+      unique.size === 1 &&
+      /\b(while|but|whereas|however|versus|vs)\b/i.test(text);
+    const confidence = ambiguous ? 45 : detectedAssets.length > 1 ? 65 : 75;
+    return { perAsset, confidence, ambiguous };
+  }
+
+  private extractPerAssetRiskFromHeadline(
+    text: string,
+    detectedAssets: string[],
+  ): string[] {
+    if (!detectedAssets.length) return [];
+    const lower = this.normalizeForSentiment(text);
+    const hasRiskKeyword = RISK_EVENT_KEYWORDS.some((r) =>
+      lower.includes(r.keyword),
+    );
+    if (!hasRiskKeyword) return [];
+    if (detectedAssets.length === 1) return detectedAssets;
+
+    const narrowed = detectedAssets.filter((asset) => {
+      const names =
+        asset === "BTC"
+          ? /(btc|bitcoin)/
+          : asset === "ETH"
+            ? /(eth|ethereum)/
+            : asset === "SOL"
+              ? /(sol|solana)/
+              : asset === "HYPE"
+                ? /(hype|hyperliquid)/
+                : new RegExp(`\\b${asset.toLowerCase()}\\b`);
+      return new RegExp(
+        `${names.source}.{0,36}(hack|exploit|lawsuit|probe|investigation|ban|crackdown)`,
+        "i",
+      ).test(lower);
+    });
+    return narrowed.length ? narrowed : detectedAssets;
+  }
+
+  private async extractPerAssetSentimentWithLLM(
+    headline: string,
+    detectedAssets: string[],
+  ): Promise<Partial<
+    Record<string, "bullish" | "bearish" | "neutral">
+  > | null> {
+    const key = this.normalizeHeadlineKey(headline);
+    const cached = this.llmHeadlineSentimentCache.get(key);
+    if (cached) return cached;
+    if (!this.runtime?.useModel || detectedAssets.length < 2) return null;
+
+    try {
+      const prompt = [
+        "Extract per-asset sentiment from this crypto headline.",
+        `Headline: ${headline}`,
+        `Assets: ${detectedAssets.join(", ")}`,
+        "Return ONLY compact JSON object with keys as asset tickers and values as bullish|bearish|neutral.",
+        'Example: {"BTC":"bearish","ETH":"bullish"}',
+      ].join("\n");
+      const response = await this.runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt,
+      });
+      const raw =
+        typeof response === "string"
+          ? response
+          : ((response as { text?: string })?.text ?? "");
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) return null;
+      const parsed = JSON.parse(match[0]) as Record<string, string>;
+      const out: Partial<Record<string, "bullish" | "bearish" | "neutral">> =
+        {};
+      for (const asset of detectedAssets) {
+        const v = parsed[asset];
+        if (v === "bullish" || v === "bearish" || v === "neutral")
+          out[asset] = v;
+      }
+      if (!Object.keys(out).length) return null;
+      this.llmHeadlineSentimentCache.set(key, out);
+      return out;
+    } catch (err) {
+      logger.debug(
+        `[VinceNewsSentiment] Per-asset LLM parse skipped: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
+
+  /**
    * Public API for testing and callers: get sentiment for a single headline.
    * Uses the same keyword + NEGATIVE_GAINS_PHRASES logic as analyzeSentiment.
    */
@@ -1309,10 +1941,10 @@ export class VinceNewsSentimentService extends Service {
     }
 
     // Also check common names
-    if (/\bbitcoin\b/i.test(text)) assets.push("BTC");
-    if (/\bethereum\b/i.test(text)) assets.push("ETH");
-    if (/\bsolana\b/i.test(text)) assets.push("SOL");
-    if (/\bhyperliquid\b/i.test(text)) assets.push("HYPE");
+    if (/\b(bitcoin|btc)\b/i.test(text)) assets.push("BTC");
+    if (/\b(ethereum|eth)\b/i.test(text)) assets.push("ETH");
+    if (/\b(solana|sol)\b/i.test(text)) assets.push("SOL");
+    if (/\b(hyperliquid|hype|hl)\b/i.test(text)) assets.push("HYPE");
 
     // Deduplicate
     return [...new Set(assets)];
@@ -1508,6 +2140,12 @@ export class VinceNewsSentimentService extends Service {
       .sort((a, b) => b.timestamp - a.timestamp);
   }
 
+  getActiveRiskEventsForAsset(asset: string): RiskEvent[] {
+    return this.getActiveRiskEvents().filter(
+      (e) => e.assets.includes(asset) || e.assets.includes("MARKET"),
+    );
+  }
+
   getCriticalRiskEvents(): RiskEvent[] {
     return this.getActiveRiskEvents().filter((e) => e.severity === "critical");
   }
@@ -1662,10 +2300,13 @@ export class VinceNewsSentimentService extends Service {
       const catWeight = catWeights[cat] ?? 1;
       const weight = recencyWeight * impactWeight * catWeight;
 
-      if (news.sentiment === "bullish") {
+      const effectiveSentiment =
+        news.perAssetSentiment?.[asset as "BTC" | "ETH" | "SOL" | "HYPE"] ??
+        news.sentiment;
+      if (effectiveSentiment === "bullish") {
         bullishScore += weight;
         bullishCount++;
-      } else if (news.sentiment === "bearish") {
+      } else if (effectiveSentiment === "bearish") {
         bearishScore += weight;
         bearishCount++;
       }
@@ -1717,14 +2358,33 @@ export class VinceNewsSentimentService extends Service {
   } {
     const assetSent = this.getAssetSentiment(asset);
     const overall = this.getOverallSentiment();
-    const activeEvents = this.getActiveRiskEvents();
+    const activeEvents = this.getActiveRiskEvents().filter(
+      (e) => e.assets.includes(asset) || e.assets.includes("MARKET"),
+    );
     const hasHighRiskEvent = activeEvents.some(
       (e) => e.severity === "critical" || e.severity === "warning",
     );
 
-    const useAsset = assetSent.newsCount >= 2;
-    const sentiment = useAsset ? assetSent.sentiment : overall.sentiment;
-    const confidence = useAsset ? assetSent.confidence : overall.confidence;
+    const isCoreAsset = (CORE_NEWS_ASSETS as readonly string[]).includes(asset);
+    const useAsset =
+      assetSent.newsCount >= 1 &&
+      (assetSent.confidence >= 35 || assetSent.sentiment !== "neutral");
+    let sentiment: "bullish" | "bearish" | "neutral" = assetSent.sentiment;
+    let confidence = assetSent.confidence;
+    if (!useAsset) {
+      const hasAssetRelevantMacro =
+        isCoreAsset &&
+        this.newsCache.some((n) =>
+          /\b(etf|fed|rates?|tariff|macro)\b/i.test(n.title),
+        );
+      if (hasAssetRelevantMacro) {
+        sentiment = overall.sentiment;
+        confidence = Math.round(overall.confidence * 0.7);
+      } else {
+        sentiment = "neutral";
+        confidence = Math.min(30, overall.confidence);
+      }
+    }
 
     return { sentiment, confidence, hasHighRiskEvent };
   }
@@ -2455,6 +3115,21 @@ export class VinceNewsSentimentService extends Service {
     const sentiment = this.getOverallSentiment();
     const criticalRisks = this.getCriticalRiskEvents();
     const themed = this.groupByTheme();
+    const bullishCount = this.newsCache.filter(
+      (n) => n.sentiment === "bullish",
+    ).length;
+    const bearishCount = this.newsCache.filter(
+      (n) => n.sentiment === "bearish",
+    ).length;
+    const directionalCount = bullishCount + bearishCount;
+    const directionalBias =
+      directionalCount > 0
+        ? Math.abs(bullishCount - bearishCount) / directionalCount
+        : 0;
+    const hasStrongDirectionalSignal =
+      sentiment.confidence >= 60 &&
+      directionalCount >= 8 &&
+      directionalBias >= 0.2;
 
     // Check for specific themes
     const hasRegulatory = themed.some(
@@ -2477,9 +3152,21 @@ export class VinceNewsSentimentService extends Service {
       return "REGULATORY NOISE: Choppy ahead - trade smaller";
     }
 
-    // Priority 3: Bullish with institutional
-    if (sentiment.sentiment === "bullish" && hasInstitutional) {
+    // Priority 3: Bullish with institutional ONLY when directional signal is strong.
+    if (
+      sentiment.sentiment === "bullish" &&
+      hasInstitutional &&
+      hasStrongDirectionalSignal
+    ) {
       return "BULLISH CATALYST: Institutional flow - lean long";
+    }
+
+    // If market is mixed/unclear, avoid over-confident directional TLDR.
+    if (!hasStrongDirectionalSignal) {
+      if (hasRegulatory || hasSecurity) {
+        return "MIXED RISK TAPE: Event-driven chop - size down";
+      }
+      return "MIXED TAPE: Signals conflict - wait for confirmation";
     }
 
     // Priority 4: Pure sentiment

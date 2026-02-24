@@ -319,7 +319,11 @@ export const vincePlugin: Plugin = {
       path: "/vince/leaderboards",
       type: "GET",
       handler: async (
-        req: { params?: Record<string, string>; [k: string]: unknown },
+        req: {
+          params?: Record<string, string>;
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
         res: {
           status: (n: number) => { json: (o: object) => void };
           json: (o: object) => void;
@@ -339,6 +343,26 @@ export const vincePlugin: Plugin = {
           return;
         }
         try {
+          // Optional: allow callers (frontend News tab) to force a fresh
+          // MandoMinutes refresh before building the leaderboards payload.
+          const refreshNews = ((req.query ?? {})["refreshNews"] ?? "") === "1";
+          if (refreshNews) {
+            const newsSvc = agentRuntime.getService(
+              "VINCE_NEWS_SENTIMENT_SERVICE",
+            ) as VinceNewsSentimentService | null;
+            if (newsSvc?.refreshData) {
+              try {
+                // Use hybrid cache-first refresh. Direct browser fetch remains
+                // a fallback when no valid cache payload is available.
+                await newsSvc.refreshData(false);
+              } catch (e) {
+                logger.debug(
+                  `[VINCE] Leaderboards refreshNews failed: ${e instanceof Error ? e.message : String(e)}`,
+                );
+              }
+            }
+          }
+
           const data = await buildLeaderboardsResponse(agentRuntime);
           res.json(data);
         } catch (err) {

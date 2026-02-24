@@ -898,7 +898,9 @@ export class VinceSignalAggregatorService extends Service {
       try {
         const { sentiment, confidence, hasHighRiskEvent } =
           newsService.getTradingSentiment(asset);
-        if (confidence >= 45) {
+        const isCoreAsset = (CORE_ASSETS as readonly string[]).includes(asset);
+        const minNewsConfidence = isCoreAsset ? 45 : 60;
+        if (confidence >= minNewsConfidence) {
           const discount = Math.round(confidence * 0.8);
           const strength = 52 + Math.min(15, confidence / 6);
           if (sentiment === "bullish") {
