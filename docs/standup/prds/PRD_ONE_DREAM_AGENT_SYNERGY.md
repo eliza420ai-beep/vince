@@ -1,7 +1,7 @@
 # PRD: One Dream — Agent Synergy & the $100K Trading System
 
-**Status:** Phase 1–5 Implemented (V4.2.0)  
-**Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click. **Phase 5** closes the final loop: the system observes itself, evolves its own parameters, and earns the right to trade real money.
+**Status:** Phase 1–5 Implemented (V4.2.0) — Phase 6 Spec'd (V4.3.0)  
+**Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click. **Phase 5** closes the final loop: the system observes itself, evolves its own parameters, and earns the right to trade real money. **Phase 6** turns the system from smart to unkillable: forward simulation, adversarial challenge, narrative intelligence, and prediction accountability.
 
 ### Implementation status (Phase 1)
 
@@ -199,6 +199,183 @@
           │ → profiles  │                │ → profiles  │
           └─────────────┘                └─────────────┘
 ```
+
+---
+
+## Phase 6 — The Adversary: Antifragile Intelligence (V4.3.0)
+
+**Theme:** Phases 1–5 optimized for making money. Phase 6 optimizes for **not dying**. Markets are adversarial environments. The best trading system isn't the most profitable — it's the one that can't be killed. Phase 5 taught the system to learn from its past. Phase 6 teaches it to **survive its future**.
+
+**Core insight:** Every learning mechanism built so far is reactive — counterfactual replays history, genome evolves from past trades, post-mortems diagnose losses after they happen. The system never asks "what happens to my portfolio in 1000 parallel universes?" No trade entry, genome promotion, or regime classification is ever challenged. Echo says "bullish" and Oracle says "risk-on" but nobody ever checks if they were right. Grok sub-agents produce intelligence that dies on arrival. Collective memory writes briefs nobody reads. Sentiment measures how people feel right now; narrative measures what story the market is telling itself — and where that story is in its lifecycle. Phase 6 flips the system's orientation from **reactive** to **anticipatory**, from **trusting** to **adversarial**, from **optimizing the median** to **optimizing the tail**.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 30 | **Pre-Mortem Engine** | Vince | P0 | The inverse of post-mortem. Before entering any trade, generate 3–5 plausible failure scenarios from current market context (regime, sentiment, funding rate, OI, recent liquidations). Check each scenario against present conditions. Score a **survival probability** (0–100): below threshold → block the trade with the specific death scenario logged. Feature store records pre-mortem output so the genome can learn which death scenarios actually materialized. Unlike static gates (minStrength, DVOL), pre-mortems detect **narratively coherent failure modes** — the kind that kill you when all the indicators look fine. |
+| 31 | **War Room: Monte Carlo Forward Simulation** | Vince | P0 | Before any genome promotion and before large position entries, sample from feature store distribution to generate 500–1000 synthetic future scenarios. For each: apply the candidate genome's parameters, simulate entries/exits, compute portfolio P&L. Compute tail risk: 5th-percentile and 1st-percentile outcomes. **Genome gate:** a variant can't promote unless its 5th-percentile scenario beats the incumbent's 5th-percentile — optimizing for the tail, not the median. **Position gate:** a new trade can't open if the portfolio's 1st-percentile scenario (including the new position) exceeds the max drawdown limit. The system currently replays history; the War Room generates **plausible futures** and tests whether the system survives them. |
+| 32 | **Internal Prediction Market** | All agents | P0 | Every agent makes implicit predictions. This task makes them explicit, trackable, and consequential. **Echo:** every sentiment score is a prediction ("bullish = price goes up in 24h") — track outcome. **Oracle:** every regime call is a prediction ("risk-on = market doesn't crash in 48h") — track outcome. **Grok sub-agents:** every recommendation tracked via feature store. **Vince genome:** every promotion is a prediction ("this param set outperforms") — track next-week live vs replay. **Solus:** every strike selection tracked to expiry. A new `PredictionTracker` service registers predictions (asset, direction, confidence, expiry), validates at expiry, computes per-agent Brier score (calibration). Agent influence dynamically weighted by prediction accuracy — not hardcoded. Kelly's flywheel score gains a new component: **prediction calibration** (15% weight). Closes the biggest feedback loop: predictions → outcomes → accuracy → influence. |
+| 33 | **The Devil's Advocate Protocol** | Vince + Sentinel | P1 | A dedicated adversarial service that argues against the system's own conclusions. **Trade-level:** before entry, generate a counter-thesis from feature store analogues. "The bullish signal is funding rate + sentiment, but OI is declining and DVOL rising — classic bull trap. Accuracy of this combination in CHOPPY: 38%." **Genome-level:** before promotion, challenge the result. "This variant outperforms because it includes the one 10x trade on Feb 12. Without that outlier, it's 3% worse. Robustness: 0.4/1.0." **Regime-level:** before transition, challenge classification. "You're switching to TRENDING_BULL but DVOL is 72 and rising. In 8/12 historical cases with this profile, the regime was actually EUPHORIA." If the counter-thesis's historical base rate > 60%, the trade is downgraded (reduced size) or blocked. The system currently has one voice saying "yes." This adds a second voice saying "here's specifically why you're wrong, with receipts." |
+| 34 | **Narrative Radar** | Echo + Vince | P1 | Goes beyond sentiment (how people feel) to narrative (what story the market tells itself). **Narrative arc detection** from Echo's X data: Inception (new narrative, low volume, high-signal accounts only) → Growth (spreading, increasing volume, mainstream accounts) → Peak (everywhere, retail saturated, "everyone knows this") → Decline (counter-narratives, fatigue, attention shifting). **Per-asset classification:** "BTC: institutional accumulation (Growth)." "SOL: AI narrative (Peak — caution)." "ETH: scaling narrative (Inception)." **Trading integration:** regime profiles get a narrative overlay. TRENDING_BULL + Growth = full conviction. TRENDING_BULL + Peak = reduce size (smart money exits at peak narrative, not peak price). **Content integration:** Eliza drafts include narrative context — "The AI-on-Solana narrative is entering peak phase — here's what historically happens next." Turns Echo from a thermometer (reads the temperature) into a barometer (predicts the weather). |
+| 35 | **Temporal Coherence Engine** | Vince | P1 | The system currently operates on a single timeframe. This adds multi-timeframe alignment. Track regime and signal direction across 4H, daily, and weekly. **Alignment score** (0–3): 3/3 aligned = full size, highest conviction; 2/3 = reduced size; 1/3 = minimum size or skip; 0/3 = skip (timeframes in conflict). The genome can evolve the alignment threshold (require 2/3 vs 3/3). Feature store records alignment score for every decision so the genome learns whether multi-timeframe coherence improves outcomes. Prevents the most common retail mistake: trading a 4H signal that's running into weekly resistance. |
+| 36 | **The Immune System: Attack Pattern Recognition** | Vince | P2 | Markets are actively adversarial. A curated library of 15–20 known attack patterns: rug pull (sudden liquidity withdrawal, insider selling, hype → dump), stop hunt (price through dense stop zone then reversal), funding rate squeeze (extreme funding → forced liquidations → cascade), whale trap (large order attracts momentum, then pulled), exchange manipulation (price divergence, unusual spread). Before entry, match current asset microstructure against pattern library; similarity > threshold → block with "Immune system: looks like [pattern]. Historical loss rate: 87%." **Pattern evolution:** when the system loses, check if loss matches known or unknown patterns. Unknown → add to library. Known but not triggered → lower detection threshold. The immune system gets stronger with every attack it survives. |
+| 37 | **Dead End Elimination** | All agents | P1 | Close every information dead end in the system. **Grok sub-agents → signal aggregator:** Plumber (market structure) + Rat (alpha) + Paranoid (risk) → distinct Thompson Sampling arms. **Bandit stats → flywheel score:** Kelly queries `getTopSources()` + `getUnderperformingSources()` for signal quality component. **Collective memory → RAG:** verify weekly briefs are loaded by all agents via shared knowledge directory; add ingestion check. **Execution graduation → paper bot:** Vince knows Otaku's trust level; adjusts risk (higher conviction at L2+, more conservative at L0). **Prediction validation → agent weights:** prediction market accuracy feeds into ASK_AGENT response weighting (more accurate agents get more influence). Not glamorous — but the highest-ROI task. Every dead end is wasted intelligence. |
+
+**Success criteria for Phase 6**
+
+- Pre-mortem blocks at least 1 trade per week that would have lost money (validated by next-day counterfactual check).
+- War Room 5th-percentile survival test rejects at least 1 genome variant per month that looked good on median replay but fragile in the tail.
+- Prediction market Brier score computed for each agent; calibration improves month-over-month. Flywheel score includes prediction calibration as a 15% component.
+- Devil's Advocate counter-thesis is correct > 30% of the time — proves it's not just noise but catches real traps.
+- Narrative Radar detects at least one narrative phase transition per month before the price peak or trough.
+- Temporal coherence improves win rate by 3+ percentage points vs single-timeframe baseline (measured via feature store A/B).
+- Immune system catches at least one attack pattern per quarter; pattern library grows with every loss.
+- Zero information dead ends remain — every generated data point flows to at least one consumer.
+
+**Out of scope for Phase 6**
+
+- Full adversarial RL (adversarial training against synthetic opponents) — Devil's Advocate is rule-based + retrieval, not a trained adversary.
+- Cross-exchange arbitrage execution — immune system detects exchange manipulation, doesn't arbitrage it.
+- Real-time tick-by-tick order flow — temporal coherence uses OHLC candles, not trade-by-trade.
+- Automated narrative generation (writing our own narratives to influence CT) — we read narratives, we don't manufacture them.
+- Prediction market with real stakes — reputation only, no on-chain betting between agents.
+
+### Implementation status (Phase 6)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 30 | Pre-Mortem Engine | ⬜ | |
+| 31 | War Room: Monte Carlo Forward Simulation | ⬜ | |
+| 32 | Internal Prediction Market | ⬜ | |
+| 33 | Devil's Advocate Protocol | ⬜ | |
+| 34 | Narrative Radar | ⬜ | |
+| 35 | Temporal Coherence Engine | ⬜ | |
+| 36 | Immune System: Attack Pattern Recognition | ⬜ | |
+| 37 | Dead End Elimination | ⬜ | |
+
+### Suggested file map (Phase 6)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `src/plugins/plugin-vince/src/services/vincePreMortem.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceWarRoom.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceGenome.service.ts` | Vince | Modify (add War Room tail-risk gate to promotion logic) |
+| `src/plugins/plugin-vince/src/services/vincePaperTrading.service.ts` | Vince | Modify (add pre-mortem gate + temporal coherence gate before entry) |
+| `src/plugins/plugin-vince/src/services/vinceDevilsAdvocate.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceTemporalCoherence.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceImmuneSystem.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceNarrativeRadar.service.ts` | Vince + Echo | New |
+| `src/plugins/plugin-vince/src/services/predictionTracker.service.ts` | All | New |
+| `src/plugins/plugin-vince/src/tasks/predictionValidation.tasks.ts` | Vince | New (daily: validate expired predictions) |
+| `src/plugins/plugin-vince/src/services/vinceRegimeProfiles.service.ts` | Vince | Modify (add narrative overlay to regime selection) |
+| `src/plugins/plugin-vince/src/services/vinceFeatureStore.service.ts` | Vince | Modify (add preMortemScore, alignmentScore, narrativePhase, devilScore fields) |
+| `src/plugins/plugin-vince/src/services/weightBandit.service.ts` | Vince | Modify (add Grok sub-agent arms: Plumber, Rat, Paranoid) |
+| `src/plugins/plugin-kelly/src/services/flywheelScore.service.ts` | Kelly | Modify (add predictionCalibration component at 15%; rebalance weights) |
+| `src/plugins/plugin-kelly/src/actions/kellyFlywheelScore.action.ts` | Kelly | Modify (query bandit stats, prediction calibration) |
+| `src/plugins/plugin-sentinel/src/tasks/collectiveMemory.tasks.ts` | Sentinel | Modify (verify RAG ingestion of weekly briefs) |
+| `src/plugins/plugin-otaku/src/services/executionGraduation.service.ts` | Otaku | Modify (expose trust level to Vince via cache) |
+| `knowledge/teammate/attack-patterns/` | Shared | New directory (curated pattern library) |
+| `data/predictions/` | Shared | New directory (prediction registry JSONL) |
+
+### Architecture — The Adversary Loop
+
+```
+                        ┌──────────────────────────────────────────┐
+                        │         PREDICTION MARKET (#32)           │
+                        │  Every prediction tracked.                │
+                        │  Every outcome validated.                 │
+                        │  Brier score → influence weight.          │
+                        │                                           │
+                        │  Echo: sentiment → did price follow?      │
+                        │  Oracle: regime → did market behave?      │
+                        │  Grok: recommendation → did it profit?    │
+                        │  Genome: promotion → did it outperform?   │
+                        │  Solus: strike → did it expire OTM?       │
+                        └─────┬──────────────────────┬──────────────┘
+                              │                      │
+              ┌───────────────▼──────┐        ┌──────▼──────────────┐
+              │  NARRATIVE RADAR     │        │  FLYWHEEL SCORE     │
+              │  (#34)               │        │  + prediction       │
+              │                      │        │  calibration (15%)  │
+              │  Inception           │        │  + bandit stats     │
+              │    → Growth          │        │  + dead ends closed │
+              │      → Peak          │        │                     │
+              │        → Decline     │        │  "Flywheel: 78 (+6) │
+              │                      │        │   Predictions are   │
+              │  "SOL AI narrative   │        │   well-calibrated;  │
+              │   entering Peak —    │        │   narrative radar   │
+              │   reduce exposure"   │        │   is the edge"      │
+              └───────┬──────────────┘        └─────────────────────┘
+                      │
+     ┌────────────────▼──────────────────────────────────────────────┐
+     │                     VINCE (The Adversary)                      │
+     │                                                                │
+     │  ┌────────────────────────────────────────────────────────┐    │
+     │  │              ENTRY GAUNTLET (sequential)               │    │
+     │  │                                                        │    │
+     │  │  1. Existing 15+ gates (Phase 1–5)                     │    │
+     │  │         ↓                                              │    │
+     │  │  2. TEMPORAL COHERENCE (#35)                           │    │
+     │  │     "Do 4H + daily + weekly agree?"                    │    │
+     │  │     Alignment 0/3 → blocked. 1/3 → min size.          │    │
+     │  │         ↓                                              │    │
+     │  │  3. IMMUNE SYSTEM (#36)                                │    │
+     │  │     "Does this match a known attack pattern?"          │    │
+     │  │     Rug pull / stop hunt / funding squeeze → blocked.  │    │
+     │  │         ↓                                              │    │
+     │  │  4. PRE-MORTEM (#30)                                   │    │
+     │  │     "This trade just lost 100%. What killed it?"       │    │
+     │  │     3–5 death scenarios. Survival < threshold → block. │    │
+     │  │         ↓                                              │    │
+     │  │  5. DEVIL'S ADVOCATE (#33)                             │    │
+     │  │     "Here's why you're wrong, with receipts."          │    │
+     │  │     Counter-thesis base rate > 60% → downgrade/block.  │    │
+     │  │         ↓                                              │    │
+     │  │  ✅ ENTRY                                              │    │
+     │  └────────────────────────────────────────────────────────┘    │
+     │                                                                │
+     │  ┌────────────────────────────────────────────────────────┐    │
+     │  │              GENOME PROMOTION GAUNTLET                 │    │
+     │  │                                                        │    │
+     │  │  1. Fitness ranking (Phase 5: Sharpe × WR / DD)        │    │
+     │  │         ↓                                              │    │
+     │  │  2. WAR ROOM (#31)                                     │    │
+     │  │     1000 Monte Carlo futures.                          │    │
+     │  │     5th-percentile must beat incumbent's 5th-pctl.     │    │
+     │  │     Optimize for the tail, not the median.             │    │
+     │  │         ↓                                              │    │
+     │  │  3. DEVIL'S ADVOCATE (#33)                             │    │
+     │  │     "Remove the top outlier trade — still better?"     │    │
+     │  │     Robustness score < 0.6 → reject.                  │    │
+     │  │         ↓                                              │    │
+     │  │  ✅ PROMOTE                                            │    │
+     │  └────────────────────────────────────────────────────────┘    │
+     │                                                                │
+     └─────────────┬──────────────────────────┬───────────────────────┘
+                   │                          │
+     ┌─────────────▼────────┐     ┌───────────▼─────────────┐
+     │  DEAD END WIRING     │     │  IMMUNE SYSTEM (#36)    │
+     │  (#37)               │     │  15+ attack patterns    │
+     │                      │     │  Gets stronger with     │
+     │  Grok → aggregator   │     │  every loss             │
+     │  Bandit → flywheel   │     │                         │
+     │  Memory → RAG        │     │  Curated library:       │
+     │  Graduation → risk   │     │  knowledge/teammate/    │
+     │  Predictions → weight│     │  attack-patterns/       │
+     └──────────────────────┘     └─────────────────────────┘
+```
+
+### Phase 5 vs Phase 6 — The Shift
+
+| Dimension | Phase 5 (The Genome) | Phase 6 (The Adversary) |
+|-----------|---------------------|------------------------|
+| **Time orientation** | Learns from the past | Simulates the future |
+| **Optimization target** | Median outcome | Tail outcome (5th percentile) |
+| **Decision process** | One voice saying "trade" | Two voices — thesis vs counter-thesis |
+| **Sentiment use** | What people feel now | What story the market tells + where in lifecycle |
+| **Timeframe** | Single | Multi-timeframe coherence (4H + daily + weekly) |
+| **Market model** | Noisy but fair | Actively adversarial (attacks, traps, manipulation) |
+| **Information flow** | Dead ends tolerated | Every dead end wired shut |
+| **Predictions** | Implicit and untracked | Explicit, tracked, and consequential |
+| **Self-assessment** | "Am I getting better?" (Flywheel) | "Can I survive the worst case?" (War Room) |
 
 ---
 
@@ -494,6 +671,49 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 
 **Success criteria:** The system proactively finds trades, sizes them with sentiment, executes on paper, measures results, writes about them, and fixes its own bugs — with minimal user intervention.
 
+### Phase 4 — Measurement, Readiness & Content (2 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 16 | $100K pace at a glance — single card: on track / behind | Kelly / Vince | P1 |
+| 17 | Vince → Solus strike handoff (cache `vince:strike_suggestion`) | Vince + Solus | P2 |
+| 18 | Confidence in signal cache (0–100 for Otaku auto-execute) | Vince | P1 |
+| 19 | Weekly performance content (one-tap Substack + tweets) | Eliza + Kelly | P2 |
+| 20 | Sentiment accuracy tracking (entry sentiment vs outcome) | Vince / Echo | P2 |
+| 21 | Go-live readiness checklist (paper stats + sentiment + confirm) | Otaku / Kelly | P2 |
+
+**Success criteria:** One glance tells you $100K pace. Content writes itself from real data. Going live requires proving it on paper first.
+
+### Phase 5 — The Genome: Self-Evolving Trading System (4 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 22 | Counterfactual Engine — replay avoided decisions, quantify missed PnL | Vince | P0 |
+| 23 | Strategy Genome + Auto-Tuning — mutation, replay, fitness, auto-promote | Vince | P0 |
+| 24 | Regime Profiles — 5 market personalities, auto-switch | Vince + Oracle + Echo | P1 |
+| 25 | Intelligence → Signal Source — Grok daily intel as aggregator arm | Vince + Grok | P1 |
+| 26 | Portfolio Construction — correlation, heat, Kelly sizing, opportunity cost | Vince | P1 |
+| 27 | Execution Graduation — L0→L3 trust levels, demotion, circuit breaker | Otaku | P2 |
+| 28 | Agent Collective Memory — weekly intelligence brief from all agents | Sentinel + all | P2 |
+| 29 | Flywheel Score — composite 0–100 system health metric | Kelly | P1 |
+
+**Success criteria:** The system observes itself, evolves its own parameters, and earns the right to trade real money. Genome promotes at least 1 variant/month. Flywheel Score trends upward.
+
+### Phase 6 — The Adversary: Antifragile Intelligence (6 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 30 | Pre-Mortem Engine — "this trade just died; what killed it?" before entry | Vince | P0 |
+| 31 | War Room: Monte Carlo Forward Simulation — 1000 futures, optimize the tail | Vince | P0 |
+| 32 | Internal Prediction Market — track every agent prediction, validate, Brier score | All | P0 |
+| 33 | Devil's Advocate Protocol — argue against every trade, genome, and regime call | Vince + Sentinel | P1 |
+| 34 | Narrative Radar — narrative arcs (inception→growth→peak→decline) per asset | Echo + Vince | P1 |
+| 35 | Temporal Coherence Engine — multi-timeframe alignment (4H + daily + weekly) | Vince | P1 |
+| 36 | Immune System: Attack Pattern Recognition — 15+ patterns, evolves with losses | Vince | P2 |
+| 37 | Dead End Elimination — wire every information dead end shut | All | P1 |
+
+**Success criteria:** The system gets stronger from attacks. Pre-mortem saves money weekly. War Room prevents tail-risk genome promotions. Every prediction is tracked and validated. The system has two voices — thesis and counter-thesis — for every decision.
+
 ---
 
 ## 9. Non-Goals
@@ -503,6 +723,11 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 - **Not changing the trading runtime contract** — producer/executor separation is preserved
 - **Not building a new UI** — quick-action chips and existing chat interface are sufficient
 - **Not automating Kelly's lifestyle recommendations** — Kelly stays human-triggered, not scheduled
+- **Not training an adversarial RL agent** — Devil's Advocate is retrieval + rule-based, not a trained adversary
+- **Not adding cross-exchange arbitrage** — immune system detects manipulation, doesn't arbitrage it
+- **Not using tick-by-tick order flow** — temporal coherence uses OHLC candles, not trade-by-trade
+- **Not manufacturing narratives** — we read narrative arcs, we don't create them to influence CT
+- **Not adding real stakes to the prediction market** — reputation and influence weight only, no on-chain betting
 
 ---
 
@@ -519,6 +744,14 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 | Counterfactual data quality (Phase 5) | Price-after-avoid uses feature store or cached prices, not live re-fetch; results are directional (did it go our way?) not exact PnL; clearly labeled as estimates |
 | Collective memory staleness (Phase 5) | Weekly briefs are date-stamped; agents weight recent briefs higher; briefs older than 8 weeks are archived, not loaded |
 | Execution graduation gaming (Phase 5) | Trust levels use rolling windows, not cumulative; a single exceptional week can't skip levels; demotion is automatic and faster than promotion |
+| Pre-mortem false positives blocking good trades (Phase 6) | Survival probability threshold is tunable (genome can evolve it); counterfactual tracks blocked trades to measure missed opportunity; start conservative (threshold 30), tighten over time |
+| War Room overfitting to synthetic scenarios (Phase 6) | Monte Carlo samples from actual feature store distributions (not parametric); scenario generation uses bootstrap resampling; validate by comparing simulated tail to actual realized tail quarterly |
+| Devil's Advocate over-blocking (Phase 6) | Counter-thesis only triggers downgrade when base rate > 60% (not 50%); tracked separately so we can measure "advocate was right" vs "advocate blocked a winner"; threshold is genome-evolvable |
+| Narrative Radar misclassifying narrative phase (Phase 6) | Narrative phases use multiple confirming signals (volume + account quality + counter-narrative emergence); classification errors tracked and fed back; "uncertain" phase is a valid output (no action taken) |
+| Temporal coherence reducing trade frequency too much (Phase 6) | Alignment threshold (2/3 vs 3/3) is genome-evolvable; A/B tracked via feature store; if win rate doesn't improve, genome relaxes threshold; minimum 1/week trade floor regardless |
+| Prediction market penalizing inherently uncertain predictions (Phase 6) | Brier score rewards calibration (saying 60% when right 60% of the time) not just accuracy; agents aren't penalized for honest uncertainty; only penalized for confident-and-wrong |
+| Immune system pattern library staleness (Phase 6) | Patterns date-stamped; effectiveness tracked (true positive rate); patterns with < 20% trigger rate over 6 months are reviewed; new patterns added from post-mortems automatically |
+| Dead end wiring increasing context bloat (Phase 6) | New data flows are cached with TTL, not injected into every context; dynamic providers only, activated for relevant actions; total context budget enforced |
 
 ---
 
@@ -541,6 +774,15 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 | Counterfactual accuracy | Weekly report generated; informs genome | `vinceCounterfactual.service.ts` |
 | Execution graduation | Reach L2 (CONFIRM_EXECUTE) within 8 weeks of paper profitability | `executionGraduation.service.ts` |
 | Collective memory | Weekly brief generated every Monday; loaded by all agents | `knowledge/teammate/weekly-briefs/` |
+| Pre-mortem saves | ≥ 1 blocked trade/week validated as correct by counterfactual | `vincePreMortem.service.ts` |
+| War Room tail survival | ≥ 1 genome rejection/month that looked good on median but fragile in 5th-pctl | `vinceWarRoom.service.ts` |
+| Prediction calibration | Per-agent Brier score improving month-over-month | `predictionTracker.service.ts` |
+| Devil's Advocate accuracy | Counter-thesis correct > 30% of the time | `vinceDevilsAdvocate.service.ts` |
+| Narrative phase detection | ≥ 1 phase transition detected/month before price peak | `vinceNarrativeRadar.service.ts` |
+| Temporal coherence lift | Win rate +3 pp vs single-timeframe baseline | Feature store A/B comparison |
+| Immune system catches | ≥ 1 attack pattern caught/quarter; library grows with losses | `vinceImmuneSystem.service.ts` |
+| Information dead ends | Zero remaining; every data point has ≥ 1 consumer | System audit |
+| Antifragility ratio | System performs better in high-volatility months than low-vol | Monthly Sharpe comparison by DVOL regime |
 
 ---
 
