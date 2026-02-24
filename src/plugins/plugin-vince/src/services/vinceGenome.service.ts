@@ -18,6 +18,12 @@ import * as fs from "fs";
 import * as path from "path";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import type { RegimeProfileName } from "./vinceRegimeProfiles.service";
+import type {
+  VinceWarRoomService,
+  WarRoomComparison,
+} from "./vinceWarRoom.service";
+import type { PredictionTrackerService } from "./predictionTracker.service";
+import type { VinceDevilsAdvocateService } from "./vinceDevilsAdvocate.service";
 
 // ==========================================
 // Genome Types
@@ -72,6 +78,20 @@ export interface GenerationRecord {
   currentFitness: number;
   promoted: boolean;
   promotedGenomeId: string | null;
+  promotionReason?: string;
+  warRoom?: {
+    enabled: boolean;
+    pass: boolean;
+    incumbentP05: number;
+    candidateP05: number;
+    rationale: string;
+  };
+  devilAdvocate?: {
+    enabled: boolean;
+    pass: boolean;
+    robustnessScore: number;
+    rationale: string;
+  };
   topCandidates: Array<{
     genomeId: string;
     fitness: number;
@@ -96,6 +116,7 @@ const MUTATION_COUNT = 50;
 const PROMOTION_THRESHOLD = 0.05;
 const MIN_TRADES_FOR_EVAL = 10;
 const MAX_GENERATIONS_HISTORY = 100;
+const WAR_ROOM_RUNS = 1000;
 
 const PARAM_BOUNDS: Record<keyof GenomeParams, [number, number]> = {
   minStrength: [20, 80],
@@ -276,22 +297,95 @@ export class VinceGenomeService extends Service {
     // Rank by fitness
     results.sort((a, b) => b.result.fitness - a.result.fitness);
     const best = results[0];
+    let warRoomComparison: WarRoomComparison | null = null;
+    let devilComparison: {
+      pass: boolean;
+      robustnessScore: number;
+      rationale: string;
+    } | null = null;
+    const warRoom = this.runtime.getService<VinceWarRoomService>(
+      "VINCE_WAR_ROOM_SERVICE",
+    );
+    const devilsAdvocate = this.runtime.getService<VinceDevilsAdvocateService>(
+      "VINCE_DEVILS_ADVOCATE_SERVICE",
+    );
+    if (best && warRoom) {
+      warRoomComparison = warRoom.compareIncumbentVsCandidate(
+        {
+          minStrength: this.state.currentGenome.params.minStrength,
+          minConfidence: this.state.currentGenome.params.minConfidence,
+          minConfirmingSources:
+            this.state.currentGenome.params.minConfirmingSources,
+        },
+        {
+          minStrength: best.genome.params.minStrength,
+          minConfidence: best.genome.params.minConfidence,
+          minConfirmingSources: best.genome.params.minConfirmingSources,
+        },
+        features,
+        WAR_ROOM_RUNS,
+      );
+    }
+    if (best && devilsAdvocate) {
+      devilComparison = devilsAdvocate.challengeGenome({
+        candidateFitness: best.result.fitness,
+        incumbentFitness: currentResult.fitness,
+        candidateSharpe: best.result.sharpe,
+        incumbentSharpe: currentResult.sharpe,
+        candidateWinRate: best.result.winRate,
+        incumbentWinRate: currentResult.winRate,
+      });
+    }
 
     const promoted =
       best &&
       best.result.fitness > currentResult.fitness * (1 + PROMOTION_THRESHOLD) &&
-      best.result.totalTrades >= MIN_TRADES_FOR_EVAL;
+      best.result.totalTrades >= MIN_TRADES_FOR_EVAL &&
+      (warRoomComparison ? warRoomComparison.pass : true) &&
+      (devilComparison ? devilComparison.pass : true);
 
     if (promoted) {
       logger.info(
         `[Genome] Promoting ${best.genome.id} (fitness ${best.result.fitness.toFixed(3)} vs ${currentResult.fitness.toFixed(3)})`,
       );
       this.state.currentGenome = best.genome;
+      const predictionTracker =
+        this.runtime.getService<PredictionTrackerService>(
+          "VINCE_PREDICTION_TRACKER_SERVICE",
+        );
+      if (predictionTracker) {
+        await predictionTracker.registerPrediction({
+          agent: "VINCE_GENOME",
+          kind: "genome_promotion",
+          direction: "up",
+          confidenceProb: 0.7,
+          horizonHours: 7 * 24,
+          metadata: {
+            promotedGenomeId: best.genome.id,
+            baselineFitness: currentResult.fitness,
+            candidateFitness: best.result.fitness,
+          },
+        });
+      }
     } else {
+      const warRoomReason = warRoomComparison
+        ? `, war-room=${warRoomComparison.pass ? "pass" : "fail"} (${warRoomComparison.rationale})`
+        : "";
+      const devilReason = devilComparison
+        ? `, devil=${devilComparison.pass ? "pass" : "fail"} (${devilComparison.rationale})`
+        : "";
       logger.info(
-        `[Genome] No promotion (best ${best?.result.fitness.toFixed(3) ?? 0} vs current ${currentResult.fitness.toFixed(3)})`,
+        `[Genome] No promotion (best ${best?.result.fitness.toFixed(3) ?? 0} vs current ${currentResult.fitness.toFixed(3)}${warRoomReason}${devilReason})`,
       );
     }
+
+    const promotionReason = promoted
+      ? "fitness threshold met and antifragile gates passed"
+      : warRoomComparison && !warRoomComparison.pass
+        ? `war-room rejection: ${warRoomComparison.rationale}`
+        : devilComparison && !devilComparison.pass
+          ? `devil rejection: ${devilComparison.rationale}`
+          : "fitness threshold not met";
 
     const record: GenerationRecord = {
       generation: nextGen,
@@ -301,6 +395,43 @@ export class VinceGenomeService extends Service {
       currentFitness: currentResult.fitness,
       promoted,
       promotedGenomeId: promoted ? best.genome.id : null,
+      promotionReason,
+      ...(warRoomComparison
+        ? {
+            warRoom: {
+              enabled: true,
+              pass: warRoomComparison.pass,
+              incumbentP05: warRoomComparison.incumbentP05,
+              candidateP05: warRoomComparison.candidateP05,
+              rationale: warRoomComparison.rationale,
+            },
+          }
+        : {
+            warRoom: {
+              enabled: false,
+              pass: true,
+              incumbentP05: 0,
+              candidateP05: 0,
+              rationale: "war room service unavailable",
+            },
+          }),
+      ...(devilComparison
+        ? {
+            devilAdvocate: {
+              enabled: true,
+              pass: devilComparison.pass,
+              robustnessScore: devilComparison.robustnessScore,
+              rationale: devilComparison.rationale,
+            },
+          }
+        : {
+            devilAdvocate: {
+              enabled: false,
+              pass: true,
+              robustnessScore: 1,
+              rationale: "devil advocate service unavailable",
+            },
+          }),
       topCandidates: results.slice(0, 5).map((r) => ({
         genomeId: r.genome.id,
         fitness: r.result.fitness,

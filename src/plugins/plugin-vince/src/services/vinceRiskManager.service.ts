@@ -142,7 +142,20 @@ export class VinceRiskManagerService extends Service {
    * Risk multiplier from trading mode (0.8 conservative, 1.0 balanced, 1.2 aggressive). Apply to base risk per trade.
    */
   getModeRiskMultiplier(): number {
-    return getModeRiskMultiplier(this.runtime);
+    const base = getModeRiskMultiplier(this.runtime);
+    const graduation = this.runtime.getService(
+      "EXECUTION_GRADUATION_SERVICE",
+    ) as { getCurrentLevel?: () => string } | null;
+    const level = graduation?.getCurrentLevel?.() ?? "PAPER_ONLY";
+    const trustMult =
+      level === "AUTO_EXECUTE"
+        ? 1.1
+        : level === "CONFIRM_EXECUTE"
+          ? 1.0
+          : level === "NOTIFY"
+            ? 0.9
+            : 0.8;
+    return base * trustMult;
   }
 
   // ==========================================

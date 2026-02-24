@@ -104,6 +104,8 @@ const KNOWN_SOURCES = [
   "HIP3OIBuild",
   "HIP3PriceAction",
   "WTT",
+  "GrokDailyRecommendation",
+  "GrokResearchIdea",
 ];
 
 // ==========================================

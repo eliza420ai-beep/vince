@@ -24,11 +24,12 @@ export interface GrokRecommendation {
   confidence: number;
   thesis: string;
   source: string;
+  sourceArm: "GrokDailyRecommendation" | "GrokResearchIdea";
   extractedAt: number;
 }
 
 export interface GrokSignal {
-  source: "GrokIntelligence";
+  source: "GrokDailyRecommendation" | "GrokResearchIdea";
   asset: string;
   direction: "long" | "short";
   strength: number;
@@ -124,13 +125,11 @@ export class GrokSignalExtractorService extends Service {
 
     // Pattern 2: "Research Ideas" or "Top Picks"
     const researchSection = this.extractSection(content, "research idea");
-
-    const sections = [recSection, researchSection].filter(Boolean);
-
-    for (const section of sections) {
-      if (!section) continue;
-      const parsed = this.parseSection(section);
-      recs.push(...parsed);
+    if (recSection) {
+      recs.push(...this.parseSection(recSection, "GrokDailyRecommendation"));
+    }
+    if (researchSection) {
+      recs.push(...this.parseSection(researchSection, "GrokResearchIdea"));
     }
 
     return recs;
@@ -158,7 +157,10 @@ export class GrokSignalExtractorService extends Service {
     return captured.length > 0 ? captured.join("\n") : null;
   }
 
-  private parseSection(section: string): GrokRecommendation[] {
+  private parseSection(
+    section: string,
+    sourceArm: "GrokDailyRecommendation" | "GrokResearchIdea",
+  ): GrokRecommendation[] {
     const recs: GrokRecommendation[] = [];
     const lines = section.split("\n");
 
@@ -181,6 +183,7 @@ export class GrokSignalExtractorService extends Service {
             confidence: 60,
             thesis: currentThesis.join(" ").slice(0, 200),
             source: "grok-daily-report",
+            sourceArm,
             extractedAt: Date.now(),
           });
           currentAsset = null;
@@ -201,6 +204,7 @@ export class GrokSignalExtractorService extends Service {
             confidence: 60,
             thesis: currentThesis.join(" ").slice(0, 200),
             source: "grok-daily-report",
+            sourceArm,
             extractedAt: Date.now(),
           });
         }
@@ -228,6 +232,7 @@ export class GrokSignalExtractorService extends Service {
         confidence: 60,
         thesis: currentThesis.join(" ").slice(0, 200),
         source: "grok-daily-report",
+        sourceArm,
         extractedAt: Date.now(),
       });
     }
@@ -237,7 +242,7 @@ export class GrokSignalExtractorService extends Service {
 
   private toSignal(rec: GrokRecommendation): GrokSignal {
     return {
-      source: "GrokIntelligence",
+      source: rec.sourceArm,
       asset: rec.asset,
       direction: rec.direction,
       strength: Math.min(80, rec.confidence + 10),

@@ -369,6 +369,32 @@ export interface FeatureRecord {
    * Training can use these for avoid-classification or counterfactual analysis later.
    */
   avoided?: { reason: string; timestamp: number };
+  /**
+   * Pre-mortem output captured at decision time.
+   * Stored on both taken and blocked decisions so we can learn
+   * which death scenarios were informative.
+   */
+  preMortem?: {
+    survivalProbability: number;
+    threshold: number;
+    blocked: boolean;
+    topScenarioId?: string;
+    topScenarioTitle?: string;
+    scenarios: Array<{ id: string; title: string; riskScore: number }>;
+  };
+  /** Devil's Advocate score at decision time (0-100; higher = stronger counter-thesis). */
+  devilScore?: number;
+  /** Devil's Advocate alignment score at decision time (0-100; higher = stronger thesis alignment). */
+  alignmentScore?: number;
+  /** Narrative radar phase at decision time. */
+  narrativePhase?: "inception" | "growth" | "peak" | "decline" | "uncertain";
+  /** Immune-system attack pattern match metadata for the decision. */
+  immunePattern?: {
+    patternId: string;
+    confidence: number;
+    lossRate: number;
+    block: boolean;
+  };
   /** Grok daily pulse at decision time (F&G and Top Traders % from grok-auto-*.md). */
   grokPulse?: { fearGreed?: number; topTradersLongPct?: number };
   /**
@@ -606,6 +632,11 @@ export class VinceFeatureStoreService extends Service {
     signal: AggregatedSignal;
     execution?: Partial<TradeExecutionFeatures>;
     wtt?: FeatureRecord["wtt"];
+    preMortem?: FeatureRecord["preMortem"];
+    devilScore?: number;
+    alignmentScore?: number;
+    narrativePhase?: FeatureRecord["narrativePhase"];
+    immunePattern?: FeatureRecord["immunePattern"];
   }): Promise<string> {
     if (!this.storeConfig.enabled || !this.initialized) return "";
 
@@ -646,6 +677,15 @@ export class VinceFeatureStoreService extends Service {
           ? params.signal.factors.slice(0, 15)
           : undefined,
         execution: params.execution as TradeExecutionFeatures | undefined,
+        ...(params.preMortem && { preMortem: params.preMortem }),
+        ...(typeof params.devilScore === "number" && {
+          devilScore: params.devilScore,
+        }),
+        ...(typeof params.alignmentScore === "number" && {
+          alignmentScore: params.alignmentScore,
+        }),
+        ...(params.narrativePhase && { narrativePhase: params.narrativePhase }),
+        ...(params.immunePattern && { immunePattern: params.immunePattern }),
         ...(grokPulse &&
           (grokPulse.fearGreed != null ||
             grokPulse.topTradersLongPct != null) && {
@@ -688,6 +728,11 @@ export class VinceFeatureStoreService extends Service {
     asset: string;
     signal: AggregatedSignal;
     reason: string;
+    preMortem?: FeatureRecord["preMortem"];
+    devilScore?: number;
+    alignmentScore?: number;
+    narrativePhase?: FeatureRecord["narrativePhase"];
+    immunePattern?: FeatureRecord["immunePattern"];
   }): Promise<string> {
     if (!this.storeConfig.enabled || !this.initialized) return "";
 
@@ -727,6 +772,15 @@ export class VinceFeatureStoreService extends Service {
           ? params.signal.factors.slice(0, 15)
           : undefined,
         avoided: { reason: params.reason, timestamp: Date.now() },
+        ...(params.preMortem && { preMortem: params.preMortem }),
+        ...(typeof params.devilScore === "number" && {
+          devilScore: params.devilScore,
+        }),
+        ...(typeof params.alignmentScore === "number" && {
+          alignmentScore: params.alignmentScore,
+        }),
+        ...(params.narrativePhase && { narrativePhase: params.narrativePhase }),
+        ...(params.immunePattern && { immunePattern: params.immunePattern }),
         ...(grokPulse &&
           (grokPulse.fearGreed != null ||
             grokPulse.topTradersLongPct != null) && {

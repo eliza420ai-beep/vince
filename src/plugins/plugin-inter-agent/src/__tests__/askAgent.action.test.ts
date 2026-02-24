@@ -269,7 +269,7 @@ describe("askAgentAction", () => {
       );
     });
 
-    it("async onError causes fall through to next path", async () => {
+    it("async onError returns timeout-style failure in in-process path", async () => {
       const targetAgentId = "vince-id";
       const handleMessage = vi
         .fn()
@@ -288,19 +288,6 @@ describe("askAgentAction", () => {
           ],
         },
       });
-      globalThis.fetch = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ jobId: "j1" }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            status: "completed",
-            result: { message: { content: "Fallback reply" } },
-          }),
-        });
       const msg = createMessage("Ask Vince about Bitcoin");
       const { callback, calls } = createMockCallback();
 
@@ -312,11 +299,10 @@ describe("askAgentAction", () => {
         callback,
       );
 
-      // After onError we try sync (no opts so mock resolves), then job API. We mock job to complete.
       expect(handleMessage).toHaveBeenCalled();
       expect(calls.length).toBeGreaterThanOrEqual(1);
-      expect(result).toEqual({ success: true });
-      expect(calls[0].text).toContain("**Vince says:** Fallback reply");
+      expect(result).toEqual({ success: false });
+      expect(calls[0].text).toContain("didn't get a reply in time");
     });
 
     it("sync fallback returns reply when async rejects", async () => {
