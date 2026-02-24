@@ -40,9 +40,13 @@ export async function registerGenomeEvolutionTask(
           `Candidates: ${result.candidateCount}`,
           `Current fitness: ${result.currentFitness.toFixed(3)}`,
           `Best fitness: ${result.bestFitness.toFixed(3)}`,
+          result.warRoom
+            ? `War Room p05: candidate ${result.warRoom.candidateP05.toFixed(2)} vs incumbent ${result.warRoom.incumbentP05.toFixed(2)} (${result.warRoom.pass ? "pass" : "fail"})`
+            : `War Room: unavailable`,
           result.promoted
             ? `✅ Promoted: ${result.promotedGenomeId}`
             : `⏸ No promotion (threshold not met)`,
+          result.promotionReason ? `Reason: ${result.promotionReason}` : "",
           ``,
           `**Top 3:**`,
           ...top.map(
