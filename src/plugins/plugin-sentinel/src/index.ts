@@ -63,6 +63,7 @@ import { sentinelFeedbackDeliverableAction } from "./actions/sentinelFeedbackDel
 // Tasks
 import { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
 import { registerSentinelDailyTask } from "./tasks/sentinelDaily.tasks";
+import { registerCollectiveMemoryTask } from "./tasks/collectiveMemory.tasks";
 
 // Services
 import * as projectRadarService from "./services/projectRadar.service";
@@ -113,6 +114,7 @@ export const sentinelPlugin: Plugin = {
       try {
         await registerSentinelWeeklyTask(runtime);
         await registerSentinelDailyTask(runtime);
+        await registerCollectiveMemoryTask(runtime);
       } catch (e) {
         logger.warn("[Sentinel] Failed to register tasks:", e);
       }
@@ -141,6 +143,7 @@ export { sentinelFeedbackDeliverableAction } from "./actions/sentinelFeedbackDel
 // Task exports
 export { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
 export { registerSentinelDailyTask } from "./tasks/sentinelDaily.tasks";
+export { registerCollectiveMemoryTask } from "./tasks/collectiveMemory.tasks";
 
 // Service exports — use these programmatically
 export * as projectRadar from "./services/projectRadar.service";

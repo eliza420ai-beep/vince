@@ -69,6 +69,7 @@ import {
   notificationsRoute,
 } from "./routes";
 import { portfolioEvaluator } from "./evaluators";
+import { ExecutionGraduationService } from "./services/executionGraduation.service";
 
 export const otakuPlugin: Plugin = {
   name: "otaku",
@@ -91,7 +92,7 @@ export const otakuPlugin: Plugin = {
     otakuReadyToExecuteAction,
     polymarketExecutePendingOrderAction,
   ],
-  services: [OtakuService],
+  services: [OtakuService, ExecutionGraduationService],
   init: async (_config, runtime) => {
     registerOtakuRebalanceTaskWorker(runtime);
     registerPolymarketExecutePollTask(runtime);
