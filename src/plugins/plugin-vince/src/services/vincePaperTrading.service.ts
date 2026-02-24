@@ -36,6 +36,12 @@ import type { VinceSignalSimilarityService } from "./signalSimilarity.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
 import type { VinceMLInferenceService } from "./mlInference.service";
 import type { PositionSizingInput, TPSLInput } from "./mlInference.service";
+import type {
+  VincePreMortemService,
+  PreMortemResult,
+} from "./vincePreMortem.service";
+import type { VinceDevilsAdvocateService } from "./vinceDevilsAdvocate.service";
+import type { PredictionTrackerService } from "./predictionTracker.service";
 import {
   SLIPPAGE,
   FEES,
@@ -85,6 +91,12 @@ import {
 } from "../utils/contextFeatureStats";
 import { getSentimentGateForDirection } from "./vinceSentimentGate";
 import { runPostMortem } from "../utils/postMortem";
+import type {
+  VinceNarrativeRadarService,
+  NarrativePhase,
+} from "./vinceNarrativeRadar.service";
+import type { VinceTemporalCoherenceService } from "./vinceTemporalCoherence.service";
+import type { VinceImmuneSystemService } from "./vinceImmuneSystem.service";
 
 // ==========================================
 // Pending Entry Types
@@ -279,6 +291,42 @@ export class VincePaperTradingService extends Service {
     return this.runtime.getService(
       "VINCE_NEWS_SENTIMENT_SERVICE",
     ) as VinceNewsSentimentService | null;
+  }
+
+  private getPreMortemService(): VincePreMortemService | null {
+    return this.runtime.getService(
+      "VINCE_PRE_MORTEM_SERVICE",
+    ) as VincePreMortemService | null;
+  }
+
+  private getDevilsAdvocateService(): VinceDevilsAdvocateService | null {
+    return this.runtime.getService(
+      "VINCE_DEVILS_ADVOCATE_SERVICE",
+    ) as VinceDevilsAdvocateService | null;
+  }
+
+  private getNarrativeRadarService(): VinceNarrativeRadarService | null {
+    return this.runtime.getService(
+      "VINCE_NARRATIVE_RADAR_SERVICE",
+    ) as VinceNarrativeRadarService | null;
+  }
+
+  private getTemporalCoherenceService(): VinceTemporalCoherenceService | null {
+    return this.runtime.getService(
+      "VINCE_TEMPORAL_COHERENCE_SERVICE",
+    ) as VinceTemporalCoherenceService | null;
+  }
+
+  private getImmuneSystemService(): VinceImmuneSystemService | null {
+    return this.runtime.getService(
+      "VINCE_IMMUNE_SYSTEM_SERVICE",
+    ) as VinceImmuneSystemService | null;
+  }
+
+  private getPredictionTracker(): PredictionTrackerService | null {
+    return this.runtime.getService(
+      "VINCE_PREDICTION_TRACKER_SERVICE",
+    ) as PredictionTrackerService | null;
   }
 
   /**
@@ -737,6 +785,22 @@ Reply format: APPROVE reason or VETO reason`;
     asset: string,
     signal: AggregatedSignal,
     reason: string,
+    preMortem?: {
+      survivalProbability: number;
+      threshold: number;
+      blocked: boolean;
+      topScenarioId?: string;
+      topScenarioTitle?: string;
+      scenarios: Array<{ id: string; title: string; riskScore: number }>;
+    },
+    devilMeta?: { devilScore: number; alignmentScore: number },
+    narrativePhase?: NarrativePhase,
+    immunePattern?: {
+      patternId: string;
+      confidence: number;
+      lossRate: number;
+      block: boolean;
+    },
   ): Promise<void> {
     const now = Date.now();
     const last = this.lastAvoidedRecord.get(asset);
@@ -755,7 +819,20 @@ Reply format: APPROVE reason or VETO reason`;
     )
       return;
     try {
-      await featureStore.recordAvoidedDecision({ asset, signal, reason });
+      await featureStore.recordAvoidedDecision({
+        asset,
+        signal,
+        reason,
+        ...(preMortem ? { preMortem } : {}),
+        ...(devilMeta
+          ? {
+              devilScore: devilMeta.devilScore,
+              alignmentScore: devilMeta.alignmentScore,
+            }
+          : {}),
+        ...(narrativePhase ? { narrativePhase } : {}),
+        ...(immunePattern ? { immunePattern } : {}),
+      });
     } catch (e) {
       logger.debug(`[VincePaperTrading] recordAvoidedDecision failed: ${e}`);
     }
@@ -1384,11 +1461,15 @@ Reply format: APPROVE reason or VETO reason`;
           getOpenInterest?: (
             asset: string,
           ) => { change24h: number | null } | null;
+          getLongShortRatio?: (asset: string) => { ratio: number } | null;
           getFearGreed?: () => { value: number; classification: string } | null;
         } | null;
+        let longShortRatio: number | undefined;
         try {
           const oi = coinglass?.getOpenInterest?.(asset);
           mktCtx.oiChange24h = oi?.change24h ?? undefined;
+          const ls = coinglass?.getLongShortRatio?.(asset);
+          longShortRatio = ls?.ratio ?? undefined;
         } catch {
           /* non-fatal */
         }
@@ -1843,6 +1924,198 @@ Reply format: APPROVE reason or VETO reason`;
           }
         }
 
+        const preMortemService = this.getPreMortemService();
+        const devilsAdvocateService = this.getDevilsAdvocateService();
+        const temporalCoherenceService = this.getTemporalCoherenceService();
+        const narrativeRadarService = this.getNarrativeRadarService();
+        const immuneSystemService = this.getImmuneSystemService();
+        let preMortemResult: PreMortemResult | undefined;
+        let devilMeta:
+          | {
+              devilScore: number;
+              alignmentScore: number;
+            }
+          | undefined;
+        let narrativePhase: NarrativePhase | undefined;
+        let immunePattern:
+          | {
+              patternId: string;
+              confidence: number;
+              lossRate: number;
+              block: boolean;
+            }
+          | undefined;
+
+        if (temporalCoherenceService) {
+          const temporal = temporalCoherenceService.evaluate({
+            direction: signal.direction as "long" | "short",
+            strength: signal.strength,
+            confidence: tradeSignal.confidence,
+            regime: regime?.regime,
+          });
+          if (temporal.block) {
+            logger.info(
+              `[VincePaperTrading] ${asset} temporal coherence blocked: ${temporal.rationale}`,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `Temporal coherence: ${temporal.rationale}`,
+              undefined,
+              undefined,
+            );
+            continue;
+          }
+        }
+
+        if (narrativeRadarService) {
+          const narrative = narrativeRadarService.classify({
+            direction: signal.direction as "long" | "short",
+            sentimentScore: sentimentGate.sentimentScore,
+            fearGreedValue:
+              typeof fearGreedValue === "number" ? fearGreedValue : undefined,
+            fundingRate:
+              typeof fundingRate === "number" ? fundingRate : undefined,
+            openInterestChangePct:
+              typeof mktCtx.oiChange24h === "number"
+                ? mktCtx.oiChange24h
+                : undefined,
+          });
+          narrativePhase = narrative.phase;
+          if (narrative.block) {
+            logger.info(
+              `[VincePaperTrading] ${asset} narrative overlay blocked: ${narrative.rationale}`,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `Narrative radar: ${narrative.rationale}`,
+              undefined,
+              undefined,
+              narrative.phase,
+            );
+            continue;
+          }
+        }
+        if (immuneSystemService) {
+          const immune = immuneSystemService.detectAttackPattern({
+            longShortRatio:
+              typeof longShortRatio === "number" ? longShortRatio : undefined,
+            fundingRate:
+              typeof fundingRate === "number" ? fundingRate : undefined,
+            openInterestChangePct:
+              typeof mktCtx.oiChange24h === "number"
+                ? mktCtx.oiChange24h
+                : undefined,
+            fearGreedValue:
+              typeof fearGreedValue === "number" ? fearGreedValue : undefined,
+          });
+          if (immune.matched && immune.patternId) {
+            immunePattern = {
+              patternId: immune.patternId,
+              confidence: immune.confidence,
+              lossRate: immune.lossRate,
+              block: immune.block,
+            };
+          }
+          if (immune.block) {
+            logger.info(
+              `[VincePaperTrading] ${asset} immune system blocked: ${immune.rationale}`,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `Immune system: ${immune.rationale}`,
+              undefined,
+              undefined,
+              narrativePhase,
+              immunePattern,
+            );
+            continue;
+          }
+        }
+        if (preMortemService) {
+          preMortemResult = preMortemService.evaluate({
+            asset,
+            direction: signal.direction as "long" | "short",
+            strength: signal.strength,
+            confidence: tradeSignal.confidence,
+            sentimentScore: sentimentGate.sentimentScore,
+            sentimentRegime: sentimentGate.regime,
+            fundingRate:
+              typeof fundingRate === "number" ? fundingRate : undefined,
+            openInterestChangePct:
+              typeof mktCtx.oiChange24h === "number"
+                ? mktCtx.oiChange24h
+                : undefined,
+            longShortRatio:
+              typeof longShortRatio === "number" ? longShortRatio : undefined,
+            fearGreedValue:
+              typeof fearGreedValue === "number" ? fearGreedValue : undefined,
+            dvol: extendedSnapshot?.dvol ?? undefined,
+          });
+          if (preMortemResult.blocked) {
+            logger.info(
+              `[VincePaperTrading] ${asset} pre-mortem blocked: survival ${preMortemResult.survivalProbability}% (<${preMortemResult.threshold}) — ${preMortemResult.topScenario.title}`,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `Pre-mortem: ${preMortemResult.topScenario.title} (survival ${preMortemResult.survivalProbability}%)`,
+              this.toFeaturePreMortem(preMortemResult),
+              undefined,
+              narrativePhase,
+              immunePattern,
+            );
+            continue;
+          }
+        }
+
+        let finalTradeSize = finalSize;
+        if (devilsAdvocateService) {
+          const challenge = devilsAdvocateService.challengeTrade({
+            asset,
+            direction: signal.direction as "long" | "short",
+            strength: signal.strength,
+            confidence: tradeSignal.confidence,
+            sentimentScore: sentimentGate.sentimentScore,
+            fundingRate:
+              typeof fundingRate === "number" ? fundingRate : undefined,
+            dvol: extendedSnapshot?.dvol ?? undefined,
+            openInterestChangePct:
+              typeof mktCtx.oiChange24h === "number"
+                ? mktCtx.oiChange24h
+                : undefined,
+          });
+          devilMeta = {
+            devilScore: challenge.score,
+            alignmentScore: Math.max(0, 100 - challenge.score),
+          };
+          if (challenge.block) {
+            logger.info(
+              `[VincePaperTrading] ${asset} devil's advocate blocked: baseRate ${(challenge.baseRate * 100).toFixed(0)}% — ${challenge.rationale}`,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `Devil's advocate: ${challenge.rationale}`,
+              preMortemResult
+                ? this.toFeaturePreMortem(preMortemResult)
+                : undefined,
+              devilMeta,
+              narrativePhase,
+              immunePattern,
+            );
+            continue;
+          }
+          if (challenge.downgradeMultiplier < 1) {
+            finalTradeSize = finalTradeSize * challenge.downgradeMultiplier;
+            logger.info(
+              `[VincePaperTrading] ${asset} devil's advocate size downgrade to ${Math.round(challenge.downgradeMultiplier * 100)}%`,
+            );
+          }
+        }
+
         // Get current price
         let currentPrice = 0;
         if (marketData) {
@@ -1854,7 +2127,7 @@ Reply format: APPROVE reason or VETO reason`;
         await this.openTrade({
           asset,
           direction: signal.direction as "long" | "short",
-          sizeUsd: finalSize,
+          sizeUsd: finalTradeSize,
           leverage,
           signal: tradeSignal,
           usedPullbackEntry: false,
@@ -1864,6 +2137,12 @@ Reply format: APPROVE reason or VETO reason`;
             regime: sentimentGate.regime,
             adjustmentApplied: sentimentGate.adjustmentApplied,
           },
+          ...(preMortemResult
+            ? { preMortemMeta: this.toFeaturePreMortem(preMortemResult) }
+            : {}),
+          ...(devilMeta ? { devilMeta } : {}),
+          ...(narrativePhase ? { narrativePhase } : {}),
+          ...(immunePattern ? { immunePattern } : {}),
         });
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
@@ -2028,6 +2307,25 @@ Reply format: APPROVE reason or VETO reason`;
       regime: string;
       adjustmentApplied: string;
     };
+    preMortemMeta?: {
+      survivalProbability: number;
+      threshold: number;
+      blocked: boolean;
+      topScenarioId?: string;
+      topScenarioTitle?: string;
+      scenarios: Array<{ id: string; title: string; riskScore: number }>;
+    };
+    devilMeta?: {
+      devilScore: number;
+      alignmentScore: number;
+    };
+    narrativePhase?: NarrativePhase;
+    immunePattern?: {
+      patternId: string;
+      confidence: number;
+      lossRate: number;
+      block: boolean;
+    };
   }): Promise<Position | null> {
     const {
       asset,
@@ -2038,6 +2336,10 @@ Reply format: APPROVE reason or VETO reason`;
       usedPullbackEntry = false,
       contextBucketKeys,
       sentimentMeta,
+      preMortemMeta,
+      devilMeta,
+      narrativePhase,
+      immunePattern,
     } = params;
 
     const positionManager = this.getPositionManager();
@@ -2470,6 +2772,15 @@ Reply format: APPROVE reason or VETO reason`;
               adjustmentApplied: sentimentMeta.adjustmentApplied,
             }
           : {}),
+        ...(preMortemMeta ? { preMortem: preMortemMeta } : {}),
+        ...(devilMeta
+          ? {
+              devilScore: devilMeta.devilScore,
+              alignmentScore: devilMeta.alignmentScore,
+            }
+          : {}),
+        ...(narrativePhase ? { narrativePhase } : {}),
+        ...(immunePattern ? { immunePattern } : {}),
       },
     });
 
@@ -2516,7 +2827,31 @@ Reply format: APPROVE reason or VETO reason`;
     // Record comprehensive features for ML training
     // ==========================================
     if (position) {
-      await this.recordMLFeatures(position, signal, entryATRPct);
+      await this.recordMLFeatures(position, signal, entryATRPct, undefined);
+      const predictionTracker = this.getPredictionTracker();
+      if (predictionTracker) {
+        const predictionId = await predictionTracker.registerPrediction({
+          agent: "VINCE",
+          kind: "trade",
+          direction: direction === "long" ? "long" : "short",
+          confidenceProb: Math.max(
+            0.05,
+            Math.min(0.95, signal.confidence / 100),
+          ),
+          horizonHours: 24,
+          asset,
+          metadata: {
+            positionId: position.id,
+            entryPrice,
+            signalStrength: signal.strength,
+            signalConfidence: signal.confidence,
+          },
+        });
+        position.metadata = {
+          ...(position.metadata ?? {}),
+          predictionId,
+        };
+      }
     }
 
     // ==========================================
@@ -2761,10 +3096,51 @@ Reply format: APPROVE reason or VETO reason`;
         // Get streak info for execution features
         const streakInfo = this.getStreakInfo();
 
+        const preMortemMeta = (
+          position.metadata as
+            | {
+                preMortem?: {
+                  survivalProbability: number;
+                  threshold: number;
+                  blocked: boolean;
+                  topScenarioId?: string;
+                  topScenarioTitle?: string;
+                  scenarios: Array<{
+                    id: string;
+                    title: string;
+                    riskScore: number;
+                  }>;
+                };
+              }
+            | undefined
+        )?.preMortem;
+        const devilScore = (position.metadata as { devilScore?: number } | null)
+          ?.devilScore;
+        const alignmentScore = (
+          position.metadata as { alignmentScore?: number } | null
+        )?.alignmentScore;
+        const narrativePhase = (
+          position.metadata as { narrativePhase?: NarrativePhase } | null
+        )?.narrativePhase;
+        const immunePattern = (
+          position.metadata as {
+            immunePattern?: {
+              patternId: string;
+              confidence: number;
+              lossRate: number;
+              block: boolean;
+            };
+          } | null
+        )?.immunePattern;
         const decisionId = await featureStore.recordDecision({
           asset: position.asset,
           signal: aggSignal,
           ...(wtt && { wtt }),
+          ...(preMortemMeta ? { preMortem: preMortemMeta } : {}),
+          ...(typeof devilScore === "number" ? { devilScore } : {}),
+          ...(typeof alignmentScore === "number" ? { alignmentScore } : {}),
+          ...(narrativePhase ? { narrativePhase } : {}),
+          ...(immunePattern ? { immunePattern } : {}),
         });
 
         // Link the trade to the decision
@@ -2908,6 +3284,28 @@ Reply format: APPROVE reason or VETO reason`;
         );
       }
     }
+  }
+
+  private toFeaturePreMortem(result: PreMortemResult): {
+    survivalProbability: number;
+    threshold: number;
+    blocked: boolean;
+    topScenarioId?: string;
+    topScenarioTitle?: string;
+    scenarios: Array<{ id: string; title: string; riskScore: number }>;
+  } {
+    return {
+      survivalProbability: result.survivalProbability,
+      threshold: result.threshold,
+      blocked: result.blocked,
+      topScenarioId: result.topScenario.id,
+      topScenarioTitle: result.topScenario.title,
+      scenarios: result.scenarios.map((s) => ({
+        id: s.id,
+        title: s.title,
+        riskScore: s.riskScore,
+      })),
+    };
   }
 
   // ==========================================

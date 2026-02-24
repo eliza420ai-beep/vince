@@ -181,8 +181,17 @@ export async function registerCollectiveMemoryTask(
         ].join("\n");
 
         fs.writeFileSync(path.join(briefDir, filename), content);
+        const writtenPath = path.join(briefDir, filename);
+        const verifyExists = fs.existsSync(writtenPath);
+        const verifyBytes = verifyExists ? fs.statSync(writtenPath).size : 0;
+        if (!verifyExists || verifyBytes <= 0) {
+          logger.error(
+            `[CollectiveMemory] Post-write verification failed: ${filename}`,
+          );
+          return;
+        }
         logger.info(
-          `[CollectiveMemory] Brief saved: ${filename} (${learnings.length} agents)`,
+          `[CollectiveMemory] Brief saved: ${filename} (${learnings.length} agents, ${verifyBytes} bytes)`,
         );
 
         // Push summary to ops channels

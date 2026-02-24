@@ -80,6 +80,7 @@ import type {
   VinceMLInferenceService,
   SignalQualityInput,
 } from "./mlInference.service";
+import type { GrokSignalExtractorService } from "./grokSignalExtractor.service";
 
 // Grok Auto-Pulse (daily narrative → paper algo nudge)
 import { loadLatestGrokPulse } from "../utils/grokPulseParser";
@@ -1083,6 +1084,33 @@ export class VinceSignalAggregatorService extends Service {
     // =========================================
     // 5c. Grok Expert Auto-Pulse (daily narrative from knowledge/internal-docs/grok-auto-*.md)
     // =========================================
+    try {
+      const grokExtractor = this.runtime.getService(
+        "VINCE_GROK_SIGNAL_EXTRACTOR",
+      ) as GrokSignalExtractorService | null;
+      if (grokExtractor?.getCachedSignals) {
+        const cached = await grokExtractor.getCachedSignals();
+        const armSignals = cached.filter(
+          (s) => s.asset.toUpperCase() === asset.toUpperCase(),
+        );
+        for (const gs of armSignals) {
+          signals.push({
+            asset,
+            direction: gs.direction,
+            strength: gs.strength,
+            confidence: gs.confidence,
+            source: gs.source,
+            factors: [`${gs.source}: ${gs.details.slice(0, 120)}`],
+            timestamp: gs.timestamp,
+          });
+          sources.push(gs.source);
+          allFactors.push(`${gs.source}: ${gs.details.slice(0, 120)}`);
+        }
+      }
+    } catch (e) {
+      logger.debug(`[VinceSignalAggregator] Grok extractor arm error: ${e}`);
+    }
+
     try {
       const grokPulse = loadLatestGrokPulse(process.cwd());
       if (grokPulse?.researchIdeas?.length) {

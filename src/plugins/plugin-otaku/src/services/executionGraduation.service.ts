@@ -135,6 +135,11 @@ export class ExecutionGraduationService extends Service {
     return this.state.currentLevel;
   }
 
+  /** Alias used by external services (e.g., Vince risk coupling). */
+  getTrustLevel(): TrustLevel {
+    return this.state.currentLevel;
+  }
+
   getLevelIndex(): number {
     return TRUST_LEVELS.indexOf(this.state.currentLevel);
   }

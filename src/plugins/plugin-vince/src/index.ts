@@ -97,6 +97,13 @@ import { VinceCounterfactualService } from "./services/vinceCounterfactual.servi
 import { VinceGenomeService } from "./services/vinceGenome.service";
 import { VincePortfolioConstructionService } from "./services/vincePortfolioConstruction.service";
 import { GrokSignalExtractorService } from "./services/grokSignalExtractor.service";
+import { VincePreMortemService } from "./services/vincePreMortem.service";
+import { VinceWarRoomService } from "./services/vinceWarRoom.service";
+import { PredictionTrackerService } from "./services/predictionTracker.service";
+import { VinceDevilsAdvocateService } from "./services/vinceDevilsAdvocate.service";
+import { VinceNarrativeRadarService } from "./services/vinceNarrativeRadar.service";
+import { VinceTemporalCoherenceService } from "./services/vinceTemporalCoherence.service";
+import { VinceImmuneSystemService } from "./services/vinceImmuneSystem.service";
 
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
@@ -127,6 +134,7 @@ import { vinceWhyTradeAction } from "./actions/vinceWhyTrade.action";
 import { vinceBotAction } from "./actions/bot.action";
 import { vincePostMortemAction } from "./actions/vincePostMortem.action";
 import { vinceSentimentCheckAction } from "./actions/vinceSentimentCheck.action";
+import { vincePredictionCalibrationAction } from "./actions/predictionCalibration.action";
 
 // Actions - Knowledge (ingestion moved to plugin-eliza: UPLOAD, ADD_MICHELIN)
 import { vinceCodeTaskAction } from "./actions/codeTask.action";
@@ -163,6 +171,7 @@ import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
 // Tasks - Phase 5: The Genome (V4.2.0)
 import { registerCounterfactualWeeklyTask } from "./tasks/counterfactualWeekly.tasks";
 import { registerGenomeEvolutionTask } from "./tasks/genomeEvolution.tasks";
+import { registerPredictionValidationTask } from "./tasks/predictionValidation.tasks";
 
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
@@ -238,6 +247,13 @@ export const vincePlugin: Plugin = {
     VinceGenomeService,
     VincePortfolioConstructionService,
     GrokSignalExtractorService,
+    VincePreMortemService,
+    VinceWarRoomService,
+    VinceDevilsAdvocateService,
+    VinceNarrativeRadarService,
+    VinceTemporalCoherenceService,
+    VinceImmuneSystemService,
+    PredictionTrackerService,
   ],
 
   // Actions - focus areas + paper trading bot controls
@@ -265,6 +281,7 @@ export const vincePlugin: Plugin = {
     vinceWhyTradeAction,
     vincePostMortemAction,
     vinceSentimentCheckAction,
+    vincePredictionCalibrationAction,
     vinceBotAction,
     vinceCodeTaskAction,
     vinceGrokExpertAction,
@@ -406,6 +423,60 @@ export const vincePlugin: Plugin = {
           logger.warn(`[VINCE] Debug X sentiment route error: ${err}`);
           res.status(500).json({
             error: "Failed to build debug X sentiment",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+    {
+      name: "vince-prediction-calibration",
+      path: "/vince/prediction-calibration",
+      type: "GET",
+      handler: async (
+        req: {
+          params?: Record<string, string>;
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Prediction calibration requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/prediction-calibration",
+          });
+          return;
+        }
+        try {
+          const tracker = agentRuntime.getService(
+            "VINCE_PREDICTION_TRACKER_SERVICE",
+          ) as PredictionTrackerService | null;
+          if (!tracker) {
+            res.status(503).json({
+              error: "Prediction tracker service unavailable",
+            });
+            return;
+          }
+          const windowRaw = (req.query ?? {})["windowDays"] ?? "30";
+          const windowDays = Math.max(
+            1,
+            Math.min(180, Number.parseInt(String(windowRaw), 10) || 30),
+          );
+          const snapshot = tracker.getCalibrationSnapshot(windowDays);
+          res.json(snapshot);
+        } catch (err) {
+          logger.warn(`[VINCE] Prediction calibration route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build prediction calibration snapshot",
             message: err instanceof Error ? err.message : String(err),
           });
         }
@@ -1132,6 +1203,14 @@ export const vincePlugin: Plugin = {
           await registerGenomeEvolutionTask(runtime);
         } catch (e) {
           logger.warn("[VINCE] Failed to register genome evolution task:", e);
+        }
+        try {
+          await registerPredictionValidationTask(runtime);
+        } catch (e) {
+          logger.warn(
+            "[VINCE] Failed to register prediction validation task:",
+            e,
+          );
         }
       });
     }

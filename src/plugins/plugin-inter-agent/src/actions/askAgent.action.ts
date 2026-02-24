@@ -85,6 +85,27 @@ function getBaseUrl(): string {
   return url.replace(/\/$/, "");
 }
 
+function parsePredictionCalibration(
+  text: string,
+): { brier: number; count: number } | null {
+  const brierMatch = /predictionBrier=([0-9]*\.?[0-9]+)/i.exec(text);
+  const countMatch = /predictionCount=(\d+)/i.exec(text);
+  if (!brierMatch || !countMatch) return null;
+  const brier = Number.parseFloat(brierMatch[1]);
+  const count = Number.parseInt(countMatch[1], 10);
+  if (!Number.isFinite(brier) || !Number.isFinite(count)) return null;
+  return { brier, count };
+}
+
+function calibrationWeight(
+  cal: { brier: number; count: number } | null,
+): number {
+  if (!cal || cal.count <= 0) return 1;
+  const reliability = 1 / (1 + cal.brier);
+  const sampleFactor = Math.min(1, cal.count / 50);
+  return 0.5 + reliability * 0.5 * sampleFactor;
+}
+
 function getAuthHeaders(): Record<string, string> {
   const key = process.env.ELIZAOS_API_KEY || process.env.SERVER_API_KEY || "";
   if (!key) return { "Content-Type": "application/json" };
@@ -463,13 +484,60 @@ export const askAgentAction: Action = {
       const eliza = getElizaOS(runtime);
       if (eliza?.handleMessage) {
         logger.debug("[ASK_AGENT] Using in-process path for " + targetName);
+        let targetWeight = 1;
+        if (targetName.toUpperCase() !== "VINCE") {
+          try {
+            const vinceTarget = eliza.getAgentByName?.("VINCE");
+            const vinceRuntime = vinceTarget?.agentId
+              ? (eliza.getAgent?.(vinceTarget.agentId) as
+                  | IAgentRuntime
+                  | undefined)
+              : undefined;
+            if (
+              vinceTarget?.agentId &&
+              vinceRuntime &&
+              typeof eliza.handleMessage === "function"
+            ) {
+              const calibrationPrompt =
+                "Reply with prediction calibration only in this format: predictionBrier=X predictionCount=X";
+              const calibrationMsg = {
+                ...message,
+                id: crypto.randomUUID(),
+                content: {
+                  text: calibrationPrompt,
+                  source: "ask_agent_weight",
+                },
+              };
+              const calibrationRaw = await Promise.race([
+                eliza.handleMessage(vinceTarget.agentId, calibrationMsg),
+                new Promise<null>((resolve) =>
+                  setTimeout(() => resolve(null), 15000),
+                ),
+              ]);
+              const calibrationText =
+                calibrationRaw != null
+                  ? extractReplyFromHandleMessageResult(calibrationRaw)
+                  : null;
+              targetWeight = calibrationWeight(
+                calibrationText
+                  ? parsePredictionCalibration(calibrationText)
+                  : null,
+              );
+            }
+          } catch {
+            targetWeight = 1;
+          }
+        }
         const sentAt = Date.now();
         const userMsg = {
           id: message.id ?? crypto.randomUUID(),
           entityId: message.entityId,
           roomId: message.roomId,
           content: {
-            text: content,
+            text:
+              targetWeight < 1
+                ? `${content}\n\n[Routing note: targetWeight=${targetWeight.toFixed(2)} from Vince prediction calibration]`
+                : content,
             source: message.content?.source ?? "ask_agent",
           },
           createdAt: message.createdAt ?? Date.now(),
