@@ -25,6 +25,58 @@ function wantsInvestorReport(text: string): boolean {
   return INVESTOR_TRIGGERS.some((t) => lower.includes(t));
 }
 
+function getElizaOS(runtime: IAgentRuntime): any {
+  return (runtime as any).elizaOS ?? null;
+}
+
+async function askAgent(
+  runtime: IAgentRuntime,
+  agentName: string,
+  question: string,
+  timeoutMs = 20000,
+): Promise<string> {
+  const eliza = getElizaOS(runtime);
+  if (!eliza?.getAgents) return "";
+  const agents = await eliza.getAgents();
+  const target = agents?.find(
+    (a: any) =>
+      (a.character?.name ?? "").toUpperCase() === agentName.toUpperCase(),
+  );
+  if (!target) return "";
+  return new Promise<string>((resolve) => {
+    const timer = setTimeout(() => resolve(""), timeoutMs);
+    try {
+      eliza.handleMessage(
+        target.agentId,
+        {
+          id: crypto.randomUUID(),
+          entityId: runtime.agentId,
+          roomId: target.agentId,
+          content: {
+            text: `[To ${agentName}] ${question}`,
+            source: "sentinel_investor_report",
+          },
+          createdAt: Date.now(),
+        },
+        {
+          onResponse: (resp: any) => {
+            clearTimeout(timer);
+            resolve(resp?.content?.text ?? resp?.text ?? "");
+          },
+          onComplete: () => {},
+          onError: () => {
+            clearTimeout(timer);
+            resolve("");
+          },
+        },
+      );
+    } catch {
+      clearTimeout(timer);
+      resolve("");
+    }
+  });
+}
+
 export const sentinelInvestorReportAction: Action = {
   name: "SENTINEL_INVESTOR_REPORT",
   similes: ["SENTINEL_INVESTOR_UPDATE", "INVESTOR_REPORT"],
@@ -88,11 +140,19 @@ export async function generateInvestorBlock(
 ): Promise<string> {
   const state = await runtime.composeState(message);
   const contextBlock = typeof state.text === "string" ? state.text : "";
-  const prompt = `You are Sentinel. From the context below, write a short **investor update** in one paragraph (4–6 sentences, flowing prose, no bullet list): burn/run rate, cost summary (tokens, LLM, Cursor, data APIs), paper bot (say "See Leaderboard → Trading Bot tab" for PnL/trades), and one-line priorities for the week. Do not fabricate—use TREASURY and sentinel-docs only.
+  const vinceCalibration = await askAgent(
+    runtime,
+    "VINCE",
+    "Reply with prediction calibration only in this format: predictionBrier=X predictionCount=X",
+  );
+  const prompt = `You are Sentinel. From the context below, write a short **investor update** in one paragraph (4–6 sentences, flowing prose, no bullet list): burn/run rate, cost summary (tokens, LLM, Cursor, data APIs), paper bot (say "See Leaderboard → Trading Bot tab" for PnL/trades), prediction calibration from Vince (Brier, lower is better), and one-line priorities for the week. Do not fabricate—use TREASURY and sentinel-docs only.
 
 ${NO_AI_SLOP}
 
-Context:\n${contextBlock}`;
+Context:\n${contextBlock}
+
+Vince prediction calibration reply:
+${vinceCalibration || "predictionBrier=n/a predictionCount=0"}`;
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
   return (
     typeof response === "string"

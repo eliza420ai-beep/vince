@@ -120,7 +120,7 @@ export const kellyFlywheelScoreAction: Action = {
       askAgent(
         runtime,
         "VINCE",
-        "Reply with numbers only: VinceBench score, 4-week rolling Sharpe, sentiment accuracy %, genome Sharpe improvement. Format: benchScore=X sharpe=X sentimentAcc=X genomeDelta=X",
+        "Reply with numbers only: VinceBench score, 4-week rolling Sharpe, sentiment accuracy %, genome Sharpe improvement, prediction calibration brier, prediction count. Format: benchScore=X sharpe=X sentimentAcc=X genomeDelta=X predictionBrier=X predictionCount=X",
       ),
       askAgent(
         runtime,
@@ -161,6 +161,14 @@ export const kellyFlywheelScoreAction: Action = {
         0,
       ),
     };
+    const predictionBrier = extractNumber(
+      vinceReply.match(/predictionBrier=(\S+)/)?.[1] ?? "",
+      Number.NaN,
+    );
+    const predictionCount = extractNumber(
+      vinceReply.match(/predictionCount=(\S+)/)?.[1] ?? "",
+      0,
+    );
 
     try {
       const snapshot = await svc.compute(inputs);
@@ -179,6 +187,10 @@ export const kellyFlywheelScoreAction: Action = {
         `| Knowledge Growth | ${snapshot.components.knowledgeGrowth.toFixed(0)} |`,
         `| Engineering Velocity | ${snapshot.components.engineeringVelocity.toFixed(0)} |`,
         `| Genome Improvement | ${snapshot.components.genomeImprovement.toFixed(0)} |`,
+        ``,
+        Number.isFinite(predictionBrier)
+          ? `Prediction calibration (Brier, lower is better): ${predictionBrier.toFixed(4)} (n=${Math.round(predictionCount)})`
+          : `Prediction calibration (Brier): unavailable`,
         ``,
         snapshot.narrative,
         ``,
