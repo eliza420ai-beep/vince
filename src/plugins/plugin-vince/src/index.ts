@@ -91,6 +91,13 @@ import { VinceWeightBanditService } from "./services/weightBandit.service";
 import { VinceSignalSimilarityService } from "./services/signalSimilarity.service";
 import { VinceMLInferenceService } from "./services/mlInference.service";
 
+// Services - Phase 5: The Genome (V4.2.0)
+import { VinceRegimeProfilesService } from "./services/vinceRegimeProfiles.service";
+import { VinceCounterfactualService } from "./services/vinceCounterfactual.service";
+import { VinceGenomeService } from "./services/vinceGenome.service";
+import { VincePortfolioConstructionService } from "./services/vincePortfolioConstruction.service";
+import { GrokSignalExtractorService } from "./services/grokSignalExtractor.service";
+
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
 import { vinceAlohaAction } from "./actions/aloha.action";
@@ -152,6 +159,10 @@ import { registerLifestyleDailyTask } from "./tasks/lifestyleDaily.tasks";
 import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
+
+// Tasks - Phase 5: The Genome (V4.2.0)
+import { registerCounterfactualWeeklyTask } from "./tasks/counterfactualWeekly.tasks";
+import { registerGenomeEvolutionTask } from "./tasks/genomeEvolution.tasks";
 
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
@@ -221,6 +232,12 @@ export const vincePlugin: Plugin = {
     VinceMLInferenceService,
     // On-chain data (Allium API — DEX prices, Hyperliquid without rate limits, chain metrics)
     VinceAlliumService,
+    // Phase 5: The Genome (V4.2.0)
+    VinceRegimeProfilesService,
+    VinceCounterfactualService,
+    VinceGenomeService,
+    VincePortfolioConstructionService,
+    GrokSignalExtractorService,
   ],
 
   // Actions - focus areas + paper trading bot controls
@@ -1075,6 +1092,22 @@ export const vincePlugin: Plugin = {
           await registerHIP3DiscoveryTask(runtime);
         } catch (e) {
           logger.warn("[VINCE] Failed to register HIP-3 discovery task:", e);
+        }
+      });
+    }
+
+    // Phase 5: Counterfactual Engine + Genome Evolution weekly tasks
+    if (isVinceAgent(runtime)) {
+      setImmediate(async () => {
+        try {
+          await registerCounterfactualWeeklyTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register counterfactual task:", e);
+        }
+        try {
+          await registerGenomeEvolutionTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register genome evolution task:", e);
         }
       });
     }

@@ -1,6 +1,6 @@
 # PRD: One Dream — Agent Synergy & the $100K Trading System
 
-**Status:** Phase 1, 2, 3 & 4 Implemented — Phase 5 Spec'd (V4.2.0)  
+**Status:** Phase 1–5 Implemented (V4.2.0)  
 **Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click. **Phase 5** closes the final loop: the system observes itself, evolves its own parameters, and earns the right to trade real money.
 
 ### Implementation status (Phase 1)
@@ -116,14 +116,14 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 22 | Counterfactual Engine | ⬜ | |
-| 23 | Strategy Genome + Auto-Tuning | ⬜ | |
-| 24 | Regime Profiles | ⬜ | |
-| 25 | Intelligence → Signal Source | ⬜ | |
-| 26 | Portfolio Construction | ⬜ | |
-| 27 | Execution Graduation | ⬜ | |
-| 28 | Agent Collective Memory | ⬜ | |
-| 29 | Flywheel Score | ⬜ | |
+| 22 | Counterfactual Engine | ✅ | `vinceCounterfactual.service.ts` + `counterfactualWeekly.tasks.ts`; replays avoided decisions from feature store, quantifies missed PnL by skip-reason, generates tuning recommendations. |
+| 23 | Strategy Genome + Auto-Tuning | ✅ | `vinceGenome.service.ts` + `genomeEvolution.tasks.ts`; 15+ tunable params as JSON genome, weekly mutation → replay → fitness rank → auto-promote. |
+| 24 | Regime Profiles | ✅ | `vinceRegimeProfiles.service.ts`; 5 profiles (TRENDING_BULL, CHOPPY, CAPITULATION, EUPHORIA, RECOVERY), auto-switch from Oracle + Echo + technical regime. Per-profile performance tracking. |
+| 25 | Intelligence → Signal Source | ✅ | `grokSignalExtractor.service.ts`; parses daily Grok reports → structured GrokSignal objects → cached for Thompson Sampling aggregator arm. |
+| 26 | Portfolio Construction | ✅ | `vincePortfolioConstruction.service.ts`; rolling correlation matrix, portfolio heat, Kelly-criterion sizing, opportunity cost vs weakest position. |
+| 27 | Execution Graduation | ✅ | `executionGraduation.service.ts` (plugin-otaku); L0→L3 trust levels, earned by sustained weekly performance, automatic demotion + circuit breaker on 3%+ daily loss. |
+| 28 | Agent Collective Memory | ✅ | `collectiveMemory.tasks.ts` (plugin-sentinel); weekly brief from all 7 agents, LLM synthesis → `knowledge/teammate/weekly-briefs/YYYY-WW.md`. |
+| 29 | Flywheel Score | ✅ | `flywheelScore.service.ts` + `kellyFlywheelScore.action.ts` (plugin-kelly); composite 0–100 health metric, 7 weighted components, trend + narrative. |
 
 ### Suggested file map (Phase 5)
 

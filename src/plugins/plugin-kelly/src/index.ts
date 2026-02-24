@@ -29,6 +29,8 @@ import { lifestyleFeedbackEvaluator } from "./evaluators/lifestyleFeedback.evalu
 import { kellyContextProvider } from "./providers/kellyContext.provider";
 import { weatherProvider } from "./providers/weather.provider";
 import { KellyLifestyleService } from "./services/lifestyle.service";
+import { FlywheelScoreService } from "./services/flywheelScore.service";
+import { kellyFlywheelScoreAction } from "./actions/kellyFlywheelScore.action";
 import {
   registerKellyLifestyleDailyTask,
   registerKellyNudgeTask,
@@ -41,7 +43,7 @@ export const kellyPlugin: Plugin = {
   description:
     "Lifestyle-only concierge: daily briefing, health, dining, hotels, wellness. No trading.",
 
-  services: [KellyLifestyleService],
+  services: [KellyLifestyleService, FlywheelScoreService],
   actions: [
     kellyDailyBriefingAction,
     kellyRecommendPlaceAction,
@@ -61,6 +63,7 @@ export const kellyPlugin: Plugin = {
     kellyWeeklyReviewAction,
     kelly100kPaceAction,
     kellyDraftWeeklyPerformanceAction,
+    kellyFlywheelScoreAction,
   ],
   evaluators: [lifestyleFeedbackEvaluator],
   providers: [kellyContextProvider, weatherProvider],
