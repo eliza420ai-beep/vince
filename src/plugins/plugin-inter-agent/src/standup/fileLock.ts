@@ -6,13 +6,24 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-const LOCK_STALE_MS = 30_000;
-const MAX_RETRIES = 15;
-const RETRY_DELAY_MS = 100;
+const LOCK_STALE_MS = 10_000;
+const MAX_RETRIES = 50;
+const BASE_DELAY_MS = 50;
+const MAX_DELAY_MS = 2_000;
+
+function retryDelay(attempt: number): number {
+  const exponential = Math.min(
+    BASE_DELAY_MS * Math.pow(2, attempt),
+    MAX_DELAY_MS,
+  );
+  const jitter = Math.random() * BASE_DELAY_MS;
+  return exponential + jitter;
+}
 
 /**
  * Run fn with an exclusive lock on filepath. Lock file is filepath + ".lock".
- * Creates lock file with 'wx'; if EEXIST, checks staleness and retries.
+ * Creates lock file with 'wx'; if EEXIST, checks staleness and retries
+ * with exponential backoff + jitter.
  */
 export async function withLock<T>(
   filepath: string,
@@ -36,12 +47,17 @@ export async function withLock<T>(
             await fs.unlink(lockPath);
           }
         } catch {
-          // ignore stat/unlink errors
+          // lock disappeared between check and unlink — next attempt will succeed
         }
         if (attempt < MAX_RETRIES - 1) {
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+          await new Promise((r) => setTimeout(r, retryDelay(attempt)));
           continue;
         }
+        // All retries exhausted — force-remove in case of orphaned lock
+        await fs.unlink(lockPath).catch(() => {});
+        throw new Error(
+          `[Standup] Could not acquire lock for ${path.basename(filepath)} after ${MAX_RETRIES} attempts — removed stale lock`,
+        );
       }
       throw err;
     }
@@ -54,6 +70,6 @@ export async function withLock<T>(
   }
 
   throw new Error(
-    `[Standup] Could not acquire lock for ${filepath} after ${MAX_RETRIES} attempts`,
+    `[Standup] Could not acquire lock for ${path.basename(filepath)} after ${MAX_RETRIES} attempts`,
   );
 }

@@ -1,0 +1,262 @@
+# VINCE — Full Reference for AI Assistants
+
+> A self-evolving multi-agent trading system built on ElizaOS. Ten AI agents collaborate on options, perps, memes, DeFi, lifestyle, and generative art — with a self-improving paper trading bot at the core. The system evolves its own trading strategy weekly. No hype, no shilling, no timing the market.
+
+---
+
+## What Is VINCE
+
+VINCE is a unified data-intelligence multi-agent system. One team of ten agents handles research, trading signals, sentiment analysis, prediction markets, options planning, DeFi execution, lifestyle concierge, and engineering ops. A self-improving paper trading bot sits at the center: it collects 15+ signal sources, trades 38 onchain assets as Hyperliquid perps, stores 40+ features per decision in a feature store, trains ONNX models, and evolves its own parameters weekly through a strategy genome.
+
+The goal: $100K/year from on-chain options and perps, with the system improving itself every week. Stay in the game without 12+ hours on screens. Push, not pull.
+
+### Five Levels of Autonomous Investing
+
+| Level | Name | Edge |
+|-------|------|------|
+| 1 | Manual | Information scarcity, human judgment |
+| 2 | Algorithmic | Pre-defined rules, speed and discipline |
+| 3 | Automated | Integrated workflows, reduced friction |
+| 4 | Autonomous | ML models that update on new data |
+| 5 | Agentic AI | Plans, acts, monitors, self-corrects |
+
+VINCE is built at Level 5.
+
+---
+
+## The Team (10 Agents)
+
+| Agent | Role | What They Do |
+|-------|------|-------------|
+| **Eliza** | CEO | Knowledge expansion, research, brainstorm, Substack content production. Handoffs for live data to VINCE. |
+| **VINCE** | CDO | Objective data: options, perps, memes, news, paper bot, 15+ signal sources. ALOHA = vibe check + PERPS + OPTIONS + "trade today?" One command for the full picture. |
+| **ECHO** | CSO | Crypto Twitter sentiment, X research, social alpha, contrarian flags. Provides 1–10 sentiment scores and bull/bear labels to VINCE for position sizing. |
+| **Oracle** | CPO | Polymarket discovery, odds, portfolio (read-only). Provides risk-on/risk-off/uncertain regime indicators. Latency arb engine for spot vs prediction market spreads. |
+| **Solus** | CFO | Hypersurface options: strike ritual, mechanics, optimal strike calculation. Weekly BTC options. Receives Vince strike suggestions automatically. No execution. |
+| **Otaku** | COO | Only agent with a funded wallet. Swap, bridge, DCA, Morpho, CDP, Bankr, stop-loss, NFT mint. Execution graduation: earns trust through L0 (paper) → L1 (notify) → L2 (confirm) → L3 (auto-execute). |
+| **Kelly** | CVO | Lifestyle concierge: hotels, fine dining, wine, health, fitness. Standup facilitator. Reports the flywheel score. Never gives trading advice. Self-modification via plugin-personality. |
+| **Sentinel** | CTO | Core dev: PRDs, project radar, impact suggestions, OpenClaw guide, cost status, ART (generative art). Weekly + optional daily tasks. Collective memory. |
+| **Naval** | — | Philosophy, mental models, standup conclusions. One thesis, one signal, one team one dream. |
+| **Clawterm** | — | OpenClaw research terminal: AI agent skills, Milaidy, ElizaOS setup tips, trending. |
+
+One conversation — ask any teammate by name. Standups 2x/day.
+
+---
+
+## What Shipped
+
+### V4.2.0 — The Genome (Current Release, Feb 2026)
+
+The largest release in VINCE history. Nine agents, five phases, 29 tasks. The system went from isolated agents to a self-evolving trading organism.
+
+#### Strategy Genome
+All 15+ tunable parameters (minStrength, minConfidence, sentiment gate thresholds, TP/SL ratios, size multipliers, session/regime multipliers, maxLeverage, maxSimultaneousPositions) represented as a JSON genome. Weekly cycle: load feature store history, evaluate current genome fitness (Sharpe × win-rate / max-drawdown), generate 8 mutations, replay each against history, rank by fitness, promote if top variant beats current by >5%. Generation history persisted in `genome_history.jsonl`.
+
+#### Regime Profiles
+Five market personalities with auto-switching:
+
+| Profile | Trigger | Behavior |
+|---------|---------|----------|
+| TRENDING_BULL | Oracle risk-on + Echo bullish + tech trending | Full size, wider TP, favor longs |
+| CHOPPY | Any sentiment + tech ranging | Half size, tight TP, higher minConfidence |
+| CAPITULATION | Oracle risk-off + Echo bearish + DVOL > 80 | Skip longs, minimal size, accumulation mode |
+| EUPHORIA | Oracle risk-on + Echo strongly bullish (>8) | Contrarian: reduce longs, tighten stops |
+| RECOVERY | Oracle risk-on + Echo neutral + tech trending | Gradual re-entry, conservative sizing |
+
+#### Counterfactual Engine
+For every avoided trade, what happened to that asset in the next 24–48 hours? Weekly report quantifies missed opportunity cost by skip-reason. Feeds the Strategy Genome with direction to mutate.
+
+#### Portfolio Construction
+Rolling correlation matrix across open positions (30-day window). Portfolio heat = sum of position risk as % of equity. Kelly-criterion sizing from per-source win rate + avg win/loss. Opportunity cost analysis: new trade's expected Sharpe vs weakest open position. Max simultaneous positions based on regime profile.
+
+#### Execution Graduation
+Four trust levels earned through sustained performance:
+- L0 PAPER_ONLY (default)
+- L1 NOTIFY (win rate > 50% for 2 consecutive weeks)
+- L2 CONFIRM_EXECUTE (WR > 55% + Sharpe > 0.5 for 4 weeks)
+- L3 AUTO_EXECUTE (WR > 58% + Sharpe > 1.0 + DD < 10% for 8 weeks)
+
+Demotion: live WR < 45% for 2 weeks → drop one level. Circuit breaker: single-day loss > 3% → immediate drop to L0 + user notification. Rolling windows, not cumulative.
+
+#### Flywheel Score
+Composite 0–100 system health metric:
+- Signal quality (VinceBench): 25%
+- Trade performance (4-week rolling Sharpe): 25%
+- Sentiment accuracy (Echo/Oracle vs outcome): 15%
+- Content output (drafts + uploads/week): 10%
+- Knowledge growth (new items/week): 10%
+- Engineering velocity (features shipped): 10%
+- Genome improvement (gen-over-gen Sharpe delta): 5%
+
+Kelly reports: "Flywheel Score: 72 (+4). Signal quality and genome driving gains; content output is the bottleneck."
+
+#### Collective Memory
+Weekly Sentinel task queries all agents for "What did you learn this week?" via ASK_AGENT. LLM synthesizes into a 500-word Weekly Intelligence Brief, saved to shared knowledge. All agents load it. Institutional memory compounds over time.
+
+#### Grok Intelligence
+After each daily Grok sub-agent run, structured recommendations (asset, direction, confidence, thesis) are extracted. Registered as a Thompson Sampling arm `GrokIntelligence`. When Grok-sourced signals outperform, the weight bandit auto-promotes. Research becomes alpha.
+
+### Prior Releases
+- Paper bot ML loop (feature store, ONNX, VinceBench)
+- HIP-3 spot tokens alongside Hyperliquid perps
+- Polymarket edge engine (three strategies, Kelly-sized)
+- Zero AI slop across all ten agents
+- Leaderboard with cost transparency
+- Cross-agent signal handoffs (Echo sentiment → Vince risk, Oracle odds → position sizing)
+- Content flywheel (Eliza publishing real results to Substack)
+
+---
+
+## Paper Trading Bot
+
+The paper bot runs 24/7: 15+ signal sources, 38 onchain assets (crypto, stocks, commodities, indices) as Hyperliquid perps. Every open position shows strength, confidence, sources, and R:R. Every close feeds the feature store and ML loop.
+
+### Signal Sources
+Thompson Sampling multi-armed bandit aggregator. Sources include technical analysis, sentiment (Echo), regime indicators (Oracle), Grok intelligence, and more. Each source earns weight through performance. The bandit explores new sources and exploits proven ones.
+
+### Feature Store
+40+ features per decision: signal strength, confidence, sentiment at entry, regime, technical indicators, VinceBench score, outcome, PnL. Stored locally and optionally synced to Supabase.
+
+### ML Pipeline
+1. Feature store collects 40+ features per trade decision
+2. Python training scripts run on closed trades (min 90)
+3. Four ONNX models: signal quality, position sizing, TP optimizer, SL optimizer
+4. Models deploy back to TypeScript runtime
+5. VinceBench scores every closed trade on process quality
+6. Strategy genome mutates parameters weekly based on replay fitness
+
+### HIP-3 Assets
+Stocks, commodities, and indices on Hyperliquid. Capped at 5x leverage in code. Auto-discovery: daily task scans HIP-3 DEXes, keeps symbols above volume threshold, adds new candidates.
+
+---
+
+## Polymarket
+
+Oracle runs a latency arb engine: Binance spot and Polymarket CLOB in real time, implied probability from binary contracts, edge above threshold, Kelly-sized paper trades. No execution by default. The goal is proving the edge exists before risking capital.
+
+---
+
+## Cross-Agent Signal Flow
+
+```
+Echo (sentiment 1-10) ──→ Vince (sentiment gate: size/skip)
+Oracle (risk-on/off) ──→ Vince (regime profile selection)
+Vince (options data) ──→ Solus (strike suggestion, no copy/paste)
+Vince (signal + confidence) ──→ Otaku (execution graduation check)
+Vince (performance) ──→ Eliza (content from real numbers)
+All agents ──→ Kelly (weekly review, flywheel score)
+All agents ──→ Sentinel (collective memory, PRDs from patterns)
+```
+
+No copy/paste between agents. Structured data flows through providers and cache.
+
+---
+
+## Architecture
+
+### Tech Stack
+- **Runtime:** ElizaOS (multi-agent framework)
+- **Package manager:** Bun
+- **Database:** PGLite (local) or PostgreSQL (production)
+- **ML:** Python training → ONNX deployment → TypeScript inference
+- **APIs:** Hyperliquid, Polymarket, Hypersurface, CoinGecko, Tavily, X/Twitter, Grok
+
+### Project Structure
+```
+vince/
+├── src/
+│   ├── index.ts          # Entry; loads project agents
+│   ├── agents/           # Character definitions (one file per agent)
+│   └── plugins/
+│       ├── plugin-vince/     # Paper bot, ALOHA, options, perps, ML
+│       ├── plugin-eliza/     # Knowledge, content production
+│       ├── plugin-kelly/     # Lifestyle, flywheel score
+│       ├── plugin-otaku/     # DeFi execution, graduation
+│       ├── plugin-sentinel/  # PRDs, cost, collective memory
+│       ├── plugin-solus/     # Options, strike ritual
+│       ├── plugin-polymarket-discovery/
+│       ├── plugin-x-research/  # X pulse, vibe, watchlist
+│       └── plugin-inter-agent/ # ASK_AGENT, standup
+├── knowledge/            # RAG / teammate context
+├── docs/                 # Project and agent docs
+├── tasks/                # Plans, lessons, backlogs
+└── scripts/              # Build, deploy, ML training
+```
+
+### Brand Voice (All Agents)
+- Benefit-led (Apple-style): lead with what the user gets
+- Confident and craft-focused (Porsche OG): substance over hype
+- Zero AI slop: no leverage, utilize, streamline, robust, cutting-edge, synergy, paradigm, holistic, delve, landscape, certainly, great question — full banned word list enforced across all agents
+
+---
+
+## Getting Started
+
+```bash
+bun install
+cp .env.example .env   # add API keys
+bun start              # production
+# or
+elizaos dev            # hot-reload
+```
+
+Web UI on http://localhost:5173. API on port 3000.
+
+### Minimum Requirements
+- One of: OPENAI_API_KEY or ANTHROPIC_API_KEY
+- For multi-agent Discord: one Discord app per agent
+
+---
+
+## What VINCE Does NOT Do
+
+- Does not execute trades with real money by default (paper trading only; execution graduation required)
+- Does not provide financial advice — data intelligence, not recommendations
+- Does not run on-chain smart contracts — uses exchange APIs (Hyperliquid, Polymarket, Hypersurface)
+- Not a wallet or custodial service — Otaku has one funded wallet for DeFi execution only
+- Not a token or protocol — it is software that reads markets and trades on paper
+- Does not guarantee returns — systematic approach to reduce human bias, not a money printer
+
+---
+
+## Key Concepts
+
+| Concept | What It Means |
+|---------|--------------|
+| Push, not pull | The system pings you with intel. You do not have to ask. |
+| ALOHA | One command: vibe check + PERPS + OPTIONS + "trade today?" |
+| Strategy genome | All tunable parameters as JSON; mutates weekly, replays, auto-promotes best variant |
+| Regime profiles | Five market personalities that auto-switch risk limits and sizing |
+| Execution graduation | Earn the right to trade real money through sustained paper performance |
+| Flywheel score | Composite 0–100 health metric across all system dimensions |
+| VinceBench | Process quality score for every closed trade |
+| Thompson Sampling | Multi-armed bandit for signal source weighting |
+| Three curves | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot. Right = Solus options + ship code. |
+| One team, one dream | All feature work aligns with the $100K/year trading system goal |
+
+---
+
+## Roadmap (Phase 6 — Spec'd, Not Shipped)
+
+Phase 6 turns the system from smart to unkillable:
+- Pre-mortems: forward simulation before every trade entry
+- Monte Carlo war room: 10K path simulations for portfolio scenarios
+- Internal prediction market: agents bet on trade outcomes, tracked for calibration
+- Devil's Advocate protocol: adversarial challenge on every high-conviction signal
+- Narrative radar: detect when a thesis is crowded vs contrarian
+- Temporal coherence: ensure signals across timeframes agree before sizing up
+- Immune system: auto-quarantine malfunctioning agents or signal sources
+- Dead-end elimination: kill strategies that plateau after N generations
+
+---
+
+## Links
+
+- Repository: https://github.com/IkigaiLabsETH/vince
+- Releases: https://github.com/IkigaiLabsETH/vince/releases
+- ElizaOS: https://github.com/elizaos/eliza
+- One Dream PRD: https://github.com/IkigaiLabsETH/vince/blob/main/docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md
+
+---
+
+Built with ElizaOS. No hype. No permission. No exit.

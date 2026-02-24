@@ -1,41 +1,54 @@
 /**
  * Post-mortem writer: when a paper trade closes at a loss, ask Echo, Oracle, Solus
- * via in-process ASK_AGENT and write a structured markdown file under docs/standup/post-mortems/.
+ * via direct useModel (bypass shouldRespond/IGNORE) and write a structured markdown
+ * file under docs/standup/post-mortems/.
  * PRD: One Dream — Agent Synergy (§5.4, Phase 2).
  */
 
 import type { IAgentRuntime } from "@elizaos/core";
-import { logger } from "@elizaos/core";
+import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import type { Position } from "../types/paperTrading";
 import { getElizaOS } from "../../../plugin-inter-agent/src/types";
 
-const TIMEOUT_MS = 20_000;
+const TIMEOUT_MS = 60_000;
 
-function extractReply(content: unknown): string {
-  if (!content || typeof content !== "object") return "";
-  const c = content as Record<string, unknown>;
-  const text =
-    typeof c.text === "string"
-      ? c.text
-      : typeof (c as { message?: string }).message === "string"
-        ? (c as { message: string }).message
-        : "";
-  if (text.trim()) return text.trim();
-  if (typeof c.thought === "string" && c.thought.trim())
-    return (c.thought as string).trim();
-  return "";
-}
-
+/**
+ * Ask an agent for post-mortem feedback using direct useModel (same approach as
+ * standup round-robin). Falls back to handleMessage if the agent runtime is
+ * not available, but WITHOUT the .then() race condition.
+ */
 async function askAgent(
   eliza: NonNullable<ReturnType<typeof getElizaOS>>,
   agentId: string,
   agentName: string,
   question: string,
-  roomId: string,
-  entityId: string,
 ): Promise<string> {
+  // Direct path: useModel bypasses shouldRespond / IGNORE
+  const getAgent = eliza.getAgent?.bind?.(eliza) ?? eliza.getAgent;
+  const agentRuntime = getAgent?.(agentId);
+  if (agentRuntime?.useModel) {
+    try {
+      const prompt = `You are ${agentName}. A teammate (Vince) is asking you for trade post-mortem feedback. Answer in 2–4 sentences from your domain expertise. Be specific and direct.\n\nQuestion: ${question}`;
+      const resp = await agentRuntime.useModel(ModelType.TEXT_SMALL, {
+        prompt,
+        maxTokens: 200,
+        temperature: 0.7,
+      });
+      const text = String(resp ?? "").trim();
+      if (text) return text;
+    } catch (err) {
+      logger.warn(
+        { err, agentName },
+        "[VincePostMortem] Direct useModel failed; falling back to handleMessage.",
+      );
+    }
+  }
+
+  // Fallback: handleMessage without .then() race condition
+  const roomId = crypto.randomUUID();
+  const entityId = crypto.randomUUID();
   const content = `[To ${agentName} — you are being asked for a trade post-mortem. Answer in 2–4 sentences.][From Vince]: ${question}`;
   const userMsg = {
     id: crypto.randomUUID(),
@@ -50,36 +63,60 @@ async function askAgent(
     const timeoutId = setTimeout(() => {
       if (settled) return;
       settled = true;
+      logger.warn(
+        `[VincePostMortem] ${agentName} timed out after ${TIMEOUT_MS}ms`,
+      );
       resolve("");
     }, TIMEOUT_MS);
 
     const onResponse = (resp: unknown) => {
       if (settled) return;
-      const reply = extractReply(resp);
-      if (reply) {
+      if (!resp || typeof resp !== "object") return;
+      const c = resp as Record<string, unknown>;
+      const text =
+        typeof c.text === "string"
+          ? c.text.trim()
+          : typeof c.message === "string"
+            ? (c.message as string).trim()
+            : typeof c.thought === "string"
+              ? (c.thought as string).trim()
+              : "";
+      if (text) {
         settled = true;
         clearTimeout(timeoutId);
-        resolve(reply);
+        resolve(text);
       }
     };
 
     eliza
       .handleMessage(agentId, userMsg, {
         onResponse,
-        onComplete: () => {},
-        onError: () => {},
+        onComplete: () => {
+          // Only resolve if onResponse never fired
+          if (!settled) {
+            settled = true;
+            clearTimeout(timeoutId);
+            resolve("");
+          }
+        },
+        onError: (err: Error) => {
+          if (!settled) {
+            settled = true;
+            clearTimeout(timeoutId);
+            logger.warn(
+              `[VincePostMortem] ${agentName} handleMessage error: ${err.message}`,
+            );
+            resolve("");
+          }
+        },
       })
-      .then(() => {
+      .catch((err: unknown) => {
         if (!settled) {
           settled = true;
           clearTimeout(timeoutId);
-          resolve("");
-        }
-      })
-      .catch(() => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timeoutId);
+          logger.warn(
+            `[VincePostMortem] ${agentName} handleMessage rejected: ${err}`,
+          );
           resolve("");
         }
       });
@@ -95,7 +132,7 @@ export async function runPostMortem(
   closedPosition: Position,
 ): Promise<void> {
   const eliza = getElizaOS(runtime);
-  if (!eliza?.getAgentByName || !eliza.handleMessage) {
+  if (!eliza) {
     logger.debug(
       "[VincePostMortem] elizaOS not available; skipping post-mortem.",
     );
@@ -112,10 +149,6 @@ export async function runPostMortem(
   const exitPrice = closedPosition.markPrice;
   const sizeUsd = closedPosition.sizeUsd;
   const leverage = closedPosition.leverage ?? 1;
-
-  // Synthetic room/entity for in-process ask (no DB required)
-  const roomId = crypto.randomUUID();
-  const entityId = crypto.randomUUID();
 
   const tradeSummary = `${asset} ${direction} closed ${closeReason}: entry $${entryPrice.toFixed(2)} → exit $${exitPrice.toFixed(2)}, P&L $${pnl.toFixed(2)} (${sizeUsd} USD, ${leverage}x).`;
 
@@ -136,20 +169,13 @@ export async function runPostMortem(
 
   const replies: { agent: string; reply: string }[] = [];
   for (const q of queries) {
-    const target = eliza.getAgentByName(q.name);
+    const target = eliza.getAgentByName?.(q.name);
     const agentId = target?.agentId ?? (target as { id?: string })?.id;
     if (!agentId) {
       replies.push({ agent: q.name, reply: "(agent not available)" });
       continue;
     }
-    const reply = await askAgent(
-      eliza,
-      agentId,
-      q.name,
-      q.question,
-      roomId,
-      entityId,
-    );
+    const reply = await askAgent(eliza, agentId, q.name, q.question);
     replies.push({ agent: q.name, reply: reply || "(no reply)" });
   }
 
