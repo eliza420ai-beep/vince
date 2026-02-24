@@ -49,3 +49,4 @@
 | 2026-02-23 | Fear index hit 5, BTC down 4%, but weak conviction signals (66% short, flat fund | [View](day-reports/2026-02-23-day-report.md) |
 | 2026-02-23 | Fear index hit 5 (extreme), BTC down 4.3% to $64.7K, but we're holding both stri | [View](day-reports/2026-02-23-day-report.md) |
 | 2026-02-24 | Fear index crashed to 8, BTC testing $63K support, but we're positioned right—ho | [View](day-reports/2026-02-24-day-report.md) |
+| 2026-02-24 | Fear index at 8 but BTC flat at 64.4K—classic setup day with ETF outflows maskin | [View](day-reports/2026-02-24-day-report.md) |

@@ -119,3 +119,6 @@
 
 - Clawterm → Sentinel: Cross-link Skills Discovery CLI sprint candidate with Phase 6 adversarial testing framework.
 - Eliza: Close the gap between ClawTerm roadmap and real perps/options pain points in execution terminals.
+## 2026-02-24
+
+- Clawterm → Sentinel: Cross-link '5 Essential Skills Starter Pack' build to Sentinel for sprint coordination.
