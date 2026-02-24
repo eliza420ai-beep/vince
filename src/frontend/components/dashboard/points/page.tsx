@@ -12,7 +12,6 @@ import {
 } from "@/frontend/components/ui/tabs";
 import { elizaClient } from "@/frontend/lib/elizaClient";
 import type { RebelRanking } from "@/frontend/types/dashboard";
-import type { LeaderboardEntry } from "@elizaos/api-client";
 import { Trophy, RefreshCw, Copy, Check } from "lucide-react";
 import { UUID } from "@elizaos/core";
 
@@ -44,6 +43,15 @@ const gamificationClient = (
 
 interface PointsPageProps {
   agentId: UUID;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  points: number;
+  level: number;
+  levelName: string;
+  username: string;
+  avatar?: string;
 }
 
 // Available default avatars for randomization

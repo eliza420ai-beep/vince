@@ -1,18 +1,18 @@
-# Post-mortem: SILVER short (stop_loss)
+# Post-mortem: SILVER long (stop_loss)
 
 **Date:** 2026-02-24
-**Trade:** SILVER short closed stop_loss: entry $86.27 → exit $87.67, P&L $-148.56 (8885.333333333334 USD, 20x).
+**Trade:** SILVER long closed stop_loss: entry $88.09 → exit $86.76, P&L $-248.68 (15974.400000000001 USD, 20x).
 
 ## Agent feedback
 
 ### Echo
 
-I didn't have a live CT vibe on SILVER going into that trade — precious metals aren't my focus lane (I track crypto: BTC, ETH, SOL, macro, geopolitics). **ASK_AGENT VINCE** would be the right call for post-mortem on a non-crypto short, since he owns the TA/execution side and would have the context on what drove the entry thesis. That said: if you want me to run a quick X_PULSE on "silver" or "SILVER trade" sentiment to see if CT was warning beforehand, I can do that — but my read would be noisy (not my lane). What would help more: his take on the setup, or a CT sentiment check?
+I didn't run a sentiment check on SILVER before your entry, so I can't give you a clean "I warned you" or "surprise loss" read—that's on me for not being proactive. **However:** SILVER futures aren't in my CT lane (I track BTC, ETH, SOL, macro, HIP-3 stocks), so even if I had run X_PULSE, you'd get noise, not signal. For commodity plays like this, you'd want to cross-check macro sentiment (Fed policy, USD strength, inflation expectations) *plus* your TA—my X vibe would've been a secondary confirmation at best, not a primary thesis filter. Next time, flag the ticker upfront and I'll tell you if CT has a take worth weighing.
 
 ### Oracle
 
-SILVER was neutral to slightly risk-on in our regime at entry—no hard caution signal from the macro vibe. The real miss: you caught a liquidation cascade (common in 20x perps on intraday moves), not a regime break. Pull the Polymarket macro sentiment around precious metals / inflation hedges at that timestamp and cross it with your entry time—if macro was priced risk-off (bonds rallying, real yields up), a short made sense, but 140bps in 20x is brutal execution friction, not prediction error. Next time, check if the move was vol-driven or fundamental; if vol, size down or use options (Solus can help with a tighter strike). The trade logic was sound; the leverage-to-move ratio wasn't.
+SILVER was neutral-to-bullish on Polymarket leading into your entry—no major macro risk-off signal flashing. The move down $1.33 (1.5%) into your stop is typical whipsaw on a 20x levered perp, especially if macro sentiment shifted intraday or you caught a liquidity dip. Pull the exact market (e.g. "Will silver close above $90 by Friday?") and I can check what the odds were saying at your entry time—that'll tell us if Poly was pricing in downside risk you missed, or if this was just bad luck on timing. Either way, 15K notional on 20x is tight risk; Solus would want to see your strike thesis for next time.
 
 ### Solus
 
-This was a **direction miss, not a mechanics problem.** You sized correctly for the notional ($8.8K on 20x is reasonable for paper), and spot moved against you ~1.6% — that's a clean stop hit, not a blowup. From options lens: if you'd sold SILVER calls/puts instead of going long perps, the same directional miss would've cost premium but you'd own theta decay working *for* you on the other side. **The real lesson:** SILVER's vol structure might favor selling premium (puts at support, calls at resistance) over directional longs — less whipsaw, income at every expiry. Keep the sizing discipline; consider the product mix next time.
+**This was pure directional miss, not mechanics.** On a 20x perp with $15.9K notional, you're betting spot moves; options would've let you define risk upfront (premium paid = max loss, known at entry). The $1.33 move against you (1.5% from entry) is normal volatility—silver's IV typically 25-35%, so a $88 entry could easily see ±2-3% intraday. **Call:** If you're paper-testing directional conviction on commodities, consider sizing down to 5-10x first, or switch to Hypersurface weekly options on SILVER (if available) where you'd sell puts/calls and collect premium instead of betting spot direction. You'd have defined risk and theta working for you.

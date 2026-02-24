@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import type { Transaction } from "@elizaos/api-client";
 import { elizaClient } from "@/frontend/lib/elizaClient";
 import {
   fetchOtakuAlerts,
@@ -23,6 +22,20 @@ export interface NotificationItem {
   source?: "wallet" | "alert" | "event";
 }
 
+interface WalletTransaction {
+  chain: string;
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  asset: string;
+  category: string;
+  timestamp: number;
+  blockNum: string;
+  explorerUrl: string;
+  direction: "sent" | "received";
+}
+
 function formatAmount(value: string): string {
   const amount = parseFloat(value || "0");
   let s = amount.toFixed(4);
@@ -40,7 +53,7 @@ function formatRelativeTime(timestampMs: number): string {
   return new Date(timestampMs).toLocaleDateString();
 }
 
-function mapTransactionToItem(tx: Transaction): NotificationItem {
+function mapTransactionToItem(tx: WalletTransaction): NotificationItem {
   const timeMs = tx.timestamp * 1000;
   const amountStr = formatAmount(tx.value);
   const category = (tx.category || "").toLowerCase();

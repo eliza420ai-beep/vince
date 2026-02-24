@@ -464,19 +464,22 @@ function App() {
       }
       // Filter out stale agents that were removed from the project but persist in the DB
       const agents = allAgents.filter(
-        (a) => !REMOVED_AGENTS.has((a.name ?? "").toUpperCase()),
+        (a: { name?: string | null }) =>
+          !REMOVED_AGENTS.has((a.name ?? "").toUpperCase()),
       );
       // Sort so all agents (including Kelly) appear in a consistent order in the switcher
       const orderMap = new Map(
         AGENT_DISPLAY_ORDER.map((name, i) => [name.toUpperCase(), i]),
       );
-      return [...agents].sort((a, b) => {
-        const aName = (a.name ?? "").toUpperCase();
-        const bName = (b.name ?? "").toUpperCase();
-        const aIdx = orderMap.get(aName) ?? 999;
-        const bIdx = orderMap.get(bName) ?? 999;
-        return aIdx - bIdx || (aName < bName ? -1 : aName > bName ? 1 : 0);
-      });
+      return [...agents].sort(
+        (a: { name?: string | null }, b: { name?: string | null }): number => {
+          const aName = (a.name ?? "").toUpperCase();
+          const bName = (b.name ?? "").toUpperCase();
+          const aIdx = orderMap.get(aName) ?? 999;
+          const bIdx = orderMap.get(bName) ?? 999;
+          return aIdx - bIdx || (aName < bName ? -1 : aName > bName ? 1 : 0);
+        },
+      );
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: 8, // Retry up to 8 times (e.g. every 2s = ~16s wait for backend)
