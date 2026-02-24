@@ -1,0 +1,25 @@
+{
+  "date": "2026-02-24",
+  "thesis": "SOL outperforms ETH this week as Solana's memecoin infrastructure gains momentum while Ethereum stalls on L2 fragmentation concerns.",
+  "primaryTicker": "SOL",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 76.54,
+  "primaryRiskUsd": 150,
+  "invalidateCondition": "SOL breaks below $72",
+  "killConditions": [
+    "BTC < $60k",
+    "SOL breaks below $72",
+    "Ethereum announces major update"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "ETH",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 4
+}
