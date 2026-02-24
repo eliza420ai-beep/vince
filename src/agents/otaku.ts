@@ -19,7 +19,7 @@ import { etherscanPlugin } from "../plugins/plugin-etherscan/src/index.ts";
 import { meePlugin } from "../plugins/plugin-biconomy/src/index.ts";
 import { defiLlamaPlugin } from "../plugins/plugin-defillama/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
-import { erc8004Plugin } from "@elizaos/plugin-8004";
+import { erc8004Plugin } from "../plugins/plugin-erc8004/src/index.ts";
 
 const hasCdp = !!(
   process.env.CDP_API_KEY_ID?.trim() &&
