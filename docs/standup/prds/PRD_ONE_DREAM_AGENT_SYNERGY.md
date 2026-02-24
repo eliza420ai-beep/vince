@@ -1,7 +1,7 @@
 # PRD: One Dream — Agent Synergy & the $100K Trading System
 
-**Status:** Phase 1, 2, 3 & 4 Implemented  
-**Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click.
+**Status:** Phase 1, 2, 3 & 4 Implemented — Phase 5 Spec'd (V4.2.0)  
+**Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click. **Phase 5** closes the final loop: the system observes itself, evolves its own parameters, and earns the right to trade real money.
 
 ### Implementation status (Phase 1)
 
@@ -74,6 +74,131 @@
 | 19 | Weekly performance content | ✅ | `KELLY_DRAFT_WEEKLY_PERFORMANCE` action; asks Eliza to draft Substack + 3–5 tweets from this week's trading (trading performance context). |
 | 20 | Sentiment accuracy tracking | ✅ | At close: `sentimentCorrect` computed from sentiment at entry vs outcome; stored on journal exit. `getSentimentAccuracy()` on journal for reporting. |
 | 21 | Go-live readiness checklist | ✅ | `OTAKU_READY_TO_EXECUTE` action + "Ready to execute?" chip; aggregates paper bot stats + Echo sentiment + Vince signal; confirm to execute. |
+
+---
+
+## Phase 5 — The Genome: Self-Evolving Trading System (V4.2.0)
+
+**Theme:** The system observes itself, hypothesizes improvements, tests them against its own history, and deploys the best version of itself — every week, automatically. Phases 1–4 connected the agents into a team. Phase 5 makes the team **self-evolving**.
+
+**Core insight:** The feature store has 40+ features per decision including avoided decisions. VinceBench scores decision quality. Thompson Sampling adapts source weights. Training produces ONNX models + improvement reports + suggested tuning. Post-mortems diagnose losses. Sentiment accuracy tracks whether Echo/Oracle help. All the data exists — nobody acts on it automatically. Phase 5 closes that loop.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 22 | **Counterfactual Engine** | Vince | P0 | Weekly task: for every avoided decision, fetch what happened to that asset in the next 24–48h. Compare "trades we took" vs "trades we skipped." Output: "You were right to skip 73% — but missed 4 winners worth +$840. Min_strength is 6 pts too high in trending-bull regimes." Feeds the Strategy Genome (#23) with direction to mutate. |
+| 23 | **Strategy Genome + Auto-Tuning** | Vince | P0 | All tunable params (min_strength, min_confidence, sentiment gate thresholds, TP/SL ratios, size multipliers, session/regime multipliers) represented as a JSON genome. Weekly: generate 50–100 mutations, replay each against feature store history (closed trades + counterfactual data), rank by Sharpe/win-rate/drawdown, promote top variant if it beats current by >X%. Track generation history in `genome_history.jsonl`. |
+| 24 | **Regime Profiles** | Vince + Oracle + Echo | P1 | Five named strategy profiles — TRENDING_BULL (full size, wider TP, favor longs), CHOPPY (half size, tight TP, mean-reversion), CAPITULATION (pause longs, accumulation mode), EUPHORIA (contrarian: reduce longs, prepare shorts), RECOVERY (gradual re-entry, conservative). Each has its own param set (part of genome). Auto-selected by Oracle regime + Echo sentiment + on-chain signals. Profile-specific performance tracked separately. |
+| 25 | **Intelligence → Signal Source** | Vince + Grok sub-agents | P1 | After each daily Grok run, extract structured recommendations (asset, direction, confidence, EV, thesis) from "Today's Recommendations." Register as a new signal aggregator source `GrokIntelligence`. Track accuracy via Thompson Sampling arm. When Grok-sourced signals outperform, weight bandit auto-promotes. Research becomes alpha. |
+| 26 | **Portfolio Construction** | Vince | P1 | Move from per-asset decisions to portfolio-level: rolling 24h correlation matrix across open positions, total portfolio heat (sum of position risk as % of equity), true Kelly criterion sizing from per-source win rate + avg win/loss, opportunity cost check (compare new trade's expected Sharpe vs weakest open position). Max simultaneous positions based on regime. |
+| 27 | **Execution Graduation** | Otaku | P2 | Four trust levels earned through sustained performance: **L0 PAPER_ONLY** (default) → **L1 NOTIFY** (paper WR > 50% for 2 consecutive weeks) → **L2 CONFIRM_EXECUTE** (WR > 55% + positive Sharpe for 4 weeks) → **L3 AUTO_EXECUTE** (WR > 58% + Sharpe > 1.0 + DD < 10% for 8 weeks). Demotion: live WR < 45% for 2 weeks → drop one level. Circuit breaker: single-day loss > 5% of funded wallet → drop to L0 + notify user. |
+| 28 | **Agent Collective Memory** | Sentinel + all | P2 | Weekly Sentinel task: collect learnings from every agent (Vince: trading patterns, source perf, counterfactual; Echo: sentiment accuracy, best accounts; Oracle: prediction record; Solus: premium, strike accuracy; Eliza: content performance, knowledge gaps; Otaku: execution quality, slippage; Kelly: user engagement). LLM synthesizes into a Weekly Intelligence Brief (500 words max), stored in `knowledge/teammate/weekly-briefs/YYYY-WW.md`. All agents load via shared knowledge. Institutional memory compounds. |
+| 29 | **Flywheel Score** | Kelly | P1 | One composite number (0–100) measuring system health: signal quality trend (VinceBench, 20%) + trade performance (4-week rolling Sharpe, 25%) + sentiment accuracy (Echo/Oracle vs outcome, 10%) + content output (Eliza drafts+uploads/wk, 10%) + knowledge growth (new items/wk, 10%) + engineering velocity (Sentinel features shipped, 10%) + genome improvement (generation-over-generation Sharpe delta, 15%). Kelly reports: "Flywheel Score: 72 (+4). Signal quality and genome driving gains; content output is the bottleneck." Chip: "Flywheel Score" on Kelly. |
+
+**Success criteria for Phase 5**
+
+- Counterfactual report runs weekly; reveals whether the bot is too selective or not selective enough; quantifies missed opportunity cost.
+- Strategy Genome auto-promotes a new parameter set at least once per month; generation-over-generation Sharpe is tracked and trends upward.
+- Regime profiles auto-switch; per-regime performance is reported separately in weekly review; CAPITULATION profile prevents losses during drawdowns.
+- Grok intelligence appears as a signal source arm in the aggregator; its win rate and weight are tracked alongside all other sources.
+- No new trade opens if it would push portfolio heat above the configured max or violate correlation limits.
+- Execution graduation level is visible in Otaku's readiness checklist; level transitions are logged and reported in weekly review.
+- Weekly Intelligence Brief is generated every Monday and loaded by all agents; quality improves as collective memory grows.
+- Flywheel Score is reported weekly by Kelly; a sustained upward trend proves the system is genuinely self-improving.
+
+**Out of scope for Phase 5**
+
+- Full reinforcement learning (RL) agent — genome evolution is simpler and more interpretable.
+- Replacing the training pipeline — genome operates on runtime parameters; ONNX models continue to train separately.
+- Multi-exchange execution — Otaku stays on Hyperliquid/Hypersurface; adding exchanges is a future phase.
+- Automated Substack publishing — Eliza drafts; human publishes.
+
+### Implementation status (Phase 5)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 22 | Counterfactual Engine | ⬜ | |
+| 23 | Strategy Genome + Auto-Tuning | ⬜ | |
+| 24 | Regime Profiles | ⬜ | |
+| 25 | Intelligence → Signal Source | ⬜ | |
+| 26 | Portfolio Construction | ⬜ | |
+| 27 | Execution Graduation | ⬜ | |
+| 28 | Agent Collective Memory | ⬜ | |
+| 29 | Flywheel Score | ⬜ | |
+
+### Suggested file map (Phase 5)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `src/plugins/plugin-vince/src/services/vinceCounterfactual.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/tasks/counterfactualWeekly.tasks.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceGenome.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/tasks/genomeEvolution.tasks.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceRegimeProfiles.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vincePaperTrading.service.ts` | Vince | Modify (load active profile, portfolio constraints) |
+| `src/plugins/plugin-vince/src/services/grokSignalExtractor.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/signalAggregator.service.ts` | Vince | Modify (add GrokIntelligence arm) |
+| `src/plugins/plugin-vince/src/services/vincePortfolioConstruction.service.ts` | Vince | New |
+| `src/plugins/plugin-otaku/src/services/executionGraduation.service.ts` | Otaku | New |
+| `src/plugins/plugin-otaku/src/tasks/otakuAutoExecute.tasks.ts` | Otaku | Modify (respect trust level) |
+| `src/plugins/plugin-sentinel/src/tasks/collectiveMemory.tasks.ts` | Sentinel | New |
+| `src/plugins/plugin-kelly/src/services/flywheelScore.service.ts` | Kelly | New |
+| `src/plugins/plugin-kelly/src/actions/kellyFlywheelScore.action.ts` | Kelly | New |
+| `src/frontend/components/chat/chat-interface.tsx` | Kelly | Modify (add "Flywheel Score" chip) |
+| `knowledge/teammate/weekly-briefs/` | Shared | New directory |
+
+### Architecture — The Genome Loop
+
+```
+                 ┌──────────────────────────────────────────────────┐
+                 │            FLYWHEEL SCORE (Kelly)                 │
+                 │  One number: is the system getting better?        │
+                 │  Components: signal + trade + sentiment +         │
+                 │    content + knowledge + engineering + genome      │
+                 └──────┬───────────────────────────┬───────────────┘
+                        │                           │
+                 ┌──────▼──────┐             ┌──────▼──────┐
+                 │  COLLECTIVE │             │  CONTENT    │
+                 │  MEMORY     │             │  FLYWHEEL   │
+                 │  (Sentinel) │             │  (Eliza)    │
+                 │  All agents │             │  Real data  │
+                 │  → shared   │             │  → publish  │
+                 │  knowledge  │             │             │
+                 └──────┬──────┘             └──────┬──────┘
+                        │                           │
+     ┌──────────────────▼───────────────────────────▼──────────────┐
+     │                     VINCE (The Genome)                       │
+     │                                                              │
+     │  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+     │  │ Counterfact. │  │   Genome     │  │  Portfolio        │   │
+     │  │ Engine (#22) │→ │   Evolve     │→ │  Construction     │   │
+     │  │ "What if we  │  │   (#23)      │  │  (#26)            │   │
+     │  │  had traded?" │  │ 100 variants │  │ Correlation,      │   │
+     │  │              │  │ → best wins  │  │ heat, Kelly size  │   │
+     │  └──────────────┘  └──────┬───────┘  └───────────────────┘   │
+     │                           │                                   │
+     │  ┌─────────────┐  ┌──────▼───────┐  ┌───────────────────┐   │
+     │  │ Grok Intel  │  │   Regime     │  │  Sentiment Gate   │   │
+     │  │ → Signal    │→ │   Profiles   │→ │  (Phase 2)        │   │
+     │  │ Source (#25) │  │   (#24)      │  │  + regime-aware   │   │
+     │  │ 6 sub-agents │  │ 5 strategies │  │  sizing           │   │
+     │  └──────────────┘  └──────────────┘  └───────────────────┘   │
+     │                                                              │
+     └───────────┬──────────────────────────────┬───────────────────┘
+                 │                              │
+          ┌──────▼──────┐                ┌──────▼──────┐
+          │   SOLUS     │                │   OTAKU     │
+          │ Strike Plan │                │  Execution  │
+          │ Premium P&L │                │  Graduation │
+          │             │                │  (#27)      │
+          │             │                │  L0→L1→L2→L3│
+          └─────────────┘                └─────────────┘
+                 ▲                              ▲
+          ┌──────┴──────┐                ┌──────┴──────┐
+          │   ECHO      │                │  ORACLE     │
+          │ CT Sentiment│                │ Polymarket  │
+          │ → profiles  │                │ → profiles  │
+          └─────────────┘                └─────────────┘
+```
 
 ---
 
@@ -390,6 +515,10 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 | Over-reliance on automation | Phase 3 auto-execute is opt-in with hard spending limits; paper bot must prove itself first |
 | Context bloat from cross-agent providers | All providers are `dynamic: true` and cached; only activated for relevant actions |
 | Post-mortem overload | Throttle to one post-mortem per day max; batch weekly for Sentinel review |
+| Genome drift / overfitting (Phase 5) | Genome variants tested on held-out data (not just training set); promotion requires beating current by >X% on Sharpe; rollback to previous generation if live performance degrades |
+| Counterfactual data quality (Phase 5) | Price-after-avoid uses feature store or cached prices, not live re-fetch; results are directional (did it go our way?) not exact PnL; clearly labeled as estimates |
+| Collective memory staleness (Phase 5) | Weekly briefs are date-stamped; agents weight recent briefs higher; briefs older than 8 weeks are archived, not loaded |
+| Execution graduation gaming (Phase 5) | Trust levels use rolling windows, not cumulative; a single exceptional week can't skip levels; demotion is automatic and faster than promotion |
 
 ---
 
@@ -407,6 +536,11 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 | Engineering velocity | 3+ features shipped per week | Sentinel weekly suggestions |
 | Knowledge expansion | 10+ uploads per week | Eliza `KNOWLEDGE_STATUS` |
 | User intervention needed | < 30 min/day for trading operations | Qualitative |
+| Flywheel Score | Trending upward month-over-month | Kelly `KELLY_FLYWHEEL_SCORE` |
+| Genome generations | 1+ promoted variants per month | `genome_history.jsonl` |
+| Counterfactual accuracy | Weekly report generated; informs genome | `vinceCounterfactual.service.ts` |
+| Execution graduation | Reach L2 (CONFIRM_EXECUTE) within 8 weeks of paper profitability | `executionGraduation.service.ts` |
+| Collective memory | Weekly brief generated every Monday; loaded by all agents | `knowledge/teammate/weekly-briefs/` |
 
 ---
 
