@@ -50,6 +50,58 @@ async function generateWeeklySuggestions(
 
 const PUSH_SOURCES = ["discord", "slack", "telegram"] as const;
 
+function getElizaOS(runtime: IAgentRuntime): any {
+  return (runtime as any).elizaOS ?? null;
+}
+
+async function askAgent(
+  runtime: IAgentRuntime,
+  agentName: string,
+  question: string,
+  timeoutMs = 20000,
+): Promise<string> {
+  const eliza = getElizaOS(runtime);
+  if (!eliza?.getAgents) return "";
+  const agents = await eliza.getAgents();
+  const target = agents?.find(
+    (a: any) =>
+      (a.character?.name ?? "").toUpperCase() === agentName.toUpperCase(),
+  );
+  if (!target) return "";
+  return new Promise<string>((resolve) => {
+    const timer = setTimeout(() => resolve(""), timeoutMs);
+    try {
+      eliza.handleMessage(
+        target.agentId,
+        {
+          id: crypto.randomUUID(),
+          entityId: runtime.agentId,
+          roomId: target.agentId,
+          content: {
+            text: `[To ${agentName}] ${question}`,
+            source: "sentinel_weekly",
+          },
+          createdAt: Date.now(),
+        },
+        {
+          onResponse: (resp: any) => {
+            clearTimeout(timer);
+            resolve(resp?.content?.text ?? resp?.text ?? "");
+          },
+          onComplete: () => {},
+          onError: () => {
+            clearTimeout(timer);
+            resolve("");
+          },
+        },
+      );
+    } catch {
+      clearTimeout(timer);
+      resolve("");
+    }
+  });
+}
+
 /** Build a short pattern summary and suggested PRD from recent post-mortem files. PRD: One Dream Phase 3 (#13). */
 async function buildPostMortemPatternSummary(
   runtime: IAgentRuntime,
@@ -210,6 +262,11 @@ export async function registerSentinelWeeklyTask(
       try {
         const list = await generateWeeklySuggestions(rt);
         const listTrimmed = list.trim();
+        const calibrationLine = await askAgent(
+          rt,
+          "VINCE",
+          "Reply with prediction calibration only in this format: predictionBrier=X predictionCount=X",
+        );
 
         if (process.env.SENTINEL_WEEKLY_WRITE_OPENCLAW_TASK === "true") {
           try {
@@ -280,6 +337,10 @@ export async function registerSentinelWeeklyTask(
 
         const suggestionsMessage = [
           "**Sentinel — weekly suggestions**",
+          "",
+          calibrationLine
+            ? `Prediction calibration: ${calibrationLine}`
+            : "Prediction calibration: predictionBrier=n/a predictionCount=0",
           "",
           listTrimmed,
           postMortemsBlock,
