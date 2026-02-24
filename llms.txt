@@ -1,0 +1,70 @@
+# VINCE
+
+> A self-evolving multi-agent trading system built on ElizaOS. Ten AI agents collaborate on options, perps, memes, DeFi, lifestyle, and generative art — with a self-improving paper trading bot at the core. No hype, no shilling, no timing the market. Push, not pull.
+
+The system evolves its own trading strategy weekly through a strategy genome, regime profiles, portfolio construction, execution graduation, and a flywheel score. One team, one dream: $100K/year from on-chain options and perps, with the system improving itself every week.
+
+- [README](https://github.com/IkigaiLabsETH/vince/blob/main/README.md): Project overview, quick start, features, and agent map
+- [Release Notes (v4.2.0 — The Genome)](https://github.com/IkigaiLabsETH/vince/blob/main/docs/RELEASE_v4.2.0.md): Current release — self-evolving trading, 29 tasks, 5 phases
+- [Detailed Reference (llms-full.txt)](https://github.com/IkigaiLabsETH/vince/blob/main/llms-full.txt): Full technical detail for AI assistants
+
+## What VINCE Does
+
+- [Paper Bot & ML Loop](https://github.com/IkigaiLabsETH/vince/blob/main/docs/PAPER-BOT-AND-ML.md): Signals, feature store, ONNX training, strategy genome, regime-aware sizing
+- [Feature Store](https://github.com/IkigaiLabsETH/vince/blob/main/docs/FEATURE-STORE.md): 40+ features per decision, closed trades and counterfactuals for ML training
+- [ONNX Models](https://github.com/IkigaiLabsETH/vince/blob/main/docs/ONNX.md): Train in Python, deploy in TypeScript, four models (signal quality, sizing, TP, SL)
+- [Leaderboard](https://github.com/IkigaiLabsETH/vince/blob/main/docs/LEADERBOARD.md): Markets, memetics, news, art, trading bot, knowledge — no chat required
+- [Multi-Agent System](https://github.com/IkigaiLabsETH/vince/blob/main/docs/MULTI_AGENT.md): ASK_AGENT, standups, Discord, cross-agent signal handoffs
+- [One Dream PRD](https://github.com/IkigaiLabsETH/vince/blob/main/docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md): Core roadmap — 6 phases, 37 tasks, from connected agents to self-evolving organism
+
+## Architecture
+
+- [CLAUDE.md (Dev Guide)](https://github.com/IkigaiLabsETH/vince/blob/main/CLAUDE.md): Character config, plugin system, project structure, workflow orchestration
+- [Plugin: plugin-vince](https://github.com/IkigaiLabsETH/vince/tree/main/src/plugins/plugin-vince): Paper bot, ALOHA, options, perps, memes, ML — WHAT, WHY, HOW, CLAUDE docs
+- [Agent Index](https://github.com/IkigaiLabsETH/vince/blob/main/docs/AGENTS_INDEX.md): One briefing doc per agent — capabilities, gaps, PRD focus
+
+## The Team (10 Agents)
+
+- **Eliza** (CEO): Knowledge, research, content production
+- **VINCE** (CDO): Data, paper trading bot, 15+ signal sources, ALOHA
+- **ECHO** (CSO): Crypto Twitter sentiment, X pulse, watchlist
+- **Oracle** (CPO): Polymarket discovery, odds, portfolio (read-only)
+- **Solus** (CFO): Hypersurface options, strike ritual, optimal strike
+- **Otaku** (COO): Only agent with a wallet — swap, bridge, DCA, Morpho, execution graduation (L0→L3)
+- **Kelly** (CVO): Lifestyle concierge, flywheel score, standup facilitator
+- **Sentinel** (CTO): PRDs, cost steward, collective memory, ONNX, ART
+- **Naval**: Philosophy, mental models, standup conclusions
+- **Clawterm**: OpenClaw terminal, AI agent research
+
+## What Shipped (V4.2.0)
+
+- **Strategy genome**: 15+ tunable parameters mutate weekly, replay against history, auto-promote the best variant
+- **Regime profiles**: Five market personalities auto-switch risk limits, sizing, signal thresholds
+- **Counterfactual engine**: Quantifies missed opportunity from every avoided trade
+- **Portfolio construction**: Correlation limits, heat caps, Kelly-criterion sizing
+- **Execution graduation**: Four trust levels (paper → notify → confirm → auto-execute), earned through performance
+- **Flywheel score**: Composite 0–100 health metric across signal quality, trades, sentiment, content, knowledge, engineering
+- **Collective memory**: Weekly intelligence briefs from all agents into shared knowledge
+- **Grok intelligence**: Scored signal source inside Thompson Sampling aggregator
+
+## What VINCE Does NOT Do
+
+- Does not execute trades with real money by default (paper trading only; execution graduation required)
+- Does not provide financial advice — data intelligence, not recommendations
+- Does not run on-chain smart contracts — uses Hyperliquid, Polymarket, Hypersurface APIs
+- Not a wallet or custodial service — Otaku has one funded wallet for DeFi execution only
+
+## Getting Started
+
+- [Configuration](https://github.com/IkigaiLabsETH/vince/blob/main/docs/CONFIGURATION.md): Environment variables, push schedule, Discord setup
+- [Deploy](https://github.com/IkigaiLabsETH/vince/blob/main/docs/DEPLOY.md): Eliza Cloud deployment
+- [Contributing](https://github.com/IkigaiLabsETH/vince/blob/main/CONTRIBUTING.md): How to contribute, priorities, what gets merged
+
+## Optional
+
+- [Kelly (Lifestyle)](https://github.com/IkigaiLabsETH/vince/blob/main/docs/KELLY.md): Hotels, dining, wine, health, self-modification
+- [Solus North Star](https://github.com/IkigaiLabsETH/vince/blob/main/docs/SOLUS_NORTH_STAR.md): Weekly BTC options roadmap
+- [X Research](https://github.com/IkigaiLabsETH/vince/blob/main/docs/X-RESEARCH.md): Paper algo signal, Cursor skill, in-chat research
+- [Branding](https://github.com/IkigaiLabsETH/vince/blob/main/docs/BRANDING.md): Voice, positioning, LIVETHELIFETV
+- [Treasury](https://github.com/IkigaiLabsETH/vince/blob/main/docs/TREASURY.md): Cost tracking and Sentinel cost steward
+- [Troubleshooting](https://github.com/IkigaiLabsETH/vince/blob/main/docs/TROUBLESHOOTING.md): Common issues and fixes
