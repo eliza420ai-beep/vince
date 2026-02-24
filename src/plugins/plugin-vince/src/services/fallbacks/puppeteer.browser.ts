@@ -15,6 +15,8 @@
 import { logger } from "@elizaos/core";
 import { exec } from "child_process";
 import { promisify } from "util";
+import fs from "node:fs";
+import path from "node:path";
 import type { IBrowserService } from "./browser.fallback";
 
 const execAsync = promisify(exec);
@@ -25,11 +27,71 @@ const DEFAULT_TIMEOUT = 30000;
 export class PuppeteerBrowserService implements IBrowserService {
   private sessionId: string = DEFAULT_SESSION_ID;
   private lastContent: string = "";
-  private agentBrowserPath: string = "agent-browser";
+  /**
+   * Path or command used to invoke the agent-browser CLI.
+   *
+   * Resolution order:
+   * 1) AGENT_BROWSER_CMD env var (full command or path)
+   * 2) Local node_modules/.bin/agent-browser inside this repo
+   * 3) Bare "agent-browser" on PATH
+   */
+  private agentBrowserPath: string;
+  /** Ensure we only try `agent-browser install` once per process. */
+  private attemptedInstall = false;
 
   constructor() {
     // Session ID for this instance
     this.sessionId = `vince-${Date.now()}`;
+
+    const envCmd = process.env.AGENT_BROWSER_CMD?.trim();
+    if (envCmd) {
+      this.agentBrowserPath = envCmd;
+    } else {
+      const binName =
+        process.platform === "win32" ? "agent-browser.cmd" : "agent-browser";
+      const localBin = path.join(
+        process.cwd(),
+        "node_modules",
+        ".bin",
+        binName,
+      );
+      if (fs.existsSync(localBin)) {
+        this.agentBrowserPath = `"${localBin}"`;
+      } else {
+        this.agentBrowserPath = "agent-browser";
+      }
+    }
+  }
+
+  /**
+   * Run `agent-browser install` once to ensure Chromium is available.
+   * Returns true when install appears to have succeeded.
+   */
+  private async tryInstallBrowser(): Promise<boolean> {
+    this.attemptedInstall = true;
+    try {
+      logger.info(
+        "[AgentBrowser] Running 'agent-browser install' to set up headless browser for MandoMinutes...",
+      );
+      const command = `${this.agentBrowserPath} install`;
+      const { stdout, stderr } = await execAsync(command, {
+        timeout: 5 * 60 * 1000,
+      });
+      if (stdout?.trim()) {
+        logger.debug(`[AgentBrowser] install stdout: ${stdout.trim()}`);
+      }
+      if (stderr?.trim()) {
+        logger.debug(`[AgentBrowser] install stderr: ${stderr.trim()}`);
+      }
+      logger.info("[AgentBrowser] 'agent-browser install' finished.");
+      return true;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.warn(
+        `[AgentBrowser] 'agent-browser install' failed: ${msg}. Headlines may remain unavailable until the CLI is installed manually.`,
+      );
+      return false;
+    }
   }
 
   /**
@@ -70,6 +132,18 @@ export class PuppeteerBrowserService implements IBrowserService {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         lastError = errorMsg;
+
+        // If browser isn't installed yet, try to install once automatically,
+        // then immediately retry navigation on the next loop iteration.
+        if (!this.attemptedInstall) {
+          const installed = await this.tryInstallBrowser();
+          if (installed) {
+            logger.info(
+              "[AgentBrowser] Install completed, retrying MandoMinutes navigation...",
+            );
+            continue;
+          }
+        }
 
         // Check if this is a retryable error
         const isRetryable =

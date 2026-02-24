@@ -260,10 +260,17 @@ export async function fetchLeaderboards(
 
 export async function fetchLeaderboardsWithError(
   agentId: string,
+  options?: { refreshNews?: boolean },
 ): Promise<LeaderboardsFetchResult> {
   const base = window.location.origin;
   // ElizaOS core registers plugin routes as /{plugin.name}{route.path} → plugin-vince/vince/leaderboards
-  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/leaderboards?agentId=${encodeURIComponent(agentId)}`;
+  const params = new URLSearchParams({
+    agentId: agentId,
+  });
+  if (options?.refreshNews) {
+    params.set("refreshNews", "1");
+  }
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/leaderboards?${params.toString()}`;
   try {
     const res = await fetch(url, {
       method: "GET",

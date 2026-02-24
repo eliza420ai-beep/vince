@@ -1,18 +1,18 @@
-# Post-mortem: AMD short (stop_loss)
+# Post-mortem: AMD long (stop_loss)
 
 **Date:** 2026-02-24
-**Trade:** AMD short closed stop_loss: entry $215.80 → exit $219.92, P&L $-20.13 (1026.763043478261 USD, 5x).
+**Trade:** AMD long closed stop_loss: entry $214.62 → exit $211.30, P&L $-124.66 (7800 USD, 5x).
 
 ## Agent feedback
 
 ### Echo
 
-I didn't have a live CT vibe on AMD before your entry—AMD isn't in my core watch (BTC, ETH, SOL, macro, HIP-3 stocks)—so I can't say whether sentiment warned you off. That said, if you want me to backtest CT's vibe on AMD or any stock *before* your next trade, flag me and I'll run X_PULSE filtered to that ticker; I can tell you if whales/alpha were bearish or if retail was chasing. For now: the $4.12 move against a 5x short is tight—sentiment data would've helped you either confirm the thesis or size down, but I can't retroactively say what CT was saying. Next time, ping me pre-entry and I'll give you the contrarian read.
+I didn't run a pre-trade CT vibe on AMD specifically — that's not a crypto asset, so it falls outside my X research lane (I focus BTC, ETH, SOL, macro, geopolitics). **For equity trade post-mortems, ASK_AGENT VINCE** — he tracks macro sentiment, technicals, and macro-driven moves that would've flagged AMD risk beforehand. My bad for not catching that this was equities; I should've deferred upfront. What I *can* tell you: if there was broader macro bearish sentiment on CT (tech sector weakness, rates talk) in the 24h before entry, that's a signal I could've surfaced — but I'd need to know the trade date to run a retroactive vibe check.
 
 ### Oracle
 
-The AMD short hit your stop at $219.92—that's a 1.9% move against you in a volatile micro. Pull the condition_id for the relevant AMD prediction market (earnings, quarterly guidance, or sector sentiment) and I'll check what Polymarket was pricing for directional risk that day; if the market was already pricing in upside or showing heavy long volume, that's a regime flag you'd want to cross against your entry thesis. Without the specific market snapshot, I can't say if Polymarket was neutral or leaning risk-on into that move—but if you have the trade timestamp, I can pull live odds history context and tell you if the crowd was already long or hedging. What's the market condition_id or event you were trading against?
+Pull the AMD prediction markets from the last 48 hours—I'll check if there was a consensus shift or elevated uncertainty that should've flagged caution before entry. That said, paper trades on single-stock equities sit outside my core lane (I'm prediction-markets discovery and odds, not real-time perps signals)—**VINCE owns the live perps regime and entry/exit timing**. What I *can* tell you: if macro Polymarkets (Fed, recession, tech earnings) showed risk-off momentum into your entry, that's a regime miss worth reviewing. Send me the exact entry timestamp and I'll check what the prediction markets were pricing then.
 
 ### Solus
 
-**This was pure directional miss, not mechanics.** You sized 5x leverage on a spot short—no optionality, no theta decay working for you, no strike buffer. If you'd sold AMD calls (covered or naked) at $220 strike instead, same directional miss but you'd have collected premium upfront to cushion the loss. The $4.12 move against you ($219.92 exit vs $215.80 entry) is a spot bet; options would've given you premium income + defined risk. For paper: next time, consider selling $220 calls on AMD rallies instead of shorting spot—same conviction, better risk/reward via theta.
+**This was pure directional miss, not mechanics.** A 5x leveraged spot trade on AMD has no optionality — you're betting direction naked. If you'd instead sold AMD puts at $210 strike (or calls at $220) with weekly expiry, you'd have collected premium upfront to offset the directional loss; the wheel gives you a second chance via premium. The $124 loss here came from spot moving against you with zero theta decay working in your favor. **For paper bot:** Consider running AMD through a covered call or CSP structure instead — same directional view, but premium cushions the downside and gives you optionality on roll/buyback if thesis shifts mid-week.

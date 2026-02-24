@@ -242,6 +242,12 @@ export interface NewsFeatures {
   hasActiveRiskEvents: boolean;
   /** Highest risk event severity */
   highestRiskSeverity: "low" | "medium" | "high" | "critical" | null;
+  /** Asset-scoped trading sentiment score for the decision asset. */
+  assetSentimentScore?: number | null;
+  /** Asset-scoped trading sentiment direction for the decision asset. */
+  assetSentimentDirection?: "bullish" | "bearish" | "neutral" | null;
+  /** Asset-scoped high-risk flag (critical/warning). */
+  assetHasHighRiskEvent?: boolean;
 }
 
 /**
@@ -615,7 +621,7 @@ export class VinceFeatureStoreService extends Service {
         params.asset,
       );
       const regime = await this.collectRegimeFeatures(params.asset);
-      const news = await this.collectNewsFeatures();
+      const news = await this.collectNewsFeatures(params.asset);
 
       if (
         grokPulse?.fearGreed != null &&
@@ -696,7 +702,7 @@ export class VinceFeatureStoreService extends Service {
         params.asset,
       );
       const regime = await this.collectRegimeFeatures(params.asset);
-      const news = await this.collectNewsFeatures();
+      const news = await this.collectNewsFeatures(params.asset);
 
       if (
         grokPulse?.fearGreed != null &&
@@ -1350,7 +1356,7 @@ export class VinceFeatureStoreService extends Service {
     }
   }
 
-  private async collectNewsFeatures(): Promise<NewsFeatures> {
+  private async collectNewsFeatures(asset?: string): Promise<NewsFeatures> {
     const newsService = this.runtime.getService(
       "VINCE_NEWS_SENTIMENT_SERVICE",
     ) as VinceNewsSentimentService | null;
@@ -1364,6 +1370,9 @@ export class VinceFeatureStoreService extends Service {
       sentimentDirection: null,
       hasActiveRiskEvents: false,
       highestRiskSeverity: null,
+      assetSentimentScore: null,
+      assetSentimentDirection: null,
+      assetHasHighRiskEvent: false,
     };
 
     if (newsService) {
@@ -1393,6 +1402,19 @@ export class VinceFeatureStoreService extends Service {
           else if (severities.includes("medium"))
             result.highestRiskSeverity = "medium";
           else result.highestRiskSeverity = "low";
+        }
+        if (asset && typeof newsService.getTradingSentiment === "function") {
+          const assetSent = newsService.getTradingSentiment(asset);
+          result.assetSentimentDirection = assetSent.sentiment ?? null;
+          result.assetHasHighRiskEvent = !!assetSent.hasHighRiskEvent;
+          const conf =
+            typeof assetSent.confidence === "number" ? assetSent.confidence : 0;
+          result.assetSentimentScore =
+            assetSent.sentiment === "bullish"
+              ? conf
+              : assetSent.sentiment === "bearish"
+                ? -conf
+                : 0;
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] News sentiment error: ${e}`);

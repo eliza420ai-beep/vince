@@ -1,25 +1,24 @@
 {
   "date": "2026-02-24",
-  "thesis": "SOL outperforms ETH this week as Solana's memecoin infrastructure gains momentum while Ethereum stalls on L2 fragmentation concerns.",
-  "primaryTicker": "SOL",
+  "thesis": "PLTR outperforms NVDA this week as defense AI spending acceleration gets repriced while commercial AI faces margin compression fears.",
+  "primaryTicker": "PLTR",
   "primaryDirection": "long",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 76.54,
-  "primaryRiskUsd": 150,
-  "invalidateCondition": "SOL breaks below $72",
+  "primaryEntryPrice": 65,
+  "primaryRiskUsd": 650,
+  "invalidateCondition": "below $58",
   "killConditions": [
-    "BTC < $60k",
-    "SOL breaks below $72",
-    "Ethereum announces major update"
+    "defense budget cuts",
+    "PLTR < $58"
   ],
   "rubric": {
     "alignment": "direct",
     "edge": "emerging",
     "payoffShape": "high",
-    "timingForgiveness": "punishing"
+    "timingForgiveness": "forgiving"
   },
-  "altTicker": "ETH",
+  "altTicker": "NVDA",
   "altDirection": "short",
   "altInstrument": "perp",
-  "evThresholdPct": 4
+  "evThresholdPct": 15
 }
