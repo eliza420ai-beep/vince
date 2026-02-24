@@ -23,7 +23,7 @@
 
 **We are focused on [One Dream — Agent Synergy & the $100K Trading System](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md).**
 
-That PRD turns the ten agents into a single compounding loop: data → thesis → plan → execute → measure → learn → better data. Working on it means: automated cross-agent signals (Echo/Oracle into Vince risk, Vince options into Solus), Kelly’s weekly scorecard, sentiment-adjusted position sizing, post-mortem learning, and the content flywheel (Eliza publishing real trading results). The goal is $100K/year from on-chain options and perps, with the system improving itself. All feature work, plugins, and prioritization should align with that PRD.
+That PRD turns ten agents into a single compounding loop: data → thesis → plan → execute → measure → learn → better data. Phases 1–5 are shipped (V4.2.0): automated cross-agent signals, sentiment-adjusted sizing, post-mortem learning, content flywheel, a self-evolving strategy genome, regime profiles, portfolio construction, execution graduation, and the flywheel score. Phase 6 (V4.3.0) is spec'd: pre-mortems, Monte Carlo war room, internal prediction market, Devil's Advocate protocol, narrative radar, temporal coherence, immune system, and dead-end elimination. The goal is $100K/year from on-chain options and perps, with the system improving itself every week. All feature work, plugins, and prioritization align with that PRD.
 
 ---
 
@@ -75,9 +75,11 @@ The goal: stay in the game without 12+ hours on screens. Push, not pull.
 
 ## What Shipped
 
-The paper bot now trades **HIP-3 spot tokens** alongside Hyperliquid perps — stocks, commodities, and crypto on the same signal loop, same feature store, same ML pipeline. The **Polymarket edge engine** went from a single latency-arb strategy to three: Black-Scholes implied probability vs CLOB price, overreaction detection on favorites, and model fair-value comparison — each Kelly-sized, each with a rationale you can read. Every agent speaks with **zero AI slop**: a humanizer-style writing rule enforced across all ten agents, every response, every standup. And the **leaderboard** now shows real cost transparency — AI token spend, data API tiers, burn rate — because if the system can't justify its own costs, it doesn't deserve to run.
+**V4.2.0 — The Genome** is the current release. The system now evolves its own trading strategy. A **strategy genome** (15+ tunable parameters) mutates weekly, replays against historical data, ranks by Sharpe and drawdown, and auto-promotes the best variant. **Regime profiles** detect five market personalities (trending bull, mean-reverting, choppy, risk-off, capitulation) and shift risk limits, sizing, and signal thresholds on the fly. A **counterfactual engine** analyzes every avoided trade to quantify what was left on the table. **Portfolio construction** enforces rolling correlation limits, total heat caps, and Kelly-criterion sizing across all open positions. **Execution graduation** tracks Otaku through four trust levels (paper-only → notify → confirm-execute → auto-execute), earned through sustained performance and revoked by circuit breakers. The **flywheel score** is a composite 0–100 health metric across signal quality, trade performance, sentiment, content, knowledge, and engineering. **Collective memory** synthesizes weekly intelligence briefs from all agents into shared knowledge. And **Grok intelligence** is now a scored signal source inside the Thompson Sampling aggregator.
 
-Releases: [v4.0.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.0.0) · [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
+Prior releases shipped the paper bot ML loop (feature store, ONNX, VinceBench), HIP-3 spot tokens alongside Hyperliquid perps, the Polymarket edge engine (three strategies, Kelly-sized), zero AI slop across all ten agents, the leaderboard with cost transparency, cross-agent signal handoffs (Echo sentiment → Vince risk, Oracle odds → position sizing), and the content flywheel (Eliza publishing real results to Substack).
+
+Releases: [v4.2.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.2.0) · [v4.0.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.0.0) · [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -88,13 +90,13 @@ Clear lanes, no overlap: data, plan, call, lifestyle, infra.
 | Agent | Lane |
 | :--- | :--- |
 | **Eliza** | Knowledge, research, brainstorm, Substack content. The base everything builds on. |
-| **VINCE** | Objective data: options, perps, memes, news, paper bot, 13+ sources. Push, not pull. |
+| **VINCE** | Objective data: options, perps, memes, news, paper bot, 15+ signal sources. Push, not pull. |
 | **ECHO** | CT sentiment, X research, social alpha, contrarian flags. Your ears on X. |
 | **Oracle** | Prediction markets: Polymarket discovery, odds, portfolio (read-only). |
 | **Solus** | Plan and call. Weekly BTC options on Hypersurface, strike/direction/invalidation. |
-| **Otaku** | **Only agent with a wallet.** Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Web4 path. |
-| **Kelly** | Touch grass: hotels, fine dining, wine, health, fitness. Standup facilitator. No trading. |
-| **Sentinel** | Ops, cost steward, ONNX, ART, PRDs, OpenClaw guide, repo improvements. |
+| **Otaku** | **Only agent with a wallet.** Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Execution graduation (L0→L3). |
+| **Kelly** | Touch grass: hotels, fine dining, wine, health, fitness. Standup facilitator. Flywheel score. No trading. |
+| **Sentinel** | Ops, cost steward, ONNX, ART, PRDs, OpenClaw guide, collective memory, repo improvements. |
 | **Naval** | Philosophy, mental models, standup conclusions. One thesis, one signal, one team one dream. |
 | **Clawterm** | AI agents terminal: OpenClaw skills, Milaidy, ElizaOS, setup tips, trending. |
 
@@ -112,13 +114,13 @@ The paper bot runs 24/7 on the **Leaderboard** (Trading Bot tab): 15+ signal sou
 
 ### Polymarket: paper trading that proves the edge
 
-When spot moves, prediction markets often lag. Oracle runs a **latency arb engine**: Binance spot and Polymarket CLOB in real time, implied probability from the option-like payoff of binary contracts, edge above a threshold, Kelly-sized paper trades. No execution by default—only logs and learns. The goal is to show that the edge is real before a single dollar is at risk. You see whether it’s running or paused on the leaderboard Polymarket tab; chat with Oracle for status, pause, or resume. Small edges, captured in code, 24/7.
+When spot moves, prediction markets often lag. Oracle runs a **latency arb engine**: Binance spot and Polymarket CLOB in real time, implied probability from the option-like payoff of binary contracts, edge above a threshold, Kelly-sized paper trades. No execution by default—only logs and learns. The goal is to show that the edge is real before a single dollar is at risk. You see whether it's running or paused on the leaderboard Polymarket tab; chat with Oracle for status, pause, or resume. Small edges, captured in code, 24/7.
 
 ---
 
 ## TL;DR
 
-VINCE pushes daily intel (options, perps, memes, DeFi) to Discord/Slack. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + "trade today?". Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase. Kelly is the lifestyle concierge (travel, wine, dining, health, fitness); she never gives trading advice.
+VINCE pushes daily intel (options, perps, memes, DeFi) to Discord/Slack. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + "trade today?". Under the hood: a **self-evolving paper trading bot** — ML loop, feature store, ONNX, strategy genome, regime profiles, portfolio construction, execution graduation — that trains in prod and improves its own parameters weekly. Kelly is the lifestyle concierge (travel, wine, dining, health, fitness); she tracks the flywheel score but never gives trading advice.
 
 ---
 
@@ -141,7 +143,12 @@ bun start              # production (Postgres when POSTGRES_URL set)
 ## Features
 
 - **ALOHA** — One command: vibe check + PERPS + OPTIONS + "trade today?"
-- **Self-improving paper bot** — Signals, trades, feature store, Python train, ONNX deploy. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rules keep the bot running when models are missing.
+- **Self-evolving paper bot** — Signals, trades, feature store, Python train, ONNX deploy, genome mutation, regime-aware sizing. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rules keep the bot running when models are missing.
+- **Strategy genome** — 15+ tunable parameters mutate weekly, replay against history, auto-promote the best variant by Sharpe and drawdown.
+- **Regime profiles** — Five market personalities auto-switch risk limits, sizing, and signal thresholds based on Oracle regime, Echo sentiment, and technicals.
+- **Execution graduation** — Otaku earns trust through four levels (paper → notify → confirm → auto), demoted by circuit breakers.
+- **Portfolio construction** — Correlation matrix, total heat caps, Kelly-criterion sizing, opportunity cost analysis.
+- **Flywheel score** — Composite 0–100 health metric across signal quality, trade performance, sentiment, content, knowledge, and engineering.
 - **Multi-agent** — Ask any teammate by name; standups 2x/day; one thread, full team.
 - **Leaderboard** — Single dashboard: Markets, Memetics, News, Digital Art, Trading Bot, Knowledge. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
 - **Kelly** — Lifestyle concierge only; daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
@@ -155,6 +162,8 @@ bun start              # production (Postgres when POSTGRES_URL set)
 Signals flow into trades, trades flow into the feature store, the feature store feeds Python training, and ONNX models deploy back to the bot. Four models: signal quality, position sizing, TP optimizer, SL optimizer. When models are missing, rules keep it running.
 
 **VinceBench** scores every closed trade on process quality (signal, risk, timing, regime). The score trains the signal-quality model to learn more from high-quality decisions.
+
+The **strategy genome** adds a second improvement loop: every week, the genome mutates 15+ parameters, replays against historical feature-store data, ranks variants by Sharpe ratio and max drawdown, and promotes the winner. Regime profiles shift the genome's risk limits and sizing multipliers based on the current market personality.
 
 ### Re-run training
 
@@ -226,21 +235,22 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 
 | Doc | What |
 | :--- | :--- |
-| **[PRD: One Dream — Agent Synergy](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md)** | **Core focus:** $100K trading system, cross-agent handoffs, weekly scorecard, sentiment→risk, post-mortem loop |
+| **[PRD: One Dream — Agent Synergy](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md)** | **Core focus:** $100K trading system, 6 phases (37 tasks), self-evolving genome, adversarial intelligence |
 | [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, priorities, what we merge |
 | [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML, paper bot, feature store |
 | [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md) | Signal loop, MandoMinutes, train |
 | [ONNX.md](docs/ONNX.md) | Train, export, deploy |
+| [RELEASE_v4.2.0.md](docs/RELEASE_v4.2.0.md) | V4.2.0 — The Genome (Phases 1–5 complete) |
 | [RELEASE_v4.0.0.md](docs/RELEASE_v4.0.0.md) | v4.0.0 release notes (Paper Bot ML docs, validate-ml) |
 | [MULTI_AGENT.md](docs/MULTI_AGENT.md) | ASK_AGENT, standups, Discord |
-| [OTAKU.md](docs/OTAKU.md) | Executor agent, DeFi |
+| [OTAKU.md](docs/OTAKU.md) | Executor agent, DeFi, execution graduation |
 | [DEPLOY.md](docs/DEPLOY.md) | Eliza Cloud, env, troubleshooting |
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | Push schedule, Discord, env vars |
 | [SUPABASE_MIGRATION.md](docs/SUPABASE_MIGRATION.md) | Production persistence |
 | [BRANDING.md](docs/BRANDING.md) | Voice, positioning, LIVETHELIFETV |
 | [plugin-vince](src/plugins/plugin-vince/) | WHAT, WHY, HOW, README |
-| [plugin-kelly](src/plugins/plugin-kelly/) | Lifestyle concierge |
+| [plugin-kelly](src/plugins/plugin-kelly/) | Lifestyle concierge, flywheel score |
 | [OPENCLAW.md](OPENCLAW.md) | OpenClaw agents, vault, skills, tasks |
 
 ---
