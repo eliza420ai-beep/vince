@@ -1,0 +1,34 @@
+version: "1.0"
+policyId: "trading-v1"
+effectiveDate: "2026-02-25"
+
+rules:
+  - id: "max-single-trade-usd"
+    description: "Maximum single trade size regardless of signal strength"
+    condition: "tradeSize > 500"
+    action: "block"
+    level: "hard"
+
+  - id: "min-confidence-live"
+    description: "Minimum signal confidence for any live trade"
+    condition: "executionType == live AND confidence < 65"
+    action: "block"
+    level: "hard"
+
+  - id: "circuit-breaker-check"
+    description: "Halt all live trades when circuit breaker is active"
+    condition: "circuitBreakerActive == true AND executionType == live"
+    action: "block"
+    level: "hard"
+
+  - id: "paper-sentiment-gate"
+    description: "Reduce size in paper mode when sentiment is bearish"
+    condition: "sentimentScore < 4 AND direction == long"
+    action: "reduce-size-50pct"
+    level: "soft"
+
+  - id: "max-drawdown-warning"
+    description: "Warn when portfolio drawdown exceeds 10%"
+    condition: "portfolioDrawdownPct > 10"
+    action: "warn"
+    level: "soft"

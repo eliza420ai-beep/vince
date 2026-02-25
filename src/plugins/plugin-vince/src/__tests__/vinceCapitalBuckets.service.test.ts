@@ -17,7 +17,9 @@ let svc: VinceCapitalBucketsService;
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "capital-buckets-test-"));
   // Reset singleton so each test gets a fresh instance
-  VinceCapitalBucketsService.setInstance(null as unknown as VinceCapitalBucketsService);
+  VinceCapitalBucketsService.setInstance(
+    null as unknown as VinceCapitalBucketsService,
+  );
   svc = new VinceCapitalBucketsService(tmpDir);
   // Clear drift sentinel wiring
   setDriftSentinel({ shouldHalt: () => false });
@@ -51,9 +53,7 @@ describe("VinceCapitalBucketsService", () => {
     });
 
     it("throws on unknown bucket id", () => {
-      expect(() =>
-        svc.getBucket("unknown" as "paper"),
-      ).toThrow();
+      expect(() => svc.getBucket("unknown" as "paper")).toThrow();
     });
   });
 

@@ -19,6 +19,9 @@ import {
   writeTaskToQueue,
 } from "../services/openclawTaskBrief.service";
 import { SkillTelemetryService } from "../services/skillTelemetry.service";
+import { RollbackOrchestratorService } from "../services/rollbackOrchestrator.service";
+import { MemoryGraphService } from "../services/memoryGraph.service";
+import { VinceShadowChallengerService } from "../../../plugin-vince/src/services/vinceShadowChallenger.service";
 
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
@@ -449,6 +452,103 @@ export async function registerSentinelWeeklyTask(
           logger.debug("[SentinelWeekly] Skill scoreboard failed:", skillErr);
         }
 
+        // Phase 12 — Memory Graph: decay + highlights
+        let memoryGraphBlock = "";
+        try {
+          const memoryGraph = new MemoryGraphService();
+          memoryGraph.decay();
+          // Extract lessons from suggestions and add to memory graph
+          const lessonLines = listTrimmed
+            .split("\n")
+            .filter((l) => /^\d+\.\s+/.test(l))
+            .slice(0, 3);
+          for (const line of lessonLines) {
+            memoryGraph.addNode({
+              type: "lesson",
+              label: line.replace(/^\d+\.\s+/, "").slice(0, 80),
+              content: line,
+              sourceAgent: "sentinel",
+              relatedAssets: [],
+              tags: ["weekly", "suggestion"],
+            });
+          }
+          const summary = memoryGraph.getSummary();
+          if (summary && !summary.includes("No memory nodes")) {
+            memoryGraphBlock = [
+              "",
+              "## Memory Graph Highlights",
+              "",
+              summary,
+            ].join("\n");
+          }
+        } catch (memErr) {
+          logger.debug("[SentinelWeekly] Memory graph failed:", memErr);
+        }
+
+        // Phase 12 — Shadow Challenger summary
+        let shadowChallengerBlock = "";
+        try {
+          const shadowChallenger = new VinceShadowChallengerService();
+          shadowChallenger.ensureDefaultChallenger();
+          const summary = shadowChallenger.getActiveChallengersSummary();
+          if (summary.length > 0) {
+            const lines = [
+              "",
+              "## Shadow Challengers",
+              "",
+              `Active: ${summary.length} | Promotion candidates: ${shadowChallenger.getPromotionCandidates().length}`,
+              "",
+            ];
+            for (const c of summary.slice(0, 3)) {
+              const delta = c.vsCurrentGenome >= 0 ? "+" : "";
+              lines.push(
+                `- **${c.label.slice(0, 40)}** | trades: ${c.tradeCount} | fitness: ${c.fitness.toFixed(2)} | vs genome: ${delta}${(c.vsCurrentGenome * 100).toFixed(1)}%`,
+              );
+            }
+            shadowChallengerBlock = lines.join("\n");
+          }
+        } catch (challErr) {
+          logger.debug("[SentinelWeekly] Shadow challenger failed:", challErr);
+        }
+
+        // Phase 12 — Rollback check
+        let rollbackBlock = "";
+        try {
+          const rollbackOrchestrator = new RollbackOrchestratorService();
+          // Use calibration line to extract WR if available
+          let weeklyWinRate = 0.5;
+          if (calibrationLine) {
+            const wrMatch = calibrationLine.match(/winRate=([0-9.]+)/i);
+            if (wrMatch) weeklyWinRate = parseFloat(wrMatch[1]);
+          }
+          const trigger = rollbackOrchestrator.checkTriggers({
+            winRate: weeklyWinRate,
+            drawdownPct: 0.1, // conservative default
+            genomeFitnessDelta: 0.0,
+          });
+          if (trigger) {
+            const rollbackEvent = rollbackOrchestrator.initiateRollback(
+              trigger,
+              "current-genome",
+              "last-known-good-genome",
+            );
+            rollbackBlock = [
+              "",
+              "## 🚨 Rollback Initiated",
+              "",
+              `**Trigger:** ${trigger}`,
+              `**Event ID:** ${rollbackEvent.triggerId}`,
+              `**From:** ${rollbackEvent.fromState}`,
+              `**To:** ${rollbackEvent.toState}`,
+              `**Status:** ${rollbackEvent.status}`,
+              "",
+              "_Operator action required: review and confirm rollback._",
+            ].join("\n");
+          }
+        } catch (rollbackErr) {
+          logger.debug("[SentinelWeekly] Rollback check failed:", rollbackErr);
+        }
+
         const suggestionsMessage = [
           "**Sentinel — weekly suggestions**",
           "",
@@ -461,6 +561,9 @@ export async function registerSentinelWeeklyTask(
           rollupBlock,
           patternBlock,
           skillScoreboardBlock,
+          shadowChallengerBlock,
+          memoryGraphBlock,
+          rollbackBlock,
           "",
           "---",
           "_Ask me: suggest, what should we improve, task brief for Claude 4.6, ONNX status, openclaw guide, best settings, art gems._",

@@ -23,19 +23,25 @@ afterEach(() => {
 describe("ContentTruthService", () => {
   describe("extractClaimsFromContent", () => {
     it("extracts dollar amounts", () => {
-      const claims = svc.extractClaimsFromContent("We made $1,234 this week from $500 premium.");
+      const claims = svc.extractClaimsFromContent(
+        "We made $1,234 this week from $500 premium.",
+      );
       expect(claims.some((c) => c.includes("$1,234"))).toBe(true);
       expect(claims.some((c) => c.includes("$500"))).toBe(true);
     });
 
     it("extracts percentage claims", () => {
-      const claims = svc.extractClaimsFromContent("Win rate hit 75% with 25% drawdown.");
+      const claims = svc.extractClaimsFromContent(
+        "Win rate hit 75% with 25% drawdown.",
+      );
       expect(claims.some((c) => c.includes("75%"))).toBe(true);
       expect(claims.some((c) => c.includes("25%"))).toBe(true);
     });
 
     it("extracts trade counts", () => {
-      const claims = svc.extractClaimsFromContent("Closed 12 trades this month.");
+      const claims = svc.extractClaimsFromContent(
+        "Closed 12 trades this month.",
+      );
       expect(claims.some((c) => /12\s*trades?/i.test(c))).toBe(true);
     });
 

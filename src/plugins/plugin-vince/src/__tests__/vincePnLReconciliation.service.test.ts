@@ -113,8 +113,8 @@ describe("VincePnLReconciliationService", () => {
       svc.recordPaper("t3", "SOL", 50);
 
       svc.reconcileAll({
-        "t1": 95,
-        "t2": 210,
+        t1: 95,
+        t2: 210,
       });
 
       const unreconciled = svc.getUnreconciled();

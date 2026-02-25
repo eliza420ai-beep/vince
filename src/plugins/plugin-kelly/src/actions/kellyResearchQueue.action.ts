@@ -18,7 +18,8 @@ import {
 } from "../services/researchQueue.service";
 
 function formatItem(item: ResearchQueueItem): string {
-  const assignee = item.assignedTo === "both" ? "Echo + Vince" : item.assignedTo;
+  const assignee =
+    item.assignedTo === "both" ? "Echo + Vince" : item.assignedTo;
   const asset = item.asset ? ` [${item.asset}]` : "";
   const source = item.source;
   return `- ${item.topic}${asset} (${assignee}, source: ${source})`;

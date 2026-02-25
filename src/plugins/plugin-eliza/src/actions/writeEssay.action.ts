@@ -353,12 +353,12 @@ ${essay}
 
       // Fire-and-forget: record content draft for performance tracking
       try {
-        const extractedTitle =
-          essay.match(/^#\s+(.+)$/m)?.[1] || topic;
-        void new ContentPerformanceService().recordDraft("substack", extractedTitle, [
-          "tradingPerformance",
-          "eliza",
-        ]);
+        const extractedTitle = essay.match(/^#\s+(.+)$/m)?.[1] || topic;
+        void new ContentPerformanceService().recordDraft(
+          "substack",
+          extractedTitle,
+          ["tradingPerformance", "eliza"],
+        );
       } catch {
         // never block the response
       }

@@ -189,10 +189,6 @@ export class InsightPackagingService {
   private append(insight: PackagedInsight): void {
     const dir = path.dirname(this.filePath);
     fs.mkdirSync(dir, { recursive: true });
-    fs.appendFileSync(
-      this.filePath,
-      JSON.stringify(insight) + "\n",
-      "utf-8",
-    );
+    fs.appendFileSync(this.filePath, JSON.stringify(insight) + "\n", "utf-8");
   }
 }

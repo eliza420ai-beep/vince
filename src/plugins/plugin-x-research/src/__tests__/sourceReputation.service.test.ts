@@ -141,7 +141,10 @@ describe("SourceReputationService", () => {
   describe("getTierBreakdown", () => {
     it("counts sources per tier", () => {
       svc.recalculate("@top1", makeQualityRecord("@top1", 0.95, 0.95, 0.95, 1));
-      svc.recalculate("@low1", makeQualityRecord("@low1", 0.1, 0.1, 0.1, 200 * 24));
+      svc.recalculate(
+        "@low1",
+        makeQualityRecord("@low1", 0.1, 0.1, 0.1, 200 * 24),
+      );
 
       const breakdown = svc.getTierBreakdown();
       expect(typeof breakdown["tier-1"]).toBe("number");

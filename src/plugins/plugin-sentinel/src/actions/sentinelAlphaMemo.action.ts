@@ -167,7 +167,10 @@ export const sentinelAlphaMemoAction: Action = {
       CACHE_KEY,
     );
     if (cached && cached.markdown && Date.now() - cached.ts < CACHE_TTL_MS) {
-      await callback({ text: cached.markdown, actions: ["SENTINEL_ALPHA_MEMO"] });
+      await callback({
+        text: cached.markdown,
+        actions: ["SENTINEL_ALPHA_MEMO"],
+      });
       return;
     }
 
@@ -222,8 +225,7 @@ export const sentinelAlphaMemoAction: Action = {
       })(),
     ]);
 
-    const vince =
-      vinceResult.status === "fulfilled" ? vinceResult.value : "";
+    const vince = vinceResult.status === "fulfilled" ? vinceResult.value : "";
     const echo = echoResult.status === "fulfilled" ? echoResult.value : "";
     const solus = solusResult.status === "fulfilled" ? solusResult.value : "";
 

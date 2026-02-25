@@ -14,7 +14,10 @@ function hoursAgo(hours: number): string {
 describe("VinceNarrativeDecayService", () => {
   describe("getDecayMultiplier", () => {
     it("returns ~1.0 for a brand-new inception narrative (0 hours elapsed)", () => {
-      const multiplier = svc.getDecayMultiplier("inception", new Date().toISOString());
+      const multiplier = svc.getDecayMultiplier(
+        "inception",
+        new Date().toISOString(),
+      );
       expect(multiplier).toBeGreaterThan(0.99);
     });
 
@@ -62,7 +65,11 @@ describe("VinceNarrativeDecayService", () => {
     it("returns confidence * decay, not below 10% floor", () => {
       const confidence = 80;
       // At 72h for inception, decay ≈ 0.5 → 80 * 0.5 = 40
-      const result = svc.applyDecayToConfidence(confidence, "inception", hoursAgo(72));
+      const result = svc.applyDecayToConfidence(
+        confidence,
+        "inception",
+        hoursAgo(72),
+      );
       expect(result).toBeCloseTo(40, 0);
     });
 
@@ -70,7 +77,11 @@ describe("VinceNarrativeDecayService", () => {
       const confidence = 80;
       const floor = confidence * 0.1; // 8
       // 1000 hours ago → multiplier ≈ 0
-      const result = svc.applyDecayToConfidence(confidence, "inception", hoursAgo(1000));
+      const result = svc.applyDecayToConfidence(
+        confidence,
+        "inception",
+        hoursAgo(1000),
+      );
       expect(result).toBeGreaterThanOrEqual(floor);
       // Should be very close to floor
       expect(result).toBeLessThan(floor * 1.5);
@@ -78,14 +89,20 @@ describe("VinceNarrativeDecayService", () => {
 
     it("returns close to full confidence for fresh narrative", () => {
       const confidence = 75;
-      const result = svc.applyDecayToConfidence(confidence, "inception", new Date().toISOString());
+      const result = svc.applyDecayToConfidence(
+        confidence,
+        "inception",
+        new Date().toISOString(),
+      );
       expect(result).toBeGreaterThan(confidence * 0.95);
     });
   });
 
   describe("isNarrativeStale", () => {
     it("returns false for fresh narrative", () => {
-      expect(svc.isNarrativeStale("inception", new Date().toISOString())).toBe(false);
+      expect(svc.isNarrativeStale("inception", new Date().toISOString())).toBe(
+        false,
+      );
     });
 
     it("returns true for stale inception (>240 hours)", () => {
@@ -109,12 +126,8 @@ describe("VinceNarrativeDecayService", () => {
       //   0.382 < 0.6 → stale with threshold 0.6
       //   0.382 < 0.4 → stale with threshold 0.4
       //   0.382 > 0.3 → NOT stale with threshold 0.3
-      expect(
-        svc.isNarrativeStale("inception", hoursAgo(100), 0.6),
-      ).toBe(true);
-      expect(
-        svc.isNarrativeStale("inception", hoursAgo(100), 0.3),
-      ).toBe(false);
+      expect(svc.isNarrativeStale("inception", hoursAgo(100), 0.6)).toBe(true);
+      expect(svc.isNarrativeStale("inception", hoursAgo(100), 0.3)).toBe(false);
     });
   });
 });
