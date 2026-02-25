@@ -115,7 +115,8 @@
     "pg": "^8.18.0",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "vitest": "^4.0.18"
   },
   "scripts": {
     "prepare": "husky",
@@ -169,7 +170,10 @@
     "vault:standup": "bun run scripts/sync-standup-to-vault.ts",
     "train-models": "python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90 \"$@\"",
     "train-models:recency": "python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90 --recency-decay 0.01 \"$@\"",
-    "validate-ml": "python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py --data .elizadb/vince-paper-bot/features"
+    "validate-ml": "python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py --data .elizadb/vince-paper-bot/features",
+    "skills:build-registry": "bunx tsx scripts/skills/build-registry.ts",
+    "skills:check-drift": "bunx tsx scripts/skills/check-skill-drift.ts",
+    "skills:eval-routing": "bunx tsx scripts/skills/eval-skill-routing.ts"
   },
   "overrides": {
     "wrap-ansi-cjs": "8.0.0"

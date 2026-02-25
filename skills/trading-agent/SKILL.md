@@ -50,3 +50,122 @@ skills/trading-agent/
 ```
 
 For full install, config, and ops see the [EVClaw repo](https://github.com/Degenapetrader/EVClaw) (INSTALL.md, AGENTS.md, TRADING_RULES.md, PROTECTION_LAYERS.md).
+
+---
+
+## Safety Preflight
+
+Run this checklist before **any live operation**:
+
+- [ ] Verify delegated signer address matches `HYPERLIQUID_AGENT_PRIVATE_KEY` — confirm it is **not** the main wallet key
+- [ ] Check circuit breaker status: `echo $OTAKU_CIRCUIT_BREAKER_ACTIVE` (must be `false` or unset before going live)
+- [ ] Confirm execution graduation level: `echo $OTAKU_FORCE_LEVEL` (L0=paper only, L1=notify, L2=confirm, L3=auto)
+- [ ] Verify daily loss limit not breached: check recent P&L from VINCE paper bot dashboard or Sentinel weekly
+- [ ] Check DVOL < 80: if crypto volatility index is ≥80, reduce position size by 50%+ before executing
+
+**If any check fails → do not proceed to live.** Return to paper trading (L0) or pause and investigate.
+
+---
+
+## Rollback / Kill-Switch
+
+Emergency procedures to halt or reverse live operations:
+
+| Action | Command / Steps |
+|--------|----------------|
+| **Emergency stop (halt execution)** | Set `OTAKU_AUTO_EXECUTE_ENABLED=false` + restart the agent process |
+| **Close all positions** | Use `OTAKU_CLOSE_ALL` action in chat (e.g. "Otaku, close all positions") |
+| **Trigger circuit breaker manually** | `export OTAKU_CIRCUIT_BREAKER_ACTIVE=true` + notify Sentinel |
+| **Rollback to paper trading** | Set `OTAKU_FORCE_LEVEL=0` in `.env` + restart agent; verify no orders sent |
+
+**Verification after rollback:**
+1. Confirm no new orders placed on Hyperliquid (check account → open orders)
+2. Check `OTAKU_CIRCUIT_BREAKER_ACTIVE=true` is active
+3. Notify Sentinel weekly task — it will log the event in the weekly report
+
+---
+
+## Mode Change SOPs
+
+Graduation levels control how live execution flows. Change levels only when criteria are met.
+
+### L0 → L1: Paper → Notify
+
+**Requirements before promoting:**
+- Minimum 4 weeks paper trading with VINCE bot
+- Win rate (WR) ≥ 45% over the period
+- No signal logic bugs (confirmed by Sentinel code review)
+
+**Steps:**
+1. Set `OTAKU_FORCE_LEVEL=1` in `.env`
+2. Restart agent
+3. Confirm Sentinel logs "Execution level: Notify" in first weekly report
+
+**Verification:** Next trade signal should generate a Discord/Telegram notification but NOT execute.
+
+---
+
+### L1 → L2: Notify → Confirm
+
+**Requirements before promoting:**
+- WR > 55% over 4 consecutive weeks at L1
+- At least 20 notified signals reviewed (manually confirmed quality)
+- Sentinel weekly report shows consistent signal quality
+
+**Steps:**
+1. Set `OTAKU_FORCE_LEVEL=2` in `.env`
+2. Restart agent
+3. Next trade will send a confirmation prompt — manually approve the first 3
+
+**Verification:** First trade after promotion must require human confirm before execution.
+
+---
+
+### L2 → L3: Confirm → Auto
+
+**Requirements before promoting:**
+- WR > 58% over 8 consecutive weeks at L2
+- Sharpe ratio > 1.0 (annualized, calculated from weekly P&L)
+- Maximum drawdown < 10% from peak
+- Sentinel weekly report explicitly notes all three criteria met
+
+**Steps:**
+1. Set `OTAKU_FORCE_LEVEL=3` in `.env`
+2. Set `OTAKU_AUTO_EXECUTE_ENABLED=true`
+3. Start with reduced position size (50% of normal) for first 2 weeks at L3
+4. Sentinel will auto-log the promotion in the weekly report
+
+**Verification:** Monitor first 5 auto-executed trades closely. If any unexpected behavior, immediately rollback to L2.
+
+---
+
+## Bootstrap Checks
+
+Steps to verify the trading stack is healthy on startup:
+
+1. **Environment variables set**
+   ```bash
+   echo $HYPERLIQUID_ADDRESS          # must be set
+   echo $HYPERLIQUID_AGENT_PRIVATE_KEY # must be set (delegated signer)
+   echo $OTAKU_CIRCUIT_BREAKER_ACTIVE  # must be false or unset
+   echo $OTAKU_FORCE_LEVEL             # should be 0 unless intentionally promoted
+   ```
+
+2. **Confirm agent process running**
+   ```bash
+   tmux ls  # expect: evclaw-cycle-trigger, evclaw-live-agent, evclaw-exit-decider
+   ```
+
+3. **Check position reconciliation**
+   - Open EVClaw dashboard or Hyperliquid account page
+   - Confirm no stale positions from prior session
+   - If stale positions found: use `OTAKU_CLOSE_ALL` before starting new cycle
+
+4. **Run Safety Preflight** (see above)
+
+5. **Verify VINCE paper bot synced**
+   - VINCE signals should be current (within 15 minutes)
+   - Feature store last update timestamp must be < 30 minutes old
+
+6. **Notify Sentinel**
+   - If starting a new session after any downtime > 4 hours, trigger a Sentinel cost/status check to confirm system health
