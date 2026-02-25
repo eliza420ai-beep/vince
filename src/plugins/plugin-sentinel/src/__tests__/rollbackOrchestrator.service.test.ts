@@ -35,8 +35,8 @@ afterEach(() => {
 describe("checkTriggers — no trigger", () => {
   it("returns null when all metrics are healthy", () => {
     const trigger = service.checkTriggers({
-      winRate: 0.60,
-      drawdownPct: 0.10,
+      winRate: 0.6,
+      drawdownPct: 0.1,
       genomeFitnessDelta: 0.05,
     });
     expect(trigger).toBeNull();
@@ -46,8 +46,8 @@ describe("checkTriggers — no trigger", () => {
 describe("checkTriggers — win rate regression", () => {
   it("returns win-rate-regression when winRate < 0.45", () => {
     const trigger = service.checkTriggers({
-      winRate: 0.40,
-      drawdownPct: 0.10,
+      winRate: 0.4,
+      drawdownPct: 0.1,
       genomeFitnessDelta: 0.0,
     });
     expect(trigger).toBe("win-rate-regression");
@@ -80,7 +80,7 @@ describe("checkTriggers — genome degradation", () => {
   it("returns genome-degradation when genomeFitnessDelta < -0.1", () => {
     const trigger = service.checkTriggers({
       winRate: 0.55,
-      drawdownPct: 0.10,
+      drawdownPct: 0.1,
       genomeFitnessDelta: -0.15,
     });
     expect(trigger).toBe("genome-degradation");

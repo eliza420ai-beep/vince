@@ -51,16 +51,12 @@ export class RollbackOrchestratorService {
   }
 
   private get drawdownCeiling(): number {
-    const val = parseFloat(
-      process.env.ROLLBACK_DRAWDOWN_CEILING ?? "0.20",
-    );
+    const val = parseFloat(process.env.ROLLBACK_DRAWDOWN_CEILING ?? "0.20");
     return isNaN(val) ? 0.2 : val;
   }
 
   private get genomeDegradationThreshold(): number {
-    const val = parseFloat(
-      process.env.ROLLBACK_GENOME_DEGRADATION ?? "-0.1",
-    );
+    const val = parseFloat(process.env.ROLLBACK_GENOME_DEGRADATION ?? "-0.1");
     return isNaN(val) ? -0.1 : val;
   }
 
@@ -138,11 +134,7 @@ export class RollbackOrchestratorService {
   /**
    * Mark a rollback event as completed or failed.
    */
-  completeRollback(
-    triggerId: string,
-    success: boolean,
-    notes?: string,
-  ): void {
+  completeRollback(triggerId: string, success: boolean, notes?: string): void {
     const all = this.readAll();
     const updated = all.map((e) => {
       if (e.triggerId !== triggerId) return e;

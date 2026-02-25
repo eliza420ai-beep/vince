@@ -65,9 +65,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
-  VincePolicyEngineService.setInstance(
-    new VincePolicyEngineService(),
-  );
+  VincePolicyEngineService.setInstance(new VincePolicyEngineService());
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

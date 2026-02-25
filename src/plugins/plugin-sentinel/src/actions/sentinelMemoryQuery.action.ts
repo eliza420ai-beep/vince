@@ -47,10 +47,7 @@ function parseQueryHint(text: string): {
   const knowMatch = lower.match(/know about\s+([a-z0-9_-]+)/i);
 
   const token =
-    knowMatch?.[1] ??
-    aboutMatch?.[1] ??
-    fromMatch?.[1] ??
-    undefined;
+    knowMatch?.[1] ?? aboutMatch?.[1] ?? fromMatch?.[1] ?? undefined;
 
   if (!token) return {};
 
@@ -103,14 +100,14 @@ export const sentinelMemoryQueryAction: Action = {
       });
 
       if (nodes.length === 0) {
-        const subject = hint.asset ?? (hint.tags?.[0]) ?? "that topic";
+        const subject = hint.asset ?? hint.tags?.[0] ?? "that topic";
         await callback({
           text: `No memory nodes found for **${subject}** yet. As the system learns from post-mortems and weekly briefs, lessons will accumulate here.`,
         });
         return { success: true };
       }
 
-      const subject = hint.asset ?? (hint.tags?.[0]) ?? "the requested topic";
+      const subject = hint.asset ?? hint.tags?.[0] ?? "the requested topic";
       const lines: string[] = [
         `## Memory Graph — Lessons on **${subject}**`,
         "",

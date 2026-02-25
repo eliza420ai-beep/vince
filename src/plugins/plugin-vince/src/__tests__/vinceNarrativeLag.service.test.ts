@@ -34,7 +34,10 @@ describe("VinceNarrativeLagService", () => {
     svc.recordTransition("BTC", "inception", 50000);
     const filePath = path.join(tmpDir, "narrative-lag.jsonl");
     expect(fs.existsSync(filePath)).toBe(true);
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     expect(lines).toHaveLength(1);
     const rec = JSON.parse(lines[0]);
     expect(rec.asset).toBe("BTC");
@@ -47,7 +50,10 @@ describe("VinceNarrativeLagService", () => {
     svc.recordTransition("ETH", "growth", 2000);
 
     const filePath = path.join(tmpDir, "narrative-lag.jsonl");
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     const rec = JSON.parse(lines[0]);
     const transitionAt = rec.transitionAt;
 

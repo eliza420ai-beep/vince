@@ -13,7 +13,9 @@ let svc: VinceDriftSentinelService;
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "drift-sentinel-test-"));
-  VinceDriftSentinelService.setInstance(null as unknown as VinceDriftSentinelService);
+  VinceDriftSentinelService.setInstance(
+    null as unknown as VinceDriftSentinelService,
+  );
   svc = new VinceDriftSentinelService(tmpDir);
 });
 
@@ -92,9 +94,9 @@ describe("VinceDriftSentinelService", () => {
     });
 
     it("returns max drift over window", () => {
-      svc.recordDrift("BTC", 0, 3);  // drift 3%
+      svc.recordDrift("BTC", 0, 3); // drift 3%
       svc.recordDrift("ETH", 0, 10); // drift 10%
-      svc.recordDrift("SOL", 0, 7);  // drift 7%
+      svc.recordDrift("SOL", 0, 7); // drift 7%
       expect(svc.getMaxDrift(24)).toBeCloseTo(10);
     });
   });
@@ -105,8 +107,8 @@ describe("VinceDriftSentinelService", () => {
     });
 
     it("counts warn and halt events", () => {
-      svc.recordDrift("BTC", 0, 3);  // none
-      svc.recordDrift("ETH", 0, 8);  // warn
+      svc.recordDrift("BTC", 0, 3); // none
+      svc.recordDrift("ETH", 0, 8); // warn
       svc.recordDrift("SOL", 0, 20); // halt
       expect(svc.getWarnCount(24)).toBe(2);
     });

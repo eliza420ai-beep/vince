@@ -34,9 +34,7 @@ function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }
 
-function mapToConviction(
-  score: number,
-): MergedConviction["conviction"] {
+function mapToConviction(score: number): MergedConviction["conviction"] {
   if (score > 0.5) return "strong-long";
   if (score > 0.2) return "lean-long";
   if (score >= -0.2) return "neutral";
@@ -64,10 +62,14 @@ export class VinceForecastMergeService {
     for (const trade of assetTrades) {
       if (trade.direction === "long") {
         // avoided long: price up → negative (missed), price down → positive (right)
-        signalSum += -Math.sign(trade.priceDeltaPct) * Math.min(1, Math.abs(trade.priceDeltaPct) / 10);
+        signalSum +=
+          -Math.sign(trade.priceDeltaPct) *
+          Math.min(1, Math.abs(trade.priceDeltaPct) / 10);
       } else if (trade.direction === "short") {
         // avoided short: price down → negative (missed), price up → positive (right)
-        signalSum += Math.sign(trade.priceDeltaPct) * Math.min(1, Math.abs(trade.priceDeltaPct) / 10);
+        signalSum +=
+          Math.sign(trade.priceDeltaPct) *
+          Math.min(1, Math.abs(trade.priceDeltaPct) / 10);
       }
     }
 

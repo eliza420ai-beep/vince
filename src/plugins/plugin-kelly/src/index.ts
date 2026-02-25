@@ -32,6 +32,7 @@ import { KellyLifestyleService } from "./services/lifestyle.service";
 import { FlywheelScoreService } from "./services/flywheelScore.service";
 import { kellyFlywheelScoreAction } from "./actions/kellyFlywheelScore.action";
 import { kellyXResearchCommandCenterAction } from "./actions/kellyXResearchCommandCenter.action";
+import { kellyResearchQueueAction } from "./actions/kellyResearchQueue.action";
 import { kellyTrustDashboardAction } from "./actions/kellyTrustDashboard.action";
 import {
   registerKellyLifestyleDailyTask,
@@ -67,6 +68,7 @@ export const kellyPlugin: Plugin = {
     kellyDraftWeeklyPerformanceAction,
     kellyFlywheelScoreAction,
     kellyXResearchCommandCenterAction,
+    kellyResearchQueueAction,
     kellyTrustDashboardAction,
   ],
   evaluators: [lifestyleFeedbackEvaluator],

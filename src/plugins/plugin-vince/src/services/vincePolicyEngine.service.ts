@@ -115,13 +115,17 @@ function parseTradingPolicyYaml(raw: string): PolicyFile {
 
     const stripped = line.trimStart();
     if (/^description:\s+/.test(stripped)) {
-      currentRule.description = unquote(stripped.replace(/^description:\s+/, ""));
+      currentRule.description = unquote(
+        stripped.replace(/^description:\s+/, ""),
+      );
     } else if (/^condition:\s+/.test(stripped)) {
       currentRule.condition = unquote(stripped.replace(/^condition:\s+/, ""));
     } else if (/^action:\s+/.test(stripped)) {
       currentRule.action = unquote(stripped.replace(/^action:\s+/, ""));
     } else if (/^level:\s+/.test(stripped)) {
-      currentRule.level = unquote(stripped.replace(/^level:\s+/, "")) as "hard" | "soft";
+      currentRule.level = unquote(stripped.replace(/^level:\s+/, "")) as
+        | "hard"
+        | "soft";
     }
   }
 
@@ -138,10 +142,7 @@ function parseTradingPolicyYaml(raw: string): PolicyFile {
  * Supports: `>`, `<`, `==`, `AND` (case-insensitive)
  * Values in context: numbers, strings, booleans.
  */
-function evaluateCondition(
-  condition: string,
-  context: PolicyContext,
-): boolean {
+function evaluateCondition(condition: string, context: PolicyContext): boolean {
   const normalized = condition.trim();
 
   // Handle AND (split on " AND " case-insensitive)
@@ -210,9 +211,7 @@ export class VincePolicyEngineService {
   private loadPolicy(): PolicyFile {
     if (this.policy) return this.policy;
     if (!fs.existsSync(this.policyPath)) {
-      throw new Error(
-        `Policy file not found: ${this.policyPath}`,
-      );
+      throw new Error(`Policy file not found: ${this.policyPath}`);
     }
     const raw = fs.readFileSync(this.policyPath, "utf-8");
     this.policy = parseTradingPolicyYaml(raw);

@@ -67,9 +67,7 @@ export class MemoryGraphService {
   /**
    * Add a new memory node with weight=1.0 and current timestamp.
    */
-  addNode(
-    node: Omit<MemoryNode, "id" | "learnedAt" | "weight">,
-  ): MemoryNode {
+  addNode(node: Omit<MemoryNode, "id" | "learnedAt" | "weight">): MemoryNode {
     const newNode: MemoryNode = {
       ...node,
       id: uuidv4(),

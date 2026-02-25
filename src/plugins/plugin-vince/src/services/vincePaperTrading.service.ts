@@ -2207,7 +2207,10 @@ Reply format: APPROVE reason or VETO reason`;
             );
             continue;
           }
-          if (policyResult.sizeModifier < 1.0 && policyResult.sizeModifier > 0) {
+          if (
+            policyResult.sizeModifier < 1.0 &&
+            policyResult.sizeModifier > 0
+          ) {
             finalTradeSize = finalTradeSize * policyResult.sizeModifier;
             logger.info(
               `[VincePaperTrading] ${asset} policy engine size reduction to ${Math.round(policyResult.sizeModifier * 100)}% | auditRef: ${policyResult.auditRef}`,
@@ -2215,7 +2218,10 @@ Reply format: APPROVE reason or VETO reason`;
           }
         } catch (policyErr) {
           // Policy engine is non-blocking on error (fail-open for paper trading)
-          logger.debug("[VincePaperTrading] Policy engine check skipped:", policyErr);
+          logger.debug(
+            "[VincePaperTrading] Policy engine check skipped:",
+            policyErr,
+          );
         }
 
         // Get current price

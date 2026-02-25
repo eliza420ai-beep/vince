@@ -100,9 +100,17 @@ describe("getWeeklyScoreboard", () => {
   it("returns entries sorted by usageCount descending", () => {
     // 3 x-research events, 1 trading-agent event
     for (let i = 0; i < 3; i++) {
-      service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
+      service.recordUsage({
+        skillName: "x-research",
+        agentId: "echo",
+        outcome: "success",
+      });
     }
-    service.recordUsage({ skillName: "trading-agent", agentId: "otaku", outcome: "success" });
+    service.recordUsage({
+      skillName: "trading-agent",
+      agentId: "otaku",
+      outcome: "success",
+    });
 
     const scoreboard = service.getWeeklyScoreboard();
     expect(scoreboard[0].skillName).toBe("x-research");
@@ -112,17 +120,37 @@ describe("getWeeklyScoreboard", () => {
   });
 
   it("calculates successRate correctly", () => {
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "failure" });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "failure",
+    });
 
     const [entry] = service.getWeeklyScoreboard();
     expect(entry.successRate).toBeCloseTo(2 / 3, 5);
   });
 
   it("calculates avgLatencyMs correctly", () => {
-    service.recordUsage({ skillName: "x-research", agentId: "echo", latencyMs: 100 });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", latencyMs: 300 });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      latencyMs: 100,
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      latencyMs: 300,
+    });
 
     const [entry] = service.getWeeklyScoreboard();
     expect(entry.avgLatencyMs).toBe(200);
@@ -135,9 +163,21 @@ describe("getWeeklyScoreboard", () => {
   });
 
   it("builds impactBreakdown correctly", () => {
-    service.recordUsage({ skillName: "x-research", agentId: "echo", downstreamImpact: "trade" });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", downstreamImpact: "insight" });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", downstreamImpact: "trade" });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      downstreamImpact: "trade",
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      downstreamImpact: "insight",
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      downstreamImpact: "trade",
+    });
 
     const [entry] = service.getWeeklyScoreboard();
     expect(entry.impactBreakdown.trade).toBe(2);
@@ -156,7 +196,11 @@ describe("getWeeklyScoreboard", () => {
     fs.appendFileSync(filePath, JSON.stringify(oldEvent) + "\n");
 
     // Record a recent event for a different skill
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
 
     const scoreboard = service.getWeeklyScoreboard();
     const names = scoreboard.map((e) => e.skillName);
@@ -175,8 +219,16 @@ describe("getSkillStats", () => {
   });
 
   it("returns total count across all history", () => {
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "failure" });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "failure",
+    });
 
     const stats = service.getSkillStats("x-research");
     expect(stats).not.toBeNull();
@@ -184,9 +236,21 @@ describe("getSkillStats", () => {
   });
 
   it("returns correct successRate", () => {
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "failure" });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "failure",
+    });
 
     const stats = service.getSkillStats("x-research");
     expect(stats!.successRate).toBeCloseTo(2 / 3, 5);
@@ -205,8 +269,16 @@ describe("getSkillStats", () => {
   });
 
   it("does not include events from other skills", () => {
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
-    service.recordUsage({ skillName: "trading-agent", agentId: "otaku", outcome: "failure" });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
+    service.recordUsage({
+      skillName: "trading-agent",
+      agentId: "otaku",
+      outcome: "failure",
+    });
 
     const stats = service.getSkillStats("x-research");
     expect(stats!.total).toBe(1);
@@ -224,7 +296,11 @@ describe("buildWeeklyScoreboardSection", () => {
   });
 
   it("includes the Skill Scoreboard header", () => {
-    service.recordUsage({ skillName: "x-research", agentId: "echo", outcome: "success" });
+    service.recordUsage({
+      skillName: "x-research",
+      agentId: "echo",
+      outcome: "success",
+    });
     const section = service.buildWeeklyScoreboardSection();
     expect(section).toContain("## Skill Scoreboard");
   });
