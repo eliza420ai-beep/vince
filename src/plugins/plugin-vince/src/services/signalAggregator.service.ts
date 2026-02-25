@@ -100,24 +100,11 @@ import {
 } from "../constants/paperTradingDefaults";
 import * as fs from "fs";
 import * as path from "path";
+import { parseAndValidateWttPick, type WttPick } from "../utils/wttContract";
 
 // ==========================================
 // ML-Enhanced Configuration
 // ==========================================
-
-/** Minimal shape of the WTT daily pick JSON sidecar for signal aggregation. */
-interface WttPickParsed {
-  primaryTicker: string;
-  primaryDirection: "long" | "short";
-  thesis: string;
-  altTicker?: string;
-  rubric: {
-    alignment: string;
-    edge: string;
-    payoffShape: string;
-    timingForgiveness: string;
-  };
-}
 
 /** Max wait per external source so one slow API doesn't block the whole aggregation */
 const SOURCE_FETCH_TIMEOUT_MS = 12_000;
@@ -318,10 +305,9 @@ export class VinceSignalAggregatorService extends Service {
   }
 
   /** Cache today's WTT pick (read once per day, reused across all assets). */
-  private wttPickCache: { date: string; pick: WttPickParsed | null } | null =
-    null;
+  private wttPickCache: { date: string; pick: WttPick | null } | null = null;
 
-  private getWttPickForToday(): WttPickParsed | null {
+  private getWttPickForToday(): WttPick | null {
     if (!isWttEnabled(this.runtime)) return null;
     const today = new Date().toISOString().slice(0, 10);
     if (this.wttPickCache?.date === today) return this.wttPickCache.pick;
@@ -335,11 +321,21 @@ export class VinceSignalAggregatorService extends Service {
         `${today}-whats-the-trade.json`,
       );
       const raw = fs.readFileSync(filepath, "utf-8");
-      const parsed = JSON.parse(raw) as WttPickParsed;
-      if (parsed?.primaryTicker && parsed?.rubric) {
-        this.wttPickCache = { date: today, pick: parsed };
-        return parsed;
+      const validated = parseAndValidateWttPick(raw);
+      if (validated.ok) {
+        if (validated.migratedFromLegacy) {
+          logger.warn(
+            `[VinceSignalAggregator] WTT payload at ${filepath} loaded via legacy fallback; migrate to v2 contract`,
+          );
+        }
+        this.wttPickCache = { date: today, pick: validated.value };
+        return validated.value;
       }
+      logger.debug(
+        `[VinceSignalAggregator] Invalid WTT payload at ${filepath}: ${validated.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join("; ")}`,
+      );
     } catch {
       // No file or invalid JSON
     }

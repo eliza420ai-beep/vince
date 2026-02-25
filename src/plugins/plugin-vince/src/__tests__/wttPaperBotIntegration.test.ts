@@ -151,6 +151,9 @@ describe("WTT → Paper Bot: wttPickToWttBlock", () => {
   it("produces ordinals for alignment (1–5), edge (1–4), payoff (1–5), timing (1–4)", () => {
     const block = wttPickToWttBlock({
       primary: true,
+      primaryOrAlt: "primary",
+      reportId: "2026-02-24-BTC-long",
+      qualityScore: 88,
       ticker: "BTC",
       thesis: "Risk-on rotation",
       rubric: {
@@ -163,6 +166,9 @@ describe("WTT → Paper Bot: wttPickToWttBlock", () => {
       evThresholdPct: 5,
     });
     expect(block.primary).toBe(true);
+    expect(block.primaryOrAlt).toBe("primary");
+    expect(block.reportId).toBe("2026-02-24-BTC-long");
+    expect(block.qualityScore).toBe(88);
     expect(block.ticker).toBe("BTC");
     expect(block.thesis).toBe("Risk-on rotation");
     expect(block.alignment).toBeGreaterThanOrEqual(1);
@@ -343,6 +349,9 @@ describe("WTT → Paper Bot: Feature store wtt block and invalidateHit", () => {
       },
       wtt: {
         primary: true,
+        primaryOrAlt: "primary",
+        reportId: "2026-02-24-BTC-long",
+        qualityScore: 88,
         ticker: "BTC",
         thesis: "Risk-on rotation",
         alignment: 5,
@@ -358,6 +367,9 @@ describe("WTT → Paper Bot: Feature store wtt block and invalidateHit", () => {
     expect(records.length).toBe(1);
     expect(records[0].wtt).toBeDefined();
     expect(records[0].wtt?.primary).toBe(true);
+    expect(records[0].wtt?.primaryOrAlt).toBe("primary");
+    expect(records[0].wtt?.reportId).toBe("2026-02-24-BTC-long");
+    expect(records[0].wtt?.qualityScore).toBe(88);
     expect(records[0].wtt?.ticker).toBe("BTC");
     expect(records[0].wtt?.invalidateCondition).toBe("BTC < 65k");
     expect(records[0].wtt?.invalidateHit).toBeUndefined();

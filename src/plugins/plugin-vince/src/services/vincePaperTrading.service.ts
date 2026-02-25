@@ -97,6 +97,11 @@ import type {
 } from "./vinceNarrativeRadar.service";
 import type { VinceTemporalCoherenceService } from "./vinceTemporalCoherence.service";
 import type { VinceImmuneSystemService } from "./vinceImmuneSystem.service";
+import { parseAndValidateWttPick, type WttPick } from "../utils/wttContract";
+import {
+  getWttSizeMultiplierForBand,
+  scoreWttPickQuality,
+} from "../utils/wttQualityScore";
 
 // ==========================================
 // Pending Entry Types
@@ -113,6 +118,14 @@ interface PendingEntry {
   createdAt: number;
   expiresAt: number; // Entry expires if not filled within 5 minutes
   isCascadeSignal: boolean; // Cascade signals enter immediately, skip pullback
+  ptqgMeta?: {
+    assetClass: "crypto" | "equity" | "commodity" | "other";
+    thesisClass: "momentum" | "mean_reversion" | "event" | "regime" | "other";
+    expectedHoldWindow: string;
+    catalystFlag: boolean;
+    lowConfidenceMode: boolean;
+    blocked: boolean;
+  };
 }
 
 // Pullback configuration
@@ -121,31 +134,35 @@ const PULLBACK_CONFIG = {
   timeoutMs: 3 * 60 * 1000, // 3 minute timeout (was 5 min)
 };
 
-/** Minimal shape of WTT JSON sidecar (docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.json) */
-interface WttPickJson {
-  date: string;
-  thesis: string;
-  primaryTicker: string;
-  primaryDirection: "long" | "short";
-  primaryInstrument: string;
-  primaryEntryPrice: number;
-  primaryRiskUsd: number;
-  invalidateCondition: string;
-  altTicker?: string;
-  altDirection?: "long" | "short";
-  altInstrument?: string;
-  rubric: {
-    alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
-    edge: "undiscovered" | "emerging" | "consensus" | "crowded";
-    payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
-    timingForgiveness:
-      | "very_forgiving"
-      | "forgiving"
-      | "punishing"
-      | "very_punishing";
-  };
-  evThresholdPct?: number;
-  killConditions: string[];
+type PtqgMetaInput = {
+  assetClass: "crypto" | "equity" | "commodity" | "other";
+  thesisClass: "momentum" | "mean_reversion" | "event" | "regime" | "other";
+  expectedHoldWindow: string;
+  catalystFlag: boolean;
+  lowConfidenceMode: boolean;
+  blocked: boolean;
+};
+
+function inferPtqgAssetClass(asset: string): PtqgMetaInput["assetClass"] {
+  const upper = asset.toUpperCase();
+  if (
+    [
+      "BTC",
+      "ETH",
+      "SOL",
+      "HYPE",
+      "XRP",
+      "DOGE",
+      "ADA",
+      "AVAX",
+      "LINK",
+    ].includes(upper)
+  ) {
+    return "crypto";
+  }
+  if (["GOLD", "SILVER", "OIL"].includes(upper)) return "commodity";
+  if (/^[A-Z]{1,6}$/.test(upper)) return "equity";
+  return "other";
 }
 
 export class VincePaperTradingService extends Service {
@@ -973,12 +990,24 @@ Reply format: APPROVE reason or VETO reason`;
     }
   }
 
-  private async readLatestWttPick(): Promise<WttPickJson | null> {
+  private async readLatestWttPick(): Promise<WttPick | null> {
     try {
       const filepath = this.getWttPickPath();
       const raw = await fs.promises.readFile(filepath, "utf-8");
-      const parsed = JSON.parse(raw) as WttPickJson;
-      if (parsed?.primaryTicker && parsed?.rubric) return parsed;
+      const validated = parseAndValidateWttPick(raw);
+      if (validated.ok) {
+        if (validated.migratedFromLegacy) {
+          logger.warn(
+            `[VincePaperTrading] WTT payload at ${filepath} loaded via legacy fallback; migrate to v2 contract`,
+          );
+        }
+        return validated.value;
+      }
+      logger.debug(
+        `[VincePaperTrading] Invalid WTT payload at ${filepath}: ${validated.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join("; ")}`,
+      );
     } catch {
       // No file or invalid JSON
     }
@@ -990,7 +1019,7 @@ Reply format: APPROVE reason or VETO reason`;
    * Records every pick regardless of whether a trade was opened.
    */
   private async appendWttPickJsonl(
-    pick: WttPickJson,
+    pick: WttPick,
     outcome: "traded" | "rejected" | "skipped",
     reason?: string,
   ): Promise<void> {
@@ -1093,6 +1122,7 @@ Reply format: APPROVE reason or VETO reason`;
     }
 
     const today = new Date().toISOString().slice(0, 10);
+    const reportId = `${today}-${pick.primaryTicker}-${pick.primaryDirection}`;
     if (
       this.wttTradedToday?.date === today &&
       this.wttTradedToday?.asset === asset
@@ -1112,6 +1142,20 @@ Reply format: APPROVE reason or VETO reason`;
     }
 
     const { strength, confidence } = wttRubricToSignal(pick.rubric);
+    const quality = scoreWttPickQuality(pick);
+    logger.info(
+      `[VincePaperTrading] WTT quality score=${quality.score} band=${quality.band} | ${
+        quality.reasons.map((r) => r.code).join(", ") || "no_issues"
+      }`,
+    );
+    if (quality.band === "blocked") {
+      await this.appendWttPickJsonl(
+        pick,
+        "rejected",
+        `quality_blocked_${quality.score}`,
+      );
+      return false;
+    }
     // WTT is a curated daily thesis — set confirmingCount high enough to
     // pass the risk manager's gate (rubric already encodes signal quality).
     const confirmingCount = Math.max(
@@ -1150,16 +1194,27 @@ Reply format: APPROVE reason or VETO reason`;
     const portfolio = positionManager.getPortfolio();
     const cap = await this.getMaxLeverageCap(asset);
     const leverage = Math.min(DEFAULT_LEVERAGE, cap);
-    const sizeUsd = Math.min(
+    const baseSizeUsd = Math.min(
       portfolio.totalValue * 0.05,
       portfolio.totalValue * 0.1,
     );
+    const sizeMultiplier = getWttSizeMultiplierForBand(quality.band);
+    const sizeUsd = Math.max(10, baseSizeUsd * sizeMultiplier);
+    const lowConfidenceMode = quality.band === "size_capped";
     const position = await this.openTrade({
       asset,
       direction: pick.primaryDirection,
       sizeUsd,
       leverage,
       signal: tradeSignal,
+      ptqgMeta: {
+        assetClass: inferPtqgAssetClass(asset),
+        thesisClass: "event",
+        expectedHoldWindow: "1d",
+        catalystFlag: true,
+        lowConfidenceMode,
+        blocked: false,
+      },
     });
     if (!position) {
       await this.appendWttPickJsonl(pick, "rejected", "openTrade failed");
@@ -1174,10 +1229,16 @@ Reply format: APPROVE reason or VETO reason`;
       ...position.metadata,
       wttThesis: pick.thesis,
       wttInvalidateCondition: pick.invalidateCondition ?? undefined,
+      wttReportId: reportId,
+      wttQualityScore: quality.score,
+      wttPrimaryOrAlt: "primary",
     };
 
     const wttBlock = wttPickToWttBlock({
       primary: true,
+      primaryOrAlt: "primary",
+      reportId,
+      qualityScore: quality.score,
       ticker: pick.primaryTicker,
       thesis: pick.thesis,
       rubric: pick.rubric,
@@ -2143,6 +2204,15 @@ Reply format: APPROVE reason or VETO reason`;
           ...(devilMeta ? { devilMeta } : {}),
           ...(narrativePhase ? { narrativePhase } : {}),
           ...(immunePattern ? { immunePattern } : {}),
+          ptqgMeta: {
+            assetClass: inferPtqgAssetClass(asset),
+            thesisClass: signal.direction === "neutral" ? "other" : "momentum",
+            expectedHoldWindow: "intraday",
+            catalystFlag: false,
+            lowConfidenceMode:
+              tradeSignal.confidence < 65 || sentimentGate.sizeMultiplier < 1,
+            blocked: false,
+          },
         });
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
@@ -2171,6 +2241,7 @@ Reply format: APPROVE reason or VETO reason`;
     sizeUsd: number;
     leverage: number;
     isCascadeSignal: boolean;
+    ptqgMeta?: PtqgMetaInput;
   }): void {
     const {
       asset,
@@ -2180,6 +2251,7 @@ Reply format: APPROVE reason or VETO reason`;
       sizeUsd,
       leverage,
       isCascadeSignal,
+      ptqgMeta,
     } = params;
 
     // Calculate target price (pullback)
@@ -2206,6 +2278,7 @@ Reply format: APPROVE reason or VETO reason`;
       createdAt: Date.now(),
       expiresAt: Date.now() + PULLBACK_CONFIG.timeoutMs,
       isCascadeSignal,
+      ptqgMeta,
     };
 
     this.pendingEntries.set(entry.id, entry);
@@ -2274,6 +2347,7 @@ Reply format: APPROVE reason or VETO reason`;
             leverage: entry.leverage,
             signal: entry.signal,
             usedPullbackEntry: true,
+            ...(entry.ptqgMeta ? { ptqgMeta: entry.ptqgMeta } : {}),
           });
 
           this.pendingEntries.delete(id);
@@ -2326,6 +2400,7 @@ Reply format: APPROVE reason or VETO reason`;
       lossRate: number;
       block: boolean;
     };
+    ptqgMeta?: PtqgMetaInput;
   }): Promise<Position | null> {
     const {
       asset,
@@ -2340,6 +2415,7 @@ Reply format: APPROVE reason or VETO reason`;
       devilMeta,
       narrativePhase,
       immunePattern,
+      ptqgMeta,
     } = params;
 
     const positionManager = this.getPositionManager();
@@ -2725,6 +2801,23 @@ Reply format: APPROVE reason or VETO reason`;
               ? "Poor"
               : "—";
 
+    const finalizedPtqgMeta = {
+      assetClass: ptqgMeta?.assetClass ?? inferPtqgAssetClass(asset),
+      thesisClass: ptqgMeta?.thesisClass ?? "other",
+      entryTimestampUtc: new Date().toISOString(),
+      expectedHoldWindow: ptqgMeta?.expectedHoldWindow ?? "intraday",
+      leverage,
+      stopDistancePct: Number(slPctNum.toFixed(3)),
+      maxLossUsd: Number(slLossUsd.toFixed(2)),
+      maxLossPct:
+        leverage > 0
+          ? Number(((slLossUsd / (sizeUsd / leverage)) * 100).toFixed(2))
+          : 0,
+      catalystFlag: ptqgMeta?.catalystFlag ?? false,
+      lowConfidenceMode: ptqgMeta?.lowConfidenceMode ?? false,
+      blocked: ptqgMeta?.blocked ?? false,
+    };
+
     // Open position with ATR and full signal snapshot for dashboard
     const position = positionManager.openPosition({
       asset,
@@ -2781,6 +2874,7 @@ Reply format: APPROVE reason or VETO reason`;
           : {}),
         ...(narrativePhase ? { narrativePhase } : {}),
         ...(immunePattern ? { immunePattern } : {}),
+        ptqgMeta: finalizedPtqgMeta,
       },
     });
 

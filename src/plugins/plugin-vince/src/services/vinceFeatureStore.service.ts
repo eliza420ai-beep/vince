@@ -405,6 +405,9 @@ export interface FeatureRecord {
    */
   wtt?: {
     primary: boolean;
+    primaryOrAlt?: "primary" | "alt";
+    reportId?: string;
+    qualityScore?: number;
     ticker: string;
     thesis: string;
     alignment: number;
