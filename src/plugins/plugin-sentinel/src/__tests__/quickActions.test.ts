@@ -16,6 +16,7 @@ import { sentinelDocImproveAction } from "../actions/sentinelDocImprove.action";
 import { sentinelShipAction } from "../actions/sentinelShip.action";
 import { sentinelSecurityChecklistAction } from "../actions/sentinelSecurityChecklist.action";
 import { sentinelInvestorReportAction } from "../actions/sentinelInvestorReport.action";
+import { sentinelOperatorDashboardAction } from "../actions/sentinelOperatorDashboard.action";
 
 const SENTINEL_QUICK_ACTIONS = [
   { label: "What can the CTO do?", message: "What can you do?" },
@@ -35,6 +36,7 @@ const SENTINEL_QUICK_ACTIONS = [
     label: "What Should We Fix?",
     message: "What should we fix next? Code quality, tech debt, blockers",
   },
+  { label: "Operator Dashboard", message: "Show operator dashboard" },
 ];
 
 function createMessage(text: string): Memory {
@@ -68,6 +70,7 @@ const SENTINEL_ACTIONS = [
   sentinelShipAction,
   sentinelSecurityChecklistAction,
   sentinelInvestorReportAction,
+  sentinelOperatorDashboardAction,
 ];
 
 describe("Sentinel quick actions", () => {
