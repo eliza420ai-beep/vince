@@ -1,6 +1,6 @@
 # List test PRD
 
-**PRD ID:** PRD-20260225-S2XU
+**PRD ID:** PRD-20260225-62QI
 **Version:** 1.0
 **Created:** 2026-02-25
 **Priority:** P1 | **Effort:** M
@@ -89,10 +89,10 @@ List test PRD
 **Project Context:**
 **Active Plugins:**
 • plugin-naval: 41 actions, 0 services
-• plugin-vince: 30 actions, 54 services
+• plugin-vince: 30 actions, 57 services
+• plugin-kelly: 21 actions, 2 services
 • plugin-polymarket-discovery: 21 actions, 1 services
-• plugin-kelly: 20 actions, 2 services
-• plugin-sentinel: 18 actions, 8 services
+• plugin-sentinel: 20 actions, 10 services
 
 **In Progress:**
 • X research ALOHA-style conclusion
