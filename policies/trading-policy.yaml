@@ -4,8 +4,8 @@ effectiveDate: "2026-02-25"
 
 rules:
   - id: "max-single-trade-usd"
-    description: "Maximum single trade size regardless of signal strength"
-    condition: "tradeSize > 500"
+    description: "Maximum single trade size regardless of signal strength (paper: 10k; tighten for live)"
+    condition: "tradeSize > 10000"
     action: "block"
     level: "hard"
 
