@@ -325,7 +325,7 @@ ${displayContent}
 
       // Fire-and-forget: record content draft for performance tracking
       try {
-        void new ContentPerformanceService().recordDraft("tweet", topic, [
+        new ContentPerformanceService().recordDraft("tweet", topic, [
           "tradingPerformance",
           "eliza",
         ]);
