@@ -102,6 +102,7 @@ import {
   getWttSizeMultiplierForBand,
   scoreWttPickQuality,
 } from "../utils/wttQualityScore";
+import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
 
 // ==========================================
 // Pending Entry Types
@@ -181,6 +182,7 @@ export class VincePaperTradingService extends Service {
 
   // Throttle "Could not get entry price" to once per asset per minute (avoids log spam when CoinGecko is slow)
   private lastEntryPriceWarnByAsset: Map<string, number> = new Map();
+  private attributionSvc = new VinceXSourceAttributionService();
   private static readonly ENTRY_PRICE_WARN_THROTTLE_MS = 60_000;
 
   // Throttle "No WTT pick for today" to once per calendar day (update loop runs every 30s)
@@ -2991,6 +2993,24 @@ Reply format: APPROVE reason or VETO reason`;
         .catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
     }
 
+    // Attribution: record trade open with source clusters
+    if (position) {
+      try {
+        const clusters = [
+          ...new Set((signal.signals ?? []).map((s) => s.source)),
+        ];
+        this.attributionSvc.recordOpen(
+          position.id,
+          asset,
+          direction,
+          clusters,
+          signal.confidence,
+        );
+      } catch (e) {
+        logger.debug(`[VincePaperTrading] Attribution recordOpen failed: ${e}`);
+      }
+    }
+
     return position;
   }
 
@@ -3144,6 +3164,16 @@ Reply format: APPROVE reason or VETO reason`;
       notif
         .push(msg)
         .catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
+    }
+
+    // Attribution: record trade close with outcome
+    try {
+      const tradePnl = closedPosition.realizedPnl ?? 0;
+      const outcome: "win" | "loss" | "scratch" =
+        tradePnl > 0 ? "win" : tradePnl < 0 ? "loss" : "scratch";
+      this.attributionSvc.recordClose(positionId, tradePnl, outcome);
+    } catch (e) {
+      logger.debug(`[VincePaperTrading] Attribution recordClose failed: ${e}`);
     }
 
     return closedPosition;

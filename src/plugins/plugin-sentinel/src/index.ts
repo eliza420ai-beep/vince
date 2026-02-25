@@ -59,6 +59,7 @@ import { sentinelHowDidWeDoAction } from "./actions/sentinelHowDidWeDo.action";
 import { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityChecklist.action";
 import { sentinelShipAction } from "./actions/sentinelShip.action";
 import { sentinelFeedbackDeliverableAction } from "./actions/sentinelFeedbackDeliverable.action";
+import { sentinelAlphaMemoAction } from "./actions/sentinelAlphaMemo.action";
 
 // Tasks
 import { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
@@ -95,6 +96,7 @@ export const sentinelPlugin: Plugin = {
     sentinelHowDidWeDoAction,
     sentinelSecurityChecklistAction,
     sentinelFeedbackDeliverableAction,
+    sentinelAlphaMemoAction,
   ],
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
@@ -139,6 +141,7 @@ export { sentinelHowDidWeDoAction } from "./actions/sentinelHowDidWeDo.action";
 export { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityChecklist.action";
 export { sentinelShipAction } from "./actions/sentinelShip.action";
 export { sentinelFeedbackDeliverableAction } from "./actions/sentinelFeedbackDeliverable.action";
+export { sentinelAlphaMemoAction } from "./actions/sentinelAlphaMemo.action";
 
 // Task exports
 export { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";

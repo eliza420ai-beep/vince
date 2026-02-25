@@ -28,6 +28,7 @@ import {
 import { CORE_ASSETS } from "../constants/targetAssets";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
 import type { VinceMarketDataService } from "./marketData.service";
+import { VinceRegimeTransitionService } from "./vinceRegimeTransition.service";
 // V3: Dynamic Configuration (Self-Improving Architecture)
 import {
   dynamicConfig,
@@ -349,7 +350,7 @@ export class VinceRiskManagerService extends Service {
     // Combine all multipliers
     const confidenceMultiplier =
       weekendMultiplier * session.confidenceMultiplier;
-    const sizeMultiplier = session.sizeMultiplier;
+    let sizeMultiplier = session.sizeMultiplier;
 
     let shouldTrade = true;
     let reason: string | undefined;
@@ -357,6 +358,20 @@ export class VinceRiskManagerService extends Service {
     if (nearFunding) {
       shouldTrade = false;
       reason = "Time filter blocked: Near funding settlement (±15 min window)";
+    }
+
+    // Regime transition risk: reduce heat when transition risk is high
+    try {
+      const rts = VinceRegimeTransitionService.getInstance();
+      const regime = session.session;
+      if (rts?.shouldReduceHeat(regime)) {
+        sizeMultiplier *= 0.7;
+        logger.debug(
+          `[VinceRiskManager] Regime transition risk elevated for ${regime} — size *= 0.7`,
+        );
+      }
+    } catch (e) {
+      logger.debug(`[VinceRiskManager] RegimeTransition check failed: ${e}`);
     }
 
     return {
