@@ -21,7 +21,7 @@
 
 ## What We Built: The One-Month Hackathon
 
-**V4.2.0 — The Genome.** One month, one PRD, 29 tasks across 5 phases, zero shortcuts. We turned ten isolated agents into a self-evolving trading system that observes its own performance, rewrites its own parameters, and earns the right to trade real money through sustained results. The hackathon is closed. Here's what shipped.
+**V4.2.0 — The Genome.** One month, one PRD, the first 5 phases shipped end‑to‑end. Since then we executed the full **12‑phase One Dream roadmap (80 tasks)**: a self-evolving trading system that observes its own performance, rewrites its own parameters, and earns the right to trade real money through sustained results. The hackathon is closed. Here's what shipped.
 
 ### The problem we solved
 
@@ -77,12 +77,63 @@ Phase 7 turned calibration into a first-class operating metric across the team:
 - **Cross-agent reporting** — Sentinel and Kelly reporting now surface VINCE prediction calibration so weekly reviews cover calibration drift, not just PnL.
 - **Closed accountability loop** — Predictions are made, resolved, scored, and reported in one system-wide path.
 
+### Phase 8 — The Compounding Edge: Research → Alpha → Distribution
+
+Phase 8 wired **X research, trading, and publishing into a single compounding loop**.
+
+- **X source quality & narrative lag**: score signal accounts, measure narrative-to-price lag, and feed `lagAdjustedConfidence` into the paper bot.
+- **Research-to-trade attribution**: every trade now carries lineage back to source threads, accounts, and prompts so alpha is auditable.
+- **Execution quality lens**: track when a good thesis was hurt by late entries, bad exits, or size errors instead of blaming the idea.
+- **Content performance feedback**: Substack posts and tweets are scored back to their source inputs; high-performing sources get more weight in future research.
+- **Alpha memos + X-Research command center**: weekly auto-drafted alpha memos and a command chip that turns saved research into a live routing surface.
+
+### Phase 9 — Skills Operating System: Skill-First Execution
+
+Phase 9 treated **skills as first-class citizens**, not hidden prompts.
+
+- **Skill registry + router**: a typed index of skills (research, trading, content, ops) with routing rules for ASK_AGENT.
+- **Skill telemetry + scoreboard**: per-skill success rates, latencies, and drift so we know which skills actually earn their keep.
+- **Skill QA harness**: repeatable tests that keep high-risk skills honest before they touch trading or capital.
+- **Skill-to-content pipeline**: the `ELIZA_SKILL_CONTENT` path turns X research skills into ready-to-publish briefs instead of starting from a blank page.
+- **Skill governance**: promotion and deprecation rules so the system keeps a sharp, small set of trusted skills.
+
+### Phase 10 — Live Capital Pilot: Earned Risk, Not Assumed Risk
+
+Phase 10 built the **bridge from paper to live** without crossing the risk line.
+
+- **Capital buckets + risk budgets**: explicit sleeves and limits for different strategies instead of one undifferentiated pool.
+- **Live/paper drift sentinel**: continuous checks that live execution tracks paper decisions; automatic downshift when drift widens.
+- **Execution audit trail + hard circuit stack**: every live trade logged with policy context and a multi-layer circuit breaker that can halt execution instantly.
+- **Operator console**: Kelly + Sentinel surfaces a single live safety view so humans can see, in plain language, whether the pilot is safe to keep running.
+- **Promotion ladder v2**: live capital size is earned through sustained performance, not a one-time decision.
+
+### Phase 11 — Portfolio Intelligence + Distribution Moat
+
+Phase 11 focused on **portfolio quality and truth in output**.
+
+- **Strategy sleeve allocator**: capital flows into sleeves based on their current edge, not equal-weight habits.
+- **Cross-asset contagion + opportunity cost**: detect correlated stress, cut crowded risk, and reallocate from weakest sleeve to strongest alternative.
+- **Narrative shelf-life & decay**: track how long a story stays investable before edge decays and position sizing should shrink.
+- **Content truth + insight packaging**: a truth layer that forces performance claims to cite metrics/sources, plus an insight packager that turns research into repeatable formats.
+- **Source reputation + feedback loop**: persistent reputation scores for signal sources and audience feedback flowing straight into the research queue.
+
+### Phase 12 — Autonomous Compounding Governance (Final Phase)
+
+Phase 12 closed the loop: **the system governs itself, with clear policy and rollback paths**.
+
+- **Policy engine as code**: YAML policies parsed into a runtime engine with audit refs on every decision.
+- **Automatic rollback orchestrator**: tested rollback paths for models, policies, and configurations with drills baked in.
+- **Shadow challenger framework + forecast merge**: live strategies constantly challenged by shadow variants, with forecasts merged into promotion decisions.
+- **Institutional memory graph**: key decisions, incidents, and improvements persisted as a graph so new work builds on real history.
+- **Trust transparency dashboard + SLA**: Kelly’s dashboard and Sentinel’s SLA document make system trust, health, and obligations visible at a glance.
+- **Final graduation gate**: a formal gate that proves autonomy, policy compliance, and rollback readiness before calling the system “done”.
+
 ### By the numbers
 
 | | |
 |---|---|
-| Tasks implemented | 37+ |
-| Phases completed | 7 (through calibration reporting) |
+| Tasks implemented | 80 (One Dream Phases 1–12) |
+| Phases completed | 12 (through autonomous governance) |
 | Agents involved | 9 |
 | New services (Phase 6) | 8 |
 | Tunable genome parameters | 15+ |
