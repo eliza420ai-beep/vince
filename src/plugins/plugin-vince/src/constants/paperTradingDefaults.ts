@@ -579,6 +579,9 @@ export function wttRubricToSignal(rubric: WttRubricStrings): {
 /** WTT block for feature store (ordinals for ML). */
 export interface WttFeatureBlock {
   primary: boolean;
+  primaryOrAlt?: "primary" | "alt";
+  reportId?: string;
+  qualityScore?: number;
   ticker: string;
   thesis: string;
   alignment: number;
@@ -592,6 +595,9 @@ export interface WttFeatureBlock {
 /** Build feature-store wtt block from WTT pick (rubric → ordinals). */
 export function wttPickToWttBlock(params: {
   primary: boolean;
+  primaryOrAlt?: "primary" | "alt";
+  reportId?: string;
+  qualityScore?: number;
   ticker: string;
   thesis: string;
   rubric: WttRubricStrings;
@@ -600,6 +606,9 @@ export function wttPickToWttBlock(params: {
 }): WttFeatureBlock {
   return {
     primary: params.primary,
+    primaryOrAlt: params.primaryOrAlt,
+    reportId: params.reportId,
+    qualityScore: params.qualityScore,
     ticker: params.ticker,
     thesis: params.thesis,
     alignment: WTT_ALIGNMENT_ORD[params.rubric.alignment] ?? 2,

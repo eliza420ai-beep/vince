@@ -733,6 +733,66 @@ async function savePickJson(pick: WttPick, date: Date): Promise<string | null> {
   }
 }
 
+function formatDirection(direction: "long" | "short"): string {
+  return direction.toUpperCase();
+}
+
+function formatMaybePrice(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "n/a";
+  return `$${value}`;
+}
+
+function formatMaybeRiskUsd(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "n/a";
+  return `$${Math.round(value)}`;
+}
+
+/**
+ * Build the final markdown from one in-memory artifact object.
+ * This keeps the human report and JSON sidecar in sync on core fields.
+ */
+export function buildWttReportMarkdown(params: {
+  dateLabel: string;
+  thesis: string;
+  narrative: string;
+  pick: WttPick | null;
+}): string {
+  const effectiveThesis = params.pick?.thesis?.trim() || params.thesis.trim();
+  const lines: string[] = [
+    `**What's the trade** _${params.dateLabel}_`,
+    "",
+    effectiveThesis,
+    "",
+    "---",
+    "",
+    params.narrative,
+    "",
+    "### Structured Pick",
+  ];
+
+  if (params.pick) {
+    const p = params.pick;
+    lines.push(
+      `${p.primaryTicker} · ${p.primaryInstrument} · ${formatDirection(p.primaryDirection)}`,
+      `${formatMaybePrice(p.primaryEntryPrice)} · risk ${formatMaybeRiskUsd(p.primaryRiskUsd)}`,
+      `invalidates if: ${p.invalidateCondition || "n/a"}`,
+      p.evThresholdPct != null
+        ? `+EV above ${p.evThresholdPct}%`
+        : "+EV threshold: n/a",
+      p.altTicker
+        ? `alt: ${p.altTicker} ${p.altDirection ?? ""} ${p.altInstrument ?? ""}`
+            .replace(/\s+/g, " ")
+            .trim()
+        : "alt: none",
+    );
+  } else {
+    lines.push("No valid structured pick extracted today.");
+  }
+
+  lines.push("", "---", "_Expressions, not advice. Do your own research._");
+  return lines.join("\n");
+}
+
 /**
  * Run the full "what's the trade" report once (thesis → adapters → narrative → save).
  * Used by the daily task and by the on-demand ECHO_WHATS_THE_TRADE action.
@@ -796,19 +856,6 @@ export async function runWhatsTheTradeReport(
     dateLabel,
     hip3Only,
   );
-  const fullReport = [
-    `**What's the trade** _${dateLabel}_`,
-    "",
-    thesis,
-    "",
-    "---",
-    "",
-    narrative,
-    "",
-    "---",
-    "_Expressions, not advice. Do your own research._",
-  ].join("\n");
-  const filepath = await saveReport(fullReport, now);
 
   let pick = await extractStructuredPick(
     runtime,
@@ -867,6 +914,13 @@ export async function runWhatsTheTradeReport(
       );
     }
   }
+  const fullReport = buildWttReportMarkdown({
+    dateLabel,
+    thesis,
+    narrative,
+    pick,
+  });
+  const filepath = await saveReport(fullReport, now);
   return { filepath, report: fullReport, pick };
 }
 

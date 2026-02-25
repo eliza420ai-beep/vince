@@ -22,6 +22,17 @@ import {
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
 
+type PostMortemMetrics = {
+  file: string;
+  qualityScore?: number;
+  qualityEscalate?: boolean;
+  primaryCause?: string;
+  secondaryCauses?: string[];
+  ptqgComplete?: boolean;
+  pmevCompletenessPct?: number;
+  missingDataCount?: number;
+};
+
 function syntheticMessage(text: string, runtime: IAgentRuntime): Memory {
   return {
     id: "" as UUID,
@@ -165,6 +176,85 @@ async function buildPostMortemPatternSummary(
   }
 }
 
+function parsePostMortemMetrics(body: string, file: string): PostMortemMetrics {
+  const metric: PostMortemMetrics = { file };
+  const score = body.match(/PM_QUALITY_SCORE:\s*([0-9]+(?:\.[0-9]+)?)/);
+  const escalate = body.match(/PM_QUALITY_ESCALATE:\s*(true|false)/i);
+  const primary = body.match(/PM_PRIMARY_CAUSE:\s*([a-z_]+)/i);
+  const secondary = body.match(/PM_SECONDARY_CAUSES:\s*([a-z_,]+|none)/i);
+  const ptqg = body.match(/PM_PTQG_COMPLETE:\s*(true|false)/i);
+  const pmev = body.match(/PM_PMEP_COMPLETENESS_PCT:\s*([0-9]+(?:\.[0-9]+)?)/i);
+  const missing = body.match(/PM_MISSING_DATA_COUNT:\s*([0-9]+)/i);
+
+  if (score) metric.qualityScore = Number(score[1]);
+  if (escalate) metric.qualityEscalate = escalate[1].toLowerCase() === "true";
+  if (primary) metric.primaryCause = primary[1];
+  if (secondary) {
+    metric.secondaryCauses =
+      secondary[1] === "none"
+        ? []
+        : secondary[1]
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+  }
+  if (ptqg) metric.ptqgComplete = ptqg[1].toLowerCase() === "true";
+  if (pmev) metric.pmevCompletenessPct = Number(pmev[1]);
+  if (missing) metric.missingDataCount = Number(missing[1]);
+  return metric;
+}
+
+function summarizePostMortemMetrics(metrics: PostMortemMetrics[]): string {
+  if (metrics.length === 0) return "";
+  const scored = metrics.filter((m) => typeof m.qualityScore === "number");
+  const escalated = metrics.filter((m) => m.qualityEscalate === true);
+  const ptqgTrue = metrics.filter((m) => m.ptqgComplete === true).length;
+  const pmevValues = metrics
+    .map((m) => m.pmevCompletenessPct)
+    .filter((v): v is number => typeof v === "number");
+
+  const avgScore =
+    scored.length > 0
+      ? scored.reduce((sum, m) => sum + (m.qualityScore ?? 0), 0) /
+        scored.length
+      : undefined;
+  const avgPmev =
+    pmevValues.length > 0
+      ? pmevValues.reduce((sum, v) => sum + v, 0) / pmevValues.length
+      : undefined;
+
+  const causeCounts = new Map<string, number>();
+  for (const m of metrics) {
+    if (!m.primaryCause) continue;
+    causeCounts.set(m.primaryCause, (causeCounts.get(m.primaryCause) ?? 0) + 1);
+  }
+  const topCauses = Array.from(causeCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([cause, count]) => `${cause} (${count})`);
+
+  return [
+    "",
+    "**Post-mortem quality and KPI rollup:**",
+    `- Files analyzed: ${metrics.length}`,
+    `- Average quality score: ${avgScore !== undefined ? avgScore.toFixed(1) : "n/a"}`,
+    `- Escalations (<75): ${escalated.length}`,
+    `- PTQG complete rate: ${((ptqgTrue / metrics.length) * 100).toFixed(0)}%`,
+    `- PMEP completeness avg: ${avgPmev !== undefined ? `${avgPmev.toFixed(1)}%` : "n/a"}`,
+    `- Top primary causes: ${topCauses.length > 0 ? topCauses.join("; ") : "n/a"}`,
+    ...(escalated.length > 0
+      ? [
+          "",
+          "**Escalation queue (quality < 75):**",
+          ...escalated.map(
+            (m) =>
+              `- \`${m.file}\` score=${m.qualityScore ?? "n/a"} cause=${m.primaryCause ?? "n/a"}`,
+          ),
+        ]
+      : []),
+  ].join("\n");
+}
+
 async function pushToSentinelChannels(
   runtime: IAgentRuntime,
   message: string,
@@ -297,6 +387,7 @@ export async function registerSentinelWeeklyTask(
         );
         let postMortemsBlock = "";
         let patternSummary = "";
+        let rollupBlock = "";
         try {
           if (fs.existsSync(postMortemsDir)) {
             const files = fs
@@ -315,6 +406,19 @@ export async function registerSentinelWeeklyTask(
                 files.map((f) => `• \`${f.name}\``).join("\n"),
                 "_Consider reviewing for recurring patterns (sentiment, regime, sizing)._",
               ].join("\n");
+              const metrics: PostMortemMetrics[] = [];
+              for (const f of files) {
+                try {
+                  const body = fs.readFileSync(
+                    path.join(postMortemsDir, f.name),
+                    "utf-8",
+                  );
+                  metrics.push(parsePostMortemMetrics(body, f.name));
+                } catch {
+                  // skip parse failure
+                }
+              }
+              rollupBlock = summarizePostMortemMetrics(metrics);
               patternSummary = await buildPostMortemPatternSummary(
                 rt,
                 postMortemsDir,
@@ -344,6 +448,7 @@ export async function registerSentinelWeeklyTask(
           "",
           listTrimmed,
           postMortemsBlock,
+          rollupBlock,
           patternBlock,
           "",
           "---",
