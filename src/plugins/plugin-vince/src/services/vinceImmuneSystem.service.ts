@@ -32,8 +32,15 @@ export interface ImmuneDetectionResult {
   rationale: string;
 }
 
+// Resolve from __dirname so tests run from any cwd (e.g. plugin-vince dir).
+// __dirname: src/plugins/plugin-vince/src/services → up 5 levels = repo root
 const DEFAULT_PATTERNS_DIR = path.join(
-  process.cwd(),
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
   "knowledge",
   "teammate",
   "attack-patterns",
