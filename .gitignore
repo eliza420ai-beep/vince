@@ -21,6 +21,9 @@ dist/
 # OpenClaw research cache (ephemeral, runtime-generated)
 .openclaw-cache/
 
+# Plugin-vince scripts: generated openclaw-queue / standup output (train_models from scripts dir)
+src/plugins/plugin-vince/scripts/docs/
+
 
 
 # Standup plugin test artifacts (temporary dirs from test runs)
