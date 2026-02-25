@@ -523,7 +523,7 @@ export async function registerSentinelWeeklyTask(
           }
           const trigger = rollbackOrchestrator.checkTriggers({
             winRate: weeklyWinRate,
-            drawdownPct: 0.10, // conservative default
+            drawdownPct: 0.1, // conservative default
             genomeFitnessDelta: 0.0,
           });
           if (trigger) {

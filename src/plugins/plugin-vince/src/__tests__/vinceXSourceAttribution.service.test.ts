@@ -30,7 +30,10 @@ describe("VinceXSourceAttributionService", () => {
     const svc = new VinceXSourceAttributionService(tmpDir);
     svc.recordOpen("trade-1", "BTC", "long", ["@alpha", "@beta"], 75);
     const filePath = path.join(tmpDir, "trade-attribution.jsonl");
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     expect(lines).toHaveLength(1);
     const rec = JSON.parse(lines[0]);
     expect(rec.tradeId).toBe("trade-1");
@@ -45,7 +48,10 @@ describe("VinceXSourceAttributionService", () => {
     svc.recordClose("trade-1", 120, "win");
 
     const filePath = path.join(tmpDir, "trade-attribution.jsonl");
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     expect(lines).toHaveLength(1);
     const rec = JSON.parse(lines[0]);
     expect(rec.pnl).toBe(120);

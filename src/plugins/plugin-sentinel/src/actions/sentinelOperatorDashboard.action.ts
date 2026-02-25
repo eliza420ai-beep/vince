@@ -137,7 +137,9 @@ function buildDashboard(dataDir: string): string {
     (d) => new Date(d.timestamp).getTime() >= cutoff24h,
   );
   const maxDrift =
-    recentDrift.length > 0 ? Math.max(...recentDrift.map((d) => d.driftPct)) : 0;
+    recentDrift.length > 0
+      ? Math.max(...recentDrift.map((d) => d.driftPct))
+      : 0;
   const warnCount = recentDrift.filter(
     (d) => d.action === "warn" || d.action === "halt",
   ).length;
@@ -151,9 +153,15 @@ function buildDashboard(dataDir: string): string {
   const recentAudit = allAudit.filter(
     (e) => new Date(e.timestamp).getTime() >= cutoff24h,
   );
-  const paperCount = recentAudit.filter((e) => e.executionType === "paper").length;
-  const liveCount = recentAudit.filter((e) => e.executionType === "live").length;
-  const rejectedCount = recentAudit.filter((e) => e.outcome === "rejected").length;
+  const paperCount = recentAudit.filter(
+    (e) => e.executionType === "paper",
+  ).length;
+  const liveCount = recentAudit.filter(
+    (e) => e.executionType === "live",
+  ).length;
+  const rejectedCount = recentAudit.filter(
+    (e) => e.outcome === "rejected",
+  ).length;
   const rejectionRate =
     recentAudit.length > 0
       ? ((rejectedCount / recentAudit.length) * 100).toFixed(1)

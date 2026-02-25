@@ -13,9 +13,7 @@ let tmpDir: string;
 let service: VinceShadowChallengerService;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "shadow-challenger-test-"),
-  );
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "shadow-challenger-test-"));
   service = new VinceShadowChallengerService(tmpDir);
 });
 
@@ -83,8 +81,20 @@ describe("recordTrade", () => {
 describe("updateFitness", () => {
   it("updates fitness from trade outcomes", () => {
     const challenger = service.createChallenger({});
-    service.recordTrade(challenger.id, { asset: "BTC", direction: "long", confidence: 70, outcome: "win", pnl: 100 });
-    service.recordTrade(challenger.id, { asset: "ETH", direction: "long", confidence: 60, outcome: "win", pnl: 50 });
+    service.recordTrade(challenger.id, {
+      asset: "BTC",
+      direction: "long",
+      confidence: 70,
+      outcome: "win",
+      pnl: 100,
+    });
+    service.recordTrade(challenger.id, {
+      asset: "ETH",
+      direction: "long",
+      confidence: 60,
+      outcome: "win",
+      pnl: 50,
+    });
     service.updateFitness(challenger.id, 0.5);
     const summary = service.getActiveChallengersSummary();
     const updated = summary.find((c) => c.id === challenger.id);
@@ -97,7 +107,13 @@ describe("updateFitness", () => {
     const challenger = service.createChallenger({});
     // Record enough wins to get positive Sharpe
     for (let i = 0; i < 5; i++) {
-      service.recordTrade(challenger.id, { asset: "BTC", direction: "long", confidence: 80, outcome: "win", pnl: 50 });
+      service.recordTrade(challenger.id, {
+        asset: "BTC",
+        direction: "long",
+        confidence: 80,
+        outcome: "win",
+        pnl: 50,
+      });
     }
     // Call updateFitness with very low genome fitness so challenger wins
     for (let week = 0; week < 4; week++) {
@@ -122,13 +138,31 @@ describe("pruneUnderperformers", () => {
     const c2 = service.createChallenger({ b: 2 });
 
     // c1 gets wins → positive fitness
-    service.recordTrade(c1.id, { asset: "BTC", direction: "long", confidence: 80, outcome: "win", pnl: 100 });
-    service.recordTrade(c1.id, { asset: "ETH", direction: "long", confidence: 70, outcome: "win", pnl: 50 });
+    service.recordTrade(c1.id, {
+      asset: "BTC",
+      direction: "long",
+      confidence: 80,
+      outcome: "win",
+      pnl: 100,
+    });
+    service.recordTrade(c1.id, {
+      asset: "ETH",
+      direction: "long",
+      confidence: 70,
+      outcome: "win",
+      pnl: 50,
+    });
     service.updateFitness(c1.id, 0);
 
     // c2 gets 0 trades → fitness=0, default; below minTrades=1 and fitness=0 (not < 0)
     // Let's make it have negative fitness by giving it a loss
-    service.recordTrade(c2.id, { asset: "BTC", direction: "long", confidence: 50, outcome: "loss", pnl: -100 });
+    service.recordTrade(c2.id, {
+      asset: "BTC",
+      direction: "long",
+      confidence: 50,
+      outcome: "loss",
+      pnl: -100,
+    });
     service.updateFitness(c2.id, 0);
 
     // c2 has 1 trade and negative fitness — prune with minTrades=2
@@ -141,8 +175,20 @@ describe("pruneUnderperformers", () => {
 
   it("returns 0 when nothing to prune", () => {
     const c1 = service.createChallenger({});
-    service.recordTrade(c1.id, { asset: "BTC", direction: "long", confidence: 80, outcome: "win", pnl: 100 });
-    service.recordTrade(c1.id, { asset: "ETH", direction: "long", confidence: 70, outcome: "win", pnl: 50 });
+    service.recordTrade(c1.id, {
+      asset: "BTC",
+      direction: "long",
+      confidence: 80,
+      outcome: "win",
+      pnl: 100,
+    });
+    service.recordTrade(c1.id, {
+      asset: "ETH",
+      direction: "long",
+      confidence: 70,
+      outcome: "win",
+      pnl: 50,
+    });
     service.updateFitness(c1.id, 0);
     const removed = service.pruneUnderperformers(1);
     expect(removed).toBe(0);

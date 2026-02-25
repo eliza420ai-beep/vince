@@ -121,7 +121,8 @@ function trustLabel(score: number): string {
 }
 
 function governanceHealth(score: number, activeRollbacks: number): string {
-  if (activeRollbacks > 0) return "ACTION REQUIRED — Active rollback in progress";
+  if (activeRollbacks > 0)
+    return "ACTION REQUIRED — Active rollback in progress";
   if (score >= 80) return "HEALTHY — All systems nominal";
   if (score >= 60) return "MONITORING — Some metrics below target";
   return "ACTION REQUIRED — Trust score below acceptable threshold";
@@ -146,18 +147,24 @@ function buildTrustDashboard(dataDir: string): string {
   const softWarns = policyEvals.filter((e) => e.softWarned === true).length;
   const hardBlockRate =
     policyEvals.length > 0 ? hardBlocks / policyEvals.length : 0;
-  const lastEval = policyEvals.length > 0
-    ? policyEvals[policyEvals.length - 1].timestamp
-    : "none";
-  const activePolicyId = policyEvals.length > 0
-    ? (policyEvals[policyEvals.length - 1].policyId ?? "trading-v1")
-    : "trading-v1";
+  const lastEval =
+    policyEvals.length > 0
+      ? policyEvals[policyEvals.length - 1].timestamp
+      : "none";
+  const activePolicyId =
+    policyEvals.length > 0
+      ? (policyEvals[policyEvals.length - 1].policyId ?? "trading-v1")
+      : "trading-v1";
 
   // Try to read policy file directly
   let policyFileId = "trading-v1";
   let policyVersion = "1.0";
   try {
-    const policyPath = path.join(process.cwd(), "policies", "trading-policy.yaml");
+    const policyPath = path.join(
+      process.cwd(),
+      "policies",
+      "trading-policy.yaml",
+    );
     if (fs.existsSync(policyPath)) {
       const raw = fs.readFileSync(policyPath, "utf-8");
       const idMatch = raw.match(/policyId:\s*["']?([^"'\n]+)["']?/);

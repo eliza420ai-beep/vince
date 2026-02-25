@@ -142,7 +142,9 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
 
   // 1. Paper win rate ≥ 55%
   {
-    interface TradeRecord { outcome?: string }
+    interface TradeRecord {
+      outcome?: string;
+    }
     const trades = readJsonl<TradeRecord>(
       path.join(dataDir, "paper-trades.jsonl"),
     );
@@ -163,14 +165,19 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
         num: 1,
         name: "Paper WR ≥ 55%",
         status: wr >= 55 ? "✅" : "❌",
-        evidence: closed > 0 ? `${wr.toFixed(1)}% (${wins}/${closed})` : "0 closed trades",
+        evidence:
+          closed > 0
+            ? `${wr.toFixed(1)}% (${wins}/${closed})`
+            : "0 closed trades",
       });
     }
   }
 
   // 2. Max drawdown < 15%
   {
-    interface StatsRecord { maxDrawdownPct?: number }
+    interface StatsRecord {
+      maxDrawdownPct?: number;
+    }
     const stats = readJson<StatsRecord>(
       path.join(dataDir, "paper-trading-stats.json"),
       {},
@@ -195,7 +202,9 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
 
   // 3. Genome has promoted ≥ 1 variant
   {
-    interface GenomeState { promotedVariants?: string[] }
+    interface GenomeState {
+      promotedVariants?: string[];
+    }
     const genomeState = readJson<GenomeState>(
       path.join(dataDir, "genome-state.json"),
       {},
@@ -206,14 +215,20 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
       name: "Genome promoted ≥ 1 variant",
       status: promoted >= 1 ? "✅" : "⚠️",
       evidence:
-        promoted >= 1 ? `${promoted} variant(s) promoted` : "not measurable (genome-state.json missing or no promotions)",
+        promoted >= 1
+          ? `${promoted} variant(s) promoted`
+          : "not measurable (genome-state.json missing or no promotions)",
     });
   }
 
   // 4. Prediction Brier score improving
   {
-    interface PredRecord { brierScore?: number }
-    const preds = readJsonl<PredRecord>(path.join(dataDir, "predictions.jsonl"));
+    interface PredRecord {
+      brierScore?: number;
+    }
+    const preds = readJsonl<PredRecord>(
+      path.join(dataDir, "predictions.jsonl"),
+    );
     if (preds.length < 5) {
       results.push({
         num: 4,
@@ -222,8 +237,12 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
         evidence: "not measurable (< 5 predictions)",
       });
     } else {
-      const recent = preds.slice(-10).filter((p) => typeof p.brierScore === "number");
-      const older = preds.slice(-20, -10).filter((p) => typeof p.brierScore === "number");
+      const recent = preds
+        .slice(-10)
+        .filter((p) => typeof p.brierScore === "number");
+      const older = preds
+        .slice(-20, -10)
+        .filter((p) => typeof p.brierScore === "number");
       if (recent.length === 0 || older.length === 0) {
         results.push({
           num: 4,
@@ -232,8 +251,10 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
           evidence: "not measurable (insufficient scored predictions)",
         });
       } else {
-        const recentAvg = recent.reduce((s, p) => s + (p.brierScore ?? 0), 0) / recent.length;
-        const olderAvg = older.reduce((s, p) => s + (p.brierScore ?? 0), 0) / older.length;
+        const recentAvg =
+          recent.reduce((s, p) => s + (p.brierScore ?? 0), 0) / recent.length;
+        const olderAvg =
+          older.reduce((s, p) => s + (p.brierScore ?? 0), 0) / older.length;
         const improving = recentAvg < olderAvg; // lower Brier = better
         results.push({
           num: 4,
@@ -247,9 +268,14 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
 
   // 5. Pre-mortem blocking ≥ 1 trade/week
   {
-    interface AuditEntry { timestamp: string; rejectionReason?: string }
+    interface AuditEntry {
+      timestamp: string;
+      rejectionReason?: string;
+    }
     const cutoff7d = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const audit = readJsonl<AuditEntry>(path.join(dataDir, "execution-audit.jsonl"));
+    const audit = readJsonl<AuditEntry>(
+      path.join(dataDir, "execution-audit.jsonl"),
+    );
     const recentBlocks = audit.filter(
       (e) =>
         new Date(e.timestamp).getTime() >= cutoff7d &&
@@ -268,7 +294,10 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
 
   // 6. Circuit breaker stack deployed + no unresolved trips
   {
-    interface Breaker { name: string; tripped: boolean }
+    interface Breaker {
+      name: string;
+      tripped: boolean;
+    }
     const breakers = readJson<Breaker[]>(
       path.join(dataDir, "circuit-breakers.json"),
       [],
@@ -298,7 +327,9 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
       num: 7,
       name: "Drift sentinel active",
       status: exists ? "✅" : "⚠️",
-      evidence: exists ? "drift-reports.jsonl exists" : "drift-reports.jsonl not found",
+      evidence: exists
+        ? "drift-reports.jsonl exists"
+        : "drift-reports.jsonl not found",
     });
   }
 
@@ -322,9 +353,7 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
 
   // 9. Rollback orchestrator deployed
   {
-    const exists = fs.existsSync(
-      path.join(dataDir, "rollback-events.jsonl"),
-    );
+    const exists = fs.existsSync(path.join(dataDir, "rollback-events.jsonl"));
     results.push({
       num: 9,
       name: "Rollback orchestrator deployed",
@@ -367,7 +396,9 @@ function runGraduationChecklist(dataDir: string): CriterionResult[] {
 
   // 12. Memory graph has ≥ 10 active nodes
   {
-    interface MemoryNode { weight: number }
+    interface MemoryNode {
+      weight: number;
+    }
     const nodes = readJsonl<MemoryNode>(
       path.join(dataDir, "memory-graph.jsonl"),
     );

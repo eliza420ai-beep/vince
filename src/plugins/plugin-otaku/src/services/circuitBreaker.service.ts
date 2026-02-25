@@ -63,9 +63,7 @@ export class CircuitBreakerService {
   constructor(dataDir?: string) {
     const dir = dataDir ?? path.join(process.cwd(), "data");
     this.dataPath = path.join(dir, DATA_FILE);
-    this.dailyLossLimitUsd = Number(
-      process.env.CB_DAILY_LOSS_LIMIT_USD ?? 200,
-    );
+    this.dailyLossLimitUsd = Number(process.env.CB_DAILY_LOSS_LIMIT_USD ?? 200);
     this.consecutiveLossesLimit = Number(
       process.env.CB_CONSECUTIVE_LOSSES ?? 5,
     );
@@ -143,9 +141,7 @@ export class CircuitBreakerService {
     }
   }
 
-  checkConsecutiveLosses(
-    recentOutcomes: ("win" | "loss" | "scratch")[],
-  ): void {
+  checkConsecutiveLosses(recentOutcomes: ("win" | "loss" | "scratch")[]): void {
     if (recentOutcomes.length < this.consecutiveLossesLimit) return;
     const tail = recentOutcomes.slice(-this.consecutiveLossesLimit);
     if (tail.every((o) => o === "loss")) {
