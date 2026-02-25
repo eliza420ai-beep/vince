@@ -2,6 +2,20 @@
 
 All notable changes to the VINCE project will be documented in this file.
 
+## [v2026.2.24] - 2026-02-25
+
+### The Compounding Edge — Phases 6–10
+
+Five phases in one day. Full release notes: [docs/RELEASE_v2026.2.24.md](docs/RELEASE_v2026.2.24.md)
+
+- **Phase 6/7 Validation** — All 11 adversary intelligence tests green. ImmuneSystem `__dirname` bug fixed.
+- **Phase 8** (#41–48) — X Source Quality Engine, Narrative Lag Model, Trade Attribution, Execution Quality, Regime Transition Forecaster, Content Performance Loop, Weekly Alpha Memo, X-Research Command Center
+- **Phase 9** (#49–56) — Skill Registry, Skill Router, X-Research hardening, Trading-Agent runbook, Skill Telemetry, QA Harness, Skill-to-Content Pipeline, Skill Governance
+- **Phase 10** (#57–64) — Capital Buckets, Drift Sentinel, Circuit Breaker Stack, Execution Audit Trail, Position Guardrails, P&L Reconciliation, Operator Dashboard V2, Live Capital SOP
+- **200+ new tests** | **18 new services** | **0 type errors** | **All live capital defaults: OFF**
+
+---
+
 ## [v4.0.0] - 2026-02-23
 
 ### Paper Bot & ML: docs and validation

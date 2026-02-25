@@ -1,6 +1,6 @@
 {
   "name": "@vince/plugin-otaku",
-  "version": "2.3.0",
+  "version": "2026.2.24",
   "description": "Otaku COO execution layer - high-level DeFi operations via BANKR",
   "type": "module",
   "main": "src/index.ts",
