@@ -91,7 +91,8 @@ export class VinceNarrativeDecayService {
   getDecayConfig(): NarrativeDecayConfig[] {
     return Array.from(this.config.entries()).map(
       ([narrativePhase, halfLifeHours]) => ({
-        narrativePhase: narrativePhase as NarrativeDecayConfig["narrativePhase"],
+        narrativePhase:
+          narrativePhase as NarrativeDecayConfig["narrativePhase"],
         halfLifeHours,
       }),
     );

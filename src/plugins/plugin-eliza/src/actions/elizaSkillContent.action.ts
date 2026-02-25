@@ -61,9 +61,18 @@ function extractTopic(text: string): string | null {
   const meaningful = words
     .filter(
       (w) =>
-        !["x", "research", "to", "content", "for", "on", "about", "skill", "brief", "run"].includes(
-          w.toLowerCase(),
-        ),
+        ![
+          "x",
+          "research",
+          "to",
+          "content",
+          "for",
+          "on",
+          "about",
+          "skill",
+          "brief",
+          "run",
+        ].includes(w.toLowerCase()),
     )
     .slice(0, 3)
     .join(" ");
@@ -96,7 +105,8 @@ async function callEchoForResearch(
   const eliza = (runtime as any).elizaOS ?? null;
   if (!eliza?.handleMessage) return null;
 
-  const echoTarget = eliza.getAgentByName?.("ECHO") ?? eliza.getAgentByName?.("Echo");
+  const echoTarget =
+    eliza.getAgentByName?.("ECHO") ?? eliza.getAgentByName?.("Echo");
   if (!echoTarget?.agentId) {
     logger.debug("[ELIZA_SKILL_CONTENT] Echo agent not found in-process");
     return null;
@@ -205,7 +215,9 @@ async function generateContentBrief(
     // Generate without live research data
     const prompt = `Generate a content brief for the topic "${topic}". Include: Dominant Narrative, Top Signal, Confidence, Substack Angle (one sentence hook), Tweet Thread Hook (punchy opener). Keep it sharp and actionable.`;
     try {
-      const generated = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
+      const generated = await runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt,
+      });
       const text =
         typeof generated === "string"
           ? generated
@@ -315,7 +327,9 @@ export const elizaSkillContentAction: Action = {
       return { success: false };
     }
 
-    logger.info(`[ELIZA_SKILL_CONTENT] Running skill-to-content pipeline for topic: ${topic}`);
+    logger.info(
+      `[ELIZA_SKILL_CONTENT] Running skill-to-content pipeline for topic: ${topic}`,
+    );
 
     // Step 1: Call Echo for x-research
     let rawEchoResponse: string | null = null;
@@ -329,7 +343,9 @@ export const elizaSkillContentAction: Action = {
           `[ELIZA_SKILL_CONTENT] Echo response received (${rawEchoResponse.length} chars)`,
         );
       } else {
-        logger.debug("[ELIZA_SKILL_CONTENT] Echo not available — generating brief without live data");
+        logger.debug(
+          "[ELIZA_SKILL_CONTENT] Echo not available — generating brief without live data",
+        );
       }
     } catch (err) {
       logger.warn("[ELIZA_SKILL_CONTENT] Echo call failed:", err);
@@ -338,9 +354,17 @@ export const elizaSkillContentAction: Action = {
     // Step 2: Format as content brief
     let brief: string;
     try {
-      brief = await generateContentBrief(runtime, topic, parsedResearch, rawEchoResponse);
+      brief = await generateContentBrief(
+        runtime,
+        topic,
+        parsedResearch,
+        rawEchoResponse,
+      );
     } catch (err) {
-      logger.error("[ELIZA_SKILL_CONTENT] Content brief generation failed:", err);
+      logger.error(
+        "[ELIZA_SKILL_CONTENT] Content brief generation failed:",
+        err,
+      );
       await callback({
         text: `Failed to generate content brief for "${topic}". Try again or run x-research manually.`,
         actions: [ACTION_NAME],
@@ -353,7 +377,10 @@ export const elizaSkillContentAction: Action = {
       const perf = getContentPerformance();
       perf.recordDraft("substack", topic, ["x-research", "echo"]);
     } catch (err) {
-      logger.debug("[ELIZA_SKILL_CONTENT] ContentPerformance record failed:", err);
+      logger.debug(
+        "[ELIZA_SKILL_CONTENT] ContentPerformance record failed:",
+        err,
+      );
     }
 
     await callback({ text: brief, actions: [ACTION_NAME] });

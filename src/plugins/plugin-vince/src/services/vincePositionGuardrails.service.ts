@@ -55,9 +55,7 @@ export class VincePositionGuardrailsService {
   private static _instance: VincePositionGuardrailsService | null = null;
 
   constructor() {
-    this.maxPositionPct = Number(
-      process.env.GUARDRAIL_MAX_POSITION_PCT ?? 10,
-    );
+    this.maxPositionPct = Number(process.env.GUARDRAIL_MAX_POSITION_PCT ?? 10);
     this.maxCorrelatedPct = Number(
       process.env.GUARDRAIL_MAX_CORRELATED_PCT ?? 25,
     );

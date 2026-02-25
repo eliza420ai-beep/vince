@@ -85,7 +85,9 @@ export const elizaPackageInsightAction: Action = {
     const format = detectFormat(text);
     const topic = extractTopic(text);
 
-    logger.info(`[PackageInsight] format=${format} topic=${topic.slice(0, 50)}`);
+    logger.info(
+      `[PackageInsight] format=${format} topic=${topic.slice(0, 50)}`,
+    );
 
     try {
       const svc = new InsightPackagingService();
@@ -132,7 +134,9 @@ export const elizaPackageInsightAction: Action = {
     [
       {
         name: "{{name1}}",
-        content: { text: "Package insight: BTC ETF flows reached ATH this week" },
+        content: {
+          text: "Package insight: BTC ETF flows reached ATH this week",
+        },
       },
       {
         name: "{{name2}}",

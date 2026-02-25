@@ -105,9 +105,7 @@ export class VinceContagionService {
       this.groups.find((g) => g.id === dominantGroupId) ?? null;
     const dominantLabel = dominantGroup?.label ?? "none";
     const dominantPct =
-      totalCapitalUsd > 0
-        ? (dominantExposureUsd / totalCapitalUsd) * 100
-        : 0;
+      totalCapitalUsd > 0 ? (dominantExposureUsd / totalCapitalUsd) * 100 : 0;
 
     let contagionRisk: ContagionAssessment["contagionRisk"];
     let sizeMultiplier: number;

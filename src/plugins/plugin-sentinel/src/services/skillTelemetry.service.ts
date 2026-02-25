@@ -216,7 +216,10 @@ export class SkillTelemetryService {
       );
     }
 
-    lines.push("", "_Tracked via SkillTelemetryService → data/skill-telemetry.jsonl_");
+    lines.push(
+      "",
+      "_Tracked via SkillTelemetryService → data/skill-telemetry.jsonl_",
+    );
     return lines.join("\n");
   }
 }

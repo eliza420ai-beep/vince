@@ -72,7 +72,9 @@ export class VincePnLReconciliationService {
 
   recordLive(tradeId: string, livePnlUsd: number): void {
     const all = this.readAll();
-    const idx = all.findLastIndex((r) => r.tradeId === tradeId && !r.reconciled);
+    const idx = all.findLastIndex(
+      (r) => r.tradeId === tradeId && !r.reconciled,
+    );
     if (idx === -1) return;
 
     const record = all[idx];

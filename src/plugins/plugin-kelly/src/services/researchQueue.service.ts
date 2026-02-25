@@ -20,11 +20,7 @@ export interface ResearchQueueItem {
   topic: string;
   asset?: string;
   priority: "high" | "medium" | "low";
-  source:
-    | "audience-feedback"
-    | "post-mortem"
-    | "narrative-decay"
-    | "manual";
+  source: "audience-feedback" | "post-mortem" | "narrative-decay" | "manual";
   addedAt: string;
   completedAt?: string;
   assignedTo: "echo" | "vince" | "both";
@@ -149,10 +145,6 @@ export class ResearchQueueService {
   private append(record: ResearchQueueItem): void {
     const dir = path.dirname(this.filePath);
     fs.mkdirSync(dir, { recursive: true });
-    fs.appendFileSync(
-      this.filePath,
-      JSON.stringify(record) + "\n",
-      "utf-8",
-    );
+    fs.appendFileSync(this.filePath, JSON.stringify(record) + "\n", "utf-8");
   }
 }

@@ -64,12 +64,16 @@ describe("getSkillRoutingHint", () => {
     });
 
     it("routes 'hyperliquid live' to Otaku", () => {
-      const hint = getSkillRoutingHint("hyperliquid live perps execution guide");
+      const hint = getSkillRoutingHint(
+        "hyperliquid live perps execution guide",
+      );
       expect(hint).toContain("Otaku");
     });
 
     it("routes 'live trading' to Otaku", () => {
-      const hint = getSkillRoutingHint("how do I start live trading on Hyperliquid");
+      const hint = getSkillRoutingHint(
+        "how do I start live trading on Hyperliquid",
+      );
       expect(hint).toContain("Otaku");
     });
 
@@ -84,7 +88,9 @@ describe("getSkillRoutingHint", () => {
     });
 
     it("includes the SKILL.md path for trading-agent", () => {
-      const hint = getSkillRoutingHint("trading agent setup for hyperliquid live");
+      const hint = getSkillRoutingHint(
+        "trading agent setup for hyperliquid live",
+      );
       expect(hint).toContain("skills/trading-agent/SKILL.md");
     });
   });
@@ -111,7 +117,9 @@ describe("getSkillRoutingHint", () => {
 
     it("routes 'what skill' to Sentinel", () => {
       // "what skill" alone (without x-research context) should route to Sentinel
-      const hint = getSkillRoutingHint("what skill should I use for this task?");
+      const hint = getSkillRoutingHint(
+        "what skill should I use for this task?",
+      );
       expect(hint).toContain("Sentinel");
     });
   });

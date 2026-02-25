@@ -72,8 +72,11 @@ export class ContentTruthService {
       };
     }
 
-    const checkedClaims: { text: string; verified: boolean; source?: string }[] =
-      [];
+    const checkedClaims: {
+      text: string;
+      verified: boolean;
+      source?: string;
+    }[] = [];
     const blockedClaims: string[] = [];
 
     for (const claim of claims) {

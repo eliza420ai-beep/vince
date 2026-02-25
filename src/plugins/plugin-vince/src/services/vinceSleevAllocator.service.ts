@@ -101,8 +101,7 @@ export class VinceSleeveAllocatorService {
 
   static getInstance(): VinceSleeveAllocatorService {
     if (!VinceSleeveAllocatorService._instance) {
-      VinceSleeveAllocatorService._instance =
-        new VinceSleeveAllocatorService();
+      VinceSleeveAllocatorService._instance = new VinceSleeveAllocatorService();
     }
     return VinceSleeveAllocatorService._instance;
   }
@@ -174,7 +173,8 @@ export class VinceSleeveAllocatorService {
     totalCapitalUsd: number,
   ): { allowed: boolean; reason?: string } {
     const sleeve = this.sleeves.get(sleeveId);
-    if (!sleeve) return { allowed: false, reason: `Unknown sleeve: ${sleeveId}` };
+    if (!sleeve)
+      return { allowed: false, reason: `Unknown sleeve: ${sleeveId}` };
     if (totalCapitalUsd <= 0)
       return { allowed: false, reason: "Total capital must be > 0" };
 

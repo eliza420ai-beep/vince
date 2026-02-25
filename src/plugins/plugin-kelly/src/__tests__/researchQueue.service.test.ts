@@ -131,9 +131,24 @@ describe("ResearchQueueService", () => {
 
   describe("getPriorityQueue", () => {
     it("sorts high → medium → low", () => {
-      svc.addToQueue({ topic: "low task", priority: "low", source: "manual", assignedTo: "both" });
-      svc.addToQueue({ topic: "high task", priority: "high", source: "manual", assignedTo: "both" });
-      svc.addToQueue({ topic: "medium task", priority: "medium", source: "manual", assignedTo: "both" });
+      svc.addToQueue({
+        topic: "low task",
+        priority: "low",
+        source: "manual",
+        assignedTo: "both",
+      });
+      svc.addToQueue({
+        topic: "high task",
+        priority: "high",
+        source: "manual",
+        assignedTo: "both",
+      });
+      svc.addToQueue({
+        topic: "medium task",
+        priority: "medium",
+        source: "manual",
+        assignedTo: "both",
+      });
 
       const queue = svc.getPriorityQueue();
       expect(queue[0].priority).toBe("high");
@@ -142,8 +157,18 @@ describe("ResearchQueueService", () => {
     });
 
     it("returns only uncompleted items sorted by priority", () => {
-      const low = svc.addToQueue({ topic: "l", priority: "low", source: "manual", assignedTo: "both" });
-      svc.addToQueue({ topic: "h", priority: "high", source: "manual", assignedTo: "both" });
+      const low = svc.addToQueue({
+        topic: "l",
+        priority: "low",
+        source: "manual",
+        assignedTo: "both",
+      });
+      svc.addToQueue({
+        topic: "h",
+        priority: "high",
+        source: "manual",
+        assignedTo: "both",
+      });
       svc.markComplete(low.id);
 
       const queue = svc.getPriorityQueue();

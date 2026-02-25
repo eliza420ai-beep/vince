@@ -9,7 +9,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import type { SourceQualityRecord, XSourceQualityService } from "./xSourceQuality.service";
+import type {
+  SourceQualityRecord,
+  XSourceQualityService,
+} from "./xSourceQuality.service";
 
 // ==========================================
 // Types
@@ -56,12 +59,18 @@ export class SourceReputationService {
     qualityRecord: SourceQualityRecord,
   ): SourceReputationRecord {
     // Precision: 0–1 → 0–10
-    const precisionNorm = Math.min(10, Math.max(0, qualityRecord.precision * 10));
+    const precisionNorm = Math.min(
+      10,
+      Math.max(0, qualityRecord.precision * 10),
+    );
 
     // Calibration: quality.calibration is 0–1, invert Brier logic:
     // calibration = 1 - |precision - avgConfidence|, so higher = better
     // Normalize to 0–10
-    const calibrationNorm = Math.min(10, Math.max(0, qualityRecord.calibration * 10));
+    const calibrationNorm = Math.min(
+      10,
+      Math.max(0, qualityRecord.calibration * 10),
+    );
 
     // Consistency: We approximate via recall proximity to precision
     // (in lieu of std dev data). Lower deviation = more consistent = higher score
@@ -71,8 +80,9 @@ export class SourceReputationService {
 
     // Recency: based on lastUpdated — within 7 days = 10, fades to 0 at 90 days
     const lastUpdatedMs = new Date(qualityRecord.lastUpdated).getTime();
-    const daysSinceUpdate = (Date.now() - lastUpdatedMs) / (1000 * 60 * 60 * 24);
-    const recencyBonus = Math.min(10, Math.max(0, 10 - (daysSinceUpdate / 9)));
+    const daysSinceUpdate =
+      (Date.now() - lastUpdatedMs) / (1000 * 60 * 60 * 24);
+    const recencyBonus = Math.min(10, Math.max(0, 10 - daysSinceUpdate / 9));
 
     // Weighted composite
     const reputationScore =
