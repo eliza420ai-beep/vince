@@ -104,6 +104,7 @@ import {
 } from "../utils/wttQualityScore";
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
 import { VincePolicyEngineService } from "./vincePolicyEngine.service";
+import { CircuitBreakerService } from "src/plugins/plugin-otaku/src/services/circuitBreaker.service";
 
 // ==========================================
 // Pending Entry Types
@@ -2182,12 +2183,14 @@ Reply format: APPROVE reason or VETO reason`;
 
         // Phase 12 — Policy Engine check (Task #73)
         try {
+          const circuitBreaker = CircuitBreakerService.getInstance();
+          const isHalted = circuitBreaker.isHalted();
           const policyEngine = VincePolicyEngineService.getInstance();
           const policyCtx = {
             tradeSize: finalTradeSize,
             confidence: tradeSignal.confidence,
             executionType: "paper" as const,
-            circuitBreakerActive: false,
+            circuitBreakerActive: isHalted,
             sentimentScore: sentimentGate.sentimentScore,
             direction: signal.direction as "long" | "short",
           };
