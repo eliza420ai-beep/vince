@@ -86,3 +86,36 @@ When the feed is **noisy or low-engagement** (e.g. "What are people saying about
 - Search covers the **last 7 days** (this skill uses `/2/tweets/search/recent`). Full-archive (`/2/tweets/search/all`) is available on the same pay-per-use plan but not yet implemented here.
 - **Read-only** — no posting.
 - X API pay-per-use (prepaid credits); cost per tweet read applies. Cache (15 min TTL) reduces repeat cost.
+
+---
+
+## Decision Templates Quick Reference
+
+See [SKILL.md](SKILL.md) for the full decision templates section. Summary:
+
+| Signal Type | Decision | Action |
+|-------------|----------|--------|
+| Tier 1+ sources bullish, >100 likes, confirmed | **Trade Now** | Include asset, confidence, timeframe |
+| Contradictory signals, mixed Tier 1/2 | **Monitor** | Add to watchlist, note key risk |
+| <100 likes, no verified account, no $ mention | **Ignore** | Move on |
+
+### Source Tiers (quick ref)
+
+- **Tier 1:** Verified analysts, >10k followers, >60% prediction accuracy
+- **Tier 2:** Active traders, >1k followers, consistent track record
+- **Tier 3:** Everyone else — sentiment aggregation only, not individual signals
+
+### Standard Output Format
+
+Every research result should use:
+
+```
+## X Research Result
+**Query:** [query]
+**Decision:** Trade Now | Monitor | Ignore
+**Asset:** [ticker]
+**Confidence:** [0-100]
+**Top Signal Account:** [@handle — "quote"]
+**Rationale:** [2-3 sentences]
+**Watchlist Add:** yes/no
+```
