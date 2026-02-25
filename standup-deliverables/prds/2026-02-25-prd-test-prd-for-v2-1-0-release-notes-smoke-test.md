@@ -1,6 +1,6 @@
 # Test PRD for v2.1.0 release notes smoke test
 
-**PRD ID:** PRD-20260225-AGLD
+**PRD ID:** PRD-20260225-UFXX
 **Version:** 1.0
 **Created:** 2026-02-25
 **Priority:** P1 | **Effort:** M
@@ -89,10 +89,10 @@ Test PRD for v2.1.0 release notes smoke test
 **Project Context:**
 **Active Plugins:**
 • plugin-naval: 41 actions, 0 services
-• plugin-vince: 30 actions, 47 services
+• plugin-vince: 30 actions, 54 services
 • plugin-polymarket-discovery: 21 actions, 1 services
-• plugin-kelly: 19 actions, 2 services
-• plugin-eliza: 16 actions, 9 services
+• plugin-kelly: 20 actions, 2 services
+• plugin-sentinel: 18 actions, 8 services
 
 **In Progress:**
 • X research ALOHA-style conclusion
