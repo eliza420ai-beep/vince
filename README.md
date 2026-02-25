@@ -56,23 +56,44 @@ The system became self-evolving:
 - **Collective memory** — Weekly intelligence brief synthesized from all agents, stored as shared knowledge. Institutional memory compounds.
 - **Flywheel score** — Composite 0–100 health metric: signal quality (25%), trade performance (25%), sentiment accuracy (15%), content output (10%), knowledge growth (10%), engineering velocity (10%), genome improvement (5%). One number that answers "is the system getting better?"
 
+### Phase 6 — The Adversary (8 tasks)
+
+Phase 6 made one core change: confidence alone is not enough. Every trade now has to earn execution.
+
+- **Pre-mortem engine** — Before entry, VINCE scores likely failure scenarios, computes survival probability, and blocks trades below threshold.
+- **War Room Monte Carlo** — 1000-run bootstrap tail simulation compares incumbent vs candidate genomes and blocks promotions that worsen downside (`p05`).
+- **Internal prediction market** — VINCE registers and validates trade/genome predictions, scores outcomes with Brier calibration, and tracks calibration by agent.
+- **Devil's Advocate protocol** — Counter-thesis risk scoring can downgrade or block fragile trade ideas and weak genome promotions.
+- **Narrative radar** — Classifies narrative phase (`inception`, `growth`, `peak`, `decline`, `uncertain`) and blocks phase-mismatched entries.
+- **Temporal coherence** — Multi-timeframe alignment gate scores setup quality before entry.
+- **Immune system** — Attack-pattern matcher loads known trap regimes and blocks high-loss setups.
+- **Wired into runtime** — Daily prediction validation and weekly counterfactual reporting are live, with adversarial metadata persisted in the trading loop.
+
+### Phase 7 — Calibration Everywhere
+
+Phase 7 turned calibration into a first-class operating metric across the team:
+
+- **Prediction calibration API + action** — `/vince/prediction-calibration` endpoint and `VINCE_PREDICTION_CALIBRATION` action expose real calibration status on demand.
+- **Cross-agent reporting** — Sentinel and Kelly reporting now surface VINCE prediction calibration so weekly reviews cover calibration drift, not just PnL.
+- **Closed accountability loop** — Predictions are made, resolved, scored, and reported in one system-wide path.
+
 ### By the numbers
 
 | | |
 |---|---|
-| Tasks implemented | 29 |
-| Phases completed | 5 of 6 |
+| Tasks implemented | 37+ |
+| Phases completed | 7 (through calibration reporting) |
 | Agents involved | 9 |
-| New services (Phase 5) | 8 |
+| New services (Phase 6) | 8 |
 | Tunable genome parameters | 15+ |
 | Regime profiles | 5 |
 | Trust levels | 4 (L0 → L3) |
 | Flywheel score components | 7 |
 | TypeScript errors | 0 |
 
-### What's next (Phase 6 — spec'd, not built)
+### What's next
 
-Phase 6 turns the system from smart to unkillable: **pre-mortems** (block trades before they fail), **Monte Carlo war room** (1000 simulated futures, optimize the tail not the median), **internal prediction market** (every agent prediction tracked and validated with Brier scores), **Devil's Advocate protocol** (counter-thesis for every trade and genome promotion), **narrative radar** (inception→growth→peak→decline arcs per asset), **temporal coherence** (multi-timeframe alignment), **immune system** (15+ attack pattern recognition that gets stronger with every loss), and **dead-end elimination** (wire every information dead end shut). Eight tasks, all spec'd in the [PRD](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md).
+Phase 7 is heads-down compounding: more historical depth for calibration, tighter Brier distributions, and stricter promotion gates so the system gets harder to kill each cycle.
 
 ### Prior releases
 
