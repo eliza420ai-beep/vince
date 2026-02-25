@@ -18,6 +18,7 @@ import {
   buildTaskFromSuggestionLine,
   writeTaskToQueue,
 } from "../services/openclawTaskBrief.service";
+import { SkillTelemetryService } from "../services/skillTelemetry.service";
 
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
@@ -439,6 +440,15 @@ export async function registerSentinelWeeklyTask(
             ].join("\n")
           : "";
 
+        // Skill Scoreboard (Phase 9 — Skills OS)
+        let skillScoreboardBlock = "";
+        try {
+          const skillTelemetry = new SkillTelemetryService();
+          skillScoreboardBlock = skillTelemetry.buildWeeklyScoreboardSection();
+        } catch (skillErr) {
+          logger.debug("[SentinelWeekly] Skill scoreboard failed:", skillErr);
+        }
+
         const suggestionsMessage = [
           "**Sentinel — weekly suggestions**",
           "",
@@ -450,6 +460,7 @@ export async function registerSentinelWeeklyTask(
           postMortemsBlock,
           rollupBlock,
           patternBlock,
+          skillScoreboardBlock,
           "",
           "---",
           "_Ask me: suggest, what should we improve, task brief for Claude 4.6, ONNX status, openclaw guide, best settings, art gems._",

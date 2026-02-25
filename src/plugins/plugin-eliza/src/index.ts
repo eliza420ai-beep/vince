@@ -59,6 +59,7 @@ import { styleCheckAction } from "./actions/styleCheck.action";
 import { polishContentAction } from "./actions/polishContent.action";
 import { autoResearchAction } from "./actions/autoResearch.action";
 import { contentAuditAction } from "./actions/contentAudit.action";
+import { elizaSkillContentAction } from "./actions/elizaSkillContent.action";
 
 // Import services
 import { analyzeVoice, getVoicePromptAddition } from "./services/voice.service";
@@ -224,6 +225,8 @@ export const elizaPlugin: Plugin = {
     autoResearchAction,
     // Content Audit (top posts analysis; uses plugin-x-research)
     contentAuditAction,
+    // Skill-to-Content Pipeline (Phase 9 — Skills OS)
+    elizaSkillContentAction,
   ],
 
   init: async (_config, runtime: IAgentRuntime) => {
@@ -379,6 +382,7 @@ export {
   polishContentAction,
   autoResearchAction,
   contentAuditAction,
+  elizaSkillContentAction,
 };
 
 // Export services

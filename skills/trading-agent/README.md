@@ -25,3 +25,33 @@ Reference skill for **EVClaw** — the OpenClaw-based live trading agent for Hyp
 - **Paper bot / signals:** `src/plugins/plugin-vince/` and [docs/TRADING_RUNTIME_CONTRACT.md](../../docs/TRADING_RUNTIME_CONTRACT.md).
 - **Live execution in-app:** Otaku (only agent with funded wallet).
 - **Live execution (external):** EVClaw as OpenClaw skill — same producer/executor idea, dedicated HL identity and ops.
+
+---
+
+## Runbook Sections (see SKILL.md)
+
+The [SKILL.md](SKILL.md) file contains the full operational runbook. Key sections:
+
+| Section | What it covers |
+|---------|---------------|
+| [Safety Preflight](#safety-preflight) | Checklist before any live operation (wallet, circuit breaker, graduation level, DVOL) |
+| [Rollback / Kill-Switch](#rollback--kill-switch) | Emergency stop, close all positions, circuit breaker trigger, rollback to paper |
+| [Mode Change SOPs](#mode-change-sops) | Requirements and steps for L0→L1→L2→L3 graduation |
+| [Bootstrap Checks](#bootstrap-checks) | Startup health verification steps |
+
+## When to use this skill
+
+1. Operator asks about "trading agent", "EVClaw", "OpenClaw trading", or "Hyperliquid bot"
+2. Need to install or run an autonomous perps/HIP3 trading agent alongside OpenClaw
+3. Designing flows with producer/executor split for live execution
+4. Running the Safety Preflight before any live position
+5. Performing a mode change (paper → notify → confirm → auto)
+
+## ⚠️ Live trading safety
+
+- **Always run the Safety Preflight** before enabling live execution
+- **Start at L0 (paper)** — promote only when WR/Sharpe criteria are met
+- **Single wallet identity:** One address + delegated signer. Never use main wallet key in agent config
+- **Circuit breaker is your emergency stop** — keep `OTAKU_CIRCUIT_BREAKER_ACTIVE` monitoring active
+
+For full install and ops: [EVClaw repo](https://github.com/Degenapetrader/EVClaw)
