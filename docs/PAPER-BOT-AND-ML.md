@@ -15,7 +15,7 @@ The core of VINCE: **signals → trades → learning → repeat.** One deploy, f
 - **Python training** — `train_models.py` → four XGBoost models (signal quality, position sizing, TP optimizer, SL optimizer) → ONNX + improvement report
 - **ONNX at runtime** — Bot loads ONNX for signal quality and sizing; rule-based fallbacks when models aren’t trained
 
-See [ONNX.md](ONNX.md) for the full pipeline and [FEATURE-STORE.md](FEATURE-STORE.md) for feature storage and Supabase.
+See [ONNX.md](ONNX.md) for the full pipeline and [FEATURE-STORE.md](FEATURE-STORE.md) for feature storage and Supabase. **Full algo + ML:** [PRD: Paper Trading Algo and How ML Improves It](standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) — decision flow, gates, and improvement loop in one doc.
 
 ---
 
@@ -76,6 +76,11 @@ Recent pipeline improvements (see [ONNX.md](ONNX.md) and [plugin-vince/scripts/R
 - **ONNX SHA-256 hash** — in `training_metadata.json` for versioning
 - **Parallel training** — `--parallel` flag; ProcessPoolExecutor for concurrent model training
 - **Retrain on performance** — besides 90+ trades / 24h cooldown, retrain when recent win rate &lt; 45%
+- **Pre-flight health check** — Before training: logs trade count (need 90+) and worst empty important columns; exits with clear message if insufficient.
+- **Auto-keep-last-good-model** — Before saving new .onnx, compares holdout metrics with the previous model; if new is worse, keeps old model and does not overwrite.
+- **Single-model training** — `--model signal_quality|position_sizing|tp_optimizer|sl_optimizer` (or `all`) to train only one model and save time.
+- **Improvement report → Sentinel tasks** — Report creates task briefs in `docs/standup/openclaw-queue/` (e.g. tighten TP rules, add feature to store); footer shows “Created N new tasks” or “No action needed.”
+- **Default sample weights** — `--recency-decay 0.01` and `--balance-assets` on by default; `--bench-only` trains only on high VinceBench-score rows.
 
 No train/serve skew (StandardScaler removed); no holdout leakage; sample weights (`--recency-decay`, `--balance-assets`).
 

@@ -33,3 +33,4 @@ This folder contains **one briefing document per agent** in the VINCE multi-agen
 - [CLAUDE.md](CLAUDE.md) — VINCE project layout and agent map.
 - [docs/MULTI_AGENT.md](MULTI_AGENT.md) — ASK_AGENT, Discord, A2A, handoffs.
 - [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) — Left (Vince perps), mid (HIP-3), right (Solus options).
+- **PRDs (standup):** [Paper trading algo + ML](standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) — decision flow, gates, how ML improves the algo. [ML training pipeline](standup/prds/PRD_ML_TRAINING_PIPELINE.md) — feature store → train → ONNX → report → Sentinel.

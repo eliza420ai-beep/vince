@@ -16,6 +16,15 @@ Usage:
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --real-only   # production: exclude synthetic
+    python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --model sl_optimizer   # train only one model
+    python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --bench-only   # train on high VinceBench-score rows only
+
+  --model: train only one model (signal_quality|position_sizing|tp_optimizer|sl_optimizer) or 'all' (default).
+  --bench-only: train only on rows with label_benchScore >= median (same as --bench-score-quantile 0.5).
+  Smart defaults: --recency-decay 0.01 and --balance-assets; use --recency-decay 0 and --no-balance-assets to disable.
+  Pre-flight: before training, logs trade count (need 90+) and worst empty important columns; exits with clear message if insufficient.
+  Auto-keep-last-good-model: if the new model is worse on holdout than the previous one, the script keeps the old .onnx and does not overwrite.
+  Sentinel tasks: improvement report creates tasks in docs/standup/openclaw-queue/ when applicable; report footer shows "Created N new tasks" or "No action needed."
 
   --data can be a single JSONL file or a directory (loads all features_*.jsonl, synthetic_*.jsonl, and combined.jsonl).
   --real-only: load only features_*.jsonl and combined.jsonl (exclude synthetic_*.jsonl); use when you have enough real trades.
@@ -40,7 +49,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -105,9 +114,37 @@ def setup_logging_to_file(output_dir: Path, verbose: bool = False) -> None:
     logger.info("Logging to %s", log_path)
 
 
+# Columns checked in pre-flight for null percentage (core + often-missing optional).
+PREFLIGHT_IMPORTANT_COLUMNS = [
+    "market_priceChange24h", "market_volumeRatio", "signal_strength", "signal_confidence",
+    "session_utcHour", "label_profitable",
+    "market_bookImbalance", "market_rsi14", "market_dvol", "market_fundingDelta",
+]
+
 # ==========================================
 # Feature Engineering
 # ==========================================
+
+def _preflight_health_check(df: pd.DataFrame, min_samples: int) -> bool:
+    """Log trade count and worst empty columns; return False if insufficient trades (caller should exit)."""
+    trades_with_outcome = int(df["label_profitable"].notna().sum()) if "label_profitable" in df.columns else 0
+    logger.info("We have %d real trades (need %d+).", trades_with_outcome, min_samples)
+    present = [c for c in PREFLIGHT_IMPORTANT_COLUMNS if c in df.columns]
+    if present:
+        null_pct = [(c, (1.0 - df[c].notna().mean()) * 100) for c in present]
+        null_pct.sort(key=lambda x: -x[1])
+        worst = null_pct[:10]
+        if worst:
+            parts = [f"{c} ({p:.0f}%)" for c, p in worst]
+            logger.info("Worst empty important columns: %s", ", ".join(parts))
+    if trades_with_outcome < min_samples:
+        logger.warning(
+            "Pre-flight check failed: need at least %d trades with outcome. Suggested fixes: collect more closed trades; ensure outcome/labels are written on close.",
+            min_samples,
+        )
+        return False
+    return True
+
 
 def _jsonl_paths(data_path: str, real_only: bool = False) -> List[str]:
     """Resolve --data to a list of JSONL file paths (single file or directory of features_*.jsonl).
@@ -532,10 +569,10 @@ def prepare_sl_features(
 
 def _compute_sample_weights(
     n: int,
-    asset_series: pd.Series | None,
+    asset_series: Optional[pd.Series],
     recency_decay: float,
     balance_assets: bool,
-) -> np.ndarray | None:
+) -> Optional[np.ndarray]:
     """Optional sample weights: recency (recent rows upweighted) and/or per-asset balancing. Returns None if both off."""
     if recency_decay <= 0 and not balance_assets:
         return None
@@ -584,7 +621,7 @@ def _time_split(X: pd.DataFrame, y: pd.Series, test_frac: float = 0.2):
 
 def _holdout_metrics(
     model_factory, X: pd.DataFrame, y: pd.Series, kind: str,
-    sample_weight: np.ndarray | None = None,
+    sample_weight: Optional[np.ndarray] = None,
 ) -> Dict[str, float]:
     """Compute metrics on time-based holdout (last 20%) for drift detection.
 
@@ -628,6 +665,97 @@ def _holdout_metrics(
         logger.debug("Holdout metrics failed for %s: %s", kind, e)
         return {}
     return {}
+
+
+def _old_model_holdout_metrics(
+    old_model: Any, X_val: pd.DataFrame, y_val: pd.Series, kind: str, feature_names: List[str],
+) -> Dict[str, float]:
+    """Compute holdout metrics for an already-trained model on (X_val, y_val). X_val is aligned to feature_names (missing cols filled with 0)."""
+    try:
+        # Align X_val to old model's feature order; fill missing with 0
+        available = [c for c in feature_names if c in X_val.columns]
+        if set(available) != set(feature_names):
+            return {}
+        X_aligned = X_val.reindex(columns=feature_names, fill_value=0.0).astype(np.float64)
+        if kind == "signal_quality":
+            proba = old_model.predict_proba(X_aligned)[:, 1]
+            return {
+                "holdout_auc": float(roc_auc_score(y_val, proba)),
+                "holdout_accuracy": float(accuracy_score(y_val, (proba >= 0.5).astype(int))),
+            }
+        if kind == "position_sizing":
+            pred = old_model.predict(X_aligned)
+            return {"holdout_mae": float(mean_absolute_error(y_val, pred))}
+        if kind == "tp_optimizer":
+            pred = old_model.predict(X_aligned)
+            proba = old_model.predict_proba(X_aligned)
+            return {
+                "holdout_accuracy": float(accuracy_score(y_val, pred)),
+                "holdout_log_loss": float(log_loss(y_val, proba)),
+            }
+        if kind == "sl_optimizer":
+            pred = old_model.predict(X_aligned)
+            err = np.asarray(y_val) - np.asarray(pred)
+            quantile_loss = float(np.mean(np.where(err >= 0, 0.95 * err, -0.05 * err)))
+            return {"holdout_mae": float(mean_absolute_error(y_val, pred)), "holdout_quantile_loss": quantile_loss}
+    except Exception as e:
+        logger.debug("Old model holdout metrics failed for %s: %s", kind, e)
+        return {}
+    return {}
+
+
+def _new_model_better_than_old(
+    name: str, new_metrics: Dict[str, float], output_dir: Path, X: pd.DataFrame, y: pd.Series,
+) -> bool:
+    """If an old .joblib exists, load it and compare holdout metrics. Return True to deploy new, False to keep old."""
+    joblib_path = output_dir / f"{name}.joblib"
+    manifest_path = output_dir / f"{name}_features.json"
+    if not joblib_path.exists():
+        return True
+    try:
+        old_model = joblib.load(str(joblib_path))
+        feature_names = None
+        if manifest_path.exists():
+            with open(manifest_path) as f:
+                manifest = json.load(f)
+                feature_names = manifest.get("features")
+        if feature_names is None:
+            try:
+                booster = old_model.get_booster()
+                feature_names = list(booster.feature_names) if booster.feature_names else None
+            except Exception:
+                pass
+        if not feature_names:
+            return True
+        X_tr, y_tr, X_val, y_val = _time_split(X, y, test_frac=0.2)
+        if X_val is None or len(X_val) < 5:
+            return True
+        old_metrics = _old_model_holdout_metrics(old_model, X_val, y_val, name, feature_names)
+        if not old_metrics:
+            return True
+        # Primary metric per model: higher is better for signal_quality/tp_optimizer; lower for position_sizing/sl_optimizer
+        if name == "signal_quality":
+            new_auc = new_metrics.get("holdout_auc")
+            old_auc = old_metrics.get("holdout_auc")
+            if new_auc is not None and old_auc is not None and new_auc < old_auc:
+                logger.warning("New model holdout_auc %.4f < old %.4f; keeping previous model (not deploying).", new_auc, old_auc)
+                return False
+        elif name == "position_sizing" or name == "sl_optimizer":
+            new_mae = new_metrics.get("holdout_mae")
+            old_mae = old_metrics.get("holdout_mae")
+            if new_mae is not None and old_mae is not None and new_mae > old_mae:
+                logger.warning("New model holdout_mae %.4f > old %.4f; keeping previous model (not deploying).", new_mae, old_mae)
+                return False
+        elif name == "tp_optimizer":
+            new_acc = new_metrics.get("holdout_accuracy")
+            old_acc = old_metrics.get("holdout_accuracy")
+            if new_acc is not None and old_acc is not None and new_acc < old_acc:
+                logger.warning("New model holdout_accuracy %.4f < old %.4f; keeping previous model (not deploying).", new_acc, old_acc)
+                return False
+        return True
+    except Exception as e:
+        logger.warning("Could not compare with previous model (%s): %s; deploying new.", name, e)
+        return True
 
 
 def _shap_analysis(model: Any, X: pd.DataFrame, model_name: str, max_samples: int = 200) -> Dict[str, Any]:
@@ -760,7 +888,7 @@ def _walk_forward_validation(
     return agg
 
 
-def _tune_signal_quality_optuna(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None, n_trials: int = 50) -> xgb.XGBClassifier:
+def _tune_signal_quality_optuna(X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray], n_trials: int = 50) -> xgb.XGBClassifier:
     """Bayesian hyperparameter tuning via Optuna with TimeSeriesSplit. Returns best estimator."""
     pos_count = int(np.sum(y))
     scale_pos_weight = (len(y) - pos_count) / pos_count if pos_count > 0 else 1.0
@@ -800,7 +928,7 @@ def _tune_signal_quality_optuna(X: pd.DataFrame, y: pd.Series, sample_weight: np
     return final
 
 
-def _tune_signal_quality(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None) -> xgb.XGBClassifier:
+def _tune_signal_quality(X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray]) -> xgb.XGBClassifier:
     """Hyperparameter tuning: Optuna (if available) or GridSearchCV fallback."""
     if OPTUNA_AVAILABLE:
         return _tune_signal_quality_optuna(X, y, sample_weight)
@@ -833,7 +961,7 @@ def _tune_signal_quality(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarra
 
 
 def train_signal_quality_model(
-    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+    X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray] = None
 ) -> xgb.XGBClassifier:
     """Train signal quality classifier with early stopping on a time-based holdout."""
     X_tr, y_tr, X_val, y_val = _time_split(X, y)
@@ -887,7 +1015,7 @@ def train_signal_quality_model(
     return model
 
 
-def _tune_position_sizing(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None) -> xgb.XGBRegressor:
+def _tune_position_sizing(X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray]) -> xgb.XGBRegressor:
     """Hyperparameter tuning for position sizing: Optuna (if available) or GridSearchCV fallback."""
     if OPTUNA_AVAILABLE:
         tscv = TimeSeriesSplit(n_splits=3)
@@ -928,7 +1056,7 @@ def _tune_position_sizing(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarr
 
 
 def train_position_sizing_model(
-    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+    X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray] = None
 ) -> xgb.XGBRegressor:
     """Train position sizing regressor with early stopping."""
     X_tr, y_tr, X_val, y_val = _time_split(X, y)
@@ -970,7 +1098,7 @@ def train_position_sizing_model(
     return model
 
 
-def _tune_tp_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None, n_trials: int = 50) -> xgb.XGBClassifier:
+def _tune_tp_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray], n_trials: int = 50) -> xgb.XGBClassifier:
     """Bayesian hyperparameter tuning for TP optimizer via Optuna or GridSearchCV fallback."""
     n_class = int(y.nunique())
     if OPTUNA_AVAILABLE:
@@ -1020,7 +1148,7 @@ def _tune_tp_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray 
     return search.best_estimator_
 
 
-def _tune_sl_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None, n_trials: int = 50) -> xgb.XGBRegressor:
+def _tune_sl_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray], n_trials: int = 50) -> xgb.XGBRegressor:
     """Bayesian hyperparameter tuning for SL optimizer via Optuna or GridSearchCV fallback."""
     if OPTUNA_AVAILABLE:
         tscv = TimeSeriesSplit(n_splits=3)
@@ -1070,7 +1198,7 @@ def _tune_sl_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray 
 
 
 def train_tp_optimizer_model(
-    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+    X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray] = None
 ) -> xgb.XGBClassifier:
     """Train take-profit optimizer (multi-class) with early stopping."""
     n_class = int(y.nunique())
@@ -1118,7 +1246,7 @@ def train_tp_optimizer_model(
 
 
 def train_sl_optimizer_model(
-    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+    X: pd.DataFrame, y: pd.Series, sample_weight: Optional[np.ndarray] = None
 ) -> xgb.XGBRegressor:
     """Train stop-loss optimizer (quantile regression for max adverse excursion)."""
     X_tr, y_tr, X_val, y_val = _time_split(X, y)
@@ -1242,7 +1370,7 @@ def save_feature_manifest(feature_names: List[str], output_path: str, model_name
         logger.warning("Failed to save feature manifest for %s: %s", model_name, e)
 
 
-def compute_onnx_hash(onnx_path: str) -> str | None:
+def compute_onnx_hash(onnx_path: str) -> Optional[str]:
     """Compute SHA-256 hash of an ONNX file for versioning/integrity checks."""
     try:
         h = hashlib.sha256()
@@ -1283,7 +1411,7 @@ def _suggest_signal_quality_threshold(model: Any, X: pd.DataFrame, y: pd.Series)
         return 0.6
 
 
-def _platt_calibration(model: Any, X: pd.DataFrame, y: pd.Series) -> Dict[str, float] | None:
+def _platt_calibration(model: Any, X: pd.DataFrame, y: pd.Series) -> Optional[Dict[str, float]]:
     """Fit Platt scaling on validation fold so score bands match historical win rate. Returns {scale, intercept} or None."""
     try:
         from sklearn.linear_model import LogisticRegression
@@ -1461,6 +1589,77 @@ def build_improvement_report(
     return report
 
 
+def _create_sentinel_tasks_from_report(report: Dict[str, Any], output_dir: Path) -> int:
+    """Derive 0-N Sentinel/OpenClaw tasks from improvement report; write JSON to docs/standup/openclaw-queue/. Returns count created."""
+    queue_dir = Path.cwd() / "docs" / "standup" / "openclaw-queue"
+    if os.environ.get("STANDUP_DELIVERABLES_DIR"):
+        queue_dir = Path(os.environ["STANDUP_DELIVERABLES_DIR"]) / "openclaw-queue"
+    queue_dir.mkdir(parents=True, exist_ok=True)
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    date_id = date_str.replace("-", "")
+    tasks: List[Dict[str, Any]] = []
+
+    tp_perf = report.get("tp_level_performance") or {}
+    for level, stats in tp_perf.items():
+        wr = stats.get("win_rate", 0)
+        cnt = stats.get("count", 0)
+        if isinstance(wr, (int, float)) and wr < 0.45 and cnt >= 3:
+            pct = f"{wr * 100:.0f}%"
+            tasks.append({
+                "title": f"Tighten TP level {level} rules",
+                "description": f"TP level {level} has win_rate {pct} ({cnt} trades). Review whether to reduce weight or tighten conditions. From improvement report.",
+                "scope": "In scope: TP optimizer rules and conditions for this level. Out of scope: other models.",
+            })
+
+    for s in report.get("suggested_signal_factors") or []:
+        name = s.get("name", "").strip() or "feature"
+        desc = s.get("description", "") or ""
+        reason = s.get("reason", "") or ""
+        tasks.append({
+            "title": f"Add {name} to feature store",
+            "description": f"{desc}. {reason}".strip() or f"Populate or add {name} to the feature store for ML training.",
+            "scope": "In scope: feature store and signal aggregator. Out of scope: model architecture.",
+            "plugin": "plugin-vince",
+        })
+
+    if report.get("suggested_signal_quality_threshold") is not None:
+        t = report["suggested_signal_quality_threshold"]
+        tasks.append({
+            "title": "Review ML signalQualityThreshold from improvement report",
+            "description": f"Improvement report suggests signalQualityThreshold {t}. Consider setting ML fallback or Parameter Tuner bounds.",
+            "scope": "In scope: dynamicConfig / ML inference threshold. Out of scope: retraining.",
+        })
+
+    created = 0
+    for i, t in enumerate(tasks):
+        slug = (t["title"].lower().replace(" ", "-").replace("_", "-")[:40].strip("-") or "ml-task")
+        task_id = f"ml-{date_id}-{i + 1:03d}"
+        branch = f"sentinel/{date_str}-ml-{slug[:25]}"
+        obj = {
+            "id": task_id,
+            "title": t["title"],
+            "description": t["description"],
+            "scope": t.get("scope", "In scope: see description. Out of scope: unrelated changes."),
+            "acceptanceCriteria": ["Task completed and verified."],
+            "expectedOutcome": t["description"].split(".")[0] + ".",
+            "source": "ml_training",
+            "branchName": branch,
+            "createdAt": now.isoformat(),
+            "plugin": t.get("plugin", "plugin-vince"),
+            "priority": "P2",
+            "effort": "XS",
+        }
+        fpath = queue_dir / f"{date_str}-ml-{slug}.json"
+        try:
+            with open(fpath, "w") as f:
+                json.dump(obj, f, indent=2)
+            created += 1
+        except Exception as e:
+            logger.warning("Could not write Sentinel task %s: %s", fpath, e)
+    return created
+
+
 def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> None:
     """Write human-readable improvement report to a markdown file."""
     lines = [
@@ -1560,6 +1759,13 @@ def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> No
     lines.append("")
     for item in report.get("action_items") or []:
         lines.append(f"- {item}")
+    n = report.get("sentinel_tasks_created", 0)
+    if n > 0:
+        lines.append("")
+        lines.append(f"**Sentinel tasks:** Created {n} new task(s) for Sentinel (see docs/standup/openclaw-queue/).")
+    else:
+        lines.append("")
+        lines.append("**Sentinel tasks:** No action needed.")
     output_path.write_text("\n".join(lines), encoding="utf-8")
     logger.info("Wrote improvement report: %s", output_path)
 
@@ -1571,7 +1777,7 @@ def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> No
 def _train_single_model(
     name: str, df: pd.DataFrame, args: argparse.Namespace,
     output_dir: Path,
-) -> Tuple[str, Dict[str, Any] | None]:
+) -> Tuple[str, Optional[Dict[str, Any]]]:
     """Train a single model (designed to run in parallel). Returns (name, improvement_entry) or (name, None) on skip/error."""
     try:
         # Prepare features
@@ -1632,17 +1838,6 @@ def _train_single_model(
             "feature_names": X.columns.tolist(),
         }
 
-        # Export ONNX + feature manifest + hash
-        onnx_path = str(output_dir / f"{name}.onnx")
-        onnx_ok = export_to_onnx(model, X.iloc[:1], onnx_path, name)
-        entry["onnx_exported"] = onnx_ok
-        if onnx_ok:
-            save_feature_manifest(X.columns.tolist(), str(output_dir / f"{name}_features.json"), name)
-            onnx_hash = compute_onnx_hash(onnx_path)
-            if onnx_hash:
-                entry["onnx_sha256"] = onnx_hash
-        save_joblib_backup(model, str(output_dir / f"{name}.joblib"), name)
-
         # Model factory for holdout (trains fresh model on train split — no leakage)
         def _make_model_factory():
             """Create a factory that produces an untrained model with same hyperparams."""
@@ -1656,6 +1851,23 @@ def _train_single_model(
 
         # Holdout metrics (fresh model on train split only — no leakage)
         entry["holdout_metrics"] = _holdout_metrics(factory, X, y, name, sample_weight=w)
+
+        # Auto-keep-last-good: compare with previous model; if new is worse, do not overwrite ONNX/manifest/joblib
+        deploy_new = _new_model_better_than_old(name, entry["holdout_metrics"], output_dir, X, y)
+        if not deploy_new:
+            entry["onnx_exported"] = False
+            entry["kept_previous"] = True
+        else:
+            # Export ONNX + feature manifest + hash
+            onnx_path = str(output_dir / f"{name}.onnx")
+            onnx_ok = export_to_onnx(model, X.iloc[:1], onnx_path, name)
+            entry["onnx_exported"] = onnx_ok
+            if onnx_ok:
+                save_feature_manifest(X.columns.tolist(), str(output_dir / f"{name}_features.json"), name)
+                onnx_hash = compute_onnx_hash(onnx_path)
+                if onnx_hash:
+                    entry["onnx_sha256"] = onnx_hash
+            save_joblib_backup(model, str(output_dir / f"{name}.joblib"), name)
 
         # SHAP analysis
         shap_result = _shap_analysis(model, X, name)
@@ -1688,8 +1900,10 @@ def main():
     parser.add_argument("--output", type=str, default="./models", help="Output directory for models")
     parser.add_argument("--min-samples", type=int, default=90, help="Minimum trades with outcome required to train (default 90)")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging to train.log")
-    parser.add_argument("--recency-decay", type=float, default=0.0, help="Recency sample weight decay (e.g. 0.01 upweights recent rows); 0 = off")
-    parser.add_argument("--balance-assets", action="store_true", help="Balance sample weights by asset so one symbol does not dominate")
+    parser.add_argument("--model", type=str, default="all", choices=["all", "signal_quality", "position_sizing", "tp_optimizer", "sl_optimizer"], help="Train only this model, or 'all' (default)")
+    parser.add_argument("--recency-decay", type=float, default=0.01, help="Recency sample weight decay (default 0.01); use 0 to disable")
+    parser.add_argument("--balance-assets", dest="balance_assets", action="store_true", default=True, help="Balance sample weights by asset (default)")
+    parser.add_argument("--no-balance-assets", dest="balance_assets", action="store_false", help="Disable asset-balanced sample weights")
     parser.add_argument("--tune-hyperparams", action="store_true", help="Run hyperparameter tuning: Optuna (if installed) or GridSearchCV fallback with TimeSeriesSplit (slower)")
     parser.add_argument("--optuna-trials", type=int, default=50, help="Number of Optuna trials when --tune-hyperparams is used (default 50)")
     parser.add_argument("--real-only", dest="real_only", action="store_true", help="Load only features_*.jsonl and combined.jsonl; exclude synthetic_*.jsonl (use for production when you have enough real trades)")
@@ -1697,6 +1911,7 @@ def main():
     parser.add_argument("--bench-score-weight", action="store_true", help="Upweight samples by VinceBench per-decision score (label_benchScore); use with signal_quality")
     parser.add_argument("--min-bench-score", type=float, default=None, help="Train only on rows with label_benchScore >= this value (optional filter)")
     parser.add_argument("--bench-score-quantile", type=float, default=None, help="Train only on rows with label_benchScore >= this quantile (e.g. 0.5 for median); 0-1")
+    parser.add_argument("--bench-only", action="store_true", help="Train only on rows with label_benchScore >= median (same as --bench-score-quantile 0.5)")
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -1716,12 +1931,8 @@ def main():
         logger.warning("No data loaded. Exiting.")
         return
 
-    trades_with_outcome = int(df["label_profitable"].notna().sum())
-    if trades_with_outcome < args.min_samples:
-        logger.warning(
-            "Insufficient data: %d trades with outcomes (need at least %d). Continue collecting with the paper trading bot.",
-            trades_with_outcome, args.min_samples,
-        )
+    trades_with_outcome = int(df["label_profitable"].notna().sum()) if "label_profitable" in df.columns else 0
+    if not _preflight_health_check(df, args.min_samples):
         minimal_report = {
             "data_summary": {
                 "total_records": int(len(df)),
@@ -1759,6 +1970,9 @@ def main():
     if "label_benchScore" in df.columns:
         min_bench = getattr(args, "min_bench_score", None)
         quantile = getattr(args, "bench_score_quantile", None)
+        if getattr(args, "bench_only", False) and min_bench is None and quantile is None:
+            quantile = 0.5
+            logger.info("Training on high VinceBench score trades only (--bench-only, quantile=0.5)")
         if min_bench is not None:
             before = len(df)
             df = df[df["label_benchScore"].fillna(-np.inf) >= min_bench].copy()
@@ -1772,13 +1986,13 @@ def main():
             dropped = before - len(df)
             logger.info("VinceBench filter (--bench-score-quantile=%.2f, threshold=%.2f): dropped %d rows, %d remaining", quantile, threshold, dropped, len(df))
             bench_filter_used = True
-    elif getattr(args, "min_bench_score", None) is not None or getattr(args, "bench_score_quantile", None) is not None:
-        logger.warning("--min-bench-score/--bench-score-quantile set but label_benchScore not in data; skipping filter")
+    elif getattr(args, "min_bench_score", None) is not None or getattr(args, "bench_score_quantile", None) is not None or getattr(args, "bench_only", False):
+        logger.warning("--min-bench-score/--bench-score-quantile/--bench-only set but label_benchScore not in data; skipping filter")
 
     bench_weight_enabled = getattr(args, "bench_score_weight", False)
     bench_score_used = bench_filter_used or bench_weight_enabled
 
-    model_names = ["signal_quality", "position_sizing", "tp_optimizer", "sl_optimizer"]
+    model_names = ["signal_quality", "position_sizing", "tp_optimizer", "sl_optimizer"] if args.model == "all" else [args.model]
     improvement_entries: Dict[str, Dict[str, Any]] = {}
 
     # Train all 4 models (optionally in parallel)
@@ -1841,6 +2055,7 @@ def main():
         json.dump(metadata, f, indent=2)
 
     if improvement_report:
+        improvement_report["sentinel_tasks_created"] = _create_sentinel_tasks_from_report(improvement_report, output_dir)
         write_improvement_report_md(improvement_report, output_dir / "improvement_report.md")
 
     logger.info("=" * 60)
