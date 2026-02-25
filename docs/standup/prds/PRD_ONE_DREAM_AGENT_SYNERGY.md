@@ -1,7 +1,7 @@
 # PRD: One Dream — Agent Synergy & the $100K Trading System
 
-**Status:** Phase 1–5 Implemented (V4.2.0) — Phase 6 Spec'd (V4.3.0)  
-**Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click. **Phase 5** closes the final loop: the system observes itself, evolves its own parameters, and earns the right to trade real money. **Phase 6** turns the system from smart to unkillable: forward simulation, adversarial challenge, narrative intelligence, and prediction accountability.
+**Status:** Phase 1–5 Implemented (V4.2.0) — Phase 6 Implemented (V4.3.0) — Phase 7 Implemented (V4.3.1) — Phase 8 Planned (Gated) — Phase 9 Planned (Skills-Focused) — Phase 10–12 Planned  
+**Scope:** Close the remaining gaps between agents so the team operates as a single system: data flows into decisions, decisions flow into execution, execution flows into learning, learning flows into better data. Every agent has a clear role; every handoff is one click. **Phase 5** closes the final loop: the system observes itself, evolves its own parameters, and earns the right to trade real money. **Phase 6** turns the system from smart to unkillable: forward simulation, adversarial challenge, narrative intelligence, and prediction accountability. **Phase 7** makes calibration visible everywhere so confidence is earned, measured, and reported system-wide.
 
 ### Implementation status (Phase 1)
 
@@ -242,14 +242,14 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 30 | Pre-Mortem Engine | ⬜ | |
-| 31 | War Room: Monte Carlo Forward Simulation | ⬜ | |
-| 32 | Internal Prediction Market | ⬜ | |
-| 33 | Devil's Advocate Protocol | ⬜ | |
-| 34 | Narrative Radar | ⬜ | |
-| 35 | Temporal Coherence Engine | ⬜ | |
-| 36 | Immune System: Attack Pattern Recognition | ⬜ | |
-| 37 | Dead End Elimination | ⬜ | |
+| 30 | Pre-Mortem Engine | ✅ | `vincePreMortem.service.ts` + tests; trade entry survival scoring and block path wired into paper trading loop. |
+| 31 | War Room: Monte Carlo Forward Simulation | ✅ | `vinceWarRoom.service.ts` + tests; genome promotion tail-risk gate in `vinceGenome.service.ts` (5th percentile survival check). |
+| 32 | Internal Prediction Market | ✅ | `predictionTracker.service.ts` + `predictionValidation.tasks.ts`; prediction registration, expiry validation, per-agent Brier snapshots. |
+| 33 | Devil's Advocate Protocol | ✅ | `vinceDevilsAdvocate.service.ts`; counter-thesis scoring integrated in trade/genome decision path. |
+| 34 | Narrative Radar | ✅ | `vinceNarrativeRadar.service.ts`; narrative phase classification wired into regime/risk overlays. |
+| 35 | Temporal Coherence Engine | ✅ | `vinceTemporalCoherence.service.ts`; multi-timeframe alignment score integrated before entry. |
+| 36 | Immune System: Attack Pattern Recognition | ✅ | `vinceImmuneSystem.service.ts` + curated `knowledge/teammate/attack-patterns/*.json`; pattern match can block risky setups. |
+| 37 | Dead End Elimination | ✅ | Grok sub-agent signal arms in bandit flow, flywheel/bandit wiring, collective memory ingestion checks, trust-level awareness in risk flow. |
 
 ### Suggested file map (Phase 6)
 
@@ -376,6 +376,363 @@
 | **Information flow** | Dead ends tolerated | Every dead end wired shut |
 | **Predictions** | Implicit and untracked | Explicit, tracked, and consequential |
 | **Self-assessment** | "Am I getting better?" (Flywheel) | "Can I survive the worst case?" (War Room) |
+
+---
+
+## Phase 7 — Calibration Everywhere (V4.3.1)
+
+**Theme:** Phase 6 made predictions explicit. Phase 7 makes prediction quality visible across the entire operating system.
+
+**Core insight:** PnL can hide bad calibration. A system can be profitable and still be dangerously overconfident. The operating metric is no longer only "did we win?" but also "when we said 80%, were we right 80% of the time?" Phase 7 turns calibration into a first-class metric for Vince, Kelly, and Sentinel.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 38 | **Prediction Calibration API + Action** | Vince | P0 | Add a dedicated calibration read path: `VINCE_PREDICTION_CALIBRATION` action and `/vince/prediction-calibration` route. Return overall and by-agent Brier metrics over configurable windows. |
+| 39 | **Cross-Agent Calibration Reporting** | Kelly + Sentinel | P0 | Kelly flywheel and Sentinel weekly/investor reporting include Vince calibration (`predictionBrier`, `predictionCount`) so weekly reviews track calibration drift, not only PnL. |
+| 40 | **Closed Accountability Loop** | Vince + Kelly + Sentinel | P1 | Ensure a complete loop: predictions are registered, validated at expiry, scored, and surfaced in reporting. Accuracy now changes visibility and downstream confidence in agent outputs. |
+
+**Success criteria for Phase 7**
+
+- `VINCE_PREDICTION_CALIBRATION` returns usable calibration summaries on demand.
+- `/vince/prediction-calibration` is available through agent-scoped plugin routes for ops dashboards and reporting consumers.
+- Kelly and Sentinel weekly outputs include calibration line-items alongside performance.
+- Calibration trend is visible week-over-week and becomes part of operating conversations.
+
+**Out of scope for Phase 7**
+
+- New strategy classes or extra execution venues.
+- Phase 8 expansion before Phase 6/7 stability and measurement quality are validated.
+
+### Implementation status (Phase 7)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 38 | Prediction Calibration API + Action | ✅ | `predictionCalibration.action.ts` + `/vince/prediction-calibration` route in plugin-vince index; windowed snapshot support. |
+| 39 | Cross-Agent Calibration Reporting | ✅ | Kelly flywheel action and Sentinel "how did we do"/investor/weekly task now ask Vince for calibration and include it in output. |
+| 40 | Closed Accountability Loop | ✅ | Prediction tracker + validation task + reporting integration complete end-to-end prediction accountability loop. |
+
+### Suggested file map (Phase 7)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `src/plugins/plugin-vince/src/actions/predictionCalibration.action.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/index.ts` | Vince | Modify (add `/vince/prediction-calibration` route) |
+| `src/plugins/plugin-kelly/src/actions/kellyFlywheelScore.action.ts` | Kelly | Modify (surface `predictionBrier` / `predictionCount`) |
+| `src/plugins/plugin-sentinel/src/actions/sentinelHowDidWeDo.action.ts` | Sentinel | Modify |
+| `src/plugins/plugin-sentinel/src/actions/sentinelInvestorReport.action.ts` | Sentinel | Modify |
+| `src/plugins/plugin-sentinel/src/tasks/sentinelWeekly.tasks.ts` | Sentinel | Modify |
+
+---
+
+## Phase 8 — The Compounding Edge: Research → Alpha → Distribution (Planned)
+
+**Theme:** Convert X research into measurable trading edge, and convert realized edge into higher-signal content that improves the next research cycle.
+
+**Core insight:** Phase 6 made the system survive; Phase 7 made confidence measurable. Phase 8 is about compounding speed and quality. The priority is not adding more features, but increasing edge velocity: discover faster, attribute better, size cleaner, and publish sharper outputs from real system data.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 41 | **X Source Quality Engine** | Echo + Vince | P0 | Score X accounts by predictive contribution (precision/recall, calibration, time-to-resolution). Feed source quality into signal weighting so low-quality noise is downranked automatically. |
+| 42 | **Narrative-to-Price Lag Model** | Echo + Vince | P0 | Quantify lag between narrative phase transitions and realized price movement by asset and timeframe. Emit `lagAdjustedConfidence` into pre-trade scoring and sizing. |
+| 43 | **Research-to-Trade Attribution** | Vince | P0 | Persist source lineage on every trade decision, then attribute post-close outcome back to source clusters. Improve bandit updates using contribution quality, not only final trade PnL. |
+| 44 | **Execution Quality Model** | Otaku + Vince | P1 | Separate thesis quality from execution quality (slippage, route, timing, fill drift). Apply execution penalty to sizing and readiness to avoid false confidence from good ideas with poor execution. |
+| 45 | **Regime Transition Forecaster** | Vince + Oracle + Echo | P1 | Add transition probability between regimes, not just current regime label. Reduce heat/sizing when transition risk is elevated; restore conviction when stable and aligned. |
+| 46 | **Content Performance Feedback Loop** | Eliza + Kelly | P1 | Track output quality (engagement quality, retention, follow-through) and tie performance to narrative/source inputs. Promote content patterns that improve research quality and user decisions. |
+| 47 | **Weekly Alpha Memo (Auto-Draft)** | Eliza + Sentinel | P2 | Generate a publish-ready memo from logs: what worked, what failed, what changed in source weights, where narratives are early/late. Real metrics only; no generic commentary. |
+| 48 | **X-Research Command Center** | Echo + Kelly | P2 | Single action/chip for top predictive X sources, emerging narratives, expected lag windows, and recommendation split: trade now vs watchlist only. |
+
+**Success criteria for Phase 8**
+
+- X-driven signals show improved hit-rate or expectancy versus non-X baseline over rolling 4-week windows.
+- At least 80% of closed trades include source attribution with contribution scoring.
+- Execution quality drag is measured weekly and trends downward month-over-month.
+- Regime transition warnings reduce drawdown during high-transition periods.
+- Weekly content cadence is maintained and includes concrete numbers sourced from runtime logs.
+- A weekly alpha memo can be generated end-to-end without manual spreadsheet stitching.
+
+**Out of scope for Phase 8**
+
+- New exchanges/chains or venue expansion.
+- Fully autonomous publishing without human final approval.
+- Broad UI redesigns beyond minimal command center/chip additions.
+- Any task that does not directly improve (1) trading algorithm quality, (2) content output quality/throughput, or (3) X-research insight quality.
+
+### Implementation status (Phase 8)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 41 | X Source Quality Engine | ⬜ | Planned, gated by Phase 6/7 validation |
+| 42 | Narrative-to-Price Lag Model | ⬜ | Planned, gated by Phase 6/7 validation |
+| 43 | Research-to-Trade Attribution | ⬜ | Planned, gated by Phase 6/7 validation |
+| 44 | Execution Quality Model | ⬜ | Planned, gated by Phase 6/7 validation |
+| 45 | Regime Transition Forecaster | ⬜ | Planned, gated by Phase 6/7 validation |
+| 46 | Content Performance Feedback Loop | ⬜ | Planned, gated by Phase 6/7 validation |
+| 47 | Weekly Alpha Memo (Auto-Draft) | ⬜ | Planned, gated by Phase 6/7 validation |
+| 48 | X-Research Command Center | ⬜ | Planned, gated by Phase 6/7 validation |
+
+### Suggested file map (Phase 8)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `src/plugins/plugin-x-research/src/services/xSourceQuality.service.ts` | Echo | New |
+| `src/plugins/plugin-vince/src/services/vinceXSourceAttribution.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceNarrativeLag.service.ts` | Vince + Echo | New |
+| `src/plugins/plugin-vince/src/services/vinceSignalAggregator.service.ts` | Vince | Modify (consume `lagAdjustedConfidence` and source-quality weights) |
+| `src/plugins/plugin-vince/src/services/vinceFeatureStore.service.ts` | Vince | Modify (persist source lineage, lag features, execution attribution) |
+| `src/plugins/plugin-vince/src/services/vinceRegimeProfiles.service.ts` | Vince + Oracle + Echo | Modify (transition probability overlay) |
+| `src/plugins/plugin-otaku/src/services/executionGraduation.service.ts` | Otaku | Modify (execution quality penalty integration) |
+| `src/plugins/plugin-eliza/src/actions/writeEssay.action.ts` | Eliza | Modify (alpha memo mode from runtime metrics) |
+| `src/plugins/plugin-sentinel/src/actions/sentinelInvestorReport.action.ts` | Sentinel | Modify (include weekly alpha memo linkage) |
+| `src/plugins/plugin-kelly/src/actions/kellyWeeklyReview.action.ts` | Kelly | Modify (surface X-research command center summary) |
+| `src/frontend/components/chat/chat-interface.tsx` | Kelly + Echo | Modify (add "X-Research Command Center" chip) |
+
+---
+
+## Phase 9 — Skills Operating System: Skill-First Execution (Planned)
+
+**Theme:** Make `skills/` a first-class operating layer for trading research, execution runbooks, and content intelligence.
+
+**Core insight:** The repo has high-value capabilities in `skills/x-research` and `skills/trading-agent`, but they are mostly used manually. Phase 9 productizes skills into a governed system: discoverable, measurable, testable, and directly wired to trading quality and content quality outcomes.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 49 | **Skill Registry + Metadata Index** | Sentinel + Kelly | P0 | Build a registry from `skills/*/SKILL.md` with capabilities, triggers, owners, required env, and risk level. Expose "which skill should run now?" for operators and agents. |
+| 50 | **Skill Router for ASK_AGENT** | Sentinel + plugin-inter-agent | P0 | Add deterministic routing hints so queries mentioning "x research", "trading agent", EVClaw, Hyperliquid live ops, etc. route to the right skill context first. |
+| 51 | **X-Research Skill Hardening** | Echo | P0 | Upgrade `skills/x-research` with saved query packs, benchmark queries, source-tiering, and output templates that map directly to trade/no-trade/watchlist decisions. |
+| 52 | **Trading-Agent Skill Runbook Hardening** | Otaku + Vince | P1 | Expand `skills/trading-agent` into operator-grade runbooks: bootstrap checks, delegated-signer validation, safety preflight, rollback/kill-switch checklists, and mode-change SOPs. |
+| 53 | **Skill Telemetry + Scoreboard** | Sentinel + Kelly | P1 | Track skill usage, latency, successful outcomes, and downstream impact (trade quality, content quality, X insight quality). Add weekly skill scoreboard to Sentinel/Kelly reports. |
+| 54 | **Skill QA Harness** | Sentinel | P1 | Add reproducible tests for skill triggers, expected outputs, and stale-doc detection (`SKILL.md` drift checks vs actual scripts/files). |
+| 55 | **Skill-to-Content Pipeline** | Eliza + Echo | P2 | Convert high-signal `x-research` outputs into reusable content briefs (Substack/Tweets) with provenance links and confidence tags. |
+| 56 | **Skill Governance + Promotion Rules** | Sentinel + Kelly | P2 | Define lifecycle: draft → validated → promoted → deprecated. A skill can only be promoted if it improves at least one KPI (trading algo, content output, or X insight quality). |
+
+**Success criteria for Phase 9**
+
+- 100% of skills under `skills/` are indexed in a registry with owner, trigger map, and risk class.
+- Skill routing accuracy for skill-intent queries reaches a target threshold (e.g. >90% in eval prompts).
+- `x-research` skill outputs include actionable decision buckets (trade now / monitor / ignore) with source provenance.
+- `trading-agent` skill includes complete safety preflight + rollback checklists for live ops.
+- Weekly reports include a skill scoreboard with adoption and impact metrics.
+- New skills can be validated via the QA harness before operational use.
+
+**Out of scope for Phase 9**
+
+- Replacing core plugin logic with skills.
+- Live key custody changes or relaxing execution safety controls.
+- Skill sprawl without measurable KPI impact.
+
+### Implementation status (Phase 9)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 49 | Skill Registry + Metadata Index | ⬜ | Planned |
+| 50 | Skill Router for ASK_AGENT | ⬜ | Planned |
+| 51 | X-Research Skill Hardening | ⬜ | Planned |
+| 52 | Trading-Agent Skill Runbook Hardening | ⬜ | Planned |
+| 53 | Skill Telemetry + Scoreboard | ⬜ | Planned |
+| 54 | Skill QA Harness | ⬜ | Planned |
+| 55 | Skill-to-Content Pipeline | ⬜ | Planned |
+| 56 | Skill Governance + Promotion Rules | ⬜ | Planned |
+
+### Suggested file map (Phase 9)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `skills/README.md` | Shared | New (skills index and conventions) |
+| `skills/registry.json` | Shared | New (generated metadata registry) |
+| `skills/x-research/SKILL.md` | Echo | Modify (decision templates + benchmark query packs) |
+| `skills/x-research/README.md` | Echo | Modify |
+| `skills/trading-agent/SKILL.md` | Otaku + Vince | Modify (live ops runbook sections) |
+| `skills/trading-agent/README.md` | Otaku + Vince | Modify |
+| `src/plugins/plugin-inter-agent/src/actions/askAgent.action.ts` | Sentinel | Modify (skill routing hints) |
+| `src/plugins/plugin-sentinel/src/tasks/sentinelWeekly.tasks.ts` | Sentinel | Modify (skill scoreboard section) |
+| `src/plugins/plugin-kelly/src/actions/kellyWeeklyReview.action.ts` | Kelly | Modify (skills impact snapshot) |
+| `scripts/skills/build-registry.ts` | Sentinel | New |
+| `scripts/skills/check-skill-drift.ts` | Sentinel | New |
+| `scripts/skills/eval-skill-routing.ts` | Sentinel | New |
+
+---
+
+## Phase 10 — Live Capital Pilot: Earned Risk, Not Assumed Risk (Planned)
+
+**Theme:** Move from paper excellence to tightly controlled live deployment with hard downside protection.
+
+**Core insight:** A calibrated paper system is necessary but not sufficient. Real capital introduces new failure modes: fill quality drift, route degradation, liquidity slippage, and operational errors. Phase 10 ensures live exposure is earned through policy gates and reduced automatically when edge quality degrades.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 57 | **Capital Buckets + Risk Budgets** | Vince + Otaku | P0 | Allocate capital into policy buckets (core/tactical/experimental) with fixed heat and max-DD budgets per bucket. |
+| 58 | **Live/Paper Drift Sentinel** | Vince | P0 | Detect expectation drift between paper and live outcomes (fill, slippage, R multiple) and auto-tighten sizing on divergence. |
+| 59 | **Execution Audit Trail** | Otaku + Sentinel | P0 | Full per-trade trace: thesis, route, latency, slippage, expected vs realized R, and policy checks passed/failed. |
+| 60 | **Hard Circuit Stack** | Otaku | P0 | Multi-layer kill switches (daily loss cap, execution anomaly, venue health failure, route failure) with immediate downshift. |
+| 61 | **Capital Promotion Ladder v2** | Otaku + Kelly | P1 | Expand trust ladder with stricter live-capital gates based on rolling Sharpe, DD, calibration, and execution quality. |
+| 62 | **Post-Trade Causal Labels** | Vince | P1 | Classify each loss/win by cause (signal, sizing, execution, regime, narrative timing) for weekly policy updates. |
+| 63 | **Operator Console: Live Safety State** | Kelly + Sentinel | P1 | One action/chip for `safe` / `caution` / `halt` with exact policy blockers and recommended next action. |
+| 64 | **Live Pilot Weekly Committee** | Kelly + Sentinel + Otaku + Vince | P2 | Formal weekly go/no-go process with immutable logs; no discretionary scale-up without checklist pass. |
+
+**Success criteria for Phase 10**
+
+- Live pilot runs 8 consecutive weeks without hard-circuit breach.
+- Live max drawdown remains inside declared policy range.
+- Drift sentinel catches degradation before major weekly PnL damage.
+- Capital scale-up only happens through policy gates (no ad hoc increases).
+- 100% of live trades have complete execution audit records.
+
+**Out of scope for Phase 10**
+
+- Multi-venue expansion.
+- Removing human approval from high-risk capital changes.
+- Strategy proliferation beyond existing sleeves/profiles.
+
+### Implementation status (Phase 10)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 57 | Capital Buckets + Risk Budgets | ⬜ | Planned |
+| 58 | Live/Paper Drift Sentinel | ⬜ | Planned |
+| 59 | Execution Audit Trail | ⬜ | Planned |
+| 60 | Hard Circuit Stack | ⬜ | Planned |
+| 61 | Capital Promotion Ladder v2 | ⬜ | Planned |
+| 62 | Post-Trade Causal Labels | ⬜ | Planned |
+| 63 | Operator Console: Live Safety State | ⬜ | Planned |
+| 64 | Live Pilot Weekly Committee | ⬜ | Planned |
+
+### Suggested file map (Phase 10)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `src/plugins/plugin-vince/src/services/vinceLivePaperDrift.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceTradeCausality.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceRiskManager.service.ts` | Vince | Modify (bucketed risk budgets + drift response) |
+| `src/plugins/plugin-otaku/src/services/executionGraduation.service.ts` | Otaku | Modify (capital ladder v2 integration) |
+| `src/plugins/plugin-otaku/src/services/liveCircuitBreaker.service.ts` | Otaku | New |
+| `src/plugins/plugin-otaku/src/actions/otakuReadyToExecute.action.ts` | Otaku | Modify (live policy gate visibility) |
+| `src/plugins/plugin-kelly/src/actions/kellyWeeklyReview.action.ts` | Kelly | Modify (live pilot committee block) |
+| `src/plugins/plugin-sentinel/src/actions/sentinelHowDidWeDo.action.ts` | Sentinel | Modify (live safety and execution quality section) |
+| `docs/standup/live-pilot/` | Shared | New directory (weekly committee logs) |
+
+---
+
+## Phase 11 — Portfolio Intelligence + Distribution Moat (Planned)
+
+**Theme:** Improve portfolio-level capital efficiency and turn verified edge into high-trust distribution.
+
+**Core insight:** Strategy quality alone does not maximize returns. The system must reallocate dynamically across sleeves, control contagion risk, and transform validated insights into content that compounds research quality and audience trust.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 65 | **Strategy Sleeve Allocation Engine** | Vince | P0 | Allocate risk across sleeves (trend, mean-reversion, event, narrative) with dynamic caps from rolling risk-adjusted performance. |
+| 66 | **Cross-Asset Contagion Model** | Vince + Oracle | P0 | Estimate stress propagation and reduce correlated exposure before cascade regimes. |
+| 67 | **Opportunity Cost Reallocator** | Vince | P1 | Replace weakest open exposure when a superior setup appears under portfolio constraints. |
+| 68 | **Narrative Shelf-Life Decay** | Echo + Vince | P1 | Degrade narrative conviction over time when reinforcement signals weaken; prevent stale-thesis persistence. |
+| 69 | **Content Truth Layer** | Eliza + Sentinel | P1 | Every performance claim in content references logs/metrics/source IDs to keep outputs verifiable. |
+| 70 | **Insight Packaging System** | Eliza + Kelly + Echo | P1 | Standardized outputs: daily signal brief, weekly alpha memo, monthly thesis letter with consistent scorecard sections. |
+| 71 | **Audience Feedback → Research Queue** | Kelly + Echo | P2 | Convert high-signal audience/operator questions into structured research tasks for X and strategy loops. |
+| 72 | **Persistent Source Reputation Score** | Echo + Vince | P2 | Long-horizon reliability score for accounts/sources to improve routing, weighting, and narrative trust decisions. |
+
+**Success criteria for Phase 11**
+
+- Portfolio Sharpe improves without increasing max drawdown.
+- Exposure concentration drops across sleeves and correlated clusters.
+- Opportunity-cost reallocation improves capital efficiency metrics.
+- Content output has near-zero unverifiable claims.
+- Audience feedback yields measurable lift in research conversion quality.
+
+**Out of scope for Phase 11**
+
+- Marketing growth loops disconnected from measured edge.
+- Vanity metrics without trading/content quality linkage.
+- New execution venues unrelated to core portfolio objectives.
+
+### Implementation status (Phase 11)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 65 | Strategy Sleeve Allocation Engine | ⬜ | Planned |
+| 66 | Cross-Asset Contagion Model | ⬜ | Planned |
+| 67 | Opportunity Cost Reallocator | ⬜ | Planned |
+| 68 | Narrative Shelf-Life Decay | ⬜ | Planned |
+| 69 | Content Truth Layer | ⬜ | Planned |
+| 70 | Insight Packaging System | ⬜ | Planned |
+| 71 | Audience Feedback → Research Queue | ⬜ | Planned |
+| 72 | Persistent Source Reputation Score | ⬜ | Planned |
+
+### Suggested file map (Phase 11)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `src/plugins/plugin-vince/src/services/vinceSleeveAllocator.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceContagionModel.service.ts` | Vince + Oracle | New |
+| `src/plugins/plugin-vince/src/services/vinceOpportunityCost.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceNarrativeRadar.service.ts` | Vince + Echo | Modify (shelf-life decay fields) |
+| `src/plugins/plugin-eliza/src/actions/writeEssay.action.ts` | Eliza | Modify (truth-layer citations and metric IDs) |
+| `src/plugins/plugin-eliza/src/actions/draftTweets.action.ts` | Eliza | Modify (claims validation checks) |
+| `src/plugins/plugin-kelly/src/actions/kellyWeeklyReview.action.ts` | Kelly | Modify (packaged distribution outputs) |
+| `src/plugins/plugin-x-research/src/services/sourceReputation.service.ts` | Echo | New |
+| `docs/standup/alpha-memos/` | Shared | New directory |
+
+---
+
+## Phase 12 — Autonomous Compounding Governance (Final Phase, Planned)
+
+**Theme:** Full autonomy with explicit governance, reversibility, and trust transparency.
+
+**Core insight:** The finish line is not “fully automatic trading.” The finish line is an autonomous system that can explain itself, prove policy compliance, and recover safely from failure without heroics. Phase 12 codifies this as operating law.
+
+| # | Task | Agent(s) | Priority | Notes |
+|---|------|----------|----------|-------|
+| 73 | **Policy Engine as Code** | Sentinel + Vince + Otaku | P0 | Versioned policy files for risk, execution, promotion, and rollback. Runtime decisions must cite policy IDs. |
+| 74 | **Automatic Rollback Orchestrator** | Sentinel | P0 | Triggered rollback for strategy/profile/parameter regressions with safe restore and incident log generation. |
+| 75 | **Shadow Challenger Framework** | Vince | P0 | Challenger variants run in shadow; promotion requires statistically significant outperformance and robustness. |
+| 76 | **Counterfactual + Forecast Merge Layer** | Vince | P1 | Unified evaluation engine combining hindsight replay and forward stress simulation for every major change. |
+| 77 | **Institutional Memory Graph** | Sentinel + all | P1 | Link predictions, post-mortems, PRDs, policy changes, and outcomes into a queryable decision graph. |
+| 78 | **Trust Transparency Dashboard** | Kelly + Sentinel | P1 | Human-readable trust status: calibration, policy compliance, incidents, rollback history, and current risk posture. |
+| 79 | **Autonomous Operations SLA** | Sentinel | P2 | Define and track service SLOs: uptime, recovery time, incident response, and reporting completeness. |
+| 80 | **Final Graduation Gate** | Kelly + Sentinel + Vince + Otaku | P2 | Formal final gate for sustained scaled capital operations under policy with recurring audit cadence. |
+
+**Success criteria for Phase 12**
+
+- All critical runtime decisions reference explicit policy IDs.
+- Regression triggers automatic rollback with complete incident records.
+- Challenger framework governs promotions with objective evidence.
+- Trust dashboard can explain current system posture in one view.
+- Ops SLA targets are met for a sustained evaluation window.
+- Final graduation gate passes only with auditable compliance.
+
+**Out of scope for Phase 12**
+
+- Opaque autonomous behavior without policy traceability.
+- One-off exceptions that bypass governance controls.
+- Scaling capital without rollback-tested failure containment.
+
+### Implementation status (Phase 12)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 73 | Policy Engine as Code | ⬜ | Planned |
+| 74 | Automatic Rollback Orchestrator | ⬜ | Planned |
+| 75 | Shadow Challenger Framework | ⬜ | Planned |
+| 76 | Counterfactual + Forecast Merge Layer | ⬜ | Planned |
+| 77 | Institutional Memory Graph | ⬜ | Planned |
+| 78 | Trust Transparency Dashboard | ⬜ | Planned |
+| 79 | Autonomous Operations SLA | ⬜ | Planned |
+| 80 | Final Graduation Gate | ⬜ | Planned |
+
+### Suggested file map (Phase 12)
+
+| File | Agent | New/Modify |
+|------|-------|------------|
+| `policies/trading-policy.v1.yaml` | Shared | New |
+| `policies/execution-policy.v1.yaml` | Shared | New |
+| `policies/promotion-policy.v1.yaml` | Shared | New |
+| `src/plugins/plugin-sentinel/src/services/policyEngine.service.ts` | Sentinel | New |
+| `src/plugins/plugin-sentinel/src/services/rollbackOrchestrator.service.ts` | Sentinel | New |
+| `src/plugins/plugin-vince/src/services/vinceShadowChallenger.service.ts` | Vince | New |
+| `src/plugins/plugin-vince/src/services/vinceEvaluationMerge.service.ts` | Vince | New |
+| `src/plugins/plugin-sentinel/src/tasks/collectiveMemory.tasks.ts` | Sentinel | Modify (memory graph edges) |
+| `src/plugins/plugin-kelly/src/actions/kellyFlywheelScore.action.ts` | Kelly | Modify (trust transparency summary) |
+| `src/frontend/components/dashboard/` | Shared | Modify/Add (trust transparency view) |
+| `docs/ops/AUTONOMOUS_SLA.md` | Sentinel | New |
+| `docs/standup/governance-audits/` | Shared | New directory |
 
 ---
 
@@ -714,6 +1071,93 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 
 **Success criteria:** The system gets stronger from attacks. Pre-mortem saves money weekly. War Room prevents tail-risk genome promotions. Every prediction is tracked and validated. The system has two voices — thesis and counter-thesis — for every decision.
 
+### Phase 7 — Calibration Everywhere (1–2 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 38 | `VINCE_PREDICTION_CALIBRATION` action + `/vince/prediction-calibration` route | Vince | P0 |
+| 39 | Include calibration in Kelly flywheel and Sentinel weekly/investor reporting | Kelly + Sentinel | P0 |
+| 40 | Keep prediction accountability loop closed (register → validate → Brier → report) | Vince + Kelly + Sentinel | P1 |
+
+**Success criteria:** Calibration is visible across daily and weekly reporting, and prediction quality is discussed alongside PnL and drawdown.
+
+### Phase 8 — The Compounding Edge: Research → Alpha → Distribution (4 weeks, gated)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 41 | X Source Quality Engine (predictive account scoring) | Echo + Vince | P0 |
+| 42 | Narrative-to-Price Lag Model (`lagAdjustedConfidence`) | Echo + Vince | P0 |
+| 43 | Research-to-Trade Attribution (source lineage + contribution) | Vince | P0 |
+| 44 | Execution Quality Model (thesis vs execution drag) | Otaku + Vince | P1 |
+| 45 | Regime Transition Forecaster (transition probability overlay) | Vince + Oracle + Echo | P1 |
+| 46 | Content Performance Feedback Loop (output quality tied to sources) | Eliza + Kelly | P1 |
+| 47 | Weekly Alpha Memo (auto-draft from logs) | Eliza + Sentinel | P2 |
+| 48 | X-Research Command Center chip/action | Echo + Kelly | P2 |
+
+**Success criteria:** X research improves measured signal quality, trade attribution is auditable, execution drag is reduced, and content quality compounds from real system data.
+
+**Phase 8 gate:** Start only after Phase 6/7 metrics are stable in production. Every Phase 8 task must directly improve at least one of: (1) trading algorithm quality, (2) content output quality/throughput, or (3) X-research insight quality.
+
+### Phase 9 — Skills Operating System: Skill-First Execution (3–4 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 49 | Skill Registry + Metadata Index | Sentinel + Kelly | P0 |
+| 50 | Skill Router for ASK_AGENT | Sentinel + plugin-inter-agent | P0 |
+| 51 | X-Research Skill Hardening | Echo | P0 |
+| 52 | Trading-Agent Skill Runbook Hardening | Otaku + Vince | P1 |
+| 53 | Skill Telemetry + Scoreboard | Sentinel + Kelly | P1 |
+| 54 | Skill QA Harness | Sentinel | P1 |
+| 55 | Skill-to-Content Pipeline | Eliza + Echo | P2 |
+| 56 | Skill Governance + Promotion Rules | Sentinel + Kelly | P2 |
+
+**Success criteria:** Skills are discoverable, routed correctly, measured weekly, and demonstrably improve trading quality, content quality, or X-research insight quality.
+
+### Phase 10 — Live Capital Pilot: Earned Risk, Not Assumed Risk (4–6 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 57 | Capital Buckets + Risk Budgets | Vince + Otaku | P0 |
+| 58 | Live/Paper Drift Sentinel | Vince | P0 |
+| 59 | Execution Audit Trail | Otaku + Sentinel | P0 |
+| 60 | Hard Circuit Stack | Otaku | P0 |
+| 61 | Capital Promotion Ladder v2 | Otaku + Kelly | P1 |
+| 62 | Post-Trade Causal Labels | Vince | P1 |
+| 63 | Operator Console: Live Safety State | Kelly + Sentinel | P1 |
+| 64 | Live Pilot Weekly Committee | Kelly + Sentinel + Otaku + Vince | P2 |
+
+**Success criteria:** Live pilot remains policy-safe, drift-aware, and fully auditable before any material capital scaling.
+
+### Phase 11 — Portfolio Intelligence + Distribution Moat (4 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 65 | Strategy Sleeve Allocation Engine | Vince | P0 |
+| 66 | Cross-Asset Contagion Model | Vince + Oracle | P0 |
+| 67 | Opportunity Cost Reallocator | Vince | P1 |
+| 68 | Narrative Shelf-Life Decay | Echo + Vince | P1 |
+| 69 | Content Truth Layer | Eliza + Sentinel | P1 |
+| 70 | Insight Packaging System | Eliza + Kelly + Echo | P1 |
+| 71 | Audience Feedback → Research Queue | Kelly + Echo | P2 |
+| 72 | Persistent Source Reputation Score | Echo + Vince | P2 |
+
+**Success criteria:** Portfolio efficiency improves while content stays verifiable and research-conversion quality compounds.
+
+### Phase 12 — Autonomous Compounding Governance (Final Phase, 4–6 weeks)
+
+| # | Task | Agent | Priority |
+|---|------|-------|----------|
+| 73 | Policy Engine as Code | Sentinel + Vince + Otaku | P0 |
+| 74 | Automatic Rollback Orchestrator | Sentinel | P0 |
+| 75 | Shadow Challenger Framework | Vince | P0 |
+| 76 | Counterfactual + Forecast Merge Layer | Vince | P1 |
+| 77 | Institutional Memory Graph | Sentinel + all | P1 |
+| 78 | Trust Transparency Dashboard | Kelly + Sentinel | P1 |
+| 79 | Autonomous Operations SLA | Sentinel | P2 |
+| 80 | Final Graduation Gate | Kelly + Sentinel + Vince + Otaku | P2 |
+
+**Success criteria:** The system is autonomous, policy-traceable, rollback-safe, and auditable under sustained operation.
+
 ---
 
 ## 9. Non-Goals
@@ -752,6 +1196,13 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 | Prediction market penalizing inherently uncertain predictions (Phase 6) | Brier score rewards calibration (saying 60% when right 60% of the time) not just accuracy; agents aren't penalized for honest uncertainty; only penalized for confident-and-wrong |
 | Immune system pattern library staleness (Phase 6) | Patterns date-stamped; effectiveness tracked (true positive rate); patterns with < 20% trigger rate over 6 months are reviewed; new patterns added from post-mortems automatically |
 | Dead end wiring increasing context bloat (Phase 6) | New data flows are cached with TTL, not injected into every context; dynamic providers only, activated for relevant actions; total context budget enforced |
+| Calibration noise from small sample sizes (Phase 7) | Report Brier with sample count (`n`) and window size; avoid overreacting to low-`n` swings; use rolling windows for trend interpretation |
+| Live/paper divergence during pilot (Phase 10) | Drift sentinel enforces automatic downshift; capital promotions freeze when divergence exceeds threshold until recovery window passes |
+| Execution stack failures in live mode (Phase 10) | Hard circuit stack and route health checks trigger immediate halt and incident log; resume requires checklist pass |
+| Portfolio contagion under correlated stress (Phase 11) | Cross-asset contagion model reduces correlated heat proactively and enforces sleeve exposure caps |
+| Content credibility erosion from unverifiable claims (Phase 11) | Content truth layer requires metric/source references for performance claims; invalid claims blocked pre-publish |
+| Governance bypass risk in autonomous mode (Phase 12) | Policy-engine-as-code with immutable audit logs; decisions without policy reference are rejected |
+| Slow recovery from model or policy regressions (Phase 12) | Automatic rollback orchestrator with tested restore paths and weekly recovery drills |
 
 ---
 
@@ -777,6 +1228,15 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 | Pre-mortem saves | ≥ 1 blocked trade/week validated as correct by counterfactual | `vincePreMortem.service.ts` |
 | War Room tail survival | ≥ 1 genome rejection/month that looked good on median but fragile in 5th-pctl | `vinceWarRoom.service.ts` |
 | Prediction calibration | Per-agent Brier score improving month-over-month | `predictionTracker.service.ts` |
+| Calibration visibility | Weekly Kelly/Sentinel reports include `predictionBrier` and `predictionCount` | `kellyFlywheelScore.action.ts`, Sentinel report actions/tasks |
+| Calibration API health | On-demand calibration snapshot available via action and route | `predictionCalibration.action.ts`, `/vince/prediction-calibration` |
+| Live pilot policy compliance | 100% of live trades pass or log policy checks with traceable audit records | Phase 10 execution audit + policy logs |
+| Live/paper drift control | Drift sentinel triggers downshift before weekly loss breaches | `vinceLivePaperDrift.service.ts` |
+| Portfolio sleeve efficiency | Improved risk-adjusted return with lower concentration | Phase 11 sleeve allocator + contagion model |
+| Content verifiability | Near-zero published claims without metric/source reference | Phase 11 content truth layer |
+| Policy traceability | Runtime decisions include policy ID references | Phase 12 policy engine |
+| Rollback readiness | Regression rollback completes within SLA target window | Phase 12 rollback orchestrator |
+| Final governance graduation | Final gate passes with sustained policy and SLA compliance | Phase 12 graduation audit |
 | Devil's Advocate accuracy | Counter-thesis correct > 30% of the time | `vinceDevilsAdvocate.service.ts` |
 | Narrative phase detection | ≥ 1 phase transition detected/month before price peak | `vinceNarrativeRadar.service.ts` |
 | Temporal coherence lift | Win rate +3 pp vs single-timeframe baseline | Feature store A/B comparison |
@@ -786,11 +1246,94 @@ Eliza can draft Substack essays and tweets, but she doesn't know what Vince trad
 
 ---
 
+## Final Note — Leveraging `.clawdbot` for Phase Execution
+
+`.clawdbot` should be treated as the PRD execution orchestrator for Phases 9–12, not just an ops helper. The key value is worktree isolation, parallel specialist agents, and deterministic task routing so strategic phases ship without context collisions.
+
+**How to use `.clawdbot` against this PRD**
+
+- **PRD-to-task decomposition:** Convert each phase task ID (`#49`–`#80`) into a `.clawdbot` task brief with explicit acceptance criteria and one owner agent lane.
+- **One-task-per-agent discipline:** Spawn isolated agents per task/worktree so high-risk changes (risk engine, execution policy, rollback logic) do not share mutable state.
+- **Policy-gated merges (Phases 10–12):** Require checklist pass in task brief before merge for anything touching live execution, policy engine, or rollback paths.
+- **Weekly orchestration cadence:** Sentinel weekly task should pull `.clawdbot` queue status, blocked tasks, and merged tasks into the same report as Flywheel + calibration.
+- **Skills integration (Phase 9):** Route skill-hardening work (`skills/x-research`, `skills/trading-agent`) through `.clawdbot` with drift checks and skill QA harness outputs attached to each task.
+- **Auditability by default:** Persist task lineage (brief → branch/worktree → PR/commit → rollout note) so governance and post-mortems can trace why and how a change shipped.
+
+**Guardrails**
+
+- `.clawdbot` executes implementation tasks; it does not override trading runtime policy or execution approvals.
+- High-impact changes require explicit rollback instructions in the task brief.
+- No task is “done” without verification evidence (tests, logs, or metric deltas) attached to the brief.
+
+### Phase Execution Contract (for `.clawdbot`)
+
+Use this contract for every Phase 8–12 task. A task is valid only if all fields are present.
+
+```json
+{
+  "id": "phase10-live-drift-sentinel",
+  "phase": 10,
+  "taskNumber": 58,
+  "title": "Live/Paper Drift Sentinel",
+  "ownerAgent": "codex|claude|gemini",
+  "riskLevel": "low|medium|high|critical",
+  "policyImpact": true,
+  "filesExpected": [
+    "src/plugins/plugin-vince/src/services/vinceLivePaperDrift.service.ts"
+  ],
+  "acceptanceCriteria": [
+    "Drift metric computed and logged",
+    "Auto-downshift policy path tested"
+  ],
+  "verification": [
+    "bun run type-check",
+    "targeted tests",
+    "before/after metric snapshot"
+  ],
+  "rollbackPlan": "Disable drift gate and restore previous sizing policy via policy version rollback",
+  "evidencePath": "docs/standup/governance-audits/phase10-task58-YYYY-MM-DD.md"
+}
+```
+
+### Reusable Phase Gate Template
+
+Apply this template to each new phase section before execution starts.
+
+- **Entry gate**
+  - Required baseline metrics and minimum sample sizes are present.
+  - Upstream dependencies from prior phase are green for at least one full review window.
+  - `.clawdbot` task briefs exist for all P0/P1 tasks with rollback plans.
+- **Execution gate**
+  - High/critical risk tasks run in isolated worktrees only.
+  - Any policy-impact change requires one additional reviewer and explicit checklist pass.
+  - No parallel tasks may touch the same protected file group.
+- **Exit gate**
+  - Success criteria are measured and attached as artifacts.
+  - Regression checks pass against prior phase baseline.
+  - Rollback drill executed at least once for high-risk runtime changes.
+- **Promotion gate**
+  - Phase can only advance when all P0 tasks are complete and KPIs stay stable through one full cadence cycle.
+
+### High-Risk File Protection Matrix (Phases 10–12)
+
+These files are concurrency-protected in `.clawdbot`: only one running task may modify a protected group at a time.
+
+| Protected Group | Files/Paths | Why | Required Controls |
+|---|---|---|---|
+| **Execution policy path** | `src/plugins/plugin-otaku/src/services/`, `src/plugins/plugin-otaku/src/actions/otakuReadyToExecute.action.ts` | Direct live-capital impact | Single-task lock, policy checklist, rollback instructions mandatory |
+| **Core risk path** | `src/plugins/plugin-vince/src/services/vinceRiskManager.service.ts`, `src/plugins/plugin-vince/src/services/vincePaperTrading.service.ts` | Affects sizing/entry/heat globally | Single-task lock, regression suite + drift checks |
+| **Promotion/governance path** | `src/plugins/plugin-vince/src/services/vinceGenome.service.ts`, `src/plugins/plugin-sentinel/src/services/` | Strategy promotion + rollback authority | Single-task lock, challenger evidence, manual review required |
+| **Policy definitions** | `policies/*.yaml` | Source of truth for runtime decisions | Single-task lock, immutable change log, policy ID bump required |
+| **Audit/trust reporting** | `src/plugins/plugin-sentinel/src/actions/`, `src/plugins/plugin-kelly/src/actions/` | Operator trust and go/no-go decisions | Dual review, evidence link required in PR/body |
+
+---
+
 ## 12. References
 
 - [AGENTS_INDEX.md](../../docs/AGENTS_INDEX.md) — per-agent capabilities and PRD focus
 - [MULTI_AGENT.md](../../docs/MULTI_AGENT.md) — ASK_AGENT, Discord, A2A
 - [TRADING_RUNTIME_CONTRACT.md](../../docs/TRADING_RUNTIME_CONTRACT.md) — producer/executor flow
+- `.clawdbot/README.md` — agent swarm orchestration (worktrees, tmux, task routing)
 - [FEATURE-STORE.md](../../docs/FEATURE-STORE.md) — ML feature storage for paper bot
 - [SOLUS_NORTH_STAR.md](../../docs/SOLUS_NORTH_STAR.md) — Solus vision and roadmap
 - [THREE-CURVES.md](../../knowledge/teammate/THREE-CURVES.md) — Left/mid/right curve strategy
