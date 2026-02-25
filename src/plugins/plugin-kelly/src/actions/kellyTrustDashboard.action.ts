@@ -196,9 +196,9 @@ function buildTrustDashboard(dataDir: string): string {
   const challengers = readJsonl<ShadowSummary>(
     path.join(dataDir, "shadow-challengers.jsonl"),
   );
-  const promotionCandidates = readJsonl<{ promotionReady: boolean }>(
-    path.join(dataDir, "shadow-challengers.jsonl"),
-  ).filter((c) => (c as unknown as { promotionReady: boolean }).promotionReady);
+  const promotionCandidates = challengers.filter(
+    (c) => (c as unknown as { promotionReady: boolean }).promotionReady,
+  );
   const bestChallenger =
     challengers.length > 0
       ? challengers.reduce((best, c) =>

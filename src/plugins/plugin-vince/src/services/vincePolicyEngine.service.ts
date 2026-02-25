@@ -203,18 +203,28 @@ function generateRandom4(): string {
 export class VincePolicyEngineService {
   private readonly policyPath: string;
   private policy: PolicyFile | null = null;
+  private policyMtimeMs: number | null = null;
 
   constructor(policyPath?: string) {
     this.policyPath = policyPath ?? DEFAULT_POLICY_PATH;
   }
 
   private loadPolicy(): PolicyFile {
-    if (this.policy) return this.policy;
     if (!fs.existsSync(this.policyPath)) {
       throw new Error(`Policy file not found: ${this.policyPath}`);
     }
+
+    const stat = fs.statSync(this.policyPath);
+    const mtimeMs = stat.mtimeMs;
+
+    // If we've already loaded this exact file version, reuse the cached policy
+    if (this.policy && this.policyMtimeMs === mtimeMs) {
+      return this.policy;
+    }
+
     const raw = fs.readFileSync(this.policyPath, "utf-8");
     this.policy = parseTradingPolicyYaml(raw);
+    this.policyMtimeMs = mtimeMs;
     return this.policy;
   }
 
@@ -254,6 +264,9 @@ export class VincePolicyEngineService {
         passed = false;
         sizeModifier = 0;
         hardBlocks.push(rule.id);
+        // Once a hard block fires, stop evaluating further rules to avoid
+        // accumulating misleading soft warnings after a block.
+        break;
       } else {
         // soft
         if (rule.action === "reduce-size-50pct") {
