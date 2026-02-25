@@ -222,6 +222,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       label: "$100K pace",
       message: "Are we on track for $100K?",
     },
+    { label: "X Research Hub", message: "X research command center status" },
   ],
   // Solus (CFO): on-chain options expert, Hypersurface mechanics, strike ritual, plan and call.
   solus: [
@@ -284,6 +285,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       label: "What Should We Fix?",
       message: "What should we fix next? Code quality, tech debt, blockers",
     },
+    { label: "Alpha Memo", message: "Generate this week's alpha memo" },
   ],
   // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/bridge/DCA/orders).
   otaku: [
@@ -344,6 +346,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "X News", message: "What's the crypto news on X?" },
     { label: "CT Headlines", message: "Headlines from crypto Twitter" },
     { label: "Save that", message: "save that" },
+    { label: "Command Center", message: "X research command center" },
   ],
   // Oracle: Polymarket discovery + desk (edge check, risk snapshot, perf report). One agent for all.
   oracle: [

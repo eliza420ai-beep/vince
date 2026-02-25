@@ -19,6 +19,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { getVoicePromptAddition } from "../services/voice.service";
 import { DRAFTS_TWEETS_DIR as DRAFTS_DIR } from "../config/paths";
+import { ContentPerformanceService } from "../services/contentPerformance.service";
 const X_HANDLE = "@ikigaistudioxyz";
 const X_URL = "https://x.com/ikigaistudioxyz";
 
@@ -320,6 +321,16 @@ ${displayContent}
           text: out,
           actions: ["DRAFT_TWEETS"],
         });
+      }
+
+      // Fire-and-forget: record content draft for performance tracking
+      try {
+        new ContentPerformanceService().recordDraft("tweet", topic, [
+          "tradingPerformance",
+          "eliza",
+        ]);
+      } catch {
+        // never block the response
       }
     } catch (error) {
       logger.error({ error }, "[DRAFT_TWEETS] Error");

@@ -19,6 +19,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { getVoicePromptAddition } from "../services/voice.service";
 import { DRAFTS_DIR } from "../config/paths";
+import { ContentPerformanceService } from "../services/contentPerformance.service";
 
 const SUBSTACK_URL = "https://ikigaistudio.substack.com/";
 
@@ -348,6 +349,18 @@ ${essay}
           text: out,
           actions: ["WRITE_ESSAY"],
         });
+      }
+
+      // Fire-and-forget: record content draft for performance tracking
+      try {
+        const extractedTitle =
+          essay.match(/^#\s+(.+)$/m)?.[1] || topic;
+        void new ContentPerformanceService().recordDraft("substack", extractedTitle, [
+          "tradingPerformance",
+          "eliza",
+        ]);
+      } catch {
+        // never block the response
       }
     } catch (error) {
       logger.error({ error }, "[WRITE_ESSAY] Error");
