@@ -7,6 +7,9 @@ Uses the same feature-store JSONL and logic as train_models.py:
 - Simulates "what if we had used these thresholds from the start"
 - Reports: baseline win rate vs filtered win rate; % of skipped trades that were losers
 
+When training_metadata.json is found, also prints holdout_metrics and (if present) how many
+Sentinel tasks were created from the last improvement report (train_models.py v2).
+
 Run from repo root:
   python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py --data .elizadb/vince-paper-bot/features
 
@@ -94,11 +97,16 @@ def main() -> None:
         try:
             with open(meta_path) as f:
                 meta = json.load(f)
-            holdout = (meta.get("improvement_report") or {}).get("holdout_metrics")
+            improvement = meta.get("improvement_report") or {}
+            holdout = improvement.get("holdout_metrics")
             if holdout:
                 print("Holdout metrics (from last training run, for drift/sizing context):")
                 for model_name, metrics in holdout.items():
                     print(f"  {model_name}: " + ", ".join(f"{k}={v:.4f}" for k, v in (metrics or {}).items()))
+                print()
+            sentinel_tasks = improvement.get("sentinel_tasks_created")
+            if sentinel_tasks is not None:
+                print(f"Sentinel tasks created (last run): {sentinel_tasks}")
                 print()
         except (json.JSONDecodeError, OSError):
             pass

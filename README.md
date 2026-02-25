@@ -142,6 +142,10 @@ Phase 12 closed the loop: **the system governs itself, with clear policy and rol
 | Flywheel score components | 7 |
 | TypeScript errors | 0 |
 
+### How the 12 phases became the paper bot and ML loop
+
+The 80 tasks across 12 phases produced the **paper trading algo** (signals → aggregator with ML quality → evaluateAndTrade gates → open/skip → position management → close → feature store) and the **ML pipeline** (feature store → train_models.py → ONNX + improvement report + Sentinel tasks → ML inference and suggested thresholds back into the bot). Phases 2–5 and 12 are where this lives in code: Phase 2 (sentiment gate, post-mortems), Phase 5 (genome, counterfactual, improvement-report weights), Phase 12 (policy engine in the trade path). Phase 10 is the bridge from paper to live (readiness, capital pilot). Full algo and pipeline: [PRD: Paper Trading Algo and How ML Improves It](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md), [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md).
+
 ### What's next
 
 Phase 7 is heads-down compounding: more historical depth for calibration, tighter Brier distributions, and stricter promotion gates so the system gets harder to kill each cycle.
@@ -276,7 +280,7 @@ bun start              # production (Postgres when POSTGRES_URL set)
 
 ## Paper Bot & ML
 
-Signals flow into trades, trades flow into the feature store, the feature store feeds Python training, and ONNX models deploy back to the bot. Four models: signal quality, position sizing, TP optimizer, SL optimizer. When models are missing, rules keep it running.
+The 12-phase roadmap built this loop; the algo (gates, open/skip, feature store) and the ML pipeline (train → ONNX → report → Sentinel) are documented in [PRD: Paper Trading Algo and ML](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) and [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md). Signals flow into trades, trades flow into the feature store, the feature store feeds Python training, and ONNX models deploy back to the bot. Four models: signal quality, position sizing, TP optimizer, SL optimizer. When models are missing, rules keep it running.
 
 **VinceBench** scores every closed trade on process quality (signal, risk, timing, regime). The score trains the signal-quality model to learn more from high-quality decisions.
 
@@ -353,6 +357,8 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | Doc | What |
 | :--- | :--- |
 | **[PRD: One Dream — Agent Synergy](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md)** | **Core focus:** $100K trading system, 6 phases (37 tasks), self-evolving genome, adversarial intelligence |
+| [PRD: Paper Trading Algo and ML](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) | Decision flow, gates, how ML improves the algo |
+| [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md) | Feature store → train → ONNX → report → Sentinel, end-to-end |
 | [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, priorities, what we merge |
 | [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML, paper bot, feature store |

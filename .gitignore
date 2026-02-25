@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Python virtual environment (do not commit)
+.venv/
+venv/
+
 # Build output
 dist/
 *.tsbuildinfo

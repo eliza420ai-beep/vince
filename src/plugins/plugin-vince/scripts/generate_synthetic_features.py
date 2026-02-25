@@ -9,7 +9,8 @@ the same shape as the feature store so you can:
   - Run test_train_models.py integration test (generate -> train -> assert)
 
 Output: one JSONL file that train_models.py can load with --data <path>.
-Records include outcome.maxAdverseExcursion so the SL optimizer can train.
+Records include outcome.maxAdverseExcursion (SL optimizer) and labels.benchScore
+(VinceBench; use train_models.py --bench-only to train on high-score rows only).
 
 Synthetic data is for testing only. For production models, train on real
 trades and use train_models.py --real-only to exclude synthetic files.
@@ -20,9 +21,11 @@ Usage:
   python3 generate_synthetic_features.py --count 200 --output features.jsonl --append
   python3 train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
 
-Optional train_models flags you can use with this data: --recency-decay, --balance-assets,
---tune-hyperparams (GridSearchCV + TimeSeriesSplit). For production: --real-only (exclude synthetic).
-Holdout metrics (MAE/AUC/quantile) are written to improvement_report.holdout_metrics and improvement_report.md.
+Train_models.py v2 flags: --model (signal_quality|position_sizing|tp_optimizer|sl_optimizer|all),
+--bench-only (train on high VinceBench-score rows), --recency-decay/--balance-assets (now defaults),
+--no-balance-assets to disable. Pre-flight logs trade count and worst empty columns; auto-keep-last-good
+compares new vs previous model on holdout. Improvement report may create Sentinel tasks in docs/standup/openclaw-queue/.
+For production: --real-only (exclude synthetic).
 """
 
 import argparse
@@ -31,6 +34,7 @@ import logging
 import random
 import uuid
 from pathlib import Path
+from typing import Optional
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -46,7 +50,7 @@ EXIT_REASONS = ["take_profit", "stop_loss", "trailing_stop", "max_age", "partial
 def one_record(
     ts: int,
     win: bool,
-    asset: str | None = None,
+    asset: Optional[str] = None,
     *,
     include_sentiment_sources: bool = False,
 ) -> dict:
@@ -179,6 +183,7 @@ def one_record(
             "optimalTpLevel": random.randint(0, 3),
             "betterEntryAvailable": False,
             "stopTooTight": not win and random.random() < 0.2,
+            "benchScore": round(random.uniform(0.3, 0.95), 2),  # VinceBench; train_models --bench-only filters by this
         },
     }
 
