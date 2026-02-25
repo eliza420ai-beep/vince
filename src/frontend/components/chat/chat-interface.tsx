@@ -223,6 +223,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "Are we on track for $100K?",
     },
     { label: "X Research Hub", message: "X research command center status" },
+    { label: "Trust Dashboard", message: "Show trust transparency dashboard" },
   ],
   // Solus (CFO): on-chain options expert, Hypersurface mechanics, strike ritual, plan and call.
   solus: [
@@ -287,6 +288,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     },
     { label: "Alpha Memo", message: "Generate this week's alpha memo" },
     { label: "Operator Dashboard", message: "Show operator dashboard" },
+    { label: "Graduation Gate", message: "Run final graduation gate audit" },
   ],
   // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/bridge/DCA/orders).
   otaku: [

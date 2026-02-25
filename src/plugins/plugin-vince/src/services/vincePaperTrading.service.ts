@@ -103,6 +103,7 @@ import {
   scoreWttPickQuality,
 } from "../utils/wttQualityScore";
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
+import { VincePolicyEngineService } from "./vincePolicyEngine.service";
 
 // ==========================================
 // Pending Entry Types
@@ -2177,6 +2178,44 @@ Reply format: APPROVE reason or VETO reason`;
               `[VincePaperTrading] ${asset} devil's advocate size downgrade to ${Math.round(challenge.downgradeMultiplier * 100)}%`,
             );
           }
+        }
+
+        // Phase 12 — Policy Engine check (Task #73)
+        try {
+          const policyEngine = VincePolicyEngineService.getInstance();
+          const policyCtx = {
+            tradeSize: finalTradeSize,
+            confidence: tradeSignal.confidence,
+            executionType: "paper" as const,
+            circuitBreakerActive: false,
+            sentimentScore: sentimentGate.sentimentScore,
+            direction: signal.direction as "long" | "short",
+          };
+          const policyResult = policyEngine.evaluate(policyCtx);
+          if (!policyResult.passed) {
+            logger.info(
+              `[VincePaperTrading] ${asset} blocked by policy engine: ${policyResult.hardBlocks.join(",")} | auditRef: ${policyResult.auditRef}`,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `Policy engine: blocked by ${policyResult.hardBlocks.join(",")} (auditRef: ${policyResult.auditRef})`,
+              undefined,
+              devilMeta,
+              narrativePhase,
+              immunePattern,
+            );
+            continue;
+          }
+          if (policyResult.sizeModifier < 1.0 && policyResult.sizeModifier > 0) {
+            finalTradeSize = finalTradeSize * policyResult.sizeModifier;
+            logger.info(
+              `[VincePaperTrading] ${asset} policy engine size reduction to ${Math.round(policyResult.sizeModifier * 100)}% | auditRef: ${policyResult.auditRef}`,
+            );
+          }
+        } catch (policyErr) {
+          // Policy engine is non-blocking on error (fail-open for paper trading)
+          logger.debug("[VincePaperTrading] Policy engine check skipped:", policyErr);
         }
 
         // Get current price
