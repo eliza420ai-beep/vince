@@ -21,7 +21,7 @@ export interface ExecutionAuditEntry {
   tradeId: string;
   asset: string;
   direction: "long" | "short" | "close";
-  sizeSizeUsd: number;
+  sizeUsd: number;
   bucketId: string;
   executionType: "paper" | "live";
   decisionSource: string; // e.g. "signal-aggregator", "manual"
