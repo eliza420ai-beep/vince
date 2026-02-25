@@ -32,6 +32,7 @@ import { KellyLifestyleService } from "./services/lifestyle.service";
 import { FlywheelScoreService } from "./services/flywheelScore.service";
 import { kellyFlywheelScoreAction } from "./actions/kellyFlywheelScore.action";
 import { kellyXResearchCommandCenterAction } from "./actions/kellyXResearchCommandCenter.action";
+import { kellyResearchQueueAction } from "./actions/kellyResearchQueue.action";
 import {
   registerKellyLifestyleDailyTask,
   registerKellyNudgeTask,
@@ -66,6 +67,7 @@ export const kellyPlugin: Plugin = {
     kellyDraftWeeklyPerformanceAction,
     kellyFlywheelScoreAction,
     kellyXResearchCommandCenterAction,
+    kellyResearchQueueAction,
   ],
   evaluators: [lifestyleFeedbackEvaluator],
   providers: [kellyContextProvider, weatherProvider],
