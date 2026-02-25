@@ -286,6 +286,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "What should we fix next? Code quality, tech debt, blockers",
     },
     { label: "Alpha Memo", message: "Generate this week's alpha memo" },
+    { label: "Operator Dashboard", message: "Show operator dashboard" },
   ],
   // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/bridge/DCA/orders).
   otaku: [
