@@ -122,3 +122,7 @@
 ## 2026-02-24
 
 - Clawterm → Sentinel: Cross-link '5 Essential Skills Starter Pack' build to Sentinel for sprint coordination.
+## 2026-02-26
+
+- Clawterm → Sentinel: Cross-link 'Build Your First Skill in 10 Minutes' template to phase-12 governance and paper bot docs for builders exploring agentic execution.
+- Eliza + VINCE: Coordinate on paper bot perps data integration into multi-chain scaling research brief.

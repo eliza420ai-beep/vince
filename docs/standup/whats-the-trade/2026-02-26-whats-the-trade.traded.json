@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-26",
+  "thesis": "Defense spending acceleration creates asymmetry where PLTR benefits from government AI contracts while NVDA faces margin pressure from enterprise capex slowdown.",
+  "primaryTicker": "PLTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 65,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "below $62",
+  "killConditions": [
+    "defense budgets delayed by political gridlock",
+    "PLTR commercial business disappoints badly"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "max_asymmetry",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "NVDA",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 15
+}

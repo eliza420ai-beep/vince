@@ -1304,6 +1304,9 @@ Reply format: APPROVE reason or VETO reason`;
 
         // HIP-3 diagnostics: log signal for non-core assets so we can see why trades aren't opening
         const isHip3Asset = !(CORE_ASSETS as readonly string[]).includes(asset);
+        const paperAggressive =
+          this.runtime.getSetting?.("vince_paper_aggressive") === true ||
+          this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         if (
           isHip3Asset &&
           signal.direction !== "neutral" &&
@@ -1316,8 +1319,10 @@ Reply format: APPROVE reason or VETO reason`;
 
         // HIP-3 guardrail: if news is driving the trade but asset-specific news
         // confidence is weak, skip to avoid BTC/ETH sentiment bleed-through.
+        // Skip this guardrail when vince_paper_aggressive so more HIP-3 paper trades can open.
         if (
           isHip3Asset &&
+          !paperAggressive &&
           Array.isArray(signal.sources) &&
           signal.sources.includes("NewsSentiment")
         ) {
