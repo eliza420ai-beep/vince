@@ -1,0 +1,16 @@
+{
+  "id": "ml-20260226-008",
+  "title": "Add WTT alignment to feature store",
+  "description": "Thesis alignment from WTT rubric (1-5).. not in data",
+  "scope": "In scope: feature store and signal aggregator. Out of scope: model architecture.",
+  "acceptanceCriteria": [
+    "Task completed and verified."
+  ],
+  "expectedOutcome": "Thesis alignment from WTT rubric (1-5).",
+  "source": "ml_training",
+  "branchName": "sentinel/2026-02-26-ml-add-wtt-alignment-to-feat",
+  "createdAt": "2026-02-26T05:31:16.230881",
+  "plugin": "plugin-vince",
+  "priority": "P2",
+  "effort": "XS"
+}
