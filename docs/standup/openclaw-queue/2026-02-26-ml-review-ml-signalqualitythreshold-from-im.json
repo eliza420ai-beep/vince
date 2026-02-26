@@ -1,0 +1,16 @@
+{
+  "id": "ml-20260226-010",
+  "title": "Review ML signalQualityThreshold from improvement report",
+  "description": "Improvement report suggests signalQualityThreshold 0.51. Consider setting ML fallback or Parameter Tuner bounds.",
+  "scope": "In scope: dynamicConfig / ML inference threshold. Out of scope: retraining.",
+  "acceptanceCriteria": [
+    "Task completed and verified."
+  ],
+  "expectedOutcome": "Improvement report suggests signalQualityThreshold 0.",
+  "source": "ml_training",
+  "branchName": "sentinel/2026-02-26-ml-review-ml-signalqualityth",
+  "createdAt": "2026-02-26T05:31:16.230881",
+  "plugin": "plugin-vince",
+  "priority": "P2",
+  "effort": "XS"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "ml-20260226-007",
+  "title": "Add Signal source sentiment to feature store",
+  "description": "Per-source sentiment from aggregator.. present but 16% non-null \u2014 consider populating",
+  "scope": "In scope: feature store and signal aggregator. Out of scope: model architecture.",
+  "acceptanceCriteria": [
+    "Task completed and verified."
+  ],
+  "expectedOutcome": "Per-source sentiment from aggregator.",
+  "source": "ml_training",
+  "branchName": "sentinel/2026-02-26-ml-add-signal-source-sentime",
+  "createdAt": "2026-02-26T05:31:16.230881",
+  "plugin": "plugin-vince",
+  "priority": "P2",
+  "effort": "XS"
+}
