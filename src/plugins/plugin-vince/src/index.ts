@@ -90,6 +90,7 @@ import { VinceFeatureStoreService } from "./services/vinceFeatureStore.service";
 import { VinceWeightBanditService } from "./services/weightBandit.service";
 import { VinceSignalSimilarityService } from "./services/signalSimilarity.service";
 import { VinceMLInferenceService } from "./services/mlInference.service";
+import { SwarmCoordinationService } from "./services/swarmCoordination.service";
 
 // Services - Phase 5: The Genome (V4.2.0)
 import { VinceRegimeProfilesService } from "./services/vinceRegimeProfiles.service";
@@ -240,6 +241,7 @@ export const vincePlugin: Plugin = {
     VinceWeightBanditService,
     VinceSignalSimilarityService,
     VinceMLInferenceService,
+    SwarmCoordinationService,
     // On-chain data (Allium API — DEX prices, Hyperliquid without rate limits, chain metrics)
     VinceAlliumService,
     // Phase 5: The Genome (V4.2.0)
