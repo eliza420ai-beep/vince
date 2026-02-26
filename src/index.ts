@@ -43,7 +43,8 @@ import { echoAgent } from "./agents/echo.ts";
 import { oracleAgent } from "./agents/oracle.ts";
 import { navalAgent } from "./agents/naval.ts";
 import { clawtermAgent } from "./agents/clawterm.ts";
-// Plugin imports removed - using string identifiers for consistency
+import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
+import { interAgentPlugin } from "./plugins/plugin-inter-agent/src/index.ts";
 
 // --- Multi-agent Discord (Option C): one app per agent — no shared Application IDs ---
 // Each agent uses its own DISCORD_APPLICATION_ID / DISCORD_API_TOKEN from character.settings.secrets.
@@ -166,16 +167,86 @@ if (discordAppIds.length >= 2 && byAppId.size === discordAppIds.length) {
 
 const project: Project = {
   agents: [
-    { character: vinceAgent },
-    { character: elizaAgent },
-    { character: solusAgent },
-    { character: otakuAgent },
-    { character: kellyAgent },
-    { character: sentinelAgent },
-    { character: echoAgent },
-    { character: oracleAgent },
-    { character: navalAgent },
-    { character: clawtermAgent },
+    {
+      ...vinceAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(vinceAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...elizaAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(elizaAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...solusAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(solusAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...otakuAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(otakuAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...kellyAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(kellyAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...sentinelAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(sentinelAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...echoAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(echoAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...oracleAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(oracleAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...navalAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(navalAgent.plugins ?? []),
+      ],
+    },
+    {
+      ...clawtermAgent,
+      plugins: [
+        logFilterPlugin,
+        interAgentPlugin,
+        ...(clawtermAgent.plugins ?? []),
+      ],
+    },
   ],
 };
 
@@ -189,5 +260,5 @@ export { echoAgent } from "./agents/echo.ts";
 export { oracleAgent } from "./agents/oracle.ts";
 export { navalAgent } from "./agents/naval.ts";
 export { clawtermAgent } from "./agents/clawterm.ts";
-// Duplicate export removed - using elizaAgent instead
+export { character } from "./agents/eliza.ts";
 export default project;
