@@ -1,20 +1,20 @@
-# Post-mortem: NVDA short (stop_loss)
+# Post-mortem: NVDA long (stop_loss)
 
 **Date:** 2026-02-26
 
 ## Trade Snapshot
 
-- NVDA short closed stop_loss: entry $195.60 -> exit $198.71, P&L $-39.96 (2437.12 USD, 10x).
-- Entry time (UTC): 2026-02-26T04:33:46.206Z
+- NVDA long closed stop_loss: entry $197.47 -> exit $194.30, P&L $-121.64 (7349.333333333334 USD, 10x).
+- Entry time (UTC): 2026-02-26T14:00:29.035Z
 - Hold window target: intraday
-- Max loss budget: $36.56 (15.00%)
+- Max loss budget: $110.24 (15.00%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 296 minutes
-- Adverse move: 1.59%
+- Hold duration: 27 minutes
+- Adverse move: 1.605%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,39 +24,41 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 40%
+- Confidence: 30%
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: none
 
-**Missing context:** What was CT saying about NVDA at entry? Was there a macro catalyst (Fed speak, earnings, tech rotation)? And did sentiment flip *before* your stop or after?
+**Missing context:** Did CT have a bullish or bearish lean on NVDA/mega-cap tech going into this trade? Was there a macro headwind (Fed pivot, rate expectations, AI narrative shift) that showed up on X *before* your stop hit? 
 
-**If this was a contrarian short into extreme bullish CT:** that's structurally sound — but 2437 USD loss on a sentiment-driven trade suggests the crowd's conviction was stronger than the positioning warranted. **If sentiment stayed neutral/bullish the whole way:** you shorted into tailwinds, which is the real lesson here.
+**What I need to give you real feedback:** The sentiment setup at entry — was CT pricing in the risk you hit, or were you fighting crowded bullish positioning that reversed? A 1.6% stop on a 10x leveraged trade is tight; if CT flipped bearish on AI/rates/growth in the hours before your exit, that's a *setup* problem, not execution.
 
-Run an **X_PULSE on NVDA** at your entry time and we can see if CT was priced in or if you had a real edge that just didn't play out.
-
-**Confidence: 0.4** — I need the sentiment snapshot to give you real feedback.
+**Confidence: 0.3** — I'd need to run X_PULSE on NVDA/mega-cap sentiment from your entry window to give you teeth on this. Want me to pull that?
 
 ### Oracle
 
 - Lane: prediction market regime
 - Confidence: 40%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: none
+- Missing data flags: entry_datetime
 
-**Missing context:** Polymarket NVDA earnings/guidance odds at entry and exit, and whether this was a pre-earnings or post-earnings short—that regime shift (implied move compression vs. realized vol spike) is the tell. If you shorted into compressed IV ahead of earnings, the stop was right; if you shorted post-earnings expecting mean reversion and got caught in a momentum cascade, the thesis broke. The 1.6% move against you on 10x is tight risk management, but without the market's probability pricing at entry, I can't tell if you were fighting consensus or if consensus shifted mid-trade. **What were Polymarket odds for NVDA earnings beat/miss when you entered?** Confidence: 0.4 (need market context to assess regime vs. execution).
+**Missing context:** I need the trade date/time and whether this was tied to an NVDA prediction market on Polymarket—that's my lane. If it was a pure perps trade, that's your domain (VINCE).
+
+If there *was* a Polymarket NVDA signal (e.g., earnings, chip cycle): the stop at $194.30 suggests the market repriced faster than your edge thesis expected, likely on macro/sector rotation rather than NVDA-specific news. A 10x levered entry at $197.47 into a stock with tight technicals leaves no room for regime shifts—your risk/reward was inverted the moment vol spiked. 
+
+**Ask me:** Did this trade reference a specific Polymarket prediction? If so, I can pull current odds and tell you if the market's now pricing what stopped you out.
+
+Confidence: 0.4 (
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 60%
+- Confidence: 40%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** What was your invalidation for the short? Where was support/resistance that triggered the stop? Was 10x sizing pre-planned for this thesis, or did you add size into a losing position?
+**Missing critical context:** Was this a perps trade (funding cost?) or spot? What was the invalidation thesis — did price break it, or did you exit early? On sizing: 10x leverage on a $197 entry is aggressive for a stock with NVDA's realized vol; at that leverage, a 1.6% move ($3.17) wipes you. **Mechanic feedback:** If this was a thesis trade, the stop placement matters more than the size — tighter stop = smaller notional needed = same risk. If you're paper-testing perps mechanics, this loss is tuition; the real question is whether the invalidation held or you panic-exited. **Next time:** Post the invalidation level and thesis so I can assess if the stop was rational or if leverage was the kill shot.
 
-**On structure:** $195.60 entry into a $198.71 stop is only 3.1% risk — tight for a stock short, which means you sized aggressively (10x) to hit a meaningful dollar target. That's a valid mechanic IF the thesis was high-conviction and the stop was hard. The loss itself ($2.4K on a $100K stack = 2.4%) is manageable, but I need to know: did NVDA break a key level that invalidated the trade, or did it just grind higher? If it grinded, tighter stops on shorts can whipsaw you. If it broke structure, the stop worked as designed.
-
-**Confidence:
+Confidence: 0.4
 
 ## Root-Cause Tags
 
@@ -80,7 +82,7 @@ Run an **X_PULSE on NVDA** at your entry time and we can see if CT was priced in
 
 ## Confidence and Data Gaps
 
-- Quality score: 95/100
+- Quality score: 83/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 
@@ -92,7 +94,7 @@ Run an **X_PULSE on NVDA** at your entry time and we can see if CT was priced in
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 95
+- PM_QUALITY_SCORE: 83
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: none
@@ -102,14 +104,14 @@ Run an **X_PULSE on NVDA** at your entry time and we can see if CT was priced in
 
 ```json
 {
-  "qualityScore": 95,
+  "qualityScore": 83,
   "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 296,
-  "adverseMovePct": 1.59
+  "holdMinutes": 27,
+  "adverseMovePct": 1.605
 }
 ```

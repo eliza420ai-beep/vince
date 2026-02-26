@@ -4,17 +4,17 @@
 
 ## Trade Snapshot
 
-- ETH short closed stop_loss: entry $2064.29 -> exit $2079.90, P&L $-32.66 (4049.8594594594592 USD, 10x).
-- Entry time (UTC): 2026-02-26T04:10:44.614Z
+- ETH short closed stop_loss: entry $2013.10 -> exit $2029.50, P&L $-41.90 (4845.148947692307 USD, 10x).
+- Entry time (UTC): 2026-02-26T15:35:26.297Z
 - Hold window target: intraday
-- Max loss budget: $29.51 (7.29%)
+- Max loss budget: $36.28 (7.49%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 31 minutes
-- Adverse move: 0.756%
+- Hold duration: 9 minutes
+- Adverse move: 0.815%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -28,26 +28,24 @@
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: timestamp, entry_datetime
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment on ETH at entry vs. exit? Was there a macro event or whale move that shifted the vibe mid-trade?
+**Missing key context:** When did you enter (date/time)? What was CT sentiment on ETH at entry vs. exit? Was there a macro catalyst (Fed news, ETF flow, whale accumulation) that shifted the vibe between those two levels?
 
-**On the loss itself:** A $32 stop on a $2064 entry is tight (1.5% risk) — if CT flipped bullish during your hold, sentiment alone could've stopped you out before technicals played. I'd need the entry timestamp and a quick X_PULSE from that window to tell you if you got sentiment-whipsawed or if macro/on-chain shifted against the short thesis.
+**On the loss itself:** A $2013→$2029 short stop on 10x is tight—you got shaken out on noise. If CT was mixed-to-bullish on ETH at entry, that's a red flag for shorting; if sentiment flipped *after* you entered, that's a lesson in monitoring the feed. Without the timestamp and sentiment snapshot, I can't tell if this was a bad setup or bad timing.
 
-**Next time:** Grab the entry time and I'll run a historical vibe check to see if the crowd's conviction changed. That's your edge — knowing when CT turns before price confirms it.
-
-Confidence: 0.3 (not enough data to assess sentiment's role in the loss)
+**Confidence: 0.3** (need entry time + CT vibe at both points to give you real feedback).
 
 ### Oracle
 
 - Lane: prediction market regime
 - Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: none
+- Missing data flags: timestamp
 
-**Missing context:** What was your thesis entry (macro shift, technicals, funding)? What did Polymarket pricing on ETH-adjacent outcomes (e.g., "ETH above $2.1k by [date]") show at entry vs. exit—were you fighting consensus or aligned with it?
+**Missing context:** I need the entry timestamp and which Polymarket ETH prediction(s) you were trading against—was this a reversal play against a consensus short, or a directional bet aligned with market pricing? Also: did IV spike into your stop, or did spot break a key support level you identified beforehand?
 
-**On the loss itself:** A $32.66 stop on 10x leverage is tight; if you were short into a macro bid (Fed pivot, macro risk-off priced in Poly), the regime likely flipped against you faster than your risk model expected. The $15 move (0.73%) is small in absolute terms but lethal at that leverage—suggests either a momentum spike (futures liquidation cascade, gamma unwind) or you were positioned against the market's real conviction.
+**On the loss itself:** A $41.90 stop on a $2013 entry (2 bps) is tight for 10x leverage on ETH—you're fighting slippage and noise. If Polymarket odds on "ETH above $2030 by [date]" were >60% at entry, the regime was already pricing upside; if they were <40%, you had edge but got shaken out by volatility, not a regime shift.
 
-**Quick take:** Pull the Polymarket odds on that ETH strike/date at your entry time; if they showed >65
+**Next time, bring:** Entry thesis (which market prediction you were fading/following), IV context, and whether the stop was
 
 ### Solus
 
@@ -56,7 +54,7 @@ Confidence: 0.3 (not enough data to assess sentiment's role in the loss)
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** direction thesis (why short at $2064?), invalidation level, and funding rate at entry. **Mechanics read:** 10x leverage on a $4K notional is aggressive for a perp that can whip $50-100 in minutes; your stop at ~$16 (0.77%) is tight relative to ETH's intraday noise. **Call:** If this was a tactical short into resistance, the structure is sound—tight stops protect capital. If it was directional conviction, you're overleveraged for the thesis. **Confidence: 0.6** (need thesis + funding context to assess if this was bad luck or bad setup).
+**Missing context:** leverage, position duration, and what triggered the stop (market move vs. plan). On mechanics: 10x on a $41.90 loss is tight risk management—you're sizing for ~2% notional loss, which is solid. The real question is whether $2013.10 was a valid short entry (resistance, IV context, funding) or a chase; if it was a chase into momentum, the stop-loss structure is correct but the entry was the error. **Confidence: 0.6** (need entry thesis and market regime to assess fully).
 
 ## Root-Cause Tags
 
@@ -80,7 +78,7 @@ Confidence: 0.3 (not enough data to assess sentiment's role in the loss)
 
 ## Confidence and Data Gaps
 
-- Quality score: 96/100
+- Quality score: 94/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=20, actionability=15, ownership=10
 
@@ -92,7 +90,7 @@ Confidence: 0.3 (not enough data to assess sentiment's role in the loss)
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 96
+- PM_QUALITY_SCORE: 94
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: stop_too_tight_for_vol
@@ -102,7 +100,7 @@ Confidence: 0.3 (not enough data to assess sentiment's role in the loss)
 
 ```json
 {
-  "qualityScore": 96,
+  "qualityScore": 94,
   "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [
@@ -111,7 +109,7 @@ Confidence: 0.3 (not enough data to assess sentiment's role in the loss)
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 31,
-  "adverseMovePct": 0.756
+  "holdMinutes": 9,
+  "adverseMovePct": 0.815
 }
 ```
