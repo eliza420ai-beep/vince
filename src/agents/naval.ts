@@ -37,7 +37,7 @@ const navalHasDiscord = !!(
   process.env.DISCORD_API_TOKEN?.trim()
 );
 
-export const navalCharacter: Character = {
+export const navalAgent: Character = {
   name: "Naval",
   username: "naval",
   adjectives: [
@@ -56,6 +56,9 @@ export const navalCharacter: Character = {
       : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     ...(navalHasDiscord ? ["@elizaos/plugin-discord"] : []),
+    "@elizaos/plugin-naval",
+    "log-filter",
+    "plugin-inter-agent",
   ],
   settings: {
     secrets: {
@@ -247,29 +250,8 @@ Your knowledge includes the full nav.al archive: essay titles by year and an int
   },
 };
 
-const buildPlugins = (): Plugin[] =>
-  [
-    sqlPlugin,
-    bootstrapPlugin,
-    ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
-    ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
-    ...(navalHasDiscord
-      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
-      : []),
-    navalPlugin,
-    interAgentPlugin,
-  ] as Plugin[];
+// buildPlugins and initNaval functions removed - plugins now defined directly in Character
 
-const initNaval = async (_runtime: IAgentRuntime) => {
-  logger.info(
-    "[Naval] Philosophy of wealth, happiness, mental models, reading — ready.",
-  );
-};
+// Project agent structure removed - using Character export only for consistency with other agents
 
-export const navalAgent: ProjectAgent = {
-  character: navalCharacter,
-  init: initNaval,
-  plugins: buildPlugins(),
-};
-
-export default navalCharacter;
+export default navalAgent;

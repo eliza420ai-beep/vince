@@ -1,30 +1,27 @@
 /**
- * VINCE Dream Team Agents
+ * VINCE Multi-Agent Swarm Intelligence Collective
  *
- * The complete roster of specialized AI agents.
- *
- * | Agent    | Role | Lane |
- * |----------|------|------|
- * | Eliza    | CEO  | Knowledge base, research, brainstorm |
- * | VINCE    | CDO  | Objective data: options, perps, prices, news |
- * | Solus    | CFO  | Trading plan, sizing, execution |
- * | Otaku    | COO  | DeFi ops, onchain execution |
- * | Kelly    | CVO  | Lifestyle: travel, dining, health |
- * | Sentinel | CTO  | Ops, code, infra |
- * | ECHO     | CSO  | CT sentiment, X research, social alpha |
- * | Oracle   | —    | Prediction markets (Polymarket discovery, odds, portfolio) |
+ * Nine specialized agents coordinating through SwarmCoordinationService:
+ * - VINCE: Technical analysis and market data (CDO)
+ * - ECHO: Sentiment analysis and social intelligence (CSO)
+ * - Oracle: Prediction markets and probability analysis (CPO)
+ * - Solus: Options and volatility analysis (CFO)
+ * - Otaku: DeFi and on-chain analysis with execution (COO)
+ * - Kelly: Lifestyle and macro trends coordination (CVO)
+ * - Sentinel: System analysis and meta-learning (CTO)
+ * - Eliza: Knowledge synthesis and research leadership (CEO)
+ * - Clawterm: Data discovery and research coordination (Research Terminal)
  */
 
-export { character as elizaCharacter } from "./eliza";
-export { vinceCharacter } from "./vince";
-export { solusCharacter } from "./solus";
-export { otakuCharacter } from "./otaku";
-export { kellyCharacter } from "./kelly";
-export { sentinelCharacter } from "./sentinel";
-export { echoCharacter } from "./echo";
-export { oracleCharacter } from "./oracle";
-export { navalCharacter } from "./naval";
-export { clawtermCharacter, clawtermAgent } from "./clawterm";
+export { vinceAgent as vince } from "./vince";
+export { echoAgent as echo } from "./echo";
+export { oracleAgent as oracle } from "./oracle";
+export { solusAgent as solus } from "./solus";
+export { otakuAgent as otaku } from "./otaku";
+export { kellyAgent as kelly } from "./kelly";
+export { sentinelAgent as sentinel } from "./sentinel";
+export { elizaAgent as eliza } from "./eliza";
+export { clawtermAgent as clawterm } from "./clawterm";
 
-// Type exports
-export type { Character } from "@elizaos/core";
+// Default export for primary agent
+export { vinceAgent as default } from "./vince";
