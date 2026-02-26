@@ -1,20 +1,20 @@
-# Post-mortem: MU long (stop_loss)
+# Post-mortem: CRCL long (stop_loss)
 
 **Date:** 2026-02-26
 
 ## Trade Snapshot
 
-- MU long closed stop_loss: entry $433.56 -> exit $425.16, P&L $-99.81 (5023.843902439025 USD, 10x).
-- Entry time (UTC): 2026-02-26T14:38:29.454Z
+- CRCL long closed stop_loss: entry $88.06 -> exit $86.74, P&L $-139.52 (8990.2756706753 USD, 10x).
+- Entry time (UTC): 2026-02-26T14:50:57.702Z
 - Hold window target: intraday
-- Max loss budget: $75.36 (15.00%)
+- Max loss budget: $134.85 (15.00%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 2 minutes
-- Adverse move: 1.937%
+- Hold duration: 32 minutes
+- Adverse move: 1.502%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -28,22 +28,24 @@
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: entry_datetime
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment on MU/semis at entry vs. exit? Was there a macro event (Fed, earnings, sector rotation) that shifted the vibe?
+**Missing key context:** When did you enter vs. close? What was CT sentiment on CRCL at entry vs. exit? Was there a macro/BTC dump, or did CRCL-specific bearish chatter spike? Without the timing and sentiment backdrop, I can't tell if you got whipsawed by noise or if CT actually turned on the token.
 
-**What I can say:** A $99.81 stop on a $433 entry is tight (23 bps) — that's execution-level risk, not sentiment risk. If semis sentiment was still constructive when you got stopped, that's a whipsaw, not a thesis failure. If CT flipped bearish on chips (TSMC, supply chain, AI capex concerns), the stop was right to trigger. **Need the timing and CT pulse at entry/exit to give you real feedback.**
+**What I need:** Entry date/time, exit date/time, and I'll run X_PULSE on CRCL sentiment around those windows to see if CT saw it coming.
 
-Confidence: 0.3
+Confidence: 0.3 (can't assess sentiment impact without the data).
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 65%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
 - Missing data flags: none
 
-**Missing context:** Polymarket odds for MU at entry/exit, trade date, and what triggered the stop (momentum break vs. macro shift). That said, a 1.9% loss on 10x levered perps is well-managed risk discipline—the real question is whether Poly was pricing in the downside you missed. Pull the MU prediction market snapshot from around your entry time; if Poly was >60% bullish and you got stopped, that's a regime miss (Poly was right, your timing was off). If Poly was <55% and you still took 10x long, the edge wasn't there to begin with. Either way, tighter entry logic or smaller size on low-conviction setups beats bigger stops.
+**Missing critical context:** I need the trade timeframe (hours? days?), what triggered your entry signal (technicals, news, Polymarket edge?), and whether CRCL had active prediction markets during your hold. Without that—plus current Polymarket odds on CRCL if they exist—I can't isolate whether this was regime drift, liquidity slippage, or a signal that didn't age well. 
 
-**Confidence: 0.65** (need live Poly odds context to calibrate the call).
+**What I can say:** A $1.32 move (1.5%) stop on a 10x perp is tight; if you were trading on short-term momentum or a Polymarket-derived edge, that regime often reprices fast on news or orderbook imbalance. 
+
+**Ask me:** Pull live Polymarket CRCL odds and recent volume if markets exist—that'll show me what the market priced in *after* your exit, and we can see if
 
 ### Solus
 
@@ -52,9 +54,7 @@ Confidence: 0.3
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** What was your invalidation thesis? Why 10x on a semi (MU) in a bear market? The stop at $425 is tight (~1.8% from entry)—suggests you expected mean reversion, not trend. If the thesis was "MU bounces here," the structure was sound; if it was directional conviction, 10x leverage on a $5K notional position in a volatile sector is oversized for paper. The real question: was this a tested edge or a directional guess? Structure the next one with a clear invalidation level and size down if thesis confidence is below 70%.
-
-**Confidence: 0.6** (need your original thesis to assess properly)
+**Missing context:** invalidation (what price/signal would have told you to exit before stop?), hold time (how long did you hold?), and why 10x on a stock ticker (CRCL is equities—leverage on illiquid names is brutal). **On structure:** $139 loss on $8,990 notional is 1.5% drawdown, acceptable for a stop; but 10x on a sub-$100 stock has wide spreads and slippage risk that eats edge. **Mechanics call:** If CRCL is in HIP-3 (it's not yet—it's TradFi), paper leverage is fine for proof-of-concept; if this was live, that's too much leverage on a name with poor liquidity. **Next:** Post invalidation + hold time, I can assess whether the stop was well-placed or if you're exiting too
 
 ## Root-Cause Tags
 
@@ -107,7 +107,7 @@ Confidence: 0.3
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 2,
-  "adverseMovePct": 1.937
+  "holdMinutes": 32,
+  "adverseMovePct": 1.502
 }
 ```
