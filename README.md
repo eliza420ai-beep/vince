@@ -142,6 +142,26 @@ Phase 12 closed the loop: **the system governs itself, with clear policy and rol
 | Flywheel score components | 7 |
 | TypeScript errors | 0 |
 
+### Phase 13 — Swarm Intelligence (2026-02-26)
+
+One month after closing the One Dream PRD, the swarm got a brain upgrade.
+
+- **Thompson Sampling coordination** — Multi-armed bandit selects the best-performing agent strategy in real time. Each arm (agent) earns trust through outcomes, not assumptions. Exploration vs exploitation, auto-balanced.
+- **Swarm coordination service** — 692 lines of coordination logic: shared signal aggregation, cross-agent confidence weighting, bandit arm management, and live learning from closed trades.
+- **Daily standup action** — 377-line standup engine wires all agents into a structured daily report: positions, post-mortems, WTT calls, ML queue suggestions, and team todos in one automated push.
+- **Post-mortems at scale** — 10 assets post-mortemed on 2026-02-26 (BTC, ETH, NVDA, INTC, MU, HOOD, CRCL, RIVN, SNDK, USOIL). Every losing trade dissected, every missed winner logged.
+- **Swarm learning architecture** — [SWARM_LEARNING_ARCHITECTURE.md](docs/SWARM_LEARNING_ARCHITECTURE.md) documents the full genetic evolution + bandit feedback loop.
+- **7,500+ lines shipped in one day** — Thompson Sampling, swarm coordination, standup action, genetic evolution demos, bandit simulations, integration tests, and architecture docs.
+
+| Stat | Value |
+|------|-------|
+| Lines shipped (2026-02-26) | 7,555 |
+| New scripts | 11 |
+| New services | 2 (swarmCoordination, dailyStandup) |
+| Assets post-mortemed | 10 |
+| Bandit arms (agents) | 10 |
+| Test coverage | Unit + integration (swarm + standup) |
+
 ### How the 12 phases became the paper bot and ML loop
 
 The 80 tasks across 12 phases produced the **paper trading algo** (signals → aggregator with ML quality → evaluateAndTrade gates → open/skip → position management → close → feature store) and the **ML pipeline** (feature store → train_models.py → ONNX + improvement report + Sentinel tasks → ML inference and suggested thresholds back into the bot). Phases 2–5 and 12 are where this lives in code: Phase 2 (sentiment gate, post-mortems), Phase 5 (genome, counterfactual, improvement-report weights), Phase 12 (policy engine in the trade path). Phase 10 is the bridge from paper to live (readiness, capital pilot). Full algo and pipeline: [PRD: Paper Trading Algo and How ML Improves It](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md), [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md).
