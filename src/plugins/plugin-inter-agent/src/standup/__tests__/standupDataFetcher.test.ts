@@ -21,11 +21,11 @@ function createMockSolusRuntime(): IAgentRuntime {
 
 describe("standupDataFetcher", () => {
   describe("fetchSolusData", () => {
-    it("includes Last week's strategy, Options context, and Your job", async () => {
+    it("includes Solus day context, live spot guidance, and Your job block", async () => {
       const runtime = createMockSolusRuntime();
       const result = await fetchSolusData(runtime);
-      expect(result).toContain("Last week's strategy");
-      expect(result).toContain("Options context");
+      expect(result).toContain("**Today:**");
+      expect(result).toContain("Hypersurface weekly options settle Friday");
       expect(result).toContain("Your job");
     });
   });

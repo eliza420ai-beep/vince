@@ -279,7 +279,7 @@ describe("X_NEWS Action", () => {
       const longSummary =
         "Prominent analyst Benjamin Cowen argued Thursday that fading memecoin hype signals crypto maturation with capital shifting to stronger assets like Bitcoin and Ethereum.";
       const out = truncateSummary(longSummary, 100);
-      expect(out).toEndWith("...");
+      expect(out.endsWith("...")).toBe(true);
       expect(out.length).toBeLessThanOrEqual(103);
       const beforeEllipsis = out.slice(0, -3).trim();
       expect(beforeEllipsis.length).toBeLessThanOrEqual(100);
@@ -294,7 +294,7 @@ describe("X_NEWS Action", () => {
     it("when over limit, does not cut mid-word", () => {
       const threeHundred = "A".repeat(200) + " word " + "B".repeat(100);
       const out = truncateSummary(threeHundred, 250);
-      expect(out).toEndWith("...");
+      expect(out.endsWith("...")).toBe(true);
       const idx = out.lastIndexOf(" ");
       expect(idx).toBeGreaterThan(0);
       expect(out.slice(0, idx).trim().length).toBeLessThanOrEqual(250);

@@ -26,8 +26,8 @@ describe("xResearchPlugin", () => {
     expect(actionNames).toContain("CLAWTERM_DAY_REPORT");
   });
 
-  it("should have 10 total actions (pulse, vibe, thread, account, mentions, news, watchlist, save, search, clawterm day report)", () => {
-    expect(xResearchPlugin.actions.length).toBe(10);
+  it("should have 11 total actions (pulse, vibe, thread, account, mentions, news, watchlist, save, search, clawterm day report, what's-the-trade)", () => {
+    expect(xResearchPlugin.actions.length).toBe(11);
   });
 
   describe("X_PULSE action", () => {

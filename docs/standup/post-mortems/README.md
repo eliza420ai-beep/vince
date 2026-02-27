@@ -32,6 +32,41 @@ For weekly governance and KPI rollups, include these lines:
 - `PM_PMEP_COMPLETENESS_PCT: <0-100>`
 - `PM_MISSING_DATA_COUNT: <integer>`
 
+## Root-cause taxonomy (canonical tags)
+
+Primary and secondary causes must use one of these tags (lowercase):
+
+- `thesis_invalid`
+- `regime_conflict`
+- `sizing_too_aggressive`
+- `stop_too_tight_for_vol`
+- `agent_lane_mismatch`
+- `missing_pretrade_data`
+- `execution_or_slippage`
+- `unknown_insufficient_evidence`
+
+`PM_PRIMARY_CAUSE` must be exactly one of the above. `PM_SECONDARY_CAUSES` should be a comma-separated list of these tags or `none`.
+
+## Machine-Readable JSON payload
+
+Each post-mortem ends with a fenced JSON block under **Machine-Readable Summary**. The JSON object has this shape:
+
+```json
+{
+  "qualityScore": 0-100,
+  "qualityEscalate": true | false,
+  "primaryCause": "<one root-cause tag>",
+  "secondaryCauses": ["<root-cause-tag>", "..."],
+  "ptqgComplete": true | false,
+  "pmevCompletenessPct": 0-100,
+  "missingData": ["fieldA", "fieldB"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```
+
+This JSON block is the canonical payload for ingestion into the Vince feature store and Sentinel guardrail stats.
+
 ## Learning system docs
 
 To turn post-mortems into measurable process improvements, use:

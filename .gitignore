@@ -42,6 +42,9 @@ otaku-ref/
 # Local-only data (e.g. Solus current positions); never commit
 local/
 
+# Private Hypersurface sizing file for Solus (gitignored but loaded at runtime)
+knowledge/private/solus-options-sizing.md
+
 # Optional: uncomment if you don't want to track knowledge build artifacts
 # knowledge/**/*.pdf
 

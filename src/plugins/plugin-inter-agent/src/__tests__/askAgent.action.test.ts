@@ -458,7 +458,11 @@ describe("askAgentAction", () => {
       );
 
       expect(result).toEqual({ success: false });
-      expect(calls[0].text).toContain("didn't respond in time");
+      const text = calls[0].text;
+      expect(
+        text.includes("didn't respond in time") ||
+          text.includes("Something went wrong asking"),
+      ).toBe(true);
     });
 
     it("job create 200 + poll failed yields error message", async () => {

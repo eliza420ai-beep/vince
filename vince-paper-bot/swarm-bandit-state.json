@@ -1,0 +1,65 @@
+{
+  "globalSources": {},
+  "totalSwarmOutcomes": 0,
+  "agentContributions": {
+    "vince": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "echo": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "oracle": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "solus": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "otaku": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "kelly": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "sentinel": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "eliza": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    },
+    "clawterm": {
+      "outcomesProvided": 0,
+      "accuracyRate": 0.5,
+      "specialtyScore": 1,
+      "lastActive": 1772123427338
+    }
+  },
+  "signalCorrelations": {},
+  "agentReliability": {},
+  "consensusHistory": [],
+  "swarmVersion": "1.0.0",
+  "lastSwarmUpdate": 1772123427338
+}

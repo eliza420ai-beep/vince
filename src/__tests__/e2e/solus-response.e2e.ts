@@ -438,6 +438,34 @@ export const SolusResponseTestSuite: TestSuite = {
           expect(hasInvalidation).toBe(true);
         }),
     },
+    {
+      name: "weekly_hypersurface_plan_uses_btc_hype_sol",
+      fn: async (runtime: IAgentRuntime) =>
+        runWithSolusRuntime(runtime, async (r) => {
+          const msg = createMessage(
+            "Weekly Hypersurface plan: BTC covered calls just expired OTM, HYPE secured puts at $30 were assigned and flipped into covered calls, and we hold a large SOL spot stack from around $141. What's your precise but non-doxxing plan for this week across BTC, HYPE, and SOL?",
+          );
+          const collected: Content[] = [];
+          await replyAction.handler!(
+            r,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
+          // Should at least talk about one of the core assets and make a real call.
+          const mentionsAsset = /btc|hype|sol/.test(text);
+          const mentionsDecision =
+            /size|skip|watch|covered call|secured put|wheel/.test(text);
+          expect(text.length).toBeGreaterThan(40);
+          expect(mentionsAsset).toBe(true);
+          expect(mentionsDecision).toBe(true);
+          assertNoAISlop(text);
+        }),
+    },
   ],
 };
 

@@ -151,6 +151,7 @@ One month after closing the One Dream PRD, the swarm got a **paper-traded brain 
 - **Consensus-driven gating in the trade loop** — `VincePaperTradingService` calls `getSwarmConsensus` when `VINCE_SWARM_ENABLED=true` and uses multi-agent consensus to veto trades or shrink size based on confidence and dissent. Otaku remains **observe-only** for swarm output; no live execution is driven directly by consensus.
 - **Dashboards and explanations wired to real stats** — `/vince/paper` surfaces `swarmSummary` (per-agent reliability, regime performance, total outcomes). `VINCE_WHY_TRADE` includes a `SWARM SNAPSHOT` paragraph only when swarm is enabled and real consensus exists, and never claims “all ten agents” unless ten distinct agents actually voted.
 - **Swarm learning architecture + test plan** — [SWARM_LEARNING_ARCHITECTURE.md](docs/SWARM_LEARNING_ARCHITECTURE.md) describes the design; [SWARM_E2E_CHECKLIST.md](docs/SWARM_E2E_CHECKLIST.md) documents exactly how to test VINCE-only, limited, and full-swarm-capable modes after `bun start` without overpromising.
+- **Phases 1–12 unchanged, flags as escape hatch** — All existing paper/live logic from earlier phases (sentiment gate, genome, adversary, policy engine, execution ladder) still behaves as before. Setting `VINCE_SWARM_ENABLED=false` cleanly reverts the runtime to the pre‑swarm behavior for both paper and live capital paths.
 
 | Stat | Value (Phase 13) |
 |------|------------------|
@@ -261,6 +262,8 @@ When spot moves, prediction markets often lag. Oracle runs a **latency arb engin
 ## TL;DR
 
 VINCE pushes daily intel (options, perps, memes, DeFi) to Discord/Slack. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + "trade today?". Under the hood: a **self-evolving paper trading bot** — ML loop, feature store, ONNX, strategy genome, regime profiles, portfolio construction, execution graduation — that trains in prod and improves its own parameters weekly. Kelly is the lifestyle concierge (travel, wine, dining, health, fitness); she tracks the flywheel score but never gives trading advice.
+
+Every losing trade gets an automated, multi‑agent post‑mortem in `docs/standup/post-mortems/`, and `bun run postmortems:ingest` turns those write‑ups into a recursive loop—structured stats, guardrail suggestions, and RAG knowledge that Vince/Sentinel use so each loss tightens the rules for the next trade.
 
 ---
 
