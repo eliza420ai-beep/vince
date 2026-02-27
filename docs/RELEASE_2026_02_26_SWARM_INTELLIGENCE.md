@@ -278,12 +278,17 @@ Each week, the genome mutates. Each day, the bandit learns. Each trade, the feat
 
 ## What's Next
 
-The swarm can now learn. Next priorities:
+The swarm can now learn. Next priorities (as of Feb 26, 2026) were:
 
 - **Live bandit state persistence** — survive restarts, accumulate multi-week learning
 - **Cross-agent signal correlation tracking** — which pairs of signals are redundant vs complementary?
 - **Regime-conditional bandit** — separate Beta distributions per market regime (bull/bear/choppy)
 - **First live capital experiment** — Otaku executing with swarm-consensus sizing
+
+### Update (Feb 27, 2026)
+
+- Live bandit persistence and regime-conditional bandit pools are now implemented for the **paper bot**, with per-regime Beta parameters, performance stats, and telemetry exposed in daily standups.
+- Regime-aware tuning is gated behind `VINCE_SWARM_REGIME_TUNING_ENABLED` and only ever reduces paper position size or vetoes trades in weak regimes; live-capital execution remains strictly decoupled from these behaviours until a separate graduation PRD is met.
 
 ---
 

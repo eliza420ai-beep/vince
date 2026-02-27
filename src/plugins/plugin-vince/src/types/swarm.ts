@@ -1,6 +1,19 @@
 export type SwarmDirection = "long" | "short" | "neutral";
 
 /**
+ * High-level market regimes used by the swarm bandit.
+ * These are intentionally coarse and direction-aware buckets that
+ * sit on top of VINCE's lower-level MarketRegime classifications.
+ */
+export type SwarmMarketRegime =
+  | "TRENDING_BULL"
+  | "CHOPPY"
+  | "CAPITULATION"
+  | "EUPHORIA"
+  | "RECOVERY"
+  | "UNKNOWN";
+
+/**
  * Standardized vote contract for multi-agent swarm decisions.
  * Confidence is expressed as a 0–1 scalar (not percentage).
  */

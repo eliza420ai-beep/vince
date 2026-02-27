@@ -9,7 +9,11 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
-import type { AgentVote, SwarmConsensus } from "../types/swarm";
+import type {
+  AgentVote,
+  SwarmConsensus,
+  SwarmMarketRegime,
+} from "../types/swarm";
 
 // Agent specializations
 export const AGENT_SPECIALIZATIONS = {
@@ -146,15 +150,6 @@ interface SwarmBanditState {
   swarmVersion: string;
   lastSwarmUpdate: number;
 }
-
-// High-level market regimes for swarm bandit learning
-type SwarmMarketRegime =
-  | "TRENDING_BULL"
-  | "CHOPPY"
-  | "CAPITULATION"
-  | "EUPHORIA"
-  | "RECOVERY"
-  | "UNKNOWN";
 
 interface BetaParams {
   alpha: number;
