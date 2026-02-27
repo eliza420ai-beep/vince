@@ -1,5 +1,9 @@
 import type { FeatureRecord } from "../services/vinceFeatureStore.service";
-import type { AgentVote, SwarmDirection } from "../types/swarm";
+import type {
+  AgentVote,
+  SwarmDirection,
+  SwarmMarketRegime,
+} from "../types/swarm";
 
 export type SwarmReplayMode = "vince" | "limited" | "full";
 
@@ -23,6 +27,18 @@ export interface SwarmReplayResult {
   baseline: SwarmReplayMetrics;
   limited: SwarmReplayMetrics;
   full: SwarmReplayMetrics;
+  /**
+   * Optional regime-conditional metrics so we can inspect how each mode
+   * behaves in different environments (e.g. TRENDING_BULL vs CHOPPY).
+   */
+  byRegime?: Record<
+    SwarmMarketRegime,
+    {
+      baseline: SwarmReplayMetrics;
+      limited: SwarmReplayMetrics;
+      full: SwarmReplayMetrics;
+    }
+  >;
 }
 
 interface SimpleConsensus {
@@ -35,6 +51,31 @@ interface SimpleConsensus {
 function toDirection(dir: string): SwarmDirection {
   if (dir === "long" || dir === "short" || dir === "neutral") return dir;
   return "neutral";
+}
+
+function toSwarmRegime(
+  record: FeatureRecord,
+  direction: SwarmDirection,
+): SwarmMarketRegime {
+  const raw = record.regime?.marketRegime;
+  if (!raw) return "UNKNOWN";
+
+  const key = String(raw).toLowerCase();
+
+  // Map VINCE's marketRegime / MarketRegimeType into SwarmMarketRegime buckets.
+  if (key === "trending" || key === "bullish") {
+    return direction === "long" ? "TRENDING_BULL" : "RECOVERY";
+  }
+
+  if (key === "ranging" || key === "neutral") {
+    return "CHOPPY";
+  }
+
+  if (key === "volatile") {
+    return direction === "long" ? "EUPHORIA" : "CAPITULATION";
+  }
+
+  return "UNKNOWN";
 }
 
 function buildVotesFromRecord(
@@ -203,6 +244,41 @@ export function runSwarmReplay(
   const limited = emptyMetrics();
   const full = emptyMetrics();
 
+  const regimeKeys: SwarmMarketRegime[] = [
+    "TRENDING_BULL",
+    "CHOPPY",
+    "CAPITULATION",
+    "EUPHORIA",
+    "RECOVERY",
+    "UNKNOWN",
+  ];
+
+  const byRegime: Record<
+    SwarmMarketRegime,
+    {
+      baseline: SwarmReplayMetrics;
+      limited: SwarmReplayMetrics;
+      full: SwarmReplayMetrics;
+    }
+  > = regimeKeys.reduce(
+    (acc, regime) => {
+      acc[regime] = {
+        baseline: emptyMetrics(),
+        limited: emptyMetrics(),
+        full: emptyMetrics(),
+      };
+      return acc;
+    },
+    {} as Record<
+      SwarmMarketRegime,
+      {
+        baseline: SwarmReplayMetrics;
+        limited: SwarmReplayMetrics;
+        full: SwarmReplayMetrics;
+      }
+    >,
+  );
+
   // Simple equity curves to approximate drawdown
   let eqBaseline = 0;
   let eqLimited = 0;
@@ -214,13 +290,20 @@ export function runSwarmReplay(
   for (const r of records) {
     if (!r.outcome) continue;
     const pnlPct = r.outcome.realizedPnlPct ?? 0;
+    const direction = toDirection(r.signal.direction);
+    const regimeKey = toSwarmRegime(r, direction);
+    const regimeBuckets = byRegime[regimeKey];
 
     // Baseline: no gating, all trades "on"
     accumulate(baseline, pnlPct);
+    accumulate(regimeBuckets.baseline, pnlPct);
     eqBaseline += pnlPct;
     if (eqBaseline > maxEqBaseline) maxEqBaseline = eqBaseline;
     const ddBase = maxEqBaseline - eqBaseline;
     if (ddBase > baseline.maxDrawdownPct) baseline.maxDrawdownPct = ddBase;
+    if (ddBase > regimeBuckets.baseline.maxDrawdownPct) {
+      regimeBuckets.baseline.maxDrawdownPct = ddBase;
+    }
 
     // Limited swarm
     if (modes.includes("limited")) {
@@ -228,11 +311,19 @@ export function runSwarmReplay(
       const consensus = computeConsensus(votes, threshold);
       if (consensus.consensusReached) {
         accumulate(limited, pnlPct);
+        accumulate(regimeBuckets.limited, pnlPct);
         eqLimited += pnlPct;
+      } else {
+        // Trade would have been avoided under limited swarm gating.
+        // Count for regime-conditional analysis but do not affect PnL.
+        regimeBuckets.limited.trades += 0;
       }
       if (eqLimited > maxEqLimited) maxEqLimited = eqLimited;
       const ddLim = maxEqLimited - eqLimited;
       if (ddLim > limited.maxDrawdownPct) limited.maxDrawdownPct = ddLim;
+      if (ddLim > regimeBuckets.limited.maxDrawdownPct) {
+        regimeBuckets.limited.maxDrawdownPct = ddLim;
+      }
     }
 
     // Full swarm
@@ -241,11 +332,18 @@ export function runSwarmReplay(
       const consensus = computeConsensus(votes, threshold);
       if (consensus.consensusReached) {
         accumulate(full, pnlPct);
+        accumulate(regimeBuckets.full, pnlPct);
         eqFull += pnlPct;
+      } else {
+        // Trade would have been avoided under full swarm gating.
+        regimeBuckets.full.trades += 0;
       }
       if (eqFull > maxEqFull) maxEqFull = eqFull;
       const ddFull = maxEqFull - eqFull;
       if (ddFull > full.maxDrawdownPct) full.maxDrawdownPct = ddFull;
+      if (ddFull > regimeBuckets.full.maxDrawdownPct) {
+        regimeBuckets.full.maxDrawdownPct = ddFull;
+      }
     }
   }
 
@@ -253,5 +351,11 @@ export function runSwarmReplay(
   finalize(limited);
   finalize(full);
 
-  return { baseline, limited, full };
+  for (const key of regimeKeys) {
+    finalize(byRegime[key].baseline);
+    finalize(byRegime[key].limited);
+    finalize(byRegime[key].full);
+  }
+
+  return { baseline, limited, full, byRegime };
 }
