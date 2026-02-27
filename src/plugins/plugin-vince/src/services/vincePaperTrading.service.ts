@@ -29,6 +29,8 @@ import type {
   VinceMarketRegimeService,
   MarketRegime,
 } from "./marketRegime.service";
+import type { AgentVote, SwarmConsensus } from "../types/swarm";
+import type { SwarmVoteContext } from "./vinceSwarmOrchestrator.service";
 // V4: ML Integration Services
 import type { VinceFeatureStoreService } from "./vinceFeatureStore.service";
 import type { VinceWeightBanditService } from "./weightBandit.service";
@@ -182,6 +184,12 @@ export class VincePaperTradingService extends Service {
   private recentTradeOutcomes: boolean[] = []; // true = win, false = loss
   private readonly MAX_STREAK_HISTORY = 5;
 
+  // Swarm consensus tracking: position.id → consensus metadata
+  private swarmConsensusByPositionId: Map<
+    string,
+    { consensusId: string; agents: string[]; regimeKey?: string }
+  > = new Map();
+
   // Throttle "Could not get entry price" to once per asset per minute (avoids log spam when CoinGecko is slow)
   private lastEntryPriceWarnByAsset: Map<string, number> = new Map();
   private attributionSvc = new VinceXSourceAttributionService();
@@ -207,8 +215,43 @@ export class VincePaperTradingService extends Service {
       runtime.getSetting?.("vince_paper_aggressive") === true ||
       runtime.getSetting?.("vince_paper_aggressive") === "true";
     const assets = getPaperTradeAssets(runtime).join(",");
+    const swarmEnabled =
+      runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
+      runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
+      process.env.VINCE_SWARM_ENABLED === "true";
+    const swarmAgents: string[] = [];
+    const agentFlags = [
+      "ECHO",
+      "ORACLE",
+      "SOLUS",
+      "OTAKU",
+      "KELLY",
+      "SENTINEL",
+      "ELIZA",
+      "CLAWTERM",
+      "NAVAL",
+    ];
+    for (const key of agentFlags) {
+      const settingKey = `SWARM_INCLUDE_${key}`;
+      const raw = runtime.getSetting?.(settingKey) ?? process.env[settingKey];
+      if (
+        raw === true ||
+        raw === "true" ||
+        raw === "1" ||
+        (typeof raw === "string" && raw.trim().toLowerCase() === "yes")
+      ) {
+        swarmAgents.push(key.toLowerCase());
+      }
+    }
+    const swarmMode = !swarmEnabled
+      ? "VINCE-only"
+      : swarmAgents.length === 0
+        ? "VINCE-only (swarm gated but no extra agents)"
+        : swarmAgents.length <= 2
+          ? "limited swarm"
+          : "full swarm-capable";
     logger.info(
-      `[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}`,
+      `[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}, swarm=${swarmMode}, swarmAgents=[vince${swarmAgents.length ? "," + swarmAgents.join(",") : ""}]`,
     );
     return service;
   }
@@ -472,6 +515,28 @@ export class VincePaperTradingService extends Service {
   // ==========================================
   // Trade Decision Logging
   // ==========================================
+
+  /**
+   * Build a standardized AgentVote for VINCE from the current aggregated signal.
+   */
+  private buildVinceAgentVote(
+    asset: string,
+    signal: AggregatedSignal,
+    tradeSignal: AggregatedTradeSignal,
+  ): AgentVote {
+    const contributingSignals = Object.keys(tradeSignal.sourceBreakdown ?? {});
+    return {
+      agentId: "vince",
+      direction: signal.direction,
+      confidence: tradeSignal.confidence / 100,
+      supportingSignals:
+        contributingSignals.length > 0
+          ? contributingSignals
+          : ["signal_aggregator"],
+      riskAssessment: 0.5,
+      reasoning: `VINCE aggregated signal for ${asset}`,
+    };
+  }
 
   /**
    * Convert AggregatedSignal (from signal aggregator) to AggregatedTradeSignal (full type for logging/validation).
@@ -2142,6 +2207,7 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         let finalTradeSize = finalSize;
+        let swarmConsensus: SwarmConsensus | null = null;
         if (devilsAdvocateService) {
           const challenge = devilsAdvocateService.challengeTrade({
             asset,
@@ -2232,6 +2298,110 @@ Reply format: APPROVE reason or VETO reason`;
           );
         }
 
+        // Swarm consensus: VINCE contributes a vote and, when enabled,
+        // consensus can veto trades or scale size based on disagreement.
+        const swarmEnabled =
+          this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
+          this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
+          process.env.VINCE_SWARM_ENABLED === "true";
+
+        if (swarmEnabled && signal.direction !== "neutral") {
+          try {
+            const swarmService = this.runtime.getService(
+              "swarm-coordination",
+            ) as {
+              getSwarmConsensus?: (
+                votes: AgentVote[],
+                minimumAgents?: number,
+                consensusThreshold?: number,
+              ) => Promise<SwarmConsensus>;
+            } | null;
+
+            if (swarmService?.getSwarmConsensus) {
+              // Prefer multi-agent votes via orchestrator when available; fall back to VINCE-only.
+              let votes: AgentVote[] = [];
+              const orchestrator = this.runtime.getService(
+                "VINCE_SWARM_ORCHESTRATOR_SERVICE",
+              ) as {
+                collectVotes?: (ctx: SwarmVoteContext) => Promise<AgentVote[]>;
+              } | null;
+
+              if (orchestrator?.collectVotes) {
+                const voteCtx: SwarmVoteContext = {
+                  asset,
+                  vinceSignal: signal as AggregatedSignal,
+                  tradeSignal,
+                  regime,
+                };
+                votes = await orchestrator.collectVotes(voteCtx);
+              } else {
+                votes = [
+                  this.buildVinceAgentVote(
+                    asset,
+                    signal as AggregatedSignal,
+                    tradeSignal,
+                  ),
+                ];
+              }
+
+              const nonNeutralVotes = votes.filter(
+                (v) => v.direction !== "neutral",
+              );
+
+              swarmConsensus = await swarmService.getSwarmConsensus(
+                votes,
+                Math.max(1, nonNeutralVotes.length),
+                0.6,
+              );
+
+              const minConfRaw =
+                (this.runtime.getSetting?.("VINCE_SWARM_MIN_CONFIDENCE") as
+                  | string
+                  | number
+                  | boolean
+                  | undefined) ?? process.env.VINCE_SWARM_MIN_CONFIDENCE;
+              const swarmMinConf =
+                typeof minConfRaw === "number"
+                  ? minConfRaw
+                  : typeof minConfRaw === "string" &&
+                      !Number.isNaN(Number.parseFloat(minConfRaw))
+                    ? Number.parseFloat(minConfRaw)
+                    : 0.5;
+
+              if (
+                !swarmConsensus.consensusReached ||
+                swarmConsensus.confidenceLevel < swarmMinConf
+              ) {
+                const reason = `Swarm consensus below threshold: dir=${swarmConsensus.weightedDirection}, conf=${(
+                  swarmConsensus.confidenceLevel * 100
+                ).toFixed(0)}% < ${(swarmMinConf * 100).toFixed(0)}%`;
+                this.logSignalRejection(asset, tradeSignal, reason);
+                void this.recordAvoidedDecisionIfNeeded(
+                  asset,
+                  signal as AggregatedSignal,
+                  reason,
+                );
+                continue;
+              }
+
+              const dissent = swarmConsensus.dissentScore ?? 0;
+              const sizeMultiplier = Math.max(0.5, 1 - dissent * 0.5);
+              if (sizeMultiplier !== 1) {
+                finalTradeSize = finalTradeSize * sizeMultiplier;
+                logger.debug(
+                  `[VincePaperTrading] ${asset} swarm size multiplier ${sizeMultiplier.toFixed(
+                    2,
+                  )}x (dissent=${(dissent * 100).toFixed(0)}%)`,
+                );
+              }
+            }
+          } catch (e) {
+            logger.debug(
+              `[VincePaperTrading] ${asset} swarm consensus skipped: ${e}`,
+            );
+          }
+        }
+
         // Get current price
         let currentPrice = 0;
         if (marketData) {
@@ -2240,7 +2410,7 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Execute immediately - pullback entries were causing too many missed trades
-        await this.openTrade({
+        const openedPosition = await this.openTrade({
           asset,
           direction: signal.direction as "long" | "short",
           sizeUsd: finalTradeSize,
@@ -2269,6 +2439,40 @@ Reply format: APPROVE reason or VETO reason`;
             blocked: false,
           },
         });
+        if (openedPosition && swarmConsensus?.consensusId) {
+          const agents =
+            Array.isArray(swarmConsensus.participatingAgents) &&
+            swarmConsensus.participatingAgents.length > 0
+              ? swarmConsensus.participatingAgents
+              : ["vince"];
+
+          // Map VINCE market regime into high-level swarm regimes
+          let regimeKey: string | undefined;
+          if (regime) {
+            switch (regime.regime) {
+              case "trending":
+                regimeKey =
+                  signal.direction === "long" ? "TRENDING_BULL" : "RECOVERY";
+                break;
+              case "ranging":
+                regimeKey = "CHOPPY";
+                break;
+              case "volatile":
+                regimeKey =
+                  signal.direction === "long" ? "EUPHORIA" : "CAPITULATION";
+                break;
+              default:
+                regimeKey = "RECOVERY";
+                break;
+            }
+          }
+
+          this.swarmConsensusByPositionId.set(openedPosition.id, {
+            consensusId: swarmConsensus.consensusId,
+            agents,
+            regimeKey,
+          });
+        }
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
       }
@@ -3444,6 +3648,30 @@ Reply format: APPROVE reason or VETO reason`;
           `[VincePaperTrading] Could not record bandit outcome: ${e}`,
         );
       }
+    }
+
+    // Record in swarm coordination service for multi-agent learning
+    try {
+      const swarmMeta = this.swarmConsensusByPositionId.get(position.id);
+      if (swarmMeta) {
+        const swarmService = this.runtime.getService("swarm-coordination") as {
+          recordSwarmOutcome?: (...args: any[]) => Promise<void>;
+        } | null;
+
+        if (swarmService?.recordSwarmOutcome) {
+          await swarmService.recordSwarmOutcome(
+            swarmMeta.consensusId,
+            isWin ? "win" : "loss",
+            pnlPct,
+            swarmMeta.agents,
+            (swarmMeta.regimeKey as any) ?? "UNKNOWN",
+          );
+        }
+
+        this.swarmConsensusByPositionId.delete(position.id);
+      }
+    } catch (e) {
+      logger.debug(`[VincePaperTrading] Could not record swarm outcome: ${e}`);
     }
 
     // Record in similarity service

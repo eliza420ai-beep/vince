@@ -4,17 +4,17 @@
 
 ## Trade Snapshot
 
-- SNDK short closed stop_loss: entry $611.74 -> exit $621.79, P&L $-25.49 (1505.28 USD, 5x).
-- Entry time (UTC): 2026-02-26T15:20:56.172Z
+- SNDK short closed stop_loss: entry $630.02 -> exit $647.86, P&L $-50.83 (1764.3054545454547 USD, 5x).
+- Entry time (UTC): 2026-02-26T16:32:45.424Z
 - Hold window target: intraday
-- Max loss budget: $22.58 (7.50%)
+- Max loss budget: $26.46 (7.50%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 24 minutes
-- Adverse move: 1.643%
+- Hold duration: 191 minutes
+- Adverse move: 2.831%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,45 +24,39 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 30%
+- Confidence: 20%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: none
+- Missing data flags: entry_datetime
 
-**Missing critical context:** Did CT have a bearish thesis on SNDK before entry, and did sentiment flip before your stop? Without knowing the sentiment backdrop (was this a contrarian short against bullish CT, or riding bearish momentum?), I can't assess whether the trade was misaligned with the crowd or just got shaken out. 
+**Missing context:** I need to know *when* you entered (date/time) and what CT sentiment was saying about SNDK at entry vs. exit — was it a crowded short, did whale accounts flip, did retail FOMO in? Without the sentiment timeline, I can't tell you if you got caught in a contrarian squeeze or just missed macro headwinds. Run me an X_PULSE on SNDK for the trade window and I'll give you the real post-mortem on whether sentiment killed the thesis.
 
-**What I'd need:** X posts/sentiment on SNDK in the 48h before entry + exit, whale positioning, and whether this was a macro play (tech selloff) or ticker-specific. 
-
-**Quick take:** If CT was neutral-to-bullish on SNDK and you shorted into strength, that's fighting the vibe — usually a losing edge unless you had alpha the crowd missed. If CT was already bearish and you got stopped on noise, that's just volatility tax.
-
-**Confidence: 0.3** (can't assess without the sentiment
+**Confidence: 0.2** (can't assess sentiment lane without the data)
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 60%
+- Confidence: 0%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: timestamp, entry_datetime
+- Missing data flags: entry_datetime
 
-**Missing context:** I need the trade date/time, market regime (volatility spike, earnings, sector rotation?), and what Polymarket was pricing for SNDK around entry—was the market already pricing a move higher, or did sentiment shift post-entry? Without that lens, I can't tell if the stop was tight relative to fair value or if you got caught in a regime flip the market saw coming.
+**Missing critical context:** I need the trade date/timeframe and whether SNDK had concurrent Polymarket activity (earnings, acquisition rumors, sector rotation). Without regime markers—was this a gap-up shock, sustained momentum, or mean-reversion trap?—I can't isolate whether the stop was too tight or the thesis broke.
 
-**What I can say:** A $10 move on a $611 entry (1.6%) triggering a 5x stop suggests tight risk management, which is sound discipline—but on a short, that means the market was already leaning long or you entered into a crowded short. If Polymarket had SNDK rally priced in at >55% before your entry, the stop was rational; if it was sub-40%, the trade had edge but got shaken.
+**What I'd check:** If there's a Polymarket for SNDK (M&A, earnings beat, sector), pull that market's price action and volume around your entry/exit—it'd show if the crowd repriced faster than spot. That'd tell us if the market knew something or if you just got stopped in noise.
 
-**Ask:** Pull the entry timestamp and
+**Bottom line:** The 1.76% loss on 5x is tight-stop territory, not regime failure. Bring the date and any Poly context back, and I can frame whether this was bad luck or bad timing.
+
+Confidence: 0
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 60%
+- Confidence: 65%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** Was this a hedge against a long position, or standalone directional? What was your invalidation thesis—did price break it cleanly, or did you get stopped on noise? 
+**Missing context:** Was this a perp on Hyperliquid or a stock short elsewhere? What was the invalidation thesis—did price break a technical level, or did macro shift? On the sizing: 5x leverage on a $630 entry is aggressive for a stock short (high margin requirement, tight stop = quick liquidation). If this was a thesis trade (not a scalp), the stop at $647.86 (+2.8%) is reasonable, but the leverage made the loss scale fast. **Recommendation:** For future shorts, either reduce leverage (2-3x max on stocks) or widen invalidation to match your conviction—don't let margin mechanics force you out of a thesis trade early.
 
-**On mechanics:** 5x leverage on a $611 semiconductor stock is aggressive sizing for a $100K stack (notional ~$3K, margin ~$600). The 1.6% stop ($10 absolute) is tight for SNDK's typical daily range—you likely got shaken out. For semiconductors, I'd target 2-3% stops minimum unless you're hedging a larger long position. 
-
-**Next:** Post your entry thesis and what price action triggered the stop. That tells us if it was bad structure or bad timing.
-
-**Confidence: 0.6** (need invalidation and position context to assess).
+**Confidence: 0.65** (missing asset class and thesis clarity).
 
 ## Root-Cause Tags
 
@@ -86,7 +80,7 @@
 
 ## Confidence and Data Gaps
 
-- Quality score: 91/100
+- Quality score: 81/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 
@@ -98,7 +92,7 @@
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 91
+- PM_QUALITY_SCORE: 81
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: regime_conflict
 - PM_SECONDARY_CAUSES: none
@@ -108,14 +102,14 @@
 
 ```json
 {
-  "qualityScore": 91,
+  "qualityScore": 81,
   "qualityEscalate": false,
   "primaryCause": "regime_conflict",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 24,
-  "adverseMovePct": 1.643
+  "holdMinutes": 191,
+  "adverseMovePct": 2.831
 }
 ```

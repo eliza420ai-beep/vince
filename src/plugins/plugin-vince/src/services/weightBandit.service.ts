@@ -77,6 +77,13 @@ const DECAY_FACTOR = 0.995; // Slowly decay old observations
 const STATE_FILE_NAME = "weight-bandit-state.json";
 const BANDIT_VERSION = "1.0.0";
 
+// Optional bridge from swarm-wide reliability back into Vince's bandit.
+// Keeps adjustments modest so per-agent learning still dominates.
+const SWARM_BRIDGE_CONFIG = {
+  enabled: true,
+  maxAdjustment: 0.25, // ±25% around Vince bandit weight at extremes
+} as const;
+
 // Known signal sources with their baseline weights from dynamicConfig
 // NOTE: TopTraders and SanbaseWhales are disabled (weight=0) because:
 //   - TopTraders: No real wallet addresses configured in wallets.json
@@ -310,7 +317,31 @@ export class VinceWeightBanditService extends Service {
       MIN_WEIGHT_MULTIPLIER +
       sample * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
 
-    return baseWeight * multiplier;
+    let weight = baseWeight * multiplier;
+
+    // Swarm bridge: gently tilt weights toward globally reliable sources
+    if (SWARM_BRIDGE_CONFIG.enabled) {
+      try {
+        const swarmService = this.runtime.getService("swarm-coordination") as {
+          getSourceWinRate?: (signal: string) => number | null;
+        } | null;
+
+        const winRate = swarmService?.getSourceWinRate?.(source);
+        if (typeof winRate === "number" && winRate > 0 && winRate < 1) {
+          const centered = winRate - 0.5; // >0 = above-average, <0 = below-average
+          const clamped = Math.max(
+            -SWARM_BRIDGE_CONFIG.maxAdjustment,
+            Math.min(SWARM_BRIDGE_CONFIG.maxAdjustment, centered),
+          );
+          const swarmMultiplier = 1 + clamped;
+          weight = weight * swarmMultiplier;
+        }
+      } catch {
+        // Swarm bridge is strictly optional; ignore errors
+      }
+    }
+
+    return weight;
   }
 
   /**

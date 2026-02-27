@@ -289,6 +289,45 @@ describe("SwarmCoordinationService", () => {
       const stats = service.getSwarmStats();
       expect(stats.recentDecisions).toBe(1);
     });
+
+    it("should update regime pools and win rates when regime is provided", async () => {
+      const service = await SwarmCoordinationService.start(mockRuntime);
+
+      const votes = [
+        {
+          agentId: "vince",
+          direction: "long" as const,
+          confidence: 0.9,
+          supportingSignals: ["TestSignal"],
+          riskAssessment: 0.5,
+          reasoning: "Regime test vote",
+        },
+      ];
+
+      const consensus = await service.getSwarmConsensus(votes, 1);
+      expect(consensus).toBeDefined();
+      expect(consensus.consensusId).toBeDefined();
+
+      await service.recordSwarmOutcome(
+        consensus.consensusId!,
+        "win",
+        2.0,
+        ["vince"],
+        "TRENDING_BULL",
+      );
+
+      const stats = service.getSwarmStats();
+      expect(stats).toHaveProperty("regimes");
+      const trendingBull = (stats.regimes as any[]).find(
+        (r) => r.regime === "TRENDING_BULL",
+      );
+      expect(trendingBull).toBeDefined();
+      expect(trendingBull.totalTrades).toBeGreaterThan(0);
+
+      const winRate = service.getSourceWinRate("TestSignal", "TRENDING_BULL");
+      expect(typeof winRate).toBe("number");
+      expect(winRate!).toBeGreaterThan(0.5);
+    });
   });
 
   describe("performance tracking", () => {
@@ -324,6 +363,157 @@ describe("SwarmCoordinationService", () => {
         expect(agentPerf).toHaveProperty("specialtyScore");
         expect(agentPerf).toHaveProperty("specialization");
       }
+    });
+  });
+
+  describe("persistence and latest consensus", () => {
+    it("should return null latest consensus when no decisions recorded", async () => {
+      const service = await SwarmCoordinationService.start(mockRuntime);
+      const latest = service.getLatestConsensus();
+      expect(latest).toBeNull();
+    });
+
+    it("should expose the most recent consensus decision", async () => {
+      const service = await SwarmCoordinationService.start(mockRuntime);
+
+      const votes1 = [
+        {
+          agentId: "vince",
+          direction: "long" as const,
+          confidence: 0.6,
+          supportingSignals: ["Signal1"],
+          riskAssessment: 0.5,
+          reasoning: "First decision",
+        },
+      ];
+
+      const votes2 = [
+        {
+          agentId: "vince",
+          direction: "short" as const,
+          confidence: 0.7,
+          supportingSignals: ["Signal2"],
+          riskAssessment: 0.6,
+          reasoning: "Second decision",
+        },
+      ];
+
+      await service.getSwarmConsensus(votes1, 1);
+      const latestAfterFirst = service.getLatestConsensus();
+      expect(latestAfterFirst).not.toBeNull();
+
+      const second = await service.getSwarmConsensus(votes2, 1);
+      const latest = service.getLatestConsensus();
+      expect(latest).not.toBeNull();
+      expect(latest?.decisionTimestamp).toBe(second.decisionTimestamp);
+      expect(latest?.weightedDirection).toBe(second.weightedDirection);
+    });
+
+    it("should prefer DB persistence when a connection is available", async () => {
+      const mockClient = {
+        query: vi
+          .fn()
+          // initDbIfAvailable -> CREATE TABLE
+          .mockResolvedValueOnce({ rows: [] })
+          // loadSwarmState -> SELECT
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                state: {
+                  globalSources: {},
+                  totalSwarmOutcomes: 0,
+                  agentContributions: {},
+                  signalCorrelations: {},
+                  agentReliability: {},
+                  consensusHistory: [],
+                  swarmVersion: "1.0.0",
+                  lastSwarmUpdate: Date.now(),
+                  regimeSources: {
+                    TRENDING_BULL: {},
+                    CHOPPY: {},
+                    CAPITULATION: {},
+                    EUPHORIA: {},
+                    RECOVERY: {},
+                    UNKNOWN: {},
+                  },
+                  regimeHistory: [],
+                  regimePerformance: {
+                    TRENDING_BULL: {
+                      totalTrades: 0,
+                      wins: 0,
+                      topSource: null,
+                      worstSource: null,
+                      lastActive: null,
+                    },
+                    CHOPPY: {
+                      totalTrades: 0,
+                      wins: 0,
+                      topSource: null,
+                      worstSource: null,
+                      lastActive: null,
+                    },
+                    CAPITULATION: {
+                      totalTrades: 0,
+                      wins: 0,
+                      topSource: null,
+                      worstSource: null,
+                      lastActive: null,
+                    },
+                    EUPHORIA: {
+                      totalTrades: 0,
+                      wins: 0,
+                      topSource: null,
+                      worstSource: null,
+                      lastActive: null,
+                    },
+                    RECOVERY: {
+                      totalTrades: 0,
+                      wins: 0,
+                      topSource: null,
+                      worstSource: null,
+                      lastActive: null,
+                    },
+                    UNKNOWN: {
+                      totalTrades: 0,
+                      wins: 0,
+                      topSource: null,
+                      worstSource: null,
+                      lastActive: null,
+                    },
+                  },
+                },
+              },
+            ],
+          })
+          // saveSwarmState -> INSERT/UPDATE
+          .mockResolvedValue({ rows: [] }),
+      };
+
+      // @ts-expect-error - getConnection is available at runtime
+      mockRuntime.getConnection = vi.fn().mockResolvedValue(mockClient);
+
+      const service = await SwarmCoordinationService.start(mockRuntime);
+      expect(service).toBeInstanceOf(SwarmCoordinationService);
+
+      // Trigger a save via stop()
+      await service.stop();
+
+      // At least one INSERT/UPDATE should have been attempted after SELECT
+      const queries = (mockClient.query as any).mock.calls.map((call: any[]) =>
+        String(call[0]),
+      );
+      expect(
+        queries.some((sql: string) =>
+          sql.toLowerCase().includes("create table if not exists"),
+        ),
+      ).toBe(true);
+      expect(
+        queries.some((sql: string) =>
+          sql
+            .toLowerCase()
+            .includes("insert into plugin_vince.swarm_bandit_state"),
+        ),
+      ).toBe(true);
     });
   });
 

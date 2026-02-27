@@ -142,25 +142,24 @@ Phase 12 closed the loop: **the system governs itself, with clear policy and rol
 | Flywheel score components | 7 |
 | TypeScript errors | 0 |
 
-### Phase 13 — Swarm Intelligence (2026-02-26)
+### Phase 13 — Swarm Intelligence (2026-02-26 → now)
 
-One month after closing the One Dream PRD, the swarm got a brain upgrade.
+One month after closing the One Dream PRD, the swarm got a **paper-traded brain upgrade**. The current system matches the architecture described in *[The Day the Swarm Woke Up](https://ikigaistudio.substack.com/p/the-day-the-swarm-woke-up)* where we have real code and tests, and stays quiet everywhere else.
 
-- **Thompson Sampling coordination** — Multi-armed bandit selects the best-performing agent strategy in real time. Each arm (agent) earns trust through outcomes, not assumptions. Exploration vs exploitation, auto-balanced.
-- **Swarm coordination service** — 692 lines of coordination logic: shared signal aggregation, cross-agent confidence weighting, bandit arm management, and live learning from closed trades.
-- **Daily standup action** — 377-line standup engine wires all agents into a structured daily report: positions, post-mortems, WTT calls, ML queue suggestions, and team todos in one automated push.
-- **Post-mortems at scale** — 10 assets post-mortemed on 2026-02-26 (BTC, ETH, NVDA, INTC, MU, HOOD, CRCL, RIVN, SNDK, USOIL). Every losing trade dissected, every missed winner logged.
-- **Swarm learning architecture** — [SWARM_LEARNING_ARCHITECTURE.md](docs/SWARM_LEARNING_ARCHITECTURE.md) documents the full genetic evolution + bandit feedback loop.
-- **7,500+ lines shipped in one day** — Thompson Sampling, swarm coordination, standup action, genetic evolution demos, bandit simulations, integration tests, and architecture docs.
+- **Shared Thompson-sampling bandit (paper only)** — `SwarmCoordinationService` maintains a shared `SwarmBanditState` across signal sources and agents, with regime-aware pools, agent reliability, signal correlations, and `consensusHistory` persisted to JSON + optional DB. All learning today happens in the paper bot, not on live capital.
+- **Swarm coordination + orchestrator** — VINCE contributes a canonical `AgentVote` every time the paper bot considers a trade. `VinceSwarmOrchestratorService` can add Echo, Oracle, Solus, Otaku, Kelly, Sentinel, Eliza, Clawterm, and Naval votes when their `SWARM_INCLUDE_*` flags are enabled; agents without real data wired in return neutral, low-confidence votes instead of hallucinated opinions.
+- **Consensus-driven gating in the trade loop** — `VincePaperTradingService` calls `getSwarmConsensus` when `VINCE_SWARM_ENABLED=true` and uses multi-agent consensus to veto trades or shrink size based on confidence and dissent. Otaku remains **observe-only** for swarm output; no live execution is driven directly by consensus.
+- **Dashboards and explanations wired to real stats** — `/vince/paper` surfaces `swarmSummary` (per-agent reliability, regime performance, total outcomes). `VINCE_WHY_TRADE` includes a `SWARM SNAPSHOT` paragraph only when swarm is enabled and real consensus exists, and never claims “all ten agents” unless ten distinct agents actually voted.
+- **Swarm learning architecture + test plan** — [SWARM_LEARNING_ARCHITECTURE.md](docs/SWARM_LEARNING_ARCHITECTURE.md) describes the design; [SWARM_E2E_CHECKLIST.md](docs/SWARM_E2E_CHECKLIST.md) documents exactly how to test VINCE-only, limited, and full-swarm-capable modes after `bun start` without overpromising.
 
-| Stat | Value |
-|------|-------|
-| Lines shipped (2026-02-26) | 7,555 |
-| New scripts | 11 |
-| New services | 2 (swarmCoordination, dailyStandup) |
-| Assets post-mortemed | 10 |
-| Bandit arms (agents) | 10 |
-| Test coverage | Unit + integration (swarm + standup) |
+| Stat | Value (Phase 13) |
+|------|------------------|
+| Lines shipped on 2026-02-26 | 7,555 |
+| New scripts that day | 11 |
+| New services | 2 (`swarm-coordination`, `dailyStandup`) |
+| Assets post-mortemed (launch day) | 10 |
+| Agents wired for swarm votes | 10 (VINCE always on; others flag-gated) |
+| Test coverage | Unit + integration (swarm core, orchestrator, paper bot, dashboard, WHY_THIS_TRADE) |
 
 ### How the 12 phases became the paper bot and ML loop
 

@@ -1,24 +1,25 @@
 {
   "date": "2026-02-26",
-  "thesis": "Defense spending acceleration creates asymmetry where PLTR benefits from government AI contracts while NVDA faces margin pressure from enterprise capex slowdown.",
-  "primaryTicker": "PLTR",
+  "thesis": "Silver outperforms gold as industrial AI demand for conductors accelerates while gold faces headwinds from stronger dollar expectations.",
+  "primaryTicker": "SILVER",
   "primaryDirection": "long",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 65,
+  "primaryEntryPrice": 29.5,
   "primaryRiskUsd": 500,
-  "invalidateCondition": "below $62",
+  "invalidateCondition": "dollar surge + Fed hawkish",
   "killConditions": [
-    "defense budgets delayed by political gridlock",
-    "PLTR commercial business disappoints badly"
+    "breaks $27.50",
+    "dollar rips higher on hawkish Fed signals",
+    "AI capex spending slows"
   ],
   "rubric": {
-    "alignment": "direct",
+    "alignment": "pure_play",
     "edge": "emerging",
-    "payoffShape": "max_asymmetry",
-    "timingForgiveness": "forgiving"
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
   },
-  "altTicker": "NVDA",
+  "altTicker": "GOLD",
   "altDirection": "short",
   "altInstrument": "perp",
-  "evThresholdPct": 15
+  "evThresholdPct": 3
 }

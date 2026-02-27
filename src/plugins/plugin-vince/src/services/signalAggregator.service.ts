@@ -268,6 +268,10 @@ export interface AggregatedSignal {
   mlSimilarityPrediction?: SimilarityPrediction; // From similar trade lookup
   mlAdjusted?: boolean; // True if ML adjusted the signal
   banditWeightsUsed?: boolean; // True if bandit weights were used
+  /** Optional: per-source swarm-enhanced weights from SwarmCoordinationService */
+  swarmWeights?: Record<string, number>;
+  /** True when swarm-enhanced weights were requested/applied */
+  swarmWeightsUsed?: boolean;
 }
 
 export class VinceSignalAggregatorService extends Service {
@@ -2261,6 +2265,51 @@ export class VinceSignalAggregatorService extends Service {
     // =========================================
     if (direction !== "neutral") {
       aggregated = await this.applyMLEnhancement(aggregated, currentSession);
+    }
+
+    // =========================================
+    // Swarm Learning: VINCE contributes signals to swarm coordinator
+    // and can optionally receive swarm-enhanced per-source weights.
+    // Gated by VINCE_SWARM_ENABLED so it can be rolled out safely.
+    // =========================================
+    const swarmEnabled =
+      this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
+      this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
+      process.env.VINCE_SWARM_ENABLED === "true";
+
+    if (swarmEnabled && aggregated.direction !== "neutral") {
+      try {
+        const swarmService = this.runtime.getService("swarm-coordination") as {
+          contributeSignals?: (
+            agentId: string,
+            signals: string[],
+            confidence: number,
+          ) => Promise<Record<string, number>>;
+        } | null;
+
+        if (swarmService?.contributeSignals) {
+          const uniqueSources = aggregated.sources ?? [];
+          const confidenceNorm = aggregated.confidence / 100;
+
+          const swarmWeights = await swarmService.contributeSignals(
+            "vince",
+            uniqueSources,
+            confidenceNorm,
+          );
+
+          if (swarmWeights && Object.keys(swarmWeights).length > 0) {
+            aggregated = {
+              ...aggregated,
+              swarmWeights,
+              swarmWeightsUsed: true,
+            };
+          }
+        }
+      } catch (e) {
+        logger.debug(
+          `[VinceSignalAggregator] Swarm contribution skipped for ${asset}: ${e}`,
+        );
+      }
     }
 
     // =========================================
