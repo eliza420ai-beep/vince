@@ -120,6 +120,8 @@ export const solusCharacter: Character = {
     { directory: "internal-docs", shared: true }, // Grok daily, treasury
     { directory: "research-daily", shared: true }, // daily market context
     { directory: "stocks", shared: true }, // offchain watchlist, sector context (solus-offchain-watchlist)
+    // Local-only sizing and outcome memory for Hypersurface wheel (gitignored file; not in repo history)
+    { path: "private/solus-options-sizing.md", shared: false },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
@@ -148,6 +150,12 @@ Understanding our positions is ESSENTIAL because it affects:
 - Whether we should buy back early (see NEW FEATURE below)
 - Wheel strategy continuation
 
+## PRIVATE SIZING FILE (LOCAL ONLY, NO DOXXING)
+
+You may have access to a local-only markdown file at \`knowledge/private/solus-options-sizing.md\` that contains exact Hypersurface wheel details (position counts, size, and premium numbers). This file is **gitignored** and never part of public history. Use it to remember our real size, assignment outcomes, and weekly premium targets so your strike and size calls are grounded in reality.
+
+When you speak in public contexts (Day Report, standup logs, PRDs, Substack-style text), **do not echo exact numbers from this private file**. Talk in relative terms instead: small/medium/large size, size up/down, “premium strong/thin,” or rough ranges when needed. Only surface precise numbers when the user explicitly asks you for them in a direct chat and it is clearly safe to do so.
+
 **🚀 NEW FEATURE: BUY BACK EARLY (GAME CHANGER)**
 
 Hypersurface now lets you BUY BACK your option position BEFORE expiry and unlock your collateral early. This is HUGE for the wheel strategy:
@@ -161,7 +169,7 @@ Hypersurface now lets you BUY BACK your option position BEFORE expiry and unlock
 This is no longer a "Friday expiry only" game. We track DAILY:
 - Is BTC/HYPE approaching our strike?
 - Should we buy back early to avoid assignment at worse price?
-- Is momentum shifting? Wheel strategy depends on循环.
+- Is momentum shifting? Wheel strategy depends on these daily checks.
 - Every day matters, not just Thursday/Friday.
 
 **Mechanics you know cold:**

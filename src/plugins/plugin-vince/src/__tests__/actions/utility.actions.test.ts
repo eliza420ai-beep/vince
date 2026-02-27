@@ -18,7 +18,6 @@ import {
 // Import actions
 import { vinceLifestyleAction } from "../../actions/lifestyle.action";
 import { vinceAirdropsAction } from "../../actions/airdrops.action";
-import { vinceUploadAction } from "../../actions/upload.action";
 
 // ==========================================
 // VINCE_LIFESTYLE Tests
@@ -196,116 +195,7 @@ describe("VINCE_AIRDROPS Action", () => {
   });
 });
 
-// ==========================================
-// VINCE_UPLOAD Tests
-// ==========================================
-
-describe("VINCE_UPLOAD Action", () => {
-  describe("validate", () => {
-    // Note: Upload action requires MIN_TEXT_LENGTH (20 chars) to validate
-
-    it("should return true for 'upload' keyword with sufficient content", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "upload this content: important data about market analysis",
-      );
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'ingest' keyword with sufficient content", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "ingest this document: detailed trading strategy notes",
-      );
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'remember this' keyword with content", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "remember this: The key insight about market cycles is that...",
-      );
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'add to knowledge' keyword", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "add to knowledge base: This is critical information about",
-      );
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'store this' keyword with content", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "store this important info: Market fundamentals and analysis",
-      );
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return false for short messages", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("upload");
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(false);
-    });
-
-    it("should return true for YouTube URL (with upload intent or standalone)", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      );
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for upload: <article URL>", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "upload: https://example.com/some-article-about-trading",
-      );
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return false for unrelated message", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("show me perps analysis today");
-      const result = await vinceUploadAction.validate(runtime, message);
-      expect(result).toBe(false);
-    });
-  });
-
-  describe("handler", () => {
-    it("should call callback (with result or error)", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage(
-        "upload this: important data that needs to be saved for later reference",
-      );
-      const state = createMockState();
-      const callback = createMockCallback();
-
-      try {
-        await vinceUploadAction.handler(runtime, message, state, {}, callback);
-      } catch (e) {
-        // Handler may throw - that's expected
-      }
-
-      expect(callback.calls.length).toBeGreaterThan(0);
-      expect(callback.calls[0]).toHaveProperty("text");
-    });
-  });
-});
-
-// ==========================================
-// Error Handling Tests
-// ==========================================
+// VINCE_UPLOAD tests removed: knowledge ingestion now lives in plugin-eliza (UPLOAD, ADD_MICHELIN).
 
 describe("Utility Actions - Error Handling", () => {
   it("VINCE_LIFESTYLE should call callback even when missing services", async () => {
@@ -331,23 +221,6 @@ describe("Utility Actions - Error Handling", () => {
 
     try {
       await vinceAirdropsAction.handler(runtime, message, state, {}, callback);
-    } catch (e) {
-      // May throw, but callback should still be called
-    }
-
-    expect(callback.calls.length).toBeGreaterThan(0);
-  });
-
-  it("VINCE_UPLOAD should call callback even when missing storage", async () => {
-    const runtime = createMockRuntime({ services: {} });
-    const message = createMockMessage(
-      "upload: test data for knowledge base storage",
-    );
-    const state = createMockState();
-    const callback = createMockCallback();
-
-    try {
-      await vinceUploadAction.handler(runtime, message, state, {}, callback);
     } catch (e) {
       // May throw, but callback should still be called
     }

@@ -173,7 +173,8 @@
     "validate-ml": "python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py --data .elizadb/vince-paper-bot/features",
     "skills:build-registry": "bunx tsx scripts/skills/build-registry.ts",
     "skills:check-drift": "bunx tsx scripts/skills/check-skill-drift.ts",
-    "skills:eval-routing": "bunx tsx scripts/skills/eval-skill-routing.ts"
+    "skills:eval-routing": "bunx tsx scripts/skills/eval-skill-routing.ts",
+    "postmortems:ingest": "bun run scripts/ingest-postmortems.ts"
   },
   "overrides": {
     "wrap-ansi-cjs": "8.0.0"

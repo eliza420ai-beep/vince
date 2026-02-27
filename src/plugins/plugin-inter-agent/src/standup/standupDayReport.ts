@@ -95,6 +95,8 @@ HARD RULES:
 - TL;DR = one sentence. Risk = one line.
 - Essay idea and Research = one line each. Use values from the pre-computed block below if provided and the transcript doesn't contradict; otherwise use transcript or "None".
 - Wrap-up = a short paragraph, not bullets. Something you'd actually say.
+- For "Solus's call", treat it as the Hypersurface wheel summary for BTC and HYPE: on settlement days, state clearly whether BTC covered calls and HYPE secured puts expired OTM/ITM at this morning's Hypersurface settlement and what the next move is (HOLD / BUY BACK / ROLL / NEW STRIKES) in one tight sentence.
+- When both BTC and HYPE positions exist, mention both; use strikes and direction from context (VINCE, Oracle, Solus standup blocks) but do not invent new numbers that are not present in the transcript.
 - No: leverage, utilize, streamline, paradigm, holistic, delve, landscape, notably, interestingly, circle back, touch base.`;
 }
 

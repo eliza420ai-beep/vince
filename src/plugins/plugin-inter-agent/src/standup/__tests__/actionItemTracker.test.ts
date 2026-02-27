@@ -30,8 +30,10 @@ const TEST_DIR = path.join(
 describe("actionItemTracker", () => {
   beforeEach(() => {
     process.env.STANDUP_DELIVERABLES_DIR = TEST_DIR;
-    if (fs.existsSync(TEST_DIR)) {
-      fs.rmSync(TEST_DIR, { recursive: true });
+    try {
+      fs.rmSync(TEST_DIR, { recursive: true, force: true } as any);
+    } catch {
+      // Ignore removal errors in parallel test runs
     }
     fs.mkdirSync(TEST_DIR, { recursive: true });
   });

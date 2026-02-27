@@ -6,7 +6,7 @@ generated: automated-standup
 
 Day Report — 2026-02-27
 
-Solus's call: Above — BTC $70.5k calls expired OTM, we kept premium and stack clean.
+Solus's call: Above — Hypersurface wheel reset: BTC $70.5k covered calls expired OTM at this morning's settlement while HYPE $30 secured puts were assigned, so we flipped into $30 covered calls and now wait for BTC to grind back toward cost before sizing new puts with real premium.
 
 TL;DR: Fear index hit 13 (extreme) but ETF inflows still green—classic reversal setup brewing while Vince flipped long and paper bot bleeds.
 
