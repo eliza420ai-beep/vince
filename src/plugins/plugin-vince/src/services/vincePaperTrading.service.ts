@@ -2477,7 +2477,9 @@ Reply format: APPROVE reason or VETO reason`;
                   if (regimeSizeMultiplier < 1.0) {
                     finalTradeSize = finalTradeSize * regimeSizeMultiplier;
                     logger.debug(
-                      `[VincePaperTrading] ${asset} swarm regime tuning: ${swarmRegimeKey} · win ${(winRateRaw * 100).toFixed(
+                      `[VincePaperTrading] ${asset} swarm regime tuning: ${swarmRegimeKey} · win ${(
+                        winRateRaw * 100
+                      ).toFixed(
                         1,
                       )}% over ${perf.totalTrades} trades → size ${regimeSizeMultiplier.toFixed(
                         2,
@@ -2493,7 +2495,9 @@ Reply format: APPROVE reason or VETO reason`;
                     swarmConsensus.confidenceLevel <
                       swarmMinConf + consensusHeadroom
                   ) {
-                    const reason = `Swarm regime veto: regime ${swarmRegimeKey} win ${(winRateRaw * 100).toFixed(
+                    const reason = `Swarm regime veto: regime ${swarmRegimeKey} win ${(
+                      winRateRaw * 100
+                    ).toFixed(
                       1,
                     )}% over ${perf.totalTrades} trades with consensus ${(
                       swarmConsensus.confidenceLevel * 100
@@ -3757,8 +3761,7 @@ Reply format: APPROVE reason or VETO reason`;
         } | null;
 
         if (swarmService?.recordSwarmOutcome) {
-          const regimeKey: SwarmMarketRegime =
-            swarmMeta.regimeKey ?? "UNKNOWN";
+          const regimeKey: SwarmMarketRegime = swarmMeta.regimeKey ?? "UNKNOWN";
           await swarmService.recordSwarmOutcome(
             swarmMeta.consensusId,
             isWin ? "win" : "loss",
