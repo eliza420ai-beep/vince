@@ -105,6 +105,8 @@ import { VinceDevilsAdvocateService } from "./services/vinceDevilsAdvocate.servi
 import { VinceNarrativeRadarService } from "./services/vinceNarrativeRadar.service";
 import { VinceTemporalCoherenceService } from "./services/vinceTemporalCoherence.service";
 import { VinceImmuneSystemService } from "./services/vinceImmuneSystem.service";
+import { VinceSwarmInsightsService } from "./services/vinceSwarmInsights.service";
+import { VinceSwarmOrchestratorService } from "./services/vinceSwarmOrchestrator.service";
 
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
@@ -257,6 +259,8 @@ export const vincePlugin: Plugin = {
     VinceTemporalCoherenceService,
     VinceImmuneSystemService,
     PredictionTrackerService,
+    VinceSwarmInsightsService,
+    VinceSwarmOrchestratorService,
   ],
 
   // Actions - focus areas + paper trading bot controls

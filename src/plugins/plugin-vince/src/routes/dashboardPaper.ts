@@ -45,6 +45,32 @@ export interface MLStatus {
   banditTradesProcessed: number;
 }
 
+export interface SwarmSummary {
+  totalOutcomes: number;
+  averageConsensusRate: number;
+  activeAgents: number;
+  trackedSignals: number;
+  topAgents: {
+    agentId: string;
+    accuracyRate: number;
+    outcomesProvided: number;
+  }[];
+  agentPerformance: {
+    agentId: string;
+    accuracyRate: string;
+    outcomesProvided: number;
+    specialtyScore: string;
+    specialization: string;
+  }[];
+  regimes: Array<{
+    regime: string;
+    totalTrades: number;
+    winRate: number;
+    topSource: string | null;
+    worstSource: string | null;
+  }>;
+}
+
 export interface PaperResponse {
   openPositions: Position[];
   portfolio: Portfolio;
@@ -63,6 +89,7 @@ export interface PaperResponse {
     topSources: { source: string; winRate: number }[];
     bottomSources: { source: string; winRate: number }[];
   } | null;
+  swarmSummary: SwarmSummary | null;
   /** Last closed positions (contributingSources only) for "X contributed to N of K" */
   recentClosedTrades: Array<{ contributingSources?: string[] }>;
   /** Recent closed trades with P&L for dashboard (which trades, how much made) */
@@ -115,6 +142,7 @@ export async function buildPaperResponse(
       goalTargets: null,
       signalStatus: null,
       banditSummary: null,
+      swarmSummary: null,
       recentClosedTrades: [],
       recentTrades: [],
       updatedAt: Date.now(),
@@ -176,6 +204,51 @@ export async function buildPaperResponse(
           bottomSources: banditSummaryRaw.bottomSources,
         }
       : null;
+
+  const swarmService = runtime.getService("swarm-coordination") as {
+    getSwarmStats?: () => any;
+    getAgentPerformance?: () => any;
+  } | null;
+  let swarmSummary: SwarmSummary | null = null;
+  if (swarmService?.getSwarmStats) {
+    const stats = swarmService.getSwarmStats();
+    if (stats) {
+      const regimes = Array.isArray(stats.regimes) ? stats.regimes : [];
+      const perf =
+        typeof swarmService.getAgentPerformance === "function"
+          ? swarmService.getAgentPerformance()
+          : [];
+      swarmSummary = {
+        totalOutcomes: stats.totalOutcomes ?? 0,
+        averageConsensusRate: stats.averageConsensusRate ?? 0,
+        activeAgents: stats.activeAgents ?? 0,
+        trackedSignals: stats.trackedSignals ?? 0,
+        topAgents: Array.isArray(stats.topPerformingAgents)
+          ? stats.topPerformingAgents.map((a: any) => ({
+              agentId: a.agentId,
+              accuracyRate: a.accuracyRate,
+              outcomesProvided: a.outcomesProvided,
+            }))
+          : [],
+        agentPerformance: Array.isArray(perf)
+          ? perf.map((a: any) => ({
+              agentId: a.agentId,
+              accuracyRate: a.accuracyRate,
+              outcomesProvided: a.outcomesProvided,
+              specialtyScore: a.specialtyScore,
+              specialization: a.specialization,
+            }))
+          : [],
+        regimes: regimes.map((r: any) => ({
+          regime: r.regime,
+          totalTrades: r.totalTrades ?? 0,
+          winRate: r.winRate ?? 0,
+          topSource: r.topSource ?? null,
+          worstSource: r.worstSource ?? null,
+        })),
+      };
+    }
+  }
 
   const recentClosedTrades = paperTrading?.getRecentClosedTrades?.() ?? [];
 
@@ -286,6 +359,7 @@ export async function buildPaperResponse(
     goalTargets,
     signalStatus,
     banditSummary,
+    swarmSummary,
     recentClosedTrades,
     recentTrades,
     updatedAt: Date.now(),

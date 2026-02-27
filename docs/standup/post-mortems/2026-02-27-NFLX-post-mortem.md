@@ -1,20 +1,20 @@
-# Post-mortem: HOOD short (stop_loss)
+# Post-mortem: NFLX long (stop_loss)
 
-**Date:** 2026-02-26
+**Date:** 2026-02-27
 
 ## Trade Snapshot
 
-- HOOD short closed stop_loss: entry $78.13 -> exit $79.49, P&L $-63.21 (3528.6109090909094 USD, 10x).
-- Entry time (UTC): 2026-02-26T16:32:40.367Z
+- NFLX long closed stop_loss: entry $92.65 -> exit $90.76, P&L $-159.19 (7622.588235294118 USD, 10x).
+- Entry time (UTC): 2026-02-26T23:19:35.962Z
 - Hold window target: intraday
-- Max loss budget: $52.93 (15.00%)
+- Max loss budget: $114.34 (15.00%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 276 minutes
-- Adverse move: 1.741%
+- Hold duration: 631 minutes
+- Adverse move: 2.038%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,39 +24,37 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 20%
+- Confidence: 30%
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: entry_datetime
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment on HOOD at entry vs. exit? Was there a macro catalyst (Fed speak, market breadth shift, retail rotation) that flipped the trade against you? 
+**Missing key context:** When did you enter (date/time)? What was CT sentiment on NFLX at entry vs. exit? Was there a macro event (Fed, earnings, tech rotation) that shifted the vibe between entry and stop?
 
-Without the sentiment backdrop, I can't tell if you got stopped into a contrarian setup (bullish) or if CT was already rotating into retail/growth and you were fighting the vibe. **Confidence: 0.2** — I need the timing and what X was saying to give you real feedback on whether this was a sentiment miss or just bad risk/reward execution.
+Without the timing and sentiment snapshot, I can't tell you if you got blindsided by a CT narrative shift or if this was just a tight stop on noise. The 10x leverage on a $2 move suggests you were fighting slippage or missed a bigger sentiment reversal — need the X vibe at those two points to diagnose.
+
+**Confidence: 0.3** (too little data to assess).
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 30%
+- Confidence: 40%
 - Source stamp: polymarket_regime_snapshot
 - Missing data flags: lane_coverage_gap
 
-**Missing context:** I need the Polymarket odds for HOOD at entry and exit to benchmark this against prediction-market pricing—was the market pricing a breakout that your short missed, or did sentiment shift faster than the CLOB reflected? 
+**Missing context:** No Polymarket NFLX prediction market exists (entertainment/media stocks aren't core to our markets), so I can't cross-check what the prediction market priced vs. where the perp gapped. That said: **10x leverage on a $92.65 entry with a 2% stop is tight for a mega-cap tech stock**—you're fighting bid/ask and intraday noise rather than directional edge. If the thesis was earnings-driven or macro sentiment, a Polymarket proxy (tech sector, streaming competition, macro) would've given you regime confirmation before size. Without that lens, you're running naked momentum.
 
-Without that lens, I can only note the trade took a 1.7% adverse move on 10x (typical for a stop in choppy micro-cap retail flow), which suggests either entry timing was off or the regime shifted mid-trade. 
-
-**Ask:** Pull the HOOD prediction-market activity (volume, bid-ask spread, probability moves) for that window—if Poly showed conviction one way and spot moved the other, that's a regime mismatch worth flagging for future entry design.
-
-**Confidence: 0.3** (I'm outside my lane without market odds context).
+**Confidence: 0.4** (I'm outside my lane on perps execution; VINCE owns the post-mortem on fills/timing/leverage sizing).
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 65%
+- Confidence: 60%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing critical context:** leverage (10x noted, but was that optimal for HOOD vol?), hold time (hours? days?), and invalidation trigger (what was supposed to stop the move?). **On structure:** $3.5K loss on a $78 short with 10x is tight — HOOD typically ranges 2–3% daily; your stop at +1.36% was aggressive for the asset's profile. **Sizing call:** if this was a $35K notional position, that's reasonable risk-per-trade, but if it was your whole account, you're overleveraged. **Going forward:** HOOD needs wider stops (2–2.5% for shorts) or lower leverage (5x), or both — the mechanics didn't match the asset's volatility.
+**Missing context:** entry date, hold duration, invalidation trigger, and whether this was part of a larger hedge or standalone directional bet. **On mechanics:** 10x leverage on a $92.65 entry with a $1.89 stop (2% width) is tight for NFLX vol—you're paying for precision execution but getting whipsawed by intraday noise. **The call:** Either widen the stop to 3-4% (accept more drawdown, reduce false exits) or drop to 5x leverage (same dollar risk, more breathing room). **Missing:** Was this a hedge against another position, or a naked long? If naked, 10x on a single-name equity is sizing for a specific edge—what was it?
 
-Confidence: 0.65
+Confidence: 0.6
 
 ## Root-Cause Tags
 
@@ -111,7 +109,7 @@ Confidence: 0.65
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 276,
-  "adverseMovePct": 1.741
+  "holdMinutes": 631,
+  "adverseMovePct": 2.038
 }
 ```

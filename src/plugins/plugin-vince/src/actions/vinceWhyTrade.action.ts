@@ -20,6 +20,7 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
+import type { SwarmConsensus } from "../types/swarm";
 import type { Position } from "../types/paperTrading";
 import { BOT_FOOTER } from "../constants/botFormat";
 import { getGrokMarketReadSection } from "../utils/grokPulseParser";
@@ -67,6 +68,13 @@ interface WhyTradeDataContext {
     confidenceRequired: number;
     confirmingRequired: number;
   };
+  swarmSummary?: {
+    enabled: boolean;
+    direction: "long" | "short" | "neutral";
+    confidence: number;
+    dissent: number;
+    agentCount: number;
+  } | null;
 }
 
 // ==========================================
@@ -84,6 +92,18 @@ function buildWhyTradeDataContext(ctx: WhyTradeDataContext): string {
     `Required thresholds: Strength >${ctx.thresholds.strengthRequired}%, Confidence >${ctx.thresholds.confidenceRequired}%, ${ctx.thresholds.confirmingRequired}+ confirming signals`,
   );
   lines.push("");
+
+  if (ctx.swarmSummary && ctx.swarmSummary.enabled) {
+    const s = ctx.swarmSummary;
+    lines.push("=== SWARM SNAPSHOT ===");
+    lines.push(
+      `Direction: ${s.direction.toUpperCase()} | Swarm confidence: ${(
+        s.confidence * 100
+      ).toFixed(0)}% | Dissent: ${(s.dissent * 100).toFixed(0)}%`,
+    );
+    lines.push(`Participating agents: ${s.agentCount}`);
+    lines.push("");
+  }
 
   if (ctx.hasPositions && ctx.positions.length > 0) {
     lines.push("=== OPEN POSITIONS ===");
@@ -335,6 +355,44 @@ export const vinceWhyTradeAction: Action = {
         }
       }
 
+      // Swarm snapshot: read latest consensus when swarm is enabled.
+      let swarmSummary: WhyTradeDataContext["swarmSummary"] = null;
+      const swarmEnabled =
+        runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
+        runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
+        process.env.VINCE_SWARM_ENABLED === "true";
+      if (swarmEnabled) {
+        try {
+          const swarmService = runtime.getService("swarm-coordination") as {
+            getLatestConsensus?: () => SwarmConsensus | null;
+          } | null;
+          const latest = swarmService?.getLatestConsensus
+            ? swarmService.getLatestConsensus()
+            : null;
+          if (latest) {
+            swarmSummary = {
+              enabled: true,
+              direction: latest.weightedDirection,
+              confidence: latest.confidenceLevel,
+              dissent: latest.dissentScore ?? 0,
+              agentCount: Array.isArray(latest.participatingAgents)
+                ? latest.participatingAgents.length
+                : 1,
+            };
+          } else {
+            swarmSummary = {
+              enabled: true,
+              direction: "neutral",
+              confidence: 0,
+              dissent: 0,
+              agentCount: 0,
+            };
+          }
+        } catch (e) {
+          logger.debug(`[VINCE_WHY_TRADE] Swarm snapshot unavailable: ${e}`);
+        }
+      }
+
       // Build context
       const ctx: WhyTradeDataContext = {
         hasPositions: positions.length > 0,
@@ -348,6 +406,7 @@ export const vinceWhyTradeAction: Action = {
           confidenceRequired: 60,
           confirmingRequired: 2,
         },
+        swarmSummary,
       };
 
       // Generate briefing

@@ -20,6 +20,8 @@ import type { VinceGenomeService } from "../services/vinceGenome.service";
 import type { VinceParameterTunerService } from "../services/parameterTuner.service";
 import type { VinceTradeJournalService } from "../services/vinceTradeJournal.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
+import type { VincePositionManagerService } from "../services/vincePositionManager.service";
+import type { Position } from "../types/paperTrading";
 
 interface StandupDataContext {
   timestamp: string;
@@ -180,6 +182,43 @@ async function buildStandupDataContext(
     lines.push("");
   }
 
+  // --- 3b. OPEN POSITIONS SNAPSHOT (VincePositionManagerService) ---
+  try {
+    const positionManager = runtime.getService(
+      "VINCE_POSITION_MANAGER_SERVICE",
+    ) as VincePositionManagerService | null;
+
+    lines.push("=== OPEN POSITIONS ===");
+
+    if (positionManager?.getOpenPositions) {
+      const positions = positionManager.getOpenPositions() as Position[];
+      if (positions.length > 0) {
+        positions.slice(0, 5).forEach((p) => {
+          const dir = p.direction.toUpperCase();
+          const pnl = (p.unrealizedPnl ?? 0).toFixed(2);
+          lines.push(
+            `${p.asset} ${dir} · size $${p.sizeUsd.toFixed(
+              0,
+            )} · uPnL $${pnl} · lev ${p.leverage}x`,
+          );
+        });
+        if (positions.length > 5) {
+          lines.push(`(+${positions.length - 5} more positions)`);
+        }
+      } else {
+        lines.push("No open positions.");
+      }
+    } else {
+      lines.push("Position manager not available.");
+    }
+    lines.push("");
+  } catch (e) {
+    logger.warn(`[DAILY_STANDUP] Open positions snapshot failed: ${e}`);
+    lines.push("=== OPEN POSITIONS ===");
+    lines.push("Error loading open positions");
+    lines.push("");
+  }
+
   // --- 4. SIGNAL SOURCE RANKINGS (VinceTradeJournalService.getSignalRankings()) ---
   try {
     const journalService = runtime.getService(
@@ -210,6 +249,57 @@ async function buildStandupDataContext(
     lines.push("");
   }
 
+  // --- 5. SWARM / BANDIT BY REGIME (SwarmCoordinationService) ---
+  try {
+    const swarmService = runtime.getService("swarm-coordination") as {
+      getSwarmStats?: () => any;
+    } | null;
+
+    lines.push("=== SWARM / BANDIT BY REGIME ===");
+
+    if (swarmService?.getSwarmStats) {
+      const stats = swarmService.getSwarmStats();
+      if (stats) {
+        const consensusRate =
+          typeof stats.averageConsensusRate === "number"
+            ? (stats.averageConsensusRate * 100).toFixed(1)
+            : "0.0";
+        lines.push(
+          `Swarm outcomes: ${stats.totalOutcomes} · consensus rate ${consensusRate}%`,
+        );
+
+        const regimes = Array.isArray(stats.regimes) ? stats.regimes : [];
+        const activeRegimes = regimes.filter(
+          (r: any) => typeof r.totalTrades === "number" && r.totalTrades > 0,
+        );
+
+        if (activeRegimes.length > 0) {
+          activeRegimes.slice(0, 3).forEach((r: any) => {
+            const winRate =
+              typeof r.winRate === "number"
+                ? (r.winRate * 100).toFixed(1)
+                : "0.0";
+            lines.push(
+              `${r.regime}: ${r.totalTrades} trades, win ${winRate}% · best ${r.topSource ?? "n/a"} · worst ${r.worstSource ?? "n/a"}`,
+            );
+          });
+        } else {
+          lines.push("No regime-specific swarm data yet.");
+        }
+      } else {
+        lines.push("Swarm stats not available.");
+      }
+    } else {
+      lines.push("Swarm coordination service not available.");
+    }
+    lines.push("");
+  } catch (e) {
+    logger.warn(`[DAILY_STANDUP] Swarm stats failed: ${e}`);
+    lines.push("=== SWARM / BANDIT BY REGIME ===");
+    lines.push("Error loading swarm data");
+    lines.push("");
+  }
+
   return lines.join("\n");
 }
 
@@ -235,6 +325,8 @@ Style guidelines:
 - End with next actions if relevant
 - No AI-slop words like "leverage", "utilize", "streamline", "delve", etc.
 - Vary sentence rhythm and be specific with numbers
+ - ONLY mention specific tickers or assets (BTC, ETH, AAPL, GOLD, etc.) if they are explicitly named in the context (for example under "OPEN POSITIONS" or other sections). Never invent or assume positions or symbols that are not present in the context.
+ - Treat the context as ground truth: do not fabricate which assets are long/short. If the context does not say which names are on, talk in aggregate (e.g. "the portfolio is net short tech") instead of naming examples.
 
 Format example:
 🧬 **Genome Status**: Generation X, fitness Y.YY, strong evolution with Z% win rate

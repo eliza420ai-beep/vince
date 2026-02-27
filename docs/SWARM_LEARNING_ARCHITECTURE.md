@@ -86,21 +86,34 @@ interface SwarmBanditState {
 ### 3. Swarm Consensus Mechanisms
 
 #### A. Weighted Voting
+Swarm voting is implemented with the shared contracts in  
+`src/plugins/plugin-vince/src/types/swarm.ts`:
+
 ```typescript
-interface AgentVote {
+export type SwarmDirection = "long" | "short" | "neutral";
+
+export interface AgentVote {
   agentId: string;
-  direction: 'long' | 'short' | 'neutral';
+  direction: SwarmDirection;
+  /** 0–1 confidence (not a percentage) */
   confidence: number;
-  supporting_signals: string[];
-  risk_assessment: number;
+  supportingSignals: string[];
+  riskAssessment: number;
+  reasoning: string;
 }
 
-interface SwarmConsensus {
+export interface SwarmConsensus {
   votes: AgentVote[];
-  weightedDirection: 'long' | 'short' | 'neutral';
+  weightedDirection: SwarmDirection;
+  /** 0–1 confidence for the swarm decision */
   confidenceLevel: number;
-  dissent_score: number; // Higher = more disagreement
-  participating_agents: string[];
+  /** 0–1 dissent score (higher = more disagreement) */
+  dissentScore: number;
+  participatingAgents: string[];
+  consensusReached: boolean;
+  decisionTimestamp: number;
+  /** ID used to attribute trade outcomes back to this decision */
+  consensusId?: string;
 }
 ```
 
@@ -145,22 +158,22 @@ Level 3: Swarm Consensus
 ## 🚀 Implementation Plan
 
 ### Phase 1: Shared Bandit Infrastructure
-- [ ] Extend VinceWeightBanditService for multi-agent state
-- [ ] Create SwarmCoordinationService
-- [ ] Add inter-agent communication bus
-- [ ] Design agent specialization mappings
+- [x] Extend VinceWeightBanditService for multi-agent state (swarm-aware weight tilt via `getSourceWinRate`)
+- [x] Create SwarmCoordinationService
+- [x] Add inter-agent communication bus
+- [x] Design agent specialization mappings
 
 ### Phase 2: Cross-Agent Learning
-- [ ] Signal correlation tracking
-- [ ] Agent reliability scoring
+- [x] Signal correlation tracking
+- [x] Agent reliability scoring
 - [ ] Cross-agent knowledge transfer
-- [ ] Conflict detection and resolution
+- [x] Conflict detection and resolution
 
 ### Phase 3: Swarm Consensus
-- [ ] Weighted voting mechanisms
+- [x] Weighted voting mechanisms
 - [ ] Consensus threshold optimization
-- [ ] Dissent analysis and handling
-- [ ] Risk-adjusted decision making
+- [x] Dissent analysis and handling
+- [x] Risk-adjusted decision making (consensus/veto + size scaling in paper bot)
 
 ### Phase 4: Advanced Swarm Intelligence
 - [ ] Emergent pattern detection
@@ -239,3 +252,30 @@ This architecture creates the foundation for:
 - **Emergent alpha generation** through collective pattern discovery
 
 **The swarm is more than the sum of its parts!** 🧬⚡
+
+### Runtime Flags and Rollout Modes
+
+Swarm behaviour is feature-flagged so it can be rolled out safely:
+
+- `VINCE_SWARM_ENABLED`: when `true`, the paper bot consults the swarm coordinator for consensus before opening trades.
+- `VINCE_SWARM_MIN_CONFIDENCE`: minimum consensus confidence (0–1) required to proceed; below this threshold trades are vetoed and recorded as avoided decisions.
+- `SWARM_INCLUDE_ECHO`, `SWARM_INCLUDE_ORACLE`, `SWARM_INCLUDE_SOLUS`, `SWARM_INCLUDE_OTAKU`, `SWARM_INCLUDE_KELLY`, `SWARM_INCLUDE_SENTINEL`, `SWARM_INCLUDE_ELIZA`, `SWARM_INCLUDE_CLAWTERM`, `SWARM_INCLUDE_NAVAL`: per-agent participation flags for multi-agent voting (VINCE is always included).
+
+Four practical modes (used in tests and rollout):
+
+1. **VINCE-only (swarm off):**  
+   - `VINCE_SWARM_ENABLED=false`  
+   - All `SWARM_INCLUDE_*` flags ignored.  
+   - Behaviour: classic single-agent bandit; no consensus calls, no swarm vetoes.
+2. **VINCE-only with swarm gating:**  
+   - `VINCE_SWARM_ENABLED=true`  
+   - All `SWARM_INCLUDE_*` flags unset/`false`.  
+   - Behaviour: orchestrator builds a vote from VINCE only; consensus is effectively VINCE-only, but trades can still be vetoed or resized based on `VINCE_SWARM_MIN_CONFIDENCE` and dissent, and outcomes are recorded into the swarm bandit state.
+3. **Limited swarm:**  
+   - `VINCE_SWARM_ENABLED=true`  
+   - A small subset of `SWARM_INCLUDE_*` flags enabled (e.g. `SWARM_INCLUDE_ECHO=true`, `SWARM_INCLUDE_ORACLE=true`, others `false`).  
+   - Behaviour: multi-agent consensus across VINCE + selected agents; used for staged rollout and calibration.
+4. **Full swarm-capable:**  
+   - `VINCE_SWARM_ENABLED=true`  
+   - All relevant `SWARM_INCLUDE_*` flags enabled once calibration and backtests show that multi-agent consensus improves or matches VINCE-only behaviour.  
+   - Behaviour: all ten agents contribute votes where they have real data; neutral/low-confidence placeholders remain neutral until their domains are wired.

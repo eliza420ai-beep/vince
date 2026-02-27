@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-27",
+  "thesis": "Silver breaks out on industrial demand while gold stalls on dollar strength - SILVER outperforms GOLD this week",
+  "primaryTicker": "SILVER",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 30.2,
+  "primaryRiskUsd": 150,
+  "invalidateCondition": "dollar > 107",
+  "killConditions": [
+    "dollar > 107",
+    "China PMI < 49"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "GOLD",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 2.5
+}

@@ -1,20 +1,20 @@
-# Post-mortem: ETH long (signal_flip)
+# Post-mortem: COPPER short (stop_loss)
 
-**Date:** 2026-02-26
+**Date:** 2026-02-27
 
 ## Trade Snapshot
 
-- ETH long closed signal_flip: entry $2024.10 -> exit $2024.10, P&L $-2.89 (5789.960940841055 USD, 10x).
-- Entry time (UTC): 2026-02-26T21:09:24.602Z
+- COPPER short closed stop_loss: entry $6.01 -> exit $6.11, P&L $-89.33 (5307.505777777778 USD, 20x).
+- Entry time (UTC): 2026-02-27T00:01:41.738Z
 - Hold window target: intraday
-- Max loss budget: $101.32 (17.50%)
+- Max loss budget: $79.61 (30.00%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 0 minutes
-- Adverse move: 0%
+- Hold duration: 419 minutes
+- Adverse move: 1.633%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -28,11 +28,11 @@
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: timestamp
 
-**Missing context:** CT sentiment *at entry and exit* — did you go long into euphoria or capitulation? Also need macro backdrop (Fed news, BTC momentum, ETH narrative that day). Without those, I can't tell if you fought sentiment headwinds or just got shaken out of a crowded trade.
+**Missing key context:** When did you enter (exact time/date)? What was CT sentiment on COPPER at entry vs. exit? Was there a macro catalyst (Fed, BTC move, altseason flip) that shifted the vibe? 
 
-**What I'd need:** X pulse from entry/exit timestamps, and which macro event (if any) was moving the needle. That'll tell us if sentiment was against you or if it was pure execution/timing.
+**What I can say:** A $5.3k loss on a micro-cap (COPPER) at 20x suggests you caught a liquidity crunch or sentiment reversal — those move fast and stop-losses are the right call. Without knowing the sentiment backdrop at entry, I can't tell if this was a timing miss (entered when CT was already rotating out) or just unlucky execution. Pull the entry timestamp and I'll check what CT was saying then.
 
-Confidence: 0.3 (can't assess without the data)
+Confidence: 0.3
 
 ### Oracle
 
@@ -41,20 +41,22 @@ Confidence: 0.3 (can't assess without the data)
 - Source stamp: polymarket_regime_snapshot
 - Missing data flags: none
 
-**Missing critical context:** Was this a Polymarket-informed entry (i.e., did ETH prediction markets signal upside that didn't materialize), or a pure technicals flip? The flat price action ($2024.10 → $2024.10) with a $2.89 loss on 10x suggests slippage/funding bleed rather than directional miss—typical of choppy, low-conviction regimes. **To give you regime feedback:** Pull the ETH weekly/monthly prediction market odds at entry and exit; if they stayed flat or inverted, that's your regime signal (markets weren't pricing in your conviction). If Poly odds actually moved *against* your entry thesis, that's a data point—prediction markets caught the regime shift before spot price did, which is their edge.
+**Missing context:** What was your thesis entry signal (Polymarket edge, technicals, macro)? And what timeframe—was this a scalp or swing hold? 
 
-**Confidence: 0.4** (need Polymarket context from your entry time to isolate regime vs. execution
+**On the loss itself:** A 10-cent move on COPPER into a stop at 1.67% slippage on 20x is tight risk management, which is good—but if Polymarket had COPPER upside priced >55% and you shorted, that's regime conflict (market pricing strength, you pricing weakness). Without knowing your edge source, I can't tell if this was a bad entry or bad timing.
+
+**What I need:** Pull the Polymarket COPPER market detail (if it exists) and your entry thesis. Then I can tell you if the market repriced against you or if the setup was flawed.
+
+**Confidence: 0.4** (too many unknowns).
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 62%
+- Confidence: 40%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** entry time, hold duration, liquidation distance at entry, and funding rate environment—these shape whether this was a sizing problem or a signal problem. **On structure:** 10x leverage on a $2K entry with zero price movement but -$5.8K loss screams funding bleed, not execution error. **The call:** If you held >4h in a funding spike, that's a sizing problem (reduce leverage or position size in high-funding regimes). If <1h, the slippage/fees ate you—tighten entry/exit logic. **Next:** Log hold time and avg funding rate for this trade; compare to your edge window.
-
-Confidence: 0.62
+Missing critical context: Was this a perp on Hyperliquid or spot? What was your invalidation level—did price breach it cleanly, or did you get stopped out by noise? On 20x leverage with a $89 loss on a $6.01 entry, your stop was ~1.7% away—tight for a commodity, especially if funding was positive (you bled theta). Mechanically: either your thesis invalidated (acceptable loss) or your sizing/leverage was too aggressive for the volatility regime. Confidence: 0.4 (need trade structure—perp vs spot, funding, thesis invalidation).
 
 ## Root-Cause Tags
 
@@ -72,7 +74,7 @@ Confidence: 0.62
    - success_metric: Post-mortems with pmevCompletenessPct >= 90% over rolling 7 days.
    - rollback: If operational overhead causes missed trades, reduce required manual fields.
 3. [experiment] owner=solus due=7d
-   - action: A/B test perps sizing: baseline vs capped leverage with same signal cohort.
+   - action: A/B test defined-risk structure recommendation vs spot leverage entries.
    - success_metric: Reduce losses tagged sizing_too_aggressive by >= 20% in test window.
    - rollback: Abort if win rate drops by >8 points with no drawdown improvement.
 
@@ -107,7 +109,7 @@ Confidence: 0.62
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 0,
-  "adverseMovePct": 0
+  "holdMinutes": 419,
+  "adverseMovePct": 1.633
 }
 ```

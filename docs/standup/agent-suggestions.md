@@ -126,3 +126,11 @@
 
 - Clawterm → Sentinel: Cross-link 'Build Your First Skill in 10 Minutes' template to phase-12 governance and paper bot docs for builders exploring agentic execution.
 - Eliza + VINCE: Coordinate on paper bot perps data integration into multi-chain scaling research brief.
+## 2026-02-26
+
+- Add pre-flight DNS validation check to OPENCLAW_SETUP_GUIDE before first deploy to prevent tailscale silent failures.
+- Explore whether early buyback triggers should be automated in Solus workflow based on momentum thresholds rather than manual Thursday check.
+## 2026-02-27
+
+- Cross-link OpenClaw Production Checklist skill build to Sentinel for Thompson Sampling signal weighting integration.
+- Feed post-mortem learning system output directly into VINCE signal weighting to close feedback loops faster.
