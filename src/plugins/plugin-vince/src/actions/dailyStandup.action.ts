@@ -416,10 +416,30 @@ export const vinceDailyStandupAction: Action = {
       if (runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE"))
         sources.push("Signal Aggregator");
 
+      const liveModeRaw =
+        process.env.LIVE_EXECUTION_MODE?.toLowerCase().trim() ?? "off";
+      const liveMode: "off" | "shadow" | "pilot" | "prod" =
+        liveModeRaw === "shadow" ||
+        liveModeRaw === "pilot" ||
+        liveModeRaw === "prod"
+          ? (liveModeRaw as "shadow" | "pilot" | "prod")
+          : "off";
+
+      const liveStatus =
+        liveMode === "off"
+          ? "Live execution: OFF (paper-only, no capital at risk)"
+          : liveMode === "shadow"
+            ? "Live execution: SHADOW (simulated only, no capital at risk)"
+            : liveMode === "pilot"
+              ? "Live execution: PILOT (capped live bucket, see Live Capital SOP)"
+              : "Live execution: PROD (graduated/live — must match Live Capital SOP and graduation PRD)";
+
       const output = [
         `**Daily Standup** _${time}_`,
         "",
         narrative,
+        "",
+        liveStatus,
         "",
         sources.length > 0 ? `*Source: ${sources.join(", ")}*` : "",
         "",

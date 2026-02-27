@@ -259,6 +259,7 @@ Swarm behaviour is feature-flagged so it can be rolled out safely:
 
 - `VINCE_SWARM_ENABLED`: when `true`, the paper bot consults the swarm coordinator for consensus before opening trades.
 - `VINCE_SWARM_MIN_CONFIDENCE`: minimum consensus confidence (0–1) required to proceed; below this threshold trades are vetoed and recorded as avoided decisions.
+- `VINCE_SWARM_REGIME_TUNING_ENABLED`: when `true`, the paper bot applies regime-conditional swarm tuning for **paper trades only**, shrinking size or vetoing entries in regimes where the swarm bandit has historically underperformed. Never increases size.
 - `SWARM_INCLUDE_ECHO`, `SWARM_INCLUDE_ORACLE`, `SWARM_INCLUDE_SOLUS`, `SWARM_INCLUDE_OTAKU`, `SWARM_INCLUDE_KELLY`, `SWARM_INCLUDE_SENTINEL`, `SWARM_INCLUDE_ELIZA`, `SWARM_INCLUDE_CLAWTERM`, `SWARM_INCLUDE_NAVAL`: per-agent participation flags for multi-agent voting (VINCE is always included).
 
 Four practical modes (used in tests and rollout):

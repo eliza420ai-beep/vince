@@ -29,7 +29,11 @@ import type {
   VinceMarketRegimeService,
   MarketRegime,
 } from "./marketRegime.service";
-import type { AgentVote, SwarmConsensus } from "../types/swarm";
+import type {
+  AgentVote,
+  SwarmConsensus,
+  SwarmMarketRegime,
+} from "../types/swarm";
 import type { SwarmVoteContext } from "./vinceSwarmOrchestrator.service";
 // V4: ML Integration Services
 import type { VinceFeatureStoreService } from "./vinceFeatureStore.service";
@@ -107,6 +111,32 @@ import {
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
 import { VincePolicyEngineService } from "./vincePolicyEngine.service";
 import { CircuitBreakerService } from "src/plugins/plugin-otaku/src/services/circuitBreaker.service";
+
+// ==========================================
+// Regime helpers
+// ==========================================
+
+function mapMarketRegimeToSwarmRegime(
+  regime: MarketRegime | null,
+  direction: "long" | "short" | "neutral",
+): SwarmMarketRegime {
+  if (!regime) {
+    return "UNKNOWN";
+  }
+
+  switch (regime.regime) {
+    case "trending":
+      // Long in a trend = bullish, short can be thought of as fade/recovery.
+      return direction === "long" ? "TRENDING_BULL" : "RECOVERY";
+    case "ranging":
+      return "CHOPPY";
+    case "volatile":
+      // Volatile + long ≈ euphoria; volatile + short ≈ capitulation.
+      return direction === "long" ? "EUPHORIA" : "CAPITULATION";
+    default:
+      return "RECOVERY";
+  }
+}
 
 // ==========================================
 // Pending Entry Types
@@ -187,7 +217,11 @@ export class VincePaperTradingService extends Service {
   // Swarm consensus tracking: position.id → consensus metadata
   private swarmConsensusByPositionId: Map<
     string,
-    { consensusId: string; agents: string[]; regimeKey?: string }
+    {
+      consensusId: string;
+      agents: string[];
+      regimeKey?: SwarmMarketRegime;
+    }
   > = new Map();
 
   // Throttle "Could not get entry price" to once per asset per minute (avoids log spam when CoinGecko is slow)
@@ -2315,6 +2349,7 @@ Reply format: APPROVE reason or VETO reason`;
                 minimumAgents?: number,
                 consensusThreshold?: number,
               ) => Promise<SwarmConsensus>;
+              getSwarmStats?: () => any;
             } | null;
 
             if (swarmService?.getSwarmConsensus) {
@@ -2394,6 +2429,85 @@ Reply format: APPROVE reason or VETO reason`;
                   )}x (dissent=${(dissent * 100).toFixed(0)}%)`,
                 );
               }
+
+              // Optional regime-aware tuning (paper bot only, flag-gated).
+              const swarmRegimeTuningEnabled =
+                this.runtime.getSetting?.(
+                  "VINCE_SWARM_REGIME_TUNING_ENABLED",
+                ) === true ||
+                this.runtime.getSetting?.(
+                  "VINCE_SWARM_REGIME_TUNING_ENABLED",
+                ) === "true" ||
+                process.env.VINCE_SWARM_REGIME_TUNING_ENABLED === "true";
+
+              if (swarmRegimeTuningEnabled && swarmService?.getSwarmStats) {
+                const swarmStats = swarmService.getSwarmStats();
+                const regimes = Array.isArray(swarmStats?.regimes)
+                  ? swarmStats.regimes
+                  : [];
+
+                const swarmRegimeKey = mapMarketRegimeToSwarmRegime(
+                  regime ?? null,
+                  signal.direction as "long" | "short" | "neutral",
+                );
+
+                const perf = regimes.find(
+                  (r: any) => r.regime === swarmRegimeKey,
+                );
+
+                const minTradesForRegime = 15;
+                if (
+                  perf &&
+                  typeof perf.totalTrades === "number" &&
+                  perf.totalTrades >= minTradesForRegime
+                ) {
+                  const winRateRaw =
+                    typeof perf.winRate === "number" ? perf.winRate : 0;
+
+                  // Size-only adjustments: shrink in weak regimes, never boost size.
+                  let regimeSizeMultiplier = 1.0;
+                  if (winRateRaw < 0.35) {
+                    regimeSizeMultiplier = 0.5;
+                  } else if (winRateRaw < 0.45) {
+                    regimeSizeMultiplier = 0.7;
+                  } else if (winRateRaw < 0.5) {
+                    regimeSizeMultiplier = 0.85;
+                  }
+
+                  if (regimeSizeMultiplier < 1.0) {
+                    finalTradeSize = finalTradeSize * regimeSizeMultiplier;
+                    logger.debug(
+                      `[VincePaperTrading] ${asset} swarm regime tuning: ${swarmRegimeKey} · win ${(winRateRaw * 100).toFixed(
+                        1,
+                      )}% over ${perf.totalTrades} trades → size ${regimeSizeMultiplier.toFixed(
+                        2,
+                      )}x`,
+                    );
+                  }
+
+                  // Extra protective veto: if regime is consistently weak AND consensus is only marginally above the minimum, stand aside.
+                  const protectiveWinFloor = 0.35;
+                  const consensusHeadroom = 0.05;
+                  if (
+                    winRateRaw < protectiveWinFloor &&
+                    swarmConsensus.confidenceLevel <
+                      swarmMinConf + consensusHeadroom
+                  ) {
+                    const reason = `Swarm regime veto: regime ${swarmRegimeKey} win ${(winRateRaw * 100).toFixed(
+                      1,
+                    )}% over ${perf.totalTrades} trades with consensus ${(
+                      swarmConsensus.confidenceLevel * 100
+                    ).toFixed(0)}% near floor`;
+                    this.logSignalRejection(asset, tradeSignal, reason);
+                    void this.recordAvoidedDecisionIfNeeded(
+                      asset,
+                      signal as AggregatedSignal,
+                      reason,
+                    );
+                    continue;
+                  }
+                }
+              }
             }
           } catch (e) {
             logger.debug(
@@ -2446,26 +2560,10 @@ Reply format: APPROVE reason or VETO reason`;
               ? swarmConsensus.participatingAgents
               : ["vince"];
 
-          // Map VINCE market regime into high-level swarm regimes
-          let regimeKey: string | undefined;
-          if (regime) {
-            switch (regime.regime) {
-              case "trending":
-                regimeKey =
-                  signal.direction === "long" ? "TRENDING_BULL" : "RECOVERY";
-                break;
-              case "ranging":
-                regimeKey = "CHOPPY";
-                break;
-              case "volatile":
-                regimeKey =
-                  signal.direction === "long" ? "EUPHORIA" : "CAPITULATION";
-                break;
-              default:
-                regimeKey = "RECOVERY";
-                break;
-            }
-          }
+          const regimeKey = mapMarketRegimeToSwarmRegime(
+            regime ?? null,
+            signal.direction as "long" | "short" | "neutral",
+          );
 
           this.swarmConsensusByPositionId.set(openedPosition.id, {
             consensusId: swarmConsensus.consensusId,
@@ -3659,12 +3757,14 @@ Reply format: APPROVE reason or VETO reason`;
         } | null;
 
         if (swarmService?.recordSwarmOutcome) {
+          const regimeKey: SwarmMarketRegime =
+            swarmMeta.regimeKey ?? "UNKNOWN";
           await swarmService.recordSwarmOutcome(
             swarmMeta.consensusId,
             isWin ? "win" : "loss",
             pnlPct,
             swarmMeta.agents,
-            (swarmMeta.regimeKey as any) ?? "UNKNOWN",
+            regimeKey,
           );
         }
 
