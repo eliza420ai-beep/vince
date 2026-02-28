@@ -31,6 +31,11 @@ const TRIGGERS = [
   "our $70k puts",
   "our $70k secured puts",
   "premium reduces cost basis",
+  "cost basis",
+  "our btc cost",
+  "average entry",
+  "entry price",
+  "our btc position",
 ];
 
 function wantsPositionAssess(text: string): boolean {
@@ -62,11 +67,19 @@ export const solusPositionAssessAction: Action = {
   ): Promise<void | ActionResult> => {
     logger.debug("[SOLUS_POSITION_ASSESS] Action fired");
     try {
-      const state = await runtime.composeState(message);
+      const state = await runtime.composeState(message, [
+        "SOLUS_SIZING_STATE",
+        "SOLUS_MARKET_CONTEXT",
+        "SOLUS_HYPERSURFACE_SPOT_PRICES",
+      ]);
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Solus, the on-chain options expert. The user is asking you to assess their Hypersurface position. We have spot + mechanics; we don't have live sentiment. If they need direction (where price lands by Friday), they paste VINCE's view or bring their own. Use spot prices from context when present (e.g. "[Hypersurface spot USD]") for level reference. Frame hold/roll/adjust in terms of weekly outcome (expiry Friday). Using the context below and the user message, (1) Interpret what they have: notional, premium, collateral (e.g. USDT0), expiry, strike if mentioned. (2) State invalidation (what would change your mind). (3) Give one clear call: hold, roll, or adjust. If key details are missing (strike, notional, premium, expiry), ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust.
+      const prompt = `You are Solus, the on-chain options expert. The user is asking you to assess their Hypersurface position. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], and (3) spot/regime/vol context in [Solus market context] plus any pasted VINCE view.
+
+We do not have live sentiment beyond what Vince gives us; if they need direction (where price lands by Friday), they paste VINCE's view or bring their own. Use spot prices and regime from context when present (e.g. "[Hypersurface spot USD]" or [Solus market context]) for level reference. Frame hold/roll/adjust in terms of weekly outcome (expiry Friday).
+
+Using the context below and the user message, (1) Interpret what they have: notional, premium, collateral (e.g. USDT0), expiry, strike if mentioned, and how it lines up with the wheel plan in [Solus sizing state] (oversized, under-earning vs weekly premium target, underwater vs entry). (2) State invalidation (what would change your mind). (3) Give one clear call: hold, roll, or adjust. If key details are missing (strike, notional, premium, expiry) or the sizing doc looks stale for this asset, ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust.
 
 Context:
 ${contextBlock}
@@ -101,6 +114,7 @@ Reply with assessment and one call only.`;
       await callback({
         text: sections.join("\n"),
         actions: ["SOLUS_POSITION_ASSESS"],
+        providers: ["SOLUS_SIZING_STATE"],
       });
       return { success: true };
     } catch (error) {

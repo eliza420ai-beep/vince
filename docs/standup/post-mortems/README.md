@@ -20,6 +20,26 @@ Each new post-mortem should include, in order:
 7. What changes on next trade?
 8. Machine-Readable Summary
 
+### Lane context (Echo / Oracle / Solus)
+
+For each agent lane Vince asks on a loss, the post-mortem generator also builds a **lane context** object:
+
+- **Echo (sentiment / CT):**
+  - `entryTimestampUtc` (trade open time, UTC)
+  - `exitTimestampUtc` (trade close time, UTC)
+  - `sentimentScore` (numeric CT snapshot at entry)
+  - `regime` (e.g. `risk-on`, `risk-off`, `uncertain`)
+- **Oracle (prediction markets):**
+  - `entryTimestampUtc`, `exitTimestampUtc`
+  - `conditionId` (Polymarket `condition_id` when available)
+- **Solus (mechanics / sizing):**
+  - `assetClass`, `thesisClass`
+  - `leverage`, `stopDistancePct`
+  - `maxLossUsd`, `maxLossPct`
+  - `entryAtrPct` (ATR-based volatility at entry, when present)
+
+These lane contexts are summarized in prose under **Agent Findings (structured)** and emitted in the JSON payload for Sentinel/feature-store use.
+
 ## Machine-readable markers
 
 For weekly governance and KPI rollups, include these lines:
@@ -31,6 +51,7 @@ For weekly governance and KPI rollups, include these lines:
 - `PM_PTQG_COMPLETE: <true|false>`
 - `PM_PMEP_COMPLETENESS_PCT: <0-100>`
 - `PM_MISSING_DATA_COUNT: <integer>`
+- `PM_CONTEXT_COMPLETENESS_PCT: <0-100>` (Echo/Oracle/Solus lane context filled vs expected)
 
 ## Root-cause taxonomy (canonical tags)
 
@@ -61,7 +82,34 @@ Each post-mortem ends with a fenced JSON block under **Machine-Readable Summary*
   "pmevCompletenessPct": 0-100,
   "missingData": ["fieldA", "fieldB"],
   "holdMinutes": 0,
-  "adverseMovePct": 0
+  "adverseMovePct": 0,
+  "echoContext": {
+    "entryTimestampUtc": "YYYY-MM-DDTHH:MM:SS.sssZ",
+    "exitTimestampUtc": "YYYY-MM-DDTHH:MM:SS.sssZ",
+    "sentimentScore": 0-10,
+    "regime": "risk-on | risk-off | uncertain | \"\""
+  },
+  "oracleContext": {
+    "entryTimestampUtc": "YYYY-MM-DDTHH:MM:SS.sssZ",
+    "exitTimestampUtc": "YYYY-MM-DDTHH:MM:SS.sssZ",
+    "conditionId": "polymarket_condition_id | null"
+  },
+  "solusContext": {
+    "assetClass": "crypto | equity | commodity | other",
+    "thesisClass": "momentum | mean_reversion | event | regime | other",
+    "leverage": 1,
+    "stopDistancePct": 0,
+    "maxLossUsd": 0,
+    "maxLossPct": 0,
+    "entryAtrPct": 0
+  },
+  "agentContextMissing": {
+    "Echo": ["entry_datetime", "timestamp"],
+    "Oracle": ["condition_id"],
+    "Solus": []
+  },
+  "contextCompletenessPct": 0-100,
+  "regimeVsExecution": "regime_miss | execution_miss | unclear"
 }
 ```
 

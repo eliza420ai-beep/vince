@@ -134,3 +134,7 @@
 
 - Cross-link OpenClaw Production Checklist skill build to Sentinel for Thompson Sampling signal weighting integration.
 - Feed post-mortem learning system output directly into VINCE signal weighting to close feedback loops faster.
+## 2026-02-28
+
+- Clawterm + Sentinel: Cross-link Skills Discovery Dashboard as sprint candidate for regime-conditional execution visibility
+- Eliza: Expand CONTEXT-ENGINEERING.md with RAG hygiene section for live trading systems to prevent hallucination on funding rates and order flow

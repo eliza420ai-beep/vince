@@ -1,20 +1,20 @@
 # Post-mortem: ETH long (stop_loss)
 
-**Date:** 2026-02-27
+**Date:** 2026-02-28
 
 ## Trade Snapshot
 
-- ETH long closed stop_loss: entry $1927.99 -> exit $1913.00, P&L $-59.93 (7244.395871254163 USD, 10x).
-- Entry time (UTC): 2026-02-27T18:06:05.551Z
+- ETH long closed stop_loss: entry $1924.48 -> exit $1895.00, P&L $-34.22 (2163.155376404494 USD, 10x).
+- Entry time (UTC): 2026-02-28T01:45:57.472Z
 - Hold window target: intraday
-- Max loss budget: $54.90 (7.58%)
+- Max loss budget: $16.11 (7.45%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 64 minutes
-- Adverse move: 0.777%
+- Hold duration: 278 minutes
+- Adverse move: 1.532%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,26 +24,28 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 30%
+- Confidence: 40%
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: timestamp
 
-Missing key context: **When did you enter/exit?** (timing vs. CT sentiment shift), **what was the macro thesis?** (ETH strength vs. BTC dominance, macro headwinds), and **what did CT say at entry vs. exit?** (was sentiment diverging from your trade?).
+**Missing key context:** When did you enter (exact time/date)? What was CT sentiment at entry vs. exit? Did macro shift (Fed news, BTC dump, etc.) or was it pure liquidation cascade?
 
-That said — $59.93 loss on 10x leverage is tight risk management. If you entered into a sentiment peak (bullish CT without whale conviction) and exited into a dip, that's a classic retail-vs-whale timing mismatch. I'd need the exact timestamps to pull X sentiment from those hours and tell you if CT was warning or if macro just shifted.
+**Sentiment take:** If you entered during a local ETH rally and exited into a broader macro red, the trade thesis was sound — you just got shaken out by momentum. If CT was already bearish and you went long anyway, that's fighting the vibe, which is a different lesson.
 
-**Confidence: 0.3** (need entry/exit times + macro context to give real feedback).
+**What I need to audit this properly:** Your entry timestamp + what X was saying about ETH/macro at that exact moment. Then I can tell you if sentiment killed you or if it was just leverage + volatility.
+
+Confidence: 0.4 (incomplete data)
 
 ### Oracle
 
 - Lane: prediction market regime
 - Confidence: 30%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: timestamp
+- Missing data flags: condition_id
 
-**Missing critical context:** I need the entry timestamp, exit timestamp, and the Polymarket odds for ETH price at that time—without those, I can't assess whether the move was predictable from prediction-market pricing or a tail event. That said, a $1927→$1913 stop (14-point hit on 10x) suggests tight risk management, which is sound; the real question is whether Polymarket was pricing a higher probability of that drawdown *before* entry. If ETH weekly calls were trading 55%+ ITM at entry, the regime was already pricing volatility—if they were 30%, you got caught in an outlier. Pull the Poly odds snapshot from entry time and I can give you a sharp read on whether this was a regime miss or just risk-management execution.
+**Missing context:** What's the condition_id or Polymarket ETH contract you were tracking? Without the live odds (fair value vs. your entry), I can't tell if you got stopped into a regime shift or just hit volatility noise. **The math:** 2.3% loss on 10x is tight risk management—good discipline. **The question:** Was this a mismatch between Poly's fair value and your entry (edge gone), or did macro/sentiment flip (check Poly volume/spread into the close)? Grab the live odds for the contract you shorted and I'll tell you if the market repriced or you just got whipsawed.
 
-**Confidence: 0.3** (regime call requires market-price context I don't have).
+**Confidence: 0.3** (need market data to diagnose regime vs. noise).
 
 ### Solus
 
@@ -52,11 +54,7 @@ That said — $59.93 loss on 10x leverage is tight risk management. If you enter
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** What was your invalidation (the price level that would've told you "this trade is wrong")? And what timeframe were you targeting—intraday scalp or multi-day hold?
-
-**On mechanics:** 10x on a $1,927 entry with a $14.99 stop (0.78% risk) is tight for perps—you got shaken out fast. That's a structure problem, not a sizing problem. If ETH was consolidating and you were betting on a breakout, a 0.78% stop is too hair-trigger; you'd need either (a) a wider stop with smaller size, or (b) a clearer invalidation level (support/resistance) to justify the tight stop. The $59.93 loss itself is fine—it's the *ratio* (tight stop, high leverage, unclear thesis) that's the issue.
-
-**Call:** Next time
+**Missing critical context:** What was your thesis duration (1h/1d/2d hold?), and what triggered the stop—volatility spike or directional rejection? **On mechanics:** 10x leverage on a $1,924 entry with a $29.48 stop (1.5% buffer) is tight for ETH's intraday swings; you got shaken out. **Call:** For paper bot tuning, widen stops to 2–3% or size down leverage to 5x if thesis is <4h. $2,163 notional on 10x is aggressive for testing—dial it back, let winners run longer. **Confidence: 0.6** (structure sound, but missing hold duration and vol context makes precision hard).
 
 ## Root-Cause Tags
 
@@ -114,33 +112,33 @@ That said — $59.93 loss on 10x leverage is tight risk management. If you enter
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 64,
-  "adverseMovePct": 0.777,
+  "holdMinutes": 278,
+  "adverseMovePct": 1.532,
   "echoContext": {
-    "entryTimestampUtc": "2026-02-27T18:06:05.551Z",
-    "exitTimestampUtc": "2026-02-27T19:09:51.633Z",
+    "entryTimestampUtc": "2026-02-28T01:45:57.472Z",
+    "exitTimestampUtc": "2026-02-28T06:23:42.945Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-02-27T18:06:05.551Z",
-    "exitTimestampUtc": "2026-02-27T19:09:51.633Z"
+    "entryTimestampUtc": "2026-02-28T01:45:57.472Z",
+    "exitTimestampUtc": "2026-02-28T06:23:42.945Z"
   },
   "solusContext": {
     "assetClass": "crypto",
     "thesisClass": "momentum",
     "leverage": 10,
-    "stopDistancePct": 0.758,
-    "maxLossUsd": 54.9,
-    "maxLossPct": 7.58,
-    "entryAtrPct": 1.5156020942408377
+    "stopDistancePct": 0.745,
+    "maxLossUsd": 16.11,
+    "maxLossPct": 7.45,
+    "entryAtrPct": 1.4892146596858638
   },
   "agentContextMissing": {
     "Echo": [
       "timestamp"
     ],
     "Oracle": [
-      "timestamp"
+      "condition_id"
     ]
   },
   "contextCompletenessPct": 92.9,

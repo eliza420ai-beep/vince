@@ -57,7 +57,6 @@ export const clawtermCharacter: Character = {
       ? ["@elizaos/plugin-anthropic"]
       : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
-    ...(clawtermHasXToken ? ["@vince/plugin-x-research"] : []),
     ...(clawtermHasTavily ? ["@elizaos/plugin-web-search"] : []),
     ...(clawtermHasDiscord ? ["@elizaos/plugin-discord"] : []),
   ],

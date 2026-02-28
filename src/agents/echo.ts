@@ -286,7 +286,6 @@ PRICES — NEVER HALLUCINATE:
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     ...(echoHasDiscord ? ["@elizaos/plugin-discord"] : []),
     "@elizaos/plugin-discovery",
-    "@vince/plugin-x-research",
   ],
 
   settings: {

@@ -1,6 +1,8 @@
 /**
- * Proves the Hypersurface spot-prices flow: provider uses CoinGeckoService.getSimplePrices
- * and injects BTC, ETH, SOL, HYPE into state. Unit test with mock; e2e with real API.
+ * Proves the Hypersurface spot-prices flow:
+ * - Prefers Hyperliquid (HYPERLIQUID_SERVICE.getMarkPriceAndChange) when available.
+ * - Falls back to CoinGeckoService.getSimplePrices and injects BTC, ETH, SOL, HYPE into state.
+ * Unit tests with mocks; e2e with real CoinGecko API.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -35,6 +37,48 @@ function createRuntime(overrides: {
 
 describe("SOLUS_HYPERSURFACE_SPOT_PRICES provider", () => {
   describe("unit (mock service)", () => {
+    it("prefers Hyperliquid when HYPERLIQUID_SERVICE is available", async () => {
+      const hlPrices = {
+        bitcoin: 99_000,
+        ethereum: 4_000,
+        solana: 250,
+        hyperliquid: 30,
+      };
+      const getMarkPriceAndChange = vi.fn(
+        async (symbol: string): Promise<{ price: number } | null> => {
+          const map: Record<string, number> = {
+            BTC: hlPrices.bitcoin,
+            ETH: hlPrices.ethereum,
+            SOL: hlPrices.solana,
+            HYPE: hlPrices.hyperliquid,
+          };
+          const price = map[symbol];
+          return typeof price === "number" ? { price } : null;
+        },
+      );
+      const getService = vi.fn((name: string) =>
+        name === "HYPERLIQUID_SERVICE" ? { getMarkPriceAndChange } : null,
+      );
+      const setCache = vi.fn(async () => true);
+      const runtime = createRuntime({
+        getService,
+        getCache: async () => undefined,
+        setCache,
+      });
+
+      const result = await hypersurfaceSpotPricesProvider.get(
+        runtime,
+        createMessage("what strike for BTC?"),
+      );
+
+      expect(getService).toHaveBeenCalledWith("HYPERLIQUID_SERVICE");
+      expect(getMarkPriceAndChange).toHaveBeenCalledWith("BTC");
+      expect(result?.text).toContain("[Hypersurface spot USD]");
+      expect(result?.text).toMatch(/BTC \$99,000/);
+      expect(result?.values?.hypersurfaceSpotPrices).toEqual(hlPrices);
+      expect(setCache).toHaveBeenCalled();
+    });
+
     it("returns formatted text and values when service returns prices", async () => {
       const mockPrices = {
         bitcoin: 97_000,
@@ -69,7 +113,7 @@ describe("SOLUS_HYPERSURFACE_SPOT_PRICES provider", () => {
       expect(setCache).toHaveBeenCalled();
     });
 
-    it("returns empty when COINGECKO_SERVICE is missing", async () => {
+    it("returns empty when neither Hyperliquid nor COINGECKO_SERVICE is available", async () => {
       const runtime = createRuntime({ getService: () => null });
 
       const result = await hypersurfaceSpotPricesProvider.get(

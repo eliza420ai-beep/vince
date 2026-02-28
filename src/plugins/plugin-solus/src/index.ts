@@ -8,6 +8,8 @@ import type { IAgentRuntime, Plugin } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { hypersurfaceContextProvider } from "./providers/hypersurfaceContext.provider";
 import { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPrices.provider";
+import { solusSizingStateProvider } from "./providers/solusSizingState.provider";
+import { solusMarketContextProvider } from "./providers/solusMarketContext.provider";
 import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
 import { vinceOptionsInjectorProvider } from "./providers/vinceOptionsInjector.provider";
 import { vinceStrikeSuggestionProvider } from "./providers/vinceStrikeSuggestion.provider";
@@ -42,6 +44,8 @@ export const solusPlugin: Plugin = {
   providers: [
     hypersurfaceContextProvider,
     hypersurfaceSpotPricesProvider,
+    solusSizingStateProvider,
+    solusMarketContextProvider,
     solusStockPulseProvider,
     vinceOptionsInjectorProvider,
     vinceStrikeSuggestionProvider,
