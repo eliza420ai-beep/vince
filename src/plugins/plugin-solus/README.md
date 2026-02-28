@@ -4,23 +4,26 @@ Hypersurface expertise for Solus: mechanics, strike ritual, position assessment,
 
 ## Purpose
 
-- **Providers:** (1) Hypersurface cheat sheet (mechanics) and (2) real-time spot prices (BTC, ETH, SOL, HYPE) via **plugin-coingecko**, so Solus always has current USD levels for strike and position advice.
+- **Providers:** (1) Hypersurface cheat sheet (mechanics) and (2) real-time spot prices (BTC, ETH, SOL, HYPE) from **Hyperliquid when available**, falling back to **plugin-coingecko**, so Solus always has current USD levels for strike and position advice.
 - **Actions:** Four Solus-only actions that fire on key intents and return structured, benefit-led responses.
 - **Solus edge:** Solus makes money only with a good strike and good weekly bull/bear sentiment; the context provider and action prompts reinforce this (weekly framing, spot prices from context).
 - **Three curves:** Solus is the **right curve** (options income + execution); for direction/user data he directs to Vince (left curve) and expects pasted context.
 
 ## Dependencies
 
-- **plugin-coingecko** must be loaded before plugin-solus (e.g. on Solus agent). It provides `COINGECKO_SERVICE`; the spot-prices provider calls `getSimplePrices(["bitcoin","ethereum","solana","hyperliquid"])` and caches results for 60s.
+- **Hyperliquid service (optional):** When a `HYPERLIQUID_SERVICE` is present on the runtime, the spot-prices provider calls `getMarkPriceAndChange("BTC" | "ETH" | "SOL" | "HYPE")` and uses those prices as the primary source.
+- **plugin-coingecko** should be loaded when Hyperliquid is not available or for redundancy. It provides `COINGECKO_SERVICE`; the spot-prices provider calls `getSimplePrices(["bitcoin","ethereum","solana","hyperliquid"])` and caches results for 60s.
 
 ## Components
 
 ### Providers
 
-| Name                             | Purpose                                                                                                    |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `SOLUS_HYPERSURFACE_CONTEXT`     | Injects Hypersurface mechanics into state (position -5). No API calls; fixed text.                         |
-| `SOLUS_HYPERSURFACE_SPOT_PRICES` | Real-time USD spot for BTC, ETH, SOL, HYPE from CoinGecko (via plugin-coingecko). Position -4. Cached 60s. |
+| Name                             | Purpose                                                                                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SOLUS_HYPERSURFACE_CONTEXT`     | Injects Hypersurface mechanics into state (position -5). No API calls; fixed text.                                                           |
+| `SOLUS_HYPERSURFACE_SPOT_PRICES` | Real-time USD spot for BTC, ETH, SOL, HYPE from Hyperliquid when available, else CoinGecko. Position -4. Cached 60s.                         |
+| `SOLUS_SIZING_STATE`             | Parses `knowledge/private/solus-options-sizing.md` into Solus wheel/sizing state (BTC/HYPE/SOL etc.). Injects human-readable summary + JSON. |
+| `SOLUS_MARKET_CONTEXT`           | Wraps `VINCE_MARKET_DATA_SERVICE` so Solus sees spot, 24h move, regime, volume, ATR/DVOL for BTC/ETH/SOL/HYPE.                               |
 
 ### Actions
 
@@ -35,9 +38,9 @@ All actions validate that the runtime character name is `Solus` so the plugin is
 
 ## Boundaries
 
-- **Data boundary:** Solus does **not** have funding, IV, or sentiment APIs; he has **spot (CoinGecko) and mechanics** only. He **cannot** get a pulse on where BTC, ETH, SOL, HYPE will land by each Friday on his own. **Where price lands by Friday** = from **pasted context** (VINCE options view, Grok daily) or the **user's view**. Strike calls are structure/strike + invalidation; for direction, user pastes VINCE output.
+- **Data boundary:** Solus does **not** have funding, IV, or sentiment APIs on his own; he has **spot + mechanics + sizing state** only. He **cannot** get a pulse on where BTC, ETH, SOL, HYPE will land by each Friday on his own. **Where price lands by Friday** = from **pasted context** (VINCE options view, Grok daily) or the **user's view**. Strike calls are structure/strike + invalidation; for direction, user pastes VINCE output.
 - **Options/IV data:** Plugin does not call Deribit or Hypersurface. Options data comes from state (provider + RAG) and the LLM; live options/IV stays in VINCE (user says "options" to VINCE or pastes into Solus).
-- **Spot prices:** Real-time BTC, ETH, SOL, HYPE come from **plugin-coingecko** (CoinGecko `/simple/price`). If the service is missing, the spot-prices provider returns nothing and Solus still has mechanics context. Action prompts instruct the model to use spot prices from context (e.g. "[Hypersurface spot USD]") when present and to frame calls in terms of **weekly** outcome (expiry Friday), not intraday.
+- **Spot prices:** Real-time BTC, ETH, SOL, HYPE come from **Hyperliquid** (perps venue) when `HYPERLIQUID_SERVICE` is configured; otherwise they fall back to **plugin-coingecko** (CoinGecko `/simple/price`). If neither service is available, the spot-prices provider returns nothing and Solus still has mechanics context. Action prompts instruct the model to use spot prices from context (e.g. "[Hypersurface spot USD]") when present and to frame calls in terms of **weekly** outcome (expiry Friday), not intraday.
 - **vincePluginNoX:** Solus still loads vincePluginNoX for ASK_AGENT and in-conversation options data. Plugin-solus adds the Hypersurface-specific layer on top. See knowledge/teammate/THREE-CURVES.md for left/mid/right framing.
 
 ## How to extend

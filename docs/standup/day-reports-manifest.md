@@ -53,3 +53,4 @@
 | 2026-02-26 | BTC up 4% to $68K while fear index stays at 11—classic accumulation setup with i | [View](day-reports/2026-02-26-day-report.md) |
 | 2026-02-26 | Fear index hit 11 (extreme) but ETF inflows still green—classic reversal setup b | [View](day-reports/2026-02-26-day-report.md) |
 | 2026-02-27 | Fear index hit 13 (extreme) but ETF inflows still green—classic reversal setup b | [View](day-reports/2026-02-27-day-report.md) |
+| 2026-02-28 | Fear hit 13 but ETF inflows still strong ($507M BTC) — classic reversal setup br | [View](day-reports/2026-02-28-day-report.md) |

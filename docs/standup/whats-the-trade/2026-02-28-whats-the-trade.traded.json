@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-28",
+  "thesis": "Defense spending acceleration creates a PLTR breakout while NVDA faces AI capex slowdown fears, setting up a relative strength trade.",
+  "primaryTicker": "PLTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 65,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "PLTR < $60",
+  "killConditions": [
+    "NVDA +20% on earnings",
+    "NVDA reports blowout guidance reigniting AI euphoria"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "NVDA",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 15
+}

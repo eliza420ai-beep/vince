@@ -86,6 +86,37 @@ interface QualityBreakdown {
   escalate: boolean;
 }
 
+interface EchoContext {
+  entryTimestampUtc: string;
+  exitTimestampUtc?: string;
+  sentimentScore?: number;
+  regime?: string;
+}
+
+interface OracleContext {
+  entryTimestampUtc: string;
+  exitTimestampUtc?: string;
+  conditionId?: string;
+}
+
+interface SolusContext {
+  assetClass: PtqgAssetClass;
+  thesisClass: PtqgThesisClass;
+  leverage: number;
+  stopDistancePct: number;
+  maxLossUsd: number;
+  maxLossPct: number;
+  entryAtrPct?: number;
+}
+
+interface LaneContexts {
+  echo: EchoContext;
+  oracle: OracleContext;
+  solus: SolusContext;
+}
+
+type RegimeVsExecution = "regime_miss" | "execution_miss" | "unclear";
+
 interface StructuredPostMortem {
   ptqg: PtqgMeta;
   evidence: EvidencePack;
@@ -95,6 +126,10 @@ interface StructuredPostMortem {
   actions: CorrectiveAction[];
   quality: QualityBreakdown;
   nextTradePolicyDelta: string[];
+  laneContexts: LaneContexts;
+  agentContextMissing: Record<string, string[]>;
+  contextCompletenessPct: number;
+  regimeVsExecution: RegimeVsExecution;
 }
 
 /**
@@ -562,6 +597,121 @@ function scorePostMortem(
   };
 }
 
+function buildLaneContexts(
+  position: Position,
+  ptqg: PtqgMeta,
+  evidence: EvidencePack,
+): LaneContexts {
+  const meta = (position.metadata ?? {}) as Record<string, unknown>;
+  const sentimentScore = toNum(meta.sentimentScore);
+  const regime =
+    typeof meta.regime === "string"
+      ? meta.regime.trim() || undefined
+      : undefined;
+  const conditionId =
+    typeof meta.polymarketConditionId === "string"
+      ? meta.polymarketConditionId.trim() || undefined
+      : undefined;
+
+  const exitTimestampUtc =
+    typeof position.closedAt === "number"
+      ? new Date(position.closedAt).toISOString()
+      : undefined;
+
+  return {
+    echo: {
+      entryTimestampUtc: ptqg.entryTimestampUtc,
+      exitTimestampUtc,
+      sentimentScore: sentimentScore ?? undefined,
+      regime,
+    },
+    oracle: {
+      entryTimestampUtc: ptqg.entryTimestampUtc,
+      exitTimestampUtc,
+      conditionId,
+    },
+    solus: {
+      assetClass: ptqg.assetClass,
+      thesisClass: ptqg.thesisClass,
+      leverage: ptqg.leverage,
+      stopDistancePct: ptqg.stopDistancePct,
+      maxLossUsd: ptqg.maxLossUsd,
+      maxLossPct: ptqg.maxLossPct,
+      entryAtrPct: evidence.entryAtrPct,
+    },
+  };
+}
+
+function collectAgentContextMissing(
+  findings: AgentFinding[],
+): Record<string, string[]> {
+  const byAgent: Record<string, Set<string>> = {};
+  for (const f of findings) {
+    if (!f.missingData || f.missingData.length === 0) continue;
+    if (!byAgent[f.agent]) {
+      byAgent[f.agent] = new Set<string>();
+    }
+    for (const flag of f.missingData) {
+      if (flag && flag.trim()) {
+        byAgent[f.agent].add(flag.trim());
+      }
+    }
+  }
+
+  const out: Record<string, string[]> = {};
+  for (const [agent, flags] of Object.entries(byAgent)) {
+    out[agent] = Array.from(flags);
+  }
+  return out;
+}
+
+function computeContextCompleteness(laneContexts: LaneContexts): number {
+  const values: unknown[] = [];
+
+  const pushValues = (obj: Record<string, unknown>) => {
+    for (const value of Object.values(obj)) {
+      values.push(value);
+    }
+  };
+
+  pushValues(laneContexts.echo as unknown as Record<string, unknown>);
+  pushValues(laneContexts.oracle as unknown as Record<string, unknown>);
+  pushValues(laneContexts.solus as unknown as Record<string, unknown>);
+
+  const total = values.length;
+  if (total === 0) return 0;
+
+  let present = 0;
+  for (const v of values) {
+    if (
+      v !== undefined &&
+      v !== null &&
+      (typeof v !== "string" || v.trim().length > 0)
+    ) {
+      present += 1;
+    }
+  }
+
+  const pct = (present / total) * 100;
+  return Number(Math.max(0, Math.min(100, pct)).toFixed(1));
+}
+
+function classifyRegimeVsExecution(
+  primary: PostMortemCause,
+): RegimeVsExecution {
+  if (primary === "regime_conflict") {
+    return "regime_miss";
+  }
+  if (
+    primary === "sizing_too_aggressive" ||
+    primary === "stop_too_tight_for_vol" ||
+    primary === "execution_or_slippage"
+  ) {
+    return "execution_miss";
+  }
+  return "unclear";
+}
+
 export function buildStructuredPostMortem(
   position: Position,
   findings: AgentFinding[],
@@ -595,6 +745,11 @@ export function buildStructuredPostMortem(
       : "No temporary leverage override required.",
   ];
 
+  const laneContexts = buildLaneContexts(position, ptqg, evidence);
+  const agentContextMissing = collectAgentContextMissing(findings);
+  const contextCompletenessPct = computeContextCompleteness(laneContexts);
+  const regimeVsExecution = classifyRegimeVsExecution(primaryCause);
+
   return {
     ptqg,
     evidence,
@@ -604,6 +759,10 @@ export function buildStructuredPostMortem(
     actions,
     quality,
     nextTradePolicyDelta,
+    laneContexts,
+    agentContextMissing,
+    contextCompletenessPct,
+    regimeVsExecution,
   };
 }
 
@@ -626,6 +785,12 @@ export function renderPostMortemMarkdown(
       missingData: structured.evidence.missingData,
       holdMinutes: structured.evidence.holdMinutes,
       adverseMovePct: structured.evidence.adverseMovePct,
+      echoContext: structured.laneContexts.echo,
+      oracleContext: structured.laneContexts.oracle,
+      solusContext: structured.laneContexts.solus,
+      agentContextMissing: structured.agentContextMissing,
+      contextCompletenessPct: structured.contextCompletenessPct,
+      regimeVsExecution: structured.regimeVsExecution,
     },
     null,
     2,
@@ -683,6 +848,8 @@ export function renderPostMortemMarkdown(
     `- Quality score: ${structured.quality.total}/100`,
     `- Escalate to Sentinel: ${structured.quality.escalate}`,
     `- Score breakdown: completeness=${structured.quality.completeness}, evidence=${structured.quality.evidenceQuality}, diagnosis=${structured.quality.diagnosisDepth}, actionability=${structured.quality.actionability}, ownership=${structured.quality.ownershipClarity}`,
+    `- Context completeness: ${structured.contextCompletenessPct}%`,
+    `- Regime vs execution: ${structured.regimeVsExecution}`,
     "",
     "## What changes on next trade?",
     "",
@@ -697,6 +864,7 @@ export function renderPostMortemMarkdown(
     `- PM_PTQG_COMPLETE: ${structured.evidence.ptqgComplete}`,
     `- PM_PMEP_COMPLETENESS_PCT: ${structured.evidence.pmevCompletenessPct}`,
     `- PM_MISSING_DATA_COUNT: ${structured.evidence.missingData.length}`,
+    `- PM_CONTEXT_COMPLETENESS_PCT: ${structured.contextCompletenessPct}`,
     "",
     "```json",
     machineJson,

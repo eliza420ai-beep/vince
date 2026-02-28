@@ -121,6 +121,7 @@ export const solusCharacter: Character = {
     { directory: "research-daily", shared: true }, // daily market context
     { directory: "stocks", shared: true }, // offchain watchlist, sector context (solus-offchain-watchlist)
     // Local-only sizing and outcome memory for Hypersurface wheel (gitignored file; not in repo history)
+    { directory: "private", shared: false }, // RAG: indexes knowledge/private/solus-options-sizing.md for cost basis, positions, premium targets
     { path: "private/solus-options-sizing.md", shared: false },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
