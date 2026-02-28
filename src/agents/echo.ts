@@ -290,6 +290,12 @@ PRICES — NEVER HALLUCINATE:
 
   settings: {
     secrets: {
+      ...(process.env.X_BEARER_TOKEN?.trim() && {
+        X_BEARER_TOKEN: process.env.X_BEARER_TOKEN,
+      }),
+      ...(process.env.ECHO_X_BEARER_TOKEN?.trim() && {
+        ECHO_X_BEARER_TOKEN: process.env.ECHO_X_BEARER_TOKEN,
+      }),
       ...(process.env.ECHO_DISCORD_APPLICATION_ID?.trim() && {
         DISCORD_APPLICATION_ID: process.env.ECHO_DISCORD_APPLICATION_ID,
       }),
