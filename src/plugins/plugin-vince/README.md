@@ -242,7 +242,7 @@ flowchart TB
 | `VincePositionManagerService` | Position tracking, P&L updates                       |
 | `VinceRiskManagerService`     | Circuit breakers, session filters                    |
 | `VinceTradeJournalService`    | Trade history, signal performance                    |
-| `VinceGoalTrackerService`     | KPI tracking ($420/day, $10K/month)                  |
+| `VinceGoalTrackerService`     | KPI tracking ($690/day, ~$15K/month)                 |
 | `VinceAlertService`           | Multi-source alert detection                         |
 
 #### ML Enhancement Services (4) - V4
@@ -399,8 +399,8 @@ From `services/goalTracker.service.ts`:
 
 ```typescript
 const TRADING_GOALS = {
-  dailyTarget: 420, // $420/day
-  monthlyTarget: 10000, // $10K/month
+  dailyTarget: 690, // $690/day
+  monthlyTarget: 15180, // ~$15K/month
   maxDailyLoss: 200, // Stop trading after $200 loss
   maxDrawdown: 0.15, // 15% portfolio drawdown circuit breaker
 };

@@ -11,15 +11,15 @@ import { CORE_ASSETS, HIP3_ASSETS, ALL_TRACKED_ASSETS } from "./targetAssets";
 
 // ==========================================
 // Trading Goal / KPI Configuration
-// Core KPI: $10,000/month = ~$420/day
+// Core KPI: ~$15,180/month = $690/day (assuming ~22 trading days)
 // ==========================================
 
 export const DEFAULT_TRADING_GOAL: TradingGoal = {
-  /** Target $420/day to hit $10K/month (assuming ~24 trading days) */
-  dailyTarget: 420,
+  /** Target $690/day (assuming ~22 trading days) */
+  dailyTarget: 690,
 
   /** Monthly profit target */
-  monthlyTarget: 10_000,
+  monthlyTarget: 15_180,
 
   /** Risk 1.5% of capital per trade (conservative) */
   riskPerTradePct: 1.5,
@@ -134,8 +134,8 @@ export const DEFAULT_RISK_LIMITS: RiskLimits = {
   /** Maximum 10% of portfolio per position */
   maxPositionSizePct: 10,
 
-  /** Maximum 30% total exposure */
-  maxTotalExposurePct: 30,
+  /** Maximum 50% of capital deployed (e.g. up to $50K of $100K) */
+  maxTotalExposurePct: 50,
 
   /** Maximum 5x leverage */
   maxLeverage: 5,

@@ -138,7 +138,7 @@ describe("Why the paper bot may open few trades", () => {
   });
 
   it("gate: validateTrade enforces maxTotalExposurePct and maxPositionSizePct", () => {
-    expect(DEFAULT_RISK_LIMITS.maxTotalExposurePct).toBe(30);
+    expect(DEFAULT_RISK_LIMITS.maxTotalExposurePct).toBe(50);
     expect(DEFAULT_RISK_LIMITS.maxPositionSizePct).toBe(10);
   });
 

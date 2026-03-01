@@ -2,8 +2,8 @@
  * VINCE Goal Tracker Service
  *
  * Tracks trading performance against KPI goals:
- * - Daily target: $420
- * - Monthly target: $10,000
+ * - Daily target: $690
+ * - Monthly target: $15,180 (~22 trading days)
  *
  * Provides:
  * - Capital requirements calculation
