@@ -104,13 +104,14 @@ export const characterProvider: Provider = {
       : character.messageExamples
           .sort(() => 0.5 - Math.random())
           .slice(0, 5)
-          .map((example) => {
+          .map((group) => {
+            const example = group.examples ?? [];
             const exampleNames = Array.from({ length: 5 }, () =>
               Math.random().toString(36).substring(2, 8),
             );
 
             return example
-              .map((message) => {
+              .map((message: { name: string; content: { text: string; action?: string; actions?: string[] } }) => {
                 let messageString = `${message.name}: ${message.content.text}${
                   message.content.action || message.content.actions
                     ? ` (actions: ${message.content.action || message.content.actions?.join(", ")})`

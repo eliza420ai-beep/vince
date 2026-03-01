@@ -175,7 +175,7 @@ export const xNewsAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
+    _options?: unknown,
     callback: HandlerCallback,
   ): Promise<ActionResult | void> => {
     try {

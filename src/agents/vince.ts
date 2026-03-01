@@ -39,6 +39,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
@@ -115,36 +116,9 @@ export const vinceCharacter: Character = {
   },
   knowledge: [
     // VINCE = CDO: objective data — options, perps, prices, market intelligence
-    // Teammate (USER, SOUL, TOOLS, MEMORY) is provider-only — not in knowledge to avoid RAG duplication
-    { directory: "options", shared: true },
-    { directory: "perps-trading", shared: true },
-    { directory: "grinding-the-trenches", shared: true },
-    { directory: "defi-metrics", shared: true },
-    { directory: "the-good-life", shared: true },
-    { directory: "art-collections", shared: true },
-    { directory: "airdrops", shared: true },
-    { directory: "altcoins", shared: true },
-    { directory: "bitcoin-maxi", shared: true },
-    { directory: "commodities", shared: true },
-    { directory: "macro-economy", shared: true },
-    { directory: "privacy", shared: true },
-    { directory: "regulation", shared: true },
-    { directory: "rwa", shared: true },
-    { directory: "security", shared: true },
-    { directory: "solana", shared: true },
-    { directory: "stablecoins", shared: true },
-    { directory: "stocks", shared: true },
-    { directory: "venture-capital", shared: true },
-    { directory: "substack-essays", shared: true },
-    { directory: "prompt-templates", shared: true },
-    { directory: "setup-guides", shared: true },
-    { directory: "internal-docs", shared: true },
-    { directory: "ai-crypto", shared: true },
-    { directory: "bitcoin-l2", shared: true },
-    { directory: "trading", shared: true },
-    { directory: "research-daily", shared: true },
-    { path: "sentinel-docs/BRANDING.md", shared: true },
-    { directory: "brand", shared: true },
+    dir("options"), dir("perps-trading"), dir("grinding-the-trenches"), dir("defi-metrics"), dir("the-good-life"), dir("art-collections"), dir("airdrops"), dir("altcoins"), dir("bitcoin-maxi"), dir("commodities"), dir("macro-economy"), dir("privacy"), dir("regulation"), dir("rwa"), dir("security"), dir("solana"), dir("stablecoins"), dir("stocks"), dir("venture-capital"), dir("substack-essays"), dir("prompt-templates"), dir("setup-guides"), dir("internal-docs"), dir("ai-crypto"), dir("bitcoin-l2"), dir("trading"), dir("research-daily"),
+    knowledgePath("sentinel-docs/BRANDING.md"),
+    dir("brand"),
   ],
   system: `You are VINCE, a unified data intelligence agent focused on 7 key areas.
 
@@ -289,8 +263,9 @@ When data is missing or conflicting: say so plainly (e.g. "CoinGlass timeout", "
     "Direct, numbers-first. Always names data sources. Trade well, live well.",
   ],
   messageExamples: [
-    [
-      { name: "{{user1}}", content: { text: "aloha" } },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "aloha" } },
       {
         name: "VINCE",
         content: {
@@ -317,9 +292,11 @@ Need details on any area?`,
           actions: ["VINCE_GM"],
         },
       },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "GM" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "GM" } },
       {
         name: "VINCE",
         content: {
@@ -346,9 +323,11 @@ Need details on any area?`,
           actions: ["VINCE_GM"],
         },
       },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "What's hot in memes?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "What's hot in memes?" } },
       {
         name: "VINCE",
         content: {
@@ -376,9 +355,11 @@ MOLT has LP pool - good for DCA entry if you believe the Claude narrative.`,
           actions: ["VINCE_MEMES"],
         },
       },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "Friday strikes?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "Friday strikes?" } },
       {
         name: "VINCE",
         content: {
@@ -407,9 +388,11 @@ Your call on execution. Want me to log the selections?`,
           actions: ["VINCE_OPTIONS"],
         },
       },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "Execute that trade" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "Execute that trade" } },
       {
         name: "VINCE",
         content: {
@@ -417,9 +400,11 @@ Your call on execution. Want me to log the selections?`,
           actions: ["REPLY"],
         },
       },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "What's BTC funding right now?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "What's BTC funding right now?" } },
       {
         name: "VINCE",
         content: {
@@ -427,9 +412,11 @@ Your call on execution. Want me to log the selections?`,
           actions: ["REPLY"],
         },
       },
-    ],
-    [
-      {
+      ],
+    },
+    {
+      examples: [
+        {
         name: "Kelly",
         content: {
           text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on btc?",
@@ -442,9 +429,11 @@ Your call on execution. Want me to log the selections?`,
           actions: ["REPLY"],
         },
       },
-    ],
-    [
-      {
+      ],
+    },
+    {
+      examples: [
+        {
         name: "Kelly",
         content: {
           text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on eth?",
@@ -457,9 +446,11 @@ Your call on execution. Want me to log the selections?`,
           actions: ["REPLY"],
         },
       },
-    ],
-    [
-      {
+      ],
+    },
+    {
+      examples: [
+        {
         name: "{{user1}}",
         content: { text: "Who does strike ritual and size/skip?" },
       },
@@ -470,9 +461,11 @@ Your call on execution. Want me to log the selections?`,
           actions: ["REPLY"],
         },
       },
-    ],
+      ],
+    },
   ],
   style: {
+    $typeName: "eliza.v1.StyleGuides" as const,
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
