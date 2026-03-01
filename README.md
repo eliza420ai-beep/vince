@@ -286,7 +286,7 @@ bun start              # production (Postgres when POSTGRES_URL set)
 ## Features
 
 - **ALOHA** — One command: vibe check + PERPS + OPTIONS + "trade today?"
-- **Self-evolving paper bot** — Signals, trades, feature store, Python train, ONNX deploy, genome mutation, regime-aware sizing. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rules keep the bot running when models are missing.
+- **Self-evolving paper bot** — Signals, trades, feature store, Python train, ONNX deploy, genome mutation, regime-aware sizing. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rules keep the bot running when models are missing. **Env tuning:** ML threshold, swarm min confidence, aggressive margin/size (see Paper Bot & ML).
 - **Strategy genome** — 15+ tunable parameters mutate weekly, replay against history, auto-promote the best variant by Sharpe and drawdown.
 - **Regime profiles** — Five market personalities auto-switch risk limits, sizing, and signal thresholds based on Oracle regime, Echo sentiment, and technicals.
 - **Execution graduation** — Otaku earns trust through four levels (paper → notify → confirm → auto), demoted by circuit breakers.
@@ -302,9 +302,23 @@ bun start              # production (Postgres when POSTGRES_URL set)
 
 ## Paper Bot & ML
 
-The 12-phase roadmap built this loop; the algo (gates, open/skip, feature store) and the ML pipeline (train → ONNX → report → Sentinel) are documented in [PRD: Paper Trading Algo and ML](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) and [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md). Signals flow into trades, trades flow into the feature store, the feature store feeds Python training, and ONNX models deploy back to the bot. Four models: signal quality, position sizing, TP optimizer, SL optimizer. When models are missing, rules keep it running.
+The 12-phase roadmap built this loop; the algo (gates, open/skip, feature store) and the ML pipeline (train → ONNX → report → Sentinel) are documented in [PRD: Paper Trading Algo and ML](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) and [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md). Signals flow into trades, trades flow into the feature store, the feature store feeds Python training, and ONNX models deploy back to the bot. Four models: signal quality, position sizing, TP optimizer, SL optimizer. When models are missing, **rule-based fallbacks** keep it running (e.g. 60% signal-quality threshold, 0.5–2× position size). The dashboard’s “100 trades processed” is the **Weight Bandit** (Thompson Sampling) count of **closed** trades; ONNX stays “None loaded” until you run training and place the `.onnx` files (and `training_metadata.json`) in `.elizadb/vince-paper-bot/models/` (or the configured models dir).
 
 **VinceBench** scores every closed trade on process quality (signal, risk, timing, regime). The score trains the signal-quality model to learn more from high-quality decisions.
+
+### Paper bot tuning (env)
+
+Tune no-trades vs margin/size without code changes. In `.env` (see `.env.example`):
+
+| Env var | Purpose |
+|--------|--------|
+| `VINCE_ML_SIGNAL_QUALITY_THRESHOLD` | 0–1. Override ML signal-quality threshold; lower = more trades (e.g. `0.5` when rule-based 60% is too strict). |
+| `VINCE_SWARM_ENABLED` | `true` / `false`. Enable swarm consensus gating in the trade loop. |
+| `VINCE_SWARM_MIN_CONFIDENCE` | 0–1 (default `0.5`). Min swarm consensus to allow a trade; lower = more trades. |
+| `VINCE_AGGRESSIVE_MARGIN_USD` | Fixed margin per trade in aggressive mode (default `1000`). Increase for larger paper size. |
+| `VINCE_AGGRESSIVE_BASE_SIZE_PCT` | Base size as % of portfolio when portfolio &lt; margin (default `12`). |
+
+Many “no trade” outcomes come from ML quality below threshold, X sentiment not meeting 40% or neutral, confidence/strength below min, or swarm consensus below the min. Use these vars to relax gates for more paper volume or raise margin/size when you want larger positions.
 
 The **strategy genome** adds a second improvement loop: every week, the genome mutates 15+ parameters, replays against historical feature-store data, ranks variants by Sharpe ratio and max drawdown, and promotes the winner. Regime profiles shift the genome's risk limits and sizing multipliers based on the current market personality.
 
@@ -314,7 +328,7 @@ The **strategy genome** adds a second improvement loop: every week, the genome m
 bun run train-models -- --bench-score-weight
 ```
 
-Or with recency weighting: `bun run train-models:recency`. Restart the agent after training.
+Or with recency weighting: `bun run train-models:recency`. Output goes to `.elizadb/vince-paper-bot/models/` by default; restart the agent so the inference service loads the new ONNX and `training_metadata.json`.
 
 ### Validate ML improvement
 

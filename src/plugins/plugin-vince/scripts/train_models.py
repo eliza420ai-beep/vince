@@ -386,32 +386,31 @@ def _add_common_features(
     for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
         if opt in df_trades.columns:
             feature_cols.append(opt)
-    # News macro risk one-hot
+    # Build all new derived columns in one block to avoid DataFrame fragmentation (PerformanceWarning).
+    extra: Dict[str, pd.Series] = {}
     if "news_macroRiskEnvironment" in df_trades.columns:
-        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
-        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
+        extra["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
+        extra["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
         feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
-    # Volatility regime — binary (high) for signal quality
     if include_regime_binary and "regime_volatilityRegime" in df_trades.columns:
-        df_trades["regime_volatility_high"] = (df_trades["regime_volatilityRegime"] == "high").astype(int)
+        extra["regime_volatility_high"] = (df_trades["regime_volatilityRegime"] == "high").astype(int)
         feature_cols.append("regime_volatility_high")
-    # Volatility regime — ordinal for position sizing / TP / SL
     if include_regime_ordinal and "regime_volatilityRegime" in df_trades.columns:
-        df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
+        extra["volatility_level"] = df_trades["regime_volatilityRegime"].map(
             {"low": 0, "normal": 1, "high": 2}
         ).fillna(1)
         feature_cols.append("volatility_level")
-    # Market regime (bullish/bearish) — binary for signal quality
     if include_regime_binary and "regime_marketRegime" in df_trades.columns:
-        df_trades["regime_bullish"] = (df_trades["regime_marketRegime"] == "bullish").astype(int)
-        df_trades["regime_bearish"] = (df_trades["regime_marketRegime"] == "bearish").astype(int)
+        extra["regime_bullish"] = (df_trades["regime_marketRegime"] == "bullish").astype(int)
+        extra["regime_bearish"] = (df_trades["regime_marketRegime"] == "bearish").astype(int)
         feature_cols.extend(["regime_bullish", "regime_bearish"])
-    # Market regime — ordinal for TP/SL
     if include_market_regime and "regime_marketRegime" in df_trades.columns:
-        df_trades["market_regime_num"] = df_trades["regime_marketRegime"].map(
+        extra["market_regime_num"] = df_trades["regime_marketRegime"].map(
             {"bearish": -1, "neutral": 0, "bullish": 1}
         ).fillna(0)
         feature_cols.append("market_regime_num")
+    if extra:
+        df_trades = pd.concat([df_trades, pd.DataFrame(extra, index=df_trades.index)], axis=1)
     # Asset dummies
     if "asset" in df_trades.columns and df_trades["asset"].nunique() > 1:
         asset_dummies = pd.get_dummies(df_trades["asset"], prefix="asset")
@@ -1280,12 +1279,25 @@ def train_sl_optimizer_model(
 # ==========================================
 
 def _onnx_rename_io_for_runtime(onnx_model: "onnx.ModelProto", input_name: str = "input", output_name: str = "output") -> None:
-    """Rename graph input/output to 'input'/'output' for onnxruntime-node compatibility."""
+    """Rename graph input/output and all node references to 'input'/'output' for onnxruntime compatibility.
+    onnxmltools uses names like 'probabilities' or 'variable'; the graph must reference the same names as nodes."""
     g = onnx_model.graph
     if g.input:
-        g.input[0].name = input_name
+        old_in = g.input[0].name
+        if old_in != input_name:
+            for node in g.node:
+                for i, name in enumerate(node.input):
+                    if name == old_in:
+                        node.input[i] = input_name
+            g.input[0].name = input_name
     if g.output:
-        g.output[0].name = output_name
+        old_out = g.output[0].name
+        if old_out != output_name:
+            for node in g.node:
+                for i, name in enumerate(node.output):
+                    if name == old_out:
+                        node.output[i] = output_name
+            g.output[0].name = output_name
 
 
 def verify_onnx_inference(onnx_path: str, X_sample: pd.DataFrame, model_name: str, is_classifier: bool = True) -> bool:
@@ -1304,7 +1316,7 @@ def verify_onnx_inference(onnx_path: str, X_sample: pd.DataFrame, model_name: st
             logger.warning("ONNX smoke test %s: no numeric sample row", model_name)
             return False
         row = np.ascontiguousarray(sample.iloc[:1].values, dtype=np.float32)
-        out = session.run({input_name: row}, None)
+        out = session.run(None, {input_name: row})
         if not out or out[0] is None:
             logger.warning("ONNX smoke test %s: no output", model_name)
             return False
@@ -1633,7 +1645,7 @@ def _create_sentinel_tasks_from_report(report: Dict[str, Any], output_dir: Path)
 
     created = 0
     for i, t in enumerate(tasks):
-        slug = (t["title"].lower().replace(" ", "-").replace("_", "-")[:40].strip("-") or "ml-task")
+        slug = (t["title"].lower().replace(" ", "-").replace("_", "-").replace("/", "-")[:40].strip("-") or "ml-task")
         task_id = f"ml-{date_id}-{i + 1:03d}"
         branch = f"sentinel/{date_str}-ml-{slug[:25]}"
         obj = {
