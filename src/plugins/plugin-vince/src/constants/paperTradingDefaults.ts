@@ -330,6 +330,48 @@ export const TIMING = {
 // Assets
 // ==========================================
 
+/** Asset class for guardrail caps (PTQG/post-mortem). */
+export type PtqgAssetClass = "crypto" | "equity" | "commodity" | "other";
+
+/**
+ * Max leverage cap by asset class (guardrail layer).
+ * Applied as minimum of per-asset cap and this class cap.
+ * Override via VINCE_PAPER_MAX_LEVERAGE_EQUITY, _CRYPTO, _COMMODITY (env or runtime).
+ */
+export const ASSET_CLASS_MAX_LEVERAGE: Record<PtqgAssetClass, number> = {
+  crypto: 10,
+  equity: 5,
+  commodity: 5,
+  other: 5,
+};
+
+/**
+ * Get max leverage cap for an asset class (env overrides, else ASSET_CLASS_MAX_LEVERAGE).
+ */
+export function getAssetClassMaxLeverage(
+  assetClass: PtqgAssetClass,
+  runtime?: IAgentRuntime,
+): number {
+  const envKey =
+    assetClass === "equity"
+      ? "VINCE_PAPER_MAX_LEVERAGE_EQUITY"
+      : assetClass === "crypto"
+        ? "VINCE_PAPER_MAX_LEVERAGE_CRYPTO"
+        : assetClass === "commodity"
+          ? "VINCE_PAPER_MAX_LEVERAGE_COMMODITY"
+          : null;
+  if (envKey) {
+    const fromRuntime = runtime?.getSetting?.(envKey);
+    const fromEnv = process.env[envKey];
+    const raw = fromRuntime ?? fromEnv;
+    if (raw !== undefined && raw !== null) {
+      const n = Number(raw);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+  }
+  return ASSET_CLASS_MAX_LEVERAGE[assetClass];
+}
+
 /**
  * Asset-specific max leverage.
  * BTC: 40x (primary, most liquid). SOL, ETH, HYPE: 10x (higher volatility/risk).

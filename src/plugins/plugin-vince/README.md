@@ -447,7 +447,7 @@ Four ONNX models (plus the improvement report) drive sizing, entries, and exits.
 - **suggested_tuning.min_strength / min_confidence** → when the training script writes these (from profitable-trade percentiles), the bot rejects signals below them.
 - **holdout_metrics** (AUC/MAE/quantile loss) → written by training; logged by `run-improvement-weights.ts` when applying a new report.
 
-**Train → ONNX → deploy:** [scripts/train_models.py](scripts/train_models.py) trains on `.elizadb/vince-paper-bot/features/*.jsonl`, exports ONNX to `.elizadb/vince-paper-bot/models/`, and writes `training_metadata.json` + `improvement_report.md` (including **holdout_metrics**). Optional flags: `--recency-decay`, `--balance-assets`, `--tune-hyperparams`. From repo root: `bun run train-models`. Validation: [scripts/validate_ml_improvement.py](scripts/validate_ml_improvement.py); applying report: `run-improvement-weights.ts`. Eight tests in [scripts/test_train_models.py](scripts/test_train_models.py). After 90+ closed trades, re-run training; on next bot restart, new models and thresholds apply. See [ALGO_ML_IMPROVEMENTS.md](ALGO_ML_IMPROVEMENTS.md) and [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md). **What's the Trade:** The WTT standup rubric (alignment, edge, payoff, timing, invalidate) can feed into the feature store and training—see [docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](../../docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md).
+**Train → ONNX → deploy:** [scripts/train_models.py](scripts/train_models.py) trains on `.elizadb/vince-paper-bot/features/*.jsonl`, exports ONNX to `.elizadb/vince-paper-bot/models/`, and writes `training_metadata.json` + `improvement_report.md` (including **holdout_metrics**). Optional flags: `--recency-decay`, `--balance-assets`, `--tune-hyperparams`. From repo root: `bun run train-models`. Validation: [scripts/validate_ml_improvement.py](scripts/validate_ml_improvement.py); applying report: `run-improvement-weights.ts` (from repo root: `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run improvement-weights`). Eight tests in [scripts/test_train_models.py](scripts/test_train_models.py). After 90+ closed trades, re-run training; **restart the agent** to load the new threshold and suggested_tuning; optionally run improvement-weights to update aggregator source weights. See [ALGO_ML_IMPROVEMENTS.md](ALGO_ML_IMPROVEMENTS.md) and [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md). **What's the Trade:** The WTT standup rubric (alignment, edge, payoff, timing, invalidate) can feed into the feature store and training—see [docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](../../docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md).
 
 ---
 
@@ -834,6 +834,7 @@ This separation enables:
 # Hobbyist: $29/mo - No Hyperliquid whale data
 # Startup: $79/mo - Adds Hyperliquid whale alerts/positions (RECOMMENDED)
 # Standard: $299/mo - Full Hyperliquid data including wallet distributions
+# If the key is missing or the connection test times out after retries, the bot falls back to Binance free APIs; no code change required.
 COINGLASS_API_KEY=your_key_here
 
 # Optional - Nansen (100 free credits/month)

@@ -14,12 +14,12 @@
 
 ## Data we just started using (already wired)
 
-| Factor (suggested_signal_factors name) | Feature store field  | Source                                       | Status                               |
-| -------------------------------------- | -------------------- | -------------------------------------------- | ------------------------------------ |
-| OI change 24h                          | `market.oiChange24h` | CoinGlass `getOpenInterest(asset).change24h` | Populated in `collectMarketFeatures` |
-| DVOL / volatility index                | `market.dvol`        | MarketData `getDVOL(asset)` (Deribit)        | Populated                            |
-| RSI (14)                               | `market.rsi14`       | MarketData `estimateRSI(asset)`              | Populated                            |
-| (ATR already used)                     | `market.atrPct`      | MarketData `getATRPercent(asset)`            | Now live from Deribit when available |
+| Factor (suggested_signal_factors name) | Feature store field  | Source                                                                                                    | Status                                                                |
+| -------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| OI change 24h                          | `market.oiChange24h` | CoinGlass `getOpenInterest(asset).change24h`                                                              | Populated in `collectMarketFeatures`                                  |
+| DVOL / volatility index                | `market.dvol`        | MarketData `getDVOL(asset)` → Deribit (BTC/ETH only). Other assets: null unless a future source is wired. | Populated for BTC/ETH when Deribit is available; optional for others. |
+| RSI (14)                               | `market.rsi14`       | MarketData `estimateRSI(asset)`                                                                           | Populated                                                             |
+| (ATR already used)                     | `market.atrPct`      | MarketData `getATRPercent(asset)`                                                                         | Now live from Deribit when available                                  |
 
 Training script now includes `market_dvol`, `market_rsi14`, `market_oiChange24h` (and `market_atrPct` for position sizing) in the feature lists when present.
 
@@ -38,11 +38,11 @@ Training script now includes `market_dvol`, `market_rsi14`, `market_oiChange24h`
 
 ## Data still 0% or low % (optional next steps)
 
-| Factor                 | Feature store field                  | How to add                                                    |
-| ---------------------- | ------------------------------------ | ------------------------------------------------------------- |
-| NASDAQ 24h change      | `news.nasdaqChange`                  | Add macro/equity data source; set in `collectNewsFeatures()`. |
-| ETF flow (BTC/ETH)     | `news.etfFlowBtc`, `news.etfFlowEth` | Expose numeric flow from API and set in news features.        |
-| Macro risk environment | `news.macroRiskEnvironment`          | risk_on / risk_off / neutral from same macro source.          |
+| Factor                 | Feature store field                  | How to add                                                                                              |
+| ---------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| NASDAQ 24h change      | `news.nasdaqChange`                  | Add macro/equity data source; set in `collectNewsFeatures()`.                                           |
+| ETF flow (BTC/ETH)     | `news.etfFlowBtc`, `news.etfFlowEth` | **Wired:** NewsSentiment `getEtfFlowNumeric()` → -1/0/1 from headlines; set in `collectNewsFeatures()`. |
+| Macro risk environment | `news.macroRiskEnvironment`          | risk_on / risk_off / neutral from same macro source.                                                    |
 
 ---
 

@@ -1,6 +1,6 @@
 # Swarm Manual E2E Checklist (VINCE)
 
-Use this checklist after `bun start` to validate swarm behaviour in the UI without overpromising. It assumes the runtime flags described in `docs/SWARM_LEARNING_ARCHITECTURE.md` are available.
+**Run this checklist manually** after config or swarm changes (and after `bun start`) to validate swarm behaviour. No automation—a human walks through the modes below. It assumes the runtime flags described in `docs/SWARM_LEARNING_ARCHITECTURE.md` are available.
 
 ## Mode A – VINCE-only (swarm off)
 
@@ -80,7 +80,7 @@ Use this checklist after `bun start` to validate swarm behaviour in the UI witho
 
 # Swarm Manual E2E Checklist (VINCE)
 
-Use this checklist after `bun start` to validate swarm behaviour in the UI without overpromising. It assumes the runtime flags described in `docs/SWARM_LEARNING_ARCHITECTURE.md` are available.
+**Run this checklist manually** after config or swarm changes (and after `bun start`) to validate swarm behaviour. No automation—a human walks through the modes below. It assumes the runtime flags described in `docs/SWARM_LEARNING_ARCHITECTURE.md` are available.
 
 ## Mode A – VINCE-only (swarm off)
 

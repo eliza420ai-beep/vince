@@ -430,7 +430,7 @@ All environment variables are **optional** - the plugin works with free APIs by 
 
 ```bash
 # CoinGlass - Enhanced market data
-# Hobbyist: $29/mo, Startup: $79/mo (adds Hyperliquid whale data)
+# Hobbyist: $29/mo, Startup: $79/mo (adds Hyperliquid whale data). If key missing or connection test times out after retries, bot falls back to Binance free APIs.
 COINGLASS_API_KEY=your_key_here
 
 # Nansen - Smart money flows (100 credits/month free)

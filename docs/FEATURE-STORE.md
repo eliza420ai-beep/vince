@@ -115,7 +115,13 @@ When the paper bot **evaluates a signal but does not trade** (e.g. “SIGNAL EVA
   - **Filter in SQL/JSONL:** `payload->'avoided' IS NOT NULL` (Supabase) or filter in Python: `r.get('avoided')` to get “evaluated but no trade” rows.
   - **Possible uses:** (1) Train an “should we trade?” / avoid classifier. (2) Counterfactual analysis: e.g. “if we had traded this avoided signal, what would have happened?” using later price action. (3) Analytics: distribution of avoid reasons by regime, asset, or session.
 
-**What's the Trade integration:** Logic and rubric from the [What's the Trade](standup/whats-the-trade/) standup (alignment, edge, payoff, timing, invalidate conditions) can improve the paper bot and `train_models.py`—e.g. WTT-sourced feature fields, edge/liquidity proxies, invalidate-condition labels. See [standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md).
+**What's the Trade integration:** Logic and rubric from the [What's the Trade](standup/whats-the-trade/) standup (alignment, edge, payoff, timing, invalidate conditions) can improve the paper bot and `train_models.py`—e.g. WTT-sourced feature fields, edge/liquidity proxies, invalidate-condition labels. See [standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md). **WTT alignment and edge** (ordinals 1–5 and 1–4) are populated only for trades opened from the daily WTT pick; non-WTT trades have null `wtt` fields.
+
+**Post-mortem tags:** When an outcome is recorded, the feature store tries to match the trade (asset + date) to `postmortems.jsonl` (from `bun run postmortems:ingest`). If a post-mortem exists, the record gets optional `postMortemPrimaryCause` and `postMortemAssetClass`. These are in `OPTIONAL_FEATURE_COLUMNS` in `train_models.py` so you can filter or down-weight by root cause (e.g. sizing_too_aggressive, regime_conflict) in training or analysis.
+
+## TP level performance (improvement report)
+
+In the improvement report, **`tp_level_performance["0"]`** means **no TP hit**: the trade closed (stop, max age, or manual) before any take-profit level was reached. A high count and low win rate for level 0 suggests many trades are stopped out before the first TP; you can tighten the first TP (e.g. via `VINCE_TP_FIRST_MULTIPLIER`) so more trades reach at least TP1. Levels 1–3 are the actual TP targets (first, second, third R-multiple).
 
 ## Fee-aware PnL (net of costs)
 
@@ -139,7 +145,7 @@ Ways to get to 90+ closed trades (and more avoided snapshots) faster:
 
 ## When training runs (90+ trades)
 
-- **Automatic**: The plugin registers a recurring task `TRAIN_ONNX_WHEN_READY`. When the feature store has **90+ complete trades** (records with `outcome` and `labels`), the task runs the Python training script (at most once per 24h). Models are written to `.elizadb/vince-paper-bot/models/`; the ML Inference Service loads them on next use.
+- **Automatic**: The plugin registers a recurring task `TRAIN_ONNX_WHEN_READY`. When the feature store has **90+ complete trades** (records with `outcome` and `labels`), the task runs the Python training script (at most once per 24h). Models are written to `.elizadb/vince-paper-bot/models/`; the ML Inference Service loads them on next use. If `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true`, the task also applies source weights from the improvement report after each successful run (recursive improvement loop; see [README](../../README.md) and [ML_IMPROVEMENT_PROOF.md](../src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md)).
 - **Manual**: From repo root:
   ```bash
   python3 src/plugins/plugin-vince/scripts/train_models.py \

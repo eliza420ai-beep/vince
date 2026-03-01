@@ -9,6 +9,18 @@ rules:
     action: "block"
     level: "hard"
 
+  - id: "max-daily-trades"
+    description: "Cap number of trades opened per day (paper: VINCE_PAPER_MAX_DAILY_TRADES; unset = no cap)"
+    condition: "tradesToday >= maxDailyTrades"
+    action: "block"
+    level: "hard"
+
+  - id: "max-open-positions"
+    description: "Cap number of concurrent open positions (paper: VINCE_PAPER_MAX_OPEN_POSITIONS; unset = no cap)"
+    condition: "openPositionCount >= maxOpenPositions"
+    action: "block"
+    level: "hard"
+
   - id: "min-confidence-live"
     description: "Minimum signal confidence for any live trade"
     condition: "executionType == live AND confidence < 65"

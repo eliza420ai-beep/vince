@@ -46,13 +46,20 @@ _From terminal and logs (e.g. 2026-03-01):_
    Paper bucket caps a single trade at `maxSingleTradeUsd` (default 10k). For high-notional assets (BTC, index products like XYZ100, US500), requested size (e.g. aggressive margin × leverage) often exceeds 10k, so the policy engine blocks. **Improvement:** Either cap requested size to bucket max before policy (so we don’t spam “blocked”), or make the limit configurable per asset / document it in the dashboard so “blocked” is expected for those symbols.
 
 3. **Many “HIP-3 trade passing validation” but few opens**  
-   Signals pass validation then get blocked by policy (e.g. max-single-trade-usd), duplicate position check, or other gates. **Improvement:** Log a one-line funnel (e.g. “passed → policy_block | opened | duplicate”) or add a counter so we can see pass vs block vs open rates per asset or per run.
+   Signals pass validation then get blocked by policy (e.g. max-single-trade-usd), duplicate position check, or other gates. **Improvement:** Log a one-line funnel (e.g. “passed → policy_block | opened | duplicate”) or add a counter so we can see pass vs block vs open rates per asset or per run. **Implemented:** Funnel log now includes other_reasons with breakdown by key (no_primary_signal, sentiment_gate_long, swarm_min_confidence, etc.) for tuning visibility.
 
 4. **CoinGlass timeout → Binance fallback**  
-   CoinGlass API test can timeout; we already fall back to Binance free APIs. **Improvement:** Optional retry with backoff, or document that without a key / with timeout, free APIs are expected.
+   CoinGlass API test can timeout; we already fall back to Binance free APIs. **Improvement:** Optional retry with backoff, or document that without a key / with timeout, free APIs are expected. **Implemented:** Connection test now retries with backoff before falling back to Binance.
 
 5. **Duplicate position rejected (OPENAI long)**  
    Dedupe works: “DUPLICATE POSITION REJECTED: OPENAI long (existing position same direction)” is correct behavior.
+
+---
+
+## Post-mortem follow-through
+
+- **Corrective actions** (immediate, policy, experiment) are auto-generated in [tasks/todo.md](todo.md) from `bun run postmortems:ingest`. Review and implement code/config items (e.g. leverage cap by asset class, PTQG/max-loss gates); experiments (A/B tests) are tracked in the same list for backlog.
+- **Weekly guardrail review:** Sentinel weekly task includes a Guardrail review block from `root_cause_stats.json`; run ingest, then review todo.md and `knowledge/sentinel-docs/POST_MORTEM_LESSONS.md` and apply caps or policy tweaks manually.
 
 ---
 

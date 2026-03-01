@@ -19,6 +19,7 @@ import * as fs from "fs";
 import type { VinceFeatureStoreService } from "../services/vinceFeatureStore.service";
 import type { VinceMLInferenceService } from "../services/mlInference.service";
 import { uploadModelsToSupabase } from "../utils/supabaseMlModels";
+import { logAndApplyImprovementReportWeights } from "../utils/improvementReportWeights";
 
 const MIN_COMPLETE_RECORDS = 90;
 const MIN_SAMPLES_ARG = "90";
@@ -227,6 +228,18 @@ export const registerTrainOnnxTask = async (
               );
             }
           }
+          if (process.env.VINCE_APPLY_IMPROVEMENT_WEIGHTS === "true") {
+            try {
+              await logAndApplyImprovementReportWeights(true);
+              logger.info(
+                "[TrainONNX] Improvement report weights applied (recursive loop).",
+              );
+            } catch (weightsErr) {
+              logger.warn(
+                `[TrainONNX] Apply improvement weights failed: ${weightsErr}`,
+              );
+            }
+          }
         }
       } catch (error) {
         logger.error(`[TrainONNX] Task error: ${error}`);
@@ -237,7 +250,8 @@ export const registerTrainOnnxTask = async (
   // Create recurring task (every 12 hours)
   await runtime.createTask({
     name: "TRAIN_ONNX_WHEN_READY",
-    description: "Train ONNX models when feature store has 90+ complete trades",
+    description:
+      "Train ONNX when 90+ trades; optional VINCE_APPLY_IMPROVEMENT_WEIGHTS=true applies source weights (recursive improvement loop)",
     roomId: taskWorldId,
     worldId: taskWorldId,
     metadata: {
@@ -248,7 +262,7 @@ export const registerTrainOnnxTask = async (
   });
 
   logger.info(
-    "[TrainONNX] ONNX training task registered (runs when 90+ trades, max once per 24h)",
+    "[TrainONNX] ONNX training task registered (90+ trades, max 1/24h; set VINCE_APPLY_IMPROVEMENT_WEIGHTS=true for autopilot weight updates)",
   );
 };
 

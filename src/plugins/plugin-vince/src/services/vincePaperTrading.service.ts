@@ -67,6 +67,7 @@ import {
   getPaperTradeAssets,
   getPaperTradeAssetsWithWatchlist,
   getAssetMaxLeverage,
+  getAssetClassMaxLeverage,
   TIMING,
   PERSISTENCE_DIR,
   PRIMARY_SIGNAL_SOURCES,
@@ -236,6 +237,10 @@ export class VincePaperTradingService extends Service {
   // WTT: ensure we only open today's pick once (persisted so survives restart)
   private wttTradedToday: { date: string; asset: string } | null = null;
   private lastWttAlreadyTradedLogDate: string | null = null;
+
+  // Daily trade count for policy max-daily-trades (UTC day; resets when date changes)
+  private tradesOpenedToday = 0;
+  private tradesOpenedTodayDate = "";
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -442,26 +447,33 @@ export class VincePaperTradingService extends Service {
   /**
    * Max leverage cap for an asset. For HIP-3 assets uses Hyperliquid meta when
    * available (VinceHIP3Service.getMaxLeverageForAsset), else getAssetMaxLeverage.
+   * Then applies asset-class cap (min of asset cap and class cap from env/ASSET_CLASS_MAX_LEVERAGE).
    */
   private async getMaxLeverageCap(asset: string): Promise<number> {
     const hip3 = this.runtime.getService("VINCE_HIP3_SERVICE") as {
       getMaxLeverageForAsset?(s: string): Promise<number | null>;
     } | null;
+    let assetCap: number;
     if (
       hip3?.getMaxLeverageForAsset &&
       (HIP3_ASSETS as readonly string[]).includes(asset.toUpperCase())
     ) {
       try {
         const hl = await hip3.getMaxLeverageForAsset(asset);
-        if (typeof hl === "number") return hl;
+        if (typeof hl === "number") assetCap = hl;
+        else assetCap = getAssetMaxLeverage(asset);
       } catch (_) {
-        // fall through to static cap
+        assetCap = getAssetMaxLeverage(asset);
       }
+    } else {
+      assetCap = getAssetMaxLeverage(asset);
     }
-    return getAssetMaxLeverage(asset);
+    const assetClass = inferPtqgAssetClass(asset);
+    const classCap = getAssetClassMaxLeverage(assetClass, this.runtime);
+    return Math.min(assetCap, classCap);
   }
 
-  /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). */
+  /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). Optional VINCE_TP_FIRST_MULTIPLIER tightens first TP when level 0 (no TP hit) dominates. */
   private getTPMultipliersForReport(): number[] {
     const fastTp =
       this.runtime.getSetting?.("vince_paper_fast_tp") === true ||
@@ -475,10 +487,20 @@ export class VincePaperTradingService extends Service {
     const indices = (
       ml as { getTPLevelIndicesToUse?: () => number[] }
     )?.getTPLevelIndicesToUse?.() ?? [0, 1, 2];
-    const mults = indices
+    let mults = indices
       .map((i) => DEFAULT_TAKE_PROFIT_TARGETS[i])
       .filter((m): m is number => m != null);
-    return mults.length > 0 ? mults : [...DEFAULT_TAKE_PROFIT_TARGETS];
+    if (mults.length === 0) mults = [...DEFAULT_TAKE_PROFIT_TARGETS];
+    const firstOverride =
+      this.runtime.getSetting?.("VINCE_TP_FIRST_MULTIPLIER") ??
+      process.env.VINCE_TP_FIRST_MULTIPLIER;
+    if (firstOverride != null && firstOverride !== "" && mults.length > 0) {
+      const n = Number(firstOverride);
+      if (Number.isFinite(n) && n >= 0.5 && n <= 3) {
+        mults = [n, ...mults.slice(1)];
+      }
+    }
+    return mults;
   }
 
   // ==========================================
@@ -1338,6 +1360,12 @@ Reply format: APPROVE reason or VETO reason`;
 
     this.wttTradedToday = { date: today, asset };
     await this.persistWttTradedToday();
+    const utcDate = new Date().toISOString().slice(0, 10);
+    if (this.tradesOpenedTodayDate !== utcDate) {
+      this.tradesOpenedTodayDate = utcDate;
+      this.tradesOpenedToday = 0;
+    }
+    this.tradesOpenedToday++;
 
     // Store WTT thesis and invalidate condition for WHY THIS TRADE (explainer + notifications)
     position.metadata = {
@@ -1349,6 +1377,12 @@ Reply format: APPROVE reason or VETO reason`;
       wttPrimaryOrAlt: "primary",
     };
 
+    const rubric = pick.rubric ?? {
+      alignment: "partial" as const,
+      edge: "consensus" as const,
+      payoffShape: "moderate" as const,
+      timingForgiveness: "forgiving" as const,
+    };
     const wttBlock = wttPickToWttBlock({
       primary: true,
       primaryOrAlt: "primary",
@@ -1356,7 +1390,7 @@ Reply format: APPROVE reason or VETO reason`;
       qualityScore: quality.score,
       ticker: pick.primaryTicker,
       thesis: pick.thesis,
-      rubric: pick.rubric,
+      rubric,
       invalidateCondition: pick.invalidateCondition || undefined,
       evThresholdPct: pick.evThresholdPct,
     });
@@ -1403,7 +1437,15 @@ Reply format: APPROVE reason or VETO reason`;
       opened: 0,
       openFailed: 0,
       otherBlock: 0,
+      reasons: {} as Record<string, number>,
     };
+    function incrementFunnelReason(
+      f: { otherBlock: number; reasons: Record<string, number> },
+      key: string,
+    ): void {
+      f.otherBlock++;
+      f.reasons[key] = (f.reasons[key] ?? 0) + 1;
+    }
     for (const asset of assets) {
       try {
         // Skip if we already have a position in this asset
@@ -1469,7 +1511,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "hip3_news_guardrail");
             continue;
           }
         }
@@ -1509,7 +1551,7 @@ Reply format: APPROVE reason or VETO reason`;
                 reason,
               );
             }
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "ml_threshold");
             continue;
           }
         }
@@ -1545,7 +1587,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "signal_validation");
             continue;
           }
           if (
@@ -1566,7 +1608,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "signal_validation");
             continue;
           }
         }
@@ -1592,7 +1634,7 @@ Reply format: APPROVE reason or VETO reason`;
               reason,
             );
           }
-          funnel.otherBlock++;
+          incrementFunnelReason(funnel, "ml_similarity_avoid");
           continue;
         }
 
@@ -1630,7 +1672,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             reason,
           );
-          funnel.otherBlock++;
+          incrementFunnelReason(funnel, "book_imbalance");
           continue;
         }
         let fundingRate = 0;
@@ -1764,7 +1806,7 @@ Reply format: APPROVE reason or VETO reason`;
               `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
             );
           }
-          funnel.otherBlock++;
+          incrementFunnelReason(funnel, "no_primary_signal");
           continue;
         }
 
@@ -1788,7 +1830,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
           );
-          funnel.otherBlock++;
+          incrementFunnelReason(funnel, "sentiment_gate_long");
           continue;
         }
         if (
@@ -1806,7 +1848,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
           );
-          funnel.otherBlock++;
+          incrementFunnelReason(funnel, "sentiment_gate_short");
           continue;
         }
 
@@ -1823,7 +1865,7 @@ Reply format: APPROVE reason or VETO reason`;
               reason,
             );
           }
-          funnel.otherBlock++;
+          incrementFunnelReason(funnel, "signal_validation");
           continue;
         }
 
@@ -2104,7 +2146,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal.direction as "long" | "short",
             tradeValidation.reason || "risk check failed",
           );
-          funnel.otherBlock++;
+          incrementFunnelReason(funnel, "risk_check");
           continue;
         }
 
@@ -2127,7 +2169,7 @@ Reply format: APPROVE reason or VETO reason`;
             logger.debug(
               `[VincePaperTrading] ${asset} entry gate veto – skipping trade`,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "entry_gate_veto");
             continue;
           }
         }
@@ -2172,7 +2214,7 @@ Reply format: APPROVE reason or VETO reason`;
               undefined,
               undefined,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "temporal_coherence");
             continue;
           }
         }
@@ -2203,7 +2245,7 @@ Reply format: APPROVE reason or VETO reason`;
               undefined,
               narrative.phase,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "narrative_radar");
             continue;
           }
         }
@@ -2241,7 +2283,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "immune_system");
             continue;
           }
         }
@@ -2278,7 +2320,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "pre_mortem");
             continue;
           }
         }
@@ -2319,7 +2361,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
-            funnel.otherBlock++;
+            incrementFunnelReason(funnel, "devils_advocate");
             continue;
           }
           if (challenge.downgradeMultiplier < 1) {
@@ -2344,6 +2386,37 @@ Reply format: APPROVE reason or VETO reason`;
           } catch {
             paperBucketMaxSingleTradeUsd = undefined;
           }
+          if (
+            typeof paperBucketMaxSingleTradeUsd === "number" &&
+            finalTradeSize > paperBucketMaxSingleTradeUsd
+          ) {
+            finalTradeSize = paperBucketMaxSingleTradeUsd;
+            logger.debug(
+              `[VincePaperTrading] ${asset} size capped to $${paperBucketMaxSingleTradeUsd} (bucket max)`,
+            );
+          }
+          const utcDate = new Date().toISOString().slice(0, 10);
+          if (this.tradesOpenedTodayDate !== utcDate) {
+            this.tradesOpenedTodayDate = utcDate;
+            this.tradesOpenedToday = 0;
+          }
+          const positionManager = this.getPositionManager();
+          const openPositionCount =
+            positionManager?.getOpenPositions?.()?.length ?? 0;
+          const maxDailyTradesRaw =
+            this.runtime.getSetting?.("VINCE_PAPER_MAX_DAILY_TRADES") ??
+            process.env.VINCE_PAPER_MAX_DAILY_TRADES;
+          const maxOpenPositionsRaw =
+            this.runtime.getSetting?.("VINCE_PAPER_MAX_OPEN_POSITIONS") ??
+            process.env.VINCE_PAPER_MAX_OPEN_POSITIONS;
+          const maxDailyTrades =
+            maxDailyTradesRaw != null && maxDailyTradesRaw !== ""
+              ? Number(maxDailyTradesRaw)
+              : undefined;
+          const maxOpenPositions =
+            maxOpenPositionsRaw != null && maxOpenPositionsRaw !== ""
+              ? Number(maxOpenPositionsRaw)
+              : undefined;
           const policyCtx = {
             tradeSize: finalTradeSize,
             confidence: tradeSignal.confidence,
@@ -2351,6 +2424,10 @@ Reply format: APPROVE reason or VETO reason`;
             circuitBreakerActive: isHalted,
             sentimentScore: sentimentGate.sentimentScore,
             direction: signal.direction as "long" | "short",
+            tradesToday: this.tradesOpenedToday,
+            openPositionCount,
+            maxDailyTrades: maxDailyTrades ?? Number.POSITIVE_INFINITY,
+            maxOpenPositions: maxOpenPositions ?? Number.POSITIVE_INFINITY,
             ...(typeof paperBucketMaxSingleTradeUsd === "number"
               ? { maxSingleTradeUsd: paperBucketMaxSingleTradeUsd }
               : {}),
@@ -2488,7 +2565,7 @@ Reply format: APPROVE reason or VETO reason`;
                   signal as AggregatedSignal,
                   reason,
                 );
-                funnel.otherBlock++;
+                incrementFunnelReason(funnel, "swarm_min_confidence");
                 continue;
               }
 
@@ -2581,7 +2658,7 @@ Reply format: APPROVE reason or VETO reason`;
                       signal as AggregatedSignal,
                       reason,
                     );
-                    funnel.otherBlock++;
+                    incrementFunnelReason(funnel, "swarm_near_floor");
                     continue;
                   }
                 }
@@ -2650,14 +2727,20 @@ Reply format: APPROVE reason or VETO reason`;
             regimeKey,
           });
         }
-        if (openedPosition) funnel.opened++;
-        else funnel.openFailed++;
+        if (openedPosition) {
+          funnel.opened++;
+          this.tradesOpenedToday++;
+        } else funnel.openFailed++;
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
       }
     }
+    const reasonsStr =
+      Object.keys(funnel.reasons).length > 0
+        ? ` other_reasons=${JSON.stringify(funnel.reasons)}`
+        : "";
     logger.info(
-      `[VincePaperTrading] Funnel this cycle: passed=${funnel.passedValidation} policy_block=${funnel.policyBlock} opened=${funnel.opened} open_failed=${funnel.openFailed} other_block=${funnel.otherBlock}`,
+      `[VincePaperTrading] Funnel this cycle: passed=${funnel.passedValidation} policy_block=${funnel.policyBlock} opened=${funnel.opened} open_failed=${funnel.openFailed} other_block=${funnel.otherBlock}${reasonsStr}`,
     );
   }
 

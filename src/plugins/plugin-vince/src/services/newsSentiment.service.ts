@@ -2390,6 +2390,22 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
+   * ETF flow direction from headlines (for feature store: news_etfFlowBtc, news_etfFlowEth).
+   * Returns -1 (bearish), 0 (no data), or 1 (bullish) per asset. Most recent headline wins.
+   */
+  getEtfFlowNumeric(): { btc: number | null; eth: number | null } {
+    let btc: number | null = null;
+    let eth: number | null = null;
+    for (const news of this.newsCache) {
+      const normalized = this.normalizeForSentiment(news.title);
+      const byAsset = this.extractEtfFlowByAsset(normalized);
+      if (byAsset.BTC) btc = byAsset.BTC === "bullish" ? 1 : -1;
+      if (byAsset.ETH) eth = byAsset.ETH === "bullish" ? 1 : -1;
+    }
+    return { btc, eth };
+  }
+
+  /**
    * Format news for display in GM briefing
    */
   formatForBriefing(limit: number = 5): string[] {
