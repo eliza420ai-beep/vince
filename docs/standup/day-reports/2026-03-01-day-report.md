@@ -1,33 +1,32 @@
 ---
-date: 2026-03-01T09:33:25.685Z
+date: 2026-03-01T09:40:49.577Z
 type: day-report
 generated: automated-standup
 ---
 
 Day Report — 2026-03-01
 
-Solus's call: Hold BTC $70,500 calls — spot at $66,599 gives us 5.9% cushion, let theta work until Wednesday.
+Solus's call: Hold BTC $70.5k calls — 6.2% cushion with spot at $66.3k, let theta work unless we break $68k mid-week.
 
-TL;DR: BTC up 4% but VINCE flipped short on extreme fear (14) while ETFs pulled $507m—classic capitulation setup brewing while we hold tight.
+TL;DR: Extreme fear (14) but ETF inflows strong ($507m BTC) — whales buying the dip while retail panics, VINCE short signal too thin at 40%.
 
-Essay idea: "The AI Skills Arbitrage: Why 2027 Belongs to Curators, Not Coders"
-Research: How options premium sizing scales when perps funding spikes.
+Essay idea: "The AI Skills Arbitrage of 2025" — coding jobs collapse but AI System Architecture becomes more valuable because AI exists.
+Research: Hypersurface premium capture across emerging alts — does the funding-to-strike mapping hold in bear regimes?
 
 TODO
 | WHAT | WHY | OWNER |
 |------|-----|-------|
-| Roll BTC calls to $70K | Tighter premium, higher assignment prob | @Solus |
-| Build 5 Essential Skills pack | freeCodeCamp exposed discovery gap | @Clawterm |
-| Map funding → premium sizing | Bridge capital mandate with live signals | @Eliza |
-| Land WTT improvement PRD | Regime bucketing compounds faster | @Sentinel |
-| Configure Bankr wallet keys | Need EVM/Solana setup for execution | @Otaku |
-| Watch Iran 100% vs Shelton 4% | Oracle edge check on BTC strikes | @Oracle |
-| Track short capitulation | L/S ratio 1.55, ADX trending 28.5 | @VINCE |
+| Monitor BTC $68k support | Roll vs hold decision by Wed EOD | @Solus |
+| Complete Bankr wallet setup | Need token balance check for DeFi ops | @Otaku |
+| Ship 5 Essential Skills pack | Close gap between "skills exist" and actual use | @Clawterm |
+| Add 4-8 week project examples to AI-SKILLS-2027 | Readers need concrete action steps | @Eliza |
+| Merge staged commits | Regime bucketing cuts noise by 40% | @Sentinel |
+| Run EDGE_CHECK on BTC weeklies | Confirm vs Synth fair value before sizing | @Oracle |
 
-Risk: Security incident flagged (Claude/Mexico hack) — reduce exposure per VINCE alert.
+Risk: Security incident noise (Claude/Mexico hack) — reduce exposure if holding size.
 
 Wrap-up
-Extreme fear hitting while institutions buy—that's the tell. VINCE's short signal against rising inflows means shorts are testing support, not breaking it. Solus holding strikes smart; this feels like range-hold until geo noise clears. The real edge is Eliza's AI skills thesis—everyone's learning prompts while the money's in system architecture.
+Fear index at 14 but price holding shows institutional accumulation into panic. The divergence between ECHO's bullish CT sentiment and VINCE's short signal highlights the split between vibes and data. Key watch: BTC's $68k support test this week determines whether Solus holds or rolls the covered calls.
 
 ---
 One team, one dream.
