@@ -58,3 +58,4 @@
 | 2026-03-01 | BTC rallied 4.5% to $66.5k on massive ETF inflows but extreme fear (FGI 14) and  | [View](day-reports/2026-03-01-day-report.md) |
 | 2026-03-01 | BTC ripping +4.8% with ETF inflows but signal confidence collapsed from 60% to 2 | [View](day-reports/2026-03-01-day-report.md) |
 | 2026-03-01 | BTC up 4% but VINCE flipped short on extreme fear (14) while ETFs pulled $507m—c | [View](day-reports/2026-03-01-day-report.md) |
+| 2026-03-01 | Extreme fear (14) but ETF inflows strong ($507m BTC) — whales buying the dip whi | [View](day-reports/2026-03-01-day-report.md) |
