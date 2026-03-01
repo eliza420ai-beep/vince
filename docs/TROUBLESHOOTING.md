@@ -24,6 +24,64 @@ Failed query: CREATE SCHEMA IF NOT EXISTS migrations
 
 ---
 
+## Duplicate key on `worlds` (worlds_pkey)
+
+If you see:
+
+```
+DrizzleQueryError: Failed query: insert into "worlds" ...
+cause: error: duplicate key value violates unique constraint "worlds_pkey"
+Key (id)=(...) already exists.
+```
+
+**Cause:** The ElizaOS runtime calls `ensureWorldExists` and does a plain INSERT. If that world row was already created (e.g. from a previous run or an interrupted start), the insert fails.
+
+**Fix (local PGLite):** Reset the local DB so the next start gets a clean `worlds` table:
+
+- Default data dir: `.eliza/.elizadb` (from repo root). Remove it:  
+  `rm -rf .eliza/.elizadb`
+- If you set `PGLITE_DATA_DIR`, remove that directory (or use a new path) then run `bun start` again.
+
+**Note:** This wipes all local agent state (worlds, memories, etc.). For production Postgres, the upstream runtime would need to use an upsert or “insert if not exists” instead of a plain insert.
+
+---
+
+## Solus (or any agent): example.map is not a function
+
+If you see:
+
+```
+#Solus  [SERVICE:MESSAGE] Error processing message (error=example.map is not a function)
+```
+
+**Cause:** In `@elizaos/core`, `formatSelectedExamples` assumes each item is an array (of messages). When the runtime composes action or message examples, it can receive the new alpha shape (`{ examples: [...] }` per group) or action-example objects; calling `.map()` on those throws.
+
+**Workaround:** This repo applies a postinstall patch so the core bundle accepts both array and `{ examples }` shapes. After `bun install`, the patch runs automatically. If you still see the error, run `node scripts/patch-elizaos-core-message-examples.cjs` from the project root, then restart. Otherwise track an upstream fix in ElizaOS core.
+
+---
+
+## Destructive migration blocked (plugin-sql)
+
+If you see:
+
+```
+[PLUGIN:SQL] Destructive migration blocked - set ELIZA_ALLOW_DESTRUCTIVE_MIGRATIONS=true or use force option
+warnings: ["Table \"public.users\" will be dropped with all its data"]
+[PLUGIN:SQL] Some migrations failed (failureCount=1, successCount=0)
+```
+
+**Cause:** Plugin-sql refuses to run migrations that drop tables (or other destructive changes) unless you explicitly allow it, to avoid wiping production data. After a DB reset or when the DB is out of sync with new migration files, the pending migration may be treated as destructive and is blocked.
+
+**Fix (local PGLite dev only):** If you are okay with the migration (e.g. you just wiped the DB or don't care about local data in the affected tables), set in `.env`:
+
+`ELIZA_ALLOW_DESTRUCTIVE_MIGRATIONS=true`
+
+Then restart (`bun start`).
+
+**Production / shared Postgres:** Do not set this unless you have reviewed the migration and intend the destructive change. Prefer fixing or adjusting the migration so it is not destructive, or run it manually with the force option if your runbook allows.
+
+---
+
 ## Discord "Cannot access audit logs"
 
 If the bot logs `Cannot access audit logs - permission change alerts will not include executor info (error=Missing Permissions)`, grant the bot **View Audit Log** in your Discord server (Server Settings → Integrations → [bot]). See [DEPLOY.md § Discord: audit log warning](DEPLOY.md#discord-audit-log-warning).
