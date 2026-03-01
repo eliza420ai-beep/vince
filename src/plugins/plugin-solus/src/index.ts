@@ -10,8 +10,8 @@ import { hypersurfaceContextProvider } from "./providers/hypersurfaceContext.pro
 import { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPrices.provider";
 import { solusSizingStateProvider } from "./providers/solusSizingState.provider";
 import { solusMarketContextProvider } from "./providers/solusMarketContext.provider";
+import { solusOptionsContextProvider } from "./providers/solusOptionsContext.provider";
 import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
-import { vinceOptionsInjectorProvider } from "./providers/vinceOptionsInjector.provider";
 import { vinceStrikeSuggestionProvider } from "./providers/vinceStrikeSuggestion.provider";
 import { AlphaVantageService } from "./services/alphaVantage.service";
 import { FinnhubService } from "./services/finnhub.service";
@@ -46,8 +46,8 @@ export const solusPlugin: Plugin = {
     hypersurfaceSpotPricesProvider,
     solusSizingStateProvider,
     solusMarketContextProvider,
+    solusOptionsContextProvider,
     solusStockPulseProvider,
-    vinceOptionsInjectorProvider,
     vinceStrikeSuggestionProvider,
   ],
   actions: [

@@ -1,5 +1,6 @@
 /**
  * SOLUS_POSITION_ASSESS — Interpret position from message; state invalidation and hold/roll/adjust; ask for details if missing.
+ * Solus has his own options data (SOLUS_OPTIONS_CONTEXT from Deribit) so he answers without leaning on VINCE.
  */
 
 import type {
@@ -36,6 +37,28 @@ const TRIGGERS = [
   "average entry",
   "entry price",
   "our btc position",
+  // Strike / buyback / ITM — so SOLUS_SIZING_STATE (knowledge/private/solus-options-sizing.md) is injected
+  "above our strike",
+  "above strike",
+  "above strike price",
+  "hype is above",
+  "above the strike",
+  "buy back",
+  "buy back early",
+  "itm",
+  "in the money",
+  "past our strike",
+  "past the strike",
+  "our strike",
+  "strike price",
+  "wheel",
+  "options position",
+  // SOL / stack / "what about" — so SOLUS_SIZING_STATE is injected and we answer (avoid no-answer hang)
+  "our sol",
+  "what about sol",
+  "sol stack",
+  "sol position",
+  "the sol",
 ];
 
 function wantsPositionAssess(text: string): boolean {
@@ -71,15 +94,16 @@ export const solusPositionAssessAction: Action = {
         "SOLUS_SIZING_STATE",
         "SOLUS_MARKET_CONTEXT",
         "SOLUS_HYPERSURFACE_SPOT_PRICES",
+        "SOLUS_OPTIONS_CONTEXT",
       ]);
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Solus, the on-chain options expert. The user is asking you to assess their Hypersurface position. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], and (3) spot/regime/vol context in [Solus market context] plus any pasted VINCE view.
+      const prompt = `You are Solus, the on-chain options expert. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], (3) spot/regime in [Solus market context] and [Hypersurface spot USD], (4) when present [Solus options context — Deribit] with spot, DVOL, ATM IV, and best strikes for BTC/ETH/SOL. Use this data to give one clear call.
 
-We do not have live sentiment beyond what Vince gives us; if they need direction (where price lands by Friday), they paste VINCE's view or bring their own. Use spot prices and regime from context when present (e.g. "[Hypersurface spot USD]" or [Solus market context]) for level reference. Frame hold/roll/adjust in terms of weekly outcome (expiry Friday).
+**RULE — you must follow:** Do NOT say you need VINCE, need to ask anyone for IV, or need "VINCE's current SOL IV". If [Solus options context] includes SOL, use that IV and best strikes. If it does not, give your assessment and strike guidance from [Solus sizing state] and spot only (e.g. "SOL spot from context; our stack at $141 cost basis; strikes around $90–95 could collect premium — exact amount depends on current IV"). Never deflect the user to another chat or agent.
 
-Using the context below and the user message, (1) Interpret what they have: notional, premium, collateral (e.g. USDT0), expiry, strike if mentioned, and how it lines up with the wheel plan in [Solus sizing state] (oversized, under-earning vs weekly premium target, underwater vs entry). (2) State invalidation (what would change your mind). (3) Give one clear call: hold, roll, or adjust. If key details are missing (strike, notional, premium, expiry) or the sizing doc looks stale for this asset, ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust.
+Using the context below and the user message, (1) Interpret what they have: notional, premium, collateral (e.g. USDT0), expiry, strike if mentioned, and how it lines up with the wheel plan in [Solus sizing state]. (2) State invalidation (what would change your mind). (3) Give one clear call: hold, roll, or adjust. If key details are missing, ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust.
 
 Context:
 ${contextBlock}
@@ -101,20 +125,24 @@ Reply with assessment and one call only.`;
         month: "short",
         day: "numeric",
       });
+      const hasOptionsContext = contextBlock.includes("[Solus options context");
+      const sourceLine = hasOptionsContext
+        ? "*Source: Hypersurface mechanics, CoinGecko spot, Deribit IV/strikes*"
+        : "*Source: Hypersurface mechanics, CoinGecko spot*";
       const sections = [
         `**Position Assessment** _${dateStr}_`,
         "",
         text.trim(),
         "",
-        "*Source: Hypersurface mechanics, CoinGecko spot*",
+        sourceLine,
         "",
         "---",
-        "_Next steps_: `OPTIMAL STRIKE` (new strike) · `STRIKE RITUAL` (Friday process) · `OPTIONS` → VINCE (IV data)",
+        "_Next steps_: `OPTIMAL STRIKE` (new strike) · `STRIKE RITUAL` (Friday process)",
       ];
       await callback({
         text: sections.join("\n"),
         actions: ["SOLUS_POSITION_ASSESS"],
-        providers: ["SOLUS_SIZING_STATE"],
+        providers: ["SOLUS_SIZING_STATE", "SOLUS_OPTIONS_CONTEXT"],
       });
       return { success: true };
     } catch (error) {
