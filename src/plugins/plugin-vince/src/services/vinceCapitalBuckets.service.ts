@@ -223,6 +223,16 @@ export class VinceCapitalBucketsService {
     } catch {
       // Use defaults on any parse error
     }
+
+    // Env override for paper bucket max single trade (e.g. VINCE_PAPER_MAX_SINGLE_TRADE_USD=15000)
+    const envCap = process.env.VINCE_PAPER_MAX_SINGLE_TRADE_USD?.trim();
+    if (envCap) {
+      const n = parseInt(envCap, 10);
+      if (Number.isInteger(n) && n > 0) {
+        const paper = this.buckets.get("paper");
+        if (paper) paper.maxSingleTradeUsd = n;
+      }
+    }
   }
 
   private persist(): void {

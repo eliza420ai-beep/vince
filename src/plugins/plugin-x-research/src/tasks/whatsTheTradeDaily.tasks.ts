@@ -845,6 +845,54 @@ function extractPickFromNarrativeFallback(
   };
 }
 
+/**
+ * Parse the saved WTT markdown to produce a minimal WttPick when LLM and narrative
+ * fallback both failed. Tries (1) "TICKER · perp · LONG|SHORT" in Structured Pick
+ * section, (2) narrative + thesis extraction and narrative fallback.
+ */
+function parseStructuredPickFromMarkdown(
+  mdContent: string,
+  dateStr: string,
+): WttPick | null {
+  // 1) Structured Pick line: "TICKER · perp · LONG" or "TICKER · perp · SHORT"
+  const pickLine = mdContent.match(
+    /^\s*([A-Z0-9]+)\s*·\s*perp\s*·\s*(LONG|SHORT)\s*$/im,
+  );
+  if (pickLine) {
+    const ticker = pickLine[1].toUpperCase().replace(/-/g, "");
+    if (isWttUniverseTicker(ticker)) {
+      const direction =
+        pickLine[2].toUpperCase() === "SHORT" ? "short" : "long";
+      logger.info(
+        `[ECHO WhatstheTrade] Parsed pick from markdown Structured Pick line: ${ticker} ${direction}`,
+      );
+      return {
+        date: dateStr,
+        thesis: "",
+        primaryTicker: ticker,
+        primaryDirection: direction,
+        primaryInstrument: "perp",
+        primaryEntryPrice: 0,
+        primaryRiskUsd: 0,
+        invalidateCondition: "",
+        killConditions: [],
+        rubric: FALLBACK_RUBRIC,
+      };
+    }
+  }
+  // 2) Extract thesis and narrative from report and run narrative fallback
+  const parts = mdContent.split(/\n---\n/);
+  const beforeFirstRule = parts[0] ?? "";
+  const afterFirstRule = parts[1] ?? "";
+  const thesis = beforeFirstRule
+    .replace(/^\s*\*\*What's the trade\*\*[^\n]*\n+/i, "")
+    .trim();
+  const narrative =
+    afterFirstRule.split(/\n### Structured Pick\n/i)[0]?.trim() ?? "";
+  if (!thesis && !narrative) return null;
+  return extractPickFromNarrativeFallback(narrative, thesis, dateStr);
+}
+
 async function saveReport(content: string, date: Date): Promise<string | null> {
   try {
     const dir = getOutputDir();
@@ -1138,6 +1186,17 @@ export async function runWhatsTheTradeReport(
     pick,
   });
   const filepath = await saveReport(fullReport, now);
+  if (!pick && filepath) {
+    const mdFallback = parseStructuredPickFromMarkdown(fullReport, dateStr);
+    if (mdFallback) {
+      mdFallback.catalystSources = catalystSources;
+      await savePickJson(mdFallback, now);
+      pick = mdFallback;
+      logger.info(
+        "[ECHO WhatstheTrade] Saved pick from markdown fallback (paper bot will use it)",
+      );
+    }
+  }
   return { filepath, report: fullReport, pick };
 }
 

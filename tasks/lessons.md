@@ -35,6 +35,27 @@ _Summarized from docs/standup/post-mortems/*.md. Edit source post-mortems, then 
 
 ---
 
+## Learnings from runtime (startup / paper loop)
+
+_From terminal and logs (e.g. 2026-03-01):_
+
+1. **WTT “No WTT pick for today”**  
+   Bot reads `docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.json`. If only the `.md` exists (e.g. from Echo daily task), the JSON is missing and WTT evaluation is skipped. **Improvement:** Ensure the WTT daily task (or a post-step) writes the extracted JSON sidecar; or document that someone must run the LLM extraction that produces that file. See `docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md`.
+
+2. **Policy “max-single-trade-usd” blocking BTC, XYZ100, US500**  
+   Paper bucket caps a single trade at `maxSingleTradeUsd` (default 10k). For high-notional assets (BTC, index products like XYZ100, US500), requested size (e.g. aggressive margin × leverage) often exceeds 10k, so the policy engine blocks. **Improvement:** Either cap requested size to bucket max before policy (so we don’t spam “blocked”), or make the limit configurable per asset / document it in the dashboard so “blocked” is expected for those symbols.
+
+3. **Many “HIP-3 trade passing validation” but few opens**  
+   Signals pass validation then get blocked by policy (e.g. max-single-trade-usd), duplicate position check, or other gates. **Improvement:** Log a one-line funnel (e.g. “passed → policy_block | opened | duplicate”) or add a counter so we can see pass vs block vs open rates per asset or per run.
+
+4. **CoinGlass timeout → Binance fallback**  
+   CoinGlass API test can timeout; we already fall back to Binance free APIs. **Improvement:** Optional retry with backoff, or document that without a key / with timeout, free APIs are expected.
+
+5. **Duplicate position rejected (OPENAI long)**  
+   Dedupe works: “DUPLICATE POSITION REJECTED: OPENAI long (existing position same direction)” is correct behavior.
+
+---
+
 ## Rules to Prevent Repeat Mistakes
 
 - (Write rules for yourself based on lessons learned)
