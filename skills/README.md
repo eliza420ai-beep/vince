@@ -6,6 +6,7 @@ Auto-generated index of all available skills. See individual SKILL.md files for 
 
 | Name | Description | Owner | Risk | SKILL.md |
 |------|-------------|-------|------|----------|
+| **quant** | Quantitative stack for prediction markets and binary contracts: Monte Carlo, imp... | shared | 🔴 high | [SKILL.md](skills/quant/SKILL.md) |
 | **trading-agent** | Reference for the OpenClaw-based live trading agent (EVClaw) on Hyperliquid. Use... | shared | 🔴 high | [SKILL.md](skills/trading-agent/SKILL.md) |
 | **x-research** | General-purpose X/Twitter research agent. Searches X for real-time perspectives,... | shared | 🟢 low | [SKILL.md](skills/x-research/SKILL.md) |
 
@@ -19,4 +20,4 @@ Auto-generated index of all available skills. See individual SKILL.md files for 
 
 See [GOVERNANCE.md](GOVERNANCE.md) for the skill lifecycle and promotion rules.
 
-_Last generated: 2026-02-25T17:11:43.536Z_
+_Last generated: 2026-03-01T09:53:47.370Z_

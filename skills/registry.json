@@ -1,5 +1,28 @@
 [
   {
+    "name": "quant",
+    "description": "Quantitative stack for prediction markets and binary contracts: Monte Carlo, importance sampling, particle filters, variance reduction, copulas, agent-based simulation. Use when: (1) user asks about \"prediction market\", \"Polymarket\", \"binary contract\", \"Monte Carlo\", \"particle filter\", \"importance sampling\", \"copula\", \"tail dependence\", \"Brier score\", \"agent-based simulation\", \"variance reduction\", \"stratified sampling\", \"control variate\", (2) pricing or simulating event probability, tail-risk contracts, or correlated outcomes, (3) building a probability engine, risk layer, or calibration (Brier) for prediction markets. NOT for: general options theory (see options docs); live execution (use trading-agent or Otaku). Content is a single story—read parts in order; skip ahead and the math won't stack.",
+    "location": "skills/quant/SKILL.md",
+    "triggers": [
+      "prediction market",
+      "polymarket",
+      "binary contract",
+      "monte carlo",
+      "particle filter",
+      "importance sampling",
+      "copula",
+      "tail dependence",
+      "brier score",
+      "agent-based simulation",
+      "variance reduction",
+      "stratified sampling",
+      "control variate"
+    ],
+    "owner": "shared",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-01T09:53:40.075Z"
+  },
+  {
     "name": "trading-agent",
     "description": "Reference for the OpenClaw-based live trading agent (EVClaw) on Hyperliquid. Use when: (1) user asks about \"trading agent\", \"EVClaw\", \"OpenClaw trading\", \"Hyperliquid bot\", \"perps bot\", \"live trading skill\", (2) operator needs to install or run an autonomous perps/HIP3 trading agent alongside OpenClaw, (3) design or docs mention producer/executor split for live execution. EVClaw is external (runs on VPS); this skill documents when and how it fits the stack. NOT for paper trading (that is plugin-vince in VINCE).",
     "location": "skills/trading-agent/SKILL.md",
@@ -13,7 +36,7 @@
     ],
     "owner": "shared",
     "riskLevel": "high",
-    "lastUpdated": "2026-02-25T17:06:37.664Z"
+    "lastUpdated": "2026-02-25T19:56:03.714Z"
   },
   {
     "name": "x-research",
@@ -32,6 +55,6 @@
     ],
     "owner": "shared",
     "riskLevel": "low",
-    "lastUpdated": "2026-02-25T17:05:49.434Z"
+    "lastUpdated": "2026-02-25T19:56:03.715Z"
   }
 ]
