@@ -234,7 +234,7 @@ Clear lanes, no overlap: data, plan, call, lifestyle, infra.
 | **VINCE** | Objective data: options, perps, memes, news, paper bot, 15+ signal sources. Push, not pull. |
 | **ECHO** | CT sentiment, X research, social alpha, contrarian flags. Your ears on X. |
 | **Oracle** | Prediction markets: Polymarket discovery, odds, portfolio (read-only). |
-| **Solus** | Plan and call. Weekly BTC options on Hypersurface, strike/direction/invalidation. |
+| **Solus** | Hypersurface options: strike ritual, optimal strike, assignment prob (GBM + ML when ONNX loaded). Brier calibration, auto-record, Friday resolve reminder; tail risk & portfolio copula. Recursive learning from its own calls. [SOLUS.md](docs/SOLUS.md) |
 | **Otaku** | **Only agent with a wallet.** Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Execution graduation (L0→L3). |
 | **Kelly** | Touch grass: hotels, fine dining, wine, health, fitness. Standup facilitator. Flywheel score. No trading. |
 | **Sentinel** | Ops, cost steward, ONNX, ART, PRDs, OpenClaw guide, collective memory, repo improvements. |
@@ -256,6 +256,16 @@ The paper bot runs 24/7 on the **Leaderboard** (Trading Bot tab): 15+ signal sou
 ### Polymarket: paper trading that proves the edge
 
 When spot moves, prediction markets often lag. Oracle runs a **latency arb engine**: Binance spot and Polymarket CLOB in real time, implied probability from the option-like payoff of binary contracts, edge above a threshold, Kelly-sized paper trades. No execution by default—only logs and learns. The goal is to show that the edge is real before a single dollar is at risk. You see whether it's running or paused on the leaderboard Polymarket tab; chat with Oracle for status, pause, or resume. Small edges, captured in code, 24/7.
+
+---
+
+### Solus: Hypersurface options assistant that learns from its own calls
+
+Solus is the **CFO agent** for weekly options on Hypersurface (BTC, ETH, SOL, HYPE). One ask: "optimal strike for BTC" or "strike ritual" and you get a strike call with **assignment probability** (GBM closed-form, or ML-calibrated when the ONNX model is trained on your resolved predictions). No copy/paste: options context is cached and refreshed every 10 minutes, and VINCE’s Deribit data flows in automatically.
+
+Solus **measures itself**. Every strike call can auto-record a prediction; at expiry you resolve ("we got assigned" / "we didn’t"). Brier score over resolved predictions measures calibration. That score and the last 10 outcomes are injected into every optimal-strike and position-assess prompt—so Solus sees its own track record and tempers confidence when it’s been wrong. A Friday reminder nags you to resolve open predictions; a daily task writes calibration notes (e.g. Brier by asset, by IV bucket) into context. When you have 50+ resolved rows, a recurring task trains an ONNX assignment calibrator and the options context switches to ML-calibrated P(assign) for best CC/CSP strikes.
+
+**Tail risk** (e.g. P(spot down 15% in 7d) per asset) and **portfolio assignment risk** (when you have 2+ positions: joint P(at least one assigned), P(all), P(none) via Gaussian copula) are in the same context. No Python subprocess, no new APIs—TypeScript-only on top of existing Deribit data. The quant skill in `skills/quant/` is the reference narrative and math; Solus ships the same ideas in plugin-solus. [docs/SOLUS.md](docs/SOLUS.md) · [plugin-solus/FEATURE-STORE.md](src/plugins/plugin-solus/FEATURE-STORE.md) · [IMPROVEMENT_PROOF.md](src/plugins/plugin-solus/IMPROVEMENT_PROOF.md)
 
 ---
 
@@ -292,6 +302,7 @@ bun start              # production (Postgres when POSTGRES_URL set)
 - **Execution graduation** — Otaku earns trust through four levels (paper → notify → confirm → auto), demoted by circuit breakers.
 - **Portfolio construction** — Correlation matrix, total heat caps, Kelly-criterion sizing, opportunity cost analysis.
 - **Flywheel score** — Composite 0–100 health metric across signal quality, trade performance, sentiment, content, knowledge, and engineering.
+- **Solus (Hypersurface)** — Strike ritual, optimal strike, assignment prob (GBM + optional ML). Brier calibration, auto-record, Friday resolve reminder; tail risk & portfolio copula. Recursive learning. [SOLUS.md](docs/SOLUS.md)
 - **Multi-agent** — Ask any teammate by name; standups 2x/day; one thread, full team.
 - **Leaderboard** — Single dashboard: Markets, Memetics, News, Digital Art, Trading Bot, Knowledge. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
 - **Kelly** — Lifestyle concierge only; daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
