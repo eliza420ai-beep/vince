@@ -339,8 +339,20 @@ export class VinceMLInferenceService extends Service {
     }
   }
 
-  /** Threshold for signal quality (from improvement report or fallback config). Used by aggregator and fallback logic. */
+  /** Threshold for signal quality (env override, then improvement report, then fallback). Used by aggregator and fallback logic. */
   getSignalQualityThreshold(): number {
+    const envRaw =
+      (this.runtime.getSetting?.("VINCE_ML_SIGNAL_QUALITY_THRESHOLD") as
+        | string
+        | number
+        | undefined) ?? process.env.VINCE_ML_SIGNAL_QUALITY_THRESHOLD;
+    if (envRaw !== undefined && envRaw !== "") {
+      const n =
+        typeof envRaw === "number"
+          ? envRaw
+          : Number.parseFloat(String(envRaw).trim());
+      if (!Number.isNaN(n) && n >= 0 && n <= 1) return n;
+    }
     return (
       this.suggestedSignalQualityThreshold ??
       ML_CONFIG.fallback.signalQualityThreshold

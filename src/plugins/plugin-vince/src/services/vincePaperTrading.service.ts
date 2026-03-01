@@ -299,6 +299,17 @@ export class VincePaperTradingService extends Service {
     logger.info("[VincePaperTrading] Service stopped");
   }
 
+  /** Read numeric setting or env (e.g. VINCE_AGGRESSIVE_MARGIN_USD); invalid/missing → fallback. */
+  private getNumericSettingOrEnv(key: string, fallback: number): number {
+    const raw =
+      (this.runtime.getSetting?.(key) as string | number | undefined) ??
+      process.env[key];
+    if (raw === undefined || raw === "") return fallback;
+    const n =
+      typeof raw === "number" ? raw : Number.parseFloat(String(raw).trim());
+    return Number.isNaN(n) ? fallback : n;
+  }
+
   private async initialize(): Promise<void> {
     // Setup persistence directory
     try {
@@ -1815,10 +1826,18 @@ Reply format: APPROVE reason or VETO reason`;
           : DEFAULT_LEVERAGE;
         const cap = await this.getMaxLeverageCap(asset);
         const leverage = Math.min(baseLeverage, cap);
+        const effectiveMarginUsd = this.getNumericSettingOrEnv(
+          "VINCE_AGGRESSIVE_MARGIN_USD",
+          AGGRESSIVE_MARGIN_USD,
+        );
+        const effectiveBaseSizePct = this.getNumericSettingOrEnv(
+          "VINCE_AGGRESSIVE_BASE_SIZE_PCT",
+          AGGRESSIVE_BASE_SIZE_PCT,
+        );
         let baseSizeUsd = aggressive
-          ? portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
-            ? AGGRESSIVE_MARGIN_USD * leverage
-            : portfolio.totalValue * (AGGRESSIVE_BASE_SIZE_PCT / 100)
+          ? portfolio.totalValue >= effectiveMarginUsd
+            ? effectiveMarginUsd * leverage
+            : portfolio.totalValue * (effectiveBaseSizePct / 100)
           : portfolio.totalValue * 0.05;
         if (
           aggressive &&
