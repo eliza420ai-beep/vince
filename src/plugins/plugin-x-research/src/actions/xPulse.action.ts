@@ -121,7 +121,7 @@ export const xPulseAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
+    _options?: unknown,
     callback: HandlerCallback,
   ): Promise<void | ActionResult> => {
     try {

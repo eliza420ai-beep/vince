@@ -195,7 +195,7 @@ const plugin: Plugin = {
   // Set lowest priority so real models take precedence
   priority: -1000,
   config: {
-    EXAMPLE_PLUGIN_VARIABLE: process.env.EXAMPLE_PLUGIN_VARIABLE,
+    EXAMPLE_PLUGIN_VARIABLE: process.env.EXAMPLE_PLUGIN_VARIABLE ?? null,
   },
   async init(config: Record<string, string>) {
     logger.info("*** Initializing starter plugin ***");

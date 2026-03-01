@@ -174,7 +174,7 @@ export const clawtermDayReportAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-    _options: Record<string, unknown>,
+    _options?: unknown,
     callback: HandlerCallback,
   ): Promise<void | ActionResult> => {
     const hasX = !!getXBearerToken(runtime);
