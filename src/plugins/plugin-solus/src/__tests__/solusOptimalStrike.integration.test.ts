@@ -1,4 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as path from "node:path";
+import * as fs from "node:fs";
+import * as os from "node:os";
 import type {
   IAgentRuntime,
   Memory,
@@ -12,6 +15,7 @@ import { solusSizingStateProvider } from "../providers/solusSizingState.provider
 import { solusMarketContextProvider } from "../providers/solusMarketContext.provider";
 import { hypersurfaceSpotPricesProvider } from "../providers/hypersurfaceSpotPrices.provider";
 import type { Provider } from "@elizaos/core";
+import { loadRecords } from "../utils/assignmentPredictionsStore";
 
 function createMessage(text: string): Memory {
   return {
@@ -249,10 +253,12 @@ describe("SOLUS_OPTIMAL_STRIKE integration", () => {
         const [composeMsg, providerNames] = composeStateMock.mock.calls[0];
         expect((composeMsg as Memory).content?.text).toBe(question);
         expect(providerNames).toEqual([
+          "SOLUS_HYPERSURFACE_CONTEXT",
           "SOLUS_SIZING_STATE",
           "SOLUS_MARKET_CONTEXT",
           "SOLUS_HYPERSURFACE_SPOT_PRICES",
           "SOLUS_OPTIONS_CONTEXT",
+          "SOLUS_CALIBRATION_CONTEXT",
           "VINCE_STRIKE_SUGGESTION",
         ]);
 
@@ -412,13 +418,76 @@ describe("SOLUS_OPTIMAL_STRIKE integration", () => {
       const useModelMock = runtime.useModel as unknown as vi.Mock;
       expect(useModelMock).toHaveBeenCalledTimes(1);
       const promptArg = useModelMock.mock.calls[0][1]?.prompt as string;
-      expect(promptArg).toContain("can't feel where price lands by Friday");
-      expect(promptArg).toContain("options");
+      expect(promptArg).toContain("Solus sizing state");
+      expect(promptArg).toContain("invalidation");
       expect(promptArg).toContain("VINCE");
       expect(callback).toHaveBeenCalledTimes(1);
       if (result) {
         expect(result.success).toBe(true);
       }
+    });
+  });
+
+  describe("auto-record (Phase 2)", () => {
+    let tmpDir: string;
+    const savedPath = process.env.SOLUS_AUTO_RECORD_PREDICTION;
+    const savedStorePath = process.env.SOLUS_ASSIGNMENT_PREDICTIONS_PATH;
+
+    beforeEach(() => {
+      tmpDir = path.join(os.tmpdir(), `solus-auto-record-${Date.now()}`);
+      fs.mkdirSync(tmpDir, { recursive: true });
+      process.env.SOLUS_AUTO_RECORD_PREDICTION = "true";
+      process.env.SOLUS_ASSIGNMENT_PREDICTIONS_PATH = path.join(
+        tmpDir,
+        "predictions.jsonl",
+      );
+    });
+
+    afterEach(() => {
+      if (savedPath !== undefined)
+        process.env.SOLUS_AUTO_RECORD_PREDICTION = savedPath;
+      else delete process.env.SOLUS_AUTO_RECORD_PREDICTION;
+      if (savedStorePath !== undefined)
+        process.env.SOLUS_ASSIGNMENT_PREDICTIONS_PATH = savedStorePath;
+      else delete process.env.SOLUS_ASSIGNMENT_PREDICTIONS_PATH;
+      try {
+        if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true });
+      } catch {
+        /* ignore */
+      }
+    });
+
+    it("appends prediction and strips Record line when useModel returns Record line", async () => {
+      const runtime = createRuntime({
+        getService: () => null,
+        getCache: async () => undefined,
+        setCache: async () => true,
+      });
+      (runtime.useModel as vi.Mock).mockResolvedValue(
+        "BTC strike around $106k, ~24% assignment prob. Record: BTC 106000 24%",
+      );
+
+      const message = createMessage("optimal strike for BTC");
+      const callback = vi.fn<HandlerCallback>();
+
+      await solusOptimalStrikeAction.handler(
+        runtime,
+        message,
+        {} as State,
+        {},
+        callback,
+      );
+
+      const records = loadRecords();
+      expect(records.length).toBe(1);
+      expect(records[0].asset).toBe("BTC");
+      expect(records[0].strike).toBe(106000);
+      expect(records[0].predictedAssignProb).toBe(0.24);
+
+      const payload = callback.mock.calls[0][0];
+      expect(payload.text).not.toContain("Record:");
+      expect(payload.text).toContain("**Strike Call**");
+      expect(payload.text).toContain("BTC strike");
     });
   });
 

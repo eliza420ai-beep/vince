@@ -5,6 +5,7 @@ export { solusOptimalStrikeAction } from "./solusOptimalStrike.action";
 export { solusAnalyzeAction } from "./solusAnalyze.action";
 export { solusEarningsCalendarAction } from "./solusEarningsCalendar.action";
 export { solusPremiumPnlAction } from "./solusPremiumPnl.action";
+export { solusAssignmentCalibrationAction } from "./solusAssignmentCalibration.action";
 export {
   mcRegisterSatoshiAction,
   mcAssignTaskAction,
