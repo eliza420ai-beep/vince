@@ -286,7 +286,7 @@ bun start              # production (Postgres when POSTGRES_URL set)
 ## Features
 
 - **ALOHA** — One command: vibe check + PERPS + OPTIONS + "trade today?"
-- **Self-evolving paper bot** — Signals, trades, feature store, Python train, ONNX deploy, genome mutation, regime-aware sizing. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rules keep the bot running when models are missing. **Env tuning:** ML threshold, swarm min confidence, aggressive margin/size (see Paper Bot & ML).
+- **Self-evolving paper bot** — Signals, trades, feature store, Python train, ONNX deploy (export + smoke test fixed), genome mutation, regime-aware sizing. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rules keep the bot running when models are missing. **Env tuning:** ML threshold, swarm min confidence, aggressive margin/size (see Paper Bot & ML).
 - **Strategy genome** — 15+ tunable parameters mutate weekly, replay against history, auto-promote the best variant by Sharpe and drawdown.
 - **Regime profiles** — Five market personalities auto-switch risk limits, sizing, and signal thresholds based on Oracle regime, Echo sentiment, and technicals.
 - **Execution graduation** — Otaku earns trust through four levels (paper → notify → confirm → auto), demoted by circuit breakers.
@@ -306,6 +306,12 @@ The 12-phase roadmap built this loop; the algo (gates, open/skip, feature store)
 
 **VinceBench** scores every closed trade on process quality (signal, risk, timing, regime). The score trains the signal-quality model to learn more from high-quality decisions.
 
+### Recent improvements
+
+- **ONNX export fixed** — Graph and node I/O are renamed to `input`/`output` so onnxruntime loads models reliably; smoke tests run after every export so you see “ONNX smoke test passed” for all four models.
+- **Env tuning** — No code changes needed to adjust trade frequency or size: ML threshold, swarm confidence, aggressive margin/size (see table below).
+- **Training pipeline** — Sentinel improvement tasks write to `docs/standup/openclaw-queue/` with safe filenames (slashes in feature names no longer break writes). Feature prep uses a single concat for derived columns to avoid DataFrame fragmentation warnings.
+
 ### Paper bot tuning (env)
 
 Tune no-trades vs margin/size without code changes. In `.env` (see `.env.example`):
@@ -317,6 +323,9 @@ Tune no-trades vs margin/size without code changes. In `.env` (see `.env.example
 | `VINCE_SWARM_MIN_CONFIDENCE` | 0–1 (default `0.5`). Min swarm consensus to allow a trade; lower = more trades. |
 | `VINCE_AGGRESSIVE_MARGIN_USD` | Fixed margin per trade in aggressive mode (default `1000`). Increase for larger paper size. |
 | `VINCE_AGGRESSIVE_BASE_SIZE_PCT` | Base size as % of portfolio when portfolio &lt; margin (default `12`). |
+| `VINCE_PAPER_MAX_SINGLE_TRADE_USD` | Paper bucket + policy cap per trade (default `10000`). High-notional assets (e.g. BTC, index products) often hit this; increase or leave unset to use default. |
+
+**Single-trade cap:** The paper bucket and policy rule **max-single-trade-usd** cap each trade at **$10k** by default (see [policies/trading-policy.yaml](policies/trading-policy.yaml) and the paper bucket in [vinceCapitalBuckets.service.ts](src/plugins/plugin-vince/src/services/vinceCapitalBuckets.service.ts), or `capital-buckets.json` when present). If you see "blocked by policy engine: max-single-trade-usd" in logs, the requested size exceeded this cap; set `VINCE_PAPER_MAX_SINGLE_TRADE_USD` to raise it.
 
 Many “no trade” outcomes come from ML quality below threshold, X sentiment not meeting 40% or neutral, confidence/strength below min, or swarm consensus below the min. Use these vars to relax gates for more paper volume or raise margin/size when you want larger positions.
 

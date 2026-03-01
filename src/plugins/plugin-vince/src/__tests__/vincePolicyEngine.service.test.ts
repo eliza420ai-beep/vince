@@ -21,8 +21,8 @@ effectiveDate: "2026-02-25"
 
 rules:
   - id: "max-single-trade-usd"
-    description: "Maximum single trade size regardless of signal strength (paper: 10k)"
-    condition: "tradeSize > 10000"
+    description: "Maximum single trade size (paper: from bucket or env)"
+    condition: "tradeSize > maxSingleTradeUsd"
     action: "block"
     level: "hard"
 
@@ -94,13 +94,21 @@ describe("VincePolicyEngineService.evaluate — all rules pass", () => {
 });
 
 describe("VincePolicyEngineService.evaluate — hard block triggered", () => {
-  it("blocks on max-single-trade-usd when tradeSize > 10000", () => {
+  it("blocks on max-single-trade-usd when tradeSize > maxSingleTradeUsd", () => {
     const engine = new VincePolicyEngineService(policyPath);
-    const ctx: PolicyContext = { tradeSize: 15000 };
+    const ctx: PolicyContext = { tradeSize: 15000, maxSingleTradeUsd: 10000 };
     const result = engine.evaluate(ctx);
     expect(result.passed).toBe(false);
     expect(result.hardBlocks).toContain("max-single-trade-usd");
     expect(result.sizeModifier).toBe(0);
+  });
+
+  it("does not block on max-single-trade-usd when maxSingleTradeUsd not in context", () => {
+    const engine = new VincePolicyEngineService(policyPath);
+    const ctx: PolicyContext = { tradeSize: 15000 };
+    const result = engine.evaluate(ctx);
+    expect(result.passed).toBe(true);
+    expect(result.hardBlocks).not.toContain("max-single-trade-usd");
   });
 
   it("blocks on min-confidence-live for live trade with low confidence", () => {
@@ -173,7 +181,7 @@ describe("VincePolicyEngineService — helpers", () => {
 
   it("appliedRules lists all rules with triggered flag", () => {
     const engine = new VincePolicyEngineService(policyPath);
-    const ctx: PolicyContext = { tradeSize: 15000 };
+    const ctx: PolicyContext = { tradeSize: 15000, maxSingleTradeUsd: 10000 };
     const result = engine.evaluate(ctx);
     expect(result.appliedRules.length).toBeGreaterThan(0);
     const blocked = result.appliedRules.find(

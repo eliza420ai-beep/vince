@@ -110,6 +110,7 @@ import {
 } from "../utils/wttQualityScore";
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
 import { VincePolicyEngineService } from "./vincePolicyEngine.service";
+import { VinceCapitalBucketsService } from "./vinceCapitalBuckets.service";
 import { CircuitBreakerService } from "src/plugins/plugin-otaku/src/services/circuitBreaker.service";
 
 // ==========================================
@@ -1396,6 +1397,13 @@ Reply format: APPROVE reason or VETO reason`;
     if (isWttEnabled(this.runtime)) await this.evaluateWttPick();
 
     const assets = getPaperTradeAssetsWithWatchlist(this.runtime);
+    const funnel = {
+      passedValidation: 0,
+      policyBlock: 0,
+      opened: 0,
+      openFailed: 0,
+      otherBlock: 0,
+    };
     for (const asset of assets) {
       try {
         // Skip if we already have a position in this asset
@@ -1461,6 +1469,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -1500,6 +1509,7 @@ Reply format: APPROVE reason or VETO reason`;
                 reason,
               );
             }
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -1535,6 +1545,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
+            funnel.otherBlock++;
             continue;
           }
           if (
@@ -1555,6 +1566,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -1580,6 +1592,7 @@ Reply format: APPROVE reason or VETO reason`;
               reason,
             );
           }
+          funnel.otherBlock++;
           continue;
         }
 
@@ -1617,6 +1630,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             reason,
           );
+          funnel.otherBlock++;
           continue;
         }
         let fundingRate = 0;
@@ -1750,6 +1764,7 @@ Reply format: APPROVE reason or VETO reason`;
               `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
             );
           }
+          funnel.otherBlock++;
           continue;
         }
 
@@ -1773,6 +1788,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
           );
+          funnel.otherBlock++;
           continue;
         }
         if (
@@ -1790,6 +1806,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
           );
+          funnel.otherBlock++;
           continue;
         }
 
@@ -1806,6 +1823,7 @@ Reply format: APPROVE reason or VETO reason`;
               reason,
             );
           }
+          funnel.otherBlock++;
           continue;
         }
 
@@ -2086,6 +2104,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal.direction as "long" | "short",
             tradeValidation.reason || "risk check failed",
           );
+          funnel.otherBlock++;
           continue;
         }
 
@@ -2108,6 +2127,7 @@ Reply format: APPROVE reason or VETO reason`;
             logger.debug(
               `[VincePaperTrading] ${asset} entry gate veto – skipping trade`,
             );
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -2152,6 +2172,7 @@ Reply format: APPROVE reason or VETO reason`;
               undefined,
               undefined,
             );
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -2182,6 +2203,7 @@ Reply format: APPROVE reason or VETO reason`;
               undefined,
               narrative.phase,
             );
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -2219,6 +2241,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -2255,6 +2278,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
+            funnel.otherBlock++;
             continue;
           }
         }
@@ -2295,6 +2319,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
+            funnel.otherBlock++;
             continue;
           }
           if (challenge.downgradeMultiplier < 1) {
@@ -2310,6 +2335,15 @@ Reply format: APPROVE reason or VETO reason`;
           const circuitBreaker = CircuitBreakerService.getInstance();
           const isHalted = circuitBreaker.isHalted();
           const policyEngine = VincePolicyEngineService.getInstance();
+          let paperBucketMaxSingleTradeUsd: number | undefined;
+          try {
+            paperBucketMaxSingleTradeUsd =
+              VinceCapitalBucketsService.getInstance().getBucket(
+                "paper",
+              ).maxSingleTradeUsd;
+          } catch {
+            paperBucketMaxSingleTradeUsd = undefined;
+          }
           const policyCtx = {
             tradeSize: finalTradeSize,
             confidence: tradeSignal.confidence,
@@ -2317,11 +2351,29 @@ Reply format: APPROVE reason or VETO reason`;
             circuitBreakerActive: isHalted,
             sentimentScore: sentimentGate.sentimentScore,
             direction: signal.direction as "long" | "short",
+            ...(typeof paperBucketMaxSingleTradeUsd === "number"
+              ? { maxSingleTradeUsd: paperBucketMaxSingleTradeUsd }
+              : {}),
           };
           const policyResult = policyEngine.evaluate(policyCtx);
           if (!policyResult.passed) {
+            const capNote = policyResult.hardBlocks.includes(
+              "max-single-trade-usd",
+            )
+              ? (() => {
+                  try {
+                    const bucket =
+                      VinceCapitalBucketsService.getInstance().getBucket(
+                        "paper",
+                      );
+                    return ` > $${bucket.maxSingleTradeUsd} cap`;
+                  } catch {
+                    return "";
+                  }
+                })()
+              : "";
             logger.info(
-              `[VincePaperTrading] ${asset} blocked by policy engine: ${policyResult.hardBlocks.join(",")} | auditRef: ${policyResult.auditRef}`,
+              `[VincePaperTrading] ${asset} blocked by policy engine: ${policyResult.hardBlocks.join(",")} (requested $${Math.round(finalTradeSize)}${capNote}) | auditRef: ${policyResult.auditRef}`,
             );
             void this.recordAvoidedDecisionIfNeeded(
               asset,
@@ -2332,6 +2384,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
+            funnel.policyBlock++;
             continue;
           }
           if (
@@ -2435,6 +2488,7 @@ Reply format: APPROVE reason or VETO reason`;
                   signal as AggregatedSignal,
                   reason,
                 );
+                funnel.otherBlock++;
                 continue;
               }
 
@@ -2527,6 +2581,7 @@ Reply format: APPROVE reason or VETO reason`;
                       signal as AggregatedSignal,
                       reason,
                     );
+                    funnel.otherBlock++;
                     continue;
                   }
                 }
@@ -2547,6 +2602,7 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Execute immediately - pullback entries were causing too many missed trades
+        funnel.passedValidation++;
         const openedPosition = await this.openTrade({
           asset,
           direction: signal.direction as "long" | "short",
@@ -2594,10 +2650,15 @@ Reply format: APPROVE reason or VETO reason`;
             regimeKey,
           });
         }
+        if (openedPosition) funnel.opened++;
+        else funnel.openFailed++;
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
       }
     }
+    logger.info(
+      `[VincePaperTrading] Funnel this cycle: passed=${funnel.passedValidation} policy_block=${funnel.policyBlock} opened=${funnel.opened} open_failed=${funnel.openFailed} other_block=${funnel.otherBlock}`,
+    );
   }
 
   // ==========================================

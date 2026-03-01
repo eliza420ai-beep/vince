@@ -151,26 +151,36 @@ function evaluateCondition(condition: string, context: PolicyContext): boolean {
     return andParts.every((part) => evaluateCondition(part.trim(), context));
   }
 
-  // Try `>` operator
+  // Try `>` operator (rhs may be a number literal or a context variable name)
   const gtMatch = normalized.match(/^(\w+)\s*>\s*(.+)$/);
   if (gtMatch) {
     const [, varName, rhs] = gtMatch;
     const lhsVal = context[varName];
-    if (typeof lhsVal === "number") {
-      return lhsVal > parseFloat(rhs.trim());
+    if (typeof lhsVal !== "number") return false;
+    const rhsTrimmed = rhs.trim();
+    let rhsVal: number = parseFloat(rhsTrimmed);
+    if (Number.isNaN(rhsVal)) {
+      const fromCtx = context[rhsTrimmed];
+      if (typeof fromCtx !== "number") return false;
+      rhsVal = fromCtx;
     }
-    return false;
+    return lhsVal > rhsVal;
   }
 
-  // Try `<` operator
+  // Try `<` operator (rhs may be a number literal or a context variable name)
   const ltMatch = normalized.match(/^(\w+)\s*<\s*(.+)$/);
   if (ltMatch) {
     const [, varName, rhs] = ltMatch;
     const lhsVal = context[varName];
-    if (typeof lhsVal === "number") {
-      return lhsVal < parseFloat(rhs.trim());
+    if (typeof lhsVal !== "number") return false;
+    const rhsTrimmed = rhs.trim();
+    let rhsVal: number = parseFloat(rhsTrimmed);
+    if (Number.isNaN(rhsVal)) {
+      const fromCtx = context[rhsTrimmed];
+      if (typeof fromCtx !== "number") return false;
+      rhsVal = fromCtx;
     }
-    return false;
+    return lhsVal < rhsVal;
   }
 
   // Try `==` operator
