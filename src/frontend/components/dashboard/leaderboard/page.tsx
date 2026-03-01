@@ -6474,7 +6474,17 @@ export default function LeaderboardPage({
                                 <span className="font-mono">
                                   .elizadb/vince-paper-bot/models/
                                 </span>
-                                .
+                                . Restart the agent to load models (or wait for
+                                the next automatic training run—models then
+                                reload without restart).
+                                <span className="block mt-1">
+                                  Lower the bar: set{" "}
+                                  <span className="font-mono">
+                                    VINCE_ML_SIGNAL_QUALITY_THRESHOLD=0.5
+                                  </span>{" "}
+                                  in .env for more trades with rule-based
+                                  fallback.
+                                </span>
                               </p>
                             ) : (
                               <p className="text-xs text-muted-foreground mt-1">

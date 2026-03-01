@@ -216,16 +216,19 @@ export const registerTrainOnnxTask = async (
           );
         } else if (result.success) {
           const modelsDir = getModelsDir();
-          const uploaded = await uploadModelsToSupabase(rt, modelsDir);
-          if (uploaded) {
-            const mlService = rt.getService(
-              "VINCE_ML_INFERENCE_SERVICE",
-            ) as VinceMLInferenceService | null;
-            if (mlService?.reloadModels) {
+          await uploadModelsToSupabase(rt, modelsDir);
+          // Reload models after every successful training (local or Cloud) so dashboard shows ONNX loaded without restart.
+          const mlService = rt.getService(
+            "VINCE_ML_INFERENCE_SERVICE",
+          ) as VinceMLInferenceService | null;
+          if (mlService?.reloadModels) {
+            try {
               await mlService.reloadModels();
               logger.info(
-                "[TrainONNX] ML models reloaded; new thresholds active.",
+                "[TrainONNX] ML models reloaded; new thresholds active (no restart needed).",
               );
+            } catch (reloadErr) {
+              logger.warn(`[TrainONNX] reloadModels failed: ${reloadErr}`);
             }
           }
           if (process.env.VINCE_APPLY_IMPROVEMENT_WEIGHTS === "true") {
