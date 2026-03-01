@@ -6,7 +6,7 @@
       "outcomesProvided": 0,
       "accuracyRate": 0.5,
       "specialtyScore": 1,
-      "lastActive": 1772358053894
+      "lastActive": 1772358125040
     },
     "echo": {
       "outcomesProvided": 0,
@@ -35232,10 +35232,5584 @@
         "consensusId": "swarm-1772358091564-x1ufpepc8"
       },
       "timestamp": 1772358091564
+    },
+    {
+      "id": "swarm-1772358125358-zryhn2btr",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.56,
+            "supportingSignals": [
+              "CoinGlass",
+              "BinanceTakerFlow",
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "DeribitIVSkew",
+              "MarketRegime",
+              "HyperliquidBias",
+              "CrossVenueFunding"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for SOL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for SOL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for SOL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=trending"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "long",
+            "confidence": 0.3,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=trending"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.4764397905759162,
+        "dissentScore": 0.680628272251309,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358125358,
+        "consensusId": "swarm-1772358125358-zryhn2btr"
+      },
+      "timestamp": 1772358125358
+    },
+    {
+      "id": "swarm-1772358125851-36n0fq3rj",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for ROBOT"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for ROBOT: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for ROBOT: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358125851,
+        "consensusId": "swarm-1772358125851-36n0fq3rj"
+      },
+      "timestamp": 1772358125851
+    },
+    {
+      "id": "swarm-1772358126673-yqyhry3uu",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MAG7"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MAG7: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MAG7: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358126673,
+        "consensusId": "swarm-1772358126673-yqyhry3uu"
+      },
+      "timestamp": 1772358126673
+    },
+    {
+      "id": "swarm-1772358126765-evdkr40zo",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for INFOTECH"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for INFOTECH: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for INFOTECH: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358126765,
+        "consensusId": "swarm-1772358126765-evdkr40zo"
+      },
+      "timestamp": 1772358126765
+    },
+    {
+      "id": "swarm-1772358127349-gqwn6f16m",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for NVDA"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for NVDA: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for NVDA: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358127349,
+        "consensusId": "swarm-1772358127349-gqwn6f16m"
+      },
+      "timestamp": 1772358127349
+    },
+    {
+      "id": "swarm-1772358127418-lzngg7n5y",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for GOOGL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for GOOGL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for GOOGL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358127418,
+        "consensusId": "swarm-1772358127418-lzngg7n5y"
+      },
+      "timestamp": 1772358127418
+    },
+    {
+      "id": "swarm-1772358127460-saj1arhpe",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for TSLA"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for TSLA: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for TSLA: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358127460,
+        "consensusId": "swarm-1772358127460-saj1arhpe"
+      },
+      "timestamp": 1772358127460
+    },
+    {
+      "id": "swarm-1772358127550-ibq0h5juh",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AAPL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AAPL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AAPL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358127550,
+        "consensusId": "swarm-1772358127550-ibq0h5juh"
+      },
+      "timestamp": 1772358127550
+    },
+    {
+      "id": "swarm-1772358127671-tte3jy3q0",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for META"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for META: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for META: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358127671,
+        "consensusId": "swarm-1772358127671-tte3jy3q0"
+      },
+      "timestamp": 1772358127671
+    },
+    {
+      "id": "swarm-1772358127953-hxwnamylh",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MSFT"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MSFT: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MSFT: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358127953,
+        "consensusId": "swarm-1772358127953-hxwnamylh"
+      },
+      "timestamp": 1772358127953
+    },
+    {
+      "id": "swarm-1772358128108-m7gfb5bqv",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AMZN"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AMZN: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AMZN: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128108,
+        "consensusId": "swarm-1772358128108-m7gfb5bqv"
+      },
+      "timestamp": 1772358128108
+    },
+    {
+      "id": "swarm-1772358128289-uro89qxco",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.49,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for PLTR"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for PLTR: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for PLTR: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.298780487804878,
+        "dissentScore": 0.701219512195122,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128289,
+        "consensusId": "swarm-1772358128289-uro89qxco"
+      },
+      "timestamp": 1772358128289
+    },
+    {
+      "id": "swarm-1772358128442-ptp14v00w",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "long",
+            "confidence": 0.45,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild",
+              "HIP3PriceAction"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for COIN"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for COIN: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for COIN: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.28124999999999994,
+        "dissentScore": 0.71875,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128442,
+        "consensusId": "swarm-1772358128442-ptp14v00w"
+      },
+      "timestamp": 1772358128442
+    },
+    {
+      "id": "swarm-1772358128569-xgp1fkyrr",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.43,
+            "supportingSignals": [
+              "BinanceTopTraders",
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for HOOD"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for HOOD: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for HOOD: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.27215189873417717,
+        "dissentScore": 0.7278481012658229,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128569,
+        "consensusId": "swarm-1772358128569-xgp1fkyrr"
+      },
+      "timestamp": 1772358128569
+    },
+    {
+      "id": "swarm-1772358128674-unapcjuih",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for CRCL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for CRCL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for CRCL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128674,
+        "consensusId": "swarm-1772358128674-unapcjuih"
+      },
+      "timestamp": 1772358128674
+    },
+    {
+      "id": "swarm-1772358128776-pdwtcv8a2",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceTopTraders",
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MSTR"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MSTR: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MSTR: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128776,
+        "consensusId": "swarm-1772358128776-pdwtcv8a2"
+      },
+      "timestamp": 1772358128776
+    },
+    {
+      "id": "swarm-1772358128877-uj2fsdp9u",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.4,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AMD"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AMD: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AMD: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.2580645161290322,
+        "dissentScore": 0.7419354838709677,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128877,
+        "consensusId": "swarm-1772358128877-uj2fsdp9u"
+      },
+      "timestamp": 1772358128877
+    },
+    {
+      "id": "swarm-1772358128986-sp4vtylk4",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "long",
+            "confidence": 0.43,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for INTC"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for INTC: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for INTC: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.27215189873417717,
+        "dissentScore": 0.7278481012658229,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358128986,
+        "consensusId": "swarm-1772358128986-sp4vtylk4"
+      },
+      "timestamp": 1772358128986
+    },
+    {
+      "id": "swarm-1772358129146-3rff0jole",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "long",
+            "confidence": 0.38,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3PriceAction"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for OPENAI"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for OPENAI: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for OPENAI: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "long",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=trending"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "long",
+            "confidence": 0.3,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=trending"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.5953757225433525,
+        "dissentScore": 0.40462427745664753,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358129146,
+        "consensusId": "swarm-1772358129146-3rff0jole"
+      },
+      "timestamp": 1772358129146
+    },
+    {
+      "id": "swarm-1772358129281-dmz8u8jsv",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for SNDK"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for SNDK: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for SNDK: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358129281,
+        "consensusId": "swarm-1772358129281-dmz8u8jsv"
+      },
+      "timestamp": 1772358129281
+    },
+    {
+      "id": "swarm-1772358129390-5kb9sr5qw",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.4,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AMD"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AMD: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AMD: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.2580645161290322,
+        "dissentScore": 0.7419354838709677,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358129390,
+        "consensusId": "swarm-1772358129390-5kb9sr5qw"
+      },
+      "timestamp": 1772358129390
+    },
+    {
+      "id": "swarm-1772358129471-w0jrinc0v",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MU"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MU: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MU: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358129471,
+        "consensusId": "swarm-1772358129471-w0jrinc0v"
+      },
+      "timestamp": 1772358129471
+    },
+    {
+      "id": "swarm-1772358129560-2dubu6xxt",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for NFLX"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for NFLX: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for NFLX: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358129560,
+        "consensusId": "swarm-1772358129560-2dubu6xxt"
+      },
+      "timestamp": 1772358129560
+    },
+    {
+      "id": "swarm-1772358147812-2i5u31asl",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.56,
+            "supportingSignals": [
+              "CoinGlass",
+              "BinanceTakerFlow",
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "DeribitIVSkew",
+              "MarketRegime",
+              "HyperliquidBias",
+              "CrossVenueFunding"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for SOL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for SOL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for SOL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=trending"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "long",
+            "confidence": 0.3,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=trending"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.4764397905759162,
+        "dissentScore": 0.680628272251309,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358147812,
+        "consensusId": "swarm-1772358147812-2i5u31asl"
+      },
+      "timestamp": 1772358147812
+    },
+    {
+      "id": "swarm-1772358147955-zvlszs9yx",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for ROBOT"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for ROBOT: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for ROBOT: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358147955,
+        "consensusId": "swarm-1772358147955-zvlszs9yx"
+      },
+      "timestamp": 1772358147955
+    },
+    {
+      "id": "swarm-1772358148016-3ln9lkl1a",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MAG7"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MAG7: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MAG7: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148016,
+        "consensusId": "swarm-1772358148016-3ln9lkl1a"
+      },
+      "timestamp": 1772358148016
+    },
+    {
+      "id": "swarm-1772358148064-77dwxrldd",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for INFOTECH"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for INFOTECH: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for INFOTECH: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148064,
+        "consensusId": "swarm-1772358148064-77dwxrldd"
+      },
+      "timestamp": 1772358148064
+    },
+    {
+      "id": "swarm-1772358148094-1nrplm52m",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for NVDA"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for NVDA: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for NVDA: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148094,
+        "consensusId": "swarm-1772358148094-1nrplm52m"
+      },
+      "timestamp": 1772358148094
+    },
+    {
+      "id": "swarm-1772358148135-doxzb3mfp",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for GOOGL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for GOOGL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for GOOGL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148135,
+        "consensusId": "swarm-1772358148135-doxzb3mfp"
+      },
+      "timestamp": 1772358148135
+    },
+    {
+      "id": "swarm-1772358148179-btksg7x45",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for TSLA"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for TSLA: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for TSLA: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148179,
+        "consensusId": "swarm-1772358148179-btksg7x45"
+      },
+      "timestamp": 1772358148179
+    },
+    {
+      "id": "swarm-1772358148202-ttt0152el",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AAPL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AAPL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AAPL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148202,
+        "consensusId": "swarm-1772358148202-ttt0152el"
+      },
+      "timestamp": 1772358148202
+    },
+    {
+      "id": "swarm-1772358148227-qgg60wv94",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for META"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for META: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for META: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148227,
+        "consensusId": "swarm-1772358148227-qgg60wv94"
+      },
+      "timestamp": 1772358148227
+    },
+    {
+      "id": "swarm-1772358148261-sitx5zajy",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MSFT"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MSFT: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MSFT: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148261,
+        "consensusId": "swarm-1772358148261-sitx5zajy"
+      },
+      "timestamp": 1772358148261
+    },
+    {
+      "id": "swarm-1772358148302-csl97ihfx",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AMZN"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AMZN: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AMZN: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148302,
+        "consensusId": "swarm-1772358148302-csl97ihfx"
+      },
+      "timestamp": 1772358148302
+    },
+    {
+      "id": "swarm-1772358148347-r4d1wo5df",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.49,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for PLTR"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for PLTR: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for PLTR: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.298780487804878,
+        "dissentScore": 0.701219512195122,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148347,
+        "consensusId": "swarm-1772358148347-r4d1wo5df"
+      },
+      "timestamp": 1772358148347
+    },
+    {
+      "id": "swarm-1772358148400-u2t3ghe9q",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "long",
+            "confidence": 0.45,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild",
+              "HIP3PriceAction"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for COIN"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for COIN: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for COIN: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.28124999999999994,
+        "dissentScore": 0.71875,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148400,
+        "consensusId": "swarm-1772358148400-u2t3ghe9q"
+      },
+      "timestamp": 1772358148400
+    },
+    {
+      "id": "swarm-1772358148437-l5nljelxs",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.43,
+            "supportingSignals": [
+              "BinanceTopTraders",
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for HOOD"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for HOOD: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for HOOD: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.27215189873417717,
+        "dissentScore": 0.7278481012658229,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148437,
+        "consensusId": "swarm-1772358148437-l5nljelxs"
+      },
+      "timestamp": 1772358148437
+    },
+    {
+      "id": "swarm-1772358148479-l4mqtdk1b",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for CRCL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for CRCL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for CRCL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148479,
+        "consensusId": "swarm-1772358148479-l4mqtdk1b"
+      },
+      "timestamp": 1772358148479
+    },
+    {
+      "id": "swarm-1772358148546-ivke4c1m4",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "BinanceTopTraders",
+              "BinanceTakerFlow",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MSTR"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MSTR: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MSTR: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.303030303030303,
+        "dissentScore": 0.696969696969697,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148546,
+        "consensusId": "swarm-1772358148546-ivke4c1m4"
+      },
+      "timestamp": 1772358148546
+    },
+    {
+      "id": "swarm-1772358148600-0rdvu6ldj",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.4,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AMD"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AMD: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AMD: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.2580645161290322,
+        "dissentScore": 0.7419354838709677,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148600,
+        "consensusId": "swarm-1772358148600-0rdvu6ldj"
+      },
+      "timestamp": 1772358148600
+    },
+    {
+      "id": "swarm-1772358148636-1dtodlv3b",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "long",
+            "confidence": 0.43,
+            "supportingSignals": [
+              "BinanceTakerFlow",
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for INTC"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for INTC: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for INTC: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.27215189873417717,
+        "dissentScore": 0.7278481012658229,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148636,
+        "consensusId": "swarm-1772358148636-1dtodlv3b"
+      },
+      "timestamp": 1772358148636
+    },
+    {
+      "id": "swarm-1772358148659-y1sy2m4vc",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "long",
+            "confidence": 0.38,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3PriceAction"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for OPENAI"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for OPENAI: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for OPENAI: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "long",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=trending"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "long",
+            "confidence": 0.3,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=trending"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.5953757225433525,
+        "dissentScore": 0.40462427745664753,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148659,
+        "consensusId": "swarm-1772358148659-y1sy2m4vc"
+      },
+      "timestamp": 1772358148659
+    },
+    {
+      "id": "swarm-1772358148787-mmjiqa8ej",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for SNDK"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for SNDK: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for SNDK: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148787,
+        "consensusId": "swarm-1772358148787-mmjiqa8ej"
+      },
+      "timestamp": 1772358148787
+    },
+    {
+      "id": "swarm-1772358148860-f3kzptwek",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.4,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for AMD"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for AMD: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for AMD: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=neutral"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=neutral"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.2580645161290322,
+        "dissentScore": 0.7419354838709677,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148860,
+        "consensusId": "swarm-1772358148860-f3kzptwek"
+      },
+      "timestamp": 1772358148860
+    },
+    {
+      "id": "swarm-1772358148885-ubp19sjx3",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Momentum",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for MU"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for MU: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for MU: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358148885,
+        "consensusId": "swarm-1772358148885-ubp19sjx3"
+      },
+      "timestamp": 1772358148885
+    },
+    {
+      "id": "swarm-1772358149670-00rvaercn",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "NewsSentiment",
+              "MarketRegime",
+              "HyperliquidBias",
+              "HIP3Funding",
+              "HIP3OIBuild"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for NFLX"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for NFLX: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for NFLX: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "neutral",
+            "confidence": 0.25,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=ranging"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=ranging"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.23333333333333325,
+        "dissentScore": 0.7666666666666667,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358149670,
+        "consensusId": "swarm-1772358149670-00rvaercn"
+      },
+      "timestamp": 1772358149670
     }
   ],
   "swarmVersion": "1.0.0",
-  "lastSwarmUpdate": 1772358091564,
+  "lastSwarmUpdate": 1772358149670,
   "regimeSources": {
     "TRENDING_BULL": {},
     "CHOPPY": {},
