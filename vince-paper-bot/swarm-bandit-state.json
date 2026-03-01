@@ -6,7 +6,7 @@
       "outcomesProvided": 0,
       "accuracyRate": 0.5,
       "specialtyScore": 1,
-      "lastActive": 1772358125040
+      "lastActive": 1772358186734
     },
     "echo": {
       "outcomesProvided": 0,
@@ -40806,10 +40806,134 @@
         "consensusId": "swarm-1772358149670-00rvaercn"
       },
       "timestamp": 1772358149670
+    },
+    {
+      "id": "swarm-1772358186986-f36zk94mi",
+      "consensus": {
+        "votes": [
+          {
+            "agentId": "vince",
+            "direction": "short",
+            "confidence": 0.5,
+            "supportingSignals": [
+              "CoinGlass",
+              "BinanceTakerFlow",
+              "BinanceLongShort",
+              "BinanceFundingExtreme",
+              "NewsSentiment",
+              "DeribitIVSkew",
+              "MarketRegime",
+              "HyperliquidBias",
+              "CrossVenueFunding"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "VINCE aggregated signal for SOL"
+          },
+          {
+            "agentId": "echo",
+            "direction": "neutral",
+            "confidence": 0,
+            "supportingSignals": [
+              "x_sentiment"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Echo CT sentiment for SOL: neutral (conf=0%)"
+          },
+          {
+            "agentId": "oracle",
+            "direction": "neutral",
+            "confidence": 0.2,
+            "supportingSignals": [
+              "polymarket_regime"
+            ],
+            "riskAssessment": 0.5,
+            "reasoning": "Oracle Polymarket regime for SOL: uncertain"
+          },
+          {
+            "agentId": "solus",
+            "direction": "short",
+            "confidence": 0.35,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Solus options view via market regime=trending"
+          },
+          {
+            "agentId": "otaku",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.5,
+            "reasoning": "No active BANKR orders"
+          },
+          {
+            "agentId": "kelly",
+            "direction": "long",
+            "confidence": 0.3,
+            "supportingSignals": [
+              "market_regime"
+            ],
+            "riskAssessment": 0.6,
+            "reasoning": "Kelly macro tilt from regime=trending"
+          },
+          {
+            "agentId": "sentinel",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Sentinel meta-learning not yet wired into swarm"
+          },
+          {
+            "agentId": "eliza",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Eliza research bias not yet wired into swarm"
+          },
+          {
+            "agentId": "clawterm",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Clawterm discovery not yet wired into swarm"
+          },
+          {
+            "agentId": "naval",
+            "direction": "neutral",
+            "confidence": 0.1,
+            "supportingSignals": [],
+            "riskAssessment": 0.4,
+            "reasoning": "Naval philosophy not yet wired into swarm"
+          }
+        ],
+        "weightedDirection": "neutral",
+        "confidenceLevel": 0.4594594594594594,
+        "dissentScore": 0.7027027027027027,
+        "participatingAgents": [
+          "vince",
+          "echo",
+          "oracle",
+          "solus",
+          "otaku",
+          "kelly",
+          "sentinel",
+          "eliza",
+          "clawterm",
+          "naval"
+        ],
+        "consensusReached": false,
+        "decisionTimestamp": 1772358186986,
+        "consensusId": "swarm-1772358186986-f36zk94mi"
+      },
+      "timestamp": 1772358186986
     }
   ],
   "swarmVersion": "1.0.0",
-  "lastSwarmUpdate": 1772358149670,
+  "lastSwarmUpdate": 1772358186986,
   "regimeSources": {
     "TRENDING_BULL": {},
     "CHOPPY": {},
