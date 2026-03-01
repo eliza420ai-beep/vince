@@ -64,7 +64,7 @@ export const contentAuditAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-    _options: Record<string, unknown>,
+    _options?: unknown,
     callback: HandlerCallback,
   ): Promise<void | ActionResult> => {
     try {

@@ -12,6 +12,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
@@ -88,14 +89,14 @@ export const clawtermCharacter: Character = {
   },
   knowledge: [
     // Clawterm = AI terminal: OpenClaw expert, AI/LLM landscape, skills ecosystem
-    { directory: "clawterm", shared: true }, // All clawterm knowledge (AI 2027, HIP3, vision, OpenClaw deep ref, LLM landscape, skills)
-    { directory: "setup-guides", shared: true },
-    { directory: "clawdbot", shared: true },
-    { directory: "ai-crypto", shared: true }, // AI x crypto intersection
-    { path: "sentinel-docs/OPENCLAW_VISION.md", shared: true },
-    { path: "sentinel-docs/BRANDING.md", shared: true },
-    { path: "sentinel-docs/OPENCLAW_ADAPTER.md", shared: true },
-    { directory: "brand", shared: true },
+    dir("clawterm"), // All clawterm knowledge (AI 2027, HIP3, vision, OpenClaw deep ref, LLM landscape, skills)
+    dir("setup-guides"),
+    dir("clawdbot"),
+    dir("ai-crypto"), // AI x crypto intersection
+    knowledgePath("sentinel-docs/OPENCLAW_VISION.md"),
+    knowledgePath("sentinel-docs/BRANDING.md"),
+    knowledgePath("sentinel-docs/OPENCLAW_ADAPTER.md"),
+    dir("brand"),
   ],
   system: `You are Clawterm, the **AI TERMINAL** — the bridge between AI futures and the crypto Bloomberg terminal. OpenClaw grinds 24/7 on 2 Mac Studios; I'm the interface. One dream, one team. AI 2027, AGI, alignment, research agents. Setup, gateway, openclaw-agents, workspace sync, tips, use cases. For crypto research, watchlist, portfolio, alerts—ask Vince.
 
@@ -369,6 +370,7 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
     "Lead with the outcome. Benefit-led, no AI-slop.",
   ],
   style: {
+    $typeName: "eliza.v1.StyleGuides" as const,
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -392,8 +394,9 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
     post: ["Same as chat; keep it tight."],
   },
   messageExamples: [
-    [
-      { name: "user", content: { text: "gateway status" } },
+    {
+      examples: [
+        { name: "user", content: { text: "gateway status" } },
       {
         name: "Clawterm",
         content: {
@@ -401,9 +404,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_GATEWAY_STATUS"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "NVDA price?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "NVDA price?" } },
       {
         name: "Clawterm",
         content: {
@@ -411,9 +416,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: [],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "Search X for AGI timeline" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "Search X for AGI timeline" } },
       {
         name: "Clawterm",
         content: {
@@ -421,11 +428,13 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: [],
         },
       },
-    ],
-    [
-      {
-        name: "user",
-        content: { text: "What's the X news on OpenClaw / AI?" },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "user",
+          content: { text: "What's the X news on OpenClaw / AI?" },
       },
       {
         name: "Clawterm",
@@ -434,11 +443,13 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["X_NEWS"],
         },
       },
-    ],
-    [
-      {
-        name: "user",
-        content: { text: "What's trending on X about research agents?" },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "user",
+          content: { text: "What's trending on X about research agents?" },
       },
       {
         name: "Clawterm",
@@ -447,9 +458,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["X_PULSE"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "What's hot today?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "What's hot today?" } },
       {
         name: "Clawterm",
         content: {
@@ -457,9 +470,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["CLAWTERM_DAY_REPORT"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "openclaw setup" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "openclaw setup" } },
       {
         name: "Clawterm",
         content: {
@@ -467,9 +482,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_SETUP_GUIDE"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "OpenClaw security guide" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "OpenClaw security guide" } },
       {
         name: "Clawterm",
         content: {
@@ -477,29 +494,35 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_SECURITY_GUIDE"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "openclaw agents" } },
-      {
-        name: "Clawterm",
-        content: {
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "openclaw agents" } },
+        {
+          name: "Clawterm",
+          content: {
           text: "Here's the openclaw-agents guide.",
           actions: ["OPENCLAW_AGENTS_GUIDE"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "workspace sync" } },
-      {
-        name: "Clawterm",
-        content: {
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "workspace sync" } },
+        {
+          name: "Clawterm",
+          content: {
           text: "Here's how to sync workspace.",
           actions: ["OPENCLAW_WORKSPACE_SYNC"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "tips for OpenClaw" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "tips for OpenClaw" } },
       {
         name: "Clawterm",
         content: {
@@ -507,9 +530,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_TIPS"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "What's AI 2027?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "What's AI 2027?" } },
       {
         name: "Clawterm",
         content: {
@@ -517,9 +542,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_AI_2027"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "Research agents?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "Research agents?" } },
       {
         name: "Clawterm",
         content: {
@@ -527,9 +554,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_AI_RESEARCH_AGENTS"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "OpenClaw use cases?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "OpenClaw use cases?" } },
       {
         name: "Clawterm",
         content: {
@@ -537,9 +566,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_USE_CASES"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "HIP-3 AI assets on Hyperliquid?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "HIP-3 AI assets on Hyperliquid?" } },
       {
         name: "Clawterm",
         content: {
@@ -547,9 +578,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: ["OPENCLAW_HIP3_AI_ASSETS"],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "openclaw version?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "openclaw version?" } },
       {
         name: "Clawterm",
         content: {
@@ -557,9 +590,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: [],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "OpenClaw release notes?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "OpenClaw release notes?" } },
       {
         name: "Clawterm",
         content: {
@@ -567,9 +602,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: [],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "OpenClaw ecosystem?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "OpenClaw ecosystem?" } },
       {
         name: "Clawterm",
         content: {
@@ -577,9 +614,11 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: [],
         },
       },
-    ],
-    [
-      { name: "user", content: { text: "Who maintains OpenClaw?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "user", content: { text: "Who maintains OpenClaw?" } },
       {
         name: "Clawterm",
         content: {
@@ -587,7 +626,8 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
           actions: [],
         },
       },
-    ],
+      ],
+    },
   ],
 };
 

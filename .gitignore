@@ -17,6 +17,7 @@ dist/
 # Eliza / DB
 .eliza/
 .elizadb/
+.elizadb-test/
 
 # OpenClaw research cache (ephemeral, runtime-generated)
 .openclaw-cache/
