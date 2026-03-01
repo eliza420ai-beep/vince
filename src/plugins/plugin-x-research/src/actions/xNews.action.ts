@@ -161,7 +161,9 @@ export const xNewsAction: Action = {
       "news on x",
       "twitter news",
       "ct news",
+      "ct headlines",
       "headlines",
+      "headlines from crypto",
       "what's happening",
       "whats happening",
     ];
@@ -356,21 +358,25 @@ function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+/** Single branding for news/headlines so "X News" and "headlines from CT" feel like one capability. */
+const FALLBACK_HEADER = "📰 **X News | Crypto**";
+
 /**
- * Fallback when X News API is unavailable: use Mando headlines or pulse-derived "headlines from CT".
+ * Fallback when X News API is unavailable: use Mando headlines or pulse-derived headlines from CT.
+ * Uses same "X News" branding as the main flow so there's no overlap with a separate "CT Headlines" product.
  */
 async function buildNewsFallback(
   runtime: IAgentRuntime,
 ): Promise<string | null> {
   const mando = await getMandoContextForX(runtime);
   if (mando?.headlines?.length) {
-    let out = "📰 **CT Headlines**\n\n";
+    let out = `${FALLBACK_HEADER}\n\n`;
     out += `**Today's news:** ${mando.vibeCheck}\n\n`;
     out += mando.headlines
       .slice(0, 7)
       .map((h) => `• ${h.length > 70 ? h.slice(0, 67) + "..." : h}`)
       .join("\n");
-    out += "\n\n_Headlines from MandoMinutes (X News API unavailable)_";
+    out += "\n\n_Crypto headlines from X (MandoMinutes; News API unavailable)_";
     return out;
   }
 
@@ -393,14 +399,14 @@ async function buildNewsFallback(
       (a, b) => (b.metrics?.likeCount ?? 0) - (a.metrics?.likeCount ?? 0),
     );
     const top = sorted.slice(0, 7);
-    let out = "📰 **Headlines from CT**\n\n";
+    let out = `${FALLBACK_HEADER}\n\n`;
     for (const t of top) {
       const author = t.author?.username ?? "unknown";
       const text = t.text.replace(/\n/g, " ").slice(0, 80);
       out += `• @${author}: ${text}${t.text.length > 80 ? "..." : ""}\n`;
     }
     out +=
-      "\n_Based on recent high-engagement tweets (X News API unavailable)_";
+      "\n_Crypto headlines from X (high-engagement CT; News API unavailable)_";
     return out;
   } catch {
     return null;

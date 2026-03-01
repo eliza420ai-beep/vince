@@ -23,7 +23,10 @@ import { formatCostFooter } from "../constants/cost";
 import { setLastResearch } from "../store/lastResearchStore";
 import { getMandoContextForX } from "../utils/mandoContext";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
-import { getFriendlyXErrorMessage } from "../utils/xErrorMessages";
+import {
+  getFriendlyXErrorMessage,
+  stripPriceBlockFromEchoResponse,
+} from "../utils/xErrorMessages";
 
 export const xVibeAction: Action = {
   name: "X_VIBE",
@@ -225,7 +228,7 @@ export const xVibeAction: Action = {
 
       if (message.roomId) setLastResearch(message.roomId, response);
       callback({
-        text: response,
+        text: stripPriceBlockFromEchoResponse(response),
         action: "X_VIBE",
       });
 

@@ -43,6 +43,17 @@ Official XDK docs and index:
 - **XDK docs:** [TypeScript XDK](https://docs.x.com/xdks/typescript/install) — Installation, [Authentication](https://docs.x.com/xdks/typescript/authentication), [Pagination](https://docs.x.com/xdks/typescript/pagination), [Streaming](https://docs.x.com/xdks/typescript/streaming), [API Reference](https://docs.x.com/xdks/typescript/reference/Client)
 - **Code samples:** [xdevplatform/samples (javascript)](https://github.com/xdevplatform/samples/tree/main/javascript)
 
+## Who we weight: watchlist = “people we care about”
+
+X is a big place. We weight **who we care about** in two ways:
+
+1. **qualityAccounts** (`plugin-x-research/src/constants/qualityAccounts.ts`) — Hardcoded whale/alpha/quality tiers. Used in sentiment so whale = 3×, alpha = 2.5×, quality = 2×, standard = 1×. Best practice noted there: “maintain a curated X list and use that instead.”
+2. **Watchlist** (`X_WATCHLIST_PATH` or `skills/x-research/data/watchlist.json`) — **Any account in the watchlist is treated as alpha tier** in pulse/vibe sentiment. So the people you add to the watchlist (e.g. who [@ikigaistudioxyz](https://x.com/ikigaistudioxyz) follows) get **2.5× weight** when they show up in search results.
+
+To mirror “who we follow” on X (e.g. [ikigaistudioxyz/following](https://x.com/ikigaistudioxyz/following)): add those accounts to the watchlist via CLI (`cd skills/x-research && bun run x-search.ts watchlist add <username>`). They then count as alpha in **X_PULSE** and **X_VIBE**. We do not currently sync the X “following” list via API (USER_FOLLOWING exists in endpoints; no fetcher yet). So today: **curate the watchlist manually** to match the accounts you want weighted most.
+
+---
+
 ## References
 
 - [X API v2 docs](https://developer.x.com/en/docs/twitter-api)

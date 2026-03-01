@@ -27,65 +27,28 @@ import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 import { initXClientFromEnv } from "../services/xClient.service";
 import { getXSearchService } from "../services/xSearch.service";
 import { ALL_TOPICS } from "../constants/topics";
-// HIP-3 + core perp universe (mirrored from plugin-vince/constants/targetAssets.ts).
-// Kept in sync manually; add new HIP-3 assets here when they go live on Hyperliquid.
-const WTT_UNIVERSE_TICKERS = [
-  // Core
-  "BTC",
-  "ETH",
-  "SOL",
-  "HYPE",
-  // HIP-3 Commodities
-  "GOLD",
-  "SILVER",
-  "COPPER",
-  "NATGAS",
-  "OIL",
-  "USOIL",
-  // HIP-3 Indices
-  "XYZ100",
-  "US500",
-  "SMALL2000",
-  "MAG7",
-  "SEMIS",
-  "INFOTECH",
-  "ROBOT",
-  // HIP-3 Stocks
-  "NVDA",
-  "TSLA",
-  "AAPL",
-  "AMZN",
-  "GOOGL",
-  "META",
-  "MSFT",
-  "PLTR",
-  "COIN",
-  "HOOD",
-  "NFLX",
-  "MSTR",
-  "AMD",
-  "INTC",
-  "ORCL",
-  "MU",
-  "SNDK",
-  "CRCL",
-  // HIP-3 AI/Tech
-  "OPENAI",
-  "ANTHROPIC",
-  "SPACEX",
-] as const;
-const WTT_UNIVERSE_LABEL = WTT_UNIVERSE_TICKERS.join(", ");
-const WTT_UNIVERSE_SET = new Set<string>(WTT_UNIVERSE_TICKERS);
-/** HIP-3 stock tickers for Robinhood adapter (offchain context); subset of WTT universe. */
-const ROBINHOOD_HIP3_TICKERS =
-  "NVDA,TSLA,AAPL,AMZN,GOOGL,META,MSFT,PLTR,COIN,HOOD,NFLX,MSTR,AMD,INTC,ORCL,MU,SNDK,CRCL";
+import { getMandoContextForX } from "../utils/mandoContext";
+import { getPolymarketContextForWtt } from "../utils/polymarketContext";
+import {
+  HIP3_STOCKS,
+  WTT_UNIVERSE_LABEL,
+  WTT_UNIVERSE_TICKERS,
+} from "../../../plugin-vince/src/constants/targetAssets";
+
+/** Comma-separated HIP-3 stocks for Robinhood adapter (offchain context). */
+const ROBINHOOD_HIP3_TICKERS = (HIP3_STOCKS as readonly string[]).join(",");
 
 /** Check if a WTT ticker is in the onchain-tradeable universe (core + HIP-3). */
 function isWttUniverseTicker(ticker: string): boolean {
-  return WTT_UNIVERSE_SET.has(ticker.trim().toUpperCase());
+  return (WTT_UNIVERSE_TICKERS as readonly string[]).includes(
+    ticker.trim().toUpperCase(),
+  );
 }
 
 /** Structured pick for paper bot and ML (saved as JSON sidecar). */
+/** Catalyst source tags for feedback: which inputs drove this thesis (headlines, CT, polymarket, or generic). */
+export type WttCatalystSource = "headlines" | "ct" | "polymarket" | "generic";
+
 export interface WttPick {
   date: string;
   thesis: string;
@@ -110,6 +73,8 @@ export interface WttPick {
   };
   evThresholdPct?: number;
   killConditions: string[];
+  /** Which inputs drove this thesis; used for WTT performance by catalyst (e.g. headline-driven vs CT-driven). */
+  catalystSources?: WttCatalystSource[];
 }
 
 const DEFAULT_HOUR_UTC = 9;
@@ -138,6 +103,76 @@ function getOutputPath(date: Date): string {
 function getOutputPathJson(date: Date): string {
   const dateStr = date.toISOString().slice(0, 10);
   return path.join(getOutputDir(), `${dateStr}-whats-the-trade.json`);
+}
+
+/** Number of recent WTT days to consider for rotation hint. */
+const RECENT_WTT_DAYS = 7;
+/** If this ticker was primary in >= this many of the last RECENT_WTT_DAYS, we add a rotation nudge. */
+const ROTATION_NUDGE_THRESHOLD = 3;
+
+/**
+ * Read recent WTT JSON sidecars and return primary tickers (most recent first).
+ * Used to nudge the model away from repeating the same pick when it has dominated lately.
+ */
+async function getRecentWttPrimaryTickers(
+  excludeDateStr: string,
+  lastNDays: number,
+): Promise<string[]> {
+  const dir = getOutputDir();
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const jsonFiles = entries
+      .filter(
+        (e) =>
+          e.isFile() &&
+          e.name.endsWith("-whats-the-trade.json") &&
+          /^\d{4}-\d{2}-\d{2}-whats-the-trade\.json$/.test(e.name),
+      )
+      .map((e) => e.name.replace(/-whats-the-trade\.json$/, ""));
+    const sorted = jsonFiles
+      .filter((d) => d !== excludeDateStr)
+      .sort()
+      .reverse()
+      .slice(0, lastNDays);
+    const tickers: string[] = [];
+    for (const dateStr of sorted) {
+      const filepath = path.join(dir, `${dateStr}-whats-the-trade.json`);
+      try {
+        const raw = await fs.readFile(filepath, "utf-8");
+        const data = JSON.parse(raw) as { primaryTicker?: string };
+        if (data.primaryTicker && typeof data.primaryTicker === "string") {
+          tickers.push(data.primaryTicker.trim().toUpperCase());
+        }
+      } catch {
+        // skip unreadable or invalid JSON
+      }
+    }
+    return tickers;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * If the same ticker dominated recent WTT picks, return a sentence to append to the thesis prompt.
+ */
+function buildRotationHint(recentTickers: string[]): string {
+  if (recentTickers.length < ROTATION_NUDGE_THRESHOLD) return "";
+  const counts = new Map<string, number>();
+  for (const t of recentTickers) {
+    counts.set(t, (counts.get(t) ?? 0) + 1);
+  }
+  const [topTicker, count] = [...counts.entries()].sort(
+    (a, b) => b[1] - a[1],
+  )[0] ?? [null, 0];
+  if (
+    topTicker &&
+    count >= ROTATION_NUDGE_THRESHOLD &&
+    count >= Math.ceil(recentTickers.length / 2)
+  ) {
+    return ` Recent WTT primary picks (last ${recentTickers.length} days): ${recentTickers.join(", ")}. Prefer a different asset today unless the thesis strongly warrants repeating ${topTicker}.`;
+  }
+  return "";
 }
 
 function runBunScript(
@@ -181,21 +216,111 @@ function runBunScript(
 }
 
 /**
+ * Build a short news-context block for the thesis prompt from MandoMinutes headlines.
+ * When a headline clearly implies a trade (e.g. "OpenAI wins US government AI deal"), the model can use it.
+ */
+function buildNewsContextBlock(newsContext: string | null): string {
+  if (!newsContext || !newsContext.trim()) return "";
+  return `\n\nToday's top headlines (use if one suggests a clear trade—e.g. company wins contract, regulatory deal, sector catalyst):\n${newsContext.trim()}\nIf one of these suggests a trade, prefer that thesis and name the asset.`;
+}
+
+/** Build a short block for Polymarket odds so the model can reinforce or contrast the thesis with prediction markets. */
+function buildPolymarketContextBlock(polymarketContext: string | null): string {
+  if (!polymarketContext || !polymarketContext.trim()) return "";
+  return `\n\n${polymarketContext.trim()}\nUse if relevant to your thesis (e.g. odds support or contradict the narrative).`;
+}
+
+/** Chris Camillo / social-arbitrage lens for thesis: information imbalance, meaningful behavioral shift, pure play. */
+const CAMILLO_LENS_THESIS =
+  "\n\nApply a social-arbitrage lens: the edge is seeing a meaningful behavioral or social signal (real-world, headlines, or CT) before the market has fully priced it. Prefer theses that name a concrete information imbalance (what you see that may not yet be in the price). Prefer the clearest expression (pure play) of that thesis.";
+
+/** Chris Camillo lens for narrative: thesis validity over price; invalidation = thesis broken or info priced in. */
+const CAMILLO_LENS_NARRATIVE = `
+Apply a social-arbitrage lens: the edge is being early on a behavioral/social signal before it's universal. Invalidation should reflect thesis failure or "info now priced in" (e.g. earnings confirmed the trend, headline is consensus), not only a price level. Prefer the pure-play expression of the thesis.`;
+
+function buildCamilloLens(
+  camilloStyle: boolean,
+  forNarrative: boolean,
+): string {
+  if (!camilloStyle) return "";
+  return forNarrative ? CAMILLO_LENS_NARRATIVE : CAMILLO_LENS_THESIS;
+}
+
+/** WTT universe tickers we can mention in extremity hint (core + common HIP-3). */
+const EXTREMITY_HINT_TICKERS = [
+  "BTC",
+  "ETH",
+  "SOL",
+  "HYPE",
+  "NVDA",
+  "TSLA",
+  "MAG7",
+  "PLTR",
+  "COIN",
+  "HOOD",
+];
+
+/**
+ * If the CT narrative suggests very bullish or very bearish sentiment on an asset,
+ * return a one-line nudge to consider fading the crowd. Otherwise return "".
+ */
+function buildSentimentExtremityHint(xNarrative: string): string {
+  if (!xNarrative?.trim()) return "";
+  const lower = xNarrative.toLowerCase();
+  const extremeBull =
+    /\b(extremely|very|overwhelmingly|max|everyone)\s*(bullish|long|greed|euphor|optimistic)|crowded\s+long|everyone\s+is\s+long|max\s+greed/i.test(
+      lower,
+    );
+  const extremeBear =
+    /\b(extremely|very|overwhelmingly|max|everyone)\s*(bearish|short|fear|capitul|pessimistic)|crowded\s+short|everyone\s+is\s+short|max\s+fear/i.test(
+      lower,
+    );
+  if (!extremeBull && !extremeBear) return "";
+  const assetMatch = EXTREMITY_HINT_TICKERS.find(
+    (t) =>
+      lower.includes(t.toLowerCase()) ||
+      lower.includes(t.toLowerCase() + " ") ||
+      lower.includes(" " + t.toLowerCase()),
+  );
+  const asset = assetMatch ?? "one asset";
+  return ` Sentiment is extreme on ${asset}; consider whether the edge is to fade the crowd.`;
+}
+
+/**
  * Thesis is derived from a generic LLM suggestion (no X data injected yet).
  * When X-driven thesis is enabled, suggestThesisFromX() can use X_PULSE or a dedicated X scan.
+ * Uses recent WTT primary tickers to nudge away from repeating the same pick when it dominated lately.
+ * Optional newsContext (MandoMinutes headlines) lets the model catch headline-driven catalysts (e.g. OpenAI government deal).
+ * Optional camilloStyle injects a social-arbitrage lens (information imbalance, pure play, meaningful behavioral signal).
  */
 async function suggestThesis(
   runtime: IAgentRuntime,
   dateStr: string,
   hip3Only: boolean,
+  newsContext: string | null = null,
+  camilloStyle = false,
+  polymarketContext: string | null = null,
 ): Promise<string> {
-  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or relative strength the market hasn't fully priced. Rotate across asset classes: crypto, stocks, commodities, indices. Do not default to crypto. Examples: "Defense AI spending will accelerate faster than commercial AI (PLTR vs NVDA)", "Silver breaks out on industrial demand while gold stalls", "GOOGL trades at a discount to MAG7 on AI capex fears", "SOL outperforms ETH on relative strength this week", "Commodities outperform indices on supply disruption". Do not give generic sentiment ("CT is bullish"); name the specific asymmetry.`;
+  const rotationTickers = await getRecentWttPrimaryTickers(
+    dateStr,
+    RECENT_WTT_DAYS,
+  );
+  const rotationHint = buildRotationHint(rotationTickers);
+  const newsBlock = buildNewsContextBlock(newsContext);
+  const polymarketBlock = buildPolymarketContextBlock(polymarketContext);
+  const camilloBlock = buildCamilloLens(camilloStyle, false);
+
+  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or relative strength the market hasn't fully priced. Rotate across asset classes: crypto, stocks, commodities, indices. Do not default to the same ticker every day. Examples: "SOL outperforms ETH on relative strength this week", "Silver breaks out on industrial demand while gold stalls", "GOOGL trades at a discount to MAG7 on AI capex fears", "Commodities outperform indices on supply disruption", "One sector is mispriced vs another (name the segment)". Do not give generic sentiment ("CT is bullish"); name the specific asymmetry.`;
   const constraint = hip3Only
     ? ` The trade MUST be expressible onchain via a Hyperliquid perp. Available tickers: ${WTT_UNIVERSE_LABEL}. Pick a thesis that maps to one of these assets.`
     : "";
   const prompt =
     base +
     constraint +
+    newsBlock +
+    polymarketBlock +
+    camilloBlock +
+    rotationHint +
     " Reply with only that one sentence, no quotes or preamble.";
   try {
     const out = await runtime.useModel(ModelType.TEXT_LARGE, {
@@ -262,13 +387,29 @@ Summary:`,
 /**
  * Turn a CT narrative (from X) into one tradeable thesis with a clear asymmetry.
  * Use when ECHO_WTT_X_DRIVEN=true; thesis is then X-derived instead of generic.
+ * Uses recent WTT primary tickers to nudge away from repeating the same pick when it dominated lately.
+ * Optional newsContext (MandoMinutes headlines) lets the model catch headline-driven catalysts (e.g. OpenAI government deal).
+ * Optional camilloStyle injects a social-arbitrage lens (information imbalance, pure play).
  */
 async function suggestThesisFromX(
   runtime: IAgentRuntime,
   dateStr: string,
   xNarrative: string,
   hip3Only: boolean,
+  newsContext: string | null = null,
+  camilloStyle = false,
+  polymarketContext: string | null = null,
 ): Promise<string> {
+  const rotationTickers = await getRecentWttPrimaryTickers(
+    dateStr,
+    RECENT_WTT_DAYS,
+  );
+  const rotationHint = buildRotationHint(rotationTickers);
+  const newsBlock = buildNewsContextBlock(newsContext);
+  const polymarketBlock = buildPolymarketContextBlock(polymarketContext);
+  const camilloBlock = buildCamilloLens(camilloStyle, false);
+  const extremityHint = buildSentimentExtremityHint(xNarrative);
+
   const constraint = hip3Only
     ? ` The trade MUST be expressible as a Hyperliquid perp. Tickers: ${WTT_UNIVERSE_LABEL}.`
     : "";
@@ -276,8 +417,11 @@ async function suggestThesisFromX(
 
 CT summary:
 ${xNarrative}
+${newsBlock}
+${polymarketBlock}
+${camilloBlock}
 
-Turn this into exactly one tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or a narrative the market hasn't fully priced. Do not give generic sentiment; name the specific asymmetry.${constraint}
+Turn this into exactly one tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or a narrative the market hasn't fully priced. Do not give generic sentiment; name the specific asymmetry. Do not default to the same ticker every day. If today's headlines suggest a clear trade (e.g. company wins contract), prefer that. If CT is overwhelmingly one-sided (everyone bullish or everyone bearish on one thing), consider whether the edge is to fade the crowd rather than follow it.${extremityHint}${constraint}${rotationHint}
 
 Reply with only that one sentence, no quotes or preamble.`;
   try {
@@ -410,6 +554,7 @@ async function generateNarrative(
   dataContext: string,
   dateLabel: string,
   hip3Only: boolean,
+  camilloStyle = false,
 ): Promise<string> {
   const marketScope = hip3Only
     ? `you pick the single best onchain expression using Hyperliquid perps (HIP-3 assets and crypto: stocks, indices, commodities all trade as perps on Hyperliquid). Your PRIMARY pick ticker must be from the Hyperliquid universe. You may reference offchain context (Robinhood stocks, Kalshi odds) to support your reasoning, but the trade card ticker must be a Hyperliquid perp from: ${WTT_UNIVERSE_LABEL}.`
@@ -420,6 +565,7 @@ async function generateNarrative(
     : "one instrument: stock, option, Kalshi contract, or perp";
 
   const instrumentLabel = hip3Only ? "perp" : "[INSTRUMENT]";
+  const camilloBlock = buildCamilloLens(camilloStyle, true);
 
   const prompt = `You are ECHO, writing your daily "What's the trade" for ${dateLabel}. Vibe and sentiment lead; ${marketScope}
 
@@ -428,6 +574,7 @@ Today's thesis: ${thesis}
 Live data from prediction markets, stocks, and perps:
 
 ${dataContext}
+${camilloBlock}
 
 Write a short narrative (150–250 words) that:
 1. Names the asymmetry clearly (what is mispriced vs what, or which relative move) and states the single best way to express this thesis (${instrumentOptions}). Say why this expression beats the obvious play.
@@ -831,18 +978,85 @@ export async function runWhatsTheTradeReport(
     (runtime.getSetting("ECHO_WTT_X_DRIVEN") ??
       process.env.ECHO_WTT_X_DRIVEN ??
       "false") === "true";
-  let thesis: string;
-  if (xDriven) {
-    const xNarrative = await fetchCtNarrativeForWtt(runtime);
-    if (xNarrative) {
-      logger.info("[ECHO WhatstheTrade] Using X-driven thesis");
-      thesis = await suggestThesisFromX(runtime, dateStr, xNarrative, hip3Only);
-    } else {
-      thesis = await suggestThesis(runtime, dateLabel, hip3Only);
-    }
-  } else {
-    thesis = await suggestThesis(runtime, dateLabel, hip3Only);
+  const camilloStyle =
+    (runtime.getSetting("ECHO_WTT_CAMILLO_STYLE") ??
+      process.env.ECHO_WTT_CAMILLO_STYLE ??
+      "false") === "true";
+  if (camilloStyle) {
+    logger.info(
+      "[ECHO WhatstheTrade] Camillo / social-arbitrage lens enabled (ECHO_WTT_CAMILLO_STYLE)",
+    );
   }
+
+  // News context (MandoMinutes) so headline-driven catalysts (e.g. OpenAI government deal) can become the thesis
+  let newsContext: string | null = null;
+  try {
+    const mando = await getMandoContextForX(runtime);
+    if (mando?.headlines?.length) {
+      newsContext = mando.headlines.slice(0, 10).join("\n");
+      logger.info(
+        `[ECHO WhatstheTrade] Injecting ${mando.headlines.length} headlines into thesis suggestion`,
+      );
+    }
+  } catch (e) {
+    logger.debug(
+      "[ECHO WhatstheTrade] No news context for thesis: " +
+        (e as Error).message,
+    );
+  }
+
+  // Polymarket odds (Gamma public-search) so thesis can reinforce or contrast with prediction markets
+  let polymarketContext: string | null = null;
+  try {
+    const searchQuery =
+      newsContext
+        ?.split(/\s+/)
+        .filter((w) => w.length > 3)[0]
+        ?.slice(0, 30) || "crypto bitcoin";
+    polymarketContext = await getPolymarketContextForWtt(searchQuery);
+    if (polymarketContext) {
+      logger.info(
+        "[ECHO WhatstheTrade] Injecting Polymarket context into thesis suggestion",
+      );
+    }
+  } catch (e) {
+    logger.debug(
+      "[ECHO WhatstheTrade] No Polymarket context: " + (e as Error).message,
+    );
+  }
+
+  const xNarrative = xDriven ? await fetchCtNarrativeForWtt(runtime) : null;
+  let thesis: string;
+  if (xNarrative) {
+    logger.info("[ECHO WhatstheTrade] Using X-driven thesis");
+    thesis = await suggestThesisFromX(
+      runtime,
+      dateStr,
+      xNarrative,
+      hip3Only,
+      newsContext,
+      camilloStyle,
+      polymarketContext,
+    );
+  } else {
+    thesis = await suggestThesis(
+      runtime,
+      dateStr,
+      hip3Only,
+      newsContext,
+      camilloStyle,
+      polymarketContext,
+    );
+  }
+
+  /** Catalyst tags for feedback: which inputs drove this thesis (used in JSON sidecar and improvement reports). */
+  const catalystSources: WttCatalystSource[] = [
+    ...(newsContext ? (["headlines"] as const) : []),
+    ...(xNarrative ? (["ct"] as const) : []),
+    ...(polymarketContext ? (["polymarket"] as const) : []),
+  ];
+  if (catalystSources.length === 0) catalystSources.push("generic");
+
   const dataContext = await fetchAdapterData(
     skillDir,
     thesis,
@@ -855,6 +1069,7 @@ export async function runWhatsTheTradeReport(
     dataContext,
     dateLabel,
     hip3Only,
+    camilloStyle,
   );
 
   let pick = await extractStructuredPick(
@@ -895,6 +1110,7 @@ export async function runWhatsTheTradeReport(
   }
 
   if (pick) {
+    pick.catalystSources = catalystSources;
     await savePickJson(pick, now);
   } else {
     const fallbackPick = extractPickFromNarrativeFallback(
@@ -903,6 +1119,7 @@ export async function runWhatsTheTradeReport(
       dateStr,
     );
     if (fallbackPick) {
+      fallbackPick.catalystSources = catalystSources;
       await savePickJson(fallbackPick, now);
       pick = fallbackPick;
       logger.info(

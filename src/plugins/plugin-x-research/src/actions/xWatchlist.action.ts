@@ -13,43 +13,14 @@ import {
   type State,
   type HandlerCallback,
 } from "@elizaos/core";
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import { initXClientFromEnv } from "../services/xClient.service";
 import { getXAccountsService } from "../services/xAccounts.service";
 import { formatCostFooterCombined } from "../constants/cost";
 import type { XTweet } from "../types/tweet.types";
+import { getWatchlistPath, loadWatchlist } from "../utils/watchlist";
 
 const MAX_ACCOUNTS = 10;
 const TWEETS_PER_ACCOUNT = 3;
-
-interface WatchlistAccount {
-  username: string;
-  note?: string;
-  addedAt: string;
-}
-
-interface WatchlistFile {
-  accounts: WatchlistAccount[];
-}
-
-function getWatchlistPath(): string {
-  const envPath = process.env.X_WATCHLIST_PATH;
-  if (envPath) return envPath;
-  return join(process.cwd(), "skills", "x-research", "data", "watchlist.json");
-}
-
-function loadWatchlist(): WatchlistAccount[] {
-  const path = getWatchlistPath();
-  if (!existsSync(path)) return [];
-  try {
-    const raw = readFileSync(path, "utf-8");
-    const data = JSON.parse(raw) as WatchlistFile;
-    return Array.isArray(data.accounts) ? data.accounts : [];
-  } catch {
-    return [];
-  }
-}
 
 function formatTweet(t: XTweet): string {
   const text = t.text.slice(0, 200) + (t.text.length > 200 ? "…" : "");

@@ -36,7 +36,10 @@ import { formatCostFooter } from "../constants/cost";
 import { setLastResearch } from "../store/lastResearchStore";
 import { getMandoContextForX } from "../utils/mandoContext";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
-import { getFriendlyXErrorMessage } from "../utils/xErrorMessages";
+import {
+  getFriendlyXErrorMessage,
+  stripPriceBlockFromEchoResponse,
+} from "../utils/xErrorMessages";
 
 const BREAKING_VELOCITY_THRESHOLD = 100; // 100+ likes/hour = breaking
 
@@ -223,7 +226,7 @@ export const xPulseAction: Action = {
 
       if (message.roomId) setLastResearch(message.roomId, briefing);
       callback({
-        text: briefing,
+        text: stripPriceBlockFromEchoResponse(briefing),
         action: "X_PULSE",
       });
 
