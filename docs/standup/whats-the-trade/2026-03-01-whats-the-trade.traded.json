@@ -1,25 +1,29 @@
 {
   "date": "2026-03-01",
-  "thesis": "Defense spending acceleration on geopolitical tensions makes PLTR undervalued relative to MAG7's AI premium while offering similar exposure with government contract moats.",
-  "primaryTicker": "PLTR",
+  "thesis": "NVDA outperforms MAG7 this week as earnings beat drives AI infrastructure narrative while peers face margin compression fears.",
+  "primaryTicker": "NVDA",
   "primaryDirection": "long",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 45,
-  "primaryRiskUsd": 500,
-  "invalidateCondition": "below $40",
+  "primaryEntryPrice": 875,
+  "primaryRiskUsd": 2500,
+  "invalidateCondition": "guidance miss on data center capex or demand softening",
   "killConditions": [
-    "Ukraine peace deal",
-    "geopolitical tensions cool",
-    "market decides AI is dead"
+    "NVDA guides down on data center capex",
+    "datacenter weakness mentioned",
+    "MAG7 margin compression narrative reverses"
   ],
   "rubric": {
     "alignment": "direct",
     "edge": "emerging",
-    "payoffShape": "max_asymmetry",
-    "timingForgiveness": "forgiving"
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
   },
   "altTicker": "MAG7",
   "altDirection": "short",
   "altInstrument": "perp",
-  "evThresholdPct": 15
+  "evThresholdPct": 3,
+  "catalystSources": [
+    "headlines",
+    "polymarket"
+  ]
 }

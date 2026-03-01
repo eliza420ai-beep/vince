@@ -642,7 +642,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
     ],
     proTip:
-      'Say "What\'s CT saying about BTC?" or "quick pulse". For content audit or top posts playbook, ask Eliza.',
+      'Lead with "What\'s the trade?" or "What\'s CT saying about BTC?" or "Check my watchlist." For content audit or top posts playbook, ask Eliza.',
   },
 
   Clawterm: {

@@ -274,6 +274,7 @@ PRICES — NEVER HALLUCINATE:
     { directory: "trading", shared: true }, // frameworks: sentiment → strategy context
     { directory: "research-daily", shared: true }, // daily intel briefs
     { path: "sentinel-docs/BRANDING.md", shared: true },
+    { path: "teammate/CAMILLO_TRADING_MINDSET.md", shared: true }, // social-arbitrage lens for WTT and narrative trading
     { directory: "brand", shared: true },
   ],
 

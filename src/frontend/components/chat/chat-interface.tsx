@@ -339,7 +339,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "Ready to execute? Should I execute Vince signal?",
     },
   ],
-  // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research). What's the trade = belief-router (thesis → one expression).
+  // ECHO (CSO): WTT first, then pulse/vibe, watchlist, threads, account, news, save. Every chip validates an x-research action.
   echo: [
     { label: "What can the CSO do?", message: "What can you do?" },
     { label: "What's the trade", message: "What's the trade today?" },
@@ -347,6 +347,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
     { label: "Vibe: ETH", message: "Sentiment on ETH" },
     { label: "Vibe: SOL", message: "What's the sentiment on SOL?" },
+    { label: "Check watchlist", message: "Check my watchlist" },
     {
       label: "Summarize thread",
       message:
@@ -354,9 +355,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     },
     { label: "Who is @user?", message: "Who is @crediblecrypto?" },
     { label: "X News", message: "What's the crypto news on X?" },
-    { label: "CT Headlines", message: "Headlines from crypto Twitter" },
     { label: "Save that", message: "save that" },
-    { label: "Command Center", message: "X research command center" },
   ],
   // Oracle: Polymarket discovery + desk (edge check, risk snapshot, perf report). One agent for all.
   oracle: [

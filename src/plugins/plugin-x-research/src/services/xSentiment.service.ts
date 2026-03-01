@@ -21,6 +21,7 @@ import {
   getAccountReliability,
 } from "../constants/qualityAccounts";
 import { ALL_TOPICS, TOPIC_BY_ID } from "../constants/topics";
+import { loadWatchlistUsernames } from "../utils/watchlist";
 
 export interface SentimentOptions {
   topics?: string[]; // Filter to specific topics
@@ -57,8 +58,13 @@ export class XSentimentService {
       return this.emptyResult();
     }
 
+    // Watchlist = "people we care about" (e.g. who we follow); weight them as alpha in sentiment
+    const watchlistUsernames = weightByTier ? loadWatchlistUsernames() : [];
+
     // Score each tweet
-    const scores = tweets.map((tweet) => this.scoreTweet(tweet, weightByTier));
+    const scores = tweets.map((tweet) =>
+      this.scoreTweet(tweet, weightByTier, watchlistUsernames),
+    );
 
     // Aggregate by topic
     const byTopic: Record<string, TopicSentiment> = {};
@@ -127,9 +133,10 @@ export class XSentimentService {
     const topic = TOPIC_BY_ID[topicId];
     if (!topic) return null;
 
+    const watchlistUsernames = loadWatchlistUsernames();
     const scores = tweets
       .filter((t) => this.isRelevantToTopic(t, topic))
-      .map((t) => this.scoreTweet(t, true));
+      .map((t) => this.scoreTweet(t, true, watchlistUsernames));
 
     if (scores.length === 0) return null;
 
@@ -143,6 +150,7 @@ export class XSentimentService {
   private scoreTweet(
     tweet: XTweet,
     weightByTier: boolean,
+    watchlistUsernames: string[] = [],
   ): TweetSentimentScore {
     const text = tweet.text.toLowerCase();
     const matchedKeywords: string[] = [];
@@ -159,9 +167,16 @@ export class XSentimentService {
     // Normalize score
     const normalizedScore = Math.max(-100, Math.min(100, rawScore));
 
-    // Get account tier
+    // Get account tier (whale/alpha/quality from qualityAccounts, or watchlist = "people we care about" as alpha)
     const username = tweet.author?.username ?? "";
-    const tier = getAccountTier(username);
+    let tier = getAccountTier(username);
+    if (
+      tier === "standard" &&
+      watchlistUsernames.length > 0 &&
+      watchlistUsernames.includes(username.toLowerCase())
+    ) {
+      tier = "alpha";
+    }
     const tierWeight = weightByTier ? this.getTierWeight(tier) : 1;
 
     return {
