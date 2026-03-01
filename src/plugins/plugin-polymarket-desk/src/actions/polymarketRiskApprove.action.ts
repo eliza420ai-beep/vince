@@ -19,9 +19,10 @@ const POLYMARKET_SERVICE_TYPE = "POLYMARKET_DISCOVERY_SERVICE";
 const SIGNALS_TABLE = "plugin_polymarket_desk.signals";
 const SIZED_ORDERS_TABLE = "plugin_polymarket_desk.sized_orders";
 const DEFAULT_KELLY_FRACTION = 0.25;
-const DEFAULT_MAX_POSITION_PCT = 0.05;
+/** 10% of bankroll per position — sized for meaningful P&L toward $690/day goal when bankroll is ~$15K+ */
+const DEFAULT_MAX_POSITION_PCT = 0.1;
 const DEFAULT_MIN_SIZE_USD = 5;
-const DEFAULT_MAX_SIZE_USD = 500;
+const DEFAULT_MAX_SIZE_USD = 2000;
 /** Don't add new sized orders when pending backlog is already at or above this (keeps desk selective). */
 const DEFAULT_MAX_PENDING_SIZED_ORDERS = 10;
 
@@ -174,9 +175,10 @@ export const polymarketRiskApproveAction: Action = {
         return { text, success: true };
       }
 
+      /** Default $15K so 10% position = $1.5K/trade — enough to contribute toward $690/day goal */
       const bankrollUsd =
         Number(runtime.getSetting?.("POLYMARKET_DESK_BANKROLL_USD") ?? 0) ||
-        1000;
+        15_000;
       const kellyFraction =
         Number(
           runtime.getSetting?.("POLYMARKET_DESK_KELLY_FRACTION") ??

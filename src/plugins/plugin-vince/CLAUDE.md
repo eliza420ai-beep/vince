@@ -185,7 +185,7 @@ plugin-vince/
 | `VincePositionManagerService` | Position tracking, P&L updates                       |
 | `VinceRiskManagerService`     | Circuit breakers, session filters                    |
 | `VinceTradeJournalService`    | Trade history, signal performance                    |
-| `VinceGoalTrackerService`     | KPI tracking ($420/day, $10K/month)                  |
+| `VinceGoalTrackerService`     | KPI tracking ($690/day, ~$15K/month)                 |
 | `VinceAlertService`           | Multi-source alert detection                         |
 
 ### ML Enhancement Services (4) - V4
@@ -319,8 +319,8 @@ From `services/goalTracker.service.ts`:
 
 ```typescript
 const TRADING_GOALS = {
-  dailyTarget: 420, // $420/day
-  monthlyTarget: 10000, // $10K/month
+  dailyTarget: 690, // $690/day
+  monthlyTarget: 15180, // ~$15K/month
   maxDailyLoss: 200, // Stop trading after $200 loss
   maxDrawdown: 0.15, // 15% portfolio drawdown circuit breaker
 };
@@ -506,8 +506,8 @@ From `src/constants/paperTradingDefaults.ts`:
 ```typescript
 // Trading goals
 const DEFAULT_TRADING_GOAL = {
-  dailyTarget: 420, // $420/day target
-  monthlyTarget: 10_000, // $10K/month
+  dailyTarget: 690, // $690/day target
+  monthlyTarget: 15_180, // ~$15K/month
   riskPerTradePct: 1.5, // 1.5% risk per trade
   maxDailyDrawdownPct: 5, // Stop at 5% daily loss
   targetWinRate: 55, // 55% win rate target
@@ -517,7 +517,7 @@ const DEFAULT_TRADING_GOAL = {
 // Risk limits
 const DEFAULT_RISK_LIMITS = {
   maxPositionSizePct: 10, // Max 10% per position
-  maxTotalExposurePct: 30, // Max 30% total exposure
+  maxTotalExposurePct: 50, // Max 50% of capital deployed (e.g. $50K of $100K)
   maxLeverage: 5, // Max 5x leverage
   minSignalStrength: 70, // Minimum signal strength
   minSignalConfidence: 65, // Minimum confidence

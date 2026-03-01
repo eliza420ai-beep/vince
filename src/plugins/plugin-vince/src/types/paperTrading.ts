@@ -523,13 +523,13 @@ export interface PaperBotPersistence {
 
 /**
  * Trading goal configuration
- * Core KPI: $10K/month = ~$420/day
+ * Core KPI: ~$15,180/month = $690/day (~22 trading days)
  */
 export interface TradingGoal {
-  /** Daily profit target in USD (default: $420) */
+  /** Daily profit target in USD (default: $690) */
   dailyTarget: number;
 
-  /** Monthly profit target in USD (default: $10,000) */
+  /** Monthly profit target in USD (default: $15,180) */
   monthlyTarget: number;
 
   /** Risk per trade as % of capital (default: 1-2%) */
