@@ -54,3 +54,7 @@
 | 2026-02-26 | Fear index hit 11 (extreme) but ETF inflows still green—classic reversal setup b | [View](day-reports/2026-02-26-day-report.md) |
 | 2026-02-27 | Fear index hit 13 (extreme) but ETF inflows still green—classic reversal setup b | [View](day-reports/2026-02-27-day-report.md) |
 | 2026-02-28 | Fear hit 13 but ETF inflows still strong ($507M BTC) — classic reversal setup br | [View](day-reports/2026-02-28-day-report.md) |
+| 2026-02-28 | Extreme fear (FGI 13) but whales buying dips—classic capitulation setup brewing  | [View](day-reports/2026-02-28-day-report.md) |
+| 2026-03-01 | BTC rallied 4.5% to $66.5k on massive ETF inflows but extreme fear (FGI 14) and  | [View](day-reports/2026-03-01-day-report.md) |
+| 2026-03-01 | BTC ripping +4.8% with ETF inflows but signal confidence collapsed from 60% to 2 | [View](day-reports/2026-03-01-day-report.md) |
+| 2026-03-01 | BTC up 4% but VINCE flipped short on extreme fear (14) while ETFs pulled $507m—c | [View](day-reports/2026-03-01-day-report.md) |

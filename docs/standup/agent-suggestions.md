@@ -138,3 +138,26 @@
 
 - Clawterm + Sentinel: Cross-link Skills Discovery Dashboard as sprint candidate for regime-conditional execution visibility
 - Eliza: Expand CONTEXT-ENGINEERING.md with RAG hygiene section for live trading systems to prevent hallucination on funding rates and order flow
+## 2026-02-28
+
+- Clawterm's 'First 30 Minutes' template should be a sprint candidate cross-linked to Sentinel for immediate post-install discovery.
+- Sentinel should prioritize unblocking Otaku's wallet PR to enable live trading execution scaling.
+- ECHO and Oracle should coordinate on supply shock narrative tracking and Fed speak impact to align signal interpretation.
+## 2026-03-01
+
+- Cross-link Clawterm '5 Essential Skills Starter Pack' build to Sentinel as sprint candidate for dual-surface integration.
+- Feed Solus weekly premium sizing ($3k/week across BTC/HYPE on Hypersurface) into options content pipeline for Eliza essay on orchestration.
+## 2026-03-01
+
+- Clawterm: Cross-link Skill Discovery CLI and Template Generator with Sentinel as sprint candidates
+- Eliza: Publish essay 'The AI Super-Cycle Has Begun' after closing risk loop connective tissue
+## 2026-03-01
+
+- Cross-link Clawterm Skills Starter Pack build to Sentinel sprint for visibility and prioritization.
+- Map perps funding spikes to options premium sizing as a bridge between capital mandate logic and live regime signals.
+- Monitor if institutional inflows sustain through macro headwinds; one bad jobs print is the flip trigger.
+## 2026-03-01
+
+- Clawterm → Sentinel: '5 Essential Skills Starter Pack' is a sprint candidate—prioritize cross-linking.
+- Eliza: Expand AI-SKILLS-2027 with emerging alt options mechanics to close corpus gap.
+- Solus: Formalize Wednesday EOD reassessment ritual to avoid Thursday expiry surprises.

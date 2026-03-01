@@ -130,10 +130,13 @@ function parseSizingMarkdown(markdown: string): SolusSizingState {
         j += 1;
       }
 
+      // Current position: use position_type, or when wheel flipped use new_position_type (not previous)
+      const currentPositionType =
+        raw["position_type"] ?? raw["new_position_type"];
       const entry: SolusSizingEntry = {
         asset,
         venue: raw["venue"],
-        positionType: raw["position_type"],
+        positionType: currentPositionType,
         previousPositionType: raw["previous_position_type"],
         contracts: Number.isFinite(Number(raw["contracts_btc"]))
           ? Number(raw["contracts_btc"])
@@ -141,12 +144,13 @@ function parseSizingMarkdown(markdown: string): SolusSizingState {
         approxSize: Number.isFinite(Number(raw["approx_size_sol"]))
           ? Number(raw["approx_size_sol"])
           : undefined,
-        strikeUsd: Number.isFinite(Number(raw["strike_usd"]))
-          ? Number(raw["strike_usd"])
-          : Number.isFinite(Number(raw["previous_strike_usd"]))
-            ? Number(raw["previous_strike_usd"])
-            : Number.isFinite(Number(raw["new_strike_usd"]))
-              ? Number(raw["new_strike_usd"])
+        // When wheel flipped (new_position_type), current strike is new_strike_usd
+        strikeUsd: Number.isFinite(Number(raw["new_strike_usd"]))
+          ? Number(raw["new_strike_usd"])
+          : Number.isFinite(Number(raw["strike_usd"]))
+            ? Number(raw["strike_usd"])
+            : Number.isFinite(Number(raw["previous_strike_usd"]))
+              ? Number(raw["previous_strike_usd"])
               : undefined,
         costBasisUsd: Number.isFinite(Number(raw["cost_basis_usd"]))
           ? Number(raw["cost_basis_usd"])
@@ -236,13 +240,17 @@ export const solusSizingStateProvider: Provider = {
     const summaryLines: string[] = ["[Solus sizing state]"];
     for (const entry of Object.values(sizing.entries)) {
       const labelParts: string[] = [entry.asset];
+      // Current position type (position_type or new_position_type when wheel flipped)
       if (entry.positionType) {
         labelParts.push(entry.positionType);
       }
       if (entry.venue) {
         labelParts.push(`@ ${entry.venue}`);
       }
-      const header = `- ${labelParts.join(" · ")}`;
+      let header = `- ${labelParts.join(" · ")}`;
+      if (entry.previousPositionType && entry.newPositionType) {
+        header += ` (current leg: ${entry.newPositionType}; was ${entry.previousPositionType})`;
+      }
       const details: string[] = [];
       if (entry.strikeUsd) {
         details.push(`strike ~$${entry.strikeUsd.toFixed(0)}`);
@@ -267,6 +275,11 @@ export const solusSizingStateProvider: Provider = {
       summaryLines.push(
         details.length > 0 ? `${header} — ${details.join(", ")}` : header,
       );
+      if (entry.questionForSolus?.trim()) {
+        summaryLines.push(
+          `  → Question for Solus: ${entry.questionForSolus.trim()}`,
+        );
+      }
     }
 
     return {

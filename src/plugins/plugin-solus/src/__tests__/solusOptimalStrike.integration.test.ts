@@ -252,7 +252,7 @@ describe("SOLUS_OPTIMAL_STRIKE integration", () => {
           "SOLUS_SIZING_STATE",
           "SOLUS_MARKET_CONTEXT",
           "SOLUS_HYPERSURFACE_SPOT_PRICES",
-          "VINCE_OPTIONS_INJECTOR",
+          "SOLUS_OPTIONS_CONTEXT",
           "VINCE_STRIKE_SUGGESTION",
         ]);
 

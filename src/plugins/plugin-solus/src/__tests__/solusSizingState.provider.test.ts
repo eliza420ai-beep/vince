@@ -65,5 +65,13 @@ describe("SOLUS_SIZING_STATE provider", () => {
     if (btc.weeklyPremiumTargetUsd != null) {
       expect(typeof btc.weeklyPremiumTargetUsd).toBe("number");
     }
+
+    // When HYPE exists (wheel flipped to covered calls), current position must be covered_calls not secured_puts
+    const hype = state.entries["HYPE"] as
+      | { positionType?: string; newPositionType?: string }
+      | undefined;
+    if (hype) {
+      expect(hype.positionType).toBe("covered_calls");
+    }
   });
 });

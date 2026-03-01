@@ -28,10 +28,22 @@ export interface SolusPerAssetMarketContext {
   volumeRatio: number | null;
   atrPct: number | null;
   dvol: number | null;
+  /** Perp funding rate (decimal, e.g. 0.0001 = 0.01%). From CoinGlass; options-relevant. */
+  fundingRate: number | null;
+  /** Long/short ratio; >1 = more longs. From CoinGlass; crowd positioning for strike width. */
+  longShortRatio: number | null;
+}
+
+/** Global Fear & Greed (one index for the market); from CoinGlass. Extreme fear = puts rich; extreme greed = consider wider calls. */
+export interface SolusFearGreed {
+  value: number;
+  label: string | null;
 }
 
 export interface SolusMarketContext {
   assets: Record<string, SolusPerAssetMarketContext>;
+  /** Market-wide Fear & Greed (from CoinGlass); null if unavailable. */
+  fearGreed: SolusFearGreed | null;
 }
 
 async function buildMarketContext(
@@ -45,12 +57,19 @@ async function buildMarketContext(
   }
 
   const out: Record<string, SolusPerAssetMarketContext> = {};
+  let fearGreed: SolusMarketContext["fearGreed"] = null;
 
   for (const asset of ASSETS) {
     try {
       const ctx = await svc.getEnrichedContext(asset);
       const atrPct = await svc.getATRPercent(asset);
       const dvol = await svc.getDVOL(asset);
+      if (ctx?.fearGreedValue != null && fearGreed === null) {
+        fearGreed = {
+          value: ctx.fearGreedValue,
+          label: ctx.fearGreedLabel ?? null,
+        };
+      }
       out[asset] = {
         asset,
         price: ctx?.currentPrice ?? null,
@@ -60,6 +79,8 @@ async function buildMarketContext(
         volumeRatio: ctx?.volumeRatio ?? null,
         atrPct: Number.isFinite(atrPct) ? atrPct : null,
         dvol: Number.isFinite(dvol ?? NaN) ? dvol : null,
+        fundingRate: ctx?.fundingRate != null ? ctx.fundingRate : null,
+        longShortRatio: ctx?.longShortRatio != null ? ctx.longShortRatio : null,
       };
     } catch (error) {
       logger.debug(
@@ -73,11 +94,16 @@ async function buildMarketContext(
     return null;
   }
 
-  return { assets: out };
+  return { assets: out, fearGreed };
 }
 
 function formatMarketContextText(ctx: SolusMarketContext): string {
   const lines: string[] = ["[Solus market context]"];
+  if (ctx.fearGreed != null) {
+    lines.push(
+      `Fear & Greed: ${ctx.fearGreed.value}${ctx.fearGreed.label ? ` (${ctx.fearGreed.label})` : ""} — extreme fear = puts rich; extreme greed = consider wider calls.`,
+    );
+  }
   for (const asset of ASSETS) {
     const entry = ctx.assets[asset];
     if (!entry) continue;
@@ -100,6 +126,12 @@ function formatMarketContextText(ctx: SolusMarketContext): string {
     if (entry.marketRegime) {
       parts.push(`regime ${entry.marketRegime}`);
     }
+    if (entry.fundingRate != null) {
+      parts.push(`F:${(entry.fundingRate * 100).toFixed(3)}%`);
+    }
+    if (entry.longShortRatio != null) {
+      parts.push(`L/S:${entry.longShortRatio.toFixed(2)}`);
+    }
     if (entry.atrPct != null) {
       parts.push(`ATR≈${entry.atrPct.toFixed(1)}%`);
     }
@@ -114,7 +146,7 @@ function formatMarketContextText(ctx: SolusMarketContext): string {
 export const solusMarketContextProvider: Provider = {
   name: "SOLUS_MARKET_CONTEXT",
   description:
-    "VINCE market context for Solus sizing: spot, 24h move, regime, volume, ATR, DVOL for BTC/ETH/SOL/HYPE.",
+    "VINCE market context for Solus: spot, 24h move, regime, funding, L/S, Fear & Greed, ATR, DVOL for BTC/ETH/SOL/HYPE (options-relevant).",
   position: -4,
 
   get: async (

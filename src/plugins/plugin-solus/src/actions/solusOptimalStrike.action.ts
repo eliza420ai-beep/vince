@@ -1,5 +1,5 @@
 /**
- * SOLUS_OPTIMAL_STRIKE — When user has pasted context, give strike call: asset, OTM %, size/skip, invalidation. If no data, ask for VINCE options output.
+ * SOLUS_OPTIMAL_STRIKE — Give strike call from options context (Deribit): asset, OTM %, size/skip, invalidation. Solus is the options expert; uses [Solus options context] and sizing state.
  */
 
 import type {
@@ -50,7 +50,7 @@ export const solusOptimalStrikeAction: Action = {
   name: "SOLUS_OPTIMAL_STRIKE",
   similes: ["OPTIMAL_STRIKE", "STRIKE_CALL"],
   description:
-    "When user has pasted context (or state has it), gives strike call: asset, OTM %, size/skip, invalidation. If no data, tells user to paste VINCE options output and ask again.",
+    "Gives strike call from [Solus options context] (Deribit) and sizing state: asset, OTM %, size/skip, invalidation. Solus is the options expert; answers from his own data.",
 
   validate: async (
     runtime: IAgentRuntime,
@@ -76,7 +76,7 @@ export const solusOptimalStrikeAction: Action = {
           "SOLUS_SIZING_STATE",
           "SOLUS_MARKET_CONTEXT",
           "SOLUS_HYPERSURFACE_SPOT_PRICES",
-          "VINCE_OPTIONS_INJECTOR",
+          "SOLUS_OPTIONS_CONTEXT",
           "VINCE_STRIKE_SUGGESTION",
         ],
         true,
@@ -84,18 +84,18 @@ export const solusOptimalStrikeAction: Action = {
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Solus, the on-chain options expert. The user wants an optimal strike call. You have three inputs: (1) sizing and wheel state in [Solus sizing state] (weekly premium targets, assigned wheels, spot stacks), (2) market context in [Solus market context] (spot, 24h move, regime, ATR/DVOL), and (3) Hypersurface mechanics + any pasted VINCE options view. You do not guess direction without Vince; you use sizing + regime to choose structure and OTM bands.
+      const prompt = `You are Solus, the on-chain options expert. The user wants an optimal strike call. You have: (1) [Solus sizing state] (weekly premium targets, assigned wheels, spot stacks), (2) [Solus market context] (spot, 24h move, regime), (3) [Solus options context — Deribit] (spot, DVOL, ATM IV, skew, best CC/CSP strikes for BTC/ETH/SOL). Use this data to give one clear call. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
 
-Use current spot prices from context when present (e.g. "[Hypersurface spot USD]" or [Solus market context]). Frame the call as weekly bull/bear (next 7 days to expiry), not intraday. If [Solus sizing state] or [Portfolio context] states we already hold the asset (covered calls) or have a CSP wheel running, anchor size/skip/watch and strike relative to that plan (weekly premium target, assignment tolerance, underwater vs entry). With only spot + mechanics, give strike/structure and invalidation; if no pasted IV/sentiment, one line: get VINCE's options output and paste here for direction.
+Use current spot from [Hypersurface spot USD] or [Solus market context]. Frame the call as weekly (next 7 days to expiry). If [Solus sizing state] states we hold the asset (covered calls) or have a CSP wheel, anchor size/skip/watch and strike to that plan. When [Solus options context] is present, use IV and best strikes; when missing, give strike/structure and invalidation from sizing + spot and note you could refine with live IV.
 
-Using the context below (sizing state, market context, any pasted VINCE options view or market data), give: (1) asset (BTC/ETH/SOL/HYPE), (2) OTM % and strike guidance, (3) size/skip/watch, (4) invalidation in one phrase. If the context has no live data (IV, funding, pasted view), say we can't feel where price lands by Friday without pasted data — say "options" to VINCE, paste his output here, and ask again. Be direct; one clear call.
+Using the context below, give: (1) asset (BTC/ETH/SOL/HYPE), (2) OTM % and strike guidance, (3) size/skip/watch, (4) invalidation in one phrase. Be direct; one clear call.
 
 Context:
 ${contextBlock}
 
 User: ${userText}
 
-Reply with strike call or one line asking for VINCE data. Reply in flowing prose; no bullet lists unless listing strike/asset/invalidation.`;
+Reply with strike call only. Reply in flowing prose; no bullet lists unless listing strike/asset/invalidation.`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,
@@ -115,10 +115,10 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
         "",
         text.trim(),
         "",
-        "*Source: Hypersurface mechanics, CoinGecko spot, pasted context*",
+        "*Source: Hypersurface mechanics, CoinGecko spot, Deribit options context*",
         "",
         "---",
-        "_Next steps_: `STRIKE RITUAL` (full process) · `POSITION ASSESS` (review position) · `OPTIONS` → VINCE (IV data)",
+        "_Next steps_: `STRIKE RITUAL` (full process) · `POSITION ASSESS` (review position)",
       ];
       await callback({
         text: sections.join("\n"),
@@ -128,7 +128,7 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
     } catch (error) {
       logger.error("[SOLUS_OPTIMAL_STRIKE] Failed:", error);
       await callback({
-        text: "We don't have a pulse on where price lands by Friday—say 'options' to VINCE, paste his output here, and I'll give you the strike call (asset, OTM %, size/skip, invalidation).",
+        text: "Give me a moment — I'll pull spot and options context and give you the strike call (asset, OTM %, size/skip, invalidation).",
       });
       return {
         success: false,
@@ -148,7 +148,7 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
       {
         name: "{{agent}}",
         content: {
-          text: "Need VINCE's options view — say 'options' to him and paste it here. With that I'll give you OTM %, strike, and invalidation.",
+          text: "From sizing state and Deribit: OTM %, strike, and invalidation for this week.",
           actions: ["SOLUS_OPTIMAL_STRIKE"],
         },
       },
