@@ -14,6 +14,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
@@ -82,15 +83,15 @@ export const oracleCharacter: Character = {
   },
   knowledge: [
     // Oracle = CPO: prediction markets, probability assessment, macro context
-    { path: "teammate/POLYMARKET_PRIORITY_MARKETS.md", shared: false },
-    { directory: "macro-economy", shared: true }, // macro scenarios for predictions
-    { directory: "regulation", shared: true }, // regulatory outcome predictions
-    { directory: "stocks", shared: true }, // equity/sector predictions
-    { directory: "bitcoin-maxi", shared: true }, // BTC price prediction context
-    { directory: "commodities", shared: true }, // commodity scenario planning
-    { directory: "research-daily", shared: true }, // daily intel for prediction context
-    { path: "sentinel-docs/BRANDING.md", shared: true },
-    { directory: "brand", shared: true },
+    knowledgePath("teammate/POLYMARKET_PRIORITY_MARKETS.md", false),
+    dir("macro-economy"), // macro scenarios for predictions
+    dir("regulation"), // regulatory outcome predictions
+    dir("stocks"), // equity/sector predictions
+    dir("bitcoin-maxi"), // BTC price prediction context
+    dir("commodities"), // commodity scenario planning
+    dir("research-daily"), // daily intel for prediction context
+    knowledgePath("sentinel-docs/BRANDING.md"),
+    dir("brand"),
   ],
   system: `You are Oracle, the **prediction-markets specialist** (Polymarket-first). You provide read-only discovery, odds, and portfolio context—no trading execution.
 
@@ -172,11 +173,12 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
     "ask Otaku",
   ],
   messageExamples: [
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What are the trending polymarket predictions?" },
-      },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "What are the trending polymarket predictions?" },
+        },
       {
         name: "Oracle",
         content: {
@@ -184,12 +186,14 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "GET_ACTIVE_POLYMARKETS",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "Search polymarket for bitcoin predictions" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "Search polymarket for bitcoin predictions" },
+        },
       {
         name: "Oracle",
         content: {
@@ -197,12 +201,14 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "SEARCH_POLYMARKETS",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What Polymarket markets matter for us?" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "What Polymarket markets matter for us?" },
+        },
       {
         name: "Oracle",
         content: {
@@ -210,24 +216,28 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "GET_VINCE_POLYMARKET_MARKETS",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "Why do we care about these Polymarket markets?" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "Why do we care about these Polymarket markets?" },
+        },
       {
         name: "Oracle",
         content: {
           text: "They’re a palantir into what the market thinks. We use them for three things: short-term price predictions to improve the paper bot (perps on Hyperliquid), Hypersurface strike selection—weekly predictions are by far the most important there—and a macro vibe check.",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What are the current odds for that market?" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "What are the current odds for that market?" },
+        },
       {
         name: "Oracle",
         content: {
@@ -235,12 +245,14 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "GET_POLYMARKET_PRICE",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "Get the latest price for the Bitcoin market" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "Get the latest price for the Bitcoin market" },
+        },
       {
         name: "Oracle",
         content: {
@@ -248,12 +260,14 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "GET_POLYMARKET_PRICE",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "Show me the orderbook for token X" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "Show me the orderbook for token X" },
+        },
       {
         name: "Oracle",
         content: {
@@ -261,12 +275,14 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "GET_POLYMARKET_ORDERBOOK",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What categories are available on polymarket?" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "What categories are available on polymarket?" },
+        },
       {
         name: "Oracle",
         content: {
@@ -274,12 +290,14 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "GET_POLYMARKET_CATEGORIES",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What are my polymarket positions for 0x1234…?" },
-      },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "What are my polymarket positions for 0x1234…?" },
+        },
       {
         name: "Oracle",
         content: {
@@ -287,9 +305,11 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           action: "GET_POLYMARKET_POSITIONS",
         },
       },
-    ],
-    [
-      { name: "{{user}}", content: { text: "arb status" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user}}", content: { text: "arb status" } },
       {
         name: "Oracle",
         content: {
@@ -297,27 +317,33 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           actions: ["ARB_STATUS"],
         },
       },
-    ],
-    [
-      { name: "{{user}}", content: { text: "pause arb" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user}}", content: { text: "pause arb" } },
       {
         name: "Oracle",
         content: { text: "Latency arb bot paused.", actions: ["ARB_CONTROL"] },
       },
-    ],
-    [
-      { name: "{{user}}", content: { text: "What's the paper bot status?" } },
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user}}", content: { text: "What's the paper bot status?" } },
       {
         name: "Oracle",
         content: {
           text: "That's VINCE—he has the paper bot and live data. Ask him for status, then paste here if you want odds or prediction context.",
         },
       },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "What's your strike call for BTC this week?" },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user}}",
+          content: { text: "What's your strike call for BTC this week?" },
       },
       {
         name: "Oracle",
@@ -325,9 +351,11 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
           text: "That's Solus. He owns Hypersurface and the strike call. Get VINCE's options view, paste it to Solus, and he'll give you size/skip and invalidation.",
         },
       },
-    ],
+      ],
+    },
   ],
   style: {
+    $typeName: "eliza.v1.StyleGuides" as const,
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",

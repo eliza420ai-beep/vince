@@ -4,17 +4,17 @@
 
 ## Trade Snapshot
 
-- ETH long closed stop_loss: entry $2007.50 -> exit $1991.80, P&L $-53.42 (6419.5331506849325 USD, 10x).
-- Entry time (UTC): 2026-03-01T15:30:36.848Z
+- ETH long closed stop_loss: entry $1980.20 -> exit $1963.40, P&L $-47.18 (5252.253995571022 USD, 10x).
+- Entry time (UTC): 2026-03-01T18:26:54.589Z
 - Hold window target: intraday
-- Max loss budget: $48.69 (7.58%)
+- Max loss budget: $39.94 (7.60%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 30 minutes
-- Adverse move: 0.782%
+- Hold duration: 55 minutes
+- Adverse move: 0.848%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -26,31 +26,33 @@
 - Lane: CT sentiment + macro risk pulse
 - Confidence: 30%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: timestamp
+- Missing data flags: timestamp, entry_datetime
 
-Need the timestamp + trade thesis to give you real feedback — was this a WTT (what's the trade) play, macro bet, or technical setup? If it was sentiment-driven, I'd want to know: (1) what CT was saying when you entered, (2) what shifted before the stop, and (3) whether the macro pulse changed (Fed news, BTC dump, etc.). Without that, I can only tell you the trade got stopped 6 pips in — which is tight for a 10x and suggests either size was too aggressive for the thesis or sentiment reversed faster than expected.
+**Missing key context:** When did you enter (date/time)? What was CT sentiment at entry vs. exit? Was there a macro event (Fed speak, BTC dump, liquidation cascade) that triggered the stop, or pure technicals?
 
-**Confidence: 0.3** (need context).
+**On the trade itself:** A $47 stop on a $1980 entry is tight (2.4% buffer) — if CT was mixed-to-bearish on ETH at entry, that's a tough spot. The size (10x) amplifies any noise. Without knowing the sentiment backdrop, I can't tell if this was a "CT got it wrong" or "you were early into real bearish flow."
+
+**What I need:** Entry timestamp + what X was saying about ETH/macro at that moment. Then I can tell you if sentiment was warning or if this was just volatility eating a tight stop.
+
+Confidence: 0.3 (incomplete picture).
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 40%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: entry_datetime
+- Missing data flags: timestamp
 
-**Missing context:** I need the trade date/time, the Polymarket ETH price at entry/exit (to compare perp vs prediction-market regime), and which market you were shadowing—was this a weekly options hedge play or a standalone perp bet? Without the Poly odds snapshot, I can't tell if the market repriced against you or if you caught a localized perp liquidation cascade. That said: a 10x stop at 0.78% loss suggests tight risk management, which is sound, but the $6.4K notional on a $53 loss implies the perp was moving slower than expected—either the catalyst didn't fire or macro bid held better than Poly implied. **Confidence: 0.4** (need Polymarket context to upgrade).
+**Missing critical context:** ETH/USD entry/exit timestamps, which Polymarket regime (macro, volatility, options expiry) was live, and whether this trade was sized against a specific options strike or macro hedge. That said: a $47 stop on a $1,980 entry (2.4% drawdown on 10x) is tight for ETH's typical intraday range—if you hit that in a low-volume window or against a liquidation cascade, the regime was likely choppy/mean-reverting rather than directional. Check whether ETH options (weekly puts, calls) were pricing tail risk that day; if IV was elevated and spot was consolidating, Polymarket macro markets (e.g., ETH price by Friday) would've shown low conviction, which matches a whipsaw close. **Recommendation:** Pull the 15m candles and compare to Polymarket orderbook depth at entry
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 30%
+- Confidence: 70%
 - Source stamp: options_mechanics_snapshot
-- Missing data flags: timestamp
+- Missing data flags: none
 
-**Missing critical context:** entry date, exit date, funding paid/collected, and your conviction thesis at entry (bull %, base %, bear % — what made you size 10x?). On mechanics alone: 10x on a $2007 entry with a $15.70 stop (0.78% risk) is tight for ETH's typical intraday range — you were fighting gamma/slippage from the jump. If this was a 1-4h hold, that's a structure problem (too tight stop for the timeframe); if it was a scalp, the stop was right but 10x on a micro-conviction play is oversized. **What was your hold thesis and duration?** That determines if this was bad sizing or bad timing.
-
-**Confidence: 0.3** (need entry/exit timestamps and your original bull case to assess).
+**Missing context:** Entry date, hold time, liquidation distance, and what triggered the stop (momentum shift vs. structural break). That said: **10x leverage on a $47 loss suggests tight stops—good discipline, but the position sizing (notional ~$52K on $5K stack) is aggressive for a paper bot learning edge.** If this was a scalp (hours), the structure is sound; if it was a swing (days+), you're fighting slippage and funding on thin margin. **Move:** Log hold time and reason for exit, then compare win/loss ratio across 10+ trades before scaling leverage. Confidence: 0.7
 
 ## Root-Cause Tags
 
@@ -74,7 +76,7 @@ Need the timestamp + trade thesis to give you real feedback — was this a WTT (
 
 ## Confidence and Data Gaps
 
-- Quality score: 84/100
+- Quality score: 94/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=20, actionability=15, ownership=10
 - Context completeness: 92.9%
@@ -88,7 +90,7 @@ Need the timestamp + trade thesis to give you real feedback — was this a WTT (
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 84
+- PM_QUALITY_SCORE: 94
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: stop_too_tight_for_vol
@@ -99,7 +101,7 @@ Need the timestamp + trade thesis to give you real feedback — was this a WTT (
 
 ```json
 {
-  "qualityScore": 84,
+  "qualityScore": 94,
   "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [
@@ -108,35 +110,33 @@ Need the timestamp + trade thesis to give you real feedback — was this a WTT (
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 30,
-  "adverseMovePct": 0.782,
+  "holdMinutes": 55,
+  "adverseMovePct": 0.848,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-01T15:30:36.848Z",
-    "exitTimestampUtc": "2026-03-01T16:00:31.577Z",
+    "entryTimestampUtc": "2026-03-01T18:26:54.589Z",
+    "exitTimestampUtc": "2026-03-01T19:21:48.722Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-01T15:30:36.848Z",
-    "exitTimestampUtc": "2026-03-01T16:00:31.577Z"
+    "entryTimestampUtc": "2026-03-01T18:26:54.589Z",
+    "exitTimestampUtc": "2026-03-01T19:21:48.722Z"
   },
   "solusContext": {
     "assetClass": "crypto",
     "thesisClass": "momentum",
     "leverage": 10,
-    "stopDistancePct": 0.758,
-    "maxLossUsd": 48.69,
-    "maxLossPct": 7.58,
-    "entryAtrPct": 1.5168586387434555
+    "stopDistancePct": 0.76,
+    "maxLossUsd": 39.94,
+    "maxLossPct": 7.6,
+    "entryAtrPct": 1.5208376963350785
   },
   "agentContextMissing": {
     "Echo": [
-      "timestamp"
-    ],
-    "Oracle": [
+      "timestamp",
       "entry_datetime"
     ],
-    "Solus": [
+    "Oracle": [
       "timestamp"
     ]
   },

@@ -20,6 +20,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
@@ -128,68 +129,78 @@ PRICES — NEVER HALLUCINATE:
   ],
 
   messageExamples: [
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "What's CT saying today?" },
-      },
-      {
-        name: "ECHO",
-        content: {
-          text: "📊 **X Pulse**\n\n📈 Overall: Bullish (+42)\n\nCT is cautiously optimistic. ETF inflows dominating the convo. SOL slightly positive, BTC/ETH steady. Volume normal across majors. No contrarian warnings.",
-          action: "X_PULSE",
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "What's CT saying today?" },
         },
-      },
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "What's CT saying about BTC?" },
-      },
-      {
-        name: "ECHO",
-        content: {
-          text: '📊 **BTC Vibe Check**\n\n📈 Bullish (+45) | 78% confidence\n\nCT is optimistic but not euphoric. ETF flows dominating the conversation — @CryptoHayes dropped a thread on the "supply shock" thesis that\'s getting traction.\n\n**Whale alignment:** +38 (they agree with retail)\n**Breaking:** @lookonchain flagged large exchange outflows\n\nNo contrarian warnings — sentiment is elevated but not extreme. This is healthy bullishness.',
+        {
+          name: "ECHO",
+          content: {
+            text: "📊 **X Pulse**\n\n📈 Overall: Bullish (+42)\n\nCT is cautiously optimistic. ETF inflows dominating the convo. SOL slightly positive, BTC/ETH steady. Volume normal across majors. No contrarian warnings.",
+            action: "X_PULSE",
+          },
         },
-      },
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "Who should I follow for SOL alpha?" },
-      },
-      {
-        name: "ECHO",
-        content: {
-          text: "For SOL alpha, here are the accounts I weight highest:\n\n🐋 **Whales:**\n• @Pentosh1 — chart guy, reliable on SOL trends\n\n🎯 **Alpha:**\n• @DegenSpartan — memecoin radar, calls pump.fun moves early\n• @0xMert_ — infrastructure takes, knows the ecosystem\n\n✨ **Quality:**\n• @SolanaFloor — news aggregation\n• @SolBigBrain — on-chain analytics\n\nWant me to analyze any of these accounts in detail?",
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "What's CT saying about BTC?" },
         },
-      },
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "Summarize this thread" },
-      },
-      {
-        name: "ECHO",
-        content: {
-          text: "I need a thread URL or tweet ID to summarize. Example:\n\n`Summarize this thread: https://x.com/crediblecrypto/status/123456`\n\nOr just paste the URL and I'll fetch it.",
+        {
+          name: "ECHO",
+          content: {
+            text: '📊 **BTC Vibe Check**\n\n📈 Bullish (+45) | 78% confidence\n\nCT is optimistic but not euphoric. ETF flows dominating the conversation — @CryptoHayes dropped a thread on the "supply shock" thesis that\'s getting traction.\n\n**Whale alignment:** +38 (they agree with retail)\n**Breaking:** @lookonchain flagged large exchange outflows\n\nNo contrarian warnings — sentiment is elevated but not extreme. This is healthy bullishness.',
+          },
         },
-      },
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "What's BTC at right now?" },
-      },
-      {
-        name: "ECHO",
-        content: {
-          text: "That's VINCE's lane — let me get the numbers for you.\n\n[VINCE says: BTC at $67,420. 24h change +1.2%. Spot and perps aligned.]",
-          action: "ASK_AGENT",
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "Who should I follow for SOL alpha?" },
         },
-      },
-    ],
+        {
+          name: "ECHO",
+          content: {
+            text: "For SOL alpha, here are the accounts I weight highest:\n\n🐋 **Whales:**\n• @Pentosh1 — chart guy, reliable on SOL trends\n\n🎯 **Alpha:**\n• @DegenSpartan — memecoin radar, calls pump.fun moves early\n• @0xMert_ — infrastructure takes, knows the ecosystem\n\n✨ **Quality:**\n• @SolanaFloor — news aggregation\n• @SolBigBrain — on-chain analytics\n\nWant me to analyze any of these accounts in detail?",
+          },
+        },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "Summarize this thread" },
+        },
+        {
+          name: "ECHO",
+          content: {
+            text: "I need a thread URL or tweet ID to summarize. Example:\n\n`Summarize this thread: https://x.com/crediblecrypto/status/123456`\n\nOr just paste the URL and I'll fetch it.",
+          },
+        },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "What's BTC at right now?" },
+        },
+        {
+          name: "ECHO",
+          content: {
+            text: "That's VINCE's lane — let me get the numbers for you.\n\n[VINCE says: BTC at $67,420. 24h change +1.2%. Spot and perps aligned.]",
+            action: "ASK_AGENT",
+          },
+        },
+      ],
+    },
   ],
 
   postExamples: [
@@ -216,6 +227,7 @@ PRICES — NEVER HALLUCINATE:
   ],
 
   style: {
+    $typeName: "eliza.v1.StyleGuides" as const,
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -261,21 +273,21 @@ PRICES — NEVER HALLUCINATE:
 
   knowledge: [
     // Echo = CSO: CT sentiment, X research, narrative tracking
-    { directory: "x-twitter", shared: true }, // X/Twitter history, algo, culture, Musk, accounts
-    { directory: "grinding-the-trenches", shared: true }, // meme culture, retail sentiment
-    { directory: "altcoins", shared: true }, // token narratives
-    { directory: "defi-metrics", shared: true }, // protocol sentiment signals
-    { directory: "airdrops", shared: true }, // airdrop hype cycles
-    { directory: "solana", shared: true }, // ecosystem sentiment
-    { directory: "ai-crypto", shared: true }, // AI narrative tracking
-    { directory: "macro-economy", shared: true }, // macro sentiment context
-    { directory: "bitcoin-maxi", shared: true }, // BTC dominance narrative
-    { directory: "substack-essays", shared: true }, // long-form takes for context
-    { directory: "trading", shared: true }, // frameworks: sentiment → strategy context
-    { directory: "research-daily", shared: true }, // daily intel briefs
-    { path: "sentinel-docs/BRANDING.md", shared: true },
-    { path: "teammate/CAMILLO_TRADING_MINDSET.md", shared: true }, // social-arbitrage lens for WTT and narrative trading
-    { directory: "brand", shared: true },
+    dir("x-twitter"), // X/Twitter history, algo, culture, Musk, accounts
+    dir("grinding-the-trenches"), // meme culture, retail sentiment
+    dir("altcoins"), // token narratives
+    dir("defi-metrics"), // protocol sentiment signals
+    dir("airdrops"), // airdrop hype cycles
+    dir("solana"), // ecosystem sentiment
+    dir("ai-crypto"), // AI narrative tracking
+    dir("macro-economy"), // macro sentiment context
+    dir("bitcoin-maxi"), // BTC dominance narrative
+    dir("substack-essays"), // long-form takes for context
+    dir("trading"), // frameworks: sentiment → strategy context
+    dir("research-daily"), // daily intel briefs
+    knowledgePath("sentinel-docs/BRANDING.md"),
+    knowledgePath("teammate/CAMILLO_TRADING_MINDSET.md"), // social-arbitrage lens for WTT and narrative trading
+    dir("brand"),
   ],
 
   plugins: [
