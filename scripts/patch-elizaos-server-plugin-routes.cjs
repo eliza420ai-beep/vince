@@ -22,6 +22,24 @@ if (!fs.existsSync(file)) {
 }
 
 let s = fs.readFileSync(file, "utf8");
+
+// Fix bcrypt: @elizaos/server bundle has hardcoded Linux path from build machine; resolve from actual node_modules (hoisted at root)
+const bcryptBad =
+  'var __dirname = "/home/runner/work/eliza/eliza/node_modules/bcrypt";\n  var path7 = __require("path");\n  var bindings = require_node_gyp_build2()(path7.resolve(__dirname));';
+const bcryptGood =
+  'var path7 = __require("path");\n  var __dirname = path7.join(path7.dirname(__require("url").fileURLToPath(import.meta.url)), "../../../bcrypt");\n  var bindings = require_node_gyp_build2()(path7.resolve(__dirname));';
+const bcryptWrongDepth = 'path7.join(path7.dirname(__require("url").fileURLToPath(import.meta.url)), "../../bcrypt")';
+const bcryptRightDepth = 'path7.join(path7.dirname(__require("url").fileURLToPath(import.meta.url)), "../../../bcrypt")';
+if (s.includes(bcryptGood)) {
+  // already applied with correct depth
+} else if (s.includes(bcryptBad)) {
+  s = s.replace(bcryptBad, bcryptGood);
+  console.log("patch-elizaos-server-plugin-routes: bcrypt path fix applied");
+} else if (s.includes(bcryptWrongDepth)) {
+  s = s.replace(bcryptWrongDepth, bcryptRightDepth);
+  console.log("patch-elizaos-server-plugin-routes: bcrypt path depth fix applied");
+}
+
 const alreadyPatched = s.includes("(?:\\/api)?\\/agents\\/");
 const unpatched =
   'reqPath.replace(/\\/api\\/agents\\/[^\\/]+\\/plugins/, "")';
