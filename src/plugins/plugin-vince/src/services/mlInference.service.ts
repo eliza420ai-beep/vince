@@ -144,7 +144,7 @@ export interface ImprovementReportTuning {
 // ==========================================
 
 const ML_CONFIG = {
-  /** Directory for model files */
+  /** Directory for model files (override via VINCE_ML_MODELS_DIR) */
   modelsDir: "./.elizadb/vince-paper-bot/models",
 
   /** Model filenames */
@@ -189,6 +189,10 @@ export class VinceMLInferenceService extends Service {
   capabilityDescription = "ONNX model inference for ML-enhanced trading";
 
   private modelsLoaded = false;
+  /** Resolved absolute path to models dir (set in initialize so loading works regardless of cwd). */
+  private resolvedModelsDir: string = "";
+  /** Guard: one lazy-load attempt per process when dashboard (or paper route) first requests status. */
+  private lazyLoadPromise: Promise<void> | null = null;
   private modelInfo: Map<string, ModelInfo> = new Map();
   private predictionCache: Map<string, { result: Prediction; expiry: number }> =
     new Map();
@@ -222,12 +226,21 @@ export class VinceMLInferenceService extends Service {
   }
 
   private async initialize(): Promise<void> {
+    const rawDir =
+      (this.runtime.getSetting?.("VINCE_ML_MODELS_DIR") as string) ??
+      process.env.VINCE_ML_MODELS_DIR ??
+      ML_CONFIG.modelsDir;
+    this.resolvedModelsDir = path.resolve(rawDir);
+    logger.info(`[MLInference] Models dir: ${this.resolvedModelsDir}`);
     // On Cloud: if local models dir is empty, pull from Supabase Storage (so redeploys get latest without $15 redeploy)
-    const modelsPath = path.resolve(ML_CONFIG.modelsDir);
+    const modelsPath = this.resolvedModelsDir;
     const hasLocalOnnx =
       fs.existsSync(modelsPath) &&
       fs.readdirSync(modelsPath).some((f) => f.endsWith(".onnx"));
     if (!hasLocalOnnx) {
+      logger.info(
+        `[MLInference] No .onnx files in ${modelsPath}; run training or set VINCE_ML_MODELS_DIR`,
+      );
       const downloaded = await downloadModelsFromSupabase(
         this.runtime,
         modelsPath,
@@ -248,9 +261,9 @@ export class VinceMLInferenceService extends Service {
       // Try to load models
       await this.loadModels();
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       logger.info(
-        "[MLInference] ONNX runtime not available - using rule-based fallbacks. " +
-          "Install 'onnxruntime-node' for ML features.",
+        `[MLInference] ONNX runtime not available: ${msg}. Use rule-based fallbacks or run \`bun rebuild onnxruntime-node\`.`,
       );
     }
   }
@@ -274,11 +287,9 @@ export class VinceMLInferenceService extends Service {
   /** Read improvement report from training_metadata.json (threshold, tp_level_performance, suggested_tuning). */
   private loadImprovementReport(): void {
     try {
-      const metadataPath = path.join(
-        ML_CONFIG.modelsDir,
-        "training_metadata.json",
-      );
-      const resolved = path.resolve(metadataPath);
+      const baseDir =
+        this.resolvedModelsDir || path.resolve(ML_CONFIG.modelsDir);
+      const resolved = path.join(baseDir, "training_metadata.json");
       if (!fs.existsSync(resolved)) return;
       const raw = fs.readFileSync(resolved, "utf-8");
       const meta = JSON.parse(raw) as {
@@ -410,6 +421,25 @@ export class VinceMLInferenceService extends Service {
   }
 
   /**
+   * Ensure models are loaded when possible. Called by the paper route before building mlStatus
+   * so the first dashboard open can trigger a load (e.g. after training or path fix) without restart.
+   */
+  async ensureModelsLoaded(): Promise<void> {
+    if (this.modelsLoaded || !this.ort) return;
+    if (!this.lazyLoadPromise) {
+      this.lazyLoadPromise = (async () => {
+        const dir = this.resolvedModelsDir || path.resolve(ML_CONFIG.modelsDir);
+        const hasOnnx =
+          fs.existsSync(dir) &&
+          fs.readdirSync(dir).some((f: string) => f.endsWith(".onnx"));
+        if (!hasOnnx) return;
+        await this.loadModels();
+      })();
+    }
+    await this.lazyLoadPromise;
+  }
+
+  /**
    * Status for dashboard: which models are loaded, thresholds from recorded data (improvement report).
    */
   getMLStatus(): {
@@ -455,10 +485,13 @@ export class VinceMLInferenceService extends Service {
   private async loadModels(): Promise<void> {
     if (!this.ort) return;
 
-    const modelsPath = path.resolve(ML_CONFIG.modelsDir);
+    const modelsPath =
+      this.resolvedModelsDir || path.resolve(ML_CONFIG.modelsDir);
 
     if (!fs.existsSync(modelsPath)) {
-      logger.info(`[MLInference] Models directory not found: ${modelsPath}`);
+      logger.info(
+        `[MLInference] Models directory not found: ${modelsPath} (restart after training or set VINCE_ML_MODELS_DIR)`,
+      );
       return;
     }
 
@@ -477,10 +510,11 @@ export class VinceMLInferenceService extends Service {
 
   private async loadModel(name: string, filename: string): Promise<void> {
     if (!this.ort) return;
-    const modelPath = path.join(ML_CONFIG.modelsDir, filename);
+    const baseDir = this.resolvedModelsDir || path.resolve(ML_CONFIG.modelsDir);
+    const modelPath = path.join(baseDir, filename);
 
     if (!fs.existsSync(modelPath)) {
-      logger.debug(`[MLInference] Model not found: ${filename}`);
+      logger.debug(`[MLInference] Model not found: ${modelPath}`);
       return;
     }
 

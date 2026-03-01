@@ -166,6 +166,9 @@ export async function buildPaperResponse(
   ) as VinceWeightBanditService | null;
 
   let mlStatus: MLStatus | null = null;
+  if (mlInference?.ensureModelsLoaded) {
+    await mlInference.ensureModelsLoaded();
+  }
   if (mlInference?.getMLStatus) {
     const ml = mlInference.getMLStatus();
     const bandit = weightBandit?.getBanditStatus?.() ?? {
