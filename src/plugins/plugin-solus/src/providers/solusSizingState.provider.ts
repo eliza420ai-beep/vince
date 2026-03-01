@@ -56,7 +56,7 @@ const SIZING_RELATIVE_PATH = path.join(
   "solus-options-sizing.md",
 );
 
-function safeReadSizingFile(): string | null {
+export function safeReadSizingFile(): string | null {
   try {
     const fullPath = path.join(process.cwd(), SIZING_RELATIVE_PATH);
     if (!fs.existsSync(fullPath)) {
@@ -72,7 +72,7 @@ function safeReadSizingFile(): string | null {
   }
 }
 
-function parseSizingMarkdown(markdown: string): SolusSizingState {
+export function parseSizingMarkdown(markdown: string): SolusSizingState {
   const lines = markdown.split(/\r?\n/);
   const entries: Record<string, SolusSizingEntry> = {};
 
@@ -215,6 +215,39 @@ function parseSizingMarkdown(markdown: string): SolusSizingState {
   }
 
   return { entries, rawMarkdown: markdown };
+}
+
+export interface ActivePositionForPortfolio {
+  asset: string;
+  strike: number;
+  type: "cc" | "csp";
+}
+
+/**
+ * Returns active options positions (CC/CSP with strike) for portfolio risk.
+ * Used by SOLUS_OPTIONS_CONTEXT to append portfolio assignment risk when 2+ positions.
+ */
+export function getActivePositionsForPortfolio(): ActivePositionForPortfolio[] {
+  const markdown = safeReadSizingFile();
+  if (!markdown) return [];
+  const sizing = parseSizingMarkdown(markdown);
+  const positions: ActivePositionForPortfolio[] = [];
+  for (const entry of Object.values(sizing.entries)) {
+    const pt = (entry.positionType ?? "").toLowerCase();
+    if (
+      (pt !== "covered_calls" && pt !== "secured_puts") ||
+      entry.strikeUsd == null ||
+      entry.strikeUsd <= 0
+    ) {
+      continue;
+    }
+    positions.push({
+      asset: entry.asset.toUpperCase(),
+      strike: entry.strikeUsd,
+      type: pt === "covered_calls" ? "cc" : "csp",
+    });
+  }
+  return positions;
 }
 
 export const solusSizingStateProvider: Provider = {

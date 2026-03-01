@@ -11,12 +11,19 @@ import { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPric
 import { solusSizingStateProvider } from "./providers/solusSizingState.provider";
 import { solusMarketContextProvider } from "./providers/solusMarketContext.provider";
 import { solusOptionsContextProvider } from "./providers/solusOptionsContext.provider";
+import { solusCalibrationContextProvider } from "./providers/solusCalibrationContext.provider";
 import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
 import { vinceStrikeSuggestionProvider } from "./providers/vinceStrikeSuggestion.provider";
 import { AlphaVantageService } from "./services/alphaVantage.service";
 import { FinnhubService } from "./services/finnhub.service";
 import { FMPService } from "./services/fmp.service";
 import { MissionControlService } from "./services/missionControl.service";
+import { SolusMlInferenceService } from "./services/solusMlInference.service";
+import { SolusOptionsCacheService } from "./services/solusOptionsCache.service";
+import { registerSolusAssignmentResolveReminderTask } from "./tasks/solusAssignmentResolveReminder.tasks";
+import { registerSolusOptionsRefreshTask } from "./tasks/solusOptionsRefresh.tasks";
+import { registerSolusCalibrationNotesTask } from "./tasks/solusCalibrationNotes.tasks";
+import { registerSolusTrainCalibrationTask } from "./tasks/solusTrainCalibration.tasks";
 import {
   solusStrikeRitualAction,
   solusHypersurfaceExplainAction,
@@ -25,6 +32,7 @@ import {
   solusAnalyzeAction,
   solusEarningsCalendarAction,
   solusPremiumPnlAction,
+  solusAssignmentCalibrationAction,
   mcRegisterSatoshiAction,
   mcAssignTaskAction,
   mcListTasksAction,
@@ -40,6 +48,8 @@ export const solusPlugin: Plugin = {
     AlphaVantageService,
     FMPService,
     MissionControlService,
+    SolusMlInferenceService,
+    SolusOptionsCacheService,
   ],
   providers: [
     hypersurfaceContextProvider,
@@ -47,6 +57,7 @@ export const solusPlugin: Plugin = {
     solusSizingStateProvider,
     solusMarketContextProvider,
     solusOptionsContextProvider,
+    solusCalibrationContextProvider,
     solusStockPulseProvider,
     vinceStrikeSuggestionProvider,
   ],
@@ -58,6 +69,7 @@ export const solusPlugin: Plugin = {
     solusAnalyzeAction,
     solusEarningsCalendarAction,
     solusPremiumPnlAction,
+    solusAssignmentCalibrationAction,
     mcRegisterSatoshiAction,
     mcAssignTaskAction,
     mcListTasksAction,
@@ -81,6 +93,24 @@ export const solusPlugin: Plugin = {
           ? " Mission Control connected."
           : " Set MISSION_CONTROL_TOKEN to connect to Mission Control."),
     );
+
+    setImmediate(() => {
+      registerSolusAssignmentResolveReminderTask(runtime).catch((err) => {
+        logger.warn(
+          "[Solus] registerSolusAssignmentResolveReminderTask failed:",
+          err,
+        );
+      });
+      registerSolusCalibrationNotesTask(runtime).catch((err) => {
+        logger.warn("[Solus] registerSolusCalibrationNotesTask failed:", err);
+      });
+      registerSolusTrainCalibrationTask(runtime).catch((err) => {
+        logger.warn("[Solus] registerSolusTrainCalibrationTask failed:", err);
+      });
+      registerSolusOptionsRefreshTask(runtime).catch((err) => {
+        logger.warn("[Solus] registerSolusOptionsRefreshTask failed:", err);
+      });
+    });
   },
 };
 
@@ -98,6 +128,11 @@ export { solusOptimalStrikeAction } from "./actions/solusOptimalStrike.action";
 export { solusAnalyzeAction } from "./actions/solusAnalyze.action";
 export { solusEarningsCalendarAction } from "./actions/solusEarningsCalendar.action";
 export { solusPremiumPnlAction } from "./actions/solusPremiumPnl.action";
+export { solusAssignmentCalibrationAction } from "./actions/solusAssignmentCalibration.action";
 export { mcRegisterSatoshiAction } from "./actions/missionControl.actions";
 export { mcAssignTaskAction } from "./actions/missionControl.actions";
 export { mcListTasksAction } from "./actions/missionControl.actions";
+export { registerSolusAssignmentResolveReminderTask } from "./tasks/solusAssignmentResolveReminder.tasks";
+export { registerSolusCalibrationNotesTask } from "./tasks/solusCalibrationNotes.tasks";
+export { registerSolusTrainCalibrationTask } from "./tasks/solusTrainCalibration.tasks";
+export { registerSolusOptionsRefreshTask } from "./tasks/solusOptionsRefresh.tasks";

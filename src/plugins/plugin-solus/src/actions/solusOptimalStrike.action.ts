@@ -12,6 +12,8 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { isSolus } from "../utils/solus";
+import { getNextFriday0800UTC } from "../utils/assignmentProbability";
+import { appendRecord } from "../utils/assignmentPredictionsStore";
 
 const TRIGGERS = [
   "optimal strike",
@@ -46,6 +48,48 @@ function wantsOptimalStrike(text: string): boolean {
   return TRIGGERS.some((t) => lower.includes(t));
 }
 
+export const RECORD_LINE_REGEX =
+  /Record:\s*(BTC|ETH|SOL|HYPE)\s+(\d+(?:\.\d+)?)\s*(k?)\s+(\d+(?:\.\d+)?)\s*%/i;
+
+/** Parse "Record: ASSET STRIKE PROB%" from the last line of the response. Returns null if not found or invalid. */
+export function parseRecordLine(responseText: string): {
+  asset: string;
+  strike: number;
+  prob: number;
+} | null {
+  const lines = responseText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = lines[i].match(RECORD_LINE_REGEX);
+    if (m) {
+      const asset = m[1].toUpperCase();
+      let strike = parseFloat(m[2]);
+      if (m[3].toLowerCase() === "k") strike *= 1000;
+      const prob = parseFloat(m[4]);
+      if (
+        !Number.isFinite(strike) ||
+        strike <= 0 ||
+        !Number.isFinite(prob) ||
+        prob < 0 ||
+        prob > 100
+      )
+        return null;
+      return { asset, strike, prob: prob / 100 };
+    }
+  }
+  return null;
+}
+
+/** Remove the Record: ... segment from text so the user does not see it. */
+export function stripRecordLine(text: string): string {
+  return text
+    .replace(RECORD_LINE_REGEX, "")
+    .replace(/\n\s*\n/g, "\n")
+    .trim();
+}
+
 export const solusOptimalStrikeAction: Action = {
   name: "SOLUS_OPTIMAL_STRIKE",
   similes: ["OPTIMAL_STRIKE", "STRIKE_CALL"],
@@ -73,10 +117,12 @@ export const solusOptimalStrikeAction: Action = {
       const state = await runtime.composeState(
         message,
         [
+          "SOLUS_HYPERSURFACE_CONTEXT",
           "SOLUS_SIZING_STATE",
           "SOLUS_MARKET_CONTEXT",
           "SOLUS_HYPERSURFACE_SPOT_PRICES",
           "SOLUS_OPTIONS_CONTEXT",
+          "SOLUS_CALIBRATION_CONTEXT",
           "VINCE_STRIKE_SUGGESTION",
         ],
         true,
@@ -86,7 +132,7 @@ export const solusOptimalStrikeAction: Action = {
 
       const prompt = `You are Solus, the on-chain options expert. The user wants an optimal strike call. You have: (1) [Solus sizing state] (weekly premium targets, assigned wheels, spot stacks), (2) [Solus market context] (spot, 24h move, regime), (3) [Solus options context — Deribit] (spot, DVOL, ATM IV, skew, best CC/CSP strikes for BTC/ETH/SOL). Use this data to give one clear call. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
 
-Use current spot from [Hypersurface spot USD] or [Solus market context]. Frame the call as weekly (next 7 days to expiry). If [Solus sizing state] states we hold the asset (covered calls) or have a CSP wheel, anchor size/skip/watch and strike to that plan. When [Solus options context] is present, use IV and best strikes; when missing, give strike/structure and invalidation from sizing + spot and note you could refine with live IV.
+Use current spot from [Hypersurface spot USD] or [Solus market context]. Frame the call as weekly (next 7 days to expiry). If [Solus sizing state] states we hold the asset (covered calls) or have a CSP wheel, anchor size/skip/watch and strike to that plan. When [Solus options context] is present, use IV and best strikes; when missing, give strike/structure and invalidation from sizing + spot and note you could refine with live IV. When [Solus calibration] is present, use it: if Brier is high or recent outcomes show bias, temper confidence or note it; if well-calibrated, you can say so.
 
 Using the context below, give: (1) asset (BTC/ETH/SOL/HYPE), (2) OTM % and strike guidance, (3) size/skip/watch, (4) invalidation in one phrase. Be direct; one clear call.
 
@@ -95,15 +141,51 @@ ${contextBlock}
 
 User: ${userText}
 
-Reply with strike call only. Reply in flowing prose; no bullet lists unless listing strike/asset/invalidation.`;
+Reply with strike call only. Reply in flowing prose; no bullet lists unless listing strike/asset/invalidation.
+End your reply with exactly one line in this form (for internal tracking only; use the strike and assignment probability you recommended): Record: ASSET STRIKE PROB% (e.g. Record: BTC 106000 24% or Record: ETH 3500 22%).`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,
       });
-      const text =
+      let text =
         typeof response === "string"
           ? response
           : ((response as { text?: string })?.text ?? String(response));
+      const autoRecordEnabled =
+        process.env.SOLUS_AUTO_RECORD_PREDICTION !== "false";
+      const parsed = parseRecordLine(text);
+      if (parsed && autoRecordEnabled) {
+        try {
+          const nextFriday = getNextFriday0800UTC(new Date());
+          const optionsByAsset = (
+            state as State & {
+              values?: {
+                optionsByAsset?: Record<
+                  string,
+                  { spot: number; atmIV: number }
+                >;
+              };
+            }
+          ).values?.optionsByAsset;
+          const ctx = optionsByAsset?.[parsed.asset];
+          appendRecord({
+            asset: parsed.asset,
+            strike: parsed.strike,
+            expiryUtc: new Date(nextFriday).toISOString(),
+            predictedAssignProb: parsed.prob,
+            ...(ctx && { spotAtRecord: ctx.spot, atmIvAtRecord: ctx.atmIV }),
+          });
+          logger.debug(
+            `[SOLUS_OPTIMAL_STRIKE] Auto-recorded: ${parsed.asset} $${parsed.strike} @ ${(parsed.prob * 100).toFixed(0)}%`,
+          );
+        } catch (err) {
+          logger.warn(
+            "[SOLUS_OPTIMAL_STRIKE] Auto-record failed (non-fatal):",
+            err,
+          );
+        }
+      }
+      text = stripRecordLine(text);
       const now = new Date();
       const dateStr = now.toLocaleDateString("en-US", {
         weekday: "long",
@@ -128,7 +210,7 @@ Reply with strike call only. Reply in flowing prose; no bullet lists unless list
     } catch (error) {
       logger.error("[SOLUS_OPTIMAL_STRIKE] Failed:", error);
       await callback({
-        text: "Give me a moment — I'll pull spot and options context and give you the strike call (asset, OTM %, size/skip, invalidation).",
+        text: "We don't have a pulse on where price lands by Friday. Paste VINCE's options view or give me a moment and I'll pull spot and options context for the strike call (asset, OTM %, size/skip, invalidation).",
       });
       return {
         success: false,

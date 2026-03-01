@@ -95,11 +95,12 @@ export const solusPositionAssessAction: Action = {
         "SOLUS_MARKET_CONTEXT",
         "SOLUS_HYPERSURFACE_SPOT_PRICES",
         "SOLUS_OPTIONS_CONTEXT",
+        "SOLUS_CALIBRATION_CONTEXT",
       ]);
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Solus, the on-chain options expert. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], (3) spot/regime in [Solus market context] and [Hypersurface spot USD], (4) when present [Solus options context — Deribit] with spot, DVOL, ATM IV, and best strikes for BTC/ETH/SOL. Use this data to give one clear call.
+      const prompt = `You are Solus, the on-chain options expert. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], (3) spot/regime in [Solus market context] and [Hypersurface spot USD], (4) when present [Solus options context — Deribit] with spot, DVOL, ATM IV, and best strikes for BTC/ETH/SOL; (5) [Solus calibration] with Brier and recent outcomes when present. Use this data to give one clear call.
 
 **RULE — you must follow:** Do NOT say you need VINCE, need to ask anyone for IV, or need "VINCE's current SOL IV". If [Solus options context] includes SOL, use that IV and best strikes. If it does not, give your assessment and strike guidance from [Solus sizing state] and spot only (e.g. "SOL spot from context; our stack at $141 cost basis; strikes around $90–95 could collect premium — exact amount depends on current IV"). Never deflect the user to another chat or agent.
 
