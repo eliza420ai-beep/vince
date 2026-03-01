@@ -1,8 +1,26 @@
 # Proving ML Adjusts Essential Parameters to Improve the Algo
 
-**Goal:** Show that our ML logic can and does adjust essential parameters in a way that improves the paper trading algo (better selectivity, win rate, or risk-adjusted return).
+**Goal:** Show that our ML logic can and does adjust essential parameters in a way that improves the paper trading algo (better selectivity, win rate, or risk-adjusted return). The improvement loop is **recursive** and can run **on autopilot**: the bot keeps getting better from its own trades; see §0 and §3 for the loop and proof.
 
 ---
+
+## 0. Recursive loop and autopilot
+
+The paper bot's improvement cycle is **recursive**—it feeds on its own outcomes:
+
+1. **Paper trading** produces closed trades; each outcome is recorded in the feature store (strength, confidence, PnL, TP level, etc.).
+2. **Task `TRAIN_ONNX_WHEN_READY`** (every 12h, max once per 24h when 90+ complete trades) runs `train_models.py` → new ONNX models + `training_metadata.json` (suggested threshold, suggested_tuning, holdout_metrics). On Cloud, the task uploads models and calls `reloadModels()` so new thresholds apply without restart.
+3. **Optional:** With `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true`, the same task applies **source weights** from the improvement report after each successful training run. The next evaluation cycle uses the updated aggregator weights.
+4. **Next evaluations** use the new thresholds, TP/SL from ONNX, and (if applied) new weights → better or more targeted trades → more data → repeat.
+
+So the loop **runs on autopilot**: no manual "run train then run improvement-weights" once the agent is live and the env flag is set. The code that tests based on trades, runs ML, and adjusts parameters/weights is **recursive** in the sense that each cycle uses the previous cycle's outputs as inputs.
+
+**Proof that the loop improves the bot** (see §3 below):
+
+- **Holdout metrics** in `training_metadata.json` and `improvement_report.md`: AUC (signal quality), MAE/quantile loss (sizing, SL) on unseen data show the models generalize.
+- **`validate_ml_improvement.py`**: On historical feature-store data, applying `suggested_tuning` (min strength/confidence from profitable trades) often yields higher filtered win rate than baseline—evidence that ML-derived thresholds improve selectivity.
+- **Unit tests** (`test_train_models.py`): Training produces metadata including `improvement_report.holdout_metrics`; smoke tests cover recency/balance/hyperparams.
+- **Runtime trail**: Task logs ("Training completed", "Improvement report weights applied"), `last_train_at.txt`, and optional `improvement_report.md` on disk give an auditable record that the loop ran and what it produced.
 
 ## 1. What “Essential Parameters” ML Adjusts
 

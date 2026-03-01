@@ -19,6 +19,14 @@ export interface PolicyContext {
   sentimentScore?: number;
   direction?: "long" | "short";
   portfolioDrawdownPct?: number;
+  /** Trades opened today (UTC day); for max-daily-trades rule */
+  tradesToday?: number;
+  /** Current open position count; for max-open-positions rule */
+  openPositionCount?: number;
+  /** Max trades per day (env VINCE_PAPER_MAX_DAILY_TRADES); unset = no cap */
+  maxDailyTrades?: number;
+  /** Max open positions (env VINCE_PAPER_MAX_OPEN_POSITIONS); unset = no cap */
+  maxOpenPositions?: number;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -151,6 +159,22 @@ function evaluateCondition(condition: string, context: PolicyContext): boolean {
     return andParts.every((part) => evaluateCondition(part.trim(), context));
   }
 
+  // Try `>=` operator (before `>` so it matches first)
+  const gteMatch = normalized.match(/^(\w+)\s*>=\s*(.+)$/);
+  if (gteMatch) {
+    const [, varName, rhs] = gteMatch;
+    const lhsVal = context[varName];
+    if (typeof lhsVal !== "number") return false;
+    const rhsTrimmed = rhs.trim();
+    let rhsVal: number = parseFloat(rhsTrimmed);
+    if (Number.isNaN(rhsVal)) {
+      const fromCtx = context[rhsTrimmed];
+      if (typeof fromCtx !== "number") return false;
+      rhsVal = fromCtx;
+    }
+    return lhsVal >= rhsVal;
+  }
+
   // Try `>` operator (rhs may be a number literal or a context variable name)
   const gtMatch = normalized.match(/^(\w+)\s*>\s*(.+)$/);
   if (gtMatch) {
@@ -165,6 +189,22 @@ function evaluateCondition(condition: string, context: PolicyContext): boolean {
       rhsVal = fromCtx;
     }
     return lhsVal > rhsVal;
+  }
+
+  // Try `<=` operator (before `<` so it matches first)
+  const lteMatch = normalized.match(/^(\w+)\s*<=\s*(.+)$/);
+  if (lteMatch) {
+    const [, varName, rhs] = lteMatch;
+    const lhsVal = context[varName];
+    if (typeof lhsVal !== "number") return false;
+    const rhsTrimmed = rhs.trim();
+    let rhsVal: number = parseFloat(rhsTrimmed);
+    if (Number.isNaN(rhsVal)) {
+      const fromCtx = context[rhsTrimmed];
+      if (typeof fromCtx !== "number") return false;
+      rhsVal = fromCtx;
+    }
+    return lhsVal <= rhsVal;
   }
 
   // Try `<` operator (rhs may be a number literal or a context variable name)

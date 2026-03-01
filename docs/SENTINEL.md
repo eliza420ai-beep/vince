@@ -25,6 +25,7 @@ Sentinel is the **CTO agent**: ops, architecture steward, cost steward, and proa
 - **ART and pitch:** SENTINEL_ART_GEMS (ElizaOS examples/art); SENTINEL_ART_PITCH (gen art / XCOPY-style ideas); SENTINEL_INVESTOR_REPORT (VC/investor pitch).
 - **Cost and security:** SENTINEL_COST_STATUS (TREASURY, Usage tab, burn, breakeven); SENTINEL_SECURITY_CHECKLIST; SENTINEL_HOW_DID_WE_DO (outcome review).
 - **Tasks:** SENTINEL_WEEKLY_SUGGESTIONS (7d, push to sentinel/ops); optional SENTINEL_DAILY_DIGEST (SENTINEL_DAILY_ENABLED, ONNX status, clawdbot reminder, ART gem, task-brief suggestion).
+- **Weekly guardrail review:** The weekly task includes a **Guardrail review** block from `root_cause_stats.json` (top root-cause × asset-class). To refresh: run `bun run postmortems:ingest`, then review [tasks/todo.md](tasks/todo.md) corrective actions and [knowledge/sentinel-docs/POST_MORTEM_LESSONS.md](knowledge/sentinel-docs/POST_MORTEM_LESSONS.md); apply caps or policy tweaks manually (log-only; no automatic trading changes).
 - **Services:** projectRadar, impactScorer, prdGenerator, openclawKnowledge, multiAgentVision, tradingIntelligence. Plugin registers only when character name is Sentinel.
 
 ---

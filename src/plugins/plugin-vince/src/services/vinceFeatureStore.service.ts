@@ -418,6 +418,12 @@ export interface FeatureRecord {
     invalidateHit?: boolean;
     evThresholdPct?: number;
   };
+  /**
+   * Set when outcome is recorded and a matching post-mortem exists (postmortems.jsonl).
+   * Enables ML to filter or down-weight by root-cause / asset class.
+   */
+  postMortemPrimaryCause?: string;
+  postMortemAssetClass?: string;
 }
 
 // ==========================================
@@ -494,6 +500,10 @@ export class VinceFeatureStoreService extends Service {
   private static readonly NEWS_MACRO_TIMEOUT_MS = 6_000;
   /** Cached VinceBench config for per-record benchScore (lazy-loaded). */
   private benchConfig: VinceBenchConfig | null = null;
+  /** Debounce timer for persisting funding history to disk */
+  private fundingHistoryPersistTimer: ReturnType<typeof setTimeout> | null =
+    null;
+  private static readonly FUNDING_HISTORY_PERSIST_DEBOUNCE_MS = 2000;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -527,6 +537,8 @@ export class VinceFeatureStoreService extends Service {
       if (!fs.existsSync(this.storeConfig.dataDir)) {
         fs.mkdirSync(this.storeConfig.dataDir, { recursive: true });
       }
+
+      this.loadFundingHistory();
 
       // Prune old JSONL so new trades accumulate without clutter
       const retainDays = this.storeConfig.retainJsonlDays;
@@ -941,6 +953,8 @@ export class VinceFeatureStoreService extends Service {
       );
     }
 
+    this.tryEnrichFromPostMortems(record);
+
     this.pendingOutcomes.delete(positionId);
     logger.debug(
       `[VinceFeatureStore] Outcome recorded for ${record.asset}: ${outcome.realizedPnl >= 0 ? "+" : ""}$${outcome.realizedPnl.toFixed(2)}`,
@@ -953,6 +967,116 @@ export class VinceFeatureStoreService extends Service {
     condition: string,
   ): boolean {
     return parseWttInvalidateCondition(asset, exitPrice, condition);
+  }
+
+  /**
+   * If postmortems.jsonl exists, find a post-mortem for this record's asset and date;
+   * set postMortemPrimaryCause and postMortemAssetClass for ML filtering.
+   */
+  private tryEnrichFromPostMortems(record: FeatureRecord): void {
+    try {
+      const postmortemsPath = path.join(
+        process.cwd(),
+        ".elizadb",
+        "vince-paper-bot",
+        "postmortems",
+        "postmortems.jsonl",
+      );
+      if (!fs.existsSync(postmortemsPath)) return;
+      const dateStr = new Date(record.timestamp).toISOString().slice(0, 10);
+      const assetUpper = record.asset.toUpperCase();
+      const content = fs.readFileSync(postmortemsPath, "utf-8");
+      const lines = content.split(/\r?\n/).filter(Boolean);
+      for (const line of lines) {
+        try {
+          const row = JSON.parse(line) as {
+            date?: string;
+            asset?: string;
+            primaryCause?: string;
+            assetClass?: string;
+          };
+          if (
+            row.date === dateStr &&
+            (row.asset ?? "").toUpperCase() === assetUpper &&
+            row.primaryCause &&
+            row.assetClass
+          ) {
+            record.postMortemPrimaryCause = row.primaryCause;
+            record.postMortemAssetClass = row.assetClass;
+            return;
+          }
+        } catch {
+          // skip malformed line
+        }
+      }
+    } catch {
+      // non-fatal: postmortems may not exist yet
+    }
+  }
+
+  // ==========================================
+  // Funding history persistence (8h delta survives restarts)
+  // ==========================================
+
+  private getFundingHistoryPath(): string {
+    return path.join(this.storeConfig.dataDir, "funding_history.json");
+  }
+
+  private loadFundingHistory(): void {
+    const filepath = this.getFundingHistoryPath();
+    try {
+      if (!fs.existsSync(filepath)) return;
+      const raw = fs.readFileSync(filepath, "utf-8");
+      const data = JSON.parse(raw) as Record<
+        string,
+        Array<{ rate: number; ts: number }>
+      >;
+      const now = Date.now();
+      const maxAge = VinceFeatureStoreService.FUNDING_HISTORY_MAX_AGE_MS;
+      for (const [asset, entries] of Object.entries(data)) {
+        if (!Array.isArray(entries)) continue;
+        const pruned = entries.filter(
+          (e) =>
+            typeof e.rate === "number" &&
+            typeof e.ts === "number" &&
+            now - e.ts < maxAge,
+        );
+        if (pruned.length > 0) this.fundingHistoryByAsset.set(asset, pruned);
+      }
+    } catch (e) {
+      logger.debug(
+        `[VinceFeatureStore] loadFundingHistory failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  private schedulePersistFundingHistory(): void {
+    if (this.fundingHistoryPersistTimer != null) {
+      clearTimeout(this.fundingHistoryPersistTimer);
+    }
+    this.fundingHistoryPersistTimer = setTimeout(() => {
+      this.fundingHistoryPersistTimer = null;
+      this.persistFundingHistory();
+    }, VinceFeatureStoreService.FUNDING_HISTORY_PERSIST_DEBOUNCE_MS);
+  }
+
+  private persistFundingHistory(): void {
+    const filepath = this.getFundingHistoryPath();
+    try {
+      const now = Date.now();
+      const maxAge = VinceFeatureStoreService.FUNDING_HISTORY_MAX_AGE_MS;
+      const out: Record<string, Array<{ rate: number; ts: number }>> = {};
+      for (const [asset, entries] of this.fundingHistoryByAsset) {
+        const pruned = entries.filter((e) => now - e.ts < maxAge);
+        if (pruned.length > 0) out[asset] = pruned;
+      }
+      if (Object.keys(out).length === 0) return;
+      fs.writeFileSync(filepath, JSON.stringify(out), "utf-8");
+    } catch (e) {
+      logger.debug(
+        `[VinceFeatureStore] persistFundingHistory failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   }
 
   // ==========================================
@@ -1071,6 +1195,7 @@ export class VinceFeatureStoreService extends Service {
         (e) => now - e.ts < VinceFeatureStoreService.FUNDING_HISTORY_MAX_AGE_MS,
       );
       this.fundingHistoryByAsset.set(asset, hist);
+      this.schedulePersistFundingHistory();
       const targetTs = now - VinceFeatureStoreService.FUNDING_DELTA_WINDOW_MS;
       const closest = hist.reduce((best, e) =>
         Math.abs(e.ts - targetTs) < Math.abs((best?.ts ?? 0) - targetTs)
@@ -1472,6 +1597,11 @@ export class VinceFeatureStoreService extends Service {
               : assetSent.sentiment === "bearish"
                 ? -conf
                 : 0;
+        }
+        if (typeof newsService.getEtfFlowNumeric === "function") {
+          const flow = newsService.getEtfFlowNumeric();
+          result.etfFlowBtc = flow.btc;
+          result.etfFlowEth = flow.eth;
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] News sentiment error: ${e}`);

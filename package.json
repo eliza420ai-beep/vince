@@ -171,6 +171,7 @@
     "train-models": "python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90 \"$@\"",
     "train-models:recency": "python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90 --recency-decay 0.01 \"$@\"",
     "validate-ml": "python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py --data .elizadb/vince-paper-bot/features",
+    "improvement-weights": "bun run src/plugins/plugin-vince/scripts/run-improvement-weights.ts",
     "skills:build-registry": "bunx tsx scripts/skills/build-registry.ts",
     "skills:check-drift": "bunx tsx scripts/skills/check-skill-drift.ts",
     "skills:eval-routing": "bunx tsx scripts/skills/eval-skill-routing.ts",

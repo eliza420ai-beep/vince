@@ -247,6 +247,10 @@ def load_features(filepath: str, real_only: bool = False) -> pd.DataFrame:
             flat['wtt_payoffShape'] = wtt.get('payoffShape', 0)
             flat['wtt_timingForgiveness'] = wtt.get('timingForgiveness', 0)
             flat['wtt_invalidateHit'] = 1 if wtt.get('invalidateHit') else 0
+        if r.get('postMortemPrimaryCause'):
+            flat['postMortemPrimaryCause'] = r['postMortemPrimaryCause']
+        if r.get('postMortemAssetClass'):
+            flat['postMortemAssetClass'] = r['postMortemAssetClass']
 
         flat_records.append(flat)
 
@@ -331,6 +335,8 @@ OPTIONAL_FEATURE_COLUMNS = (
     "wtt_payoffShape",
     "wtt_timingForgiveness",
     "wtt_invalidateHit",
+    "postMortemPrimaryCause",
+    "postMortemAssetClass",
 )
 
 

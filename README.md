@@ -311,6 +311,7 @@ The 12-phase roadmap built this loop; the algo (gates, open/skip, feature store)
 - **ONNX export fixed** — Graph and node I/O are renamed to `input`/`output` so onnxruntime loads models reliably; smoke tests run after every export so you see “ONNX smoke test passed” for all four models.
 - **Env tuning** — No code changes needed to adjust trade frequency or size: ML threshold, swarm confidence, aggressive margin/size (see table below).
 - **Training pipeline** — Sentinel improvement tasks write to `docs/standup/openclaw-queue/` with safe filenames (slashes in feature names no longer break writes). Feature prep uses a single concat for derived columns to avoid DataFrame fragmentation warnings.
+- **Paper bot** — Size is capped to the bucket max before the policy check so high-notional assets open at cap instead of being blocked; funnel log includes rejection reasons (e.g. no_primary_signal, sentiment_gate_long, swarm_min_confidence) for tuning visibility. CoinGlass connection test is retried with backoff before falling back to Binance free APIs.
 
 ### Paper bot tuning (env)
 
@@ -337,7 +338,26 @@ The **strategy genome** adds a second improvement loop: every week, the genome m
 bun run train-models -- --bench-score-weight
 ```
 
-Or with recency weighting: `bun run train-models:recency`. Output goes to `.elizadb/vince-paper-bot/models/` by default; restart the agent so the inference service loads the new ONNX and `training_metadata.json`.
+Or with recency weighting: `bun run train-models:recency`. Output goes to `.elizadb/vince-paper-bot/models/` by default; **restart the agent** so the inference service loads the new ONNX and `training_metadata.json` (and the suggested threshold and suggested_tuning). Optionally run `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run improvement-weights` to update aggregator source weights from the report.
+
+### Recursive improvement loop (autopilot)
+
+The paper bot can **run on autopilot** so it keeps getting better from its own trades:
+
+1. **Trade** → outcomes (open/close, PnL, strength, confidence) are written to the feature store.
+2. **Task `TRAIN_ONNX_WHEN_READY`** runs every 12h; when there are **90+ complete trades**, it runs `train_models.py` (at most once per 24h).
+3. **New ONNX models** and `training_metadata.json` (threshold, suggested_tuning, holdout_metrics) are written; on Cloud the task uploads to Supabase and calls `reloadModels()` so new models apply without restart.
+4. **Optional:** Set `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true` so the task **applies source weights** from the improvement report after each successful training run. No extra script—weights update automatically and the next evaluation cycle uses them.
+5. **Next cycle** uses updated thresholds, TP/SL from ONNX, and (if applied) updated aggregator weights → more/better data → repeat.
+
+So: **trades → features → train → new models + weights → better decisions → more trades** is a **recursive loop** that runs without manual steps once the agent is up and the env flag is set. See [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) for how we **prove** the loop improves the bot.
+
+### Improving the paper algo after training (manual)
+
+1. Run `bun run train-models` when you have 90+ closed trades.
+2. Restart the agent to load the new threshold and suggested_tuning from `training_metadata.json`.
+3. Optionally run `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run improvement-weights` to apply source weight changes from the improvement report (or set the env and let the task do it on the next run).
+4. To get better models next run, collect more closed trades (e.g. 300+) and fill optional features (funding 8h delta, DVOL, ETF flow, WTT rubric); see [FEATURE-STORE.md](docs/FEATURE-STORE.md).
 
 ### Validate ML improvement
 
@@ -391,6 +411,7 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | `bun run db:check` | Verify DB migrations |
 | `bun run train-models` | Train ML models (min 90 closed trades) |
 | `bun run train-models:recency` | Train with recency decay (upweight recent trades) |
+| `bun run improvement-weights` | Apply improvement report source weights (set `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true` to apply) |
 | `bun run validate-ml` | Validate ML thresholds on feature-store data |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |

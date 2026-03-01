@@ -117,6 +117,52 @@ async function askAgent(
   });
 }
 
+/** Build guardrail review block from root_cause_stats.json (output of bun run postmortems:ingest). Log-only; no automatic trading changes. */
+function buildGuardrailReviewBlock(projectRoot: string): string {
+  const rootCausePath = path.join(
+    projectRoot,
+    ".elizadb",
+    "vince-paper-bot",
+    "postmortems",
+    "root_cause_stats.json",
+  );
+  if (!fs.existsSync(rootCausePath)) return "";
+  try {
+    const raw = fs.readFileSync(rootCausePath, "utf-8");
+    const stats = JSON.parse(raw) as Record<
+      string,
+      Record<string, { count: number }>
+    >;
+    const entries: { assetClass: string; cause: string; count: number }[] = [];
+    for (const [assetClass, byCause] of Object.entries(stats)) {
+      if (!byCause || typeof byCause !== "object") continue;
+      for (const [cause, entry] of Object.entries(byCause)) {
+        if (entry && typeof entry.count === "number" && entry.count > 0) {
+          entries.push({
+            assetClass,
+            cause,
+            count: entry.count,
+          });
+        }
+      }
+    }
+    entries.sort((a, b) => b.count - a.count);
+    const top = entries.slice(0, 8);
+    if (top.length === 0) return "";
+    return [
+      "",
+      "**Guardrail review (root-cause × asset class):**",
+      "_From root_cause_stats.json; run `bun run postmortems:ingest` to refresh. Review tasks/todo.md corrective actions and knowledge/sentinel-docs/POST_MORTEM_LESSONS.md._",
+      ...top.map(
+        (e) => `- ${e.assetClass} · ${e.cause}: ${e.count} post-mortem(s)`,
+      ),
+    ].join("\n");
+  } catch (e) {
+    logger.debug("[SentinelWeekly] Guardrail review read failed:", e);
+    return "";
+  }
+}
+
 /** Build a short pattern summary and suggested PRD from recent post-mortem files. PRD: One Dream Phase 3 (#13). */
 async function buildPostMortemPatternSummary(
   runtime: IAgentRuntime,
@@ -433,6 +479,8 @@ export async function registerSentinelWeeklyTask(
           // ignore
         }
 
+        const guardrailReviewBlock = buildGuardrailReviewBlock(process.cwd());
+
         const patternBlock = patternSummary
           ? [
               "",
@@ -559,6 +607,7 @@ export async function registerSentinelWeeklyTask(
           listTrimmed,
           postMortemsBlock,
           rollupBlock,
+          guardrailReviewBlock,
           patternBlock,
           skillScoreboardBlock,
           shadowChallengerBlock,

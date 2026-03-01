@@ -486,3 +486,5 @@
 {"tradeId":"1d160da5-6479-421b-827d-12d5ed57cf27","asset":"NVDA","direction":"long","openedAt":"2026-03-01T10:30:53.126Z","sourceClusters":["wtt"],"confidence":100}
 {"tradeId":"8c937539-cdc5-411d-9678-6feda8732f09","asset":"NVDA","direction":"long","openedAt":"2026-03-01T10:30:57.235Z","sourceClusters":["wtt"],"confidence":100}
 {"tradeId":"463448e5-f31b-43c8-851f-f451d63f5807","asset":"OPENAI","direction":"long","openedAt":"2026-03-01T10:36:27.936Z","sourceClusters":["NewsSentiment","MarketRegime","HyperliquidBias","HIP3Momentum","HIP3OIBuild","HIP3PriceAction"],"confidence":42}
+{"tradeId":"f0b12373-2f70-4a02-816c-29d6b38c525b","asset":"OPENAI","direction":"long","openedAt":"2026-03-01T11:29:17.549Z","sourceClusters":["NewsSentiment","MarketRegime","HyperliquidBias","HIP3Momentum","HIP3OIBuild","HIP3PriceAction"],"confidence":52}
+{"tradeId":"a2556489-8855-4ed6-adb0-f5ae5ace9d82","asset":"ANTHROPIC","direction":"long","openedAt":"2026-03-01T11:29:17.800Z","sourceClusters":["NewsSentiment","MarketRegime","HyperliquidBias","HIP3Momentum","HIP3OIBuild","HIP3PriceAction"],"confidence":53}

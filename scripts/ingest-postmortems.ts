@@ -48,6 +48,17 @@ type PostMortemCause =
   | "execution_or_slippage"
   | "unknown_insufficient_evidence";
 
+const VALID_CAUSES: PostMortemCause[] = [
+  "thesis_invalid",
+  "regime_conflict",
+  "sizing_too_aggressive",
+  "stop_too_tight_for_vol",
+  "agent_lane_mismatch",
+  "missing_pretrade_data",
+  "execution_or_slippage",
+  "unknown_insufficient_evidence",
+];
+
 type PtqgAssetClass = "crypto" | "equity" | "commodity" | "other";
 
 interface MachineSummaryJson {
@@ -280,6 +291,33 @@ function parsePostMortemFile(
   })) as AggregatedWhatChangesEntry[];
 
   return { summary, correctiveActions, whatChanges };
+}
+
+/** Schema validation: reject summaries missing required fields (primaryCause, assetClass). */
+function validatePostMortemSummary(
+  summary: PostMortemSummary,
+  fileRel: string,
+): boolean {
+  if (
+    !summary.primaryCause ||
+    typeof summary.primaryCause !== "string" ||
+    !VALID_CAUSES.includes(summary.primaryCause as PostMortemCause)
+  ) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: missing or invalid primaryCause (expected one of ${VALID_CAUSES.join(", ")}).`,
+    );
+    return false;
+  }
+  if (
+    !summary.assetClass ||
+    !["crypto", "equity", "commodity", "other"].includes(summary.assetClass)
+  ) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: missing or invalid assetClass.`,
+    );
+    return false;
+  }
+  return true;
 }
 
 function parseCorrectiveActions(
@@ -744,9 +782,10 @@ async function main(): Promise<void> {
 
   for (const name of files) {
     const fp = path.join(POSTMORTEM_DIR, name);
+    const rel = path.relative(PROJECT_ROOT, fp);
     const { summary, correctiveActions, whatChanges } =
       parsePostMortemFile(fp);
-    if (summary) summaries.push(summary);
+    if (summary && validatePostMortemSummary(summary, rel)) summaries.push(summary);
     allActions.push(
       ...correctiveActions.map((a) => ({
         ...a,
