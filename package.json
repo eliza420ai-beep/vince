@@ -121,7 +121,7 @@
   },
   "scripts": {
     "prepare": "husky",
-    "postinstall": "node scripts/patch-elizaos-server-plugin-routes.cjs && node scripts/patch-elizaos-core-message-examples.cjs && (cd node_modules/@elizaos/plugin-personality 2>/dev/null && bun run build) && (cd packages/plugin-discovery 2>/dev/null && bun run build || true)",
+    "postinstall": "node scripts/patch-elizaos-server-plugin-routes.cjs && node scripts/patch-elizaos-core-message-examples.cjs && node scripts/patch-elizaos-plugin-sql-worlds.cjs && (cd node_modules/@elizaos/plugin-personality 2>/dev/null && bun run build) && (cd packages/plugin-discovery 2>/dev/null && bun run build || true)",
     "start": "node scripts/dev-with-vite.js",
     "start:static": "node scripts/start-with-custom-ui.js",
     "start:eliza-dashboard": "node scripts/start-with-db.js",

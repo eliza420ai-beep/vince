@@ -111,18 +111,27 @@ export const characterProvider: Provider = {
             );
 
             return example
-              .map((message: { name: string; content: { text: string; action?: string; actions?: string[] } }) => {
-                let messageString = `${message.name}: ${message.content.text}${
-                  message.content.action || message.content.actions
-                    ? ` (actions: ${message.content.action || message.content.actions?.join(", ")})`
-                    : ""
-                }`;
-                exampleNames.forEach((name, index) => {
-                  const placeholder = `{{name${index + 1}}}`;
-                  messageString = messageString.replaceAll(placeholder, name);
-                });
-                return messageString;
-              })
+              .map(
+                (message: {
+                  name: string;
+                  content: {
+                    text: string;
+                    action?: string;
+                    actions?: string[];
+                  };
+                }) => {
+                  let messageString = `${message.name}: ${message.content.text}${
+                    message.content.action || message.content.actions
+                      ? ` (actions: ${message.content.action || message.content.actions?.join(", ")})`
+                      : ""
+                  }`;
+                  exampleNames.forEach((name, index) => {
+                    const placeholder = `{{name${index + 1}}}`;
+                    messageString = messageString.replaceAll(placeholder, name);
+                  });
+                  return messageString;
+                },
+              )
               .join("\n");
           })
           .join("\n\n");

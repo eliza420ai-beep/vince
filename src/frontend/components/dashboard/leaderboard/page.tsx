@@ -950,8 +950,13 @@ export default function LeaderboardPage({
                 {/* Hero line: always-available data */}
                 <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
                   <p className="text-sm font-medium text-foreground/90">
-                    HIP-3 and HL Crypto (perps) — always here. Open this page
-                    anytime; no need to ask VINCE.
+                    {leaderboardsData.hip3 && leaderboardsData.hlCrypto
+                      ? "HIP-3 and HL Crypto (perps) — always here. Open this page anytime; no need to ask VINCE."
+                      : leaderboardsData.hip3
+                        ? "HIP-3 TradFi — always here. Open this page anytime; no need to ask VINCE."
+                        : leaderboardsData.hlCrypto
+                          ? "HL Crypto (perps) — always here. Open this page anytime; no need to ask VINCE."
+                          : "Markets data will appear here when available."}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {leaderboardsData.updatedAt != null

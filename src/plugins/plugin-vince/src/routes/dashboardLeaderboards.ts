@@ -19,7 +19,10 @@ import { getOrCreateHyperliquidService } from "../services/fallbacks";
 import { HyperliquidFallbackService } from "../services/fallbacks/hyperliquid.fallback";
 import type { IHyperliquidCryptoPulse } from "../types/external-services";
 
-const SECTION_TIMEOUT_MS = 6000;
+// Section-level timeouts for leaderboards. HIP-3 and HL Crypto can take
+// longer when upstream APIs are slow, so we keep this reasonably high to
+// avoid dropping sections that are otherwise healthy.
+const SECTION_TIMEOUT_MS = 20000;
 
 async function safe<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
   try {
@@ -302,16 +305,44 @@ export interface LeaderboardsResponse {
 async function buildHIP3Section(
   runtime: IAgentRuntime,
 ): Promise<HIP3LeaderboardSection | null> {
-  const hip3 = runtime.getService(
+  logger.info("[Leaderboards] HIP3: building section");
+  let hip3 = runtime.getService(
     "VINCE_HIP3_SERVICE",
   ) as VinceHIP3Service | null;
-  if (!hip3) return null;
+  // In some runtime paths the HIP-3 service may not have been registered on
+  // the agent yet (e.g. dashboard-only process). In that case, create a
+  // lightweight instance here so the Markets tab can still render HIP-3 data.
+  if (!hip3) {
+    hip3 = new VinceHIP3Service(runtime);
+  }
 
-  const pulse = await safe(
-    "HIP3",
-    (): Promise<HIP3Pulse | null> =>
-      (hip3 as VinceHIP3Service).getHIP3Pulse?.() ?? Promise.resolve(null),
-  );
+  // HIP-3 is a core dashboard section; we let the VinceHIP3Service manage its
+  // own timeouts and circuit breaker rather than layering an additional
+  // section-level timeout on top. This keeps the section available whenever
+  // the service has data, even if Hyperliquid is a bit slow.
+  let pulse: HIP3Pulse | null = null;
+  if (typeof (hip3 as VinceHIP3Service).getHIP3Pulse === "function") {
+    logger.info("[Leaderboards] HIP3: calling getHIP3Pulse()");
+    pulse = await (hip3 as VinceHIP3Service).getHIP3Pulse();
+  }
+  if (
+    !pulse &&
+    typeof (hip3 as VinceHIP3Service).getCachedPulse === "function"
+  ) {
+    logger.info("[Leaderboards] HIP3: falling back to getCachedPulse()");
+    pulse = (hip3 as VinceHIP3Service).getCachedPulse();
+  }
+  if (!pulse) {
+    logger.warn("[Leaderboards] HIP3: no pulse available");
+  } else {
+    logger.info(
+      "[Leaderboards] HIP3: pulse ready " +
+        `commodities=${pulse.commodities.length} ` +
+        `indices=${pulse.indices.length} ` +
+        `stocks=${pulse.stocks.length} ` +
+        `aiPlays=${pulse.aiPlays.length}`,
+    );
+  }
   if (!pulse) return null;
 
   const allAssets = [
