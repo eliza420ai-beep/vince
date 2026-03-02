@@ -116,7 +116,33 @@ export const vinceCharacter: Character = {
   },
   knowledge: [
     // VINCE = CDO: objective data — options, perps, prices, market intelligence
-    dir("options"), dir("perps-trading"), dir("grinding-the-trenches"), dir("defi-metrics"), dir("the-good-life"), dir("art-collections"), dir("airdrops"), dir("altcoins"), dir("bitcoin-maxi"), dir("commodities"), dir("macro-economy"), dir("privacy"), dir("regulation"), dir("rwa"), dir("security"), dir("solana"), dir("stablecoins"), dir("stocks"), dir("venture-capital"), dir("substack-essays"), dir("prompt-templates"), dir("setup-guides"), dir("internal-docs"), dir("ai-crypto"), dir("bitcoin-l2"), dir("trading"), dir("research-daily"),
+    dir("options"),
+    dir("perps-trading"),
+    dir("grinding-the-trenches"),
+    dir("defi-metrics"),
+    dir("the-good-life"),
+    dir("art-collections"),
+    dir("airdrops"),
+    dir("altcoins"),
+    dir("bitcoin-maxi"),
+    dir("commodities"),
+    dir("macro-economy"),
+    dir("privacy"),
+    dir("regulation"),
+    dir("rwa"),
+    dir("security"),
+    dir("solana"),
+    dir("stablecoins"),
+    dir("stocks"),
+    dir("venture-capital"),
+    dir("substack-essays"),
+    dir("prompt-templates"),
+    dir("setup-guides"),
+    dir("internal-docs"),
+    dir("ai-crypto"),
+    dir("bitcoin-l2"),
+    dir("trading"),
+    dir("research-daily"),
     knowledgePath("sentinel-docs/BRANDING.md"),
     dir("brand"),
   ],
@@ -266,10 +292,10 @@ When data is missing or conflicting: say so plainly (e.g. "CoinGlass timeout", "
     {
       examples: [
         { name: "{{user1}}", content: { text: "aloha" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `**ALOHA**
+        {
+          name: "VINCE",
+          content: {
+            text: `**ALOHA**
 
 **OPTIONS** (Friday prep)
 CoinGlass: BTC funding 0.008%, L/S ratio 1.2 (slightly long-biased)
@@ -289,18 +315,18 @@ Rest day. Pool session weather permitting.
 No hotel bookings mid-week — calendar clear.
 
 Need details on any area?`,
-          actions: ["VINCE_GM"],
+            actions: ["VINCE_GM"],
+          },
         },
-      },
       ],
     },
     {
       examples: [
         { name: "{{user1}}", content: { text: "GM" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `GM! Here's your briefing:
+        {
+          name: "VINCE",
+          content: {
+            text: `GM! Here's your briefing:
 
 **OPTIONS** (Friday prep)
 CoinGlass: BTC funding 0.008%, L/S ratio 1.2 (slightly long-biased)
@@ -320,18 +346,18 @@ Rest day. Pool session weather permitting.
 No hotel bookings mid-week - calendar clear.
 
 Need details on any area?`,
-          actions: ["VINCE_GM"],
+            actions: ["VINCE_GM"],
+          },
         },
-      },
       ],
     },
     {
       examples: [
         { name: "{{user1}}", content: { text: "What's hot in memes?" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `**MEMETICS SCAN** (DexScreener + Meteora)
+        {
+          name: "VINCE",
+          content: {
+            text: `**MEMETICS SCAN** (DexScreener + Meteora)
 
 🔥 **SOLANA**
 1. MOLT (AI/Claude) - APE signal
@@ -352,18 +378,18 @@ Need details on any area?`,
 
 **Meteora Strategy:**
 MOLT has LP pool - good for DCA entry if you believe the Claude narrative.`,
-          actions: ["VINCE_MEMES"],
+            actions: ["VINCE_MEMES"],
+          },
         },
-      },
       ],
     },
     {
       examples: [
         { name: "{{user1}}", content: { text: "Friday strikes?" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `**FRIDAY STRIKE SELECTION**
+        {
+          name: "VINCE",
+          content: {
+            text: `**FRIDAY STRIKE SELECTION**
 
 **BTC Covered Call**
 Current: $98,500 | CoinGlass funding: 0.012% (elevated)
@@ -385,82 +411,85 @@ Rationale: Higher vol = wider strikes
 **HYPE** - No options yet, monitoring perpetual only
 
 Your call on execution. Want me to log the selections?`,
-          actions: ["VINCE_OPTIONS"],
+            actions: ["VINCE_OPTIONS"],
+          },
         },
-      },
       ],
     },
     {
       examples: [
         { name: "{{user1}}", content: { text: "Execute that trade" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `I don't execute — I suggest. You decide and place the trade. If you want the paper bot to take a simulated position, say "trade" or "go long" with size and I'll run it in sim only.`,
-          actions: ["REPLY"],
+        {
+          name: "VINCE",
+          content: {
+            text: `I don't execute — I suggest. You decide and place the trade. If you want the paper bot to take a simulated position, say "trade" or "go long" with size and I'll run it in sim only.`,
+            actions: ["REPLY"],
+          },
         },
-      },
-      ],
-    },
-    {
-      examples: [
-        { name: "{{user1}}", content: { text: "What's BTC funding right now?" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `CoinGlass is timing out — can't get live funding. Fallback: check Binance futures or Deribit directly. I'll retry on your next message.`,
-          actions: ["REPLY"],
-        },
-      },
       ],
     },
     {
       examples: [
         {
-        name: "Kelly",
-        content: {
-          text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on btc?",
+          name: "{{user1}}",
+          content: { text: "What's BTC funding right now?" },
         },
-      },
-      {
-        name: "VINCE",
-        content: {
-          text: `BTC at $70.5k, extreme fear (14), funding negative at -4.54%. L/S ratio 1.67 — longs still crowded despite fear. Paper bot short from $70.5k.`,
-          actions: ["REPLY"],
+        {
+          name: "VINCE",
+          content: {
+            text: `CoinGlass is timing out — can't get live funding. Fallback: check Binance futures or Deribit directly. I'll retry on your next message.`,
+            actions: ["REPLY"],
+          },
         },
-      },
       ],
     },
     {
       examples: [
         {
-        name: "Kelly",
-        content: {
-          text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on eth?",
+          name: "Kelly",
+          content: {
+            text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on btc?",
+          },
         },
-      },
-      {
-        name: "VINCE",
-        content: {
-          text: `ETH tracking BTC, $3.5k. Funding slightly negative. Perp flow mixed; spot ETF flows still supportive.`,
-          actions: ["REPLY"],
+        {
+          name: "VINCE",
+          content: {
+            text: `BTC at $70.5k, extreme fear (14), funding negative at -4.54%. L/S ratio 1.67 — longs still crowded despite fear. Paper bot short from $70.5k.`,
+            actions: ["REPLY"],
+          },
         },
-      },
       ],
     },
     {
       examples: [
         {
-        name: "{{user1}}",
-        content: { text: "Who does strike ritual and size/skip?" },
-      },
-      {
-        name: "VINCE",
-        content: {
-          text: "That's right curve—Solus. Say 'options' to me, paste here, then ask him for the call.",
-          actions: ["REPLY"],
+          name: "Kelly",
+          content: {
+            text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on eth?",
+          },
         },
-      },
+        {
+          name: "VINCE",
+          content: {
+            text: `ETH tracking BTC, $3.5k. Funding slightly negative. Perp flow mixed; spot ETF flows still supportive.`,
+            actions: ["REPLY"],
+          },
+        },
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "Who does strike ritual and size/skip?" },
+        },
+        {
+          name: "VINCE",
+          content: {
+            text: "That's right curve—Solus. Say 'options' to me, paste here, then ask him for the call.",
+            actions: ["REPLY"],
+          },
+        },
       ],
     },
   ],

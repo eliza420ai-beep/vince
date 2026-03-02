@@ -22,7 +22,9 @@ export class SolusOptionsCacheService extends Service {
   private cache: CachedOptionsContext | null = null;
   private ttlMs = DEFAULT_TTL_MS;
 
-  static async start(runtime: IAgentRuntime): Promise<SolusOptionsCacheService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<SolusOptionsCacheService> {
     return new SolusOptionsCacheService(runtime);
   }
 

@@ -1,0 +1,19 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: vince-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vince
+      POSTGRES_USER: vince
+      POSTGRES_PASSWORD: vince
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.eliza/postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vince -d vince"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+

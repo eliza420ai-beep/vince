@@ -178,6 +178,15 @@ export class VinceHIP3Service extends Service {
     super();
   }
 
+  /**
+   * Return the most recent HIP-3 pulse from cache without triggering any
+   * network calls or timeouts. Used by the leaderboards route as a
+   * best-effort fallback when the live fetch path is slow or flaky.
+   */
+  getCachedPulse(): HIP3Pulse | null {
+    return this.cache.data;
+  }
+
   static async start(runtime: IAgentRuntime): Promise<VinceHIP3Service> {
     const service = new VinceHIP3Service(runtime);
     logger.debug("[VinceHIP3] Service initialized");
