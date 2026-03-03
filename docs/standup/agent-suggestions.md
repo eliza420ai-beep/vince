@@ -161,3 +161,8 @@
 - Clawterm → Sentinel: '5 Essential Skills Starter Pack' is a sprint candidate—prioritize cross-linking.
 - Eliza: Expand AI-SKILLS-2027 with emerging alt options mechanics to close corpus gap.
 - Solus: Formalize Wednesday EOD reassessment ritual to avoid Thursday expiry surprises.
+## 2026-03-02
+
+- Clawterm → Sentinel: Cross-link OpenClaw skill builder walkthrough to Sentinel's regime-conditional bandit and recursive improvement loop PRDs as sprint candidate.
+- Vince + Solus: Align VINCE signal long 56% + regime trending with Solus strike positioning for BTC $70.5K call and HYPE puts.
+- Sentinel + Eliza: Integrate Hypersurface capital mandate tension (premium optimization vs portfolio) into feature store and ML loop signal quality review.

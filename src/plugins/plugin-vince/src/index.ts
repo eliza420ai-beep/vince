@@ -53,6 +53,7 @@ import { VinceBinanceService } from "./services/binance.service";
 import { VinceBinanceLiquidationService } from "./services/binanceLiquidation.service";
 import { VinceAlliumService } from "./services/allium.service";
 import { VinceHIP3Service } from "./services/hip3.service";
+import { VinceHLCryptoSnapshotService } from "./services/hlCryptoSnapshot.service";
 import { VinceWatchlistService } from "./services/watchlist.service";
 import { VinceNotificationService } from "./services/notification.service";
 import { VinceAlertService } from "./services/alert.service";
@@ -222,6 +223,7 @@ export const vincePlugin: Plugin = {
     VinceBinanceLiquidationService,
     VinceMarketRegimeService,
     VinceHIP3Service,
+    VinceHLCryptoSnapshotService,
     // X services are data-only (paper bot sentiment, aggregator, leaderboard). In-chat X/CT research is Echo (plugin-x-research).
     VinceXResearchService,
     VinceXSentimentService, // X sentiment for paper algo (staggered: one asset per hour by default, cache 24h)
@@ -397,6 +399,51 @@ export const vincePlugin: Plugin = {
             message: err instanceof Error ? err.message : String(err),
           });
           return;
+        }
+      },
+    },
+    {
+      name: "vince-hip3-snapshot",
+      path: "/vince/hip3-snapshot",
+      type: "GET",
+      handler: async (
+        _req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (_req as any).runtime ??
+          (_req as any).agentRuntime ??
+          (_req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "HIP-3 snapshot requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/hip3-snapshot",
+          });
+          return;
+        }
+        try {
+          const hip3 = agentRuntime.getService(
+            "VINCE_HIP3_SERVICE",
+          ) as VinceHIP3Service | null;
+          const pulse = hip3?.getCachedPulse?.() ?? null;
+          const status = hip3?.getStatus?.();
+          res.json({
+            updatedAt: status?.lastUpdate ?? null,
+            available: !!pulse,
+            status,
+            pulse,
+          });
+        } catch (err) {
+          logger.warn(`[VINCE] HIP-3 snapshot route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build HIP-3 snapshot",
+            message: err instanceof Error ? err.message : String(err),
+          });
         }
       },
     },

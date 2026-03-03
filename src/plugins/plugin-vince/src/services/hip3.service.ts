@@ -155,6 +155,7 @@ export class VinceHIP3Service extends Service {
   capabilityDescription =
     "Direct Hyperliquid API integration for HIP-3 asset prices";
 
+  /** In-memory cache of the latest HIP-3 pulse. */
   private cache: {
     data: HIP3Pulse | null;
     timestamp: number;
@@ -174,6 +175,10 @@ export class VinceHIP3Service extends Service {
   private readonly CIRCUIT_THRESHOLD = 5;
   private readonly CIRCUIT_RESET_MS = 60000;
 
+  // Background refresh loop so HTTP routes can read from cache-only snapshots.
+  private backgroundIntervalMs = 60_000;
+  private backgroundTimer: NodeJS.Timeout | null = null;
+
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
@@ -192,8 +197,50 @@ export class VinceHIP3Service extends Service {
     logger.debug("[VinceHIP3] Service initialized");
     if (isVinceAgent(runtime)) {
       service.runStartupVerification().catch(() => {});
+      // Keep HIP-3 data fresh in the background so cache-only readers (e.g.
+      // Markets leaderboards) never block on Hyperliquid latency.
+      service.startBackgroundRefresh().catch((err) => {
+        logger.debug(
+          `[VinceHIP3] Background refresh failed to start: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
     }
     return service;
+  }
+
+  /**
+   * Start periodic background refresh of the HIP-3 pulse.
+   * Safe to call multiple times – only the first call registers a timer.
+   */
+  private async startBackgroundRefresh(): Promise<void> {
+    if (this.backgroundTimer) return;
+
+    const envMs = Number(process.env.VINCE_HIP3_REFRESH_MS ?? "60000");
+    if (Number.isFinite(envMs) && envMs >= 10_000 && envMs <= 10 * 60_000) {
+      this.backgroundIntervalMs = envMs;
+    }
+
+    const tick = async () => {
+      try {
+        await this.getHIP3Pulse();
+      } catch (err) {
+        logger.debug(
+          `[VinceHIP3] Background refresh error: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    };
+
+    // Kick once without waiting for the first interval.
+    void tick();
+
+    this.backgroundTimer = setInterval(() => {
+      void tick();
+    }, this.backgroundIntervalMs);
+
+    // Avoid keeping the Node process alive solely for this timer.
+    (this.backgroundTimer as any).unref?.();
   }
 
   /**

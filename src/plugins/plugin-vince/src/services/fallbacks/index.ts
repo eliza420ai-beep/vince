@@ -173,6 +173,10 @@ export function getOrCreateHyperliquidService(
     if (!serviceSources.find((s) => s.name === "hyperliquid")) {
       serviceSources.push({ name: "hyperliquid", source: "fallback" });
     }
+
+    // Kick off background refresh for crypto pulse so cache-only consumers
+    // (Markets leaderboards, options dashboard) stay responsive.
+    cache.hyperliquid.startCryptoPulseBackgroundRefresh?.();
   }
 
   return cache.hyperliquid;
