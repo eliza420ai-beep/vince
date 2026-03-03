@@ -40,6 +40,8 @@ import type { VinceSanbaseService } from "./sanbase.service";
 import type { VinceMarketRegimeService } from "./marketRegime.service";
 import type { VinceHIP3Service } from "./hip3.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
+import { getAverageQualityMultiplier } from "../utils/xSourceQualityReader";
+import { getNarrativeDecayMultiplier } from "../utils/narrativeDecayForAggregator";
 // External service factories (with fallbacks)
 import {
   getOrCreateHyperliquidService,
@@ -999,8 +1001,15 @@ export class VinceSignalAggregatorService extends Service {
         const xSoftTierEnabled = /^(1|true|yes)$/i.test(
           (process.env.X_SENTIMENT_SOFT_TIER_ENABLED ?? "").trim(),
         );
-        const { sentiment, confidence, hasHighRiskEvent } =
+        const { sentiment, confidence, hasHighRiskEvent, contributingHandles } =
           xSentimentService.getTradingSentiment(asset);
+        const qualityMult =
+          contributingHandles?.length &&
+          process.env.X_SENTIMENT_QUALITY_MULTIPLIER !== "false"
+            ? getAverageQualityMultiplier(contributingHandles)
+            : 1.0;
+        const decayMult = getNarrativeDecayMultiplier(asset);
+        const combinedMult = qualityMult * decayMult;
         const isPrimaryTier = confidence >= xConfidenceFloor;
         const isSoftTier =
           xSoftTierEnabled &&
@@ -1008,11 +1017,17 @@ export class VinceSignalAggregatorService extends Service {
           confidence < xConfidenceFloor &&
           sentiment !== "neutral";
         if (isPrimaryTier || isSoftTier) {
-          const discount = Math.round(confidence * (isSoftTier ? 0.5 : 0.8));
+          const discount = Math.min(
+            100,
+            Math.max(
+              1,
+              Math.round(confidence * (isSoftTier ? 0.5 : 0.8) * combinedMult),
+            ),
+          );
           const baseStrength = 52 + Math.min(15, confidence / 6);
-          const strength = isSoftTier
-            ? Math.round(baseStrength * 0.3)
-            : baseStrength;
+          const strength = Math.round(
+            (isSoftTier ? baseStrength * 0.3 : baseStrength) * combinedMult,
+          );
           const lowLabel = isSoftTier ? " (low confidence)" : "";
           if (sentiment === "bullish") {
             if (hasHighRiskEvent) {

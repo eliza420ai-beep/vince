@@ -54,4 +54,6 @@ Feature order and names are written to `solus_training_metadata.json` as `assign
 - **Output:** `assignment_calibrator.onnx` and `solus_training_metadata.json` in the Solus models dir (default: `.elizadb/solus/models/` or `SOLUS_ML_MODELS_DIR`).
 - **Min samples:** Use `--min-samples 50` (or 30); script exits with a clear message if resolved count is below.
 
+**Data sufficiency:** 50+ resolved predictions are required for the first calibration training; more (e.g. 100+) improves stability. Resolve every Friday after expiry (use the Friday resolve reminder and optional Thursday 20:00 UTC pre-expiry reminder). Use `validate_solus_calibration.py` to audit Brier over time. The "assignment calibration" report and resolve reminder both show "Resolved: N/50 for calibration training."
+
 See [README.md](README.md) § Solus ML / ONNX for run commands and env.

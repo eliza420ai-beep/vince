@@ -222,6 +222,8 @@ interface CachedSentiment {
   updatedAt: number;
   isContrarian?: boolean;
   contrarianNote?: string;
+  /** Handles that contributed to this sentiment (for X source quality weighting in aggregator). */
+  contributingHandles?: string[];
 }
 
 /** Cache file shape for persistence. Exported for cron script. */
@@ -361,6 +363,8 @@ export class VinceXSentimentService extends Service {
     updatedAt?: number;
     isContrarian?: boolean;
     contrarianNote?: string;
+    /** Handles that contributed (for X source quality multiplier in aggregator). */
+    contributingHandles?: string[];
   } {
     const cached = this.cache.get(asset);
     if (!cached) {
@@ -379,6 +383,9 @@ export class VinceXSentimentService extends Service {
         isContrarian: cached.isContrarian,
       }),
       ...(cached.contrarianNote && { contrarianNote: cached.contrarianNote }),
+      ...(cached.contributingHandles?.length && {
+        contributingHandles: cached.contributingHandles,
+      }),
     };
   }
 
@@ -480,6 +487,12 @@ export class VinceXSentimentService extends Service {
               }),
               ...(entry.contrarianNote && {
                 contrarianNote: entry.contrarianNote,
+              }),
+              ...(Array.isArray(
+                (entry as CachedSentiment).contributingHandles,
+              ) && {
+                contributingHandles: (entry as CachedSentiment)
+                  .contributingHandles,
               }),
             });
           }
@@ -622,7 +635,13 @@ export class VinceXSentimentService extends Service {
       riskMinTweets: getRiskMinTweets(),
       useWeightedKeywords: true,
     });
-    this.cache.set(asset, entry);
+    const contributingHandles = tweets
+      .map((t) => t.username)
+      .filter((u): u is string => typeof u === "string" && u.trim().length > 0);
+    this.cache.set(asset, {
+      ...entry,
+      ...(contributingHandles.length > 0 && { contributingHandles }),
+    });
     const showCost =
       process.env.X_SENTIMENT_SHOW_COST === "true" ||
       process.env.LOG_LEVEL === "debug";

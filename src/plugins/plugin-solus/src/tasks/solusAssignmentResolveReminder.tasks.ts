@@ -6,7 +6,10 @@
 
 import type { IAgentRuntime, UUID } from "@elizaos/core";
 import { logger } from "@elizaos/core";
-import { getOpenPredictions } from "../utils/assignmentPredictionsStore";
+import {
+  getOpenPredictions,
+  getResolvedCount,
+} from "../utils/assignmentPredictionsStore";
 
 const TASK_NAME = "SOLUS_ASSIGNMENT_RESOLVE_REMINDER";
 const HOURLY_INTERVAL_MS = 60 * 60 * 1000;
@@ -14,11 +17,21 @@ const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
 
 const PUSH_SOURCES = ["discord", "slack", "telegram"] as const;
 
+const MIN_RESOLVED_FOR_TRAINING = 50;
+
 function isFridayAndAfter10Utc(): boolean {
   const now = new Date();
   const dow = now.getUTCDay();
   const hour = now.getUTCHours();
   return dow === 5 && hour >= 10;
+}
+
+/** Thursday 20:00+ UTC — remind to resolve predictions that expire next day (Friday 08:00 UTC). */
+function isThursdayPreExpiry(): boolean {
+  const now = new Date();
+  const dow = now.getUTCDay();
+  const hour = now.getUTCHours();
+  return dow === 4 && hour >= 20;
 }
 
 async function pushToSolusChannels(
@@ -113,22 +126,36 @@ export async function registerSolusAssignmentResolveReminderTask(
     validate: async () => true,
     execute: async (rt: IAgentRuntime) => {
       if (process.env.SOLUS_RESOLVE_REMINDER_ENABLED === "false") return;
-      if (!isFridayAndAfter10Utc()) return;
+      const isFriday = isFridayAndAfter10Utc();
+      const isThursday = isThursdayPreExpiry();
+      if (!isFriday && !isThursday) return;
 
       const open = getOpenPredictions();
       if (open.length === 0) return;
 
+      const resolvedCount = getResolvedCount();
       const lines = open.map(
         (r) =>
           `• ${r.asset} $${r.strike.toLocaleString()} (${Math.round(r.predictedAssignProb * 100)}%)`,
       );
+      const resolvedLine =
+        resolvedCount >= MIN_RESOLVED_FOR_TRAINING
+          ? `Resolved: ${resolvedCount}/${MIN_RESOLVED_FOR_TRAINING} (ready for calibration training).`
+          : `Resolved: ${resolvedCount}/${MIN_RESOLVED_FOR_TRAINING} for calibration training.`;
+      const header = isThursday
+        ? "**Solus — predictions expiring tomorrow**"
+        : "**Solus — resolve assignment predictions**";
       const message = [
-        "**Solus — resolve assignment predictions**",
+        header,
+        "",
+        resolvedLine,
         "",
         `You have ${open.length} open prediction(s):`,
         ...lines,
         "",
-        'Resolve with: "we got assigned on BTC" or "we didn\'t get assigned on HYPE" (or the relevant asset).',
+        isThursday
+          ? 'After expiry, resolve with: "we got assigned on BTC" or "we didn\'t get assigned on HYPE" (or the relevant asset).'
+          : 'Resolve with: "we got assigned on BTC" or "we didn\'t get assigned on HYPE" (or the relevant asset).',
         "",
         "---",
         '_Say "assignment calibration" for current Brier score._',
@@ -154,7 +181,7 @@ export async function registerSolusAssignmentResolveReminderTask(
   await runtime.createTask({
     name: TASK_NAME,
     description:
-      "Friday post-expiry: list open assignment predictions and remind to resolve (we got assigned / we didn't get assigned). Pushed to solus/ops channels.",
+      "Friday post-expiry (and Thursday 20:00 UTC pre-expiry): list open assignment predictions, show resolved N/50, remind to resolve (we got assigned / we didn't get assigned). Pushed to solus/ops channels.",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["solus", "ops", "repeat", "weekly", "calibration"],

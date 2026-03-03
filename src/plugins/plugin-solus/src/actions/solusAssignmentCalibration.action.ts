@@ -18,7 +18,10 @@ import {
   appendRecord,
   resolveLatestForAssetStrike,
   computeBrier,
+  getResolvedCount,
 } from "../utils/assignmentPredictionsStore";
+
+const MIN_RESOLVED_FOR_TRAINING = 50;
 
 const ASSETS = ["BTC", "ETH", "SOL", "HYPE"];
 
@@ -117,15 +120,17 @@ export const solusAssignmentCalibrationAction: Action = {
     try {
       if (hasTrigger(lower, REPORT_TRIGGERS)) {
         const report = computeBrier(30);
+        const resolvedTotal = getResolvedCount();
+        const resolvedLine = `Resolved: ${resolvedTotal}/${MIN_RESOLVED_FOR_TRAINING} for calibration training.`;
         if (report.count === 0) {
           await callback({
-            text: 'No resolved assignment predictions yet. Record predictions with "record assignment prediction: BTC 106000 24%", then resolve with "we got assigned" or "we didn\'t get assigned" to see calibration (Brier score).',
+            text: `No resolved assignment predictions yet. ${resolvedLine} Record predictions with "record assignment prediction: BTC 106000 24%", then resolve with "we got assigned" or "we didn't get assigned" to see calibration (Brier score).`,
             actions: ["SOLUS_ASSIGNMENT_CALIBRATION"],
           });
           return { success: true };
         }
         await callback({
-          text: `**Assignment calibration** (last 30 days): Brier = ${report.meanBrier.toFixed(4)} (n = ${report.count}). Lower is better; 0 = perfect.`,
+          text: `**Assignment calibration** (last 30 days): Brier = ${report.meanBrier.toFixed(4)} (n = ${report.count}). Lower is better; 0 = perfect. ${resolvedLine}`,
           actions: ["SOLUS_ASSIGNMENT_CALIBRATION"],
         });
         return { success: true };
