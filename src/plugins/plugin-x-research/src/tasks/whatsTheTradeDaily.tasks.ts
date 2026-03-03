@@ -105,6 +105,69 @@ function getOutputPathJson(date: Date): string {
   return path.join(getOutputDir(), `${dateStr}-whats-the-trade.json`);
 }
 
+/** Signals dir for EchoXSignal (paper bot): STANDUP_DELIVERABLES_DIR/signals or docs/standup/signals. */
+function getEchoXSignalsDir(): string {
+  const base = process.env.STANDUP_DELIVERABLES_DIR?.trim()
+    ? path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR)
+    : path.join(process.cwd(), "docs", "standup");
+  return path.join(base, "signals");
+}
+
+/** Path for EchoXSignal file read by plugin-vince aggregator. */
+function getEchoXSignalsPath(date: Date): string {
+  const dateStr = date.toISOString().slice(0, 10);
+  return path.join(getEchoXSignalsDir(), `${dateStr}-echo-x.json`);
+}
+
+/** EchoXSignal entry for paper bot aggregator (same-day file). */
+export interface EchoXSignalEntry {
+  asset: string;
+  direction: "long" | "short" | "neutral";
+  confidence?: number;
+}
+
+/** Write EchoXSignal file for aggregator (EchoXSignal source). */
+async function saveEchoXSignalsFile(
+  pick: WttPick | null,
+  date: Date,
+): Promise<void> {
+  if (!pick) return;
+  const signals: EchoXSignalEntry[] = [
+    {
+      asset: pick.primaryTicker,
+      direction: pick.primaryDirection,
+      confidence: 60,
+    },
+  ];
+  if (pick.altTicker && pick.altDirection) {
+    signals.push({
+      asset: pick.altTicker,
+      direction: pick.altDirection,
+      confidence: 50,
+    });
+  }
+  try {
+    const dir = getEchoXSignalsDir();
+    await fs.mkdir(dir, { recursive: true });
+    const filepath = getEchoXSignalsPath(date);
+    await fs.writeFile(
+      filepath,
+      JSON.stringify(
+        { date: date.toISOString().slice(0, 10), signals },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    logger.debug("[ECHO WhatstheTrade] Wrote EchoXSignal file " + filepath);
+  } catch (err) {
+    logger.warn(
+      { err },
+      "[ECHO WhatstheTrade] Failed to write EchoXSignal file",
+    );
+  }
+}
+
 /** Number of recent WTT days to consider for rotation hint. */
 const RECENT_WTT_DAYS = 7;
 /** If this ticker was primary in >= this many of the last RECENT_WTT_DAYS, we add a rotation nudge. */
@@ -1160,6 +1223,7 @@ export async function runWhatsTheTradeReport(
   if (pick) {
     pick.catalystSources = catalystSources;
     await savePickJson(pick, now);
+    await saveEchoXSignalsFile(pick, now);
   } else {
     const fallbackPick = extractPickFromNarrativeFallback(
       narrative,
@@ -1169,6 +1233,7 @@ export async function runWhatsTheTradeReport(
     if (fallbackPick) {
       fallbackPick.catalystSources = catalystSources;
       await savePickJson(fallbackPick, now);
+      await saveEchoXSignalsFile(fallbackPick, now);
       pick = fallbackPick;
       logger.info(
         "[ECHO WhatstheTrade] Saved pick from fallback (paper bot will use it)",
@@ -1191,6 +1256,7 @@ export async function runWhatsTheTradeReport(
     if (mdFallback) {
       mdFallback.catalystSources = catalystSources;
       await savePickJson(mdFallback, now);
+      await saveEchoXSignalsFile(mdFallback, now);
       pick = mdFallback;
       logger.info(
         "[ECHO WhatstheTrade] Saved pick from markdown fallback (paper bot will use it)",

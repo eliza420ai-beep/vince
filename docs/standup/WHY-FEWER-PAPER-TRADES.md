@@ -56,8 +56,16 @@ After a signal passes strength/confidence and other gates, the bot builds **swar
 
 **Why swarm stays neutral with low conf:** When **X (Twitter) sentiment** does not contribute (confidence &lt; 40% or not “neutral” per `X_SENTIMENT_CONFIDENCE_FLOOR`), one big vote is missing. The remaining sources often split long/short, so neither side reaches 60% and swarm conf stays just under 40%. So the **“X (Twitter) sentiment: did not meet 40% or neutral”** line in the UI is closely tied to this: weak or missing X keeps swarm conf below the bar.
 
-- **Where:** `vincePaperTrading.service.ts` (evaluateAndTrade, swarm block); `swarmCoordination.service.ts` (`getSwarmConsensus`: consensusThreshold 0.6).
-- **Relax (more trades):** Lower **VINCE_SWARM_MIN_CONFIDENCE** (e.g. from 0.4 to **0.35**) so 35–39% swarm conf can pass; and/or enable **X_SENTIMENT_SOFT_TIER_ENABLED=true** so 25–40% X contributes and can push swarm over the threshold.
+- **Where:** `vincePaperTrading.service.ts` (evaluateAndTrade, swarm block); `swarmCoordination.service.ts` (`getSwarmConsensus`; threshold is configurable via **VINCE_SWARM_CONSENSUS_THRESHOLD**, default 0.6).
+- **Relax (more trades):** Lower **VINCE_SWARM_MIN_CONFIDENCE** (e.g. from 0.4 to **0.35**) so 35–39% swarm conf can pass; and/or enable **X_SENTIMENT_SOFT_TIER_ENABLED=true** so 25–40% X contributes and can push swarm over the threshold. You can also lower **VINCE_SWARM_CONSENSUS_THRESHOLD** (e.g. to **0.5**) so one direction needs only 50% of the weighted vote. **Swarm neutral override** (see §8 below) allows trades when swarm is neutral but the aggregated signal is strong.
+
+### 8. **Swarm neutral override (optional)**
+
+When the swarm returns **dir=neutral** (no direction ≥ consensus threshold), the bot normally rejects the trade. If you enable **VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED=true**, the bot can still open a trade using the **aggregated** signal direction when strength and confidence are above override thresholds, at a **reduced size** (default 0.7×).
+
+- **Env:** `VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED`, `VINCE_SWARM_NEUTRAL_OVERRIDE_MIN_STRENGTH` (default 55), `VINCE_SWARM_NEUTRAL_OVERRIDE_MIN_CONFIDENCE` (default 50), `VINCE_SWARM_NEUTRAL_OVERRIDE_SIZE_MULTIPLIER` (default 0.7).
+- **Where:** `vincePaperTrading.service.ts` (evaluateAndTrade, swarm block: when swarm would reject, checks override and proceeds with aggregated direction and reduced size).
+- **Use case:** Fewer no-trades when the aggregated signal is clearly long/short and strong, but the swarm (e.g. many neutral agent votes) didn’t reach the consensus threshold.
 
 ---
 
@@ -75,7 +83,9 @@ After a signal passes strength/confidence and other gates, the bot builds **swar
 3. **Swarm consensus (most no-trades)**  
    If the funnel shows **other_reasons={"swarm_min_confidence":34,...}** and the UI shows “Swarm consensus below threshold: dir=neutral, conf=32% &lt; 40%”:
    - Lower **VINCE_SWARM_MIN_CONFIDENCE** (e.g. **0.35** or **0.38**) so signals with 35–39% swarm conf can open. Default in code is 0.5; if you use 0.4, try 0.35.
+   - Lower **VINCE_SWARM_CONSENSUS_THRESHOLD** to **0.5** so one direction needs only 50% of the weighted vote (fewer neutral outcomes).
    - Enable **X_SENTIMENT_SOFT_TIER_ENABLED=true** so X sentiment at 25–40% can contribute; that often pushes swarm over the bar.
+   - Enable **VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED=true** so when swarm is neutral but aggregated strength/confidence are high (default ≥55% / ≥50%), the bot still opens the trade at reduced size (default 0.7×); see §8 above.
 
 4. **Optional: X sentiment**  
    If you want X to contribute more often, set `X_SENTIMENT_CONFIDENCE_FLOOR` lower (default 40) or enable `X_SENTIMENT_SOFT_TIER_ENABLED=true` so 25–40% non-neutral X sentiment can contribute (with a discount). This doesn’t remove other gates but can help strength/confidence clear the risk-manager bar.
@@ -97,7 +107,7 @@ After a signal passes strength/confidence and other gates, the bot builds **swar
 - Thresholds: `src/plugins/plugin-vince/src/constants/paperTradingDefaults.ts` (`SIGNAL_THRESHOLDS`)
 - Risk manager: `vinceRiskManager.service.ts` (`validateSignal`, `syncFromDynamicConfig`)
 - Paper trading gates: `vincePaperTrading.service.ts` (`evaluateAndTrade`: HIP-3 guardrail, ML suggested_tuning, ML quality, **swarm consensus**)
-- Swarm: `vincePaperTrading.service.ts` (swarm block: `VINCE_SWARM_MIN_CONFIDENCE`); `swarmCoordination.service.ts` (`getSwarmConsensus`, consensusThreshold 0.6)
+- Swarm: `vincePaperTrading.service.ts` (swarm block: `VINCE_SWARM_MIN_CONFIDENCE`, `VINCE_SWARM_CONSENSUS_THRESHOLD`, `VINCE_SWARM_NEUTRAL_OVERRIDE_*`); `swarmCoordination.service.ts` (`getSwarmConsensus`, consensusThreshold from caller)
 - X sentiment floor: `signalAggregator.service.ts` (`X_SENTIMENT_CONFIDENCE_FLOOR`, default 40; `X_SENTIMENT_SOFT_TIER_ENABLED`)
 - Suggested tuning: `models/training_metadata.json` → `suggested_tuning`; read by `mlInference.service.ts` (`getSuggestedMinStrength`, `getSuggestedMinConfidence`)
 - Goal and size: `goalTracker.service.ts`, `paperTradingDefaults.ts` (`DEFAULT_TRADING_GOAL`, `AGGRESSIVE_MARGIN_USD`, `AGGRESSIVE_LEVERAGE`)

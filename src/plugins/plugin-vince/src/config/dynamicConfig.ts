@@ -189,12 +189,16 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   // Noisy / lagging signals (0.6x)
   NewsSentiment: 0.6,
   XSentiment: 0.5, // X (Twitter) sentiment, staggered one per hour, cache 24h
+  XListSentiment: 0.4, // Curated list (X_LIST_ID) sentiment when set; soft confirm
+  XNews: 0.35, // X News API (Grok summaries) when X_NEWS_AS_AGGREGATOR_SOURCE=true
+  XTrending: 0.2, // Soft: asset trending or volume spike on X (experimental)
 
   // Narrative / daily pulse (0.5x) — grok-auto-*.md Top 3 Research Ideas nudge
   GrokExpert: 0.5,
 
   // Standup / Solus (Day Report → signals file) — default 0.6x
   StandupSignal: 0.6,
+  EchoXSignal: 0.5, // ECHO What's the Trade → docs/standup/signals/YYYY-MM-DD-echo-x.json (same-day)
 };
 
 const CONFIG_FILE_NAME = "tuned-config.json";

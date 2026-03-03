@@ -4487,6 +4487,15 @@ export default function LeaderboardPage({
                         TRADE&quot; boxes. Hit Refresh to sync with the running
                         bot.
                       </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        <strong className="text-foreground">dir=neutral</strong>{" "}
+                        means no direction had ≥60% of the swarm vote (agents
+                        vote long/short/neutral; one side must reach that
+                        share). When X (Twitter) sentiment doesn’t contribute
+                        (e.g. below 40% confidence), that’s one fewer strong
+                        vote, so the swarm often stays neutral and the trade is
+                        skipped even when strength/confidence look good.
+                      </p>
                       {(paperData.recentNoTrades?.length ?? 0) === 0 ? (
                         <p className="text-muted-foreground py-4 text-sm rounded-lg bg-muted/30 border border-dashed border-border px-3">
                           No no-trade evaluations in this run yet. They appear
