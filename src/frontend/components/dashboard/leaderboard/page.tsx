@@ -389,6 +389,36 @@ type MainTab =
   | "usage"
   | "polymarket";
 
+/** Tabs that are actually shown in the UI. Trading context / more was removed and must not reappear. */
+const VISIBLE_MAIN_TABS: MainTab[] = [
+  "trading_bot",
+  "news",
+  "markets",
+  "knowledge",
+  "charts",
+  "polymarket",
+  "usage",
+];
+
+/** Display labels for each tab. Only VISIBLE_MAIN_TABS are rendered; this map includes all MainTab for type safety. */
+const MAIN_TAB_LABELS: Record<MainTab, string> = {
+  trading_bot: "Trading Bot",
+  news: "News",
+  markets: "Markets",
+  knowledge: "Knowledge",
+  charts: "Charts",
+  memetics: "Memetics",
+  digital_art: "Digital Art",
+  polymarket: "Polymarket",
+  usage: "Usage",
+};
+
+function toValidMainTab(value: string): MainTab {
+  if (value === "trading_context" || value === "more") return "markets";
+  if ((VISIBLE_MAIN_TABS as string[]).includes(value)) return value as MainTab;
+  return "markets";
+}
+
 // Type assertion for gamification service (will be available after API client rebuild)
 const gamificationClient = (elizaClient as any).gamification;
 
@@ -441,17 +471,11 @@ export default function LeaderboardPage({
   const [testQualityCopied, setTestQualityCopied] = useState(false);
   const [cursorActualCost, setCursorActualCost] = useState<string>("");
 
-  // Redirect away from removed tabs (memetics, digital_art, Trading context / more)
+  // Redirect away from removed tabs (memetics, digital_art, Trading context / more).
+  // Trading context (FEAR & GREED, BINANCE INTEL, etc.) was removed; do not re-add.
   useEffect(() => {
-    const tab = mainTab as string;
-    if (
-      mainTab === "memetics" ||
-      mainTab === "digital_art" ||
-      tab === "more" ||
-      tab === "trading_context"
-    ) {
-      setMainTab("markets");
-    }
+    const valid = toValidMainTab(mainTab as string);
+    if (valid !== mainTab) setMainTab(valid);
   }, [mainTab]);
 
   const KNOWLEDGE_QUALITY_COMMAND =
@@ -827,20 +851,16 @@ export default function LeaderboardPage({
       <div className="flex flex-col min-h-0">
         <Tabs
           value={mainTab}
-          onValueChange={(v) => setMainTab(v as MainTab)}
+          onValueChange={(v) => setMainTab(toValidMainTab(v))}
           className="flex flex-col flex-1 min-h-0"
         >
           <div className="flex items-center justify-between flex-shrink-0 gap-2">
             <TabsList>
-              <TabsTrigger value="trading_bot">Trading Bot</TabsTrigger>
-              <TabsTrigger value="news">News</TabsTrigger>
-              <TabsTrigger value="markets">Markets</TabsTrigger>
-              <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
-              <TabsTrigger value="charts">Charts</TabsTrigger>
-              {/* <TabsTrigger value="memetics">Memetics</TabsTrigger> */}
-              {/* <TabsTrigger value="digital_art">Digital Art</TabsTrigger> */}
-              <TabsTrigger value="polymarket">Polymarket</TabsTrigger>
-              <TabsTrigger value="usage">Usage</TabsTrigger>
+              {VISIBLE_MAIN_TABS.map((tab) => (
+                <TabsTrigger key={tab} value={tab}>
+                  {MAIN_TAB_LABELS[tab]}
+                </TabsTrigger>
+              ))}
             </TabsList>
             {(mainTab === "markets" || mainTab === "news") && (
               <Button
