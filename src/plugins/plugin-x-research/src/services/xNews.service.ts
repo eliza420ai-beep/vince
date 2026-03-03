@@ -245,6 +245,42 @@ export class XNewsService {
     return "neutral";
   }
 
+  /**
+   * Aggregate sentiment from recent crypto news for the signal aggregator.
+   * Returns bullish/bearish/neutral and 0–100 confidence from count and relevance.
+   */
+  async getTradingSentimentFromNews(): Promise<{
+    sentiment: "bullish" | "bearish" | "neutral";
+    confidence: number;
+  }> {
+    const items = await this.getCryptoNews({ maxResults: 20 });
+    if (!items.length) {
+      return { sentiment: "neutral", confidence: 0 };
+    }
+    let bullish = 0;
+    let bearish = 0;
+    let relevanceSum = 0;
+    for (const item of items) {
+      relevanceSum += item.relevanceScore ?? 0;
+      if (item.sentiment === "bullish") bullish += 1;
+      else if (item.sentiment === "bearish") bearish += 1;
+    }
+    const total = items.length;
+    const sentiment: "bullish" | "bearish" | "neutral" =
+      bullish > bearish + 1
+        ? "bullish"
+        : bearish > bullish + 1
+          ? "bearish"
+          : "neutral";
+    const confidence = Math.min(
+      100,
+      Math.round(
+        (relevanceSum / Math.max(total, 1)) * 0.5 + Math.min(total, 10) * 4,
+      ),
+    );
+    return { sentiment, confidence };
+  }
+
   private assessImpact(item: XNewsItem): "high" | "medium" | "low" {
     const text = `${item.name} ${item.summary}`.toLowerCase();
 

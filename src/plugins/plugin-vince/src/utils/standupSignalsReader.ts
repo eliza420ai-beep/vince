@@ -66,3 +66,46 @@ export function getStandupSignalForAsset(
   const upper = asset.toUpperCase();
   return data.signals.find((s) => (s.asset ?? "").toUpperCase() === upper);
 }
+
+// ─────────────────────────────────────────────────────────────
+// EchoXSignal (ECHO What's the Trade → docs/standup/signals/YYYY-MM-DD-echo-x.json)
+// ─────────────────────────────────────────────────────────────
+
+export interface EchoXSignalEntry {
+  asset: string;
+  direction: "long" | "short" | "neutral";
+  confidence?: number;
+}
+
+export interface EchoXSignalsFile {
+  date: string;
+  signals: EchoXSignalEntry[];
+}
+
+export function getEchoXSignalsPath(date?: Date): string {
+  const d = date ?? new Date();
+  const dateStr = d.toISOString().slice(0, 10);
+  return path.join(getSignalsDir(), `${dateStr}-echo-x.json`);
+}
+
+export async function loadEchoXSignals(
+  date?: Date,
+): Promise<EchoXSignalsFile | null> {
+  try {
+    const filepath = getEchoXSignalsPath(date);
+    const raw = await fs.readFile(filepath, "utf-8");
+    const data = JSON.parse(raw) as EchoXSignalsFile;
+    if (!data || !Array.isArray(data.signals)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export function getEchoXSignalForAsset(
+  data: EchoXSignalsFile,
+  asset: string,
+): EchoXSignalEntry | undefined {
+  const upper = asset.toUpperCase();
+  return data.signals.find((s) => (s.asset ?? "").toUpperCase() === upper);
+}

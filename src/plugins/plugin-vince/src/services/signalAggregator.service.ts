@@ -91,6 +91,8 @@ import { loadLatestGrokPulse } from "../utils/grokPulseParser";
 import {
   loadStandupSignals,
   getStandupSignalForAsset,
+  loadEchoXSignals,
+  getEchoXSignalForAsset,
 } from "../utils/standupSignalsReader";
 
 // WTT (What's The Trade) daily pick → signal aggregator boost
@@ -1097,7 +1099,157 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
-    // 5c. Grok Expert Auto-Pulse (daily narrative from knowledge/internal-docs/grok-auto-*.md)
+    // 5c. X List (curated list) Sentiment — when X_LIST_ID set, list feed votes as XListSentiment
+    // =========================================
+    if (
+      xSentimentService?.isConfigured() &&
+      typeof xSentimentService.getListSentiment === "function"
+    ) {
+      try {
+        const listConfidenceFloor = Math.min(
+          100,
+          Math.max(
+            1,
+            parseInt(
+              process.env.X_LIST_SENTIMENT_CONFIDENCE_FLOOR ?? "35",
+              10,
+            ) || 35,
+          ),
+        );
+        const listSentiment = await xSentimentService.getListSentiment();
+        if (
+          listSentiment.sentiment !== "neutral" &&
+          listSentiment.confidence >= listConfidenceFloor &&
+          !listSentiment.hasHighRiskEvent
+        ) {
+          const strength = Math.round(
+            48 + Math.min(12, listSentiment.confidence / 6),
+          );
+          const confidence = Math.min(
+            100,
+            Math.round(listSentiment.confidence * 0.85),
+          );
+          const dir = listSentiment.sentiment === "bullish" ? "long" : "short";
+          const factorLabel = `List (curated): ${listSentiment.sentiment} (${listSentiment.confidence}%)`;
+          signals.push({
+            asset,
+            direction: dir,
+            strength,
+            confidence,
+            source: "XListSentiment",
+            factors: [factorLabel],
+            timestamp: Date.now(),
+          });
+          sources.push("XListSentiment");
+          allFactors.push(factorLabel);
+        }
+        if (!sources.includes("XListSentiment")) {
+          triedNoContribution.push("XListSentiment");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] X list sentiment error: ${e}`);
+        triedNoContribution.push("XListSentiment");
+      }
+    }
+
+    // =========================================
+    // 5c. X News (Grok summaries, when X_NEWS_AS_AGGREGATOR_SOURCE=true)
+    // =========================================
+    const xNewsAsSource = /^(1|true|yes)$/i.test(
+      (process.env.X_NEWS_AS_AGGREGATOR_SOURCE ?? "").trim(),
+    );
+    if (xNewsAsSource) {
+      try {
+        const xNewsService = this.runtime.getService(
+          "X_NEWS_AGGREGATOR_SERVICE",
+        ) as {
+          isConfigured?: () => boolean;
+          getTradingSentimentFromNews?: () => Promise<{
+            sentiment: "bullish" | "bearish" | "neutral";
+            confidence: number;
+          }>;
+        } | null;
+        if (
+          xNewsService?.isConfigured?.() &&
+          typeof xNewsService.getTradingSentimentFromNews === "function"
+        ) {
+          const newsSentiment =
+            await xNewsService.getTradingSentimentFromNews();
+          if (
+            newsSentiment.sentiment !== "neutral" &&
+            newsSentiment.confidence >= 25
+          ) {
+            const strength = Math.round(
+              44 + Math.min(12, newsSentiment.confidence / 5),
+            );
+            const confidence = Math.min(
+              100,
+              Math.round(newsSentiment.confidence * 0.85),
+            );
+            const dir =
+              newsSentiment.sentiment === "bullish" ? "long" : "short";
+            const factorLabel = `X News: ${newsSentiment.sentiment} (${newsSentiment.confidence}%)`;
+            signals.push({
+              asset,
+              direction: dir,
+              strength,
+              confidence,
+              source: "XNews",
+              factors: [factorLabel],
+              timestamp: Date.now(),
+            });
+            sources.push("XNews");
+            allFactors.push(factorLabel);
+          }
+        }
+        if (!sources.includes("XNews")) {
+          triedNoContribution.push("XNews");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] X News sentiment error: ${e}`);
+        triedNoContribution.push("XNews");
+      }
+    }
+
+    // =========================================
+    // 5c″. X trending (soft factor when asset is trending or volume spike on X)
+    // =========================================
+    try {
+      const trendsService = this.runtime.getService(
+        "X_TRENDS_SIGNAL_SERVICE",
+      ) as {
+        isConfigured?: () => boolean;
+        getTrendingAssets?: () => Promise<string[]>;
+      } | null;
+      if (
+        trendsService?.isConfigured?.() &&
+        typeof trendsService.getTrendingAssets === "function"
+      ) {
+        const trendingAssets = await trendsService.getTrendingAssets();
+        if (
+          Array.isArray(trendingAssets) &&
+          trendingAssets.includes(asset.toUpperCase())
+        ) {
+          const factorLabel = `${asset} trending on X`;
+          signals.push({
+            asset,
+            direction: "neutral",
+            strength: 32,
+            confidence: 28,
+            source: "XTrending",
+            factors: [factorLabel],
+            timestamp: Date.now(),
+          });
+          sources.push("XTrending");
+          allFactors.push(factorLabel);
+        }
+      }
+    } catch (e) {
+      logger.debug(`[VinceSignalAggregator] X trending signal error: ${e}`);
+    }
+
+    // =========================================
+    // 5d. Grok Expert Auto-Pulse (daily narrative from knowledge/internal-docs/grok-auto-*.md)
     // =========================================
     try {
       const grokExtractor = this.runtime.getService(
@@ -1202,6 +1354,48 @@ export class VinceSignalAggregatorService extends Service {
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] StandupSignal error: ${e}`);
         triedNoContribution.push("StandupSignal");
+      }
+    }
+
+    // =========================================
+    // 5e. ECHO What's the Trade (docs/standup/signals/YYYY-MM-DD-echo-x.json, same-day)
+    // =========================================
+    const echoXSignalsEnabled = (
+      process.env.VINCE_PAPER_ECHO_X_SIGNALS_ENABLED ?? "true"
+    ).trim();
+    if (!/^(0|false|no)$/i.test(echoXSignalsEnabled)) {
+      try {
+        const echoXData = await loadEchoXSignals();
+        const echoEntry = echoXData
+          ? getEchoXSignalForAsset(echoXData, asset)
+          : undefined;
+        if (echoEntry && echoEntry.direction !== "neutral") {
+          const confidence = Math.min(
+            100,
+            Math.max(0, echoEntry.confidence ?? 50),
+          );
+          if (confidence >= 25) {
+            const strength = 46 + Math.min(10, confidence / 8);
+            const label = `ECHO WTT ${echoEntry.direction} (${confidence}%)`;
+            signals.push({
+              asset,
+              direction: echoEntry.direction,
+              strength: Math.round(strength),
+              confidence,
+              source: "EchoXSignal",
+              factors: [label],
+              timestamp: Date.now(),
+            });
+            sources.push("EchoXSignal");
+            allFactors.push(label);
+          }
+        }
+        if (!sources.includes("EchoXSignal")) {
+          triedNoContribution.push("EchoXSignal");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] EchoXSignal error: ${e}`);
+        triedNoContribution.push("EchoXSignal");
       }
     }
 

@@ -66,7 +66,7 @@ export X_RESEARCH_QUALITY_LIST_ID="your-list-id"
 | `X_RESEARCH_QUALITY_LIST_ID` | X list ID for quality-filtered results                                                                                                | —                                       |
 | `X_SEARCH_MAX_RESULTS`       | Posts to fetch for X_SEARCH (deeper insight)                                                                                          | `60`                                    |
 
-**Plugin-vince (paper-bot sentiment):** `X_SENTIMENT_SHOW_COST=true` or `LOG_LEVEL=debug` logs estimated cost after each sentiment refresh.
+**Plugin-vince (paper-bot sentiment):** `X_SENTIMENT_SHOW_COST=true` or `LOG_LEVEL=debug` logs estimated cost after each sentiment refresh. When **X_SENTIMENT_USE_X_RESEARCH_PLUGIN=true**, VINCE’s paper trading aggregator uses this plugin’s topic + quality-weighted sentiment (**X_RESEARCH_TRADING_SENTIMENT_SERVICE**). Keyword lexicon lives in `src/constants/sentimentKeywords.ts`; for consistency with plugin-vince’s sentiment, keep bullish/bearish/risk lists in sync (see plugin-vince **SIGNAL_SOURCES.md** § Keyword lexicon and source quality).
 
 ## Security
 

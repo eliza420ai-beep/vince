@@ -35,10 +35,19 @@ import {
   whatsTheTradeAction,
 } from "./actions";
 import { registerWhatsTheTradeDailyTask } from "./tasks/whatsTheTradeDaily.tasks";
+import { XResearchTradingSentimentService } from "./services/xResearchTradingSentiment.service";
+import { XNewsAggregatorService } from "./services/xNewsAggregator.service";
+import { XTrendsSignalService } from "./services/xTrendsSignal.service";
 
 export const xResearchPlugin: Plugin = {
   name: "plugin-x-research",
   description: "X/Twitter research plugin for crypto sentiment and alpha",
+
+  services: [
+    XResearchTradingSentimentService,
+    XNewsAggregatorService,
+    XTrendsSignalService,
+  ],
 
   actions: [
     xPulseAction,

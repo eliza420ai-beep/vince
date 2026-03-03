@@ -2532,10 +2532,23 @@ Reply format: APPROVE reason or VETO reason`;
                 (v) => v.direction !== "neutral",
               );
 
+              const consensusThresholdRaw =
+                (this.runtime.getSetting?.(
+                  "VINCE_SWARM_CONSENSUS_THRESHOLD",
+                ) as string | number | boolean | undefined) ??
+                process.env.VINCE_SWARM_CONSENSUS_THRESHOLD;
+              const consensusThreshold =
+                typeof consensusThresholdRaw === "number"
+                  ? consensusThresholdRaw
+                  : typeof consensusThresholdRaw === "string" &&
+                      !Number.isNaN(Number.parseFloat(consensusThresholdRaw))
+                    ? Number.parseFloat(consensusThresholdRaw)
+                    : 0.6;
+
               swarmConsensus = await swarmService.getSwarmConsensus(
                 votes,
                 Math.max(1, nonNeutralVotes.length),
-                0.6,
+                consensusThreshold,
               );
 
               const minConfRaw =
@@ -2552,26 +2565,73 @@ Reply format: APPROVE reason or VETO reason`;
                     ? Number.parseFloat(minConfRaw)
                     : 0.5;
 
+              let usedNeutralOverride = false;
               if (
                 !swarmConsensus.consensusReached ||
                 swarmConsensus.confidenceLevel < swarmMinConf
               ) {
-                const reason = `Swarm consensus below threshold: dir=${swarmConsensus.weightedDirection}, conf=${(
-                  swarmConsensus.confidenceLevel * 100
-                ).toFixed(0)}% < ${(swarmMinConf * 100).toFixed(0)}%`;
-                this.logSignalRejection(asset, tradeSignal, reason);
-                void this.recordAvoidedDecisionIfNeeded(
-                  asset,
-                  signal as AggregatedSignal,
-                  reason,
-                );
-                incrementFunnelReason(funnel, "swarm_min_confidence");
-                continue;
+                // Optional: allow trade when swarm is neutral but aggregated signal is strong (smaller size).
+                const overrideEnabled =
+                  this.runtime.getSetting?.(
+                    "VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED",
+                  ) === true ||
+                  this.runtime.getSetting?.(
+                    "VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED",
+                  ) === "true" ||
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED === "true";
+                const overrideMinStrengthRaw =
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_MIN_STRENGTH;
+                const overrideMinStrength =
+                  overrideMinStrengthRaw != null &&
+                  !Number.isNaN(Number.parseFloat(overrideMinStrengthRaw))
+                    ? Number.parseFloat(overrideMinStrengthRaw)
+                    : 55;
+                const overrideMinConfRaw =
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_MIN_CONFIDENCE;
+                const overrideMinConf =
+                  overrideMinConfRaw != null &&
+                  !Number.isNaN(Number.parseFloat(overrideMinConfRaw))
+                    ? Number.parseFloat(overrideMinConfRaw)
+                    : 50;
+                const overrideSizeMultRaw =
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_SIZE_MULTIPLIER;
+                const overrideSizeMult =
+                  overrideSizeMultRaw != null &&
+                  !Number.isNaN(Number.parseFloat(overrideSizeMultRaw))
+                    ? Number.parseFloat(overrideSizeMultRaw)
+                    : 0.7;
+
+                const hasDirection =
+                  signal.direction === "long" || signal.direction === "short";
+                if (
+                  overrideEnabled &&
+                  hasDirection &&
+                  tradeSignal.strength >= overrideMinStrength &&
+                  tradeSignal.confidence >= overrideMinConf
+                ) {
+                  usedNeutralOverride = true;
+                  finalTradeSize = finalTradeSize * overrideSizeMult;
+                  logger.debug(
+                    `[VincePaperTrading] ${asset} swarm neutral override: using aggregated direction ${signal.direction}, size ${overrideSizeMult}x`,
+                  );
+                } else {
+                  const reason = `Swarm consensus below threshold: dir=${swarmConsensus.weightedDirection}, conf=${(
+                    swarmConsensus.confidenceLevel * 100
+                  ).toFixed(0)}% < ${(swarmMinConf * 100).toFixed(0)}%`;
+                  this.logSignalRejection(asset, tradeSignal, reason);
+                  void this.recordAvoidedDecisionIfNeeded(
+                    asset,
+                    signal as AggregatedSignal,
+                    reason,
+                  );
+                  incrementFunnelReason(funnel, "swarm_min_confidence");
+                  continue;
+                }
               }
 
               const dissent = swarmConsensus.dissentScore ?? 0;
               const sizeMultiplier = Math.max(0.5, 1 - dissent * 0.5);
-              if (sizeMultiplier !== 1) {
+              if (sizeMultiplier !== 1 && !usedNeutralOverride) {
                 finalTradeSize = finalTradeSize * sizeMultiplier;
                 logger.debug(
                   `[VincePaperTrading] ${asset} swarm size multiplier ${sizeMultiplier.toFixed(
@@ -2637,10 +2697,11 @@ Reply format: APPROVE reason or VETO reason`;
                     );
                   }
 
-                  // Extra protective veto: if regime is consistently weak AND consensus is only marginally above the minimum, stand aside.
+                  // Extra protective veto: if regime is consistently weak AND consensus is only marginally above the minimum, stand aside. Skip when we used swarm neutral override.
                   const protectiveWinFloor = 0.35;
                   const consensusHeadroom = 0.05;
                   if (
+                    !usedNeutralOverride &&
                     winRateRaw < protectiveWinFloor &&
                     swarmConsensus.confidenceLevel <
                       swarmMinConf + consensusHeadroom
