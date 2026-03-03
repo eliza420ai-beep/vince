@@ -189,6 +189,7 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   // Noisy / lagging signals (0.6x)
   NewsSentiment: 0.6,
   XSentiment: 0.5, // X (Twitter) sentiment, staggered one per hour, cache 24h
+  PolymarketSentiment: 0.55, // Prediction-market odds (BTC/ETH/SOL/macro/stocks); cache 15–30 min
   XListSentiment: 0.4, // Curated list (X_LIST_ID) sentiment when set; soft confirm
   XNews: 0.35, // X News API (Grok summaries) when X_NEWS_AS_AGGREGATOR_SOURCE=true
   XTrending: 0.2, // Soft: asset trending or volume spike on X (experimental)

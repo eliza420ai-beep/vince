@@ -57,6 +57,7 @@ import { VinceNotificationService } from "./services/notification.service";
 import { VinceAlertService } from "./services/alert.service";
 import { VinceXResearchService } from "./services/xResearch.service";
 import { VinceXSentimentService } from "./services/xSentiment.service";
+import { VincePolymarketSentimentService } from "./services/polymarketSentiment.service";
 
 // Fallback services factory (for external service source tracking)
 import {
@@ -223,6 +224,7 @@ export const vincePlugin: Plugin = {
     // X services are data-only (paper bot sentiment, aggregator, leaderboard). In-chat X/CT research is Echo (plugin-x-research).
     VinceXResearchService,
     VinceXSentimentService, // X sentiment for paper algo (staggered: one asset per hour by default, cache 24h)
+    VincePolymarketSentimentService, // Prediction-market sentiment from Polymarket (BTC/ETH/SOL/macro/stocks); cache 15–30 min
     // Early Detection System
     VinceWatchlistService,
     VinceNotificationService,

@@ -159,7 +159,16 @@ export const solusMarketContextProvider: Provider = {
       if (!ctx) {
         return {};
       }
-      const text = formatMarketContextText(ctx);
+      let text = formatMarketContextText(ctx);
+      const polymarketSvc = runtime.getService(
+        "VINCE_POLYMARKET_SENTIMENT_SERVICE",
+      ) as { getSummaryLine?: () => string | null } | null;
+      if (polymarketSvc && typeof polymarketSvc.getSummaryLine === "function") {
+        const pmLine = polymarketSvc.getSummaryLine();
+        if (pmLine) {
+          text += `\n${pmLine}`;
+        }
+      }
       return {
         text,
         values: {

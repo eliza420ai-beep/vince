@@ -33,6 +33,7 @@ import {
   xSearchAction,
   clawtermDayReportAction,
   whatsTheTradeAction,
+  polymarketVibeAction,
 } from "./actions";
 import { registerWhatsTheTradeDailyTask } from "./tasks/whatsTheTradeDaily.tasks";
 import { XResearchTradingSentimentService } from "./services/xResearchTradingSentiment.service";
@@ -61,6 +62,7 @@ export const xResearchPlugin: Plugin = {
     xSearchAction,
     clawtermDayReportAction,
     whatsTheTradeAction,
+    polymarketVibeAction,
   ],
 
   providers: [],

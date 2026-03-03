@@ -2083,6 +2083,13 @@ export default function LeaderboardPage({
                           Pending sized orders (Risk) are executed by Otaku
                           every 2 min.
                         </li>
+                        <li>
+                          Real execution only when{" "}
+                          <code className="rounded bg-muted px-0.5">
+                            POLYMARKET_DESK_LIVE_ENABLED=true
+                          </code>{" "}
+                          (keep unset until paper win rate is proven).
+                        </li>
                       </ul>
                       {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
                         <div className="pt-3 border-t border-border/50">

@@ -32,6 +32,7 @@ export const AGENT_SPECIALIZATIONS = {
     role: "sentiment",
     sources: [
       "XSentiment",
+      "PolymarketSentiment",
       "NewsSentiment",
       "SocialMomentum",
       "InfluencerSignals",

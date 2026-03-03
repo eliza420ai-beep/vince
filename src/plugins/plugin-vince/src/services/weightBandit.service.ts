@@ -106,6 +106,7 @@ const KNOWN_SOURCES = [
   "MarketRegime",
   "NewsSentiment",
   "XSentiment",
+  "PolymarketSentiment",
   "HIP3Funding",
   "HIP3Momentum",
   "HIP3OIBuild",
