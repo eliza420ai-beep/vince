@@ -105,12 +105,16 @@ export const characterProvider: Provider = {
           .sort(() => 0.5 - Math.random())
           .slice(0, 5)
           .map((group) => {
-            const example = group.examples ?? [];
+            const raw = Array.isArray(group)
+              ? group
+              : ((group as { examples?: unknown[] } | undefined)?.examples ??
+                []);
+            const messages = Array.isArray(raw) ? raw : [];
             const exampleNames = Array.from({ length: 5 }, () =>
               Math.random().toString(36).substring(2, 8),
             );
 
-            return example
+            return messages
               .map(
                 (message: {
                   name: string;

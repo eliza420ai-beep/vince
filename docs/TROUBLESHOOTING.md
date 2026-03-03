@@ -54,9 +54,18 @@ If you see:
 #Solus  [SERVICE:MESSAGE] Error processing message (error=example.map is not a function)
 ```
 
-**Cause:** In `@elizaos/core`, `formatSelectedExamples` assumes each item is an array (of messages). When the runtime composes action or message examples, it can receive the new alpha shape (`{ examples: [...] }` per group) or action-example objects; calling `.map()` on those throws.
+**Cause:** In `@elizaos/core`, message/example formatting assumes each item is an array (of messages). When the runtime composes action or message examples, it can receive the new alpha shape (`{ examples: [...] }` per group) or raw arrays; calling `.map()` on a non-array throws. This can happen in `formatSelectedExamples` or in the character provider when formatting `messageExamples`.
 
-**Workaround:** This repo applies a postinstall patch so the core bundle accepts both array and `{ examples }` shapes. After `bun install`, the patch runs automatically. If you still see the error, run `node scripts/patch-elizaos-core-message-examples.cjs` from the project root, then restart. Otherwise track an upstream fix in ElizaOS core.
+**Workaround:** This repo applies a postinstall patch so the core bundle accepts both array and `{ examples }` shapes (formatSelectedExamples inner/outer and both character-provider paths). The same patch also runs **before every** `bun start` and `bun run dev` (via `prestart` / `predev`), so the running process always loads the patched core.
+
+If you still see the error:
+
+1. **Fully stop** the app (kill the terminal or Ctrl+C). Do not rely on hot reload—the process must restart so it loads the patched file.
+2. Run **`bun start`** again (or `bun run dev`). You should see `patch-elizaos-core-message-examples: verification passed` in the output before the server starts.
+3. If the error persists, clear Bun cache: `bun pm cache rm`, then stop and run `bun start` again.
+4. Try Solus again (e.g. "How does Hypersurface work?").
+
+Otherwise track an upstream fix in ElizaOS core.
 
 ---
 
