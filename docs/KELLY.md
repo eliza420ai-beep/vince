@@ -17,7 +17,7 @@ Kelly is the **CVO (Chief Vibes Officer)** agent: five-star hotels, fine dining,
 
 ## What Kelly Can Do Today
 
-- **Daily briefing:** KELLY_DAILY_BRIEFING — health, dining, hotels, wellness; scheduled task pushes to channels whose name contains "kelly" or "lifestyle".
+- **Daily briefing:** KELLY_DAILY_BRIEFING — health, dining, hotels, wellness; scheduled task pushes to channels whose name contains "kelly" or "lifestyle". KELLY_LIFESTYLE — same briefing with broad triggers (lifestyle, daily, dining, hotel, swim, gym, "what should i do", etc.) so Kelly answers all lifestyle-style prompts; lifestyle is Kelly-owned (Vince no longer has a lifestyle command).
 - **Recommendations:** KELLY_RECOMMEND_PLACE (hotels, restaurants); KELLY_RECOMMEND_WINE; KELLY_RECOMMEND_WORKOUT; KELLY_SWIMMING_TIPS; KELLY_RECOMMEND_EXPERIENCE; KELLY_SURF_FORECAST.
 - **Planning:** KELLY_ITINERARY; KELLY_WEEK_AHEAD.
 - **Context and weather:** KELLY_CONTEXT provider; WEATHER provider (when configured).

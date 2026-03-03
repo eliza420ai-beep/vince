@@ -789,7 +789,7 @@ export const vinceBotAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**BTC Paper Trade Triggered**\n\n🟢 **LONG BTC** @ $85,340 (5x leverage)\nPosition: $5,000 | Stop: $83,800 | TP1: $87,500\n\n**THE THESIS**\nLONG BTC setup detected with 5 confirming factors.\nSmart money just went LONG. Whale opened $500k position within 15 minutes.\nNegative funding means shorts are paying longs. Shorts are crowded and we get paid to hold.\n\n**SIGNAL BREAKDOWN**\n• 🐋 Whale opened long $500k: +25 strength\n• Funding negative (-0.012%) - shorts crowded, squeeze potential\n• RSI 48 confirms bullish momentum\n• 🔊 Volume spike: 1.8x average\n• Order book favors longs (1.35 ratio)\n• **Total: 75% strength, 70% confidence**\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**BTC Paper Trade Triggered**\n\n🟢 **LONG BTC** @ $85,340 (5x leverage)\nPosition: $5,000 | Stop: $83,800 | TP1: $87,500\n\n**THE THESIS**\nLONG BTC setup detected with 5 confirming factors.\nSmart money just went LONG. Whale opened $500k position within 15 minutes.\nNegative funding means shorts are paying longs. Shorts are crowded and we get paid to hold.\n\n**SIGNAL BREAKDOWN**\n• 🐋 Whale opened long $500k: +25 strength\n• Funding negative (-0.012%) - shorts crowded, squeeze potential\n• RSI 48 confirms bullish momentum\n• 🔊 Volume spike: 1.8x average\n• Order book favors longs (1.35 ratio)\n• **Total: 75% strength, 70% confidence**\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_BOT_TRADE"],
         },
       },
@@ -809,7 +809,7 @@ export const vinceBotAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**BTC Paper Trade Triggered**\n\n🔴 **SHORT BTC** @ $92,150 (5x leverage)\nPosition: $5,000 | Stop: $94,200 | TP1: $89,100\n\n**THE THESIS**\nSHORT BTC setup detected with 4 confirming factors.\nRSI at extreme levels. Overbought pullback setup.\nPositive funding means longs are paying shorts. Longs are crowded and vulnerable.\n\n**SIGNAL BREAKDOWN**\n• 📈 RSI extreme overbought (78) - contrarian short\n• Funding positive (0.028%) - longs crowded, flush potential\n• 🔥 Volatile regime: +10 strength (Degen: volatility = opportunity)\n• Price 2.1% above SMA20 - extended\n• **Total: 68% strength, 62% confidence**\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**BTC Paper Trade Triggered**\n\n🔴 **SHORT BTC** @ $92,150 (5x leverage)\nPosition: $5,000 | Stop: $94,200 | TP1: $89,100\n\n**THE THESIS**\nSHORT BTC setup detected with 4 confirming factors.\nRSI at extreme levels. Overbought pullback setup.\nPositive funding means longs are paying shorts. Longs are crowded and vulnerable.\n\n**SIGNAL BREAKDOWN**\n• 📈 RSI extreme overbought (78) - contrarian short\n• Funding positive (0.028%) - longs crowded, flush potential\n• 🔥 Volatile regime: +10 strength (Degen: volatility = opportunity)\n• Price 2.1% above SMA20 - extended\n• **Total: 68% strength, 62% confidence**\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_BOT_TRADE"],
         },
       },

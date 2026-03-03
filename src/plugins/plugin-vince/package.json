@@ -1,7 +1,7 @@
 {
   "name": "@elizaos/plugin-vince",
   "version": "2026.2.24",
-  "description": "Standalone VINCE agent plugin - unified data intelligence for trading, options, perps, memes, and lifestyle",
+  "description": "Standalone VINCE agent plugin - unified data intelligence for trading, options, perps, memes, art (lifestyle: ask Kelly)",
   "main": "src/index.ts",
   "type": "module",
   "scripts": {

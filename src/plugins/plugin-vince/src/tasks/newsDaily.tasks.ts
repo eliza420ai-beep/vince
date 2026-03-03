@@ -164,7 +164,7 @@ export async function registerNewsDailyTask(
           "*Source: MandoMinutes*",
           "",
           "---",
-          "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
         ].join("\n");
 
         const sent = await notif.push(text, { roomNameContains: "news" });

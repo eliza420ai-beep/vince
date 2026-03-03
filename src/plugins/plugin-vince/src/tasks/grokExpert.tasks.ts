@@ -24,7 +24,6 @@ import type { VinceTopTradersService } from "../services/topTraders.service";
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
 import type { VinceHIP3Service } from "../services/hip3.service";
 import type { VinceNFTFloorService } from "../services/nftFloor.service";
-import type { VinceLifestyleService } from "../services/lifestyle.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
 import type { VinceBinanceService } from "../services/binance.service";
 import type { VinceDeribitService } from "../services/deribit.service";
