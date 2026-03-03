@@ -1,5 +1,6 @@
 import type {
   Action,
+  ActionResult,
   HandlerCallback,
   IAgentRuntime,
   Memory,
@@ -213,7 +214,7 @@ export const vinceChatAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const rawText = message.content?.text ?? "";
     const userQuery = extractQuery(rawText);
 

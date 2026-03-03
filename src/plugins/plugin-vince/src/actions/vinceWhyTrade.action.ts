@@ -12,6 +12,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -293,7 +294,7 @@ export const vinceWhyTradeAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const positionManager = runtime.getService(
         "VINCE_POSITION_MANAGER_SERVICE",

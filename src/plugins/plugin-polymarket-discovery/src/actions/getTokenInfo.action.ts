@@ -45,26 +45,29 @@ export const getTokenInfoAction: Action = {
   description:
     "Get full information about a Polymarket prediction market in one shot: market details, current pricing, 24h price summary, and optionally the user's position in this market when a wallet address is provided. Use condition_id from search or detail results.",
 
-  parameters: {
-    conditionId: {
-      type: "string",
+  parameters: [
+    {
+      name: "conditionId",
       description:
         "Market condition ID (hex string, 0x...). Required unless tokenId is provided.",
       required: false,
+      schema: { type: "string" },
     },
-    tokenId: {
-      type: "string",
+    {
+      name: "tokenId",
       description:
         "Token ID for the market (alternative to conditionId; conditionId is preferred).",
       required: false,
+      schema: { type: "string" },
     },
-    walletAddress: {
-      type: "string",
+    {
+      name: "walletAddress",
       description:
         "Wallet address to include this market's position and orders (optional).",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {

@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -49,7 +50,7 @@ export const kellySwimmingTipsAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_SWIMMING_TIPS] Action fired");
     try {
       const service = runtime.getService(
@@ -99,12 +100,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
         text: out,
         actions: ["KELLY_SWIMMING_TIPS"],
       });
+      return undefined;
     } catch (error) {
       logger.error("[KELLY_SWIMMING_TIPS] Error:", error);
       await callback({
         text: "For daily 1000m: warm up, then build. Winter = indoor palace pools (see swimming-daily-winter-pools for reopen dates). Swimmer yoga: yoga-vinyasa-surfers-swimmers. See those two docs for detail.",
         actions: ["REPLY"],
       });
+      return undefined;
     }
   },
 

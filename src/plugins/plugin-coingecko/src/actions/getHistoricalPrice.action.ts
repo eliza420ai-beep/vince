@@ -26,25 +26,28 @@ export const getHistoricalPriceAction: Action = {
   ],
   description: `Use this action when the user asks for a token's price on a specific date in the past. This action retrieves historical price data for any token (native or contract address) at a particular point in time. Returns the price, market cap, and trading volume for that date.`,
 
-  parameters: {
-    token: {
-      type: "string",
+  parameters: [
+    {
+      name: "token",
       description: `Token symbol or contract address. Native tokens that can be used by symbol: ${Object.keys(nativeTokenIds).join(", ").toUpperCase()}. For all other tokens, provide the contract address (e.g., '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'). Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.`,
       required: true,
+      schema: { type: "string" },
     },
-    date: {
-      type: "string",
+    {
+      name: "date",
       description:
         "Date for historical price. Accepts formats: 'dd-mm-yyyy' (e.g., '01-01-2024'), '2024-01-01', 'today', 'yesterday', '7 days ago', '2 weeks ago', '3 months ago', '1 year ago'.",
       required: true,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Required for contract addresses, optional for native tokens. Use GET_TOKEN_METADATA first to determine the correct chain.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,
@@ -189,7 +192,7 @@ This historical price data shows the token's value on the specified date. You ca
           actions: ["GET_HISTORICAL_PRICE"],
           content: {
             ...historicalData,
-          } as Record<string, unknown>,
+          } as import("@elizaos/core").ContentValue,
           source: message.content.source,
         });
       }

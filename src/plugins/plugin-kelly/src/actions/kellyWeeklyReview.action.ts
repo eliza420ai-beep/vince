@@ -6,6 +6,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -188,7 +189,7 @@ export const kellyWeeklyReviewAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_WEEKLY_REVIEW] Building weekly scorecard");
     const eliza = getElizaOS(runtime);
     if (!eliza?.getAgents || !eliza.getAgentByName || !eliza.handleMessage) {

@@ -72,13 +72,13 @@ export const xWatchlistAction: Action = {
     message: Memory,
     state: State,
     _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
       const accounts = loadWatchlist();
       if (accounts.length === 0) {
-        callback({
+        callback?.({
           text: "📋 **X Watchlist**\n\nWatchlist is empty or not found. Add accounts via CLI:\n`cd skills/x-research && bun run x-search.ts watchlist add <username>`",
           action: "X_WATCHLIST",
         });
@@ -124,7 +124,7 @@ export const xWatchlistAction: Action = {
         body += `\n\n${formatCostFooterCombined({ userLookups: toCheck.length, postReads: totalPosts })}`;
       }
 
-      callback({
+      callback?.({
         text: body,
         action: "X_WATCHLIST",
       });
@@ -132,12 +132,12 @@ export const xWatchlistAction: Action = {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       if (errMsg.includes("X_BEARER_TOKEN")) {
-        callback({
+        callback?.({
           text: "📋 **X Watchlist**\n\n⚠️ X API not configured. Set `X_BEARER_TOKEN` to enable watchlist check.",
           action: "X_WATCHLIST",
         });
       } else {
-        callback({
+        callback?.({
           text: `📋 **X Watchlist**\n\n❌ Error: ${errMsg}`,
           action: "X_WATCHLIST",
         });

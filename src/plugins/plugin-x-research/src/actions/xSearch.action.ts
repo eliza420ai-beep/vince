@@ -136,8 +136,8 @@ export const xSearchAction: Action = {
     message: Memory,
     state: State,
     _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -147,7 +147,7 @@ export const xSearchAction: Action = {
 
       const query = extractQuery(text);
       if (!query) {
-        callback({
+        callback?.({
           text: 'I need a search query. Example: "Search X for BNKR" or "What are people saying about ETH?"',
           action: "X_SEARCH",
         });
@@ -214,7 +214,7 @@ export const xSearchAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
-      callback({
+      callback?.({
         text: response,
         action: "X_SEARCH",
       });
@@ -222,7 +222,7 @@ export const xSearchAction: Action = {
     } catch (error) {
       logger.warn({ err: error }, "[X_SEARCH] X API error");
       const friendly = getFriendlyXErrorMessage(error);
-      callback({
+      callback?.({
         text: `**X Search**\n\n⚠️ ${friendly}`,
         action: "X_SEARCH",
       });

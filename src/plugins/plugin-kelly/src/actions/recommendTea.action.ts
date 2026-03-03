@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -99,7 +100,7 @@ export const kellyRecommendTeaAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_TEA] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();
@@ -158,12 +159,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       });
 
       logger.info("[KELLY_RECOMMEND_TEA] Recommendation sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_RECOMMEND_TEA] Error: ${error}`);
       await callback({
         text: "Tea recommendation failed. Try asking for morning or evening tea.",
         actions: ["KELLY_RECOMMEND_TEA"],
       });
+      return undefined;
     }
   },
 

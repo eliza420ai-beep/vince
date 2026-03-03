@@ -564,7 +564,7 @@ export const standupFacilitatorAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const text = (message.content?.text || "").toLowerCase();
     const isWrapup = WRAPUP_TRIGGERS.some((t) => text.includes(t));
 

@@ -10,6 +10,7 @@ import type {
   Memory,
   Provider,
   ProviderResult,
+  ProviderValue,
 } from "@elizaos/core";
 import {
   RAIN_STORM_SAFETY_LINE,
@@ -190,8 +191,9 @@ export const weatherProvider: Provider = {
       text =
         "Weather unavailable; avoid recommending outdoor activities (beach, surf) without user confirmation.";
       values.weatherSummary = text;
-      weatherCache = { result: { values, text }, at: now };
-      return { values, text };
+      const ret = { values: values as Record<string, ProviderValue>, text };
+      weatherCache = { result: ret, at: now };
+      return ret;
     }
 
     const parts: string[] = ["**Weather:**"];
@@ -274,7 +276,10 @@ export const weatherProvider: Provider = {
 
     text = parts.join(" ");
     values.weatherSummary = text;
-    const result: ProviderResult = { values, text };
+    const result: ProviderResult = {
+      values: values as Record<string, ProviderValue>,
+      text,
+    };
     weatherCache = { result, at: now };
     return result;
   },

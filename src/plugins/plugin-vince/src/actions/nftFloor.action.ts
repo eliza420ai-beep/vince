@@ -11,6 +11,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -200,7 +201,7 @@ export const vinceNftFloorAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const sections: string[] = [];
 

@@ -84,7 +84,7 @@ export async function appendNotificationEvent(
         subtitle: event.subtitle,
         time: event.time,
         metadata: event.metadata,
-      },
+      } as import("@elizaos/core").Content,
       createdAt: time,
     },
     NOTIFICATION_EVENTS_TABLE,

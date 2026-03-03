@@ -29,40 +29,46 @@ export const getYieldRatesAction: Action = {
     "Use this action to fetch DeFi yield rates (APY) for protocols, tokens, and chains. Can compare yields across different protocols.",
 
   // Parameter schema for tool calling
-  parameters: {
-    protocol: {
-      type: "string",
+  parameters: [
+    {
+      name: "protocol",
       description:
         "DeFi protocol name (e.g., 'Aave', 'Morpho', 'Compound'). Optional.",
       required: false,
+      schema: { type: "string" },
     },
-    token: {
-      type: "string",
+    {
+      name: "token",
       description: "Token symbol (e.g., 'USDC', 'ETH', 'DAI'). Optional.",
       required: false,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain name (e.g., 'Ethereum', 'Base', 'Arbitrum'). Optional.",
       required: false,
+      schema: { type: "string" },
     },
-    minApy: {
-      type: "number",
+    {
+      name: "minApy",
       description: "Minimum APY filter (e.g. 8 for 8%). Optional.",
       required: false,
+      schema: { type: "number" },
     },
-    stablecoinOnly: {
-      type: "boolean",
+    {
+      name: "stablecoinOnly",
       description: "If true, return only stablecoin pools. Optional.",
       required: false,
+      schema: { type: "boolean" },
     },
-    limit: {
-      type: "number",
+    {
+      name: "limit",
       description: "Max number of results (default 10). Optional.",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

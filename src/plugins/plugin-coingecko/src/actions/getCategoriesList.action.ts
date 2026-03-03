@@ -24,7 +24,7 @@ export const getCategoriesListAction: Action = {
     "Use this action to get the complete list of all coin categories (ID map) from CoinGecko. Returns category IDs and names that can be used to filter or search for tokens by category. Useful when the user wants to know what categories exist or needs category IDs for other queries.",
 
   // No parameters needed
-  parameters: {},
+  parameters: [],
 
   validate: async (
     runtime: IAgentRuntime,
@@ -63,7 +63,7 @@ export const getCategoriesListAction: Action = {
         await callback({
           text,
           actions: ["GET_CATEGORIES_LIST"],
-          content: categoriesList as unknown as Record<string, unknown>,
+          content: categoriesList as import("@elizaos/core").ContentValue,
           source: message.content.source,
         });
       }

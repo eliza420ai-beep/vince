@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -129,7 +130,7 @@ export const kelly100kPaceAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const eliza = getElizaOS(runtime);
     if (!eliza?.getAgents || !eliza.handleMessage) {
       await callback({

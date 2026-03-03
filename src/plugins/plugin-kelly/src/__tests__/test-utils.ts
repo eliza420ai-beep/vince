@@ -7,9 +7,11 @@
  */
 
 import type {
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
+  StateValues,
   Content,
   UUID,
 } from "@elizaos/core";
@@ -43,8 +45,11 @@ export interface MockCallback {
 
 export function createMockCallback(): MockCallback {
   const calls: Content[] = [];
-  const callback = async (content: Content): Promise<void> => {
+  const callback = async (
+    content: Content,
+  ): Promise<ActionResult | undefined> => {
     calls.push(content);
+    return undefined;
   };
   (callback as MockCallback).calls = calls;
   (callback as MockCallback).reset = () => {
@@ -169,7 +174,7 @@ export function createMockRuntimeWithComposeState(stateOverrides?: {
     ...stateOverrides?.values,
   };
   const state: State = {
-    values,
+    values: values as StateValues,
     data: stateOverrides?.data ?? {},
     text:
       stateOverrides?.text ??

@@ -12,6 +12,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -181,7 +182,7 @@ export const vinceAirdropsAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.info("[VINCE_AIRDROPS] Building airdrop status...");
 
@@ -235,12 +236,14 @@ export const vinceAirdropsAction: Action = {
       });
 
       logger.info("[VINCE_AIRDROPS] Briefing complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_AIRDROPS] Error: ${error}`);
       await callback({
         text: "Airdrop status failed to load. Check the knowledge base directly for the current meta.",
         actions: ["VINCE_AIRDROPS"],
       });
+      return undefined;
     }
   },
 

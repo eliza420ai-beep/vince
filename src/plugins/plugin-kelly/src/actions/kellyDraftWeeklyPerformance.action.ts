@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -59,7 +60,7 @@ export const kellyDraftWeeklyPerformanceAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const eliza = getElizaOS(runtime);
     if (!eliza?.getAgents || !eliza.handleMessage) {
       await callback({
@@ -96,7 +97,7 @@ export const kellyDraftWeeklyPerformanceAction: Action = {
       createdAt: Date.now(),
     };
 
-    return new Promise<void>((resolve) => {
+    return new Promise<ActionResult | undefined>((resolve) => {
       let settled = false;
       const timeoutId = setTimeout(() => {
         if (settled) return;
@@ -104,7 +105,7 @@ export const kellyDraftWeeklyPerformanceAction: Action = {
         callback({
           text: "Eliza didn't respond in time. Try asking Eliza directly: «Draft tweets about this week's trading» after running Weekly Scorecard.",
           actions: ["KELLY_DRAFT_WEEKLY_PERFORMANCE"],
-        }).then(() => resolve());
+        }).then(() => resolve(undefined));
       }, TIMEOUT_MS);
 
       const onResponse = async (resp: unknown) => {
@@ -117,7 +118,7 @@ export const kellyDraftWeeklyPerformanceAction: Action = {
             text: `**Weekly performance draft (from Eliza)**\n\n${reply}`,
             actions: ["KELLY_DRAFT_WEEKLY_PERFORMANCE"],
           });
-          resolve();
+          resolve(undefined);
         }
       };
 
@@ -135,7 +136,7 @@ export const kellyDraftWeeklyPerformanceAction: Action = {
               text: "Eliza finished but didn't return a draft. Try: «Eliza, write an essay about this week's trading results» with Weekly Scorecard data in context.",
               actions: ["KELLY_DRAFT_WEEKLY_PERFORMANCE"],
             });
-            resolve();
+            resolve(undefined);
           }
         })
         .catch(async (e) => {
@@ -147,7 +148,7 @@ export const kellyDraftWeeklyPerformanceAction: Action = {
               text: "Couldn't get a draft from Eliza right now. Ask Eliza directly for a weekly performance post.",
               actions: ["KELLY_DRAFT_WEEKLY_PERFORMANCE"],
             });
-            resolve();
+            resolve(undefined);
           }
         });
     });

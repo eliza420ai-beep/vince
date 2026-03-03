@@ -6,6 +6,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type HandlerCallback,
@@ -58,7 +59,7 @@ export const polymarketDeskReportAction: Action = {
     _state?: unknown,
     options?: { limit?: number; hours?: number },
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const out = (text: string) => {
       if (callback) callback({ text });
     };

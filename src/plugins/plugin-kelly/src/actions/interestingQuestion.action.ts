@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -60,7 +61,7 @@ export const kellyInterestingQuestionAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_INTERESTING_QUESTION] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();
@@ -124,12 +125,14 @@ Output only the question and your one-line reason. ${getVoiceAvoidPromptFragment
       });
 
       logger.info("[KELLY_INTERESTING_QUESTION] Question sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_INTERESTING_QUESTION] Error: ${error}`);
       await callback({
         text: "If you could live anywhere for a month — not vacation, actually live there — where would it be and why?",
         actions: ["KELLY_INTERESTING_QUESTION"],
       });
+      return undefined;
     }
   },
 

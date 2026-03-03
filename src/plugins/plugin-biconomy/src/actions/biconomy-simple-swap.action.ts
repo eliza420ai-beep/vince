@@ -71,48 +71,55 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
     "SUPERTRANSACTION_SWAP",
   ],
 
-  parameters: {
-    srcToken: {
-      type: "string",
+  parameters: [
+    {
+      name: "srcToken",
       description:
         "Source token symbol or address (e.g., 'usdc', 'eth', '0x...'). Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Polygon, 'eth' means bridged WETH.",
       required: true,
+      schema: { type: "string" },
     },
-    srcChain: {
-      type: "string",
+    {
+      name: "srcChain",
       description: "Source chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    dstToken: {
-      type: "string",
+    {
+      name: "dstToken",
       description:
         "Destination token symbol or address (e.g., 'eth', 'usdc', '0x...'). Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Polygon, 'eth' means bridged WETH.",
       required: true,
+      schema: { type: "string" },
     },
-    dstChain: {
-      type: "string",
+    {
+      name: "dstChain",
       description: "Destination chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    amount: {
-      type: "string",
+    {
+      name: "amount",
       description:
         "Amount to swap in human-readable format (e.g., '100' for 100 USDC, not in wei)",
       required: true,
+      schema: { type: "string" },
     },
-    slippage: {
-      type: "number",
+    {
+      name: "slippage",
       description:
         "Slippage tolerance as percentage (e.g., 1 for 1%, 5 for 5%). Default: 1. Max: 5% unless confirmed.",
       required: false,
+      schema: { type: "number" },
     },
-    confirmHighSlippage: {
-      type: "boolean",
+    {
+      name: "confirmHighSlippage",
       description:
         "Set to true to confirm slippage above 5%. Required if slippage > 5.",
       required: false,
+      schema: { type: "boolean" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateBiconomyService(runtime, "MEE_FUSION_SWAP", state, message);

@@ -44,31 +44,35 @@ export const vaultTransferAction: Action = {
   description:
     "Use this action when you need to deposit to or withdraw from a Morpho ERC-4626 vault.",
 
-  parameters: {
-    intent: {
-      type: "string",
+  parameters: [
+    {
+      name: "intent",
       description: 'Transfer intent - must be either "deposit" or "withdraw"',
       required: true,
+      schema: { type: "string" },
     },
-    vault: {
-      type: "string",
+    {
+      name: "vault",
       description:
         'Vault identifier - can be a vault name (e.g., "Spark USDC Vault") or a vault address (0x...)',
       required: true,
+      schema: { type: "string" },
     },
-    assets: {
-      type: "string",
+    {
+      name: "assets",
       description:
         'Amount to transfer in human-readable format (e.g., "1", "0.5", "100"). Pure number without units or symbols.',
       required: true,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network (e.g., 'base', 'base-sepolia'). If not provided, uses the default chain.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateMorphoService(

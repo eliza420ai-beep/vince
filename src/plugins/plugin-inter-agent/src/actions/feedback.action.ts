@@ -65,7 +65,7 @@ export const feedbackAction: Action = {
     state: State | undefined,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<ActionResult | void> => {
+  ): Promise<ActionResult | undefined> => {
     const fromName = runtime.character?.name ?? "I";
     const userText = (message.content?.text ?? "").trim();
     const feedbackText = extractFeedbackText(userText);

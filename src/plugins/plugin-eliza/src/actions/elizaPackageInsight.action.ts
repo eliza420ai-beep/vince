@@ -7,6 +7,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -80,7 +81,7 @@ export const elizaPackageInsightAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ) => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text ?? "";
     const format = detectFormat(text);
     const topic = extractTopic(text);
@@ -121,12 +122,14 @@ export const elizaPackageInsightAction: Action = {
         text: response,
         actions: ["ELIZA_PACKAGE_INSIGHT"],
       });
+      return undefined;
     } catch (e) {
       logger.error(`[PackageInsight] Error: ${e}`);
       await callback({
         text: `Error packaging insight: ${e instanceof Error ? e.message : String(e)}`,
         actions: ["REPLY"],
       });
+      return undefined;
     }
   },
 

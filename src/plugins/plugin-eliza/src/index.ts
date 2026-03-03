@@ -39,7 +39,12 @@
  * Eliza uses plugin-inter-agent separately for ASK_AGENT.
  */
 
-import type { Plugin, IAgentRuntime } from "@elizaos/core";
+import type {
+  Plugin,
+  IAgentRuntime,
+  RouteRequest,
+  RouteResponse,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { handleUploadRequest } from "./routes/uploadRoute";
 
@@ -137,18 +142,16 @@ export const elizaPlugin: Plugin = {
       path: "/eliza/upload",
       type: "POST",
       handler: async (
-        req: { body?: unknown; [k: string]: unknown },
-        res: {
-          status: (n: number) => { json: (o: object) => void };
-          json: (o: object) => void;
-        },
-        runtime?: IAgentRuntime,
+        req: RouteRequest,
+        res: RouteResponse,
+        runtime: IAgentRuntime,
       ) => {
-        const agentRuntime =
+        const reqAny = req as unknown as Record<string, unknown>;
+        const agentRuntime: IAgentRuntime | undefined =
           runtime ??
-          (req as any).runtime ??
-          (req as any).agentRuntime ??
-          (req as any).agent?.runtime;
+          reqAny.runtime ??
+          reqAny.agentRuntime ??
+          (reqAny.agent as { runtime?: IAgentRuntime })?.runtime;
         if (!agentRuntime) {
           res.status(503).json({
             error: "Upload requires agent context",
@@ -182,11 +185,9 @@ export const elizaPlugin: Plugin = {
       path: "/eliza/substack",
       type: "GET",
       handler: async (
-        _req: { body?: unknown; [k: string]: unknown },
-        res: {
-          status: (n: number) => { json: (o: object) => void };
-          json: (o: object) => void;
-        },
+        _req: RouteRequest,
+        res: RouteResponse,
+        _runtime: IAgentRuntime,
       ) => {
         try {
           const feedUrl = getSubstackFeedUrl();

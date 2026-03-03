@@ -45,14 +45,15 @@ export const getTopHoldersAction: Action = {
   description:
     "Get top holders (major participants) in a Polymarket prediction market. Shows largest positions by wallet.",
 
-  parameters: {
-    conditionId: {
-      type: "string",
+  parameters: [
+    {
+      name: "conditionId",
       description:
         "Market condition ID (hex string starting with 0x) to check top holders for",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

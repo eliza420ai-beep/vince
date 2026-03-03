@@ -28,6 +28,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -615,7 +616,7 @@ export const vinceBotAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.info("[VINCE_BOT_TRADE] Evaluating hybrid strategy for BTC...");
 

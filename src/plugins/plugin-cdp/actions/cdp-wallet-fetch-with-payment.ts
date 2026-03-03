@@ -132,37 +132,42 @@ export const cdpWalletFetchWithPayment: Action = {
   description:
     "Makes HTTP requests with automatic x402 payment handling. If the endpoint returns 402 Payment Required, automatically completes the payment flow with USDC on Base. If the endpoint doesn't require payment, works like a regular HTTP request. Use this when you suspect an API might require payment or when explicitly requested to use paid endpoints. Supports GET and POST methods with optional headers and body.",
 
-  parameters: {
-    url: {
-      type: "string",
+  parameters: [
+    {
+      name: "url",
       description:
         "The URL of the API endpoint to request (x402-enabled endpoints will trigger automatic payment)",
       required: true,
+      schema: { type: "string" },
     },
-    method: {
-      type: "string",
+    {
+      name: "method",
       description:
         "HTTP method for the request. Must be either 'GET' or 'POST'. Defaults to 'GET'.",
       required: false,
+      schema: { type: "string" },
     },
-    headers: {
-      type: "object",
+    {
+      name: "headers",
       description:
         "Optional HTTP headers to include in the request (as key-value pairs)",
       required: false,
+      schema: { type: "object" },
     },
-    body: {
-      type: "string",
+    {
+      name: "body",
       description: "Optional request body for POST requests (JSON string)",
       required: false,
+      schema: { type: "string" },
     },
-    maxPayment: {
-      type: "number",
+    {
+      name: "maxPayment",
       description:
         "Maximum payment amount in USDC to authorize for this request. Defaults to 1.0 USDC.",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpService(
@@ -434,7 +439,7 @@ export const cdpWalletFetchWithPayment: Action = {
 
       callback?.({
         text,
-        content: data,
+        content: data as import("@elizaos/core").ContentValue,
       });
 
       return {

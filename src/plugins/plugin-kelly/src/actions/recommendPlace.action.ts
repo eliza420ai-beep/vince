@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -170,7 +171,7 @@ export const kellyRecommendPlaceAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_PLACE] Action fired");
     try {
       const placeType = detectPlaceType(message.content?.text ?? "");

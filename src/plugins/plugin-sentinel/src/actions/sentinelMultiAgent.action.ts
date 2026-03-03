@@ -86,7 +86,7 @@ export const sentinelMultiAgentAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_MULTI_AGENT] Action fired");
 
     try {

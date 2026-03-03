@@ -85,30 +85,34 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
     "CROSS_CHAIN_BRIDGE",
   ],
 
-  parameters: {
-    token: {
-      type: "string",
+  parameters: [
+    {
+      name: "token",
       description:
         "Token symbol or address to bridge (e.g., 'usdc', 'link', 'weth', 'wbtc', 'dai'). Must be CCIP-supported on both source and destination chains. Common CCIP tokens: USDC, LINK, WETH, WBTC, DAI.",
       required: true,
+      schema: { type: "string" },
     },
-    srcChain: {
-      type: "string",
+    {
+      name: "srcChain",
       description: "Source chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    dstChain: {
-      type: "string",
+    {
+      name: "dstChain",
       description: "Destination chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    amount: {
-      type: "string",
+    {
+      name: "amount",
       description:
         "Amount to bridge in human-readable format (e.g., '100' for 100 USDC, not in wei)",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateBiconomyService(runtime, "MEE_CCIP_BRIDGE", state, message);

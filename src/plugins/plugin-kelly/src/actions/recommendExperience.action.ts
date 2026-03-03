@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -77,7 +78,7 @@ export const kellyRecommendExperienceAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_EXPERIENCE] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();

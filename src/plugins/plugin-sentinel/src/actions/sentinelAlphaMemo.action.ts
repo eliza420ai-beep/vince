@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -150,7 +151,7 @@ export const sentinelAlphaMemoAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_ALPHA_MEMO] Building weekly alpha memo");
 
     const eliza = getElizaOS(runtime);

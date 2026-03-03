@@ -241,19 +241,23 @@ export const recentMessagesProvider: Provider = {
       }
 
       // Separate action results from regular messages
-      const actionResultMessages = recentMessagesData.filter(
-        (msg) =>
-          msg.content?.type === "action_result" &&
-          msg.metadata?.type === "action_result",
-      );
+      const actionResultMessages = recentMessagesData.filter((msg) => {
+        const content = msg.content as unknown as Record<string, unknown>;
+        const meta = msg.metadata as unknown as Record<string, unknown>;
+        return (
+          String(content?.type) === "action_result" &&
+          String(meta?.type) === "action_result"
+        );
+      });
 
-      const dialogueMessages = recentMessagesData.filter(
-        (msg) =>
-          !(
-            msg.content?.type === "action_result" &&
-            msg.metadata?.type === "action_result"
-          ),
-      );
+      const dialogueMessages = recentMessagesData.filter((msg) => {
+        const content = msg.content as unknown as Record<string, unknown>;
+        const meta = msg.metadata as unknown as Record<string, unknown>;
+        return !(
+          String(content?.type) === "action_result" &&
+          String(meta?.type) === "action_result"
+        );
+      });
 
       // Default to message format if room is not found or type is undefined
       const isPostFormat = room?.type
@@ -487,7 +491,7 @@ export const recentMessagesProvider: Provider = {
           let sender: string;
 
           if (isSelf) {
-            sender = runtime.character.name;
+            sender = runtime.character.name ?? "";
           } else {
             sender =
               (interactionEntityMap.get(message.entityId)?.metadata

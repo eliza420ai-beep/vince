@@ -41,14 +41,15 @@ export const getMarketPriceAction: Action = {
   description:
     "Get real-time pricing and odds for a specific Polymarket prediction market. Shows current YES/NO prices and spread.",
 
-  parameters: {
-    conditionId: {
-      type: "string",
+  parameters: [
+    {
+      name: "conditionId",
       description:
         "Market condition ID (66-character hex string starting with 0x)",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {

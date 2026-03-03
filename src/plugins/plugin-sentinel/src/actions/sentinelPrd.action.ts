@@ -80,7 +80,7 @@ export const sentinelPrdAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_PRD] Action fired");
 
     try {

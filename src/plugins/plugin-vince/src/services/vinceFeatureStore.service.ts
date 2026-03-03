@@ -17,7 +17,12 @@
  * - Take-profit targeting
  */
 
-import { Service, type IAgentRuntime, logger } from "@elizaos/core";
+import {
+  Service,
+  type IAgentRuntime,
+  type Metadata,
+  logger,
+} from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -477,7 +482,7 @@ export class VinceFeatureStoreService extends Service {
   capabilityDescription = "Collects trading features for ML training";
 
   /** ElizaOS Service base expects public config; keep for type compatibility */
-  public override config: Record<string, unknown> = {};
+  public override config?: Metadata = {};
   /** Feature store options (dataDir, flushInterval, etc.) */
   private storeConfig: FeatureStoreConfig;
   private records: FeatureRecord[] = [];

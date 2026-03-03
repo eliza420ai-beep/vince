@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -49,7 +50,7 @@ export const kellyWeekAheadAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_WEEK_AHEAD] Action fired");
     try {
       const service = runtime.getService(
@@ -126,12 +127,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
         text: out,
         actions: ["KELLY_WEEK_AHEAD"],
       });
+      return undefined;
     } catch (error) {
       logger.error("[KELLY_WEEK_AHEAD] Error:", error);
       await callback({
         text: "Week picks are glitching. Check the-good-life and curated-open-schedule for dining by day and hotels this season.",
         actions: ["REPLY"],
       });
+      return undefined;
     }
   },
 

@@ -17,6 +17,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -337,7 +338,7 @@ export const vinceHIP3Action: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       // Get VinceHIP3Service (local service, no external dependency)
       const hip3Service = runtime.getService(

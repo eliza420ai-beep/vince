@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -56,7 +57,7 @@ export const closeRecommendationAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content.text?.trim() || "";
     const parsed = parseCloseCommand(text);
     if (!parsed) {

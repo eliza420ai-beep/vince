@@ -7,6 +7,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -284,7 +285,7 @@ TRIGGERS:
     state?: State,
     options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.info("[KNOWLEDGE_STATUS] Analyzing knowledge base...");
 
@@ -298,6 +299,7 @@ TRIGGERS:
           actions: ["KNOWLEDGE_STATUS"],
         });
       }
+      return undefined;
     } catch (error) {
       logger.error({ error }, "[KNOWLEDGE_STATUS] Error");
       if (callback) {
@@ -306,6 +308,7 @@ TRIGGERS:
           actions: ["KNOWLEDGE_STATUS"],
         });
       }
+      return undefined;
     }
   },
 

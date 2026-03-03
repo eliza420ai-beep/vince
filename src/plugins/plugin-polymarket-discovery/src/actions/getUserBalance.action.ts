@@ -46,13 +46,14 @@ export const getUserBalanceAction: Action = {
   description:
     "Get user's USDC balance and total portfolio value on Polymarket. Shows available balance, positions value, and profit/loss.",
 
-  parameters: {
-    walletAddress: {
-      type: "string",
+  parameters: [
+    {
+      name: "walletAddress",
       description: "Wallet address (EOA or proxy) to check balance for",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

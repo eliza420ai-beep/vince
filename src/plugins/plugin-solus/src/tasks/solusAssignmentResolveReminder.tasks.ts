@@ -4,7 +4,7 @@
  * with "we got assigned on BTC" or "we didn't get assigned on HYPE" so Brier stays populated.
  */
 
-import type { IAgentRuntime, UUID } from "@elizaos/core";
+import type { IAgentRuntime, TargetInfo, UUID } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import {
   getOpenPredictions,
@@ -98,7 +98,9 @@ async function pushToSolusChannels(
   let sent = 0;
   for (const target of targets) {
     try {
-      await runtime.sendMessageToTarget(target, { text: message });
+      await runtime.sendMessageToTarget(target as TargetInfo, {
+        text: message,
+      });
       sent++;
     } catch (e) {
       if (!isNoSendHandler(e))

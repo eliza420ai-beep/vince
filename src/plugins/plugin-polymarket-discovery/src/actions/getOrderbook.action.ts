@@ -46,20 +46,22 @@ export const getOrderbookAction: Action = {
   description:
     "Get orderbook depth (bids/asks) for a Polymarket outcome token. IMPORTANT: Requires token_id (NOT condition_id). Get token_id from SEARCH_POLYMARKETS (yes_token_id/no_token_id fields) or GET_POLYMARKET_DETAIL (tokens.yes_token_id/tokens.no_token_id). Each market has TWO tokens: YES and NO - use the one you want orderbook for.",
 
-  parameters: {
-    token_id: {
-      type: "string",
+  parameters: [
+    {
+      name: "token_id",
       description:
         "The ERC1155 token ID for YES or NO outcome. This is a large numeric string (e.g., '15974786252393396629980467963784550802583781222733347534844974829144359265969'). Get this from SEARCH_POLYMARKETS or GET_POLYMARKET_DETAIL. This is different from condition_id!",
       required: true,
+      schema: { type: "string" },
     },
-    side: {
-      type: "string",
+    {
+      name: "side",
       description:
         "Optional: Filter to BUY or SELL side only. BUY shows buyers, SELL shows sellers.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

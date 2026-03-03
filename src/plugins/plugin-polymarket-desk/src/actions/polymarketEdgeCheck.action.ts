@@ -46,23 +46,28 @@ export const polymarketEdgeCheckAction: Action = {
   description:
     "Compare Synth (or other) forecast probability to Polymarket price for a market. When edge (forecast minus market price) is above the threshold in basis points, emit a structured signal for the Risk agent. Requires condition_id and optional asset (e.g. BTC for Synth). No trading execution.",
 
-  parameters: {
-    condition_id: {
-      type: "string",
+  parameters: [
+    {
+      name: "condition_id",
       description: "Polymarket condition_id for the market",
       required: true,
+      schema: { type: "string" },
     },
-    asset: {
-      type: "string",
+    {
+      name: "asset",
       description:
         "Asset for Synth forecast (e.g. BTC, ETH, SOL). Default BTC.",
+      required: false,
+      schema: { type: "string" },
     },
-    edge_threshold_bps: {
-      type: "number",
+    {
+      name: "edge_threshold_bps",
       description:
         "Minimum edge in basis points to emit a signal. Default 200.",
+      required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     const service = runtime.getService(POLYMARKET_SERVICE_TYPE);

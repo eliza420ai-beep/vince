@@ -18,6 +18,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -182,7 +183,7 @@ export const vinceIntelAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const text = message.content.text?.toLowerCase() || "";
 

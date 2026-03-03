@@ -13,6 +13,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -183,7 +184,7 @@ export const vinceNewsAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const newsService = runtime.getService(
         "VINCE_NEWS_SENTIMENT_SERVICE",

@@ -8,6 +8,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -201,7 +202,7 @@ export const vinceHlCryptoAction: Action = {
     _state: State,
     _options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const hlService = getOrCreateHyperliquidService(
         runtime,

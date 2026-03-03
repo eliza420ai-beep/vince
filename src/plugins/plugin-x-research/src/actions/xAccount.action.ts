@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -122,9 +123,9 @@ export const xAccountAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -134,7 +135,7 @@ export const xAccountAction: Action = {
       const usernameMatch = messageText.match(/@(\w+)/);
 
       if (!usernameMatch) {
-        callback({
+        callback?.({
           text: "I need a username to analyze. Example: `Who is @crediblecrypto?`",
           action: "X_ACCOUNT",
         });
@@ -148,7 +149,7 @@ export const xAccountAction: Action = {
       const analysis = await accountsService.analyzeAccount(username);
 
       if (!analysis) {
-        callback({
+        callback?.({
           text: `Couldn't find or analyze @${username}. The account might not exist or be protected.`,
           action: "X_ACCOUNT",
         });
@@ -226,7 +227,7 @@ export const xAccountAction: Action = {
         text = structuredResponse + costFooter;
       }
 
-      callback({
+      callback?.({
         text,
         action: "X_ACCOUNT",
       });
@@ -234,7 +235,7 @@ export const xAccountAction: Action = {
       console.error("[X_ACCOUNT] Error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      callback({
+      callback?.({
         text: `👤 **Account Analysis**\n\n❌ Error: ${errorMessage}`,
         action: "X_ACCOUNT",
       });

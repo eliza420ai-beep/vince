@@ -203,6 +203,7 @@ export const vincePlugin: Plugin = {
   // runtime.getService() never returns null when external plugins aren't loaded. Must be in services
   // array (not init registerService) to avoid blocking initPromise → 30s timeout deadlock.
   // Cast via unknown: start() returns fallback impls (IDeribitService/IHyperliquidService), not Service subclass.
+  // Plugin.services expects ServiceClass[]; Service is abstract so we cast the array.
   services: [
     DeribitServiceAlias as unknown as typeof Service,
     HyperliquidServiceAlias as unknown as typeof Service,
@@ -263,7 +264,7 @@ export const vincePlugin: Plugin = {
     PredictionTrackerService,
     VinceSwarmInsightsService,
     VinceSwarmOrchestratorService,
-  ],
+  ] as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
 
   // Actions - focus areas + paper trading bot controls
   actions: [
@@ -1306,12 +1307,12 @@ export const vincePluginNoX: Plugin = {
   description:
     vincePlugin.description +
     " No X API or Binance WS (Solus). For X/CT research use Echo; VINCE uses X only as sentiment data for the paper bot when enabled.",
-  services: (vincePlugin.services as (typeof Service)[]).filter(
+  services: (vincePlugin.services as unknown as (typeof Service)[]).filter(
     (s) =>
       s !== VinceXResearchService &&
       s !== VinceXSentimentService &&
       s !== VinceBinanceLiquidationService,
-  ),
+  ) as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
   actions: vincePlugin.actions!.filter((a) => a.name !== "VINCE_X_RESEARCH"),
 };
 

@@ -29,24 +29,27 @@ export const getYieldHistoryAction: Action = {
     "Use this action to fetch historical yield (APY) data and trends for a specific DeFi pool. Requires protocol, token, and optionally chain to identify the pool.",
 
   // Parameter schema for tool calling
-  parameters: {
-    protocol: {
-      type: "string",
+  parameters: [
+    {
+      name: "protocol",
       description: "DeFi protocol name (e.g., 'Aave', 'Morpho', 'Compound')",
       required: true,
+      schema: { type: "string" },
     },
-    token: {
-      type: "string",
+    {
+      name: "token",
       description: "Token symbol (e.g., 'USDC', 'ETH', 'DAI')",
       required: true,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain name (e.g., 'Ethereum', 'Base', 'Arbitrum'). Optional.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

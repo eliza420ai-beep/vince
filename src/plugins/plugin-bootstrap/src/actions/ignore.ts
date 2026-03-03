@@ -1,6 +1,7 @@
 import type {
   Action,
   ActionExample,
+  ActionResult,
   IAgentRuntime,
   Memory,
   HandlerCallback,
@@ -43,16 +44,16 @@ export const ignoreAction: Action = {
     _message: Memory,
     _state: State,
     _options: any,
-    callback: HandlerCallback,
+    callback?: HandlerCallback,
     responses?: Memory[],
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     // If a callback and the agent's response content are available, call the callback
     if (callback && responses?.[0]?.content) {
       // Pass the agent's original response content (thought, IGNORE action, etc.)
       await callback(responses[0].content);
     }
     // The IGNORE action doesn't need to return an ActionResult as it's a terminal action
-    // This demonstrates backward compatibility - actions can still return void
+    return undefined;
   },
   examples: [
     [

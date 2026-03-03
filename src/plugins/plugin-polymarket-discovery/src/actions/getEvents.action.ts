@@ -45,23 +45,26 @@ export const getEventsAction: Action = {
   description:
     "Browse prediction events from Polymarket. Events are higher-level groupings that contain multiple related markets (e.g., '2024 US Election' contains markets for different races).",
 
-  parameters: {
-    active: {
-      type: "boolean",
+  parameters: [
+    {
+      name: "active",
       description: "Filter by active status (default: true)",
       required: false,
+      schema: { type: "boolean" },
     },
-    tag: {
-      type: "string",
+    {
+      name: "tag",
       description: "Filter by event tag (e.g., 'politics', 'sports')",
       required: false,
+      schema: { type: "string" },
     },
-    limit: {
-      type: "number",
+    {
+      name: "limit",
       description: "Maximum number of events to return (default: 20, max: 50)",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

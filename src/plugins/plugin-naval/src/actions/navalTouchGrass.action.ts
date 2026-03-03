@@ -78,7 +78,7 @@ export const navalTouchGrassAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_TOUCH_GRASS] Action fired");
     try {
       const state = await runtime.composeState(message);

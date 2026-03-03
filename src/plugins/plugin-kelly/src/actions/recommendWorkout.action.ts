@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -48,7 +49,7 @@ export const kellyRecommendWorkoutAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_WORKOUT] Action fired");
     try {
       const service = runtime.getService(
@@ -100,12 +101,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
         text: out,
         actions: ["KELLY_RECOMMEND_WORKOUT"],
       });
+      return undefined;
     } catch (error) {
       logger.error("[KELLY_RECOMMEND_WORKOUT] Error:", error);
       await callback({
         text: "Workout suggestion’s glitching. In gym season try a gym or mobility session; in pool season, pool or surfer yoga. See the-good-life for yoga and swimming notes.",
         actions: ["REPLY"],
       });
+      return undefined;
     }
   },
 

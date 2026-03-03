@@ -34,7 +34,7 @@ export const getMarketCategoriesAction: Action = {
   description:
     "Get a list of all available market categories on Polymarket (e.g., crypto, politics, sports). Useful for browsing markets by topic.",
 
-  parameters: {},
+  parameters: [],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {

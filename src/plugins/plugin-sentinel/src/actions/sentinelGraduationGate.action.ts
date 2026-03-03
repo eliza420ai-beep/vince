@@ -515,7 +515,7 @@ export const sentinelGraduationGateAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_GRADUATION_GATE] Action fired");
 
     try {

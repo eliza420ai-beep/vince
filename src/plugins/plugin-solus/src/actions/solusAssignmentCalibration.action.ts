@@ -113,7 +113,7 @@ export const solusAssignmentCalibrationAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const text = (message.content?.text ?? "").trim();
     const lower = text.toLowerCase();
 

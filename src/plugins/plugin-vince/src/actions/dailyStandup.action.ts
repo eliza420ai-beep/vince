@@ -10,6 +10,7 @@
 
 import type {
   Action,
+  ActionResult,
   HandlerCallback,
   IAgentRuntime,
   Memory,
@@ -391,7 +392,7 @@ export const vinceDailyStandupAction: Action = {
     state: State,
     options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const time = now.toLocaleTimeString("en-US", {
@@ -455,12 +456,14 @@ export const vinceDailyStandupAction: Action = {
       });
 
       logger.info("[VINCE_DAILY_STANDUP] Standup complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_DAILY_STANDUP] Error: ${error}`);
       await callback({
         text: "Unable to generate daily standup summary. Services may be temporarily unavailable.",
         actions: ["VINCE_DAILY_STANDUP"],
       });
+      return undefined;
     }
   },
 

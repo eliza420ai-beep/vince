@@ -64,7 +64,7 @@ export const erc8004ReputationAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const erc8004 = runtime.getService("erc8004") as unknown as ERC8004Service;
 
     if (!erc8004) {

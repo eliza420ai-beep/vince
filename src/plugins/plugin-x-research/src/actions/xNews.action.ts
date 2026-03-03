@@ -175,9 +175,9 @@ export const xNewsAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<ActionResult | void> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -192,10 +192,10 @@ export const xNewsAction: Action = {
           const liveLine = await getLivePriceLine();
           const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
           if (message.roomId) setLastResearch(message.roomId, text);
-          callback({ text, action: "X_NEWS" });
+          callback?.({ text, action: "X_NEWS" });
           return { success: true };
         }
-        callback({
+        callback?.({
           text: "📰 **X News**\n\nNo crypto news found. The News API might not have recent stories or is rate limited.",
           action: "X_NEWS",
         });
@@ -260,7 +260,7 @@ export const xNewsAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
-      callback({
+      callback?.({
         text: response,
         action: "X_NEWS",
       });
@@ -280,17 +280,17 @@ export const xNewsAction: Action = {
       if (fallback) {
         const liveLine = await getLivePriceLine();
         const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
-        callback({ text, action: "X_NEWS" });
+        callback?.({ text, action: "X_NEWS" });
         return { success: true };
       }
 
       if (isNewsApiUnavailable) {
-        callback({
+        callback?.({
           text: "📰 **X News**\n\n⚠️ X News API is not available. This endpoint may require specific API access or isn't enabled for your account.",
           action: "X_NEWS",
         });
       } else {
-        callback({
+        callback?.({
           text: `📰 **X News**\n\n❌ Error: ${errorMessage}`,
           action: "X_NEWS",
         });

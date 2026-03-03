@@ -147,38 +147,43 @@ export const cdpWalletSwap: Action = {
     "Use this action when you need to swap tokens from user's wallet. Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. POL is never the native gas token on Base/Ethereum (POL ERC20 exists on Ethereum but is not a native gas token). Treat 'ETH' on Polygon as 'WETH'.",
 
   // Parameter schema for tool calling
-  parameters: {
-    fromToken: {
-      type: "string",
+  parameters: [
+    {
+      name: "fromToken",
       description:
         "Source token symbol or address to swap from (e.g., 'USDC', 'ETH', or '0x...'). On Polygon, the native gas token is POL ($POL, formerly MATIC). If 'ETH' is specified for Polygon, interpret it as 'WETH'.",
       required: true,
+      schema: { type: "string" },
     },
-    toToken: {
-      type: "string",
+    {
+      name: "toToken",
       description:
         "Destination token symbol or address to swap to (e.g., 'ETH', 'USDC', or '0x...'). On Polygon, the native gas token is POL ($POL, formerly MATIC). If 'ETH' is specified for Polygon, interpret it as 'WETH'.",
       required: true,
+      schema: { type: "string" },
     },
-    amount: {
-      type: "string",
+    {
+      name: "amount",
       description:
         "Specific token amount to swap (e.g., '100' means 100 ETH tokens, NOT USD value). If user specifies USD value like '$50 worth of ETH', you must first get the current price and calculate the equivalent token amount. Use this OR percentage, not both.",
       required: false,
+      schema: { type: "string" },
     },
-    percentage: {
-      type: "number",
+    {
+      name: "percentage",
       description:
         "Percentage of balance to swap (0-100). Use this OR amount, not both. For 'all'/'max' use 100, for 'half' use 50.",
       required: false,
+      schema: { type: "number" },
     },
-    network: {
-      type: "string",
+    {
+      name: "network",
       description:
         "Network to execute swap on: 'base', 'ethereum', or 'arbitrum' (default: 'base')",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpService(_runtime, "USER_WALLET_SWAP", state, message);

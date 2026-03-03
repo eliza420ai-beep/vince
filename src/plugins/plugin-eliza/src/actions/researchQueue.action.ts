@@ -10,6 +10,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -190,7 +191,7 @@ Use this to batch up content for later ingestion.`,
     state?: State,
     options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text || "";
     const lower = text.toLowerCase();
 

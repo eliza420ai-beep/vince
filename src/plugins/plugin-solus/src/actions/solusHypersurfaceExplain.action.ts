@@ -57,7 +57,7 @@ export const solusHypersurfaceExplainAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SOLUS_HYPERSURFACE_EXPLAIN] Action fired");
     try {
       const state = await runtime.composeState(message);

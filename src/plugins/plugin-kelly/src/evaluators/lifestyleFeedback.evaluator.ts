@@ -5,7 +5,13 @@
  * extract it and store as a fact so Kelly can use it in future recommendations.
  */
 
-import type { Evaluator, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type {
+  ActionResult,
+  Evaluator,
+  IAgentRuntime,
+  Memory,
+  State,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 
 const FEEDBACK_SIGNALS = [
@@ -106,9 +112,9 @@ async function handler(
   runtime: IAgentRuntime,
   message: Memory,
   _state?: State,
-): Promise<void> {
+): Promise<ActionResult | undefined> {
   const { agentId, roomId } = message;
-  if (!agentId || !roomId) return;
+  if (!agentId || !roomId) return undefined;
 
   const messages = await runtime.getMemories({
     tableName: "messages",
@@ -150,11 +156,11 @@ Output only the JSON object, no other text.`;
 
     if (parsed.sentiment === "neutral" && !parsed.placeName && !parsed.reason) {
       logger.debug("[LifestyleFeedback] No extractable feedback");
-      return;
+      return undefined;
     }
 
     const factText = formatFact(parsed);
-    if (!factText) return;
+    if (!factText) return undefined;
 
     const tags = getTags(parsed);
     const memory = {
@@ -178,8 +184,10 @@ Output only the JSON object, no other text.`;
       .catch(() => {});
 
     logger.info(`[LifestyleFeedback] Stored fact: ${factText}`);
+    return undefined;
   } catch (e) {
     logger.debug(`[LifestyleFeedback] Extract or store failed: ${e}`);
+    return undefined;
   }
 }
 

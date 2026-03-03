@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -155,7 +156,7 @@ export const kellyRecommendCreativeAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_CREATIVE] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();
@@ -210,12 +211,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       });
 
       logger.info("[KELLY_RECOMMEND_CREATIVE] Recommendation sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_RECOMMEND_CREATIVE] Error: ${error}`);
       await callback({
         text: "Creative tip failed. Try asking about a specific area — painting, photography, Ableton, Blackmagic, or Blender.",
         actions: ["KELLY_RECOMMEND_CREATIVE"],
       });
+      return undefined;
     }
   },
 

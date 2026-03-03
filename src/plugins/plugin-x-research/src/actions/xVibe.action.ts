@@ -89,8 +89,8 @@ export const xVibeAction: Action = {
     message: Memory,
     state: State,
     _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -111,7 +111,7 @@ export const xVibeAction: Action = {
       }
 
       if (!detectedTopic) {
-        callback({
+        callback?.({
           text: "I couldn't identify the topic. Try asking about BTC, ETH, SOL, or other crypto topics.",
           action: "X_VIBE",
         });
@@ -133,7 +133,7 @@ export const xVibeAction: Action = {
       });
 
       if (tweets.length === 0) {
-        callback({
+        callback?.({
           text: `📊 **${detectedTopic.name} Vibe Check**\n\nNo recent tweets found. X API might be rate limited.`,
           action: "X_VIBE",
         });
@@ -147,7 +147,7 @@ export const xVibeAction: Action = {
       );
 
       if (!topicSentiment) {
-        callback({
+        callback?.({
           text: `📊 **${detectedTopic.name} Vibe Check**\n\nNot enough data to determine sentiment.`,
           action: "X_VIBE",
         });
@@ -227,7 +227,7 @@ export const xVibeAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
-      callback({
+      callback?.({
         text: stripPriceBlockFromEchoResponse(response),
         action: "X_VIBE",
       });
@@ -236,7 +236,7 @@ export const xVibeAction: Action = {
     } catch (error) {
       logger.warn({ err: error }, "[X_VIBE] X API error");
       const friendly = getFriendlyXErrorMessage(error);
-      callback({
+      callback?.({
         text: `📊 **Vibe Check**\n\n⚠️ ${friendly}`,
         action: "X_VIBE",
       });
