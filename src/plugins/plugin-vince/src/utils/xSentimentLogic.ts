@@ -216,7 +216,16 @@ export function computeSentimentFromTweets(
       tweets.length / 25 +
       (tweets.length >= minTweets && Math.abs(avgSentiment) > 0.2 ? 0.08 : 0),
   );
-  const confidence = Math.round(Math.min(100, strength * 70));
+  let confidence = Math.round(Math.min(100, strength * 70));
+  // Cap confidence when tweet count is low to avoid overconfident signal from thin data
+  const LOW_TWEET_CAP_THRESHOLD = 10;
+  const LOW_TWEET_CAP_MAX = 55;
+  if (
+    tweets.length < LOW_TWEET_CAP_THRESHOLD &&
+    confidence > LOW_TWEET_CAP_MAX
+  ) {
+    confidence = LOW_TWEET_CAP_MAX;
+  }
 
   let isContrarian = false;
   let contrarianNote: string | undefined;

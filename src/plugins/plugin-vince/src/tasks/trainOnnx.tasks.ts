@@ -172,9 +172,10 @@ export const registerTrainOnnxTask = async (
         }
 
         const completeCount = await featureStore.getCompleteRecordCount(365);
+        const avoidedCount = await featureStore.getAvoidedRecordCount(365);
         if (completeCount < MIN_COMPLETE_RECORDS) {
           logger.info(
-            `[TrainONNX] Skipping: ${completeCount} complete trades (need ${MIN_COMPLETE_RECORDS}+). Keep paper trading to collect more.`,
+            `[TrainONNX] Feature store: ${completeCount} closed, ${avoidedCount} avoided (need ${MIN_COMPLETE_RECORDS}+ closed for training). Keep paper trading to collect more.`,
           );
           return;
         }
@@ -207,7 +208,7 @@ export const registerTrainOnnxTask = async (
         }
 
         logger.info(
-          `[TrainONNX] Starting training (${completeCount} complete records, min ${MIN_SAMPLES_ARG})...`,
+          `[TrainONNX] Feature store: ${completeCount} closed, ${avoidedCount} avoided. Starting training (min ${MIN_SAMPLES_ARG})...`,
         );
         const result = await runTrainingScript();
         if (!result.success && result.stderr) {

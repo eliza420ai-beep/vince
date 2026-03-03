@@ -1103,6 +1103,12 @@ export class VinceFeatureStoreService extends Service {
     }
   }
 
+  /**
+   * Collects market features for the feature record. All keys here are flattened by
+   * train_models.py load_features() as market_* (e.g. market_dvol, market_fundingDelta,
+   * market_bookImbalance, market_bidAskSpread, market_priceVsSma20, market_rsi14,
+   * market_oiChange24h). Optional columns in OPTIONAL_FEATURE_COLUMNS are used when present.
+   */
   private async collectMarketFeatures(asset: string): Promise<MarketFeatures> {
     const marketDataService = this.runtime.getService(
       "VINCE_MARKET_DATA_SERVICE",
@@ -1960,6 +1966,15 @@ export class VinceFeatureStoreService extends Service {
   async getCompleteRecordCount(daysBack: number = 365): Promise<number> {
     const records = await this.loadRecords(daysBack);
     return records.filter((r) => r.outcome && r.labels).length;
+  }
+
+  /**
+   * Count records with avoided set (e.g. no-trade evaluations) in the last daysBack days.
+   * Used for "enough data" visibility (e.g. log "N closed, M avoided").
+   */
+  async getAvoidedRecordCount(daysBack: number = 365): Promise<number> {
+    const records = await this.loadRecords(daysBack);
+    return records.filter((r) => r.avoided != null).length;
   }
 
   /**

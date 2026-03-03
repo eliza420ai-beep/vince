@@ -38,11 +38,11 @@ Training script now includes `market_dvol`, `market_rsi14`, `market_oiChange24h`
 
 ## Data still 0% or low % (optional next steps)
 
-| Factor                 | Feature store field                  | How to add                                                                                              |
-| ---------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| NASDAQ 24h change      | `news.nasdaqChange`                  | Add macro/equity data source; set in `collectNewsFeatures()`.                                           |
-| ETF flow (BTC/ETH)     | `news.etfFlowBtc`, `news.etfFlowEth` | **Wired:** NewsSentiment `getEtfFlowNumeric()` → -1/0/1 from headlines; set in `collectNewsFeatures()`. |
-| Macro risk environment | `news.macroRiskEnvironment`          | risk_on / risk_off / neutral from same macro source.                                                    |
+| Factor                 | Feature store field                  | How to add                                                                                                                                                                                                                                                |
+| ---------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NASDAQ 24h change      | `news.nasdaqChange`                  | Add macro/equity data source; set in `collectNewsFeatures()`.                                                                                                                                                                                             |
+| ETF flow (BTC/ETH)     | `news.etfFlowBtc`, `news.etfFlowEth` | **Wired:** NewsSentiment `getEtfFlowNumeric()` → -1/0/1 from headlines; set in `collectNewsFeatures()`. If a numeric flow API (millions USD) is added later, extend `getEtfFlowNumeric()` to return real flow and keep headline-based -1/0/1 as fallback. |
+| Macro risk environment | `news.macroRiskEnvironment`          | risk_on / risk_off / neutral from same macro source.                                                                                                                                                                                                      |
 
 ---
 

@@ -162,13 +162,25 @@ One month after closing the One Dream PRD, the swarm got a **paper-traded brain 
 | Agents wired for swarm votes | 10 (VINCE always on; others flag-gated) |
 | Test coverage | Unit + integration (swarm core, orchestrator, paper bot, dashboard, WHY_THIS_TRADE) |
 
+Phase 13 gives the system a **shared bandit and consensus gate**; the **recursive + ML proof** (paper bot and Solus improving from their own outcomes) and **data/content priorities** (X, Polymarket, Eliza Substack/tweets) are in **What's next** below.
+
 ### How the 12 phases became the paper bot and ML loop
 
-The 80 tasks across 12 phases produced the **paper trading algo** (signals → aggregator with ML quality → evaluateAndTrade gates → open/skip → position management → close → feature store) and the **ML pipeline** (feature store → train_models.py → ONNX + improvement report + Sentinel tasks → ML inference and suggested thresholds back into the bot). Phases 2–5 and 12 are where this lives in code: Phase 2 (sentiment gate, post-mortems), Phase 5 (genome, counterfactual, improvement-report weights), Phase 12 (policy engine in the trade path). Phase 10 is the bridge from paper to live (readiness, capital pilot). Full algo and pipeline: [PRD: Paper Trading Algo and How ML Improves It](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md), [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md).
+The 80 tasks across 12 phases produced the **paper trading algo** (signals → aggregator with ML quality → evaluateAndTrade gates → open/skip → position management → close → feature store) and the **ML pipeline** (feature store → train_models.py → ONNX + improvement report + Sentinel tasks → ML inference and suggested thresholds back into the bot). Phases 2–5 and 12 are where this lives in code: Phase 2 (sentiment gate, post-mortems), Phase 5 (genome, counterfactual, improvement-report weights), Phase 12 (policy engine in the trade path). Phase 10 is the bridge from paper to live (readiness, capital pilot). **What we're proving:** (1) the paper bot on Hyperliquid perps is **recursive**—it improves from its own trades via ONNX and improvement weights—and (2) **Solus** on Hypersurface options has the same pattern (calibration context + TRAIN_SOLUS_CALIBRATION_WHEN_READY → ML-calibrated P(assign)), so both the left curve (perps) and the right curve (options) get better over time. Full algo and pipeline: [PRD: Paper Trading Algo and How ML Improves It](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md), [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md). Proof doc: [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md).
 
 ### What's next
 
-Phase 7 is heads-down compounding: more historical depth for calibration, tighter Brier distributions, and stricter promotion gates so the system gets harder to kill each cycle.
+We're proving three things and lifting two ceilings:
+
+**1. Paper bot (Hyperliquid perps) is recursive and ML works.** The loop is already in code: trades → feature store → `TRAIN_ONNX_WHEN_READY` → new ONNX + suggested thresholds/weights → next cycle uses them. Proof: holdout metrics in `training_metadata.json`, `validate_ml_improvement.py` on historical data, and the autopilot trail (task logs, improvement report). Next step: run long enough and report that **recursive improvement is measurable** (e.g. win rate or Sharpe on a fixed holdout window improves after N training cycles).
+
+**2. Solus (Hypersurface options) has a recursive loop and ML.** Solus already has **SOLUS_CALIBRATION_CONTEXT** (Brier + last 10 outcomes in every strike prompt), **SOLUS_UPDATE_CALIBRATION_NOTES** (daily Brier-by-asset/IV), and **TRAIN_SOLUS_CALIBRATION_WHEN_READY** (50+ resolved rows → train → `assignment_calibrator.onnx` → ML-calibrated P(assign)). So Solus gets better over time for onchain options the same way the paper bot does for perps. Next step: **prove** that Solus ML improves strike quality (e.g. Brier or assignment accuracy over time) and that the recursive loop is documented and visible.
+
+**3. Enough data for both loops?** The paper bot needs enough closed trades and rich features (funding deltas, DVOL, ETF flow, WTT rubric, etc.) for ONNX to generalize. Solus needs enough resolved assignment predictions (50+ for first training, more for stability). Open question: **do we have enough data** for the paper bot and Solus to be "as good as it gets" for HL perps and onchain options, or do we need more history, more assets, or more feature coverage? This drives feature-store expansion and Solus resolve discipline.
+
+**4. X and Polymarket insights are not yet good enough.** We use X (ECHO) and Polymarket (Oracle) for sentiment, regime, and edge—but the quality and depth of those insights are a known gap. Next: **improve signal quality from X and Polymarket** (better parsing, narrative lag, source scoring, regime integration) so the paper bot and Solus get sharper external inputs instead of relying only on price/options data.
+
+**5. Eliza: Substack gold and banger tweets.** Eliza already does WRITE_ESSAY, DRAFT_TWEETS, CONTENT_AUDIT. Next: **get better at suggesting and producing Substack gold and high-impact tweets for X**—topic selection, timing, voice, and performance feedback so content compounds like the trading loops do.
 
 ### Prior releases
 
@@ -230,11 +242,11 @@ Clear lanes, no overlap: data, plan, call, lifestyle, infra.
 
 | Agent | Lane |
 | :--- | :--- |
-| **Eliza** | Knowledge, research, brainstorm, Substack content. The base everything builds on. |
+| **Eliza** | Knowledge, research, brainstorm, Substack content. WRITE_ESSAY, DRAFT_TWEETS, CONTENT_AUDIT. The base everything builds on; next: Substack gold + banger tweets for X. |
 | **VINCE** | Objective data: options, perps, memes, news, paper bot, 15+ signal sources. Push, not pull. |
-| **ECHO** | CT sentiment, X research, social alpha, contrarian flags. Your ears on X. |
-| **Oracle** | Prediction markets: Polymarket discovery, odds, portfolio (read-only). |
-| **Solus** | Hypersurface options: strike ritual, optimal strike, assignment prob (GBM + ML when ONNX loaded). Brier calibration, auto-record, Friday resolve reminder; tail risk & portfolio copula. Recursive learning from its own calls. [SOLUS.md](docs/SOLUS.md) |
+| **ECHO** | CT sentiment, X research, social alpha, contrarian flags. Your ears on X; insight quality from X is a focus for improvement. |
+| **Oracle** | Prediction markets: Polymarket discovery, odds, portfolio (read-only). Polymarket insight depth is a focus for improvement. |
+| **Solus** | Hypersurface options: strike ritual, optimal strike, assignment prob (GBM + ML when ONNX loaded). Brier calibration, auto-record, Friday resolve reminder; tail risk & portfolio copula. **RecursiveLoop + ML:** calibration context and TRAIN_SOLUS_CALIBRATION_WHEN_READY so Solus gets better over time for onchain options. [SOLUS.md](docs/SOLUS.md) |
 | **Otaku** | **Only agent with a wallet.** Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Execution graduation (L0→L3). |
 | **Kelly** | Touch grass: hotels, fine dining, wine, health, fitness. Standup facilitator. Flywheel score. No trading. |
 | **Sentinel** | Ops, cost steward, ONNX, ART, PRDs, OpenClaw guide, collective memory, repo improvements. |
@@ -308,6 +320,7 @@ bun start              # production (Postgres when POSTGRES_URL set)
 - **Kelly** — Lifestyle concierge only; daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
 - **Knowledge ingestion** — VINCE_UPLOAD, ingest-urls; summarize into knowledge/
 - **X research** — Paper algo signal + Cursor skill + VINCE_X_RESEARCH in-chat. [X-RESEARCH.md](docs/X-RESEARCH.md)
+- **Proof & next** — Prove paper bot (HL perps) and Solus (Hypersurface options) are recursive and ML improves them; improve X and Polymarket insight quality; sharpen Eliza for Substack gold and banger tweets. See **What's next**.
 
 ---
 

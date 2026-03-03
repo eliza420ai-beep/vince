@@ -110,6 +110,15 @@ VINCE: [A2A_LOOP_GUARD] Max exchanges (3) reached → STOPS
 - Both agents need separate Discord Application IDs (Option C)
 - Both agents need `shouldIgnoreBotMessages: false` in settings
 
+## Oracle regime and Vince sentiment gate
+
+**Oracle** provides a Polymarket-derived regime (risk-on / risk-off / uncertain) via the **ORACLE_REGIME** dynamic provider (plugin-vince). Vince's runtime asks Oracle (ASK_AGENT-style) for the current regime; the reply is cached 15 minutes and used by:
+
+- **Sentiment gate** (`vinceSentimentGate.ts`): adjusts position sizing and skip-long/skip-short flags (e.g. risk-off halves max size; bearish Echo + risk-off can skip new longs).
+- **Regime profiles** (`vinceRegimeProfiles.service.ts`): combines Oracle regime with Echo sentiment and technical regime for sizing and gating.
+
+So Oracle's prediction-market view feeds directly into Vince's paper bot and risk logic. The provider supports a structured JSON reply (regime + optional keyMarkets, confidence); when Oracle returns JSON it is parsed and cached for consistency. **What's next:** Richer Polymarket context (e.g. 2–3 key market odds in the cached payload) for Solus and paper bot prompts.
+
 ## plugin-inter-agent vs plugin-agent-orchestrator
 
 - **plugin-inter-agent** (this repo): **Multi-runtime** A2A—ask another **agent** by name (ASK_AGENT) and standups (Kelly-coordinated 2×/day). Different runtimes (Vince, Kelly, Sentinel, etc.); `elizaOS.getAgents()` / `handleMessage(agentId, msg)` route to the correct runtime. Use for "Kelly asks Vince" and autonomous standups.
