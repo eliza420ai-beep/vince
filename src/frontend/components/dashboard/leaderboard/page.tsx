@@ -441,8 +441,15 @@ export default function LeaderboardPage({
   const [testQualityCopied, setTestQualityCopied] = useState(false);
   const [cursorActualCost, setCursorActualCost] = useState<string>("");
 
+  // Redirect away from removed tabs (memetics, digital_art, Trading context / more)
   useEffect(() => {
-    if (mainTab === "memetics" || mainTab === "digital_art") {
+    const tab = mainTab as string;
+    if (
+      mainTab === "memetics" ||
+      mainTab === "digital_art" ||
+      tab === "more" ||
+      tab === "trading_context"
+    ) {
       setMainTab("markets");
     }
   }, [mainTab]);
