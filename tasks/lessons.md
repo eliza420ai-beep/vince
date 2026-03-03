@@ -6,6 +6,7 @@ Capture patterns and corrections here. Review at session start.
 
 ## Patterns
 
+- **Solus example.map fix:** The live crash was in `@elizaos/plugin-bootstrap/dist/index.js` (`return example.map((msg) => {`), not only in @elizaos/core. Cursor (auto mode) ground on core-only patches for half a day; with GPT 5.3 the real bundle was found and patched in under 21 seconds. When a runtime error points at a generic pattern (e.g. "example.map"), search all loaded bundles (core, plugin-bootstrap, etc.), not just the obvious one.
 - **Paper perps swing fast:** Was +$88; one status check later SOL long -$215, shorts mixed (HYPE +$98, BTC/ETH giving back). Illustrates how hard perps are—we make most of our money on Hypersurface covered calls/secured puts (weekly upfront premium), not perps.
 - **When X happened:** Do Y. Don't do Z.
 - (Add entries after user corrections or discovered mistakes)
