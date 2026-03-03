@@ -38,7 +38,7 @@ export const getSpreadsAction: Action = {
   description:
     "Get bid-ask spread analysis for Polymarket markets. Useful for assessing liquidity quality and identifying markets with better execution.",
 
-  parameters: {},
+  parameters: [],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

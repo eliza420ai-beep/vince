@@ -61,8 +61,8 @@ export const xThreadAction: Action = {
     message: Memory,
     state: State,
     _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -77,7 +77,7 @@ export const xThreadAction: Action = {
       const tweetId = urlMatch?.[1] ?? idMatch?.[1];
 
       if (!tweetId) {
-        callback({
+        callback?.({
           text: "I need a tweet URL or ID to fetch the thread. Example:\n`Summarize this thread: https://x.com/user/status/123456789`",
           action: "X_THREAD",
         });
@@ -90,7 +90,7 @@ export const xThreadAction: Action = {
       const tweets = await threadsService.getThread(tweetId);
 
       if (tweets.length === 0) {
-        callback({
+        callback?.({
           text: "Couldn't fetch the thread. The tweet might be deleted, protected, or the API is rate limited.",
           action: "X_THREAD",
         });
@@ -101,7 +101,7 @@ export const xThreadAction: Action = {
       const summary = threadsService.summarizeThread(tweets);
 
       if (!summary) {
-        callback({
+        callback?.({
           text: "Couldn't summarize the thread.",
           action: "X_THREAD",
         });
@@ -139,7 +139,7 @@ Write one short paragraph TL;DR:`;
 
       const response = `🧵 **Thread Summary**\n\n**Author:** @${summary.author.username}${summary.author.tier !== "standard" ? ` (${summary.author.tier})` : ""}\n**Length:** ${summary.tweetCount} tweets\n**Engagement:** ${formatNumber(summary.engagement.likes)} likes, ${formatNumber(summary.engagement.retweets)} RTs\n\n**TL;DR:**\n${llmSummary.trim()}\n\n🔗 ${summary.url}`;
 
-      callback({
+      callback?.({
         text: response,
         action: "X_THREAD",
       });
@@ -150,7 +150,7 @@ Write one short paragraph TL;DR:`;
 
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      callback({
+      callback?.({
         text: `🧵 **Thread**\n\n❌ Error: ${errorMessage}`,
         action: "X_THREAD",
       });

@@ -10,7 +10,7 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import type { UUID } from "@elizaos/core";
+import type { TargetInfo, UUID } from "@elizaos/core";
 
 const PUSH_SOURCES = ["discord", "slack", "telegram"] as const;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
@@ -74,7 +74,7 @@ export class VinceNotificationService extends Service {
     const failed: string[] = [];
     for (const target of targets) {
       try {
-        await this.runtime.sendMessageToTarget(target, { text });
+        await this.runtime.sendMessageToTarget(target as TargetInfo, { text });
         sent++;
         logger.debug(
           `[VinceNotification] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`,

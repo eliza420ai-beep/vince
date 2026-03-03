@@ -64,7 +64,7 @@ export const navalBuildInPublicAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_BUILD_IN_PUBLIC] Action fired");
     try {
       const state = await runtime.composeState(message);

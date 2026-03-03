@@ -102,19 +102,21 @@ export const getVincePolymarketMarketsAction: Action = {
   description:
     "Returns prediction markets only from VINCE-priority topics: crypto (Bitcoin, MicroStrategy, Ethereum, Solana, pre-market, ETF, monthly, weekly, daily), finance (stocks, indices, commodities, IPO, fed rates, treasuries), and geopolitics and economy. Use for focused market insights and hedging context. Returns condition_id and token ids; use GET_POLYMARKET_DETAIL or GET_POLYMARKET_ORDERBOOK for more. Signals inform the paper bot (perps, Hyperliquid), Hypersurface strike selection (weekly predictions most important), and macro vibe check.",
 
-  parameters: {
-    group: {
-      type: "string",
+  parameters: [
+    {
+      name: "group",
       description:
         "Filter to one group: crypto, finance, other, or all (default: all)",
       required: false,
+      schema: { type: "string" },
     },
-    limit: {
-      type: "number",
+    {
+      name: "limit",
       description: "Maximum number of markets to return (default: 20, max: 50)",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {

@@ -7,6 +7,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -128,7 +129,7 @@ export const kellyDailyBriefingAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_DAILY_BRIEFING] Action fired");
     try {
       const lifestyleService = runtime.getService(

@@ -25,20 +25,22 @@ export const getTrendingTokensAction: Action = {
     "Use this action when the user asks about trending or popular tokens on a specific blockchain network. Returns trending pools with token metadata including price, volume, market cap, and price changes. Supports networks: 'base', 'ethereum', 'arbitrum'.",
 
   // Parameter schema for tool calling
-  parameters: {
-    network: {
-      type: "string",
+  parameters: [
+    {
+      name: "network",
       description:
         "The blockchain network to fetch trending tokens for (e.g., 'base', 'ethereum', 'arbitrum'). Defaults to 'base'.",
       required: true,
+      schema: { type: "string" },
     },
-    limit: {
-      type: "number",
+    {
+      name: "limit",
       description:
         "Number of trending tokens to return (1-30). Defaults to 10.",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

@@ -26,20 +26,22 @@ export const cdpTxExplorerLink: Action = {
   description:
     "Returns a blockchain explorer link (Etherscan, Basescan, Polygonscan, Arbiscan, etc.) for a given transaction hash and network. Use this to generate clickable links to view transaction details on the appropriate blockchain explorer.",
 
-  parameters: {
-    txhash: {
-      type: "string",
+  parameters: [
+    {
+      name: "txhash",
       description:
         "Transaction hash (0x-prefixed hex string, 66 characters total)",
       required: true,
+      schema: { type: "string" },
     },
-    network: {
-      type: "string",
+    {
+      name: "network",
       description:
         "Blockchain network: 'base', 'ethereum', 'arbitrum', 'base-sepolia', or 'ethereum-sepolia'",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpPluginContext("TX_EXPLORER_LINK", state, message);

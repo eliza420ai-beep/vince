@@ -10,6 +10,7 @@
  */
 
 import type {
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -35,8 +36,11 @@ export interface MockCallback {
 export function createMockCallback(): MockCallback {
   const calls: Content[] = [];
 
-  const callback = async (content: Content): Promise<void> => {
+  const callback = async (
+    content: Content,
+  ): Promise<ActionResult | undefined> => {
     calls.push(content);
+    return undefined;
   };
 
   (callback as MockCallback).calls = calls;

@@ -297,7 +297,7 @@ export const kellyTrustDashboardAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_TRUST_DASHBOARD] Action fired");
 
     try {

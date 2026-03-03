@@ -36,26 +36,34 @@ export const cdpAdvancedTradeCreateOrder: Action = {
   description:
     "Place a market order on Coinbase (Advanced Trade). Use for 'buy $100 of Bitcoin on Coinbase' or 'sell 0.01 BTC on Coinbase'. Parameters: product_id (e.g. BTC-USD), side (BUY or SELL), and either quote_size (e.g. { value: '100', currency: 'USD' }) or base_size (e.g. { value: '0.01', currency: 'BTC' }). Requires Advanced Trade API keys. Confirm with user before executing.",
 
-  parameters: {
-    product_id: {
-      type: "string",
+  parameters: [
+    {
+      name: "product_id",
       description: "Trading pair e.g. BTC-USD",
       required: true,
+      schema: { type: "string" },
     },
-    side: { type: "string", description: "BUY or SELL", required: true },
-    quote_size: {
-      type: "object",
+    {
+      name: "side",
+      description: "BUY or SELL",
+      required: true,
+      schema: { type: "string" },
+    },
+    {
+      name: "quote_size",
       description:
         "Optional: { value: string, currency: string } e.g. { value: '100', currency: 'USD' }",
       required: false,
+      schema: { type: "object" },
     },
-    base_size: {
-      type: "object",
+    {
+      name: "base_size",
       description:
         "Optional: { value: string, currency: string } e.g. { value: '0.01', currency: 'BTC' }",
       required: false,
+      schema: { type: "object" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime) => isAdvancedTradeConfigured(),
 
@@ -115,7 +123,11 @@ export const cdpAdvancedTradeCreateOrder: Action = {
       if (data?.success && data?.success_response?.order_id) {
         const text = `Order placed on Coinbase. Order ID: ${data.success_response.order_id}`;
         await callback?.({ text });
-        return { success: true, text, data: data as Record<string, unknown> };
+        return {
+          success: true,
+          text,
+          data: data as import("@elizaos/core").ProviderDataRecord,
+        };
       }
       const errMsg =
         (data as any)?.error_response?.message ??

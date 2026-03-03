@@ -315,7 +315,7 @@ export const elizaSkillContentAction: Action = {
     _state: State | undefined,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<ActionResult | void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = (message.content?.text ?? "").trim();
     const topic = extractTopic(text);
 

@@ -56,7 +56,7 @@ export const sentinelCostStatusAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_COST_STATUS] Action fired");
     try {
       const state = await runtime.composeState(message);

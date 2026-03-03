@@ -135,26 +135,29 @@ export const cdpResolveEns: Action = {
   ],
   description:
     "Resolves an ENS name or Ethereum address using ensdata.net. Returns associated primary ENS name, address, resolver, avatar, linked wallets, and optional Farcaster or expiry data.",
-  parameters: {
-    query: {
-      type: "string",
+  parameters: [
+    {
+      name: "query",
       description:
         "ENS name (e.g., 'vitalik.eth') or Ethereum address to resolve. If an address is provided, returns the primary ENS and records if available.",
       required: true,
+      schema: { type: "string" },
     },
-    includeFarcaster: {
-      type: "boolean",
+    {
+      name: "includeFarcaster",
       description:
         "Set to true to include Farcaster profile data when available.",
       required: false,
+      schema: { type: "boolean" },
     },
-    includeExpiry: {
-      type: "boolean",
+    {
+      name: "includeExpiry",
       description:
         "Set to true to include ENS expiry information when available.",
       required: false,
+      schema: { type: "boolean" },
     },
-  },
+  ],
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpPluginContext("RESOLVE_ENS", state, message);
   },
@@ -266,7 +269,10 @@ export const cdpResolveEns: Action = {
         response: data,
       };
 
-      callback?.({ text: summary, content: resultData });
+      callback?.({
+        text: summary,
+        content: resultData as unknown as import("@elizaos/core").ContentValue,
+      });
 
       const successResult: ResolveEnsActionResult = {
         text: summary,

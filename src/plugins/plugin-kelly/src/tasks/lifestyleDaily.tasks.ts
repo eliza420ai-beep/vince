@@ -12,6 +12,7 @@
 
 import {
   type IAgentRuntime,
+  type TargetInfo,
   type UUID,
   logger,
   ModelType,
@@ -113,7 +114,7 @@ async function pushToKellyChannels(
   let sent = 0;
   for (const target of targets) {
     try {
-      await runtime.sendMessageToTarget(target, { text });
+      await runtime.sendMessageToTarget(target as TargetInfo, { text });
       sent++;
       logger.debug(
         `[KellyLifestyleDaily] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`,

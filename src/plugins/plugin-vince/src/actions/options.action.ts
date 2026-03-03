@@ -18,6 +18,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -306,7 +307,7 @@ export const vinceOptionsAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const dayName = now.toLocaleDateString("en-US", { weekday: "long" });

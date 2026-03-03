@@ -73,11 +73,11 @@ export const xSaveResearchAction: Action = {
     message: Memory,
     state: State,
     _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     const roomId = message.roomId;
     if (!roomId) {
-      callback({
+      callback?.({
         text: 'Couldn\'t determine room; try running a pulse or vibe first, then say "save that".',
         action: "X_SAVE_RESEARCH",
       });
@@ -86,7 +86,7 @@ export const xSaveResearchAction: Action = {
 
     const text = getLastResearch(roomId);
     if (!text) {
-      callback({
+      callback?.({
         text: 'Nothing to save — run an X pulse, vibe, or news first, then say "save that" within a few minutes.',
         action: "X_SAVE_RESEARCH",
       });
@@ -98,14 +98,14 @@ export const xSaveResearchAction: Action = {
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       const filepath = join(dir, generateFilename());
       writeFileSync(filepath, text, "utf-8");
-      callback({
+      callback?.({
         text: `Saved to \`${filepath}\`.`,
         action: "X_SAVE_RESEARCH",
       });
       return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      callback({
+      callback?.({
         text: `Failed to save: ${errMsg}`,
         action: "X_SAVE_RESEARCH",
       });

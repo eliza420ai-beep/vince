@@ -111,7 +111,7 @@ export const solusOptimalStrikeAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SOLUS_OPTIMAL_STRIKE] Action fired");
     try {
       const state = await runtime.composeState(

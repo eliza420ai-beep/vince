@@ -15,6 +15,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -198,7 +199,7 @@ export const vinceGmAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const day = now.toLocaleDateString("en-US", { weekday: "long" });
@@ -447,12 +448,14 @@ export const vinceGmAction: Action = {
       });
 
       logger.info("[VINCE_GM] Briefing complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_GM] Error: ${error}`);
       await callback({
         text: "Morning. Having trouble pulling everything together. Try asking about specific areas: OPTIONS, PERPS, MEMES, or LIFESTYLE.",
         actions: ["VINCE_GM"],
       });
+      return undefined;
     }
   },
 

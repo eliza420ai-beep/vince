@@ -44,7 +44,7 @@ export const vinceSentimentCheckAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const input = await getSentimentGateInput(runtime);
     const adjLong = getSentimentGateAdjustment(input, "long");
     const adjShort = getSentimentGateAdjustment(input, "short");
@@ -69,6 +69,7 @@ export const vinceSentimentCheckAction: Action = {
       text: lines.join("\n"),
       actions: ["VINCE_SENTIMENT_CHECK"],
     });
+    return undefined;
   },
 
   examples: [

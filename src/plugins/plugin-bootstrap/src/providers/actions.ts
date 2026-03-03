@@ -38,22 +38,33 @@ function formatActionsWithParams(actions: Action[]): string {
     .map((action: Action) => {
       let formatted = `## ${action.name}\n${action.description}`;
 
-      // Check if action has parameters defined
+      // Check if action has parameters defined (array form from @elizaos/core)
       if (action.parameters !== undefined) {
-        const paramEntries = Object.entries(
-          action.parameters as ActionParameter,
-        );
+        const arr = Array.isArray(action.parameters)
+          ? (action.parameters as Array<{
+              name: string;
+              description: string;
+              required?: boolean;
+              schema?: { type?: string };
+            }>)
+          : Object.entries(
+              action.parameters as Record<string, ActionParameter>,
+            ).map(([name, def]) => ({
+              name,
+              description: def.description,
+              required: def.required,
+              schema: { type: def.type },
+            }));
 
-        if (paramEntries.length === 0) {
-          // Action explicitly has no parameters
+        if (arr.length === 0) {
           formatted +=
             "\n\n**Parameters:** None (can be called directly without parameters)";
         } else {
-          // Action has parameters - list them
           formatted += "\n\n**Parameters:**";
-          for (const [paramName, paramDef] of paramEntries) {
-            const required = paramDef.required ? "(required)" : "(optional)";
-            formatted += `\n- \`${paramName}\` ${required}: ${paramDef.type} - ${paramDef.description}`;
+          for (const p of arr) {
+            const typeStr = p.schema?.type ?? "string";
+            const required = p.required ? "(required)" : "(optional)";
+            formatted += `\n- \`${p.name}\` ${required}: ${typeStr} - ${p.description}`;
           }
         }
       }

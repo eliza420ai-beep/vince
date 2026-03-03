@@ -13,6 +13,8 @@ import { isVinceAgent } from "../utils/dashboard";
  */
 export class VinceHLCryptoSnapshotService extends Service {
   static serviceType = "VINCE_HLCRYPTO_SNAPSHOT_SERVICE";
+  capabilityDescription =
+    "Caches HL Crypto perps pulse for Markets and leaderboards routes";
 
   private pulse: IHyperliquidCryptoPulse | null = null;
   private lastUpdate = 0;
@@ -81,6 +83,14 @@ export class VinceHLCryptoSnapshotService extends Service {
 
     // Avoid keeping the Node process alive solely for this timer.
     (this.refreshTimer as any).unref?.();
+  }
+
+  async stop(): Promise<void> {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+    logger.debug("[VinceHLCryptoSnapshot] Service stopped");
   }
 
   /** Cached HL Crypto pulse (never triggers network). */

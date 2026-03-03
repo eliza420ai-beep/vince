@@ -110,7 +110,7 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
 
   if (!agentId || !roomId) {
     logger.warn({ message }, "Missing agentId or roomId in message");
-    return;
+    return undefined;
   }
 
   // Run all queries in parallel
@@ -148,7 +148,7 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
 
     if (!response) {
       logger.warn({ prompt }, "Getting reflection failed - empty response");
-      return;
+      return undefined;
     }
 
     // Parse XML response
@@ -159,7 +159,7 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
         { response },
         "Getting reflection failed - failed to parse XML",
       );
-      return;
+      return undefined;
     }
 
     // Perform basic structure validation
@@ -168,7 +168,7 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
         { reflection },
         "Getting reflection failed - invalid facts structure",
       );
-      return;
+      return undefined;
     }
 
     if (!reflection.relationships) {
@@ -176,7 +176,7 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
         { reflection },
         "Getting reflection failed - invalid relationships structure",
       );
-      return;
+      return undefined;
     }
 
     // Handle facts - parseKeyValueXml returns nested structures differently
@@ -295,9 +295,10 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
       `${message.roomId}-reflection-last-processed`,
       message?.id || "",
     );
+    return undefined;
   } catch (error) {
     logger.error({ error }, "Error in reflection handler:");
-    return;
+    return undefined;
   }
 }
 

@@ -6,6 +6,7 @@ import {
   type Memory,
   type Provider,
   type ProviderResult,
+  type Room,
   type State,
   type UUID,
 } from "@elizaos/core";
@@ -52,7 +53,7 @@ export const roleProvider: Provider = {
       };
     }
 
-    const serverId = room.serverId;
+    const serverId = (room as Room & { serverId?: string }).serverId;
 
     if (!serverId) {
       throw new Error("No server ID found");

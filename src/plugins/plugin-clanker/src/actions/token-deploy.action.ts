@@ -53,51 +53,59 @@ export const tokenDeployAction: Action = {
   description:
     "Use this action when you need to deploy a new token on Base via Clanker.",
 
-  parameters: {
-    name: {
-      type: "string",
+  parameters: [
+    {
+      name: "name",
       description: "Token name (e.g., 'Based Token')",
       required: true,
+      schema: { type: "string" },
     },
-    symbol: {
-      type: "string",
+    {
+      name: "symbol",
       description:
         "Token symbol (e.g., 'BASE'). Will be automatically uppercased.",
       required: true,
+      schema: { type: "string" },
     },
-    tokenAdmin: {
-      type: "string",
+    {
+      name: "tokenAdmin",
       description: "Admin address for the token (optional)",
       required: false,
+      schema: { type: "string" },
     },
-    vanity: {
-      type: "boolean",
+    {
+      name: "vanity",
       description: "Whether to use vanity address (optional, default: false)",
       required: false,
+      schema: { type: "boolean" },
     },
-    image: {
-      type: "string",
+    {
+      name: "image",
       description: "Image URL for the token (optional)",
       required: false,
+      schema: { type: "string" },
     },
-    description: {
-      type: "string",
+    {
+      name: "description",
       description: "Token description for metadata (optional)",
       required: false,
+      schema: { type: "string" },
     },
-    socialMediaUrls: {
-      type: "string",
+    {
+      name: "socialMediaUrls",
       description:
         "Comma-separated list of social media URLs (e.g., 'https://twitter.com/token,https://discord.gg/token'). Optional.",
       required: false,
+      schema: { type: "string" },
     },
-    devBuy: {
-      type: "string",
+    {
+      name: "devBuy",
       description:
         "Amount of ETH to spend on initial token purchase (e.g., '0.1' for 0.1 ETH). Optional.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

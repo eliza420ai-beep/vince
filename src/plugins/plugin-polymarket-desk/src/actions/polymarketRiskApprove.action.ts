@@ -42,18 +42,22 @@ export const polymarketRiskApproveAction: Action = {
   description:
     "Risk agent: take a pending Polymarket desk signal (by signal_id or next in queue), check bankroll and limits, size the position (Kelly or config), and write a sized order for the Executor. Requires wallet_address for balance/positions. No execution.",
 
-  parameters: {
-    signal_id: {
-      type: "string",
+  parameters: [
+    {
+      name: "signal_id",
       description:
         "UUID of the signal to approve. If omitted, next pending signal is used.",
+      required: false,
+      schema: { type: "string" },
     },
-    wallet_address: {
-      type: "string",
+    {
+      name: "wallet_address",
       description:
         "Wallet address for Polymarket balance and exposure (optional if set in settings).",
+      required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime) => {
     const conn = await (

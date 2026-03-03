@@ -145,7 +145,7 @@ export const otakuYieldRecommendAction: Action = {
     _state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text ?? "";
     const tokenMatch = text.match(/(?:usdc|usdt|eth|weth|stables?)/i);
     const chainMatch = text.match(/(?:base|ethereum|arbitrum|polygon)/i);

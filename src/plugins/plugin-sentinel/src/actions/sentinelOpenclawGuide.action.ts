@@ -49,7 +49,7 @@ export const sentinelOpenclawGuideAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_OPENCLAW_GUIDE] Action fired");
     try {
       const state = await runtime.composeState(message);

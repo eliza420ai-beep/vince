@@ -49,14 +49,15 @@ export const getClosedPositionsAction: Action = {
   description:
     "Get user's historical closed positions in resolved Polymarket prediction markets. Shows past outcomes with win/loss and payouts.",
 
-  parameters: {
-    walletAddress: {
-      type: "string",
+  parameters: [
+    {
+      name: "walletAddress",
       description:
         "Wallet address (EOA or proxy) to check closed positions for",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

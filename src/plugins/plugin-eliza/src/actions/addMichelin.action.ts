@@ -11,6 +11,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -330,7 +331,7 @@ export const addMichelinRestaurantAction: Action = {
     _state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = getMessageTextForMichelin(message);
     const url = extractMichelinUrl(text);
     if (!url) {

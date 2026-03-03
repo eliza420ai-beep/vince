@@ -28,14 +28,15 @@ export const getProtocolTvlAction: Action = {
     "Use this action to fetch DeFi protocol TVL and change metrics by protocol name or symbol.",
 
   // Parameter schema for tool calling
-  parameters: {
-    protocols: {
-      type: "string",
+  parameters: [
+    {
+      name: "protocols",
       description:
         "Comma-separated list of DeFi protocol names or symbols (e.g., 'Aave,Curve' or 'EIGEN,MORPHO')",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

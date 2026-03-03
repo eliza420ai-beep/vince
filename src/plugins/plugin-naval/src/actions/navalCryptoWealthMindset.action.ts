@@ -69,7 +69,7 @@ export const navalCryptoWealthMindsetAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_CRYPTO_WEALTH_MINDSET] Action fired");
     try {
       const state = await runtime.composeState(message);

@@ -45,14 +45,15 @@ export const getMarketDetailAction: Action = {
   description:
     "Get detailed information about a specific Polymarket prediction market. Returns the market's YES and NO token_ids which are required for GET_POLYMARKET_ORDERBOOK queries. Use condition_id from search results to get market details including tradeable token IDs.",
 
-  parameters: {
-    conditionId: {
-      type: "string",
+  parameters: [
+    {
+      name: "conditionId",
       description:
         "Market condition ID (hex string starting with 0x, typically 66 characters). Get this from GET_ACTIVE_POLYMARKETS or SEARCH_POLYMARKETS results.",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {

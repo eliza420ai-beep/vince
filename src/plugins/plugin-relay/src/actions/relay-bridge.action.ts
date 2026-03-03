@@ -91,51 +91,59 @@ export const relayBridgeAction: Action = {
   ],
 
   // Parameter schema for tool calling
-  parameters: {
-    originChain: {
-      type: "string",
+  parameters: [
+    {
+      name: "originChain",
       description: "Origin chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    destinationChain: {
-      type: "string",
+    {
+      name: "destinationChain",
       description: "Destination chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    currency: {
-      type: "string",
+    {
+      name: "currency",
       description:
         "Token symbol to bridge (e.g., 'eth', 'usdc', 'usdt', 'weth')",
       required: true,
+      schema: { type: "string" },
     },
-    amount: {
-      type: "string",
+    {
+      name: "amount",
       description:
         "Amount to bridge in human-readable format (e.g., '0.5' for 0.5 ETH, not in wei)",
       required: true,
+      schema: { type: "string" },
     },
-    recipient: {
-      type: "string",
+    {
+      name: "recipient",
       description:
         "Recipient address on destination chain (defaults to user's address if not specified)",
       required: false,
+      schema: { type: "string" },
     },
-    useExactInput: {
-      type: "boolean",
+    {
+      name: "useExactInput",
       description: "Whether to use exact input amount (default: true)",
       required: false,
+      schema: { type: "boolean" },
     },
-    useExternalLiquidity: {
-      type: "boolean",
+    {
+      name: "useExternalLiquidity",
       description: "Whether to use external liquidity (default: false)",
       required: false,
+      schema: { type: "boolean" },
     },
-    referrer: {
-      type: "string",
+    {
+      name: "referrer",
       description: "Referrer address for the bridge (optional)",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateRelayService(
@@ -679,7 +687,7 @@ export const relayBridgeAction: Action = {
         text: response.text,
         actions: ["EXECUTE_RELAY_BRIDGE"],
         source: message.content.source,
-        data: response.data,
+        data: response.data as import("@elizaos/core").JsonObject | undefined,
       });
 
       return response;

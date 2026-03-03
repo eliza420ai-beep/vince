@@ -9,6 +9,7 @@ import * as path from "node:path";
 import {
   type IAgentRuntime,
   type Memory,
+  type TargetInfo,
   type UUID,
   logger,
   ModelType,
@@ -369,7 +370,9 @@ async function pushToSentinelChannels(
   let sent = 0;
   for (const target of targets) {
     try {
-      await runtime.sendMessageToTarget(target, { text: message });
+      await runtime.sendMessageToTarget(target as TargetInfo, {
+        text: message,
+      });
       sent++;
     } catch (e) {
       if (!isNoSendHandler(e)) logger.warn("[SentinelWeekly] Send failed:", e);

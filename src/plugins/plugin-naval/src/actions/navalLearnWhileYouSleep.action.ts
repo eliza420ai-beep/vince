@@ -77,7 +77,7 @@ export const navalLearnWhileYouSleepAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_LEARN_WHILE_YOU_SLEEP] Action fired");
     try {
       const state = await runtime.composeState(message);

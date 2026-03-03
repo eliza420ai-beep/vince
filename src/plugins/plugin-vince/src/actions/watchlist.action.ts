@@ -12,6 +12,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -148,7 +149,7 @@ export const vinceWatchlistAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const watchlistService = runtime.getService(
         "VINCE_WATCHLIST_SERVICE",

@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -114,7 +115,7 @@ export const otakuReadyToExecuteAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const signal = await runtime.getCache<Record<string, unknown>>(
       VINCE_SIGNAL_CACHE_KEY,
     );
@@ -183,6 +184,7 @@ export const otakuReadyToExecuteAction: Action = {
       text: lines.join("\n"),
       actions: ["OTAKU_READY_TO_EXECUTE"],
     });
+    return undefined;
   },
 
   examples: [

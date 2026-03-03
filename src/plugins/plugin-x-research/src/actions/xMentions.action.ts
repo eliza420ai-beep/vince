@@ -131,15 +131,15 @@ export const xMentionsAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
       const text = message.content?.text ?? "";
       const match = text.match(/@(\w+)/);
       if (!match) {
-        callback({
+        callback?.({
           text: 'I need a username to check mentions. Example: "What are people saying to @username?"',
           action: "X_MENTIONS",
         });
@@ -150,7 +150,7 @@ export const xMentionsAction: Action = {
 
       const user = await client.getUserByUsername(username);
       if (!user) {
-        callback({
+        callback?.({
           text: `Couldn't find @${username}. The account may not exist or be protected.`,
           action: "X_MENTIONS",
         });
@@ -166,7 +166,7 @@ export const xMentionsAction: Action = {
       });
 
       if (mentions.length === 0) {
-        callback({
+        callback?.({
           text: `**@${username} Mentions Check**\n\nNo recent mentions in the last ${START_TIME_DAYS_AGO} days. They may have low visibility or the API window has no data.`,
           action: "X_MENTIONS",
         });
@@ -250,7 +250,7 @@ export const xMentionsAction: Action = {
       }
       response += `\nWant me to dive deeper into any specific thread or topic around their mentions?`;
 
-      callback({
+      callback?.({
         text: response,
         action: "X_MENTIONS",
       });
@@ -258,7 +258,7 @@ export const xMentionsAction: Action = {
     } catch (error) {
       console.error("[X_MENTIONS] Error:", error);
       const err = error instanceof Error ? error.message : String(error);
-      callback({
+      callback?.({
         text: `**Mentions Check**\n\n❌ Error: ${err}`,
         action: "X_MENTIONS",
       });

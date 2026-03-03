@@ -10,6 +10,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -142,7 +143,7 @@ export const kellyRecommendEntertainmentAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_ENTERTAINMENT] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();
@@ -212,12 +213,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       });
 
       logger.info("[KELLY_RECOMMEND_ENTERTAINMENT] Recommendation sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_RECOMMEND_ENTERTAINMENT] Error: ${error}`);
       await callback({
         text: "Entertainment recommendation failed. Try asking for a specific type — book, music, series, or movie.",
         actions: ["KELLY_RECOMMEND_ENTERTAINMENT"],
       });
+      return undefined;
     }
   },
 

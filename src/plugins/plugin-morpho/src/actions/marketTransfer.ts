@@ -92,38 +92,43 @@ export const marketTransferAction: Action = {
   description:
     "Use this action when you need to perform Morpho market operations (supply/borrow/repay/withdraw/collateral).",
 
-  parameters: {
-    intent: {
-      type: "string",
+  parameters: [
+    {
+      name: "intent",
       description:
         "Operation type: 'supply' (lend loan token), 'supplyCollateral' (provide collateral), 'borrow' (borrow loan token), 'repay' (repay loan), 'withdraw' (withdraw loan token), 'withdrawCollateral' (remove collateral)",
       required: true,
+      schema: { type: "string" },
     },
-    market: {
-      type: "string",
+    {
+      name: "market",
       description:
         "Market identifier - can be a token pair (e.g., 'WETH/USDC') or a market ID (0x... hex string)",
       required: true,
+      schema: { type: "string" },
     },
-    assets: {
-      type: "string",
+    {
+      name: "assets",
       description:
         "Amount of assets as a pure number (e.g., '1', '0.5', '100'). Not required if fullRepayment is true.",
       required: false,
+      schema: { type: "string" },
     },
-    fullRepayment: {
-      type: "boolean",
+    {
+      name: "fullRepayment",
       description:
         "Set to true for full repayment of debt (only applicable for 'repay' intent)",
       required: false,
+      schema: { type: "boolean" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network (e.g., 'base', 'ethereum'). If not provided, uses the default chain.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateMorphoService(
       runtime,

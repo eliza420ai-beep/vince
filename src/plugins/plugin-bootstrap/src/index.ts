@@ -8,6 +8,7 @@ import {
   type EvaluatorEventPayload,
   EventType,
   type IAgentRuntime,
+  type LogBody,
   logger,
   type Plugin,
   PluginEvents,
@@ -136,7 +137,7 @@ const handleServerSync = async ({
     `[Bootstrap] Handling server sync event for server: ${world.name}`,
   );
   try {
-    await runtime.ensureConnections(entities, rooms, source, world);
+    await runtime.ensureConnections(entities, rooms, source ?? "", world);
     runtime.logger.debug(
       `Successfully synced standardized world structure for ${world.name}`,
     );
@@ -272,7 +273,7 @@ const events: PluginEvents = {
         payload.worldId,
         payload.roomId,
         payload.metadata.type as ChannelType,
-        payload.source,
+        payload.source ?? "",
       );
     },
   ],
@@ -415,7 +416,7 @@ const events: PluginEvents = {
             source: payload.source || "unknown",
             usage: extended.usage,
             estimatedTokens: extended.estimatedTokens,
-          },
+          } as LogBody,
         });
         logger.debug(
           `[Bootstrap] Logged RUN_ENDED event for run ${payload.runId} with status ${payload.status}`,
@@ -448,7 +449,7 @@ const events: PluginEvents = {
             error: payload.error,
             source: payload.source || "unknown",
             estimatedTokens: extended.estimatedTokens,
-          },
+          } as LogBody,
         });
         logger.debug(
           `[Bootstrap] Logged RUN_TIMEOUT event for run ${payload.runId}`,

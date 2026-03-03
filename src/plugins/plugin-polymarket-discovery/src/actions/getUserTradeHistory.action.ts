@@ -51,18 +51,20 @@ export const getUserTradeHistoryAction: Action = {
   description:
     "Get user's trade history on Polymarket. Shows recent buy and sell activity with prices and timestamps.",
 
-  parameters: {
-    walletAddress: {
-      type: "string",
+  parameters: [
+    {
+      name: "walletAddress",
       description: "Wallet address (EOA or proxy) to check trade history for",
       required: false,
+      schema: { type: "string" },
     },
-    limit: {
-      type: "number",
+    {
+      name: "limit",
       description: "Maximum number of trades to return (default: 20, max: 100)",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

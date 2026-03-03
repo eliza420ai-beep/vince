@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -246,7 +247,7 @@ export const kellyXResearchCommandCenterAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_X_RESEARCH_COMMAND_CENTER] Building command center");
 
     // Check cache

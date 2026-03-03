@@ -95,48 +95,55 @@ export const relayQuoteAction: Action = {
   ],
 
   // Parameter schema for tool calling
-  parameters: {
-    originChain: {
-      type: "string",
+  parameters: [
+    {
+      name: "originChain",
       description: "Origin chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    destinationChain: {
-      type: "string",
+    {
+      name: "destinationChain",
       description: "Destination chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    currency: {
-      type: "string",
+    {
+      name: "currency",
       description:
         "Token symbol to bridge (e.g., 'eth', 'usdc', 'usdt', 'weth')",
       required: true,
+      schema: { type: "string" },
     },
-    toCurrency: {
-      type: "string",
+    {
+      name: "toCurrency",
       description:
         "Destination token symbol (defaults to same as currency if not specified)",
       required: false,
+      schema: { type: "string" },
     },
-    amount: {
-      type: "string",
+    {
+      name: "amount",
       description:
         "Amount to bridge in human-readable format (e.g., '0.1' for 0.1 ETH, not in wei)",
       required: true,
+      schema: { type: "string" },
     },
-    recipient: {
-      type: "string",
+    {
+      name: "recipient",
       description:
         "Recipient address on destination chain (defaults to user's address if not specified)",
       required: false,
+      schema: { type: "string" },
     },
-    tradeType: {
-      type: "string",
+    {
+      name: "tradeType",
       description:
         "Trade type: 'EXACT_INPUT' or 'EXACT_OUTPUT' (default: 'EXACT_INPUT')",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateRelayService(runtime, "GET_RELAY_QUOTE", state, message);
@@ -501,7 +508,7 @@ export const relayQuoteAction: Action = {
         text: response.text,
         actions: ["GET_RELAY_QUOTE"],
         source: message.content.source,
-        data: response.data,
+        data: response.data as import("@elizaos/core").JsonObject | undefined,
       });
 
       return response;

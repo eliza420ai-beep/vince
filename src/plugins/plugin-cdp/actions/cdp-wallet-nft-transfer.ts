@@ -26,31 +26,35 @@ export const cdpWalletNftTransfer: Action = {
     "Use this action when you need to transfer NFTs (ERC721 or ERC1155) from user's wallet. For tokens, use USER_WALLET_TOKEN_TRANSFER instead. IMPORTANT: Before executing, you MUST present a clear summary (NFT details, recipient address, network) and get explicit user confirmation ('yes', 'confirm', 'go ahead'). Never execute transfers without confirmed intent - they are irreversible.",
 
   // Parameter schema for tool calling
-  parameters: {
-    to: {
-      type: "string",
+  parameters: [
+    {
+      name: "to",
       description:
         "Recipient wallet address (must be a valid 0x address, 42 characters)",
       required: true,
+      schema: { type: "string" },
     },
-    contractAddress: {
-      type: "string",
+    {
+      name: "contractAddress",
       description:
         "NFT contract address (must be a valid 0x address, 42 characters)",
       required: true,
+      schema: { type: "string" },
     },
-    tokenId: {
-      type: "string",
+    {
+      name: "tokenId",
       description: "NFT token ID (e.g., '1', '42', '12345')",
       required: true,
+      schema: { type: "string" },
     },
-    network: {
-      type: "string",
+    {
+      name: "network",
       description:
         "Network where the NFT exists: 'base', 'ethereum', or 'arbitrum'",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpService(

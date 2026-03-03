@@ -13,6 +13,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -301,7 +302,7 @@ export const vinceLifestyleAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const lifestyleService = runtime.getService(
         "VINCE_LIFESTYLE_SERVICE",

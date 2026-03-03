@@ -2,6 +2,7 @@ import {
   type IAgentRuntime,
   type Memory,
   type Provider,
+  type World,
   logger,
   addHeader,
   ChannelType,
@@ -171,7 +172,7 @@ export const worldProvider: Provider = {
         world: {
           id: world.id,
           name: world.name,
-          serverId: world.serverId,
+          serverId: (world as World & { serverId?: string }).serverId,
           metadata: world.metadata || {},
           currentRoom: {
             id: currentRoom.id,

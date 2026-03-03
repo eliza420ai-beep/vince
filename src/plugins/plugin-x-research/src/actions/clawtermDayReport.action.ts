@@ -174,16 +174,16 @@ export const clawtermDayReportAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-    _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     const hasX = !!getXBearerToken(runtime);
     const hasTavily = !!(
       runtime.getSetting?.("TAVILY_API_KEY") || process.env.TAVILY_API_KEY
     );
 
     if (!hasX && !hasTavily) {
-      callback({
+      callback?.({
         text: "Set X_BEARER_TOKEN for an X-sourced report. Web-only report is possible if TAVILY_API_KEY is set.",
         action: "CLAWTERM_DAY_REPORT",
       });
@@ -203,7 +203,7 @@ export const clawtermDayReportAction: Action = {
 
     const report = await generateReport(runtime, dataContext, date);
 
-    callback({
+    callback?.({
       text: report,
       action: "CLAWTERM_DAY_REPORT",
     });

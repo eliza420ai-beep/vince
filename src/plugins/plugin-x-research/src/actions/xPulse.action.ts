@@ -121,9 +121,9 @@ export const xPulseAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options?: unknown,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       // Initialize client
       initXClientFromEnv(runtime);
@@ -176,7 +176,7 @@ export const xPulseAction: Action = {
         const noDataMsg = qualityOnly
           ? "📊 **X Pulse**\n\nNo recent tweets from quality/whale accounts in this window. Try full pulse or a different time."
           : "📊 **X Pulse**\n\nNo recent data available. X API might be rate limited or no matching content found.";
-        callback({ text: noDataMsg, action: "X_PULSE" });
+        callback?.({ text: noDataMsg, action: "X_PULSE" });
         return { success: true };
       }
 
@@ -225,7 +225,7 @@ export const xPulseAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, briefing);
-      callback({
+      callback?.({
         text: stripPriceBlockFromEchoResponse(briefing),
         action: "X_PULSE",
       });
@@ -234,7 +234,7 @@ export const xPulseAction: Action = {
     } catch (error) {
       logger.warn({ err: error }, "[X_PULSE] X API error");
       const friendly = getFriendlyXErrorMessage(error);
-      callback({
+      callback?.({
         text: `📊 **X Pulse**\n\n⚠️ ${friendly}`,
         action: "X_PULSE",
       });

@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -50,7 +51,7 @@ export const whatsTheTradeAction: Action = {
     _state: State,
     _options: unknown,
     callback?: HandlerCallback,
-  ): Promise<void | { success: boolean; error?: string }> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.info("[ECHO_WHATS_THE_TRADE] Running report...");
       const { filepath, report } = await runWhatsTheTradeReport(runtime);

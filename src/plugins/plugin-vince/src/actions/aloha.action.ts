@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -249,7 +250,7 @@ export const vinceAlohaAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const day = now.toLocaleDateString("en-US", { weekday: "long" });
@@ -326,12 +327,14 @@ export const vinceAlohaAction: Action = {
       });
 
       logger.info(`[VINCE_ALOHA] Briefing complete`);
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_ALOHA] Error: ${error}`);
       await callback({
         text: "Aloha. Having trouble pulling data right now. Try again in a moment, or use: OPTIONS, PERPS, MEMES.",
         actions: ["VINCE_ALOHA"],
       });
+      return undefined;
     }
   },
 

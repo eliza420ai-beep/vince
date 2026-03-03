@@ -49,13 +49,13 @@ export async function buildUsageResponse(
   const from = Math.min(fromDate, toDate);
   const to = Math.max(fromDate, toDate);
 
-  let logs: { body?: Record<string, unknown> }[] = [];
+  let logs: { body?: Record<string, unknown> }[];
   try {
-    logs = await runtime.getLogs({
+    logs = (await runtime.getLogs({
       entityId: runtime.agentId,
       type: "run_event",
       count: MAX_LOGS,
-    });
+    })) as unknown as { body?: Record<string, unknown> }[];
   } catch (err) {
     logger.warn(`[VINCE] Usage getLogs error: ${err}`);
     return {

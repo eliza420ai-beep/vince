@@ -5,8 +5,14 @@
  * No wallet or account state; discovery-only.
  */
 
-import type { IAgentRuntime, Memory, State } from "@elizaos/core";
-import type { Provider, ProviderResult } from "@elizaos/core";
+import type {
+  IAgentRuntime,
+  Memory,
+  State,
+  Provider,
+  ProviderResult,
+  ProviderValue,
+} from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
 import {
@@ -87,7 +93,7 @@ export const polymarketDiscoveryProvider: Provider = {
       }
     }
 
-    return { text, values };
+    return { text, values: values as Record<string, ProviderValue> };
   },
 };
 

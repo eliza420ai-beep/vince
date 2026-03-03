@@ -49,13 +49,14 @@ export const getUserActivityAction: Action = {
   description:
     "Get user's on-chain activity log for Polymarket. Shows deposits, withdrawals, trades, and redemptions.",
 
-  parameters: {
-    walletAddress: {
-      type: "string",
+  parameters: [
+    {
+      name: "walletAddress",
       description: "Wallet address (EOA or proxy) to check activity for",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

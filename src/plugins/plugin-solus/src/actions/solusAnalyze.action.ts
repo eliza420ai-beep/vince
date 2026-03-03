@@ -7,6 +7,7 @@
 import {
   type Action,
   type ActionExample,
+  type ActionResult,
   type HandlerCallback,
   type IAgentRuntime,
   type Memory,
@@ -195,15 +196,13 @@ export const solusAnalyzeAction: Action = {
     );
   },
 
-  suppressInitialMessage: true,
-
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
     _options: any,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text || "";
     const ticker = extractTicker(text);
 

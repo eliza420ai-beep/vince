@@ -10,6 +10,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -85,7 +86,7 @@ export const vinceCodeTaskAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const baseUrl = getBaseUrl();
     if (!baseUrl) {
       await callback({

@@ -85,7 +85,7 @@ export const sentinelMemoryQueryAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_MEMORY_QUERY] Action fired");
 
     try {

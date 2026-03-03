@@ -134,11 +134,14 @@ export const actionStateProvider: Provider = {
         unique: false,
       });
 
-      recentActionMemories = recentMessages.filter(
-        (msg) =>
-          msg.content?.type === "action_result" &&
-          msg.metadata?.type === "action_result",
-      );
+      recentActionMemories = recentMessages.filter((msg) => {
+        const content = msg.content as unknown as Record<string, unknown>;
+        const meta = msg.metadata as unknown as Record<string, unknown>;
+        return (
+          String(content?.type) === "action_result" &&
+          String(meta?.type) === "action_result"
+        );
+      });
     } catch (error) {
       logger?.error({ error }, "Failed to retrieve action memories:");
     }

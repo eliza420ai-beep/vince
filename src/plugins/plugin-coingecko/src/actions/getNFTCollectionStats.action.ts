@@ -25,14 +25,15 @@ export const getNFTCollectionStatsAction: Action = {
     "Use this action when the user asks about NFT collection statistics including floor price, market cap, volume, sales, number of owners, and other collection metrics. Accepts NFT collection ID, name, or contract address.",
 
   // Parameter schema for tool calling
-  parameters: {
-    collection: {
-      type: "string",
+  parameters: [
+    {
+      name: "collection",
       description:
         "NFT collection identifier (collection ID, name, or contract address). Examples: 'cryptopunks', 'bored-ape-yacht-club', '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,
