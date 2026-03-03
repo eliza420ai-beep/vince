@@ -161,6 +161,10 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   private readonly BASE_RETRY_DELAY_MS = 1000;
   private readonly MAX_GLOBAL_BACKOFF_MS = 60000;
 
+  // Cached crypto pulse snapshot for fast, cache-only reads.
+  private cryptoPulseCache: CacheEntry<IHyperliquidCryptoPulse> | null = null;
+  private cryptoPulseTimer: NodeJS.Timeout | null = null;
+
   constructor() {
     logger.info(
       "[HyperliquidFallback] ✅ Fallback service initialized (API: https://api.hyperliquid.xyz/info)",
@@ -745,7 +749,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         else if (avgFunding < -0.0001) overallBias = "bearish";
       }
 
-      return {
+      const pulse: IHyperliquidCryptoPulse = {
         assets: cryptoAssets,
         topMovers,
         volumeLeaders,
@@ -753,10 +757,64 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         hottestAvg,
         coldestAvg,
       };
+
+      // Store snapshot for cache-only readers (e.g. Markets leaderboards).
+      this.cryptoPulseCache = {
+        data: pulse,
+        timestamp: Date.now(),
+      };
+
+      return pulse;
     } catch (error) {
       logger.error(`[HyperliquidFallback] getAllCryptoPulse error: ${error}`);
       return null;
     }
+  }
+
+  /**
+   * Return the most recently cached crypto pulse without making network
+   * requests. TTL is aligned with the metaAndAssetCtxs cache.
+   */
+  getCachedCryptoPulse(): IHyperliquidCryptoPulse | null {
+    if (!this.cryptoPulseCache) return null;
+    const ttl = CACHE_TTLS.metaAndAssetCtxs;
+    if (Date.now() - this.cryptoPulseCache.timestamp > ttl) return null;
+    return this.cryptoPulseCache.data;
+  }
+
+  /**
+   * Start background refresh for the crypto pulse so cache consumers never
+   * block on Hyperliquid latency. Safe to call multiple times.
+   */
+  startCryptoPulseBackgroundRefresh(): void {
+    if (this.cryptoPulseTimer) return;
+
+    const envMs = Number(process.env.VINCE_HLCRYPTO_REFRESH_MS ?? "60000");
+    const intervalMs =
+      Number.isFinite(envMs) && envMs >= 10_000 && envMs <= 10 * 60_000
+        ? envMs
+        : 60_000;
+
+    const tick = async () => {
+      try {
+        await this.getAllCryptoPulse();
+      } catch (err) {
+        logger.debug(
+          `[HyperliquidFallback] Background crypto pulse refresh error: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    };
+
+    // Warm cache immediately.
+    void tick();
+
+    this.cryptoPulseTimer = setInterval(() => {
+      void tick();
+    }, intervalMs);
+
+    (this.cryptoPulseTimer as any).unref?.();
   }
 
   /**

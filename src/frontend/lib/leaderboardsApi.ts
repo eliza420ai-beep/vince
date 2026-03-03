@@ -241,6 +241,8 @@ export interface LeaderboardsResponse {
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
+  hip3Status?: "loading" | "ok" | "stale" | "error";
+  hlCryptoStatus?: "loading" | "ok" | "stale" | "error";
 }
 
 const STALE_MS = 2 * 60 * 1000; // 2 minutes
