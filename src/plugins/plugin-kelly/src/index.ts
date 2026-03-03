@@ -8,6 +8,7 @@
 import type { IAgentRuntime, Plugin } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { kellyDailyBriefingAction } from "./actions/dailyBriefing.action";
+import { kellyLifestyleAction } from "./actions/lifestyle.action";
 import { kellyItineraryAction } from "./actions/itinerary.action";
 import { kellyRecommendPlaceAction } from "./actions/recommendPlace.action";
 import { kellyRecommendWineAction } from "./actions/recommendWine.action";
@@ -49,6 +50,7 @@ export const kellyPlugin: Plugin = {
   services: [KellyLifestyleService, FlywheelScoreService],
   actions: [
     kellyDailyBriefingAction,
+    kellyLifestyleAction,
     kellyRecommendPlaceAction,
     kellyRecommendWineAction,
     kellySurfForecastAction,

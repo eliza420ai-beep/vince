@@ -11,7 +11,7 @@
 
 **Unified Data Intelligence for the VINCE Agent**
 
-> A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE also operates as a quantitative trading assistant with a lifestyle overlay: market analysis plus day-of-week aware suggestions for dining, hotels, and activities.
+> A comprehensive ElizaOS plugin that consolidates trading, memetics, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE operates as a quantitative trading assistant for market analysis. For lifestyle (dining, hotels, day-of-week suggestions), ask Kelly.
 
 **V4.30:** Paper bot records **avoided decisions** (evaluated but no trade) in the feature store so ML keeps learning on days when no trades are taken. See [FEATURE-STORE.md](../../../FEATURE-STORE.md) — "Avoided decisions" and "Collecting more training data".
 
@@ -81,18 +81,17 @@ Other bots (Passivbot, Gunbot, 3Commas, Coinrule, Pionex, etc.) are mostly manua
 
 ## WHAT - The Plugin's Purpose
 
-VINCE consolidates 6 distinct focus areas into a unified trading and lifestyle assistant:
+VINCE consolidates 5 distinct focus areas (lifestyle is handled by Kelly):
 
 ### Focus Areas
 
-| Domain        | Description                                                 | Primary Data Sources               |
-| ------------- | ----------------------------------------------------------- | ---------------------------------- |
-| **OPTIONS**   | Covered calls and secured puts via HYPERSURFACE             | Deribit (IV surface, Greeks, DVOL) |
-| **PERPS**     | Perpetual trading signals with paper bot                    | Hyperliquid, Binance, CoinGlass    |
-| **HIP-3**     | TradFi assets on Hyperliquid (commodities, indices, stocks) | Hyperliquid HIP-3 API              |
-| **MEMETICS**  | AI meme token scanner ($1M-$20M mcap sweet spot)            | DexScreener, Meteora, Nansen       |
-| **LIFESTYLE** | Day-of-week aware suggestions                               | Internal rules engine              |
-| **ART**       | NFT floor tracking for curated collections                  | OpenSea (via plugin or fallback)   |
+| Domain       | Description                                                 | Primary Data Sources               |
+| ------------ | ----------------------------------------------------------- | ---------------------------------- |
+| **OPTIONS**  | Covered calls and secured puts via HYPERSURFACE             | Deribit (IV surface, Greeks, DVOL) |
+| **PERPS**    | Perpetual trading signals with paper bot                    | Hyperliquid, Binance, CoinGlass    |
+| **HIP-3**    | TradFi assets on Hyperliquid (commodities, indices, stocks) | Hyperliquid HIP-3 API              |
+| **MEMETICS** | AI meme token scanner ($1M-$20M mcap sweet spot)            | DexScreener, Meteora, Nansen       |
+| **ART**      | NFT floor tracking for curated collections                  | OpenSea (via plugin or fallback)   |
 
 ### Core Assets
 

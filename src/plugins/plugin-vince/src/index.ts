@@ -15,8 +15,7 @@
  * - DexScreenerService - Hot memes on SOLANA + BASE
  * - MeteoraService - LP pool discovery for DCA strategy
  *
- * LIFESTYLE + ART:
- * - LifestyleService - Daily suggestions based on day of week
+ * ART:
  * - NFTFloorService - Floor tracking for ~12 curated collections
  *
  * @module @elizaos/plugin-vince
@@ -45,7 +44,6 @@ import { VinceNewsSentimentService } from "./services/newsSentiment.service";
 import { VinceDexScreenerService } from "./services/dexscreener.service";
 import { VinceMeteoraService } from "./services/meteora.service";
 import { VinceNFTFloorService } from "./services/nftFloor.service";
-import { VinceLifestyleService } from "./services/lifestyle.service";
 import { VinceDeribitService } from "./services/deribit.service";
 import { VinceNansenService } from "./services/nansen.service";
 import { VinceSanbaseService } from "./services/sanbase.service";
@@ -119,7 +117,6 @@ import { vinceOptionsAction } from "./actions/options.action";
 import { vincePerpsAction } from "./actions/perps.action";
 import { vinceMemesAction } from "./actions/memes.action";
 import { vinceAirdropsAction } from "./actions/airdrops.action";
-import { vinceLifestyleAction } from "./actions/lifestyle.action";
 import { vinceNftFloorAction } from "./actions/nftFloor.action";
 import { vinceIntelAction } from "./actions/intel.action";
 import { vinceNewsAction } from "./actions/news.action";
@@ -168,7 +165,6 @@ import { bankrOrdersProvider } from "./providers/bankrOrders.provider";
 import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
 import { registerTrainOnnxTask } from "./tasks/trainOnnx.tasks";
 import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
-import { registerLifestyleDailyTask } from "./tasks/lifestyleDaily.tasks";
 import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
@@ -192,8 +188,8 @@ export const vincePlugin: Plugin = {
   name: "plugin-vince",
   description:
     "Unified data intelligence for VINCE agent. " +
-    "Consolidates: Deribit, Nansen, Sanbase, CoinGlass, CoinGecko, DexScreener, Meteora, NFT floors, Lifestyle. " +
-    "Core assets: BTC, ETH, SOL, HYPE + HIP-3 tokens. Focus: OPTIONS, PERPS, MEMETICS, AIRDROPS, LIFESTYLE, ART.",
+    "Consolidates: Deribit, Nansen, Sanbase, CoinGlass, CoinGecko, DexScreener, Meteora, NFT floors. " +
+    "Core assets: BTC, ETH, SOL, HYPE + HIP-3 tokens. Focus: OPTIONS, PERPS, MEMETICS, AIRDROPS, ART. Lifestyle: ask Kelly.",
 
   /** Drizzle schema for plugin_vince.paper_bot_features (PGLite/Postgres). */
   schema: paperTradesSchema,
@@ -216,7 +212,6 @@ export const vincePlugin: Plugin = {
     VinceDexScreenerService,
     VinceMeteoraService,
     VinceNFTFloorService,
-    VinceLifestyleService,
     VinceDeribitService,
     VinceNansenService,
     VinceSanbaseService,
@@ -277,7 +272,6 @@ export const vincePlugin: Plugin = {
     vincePerpsAction,
     vinceMemesAction,
     vinceAirdropsAction,
-    vinceLifestyleAction,
     vinceNftFloorAction,
     vinceIntelAction,
     vinceNewsAction,
@@ -1209,17 +1203,6 @@ export const vincePlugin: Plugin = {
       });
     }
 
-    // Lifestyle daily: dining, hotel, health, fitness pushed to Discord/Slack (channels with "lifestyle" in name)
-    if (isVinceAgent(runtime)) {
-      setImmediate(async () => {
-        try {
-          await registerLifestyleDailyTask(runtime);
-        } catch (e) {
-          logger.warn("[VINCE] Failed to register lifestyle daily task:", e);
-        }
-      });
-    }
-
     // News daily: MandoMinutes briefing pushed to Discord/Slack - only when Mando has updated (channels with "news" in name)
     if (isVinceAgent(runtime)) {
       setImmediate(async () => {
@@ -1337,7 +1320,6 @@ export { VinceNewsSentimentService } from "./services/newsSentiment.service";
 export { VinceDexScreenerService } from "./services/dexscreener.service";
 export { VinceMeteoraService } from "./services/meteora.service";
 export { VinceNFTFloorService } from "./services/nftFloor.service";
-export { VinceLifestyleService } from "./services/lifestyle.service";
 export { VinceDeribitService } from "./services/deribit.service";
 export { VinceNansenService } from "./services/nansen.service";
 export { VinceSanbaseService } from "./services/sanbase.service";
@@ -1374,7 +1356,6 @@ export { vinceOptionsAction } from "./actions/options.action";
 export { vincePerpsAction } from "./actions/perps.action";
 export { vinceMemesAction } from "./actions/memes.action";
 export { vinceAirdropsAction } from "./actions/airdrops.action";
-export { vinceLifestyleAction } from "./actions/lifestyle.action";
 export { vinceNftFloorAction } from "./actions/nftFloor.action";
 export { vinceIntelAction } from "./actions/intel.action";
 export { vinceNewsAction } from "./actions/news.action";

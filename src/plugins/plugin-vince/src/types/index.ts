@@ -170,34 +170,6 @@ export interface CuratedCollection {
 }
 
 // ==========================================
-// Lifestyle Types
-// ==========================================
-
-export type DayOfWeek =
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday"
-  | "sunday";
-
-export interface LifestyleSuggestion {
-  category: "health" | "dining" | "hotel" | "activity";
-  suggestion: string;
-  reason: string;
-  priority: number;
-  daySpecific: boolean;
-}
-
-export interface DailyBriefing {
-  day: DayOfWeek;
-  date: string;
-  suggestions: LifestyleSuggestion[];
-  specialNotes: string[];
-}
-
-// ==========================================
 // Options Types
 // ==========================================
 
@@ -364,7 +336,6 @@ export interface BinanceIntelligence {
 
 export interface VinceContext {
   timestamp: number;
-  dayOfWeek: DayOfWeek;
 
   // Trading
   marketSignals: MarketSignal[];
@@ -378,9 +349,6 @@ export interface VinceContext {
 
   // NFT
   nftFloors: NFTCollection[];
-
-  // Lifestyle
-  dailySuggestions: LifestyleSuggestion[];
 
   // Options
   optionsContext: OptionsContext[];

@@ -17,7 +17,7 @@
 
 |                     |                                                                                                                                                               |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **What it is**      | A quantitative trading assistant with a lifestyle overlay—unified data intelligence across options, perps, TradFi, memes, lifestyle, and art.                 |
+| **What it is**      | A quantitative trading assistant—unified data intelligence across options, perps, TradFi, memes, and art. Lifestyle: ask Kelly.                               |
 | **How you use it**  | Chat with the VINCE agent: "gm", "perps", "options", "memes", "bot status", etc. One coherent voice instead of 15 browser tabs.                               |
 | **Technical shape** | ~30 services, 20 actions, 2 context providers, 1 trade-performance evaluator. Paper trading bot with ML enhancement (Thompson Sampling, feature store, ONNX). |
 | **Primary assets**  | BTC, ETH, SOL, HYPE + 34 HIP-3 assets (gold, SPX, NVDA, etc.).                                                                                                |
@@ -29,16 +29,16 @@
 
 VINCE started as a personal itch: paper trading BTC perps on Hyperliquid, scanning Solana memes on DexScreener, dipping into options on Deribit—and trying to remember if it was Thursday (pool day) or Friday (ritual vibes). The data was everywhere; the context wasn’t. I wanted one coherent voice: _"Here’s the play, and here’s why it fits your life."_
 
-At its core, VINCE blends **six domains** into one feed:
+At its core, VINCE blends **five domains** (plus lifestyle via Kelly) into one feed:
 
 - **Options** — Covered calls on BTC via HYPERSURFACE (Deribit IV, Greeks, DVOL).
 - **Perps** — Long/short signals with paper execution; 10+ signal sources, weighted voting.
 - **TradFi** — Gold, NVDA, SPX via Hyperliquid HIP-3 (34 assets).
 - **Memes** — AI tokens in the $1M–$20M sweet spot (DexScreener, traction, liquidity).
-- **Lifestyle** — Day-of-week aware suggestions (dining, hotels, activities).
 - **Art** — NFT floor tracking for thin-buy opportunities (curated collections).
+- **Lifestyle** — Handled by Kelly (dining, hotels, day-of-week suggestions).
 
-Say **"gm"** and you get a briefing: options skew, perps funding, top memes, session context, lifestyle nudge, NFT floors. Not a dashboard—curated, one narrative.
+Say **"gm"** and you get a briefing: options skew, perps funding, top memes, session context, NFT floors (for lifestyle nudge, ask Kelly). Not a dashboard—curated, one narrative.
 
 The **paper trading bot** follows those signals with guardrails:
 

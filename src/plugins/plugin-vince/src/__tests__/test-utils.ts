@@ -233,26 +233,6 @@ export const mockHIP3Data = {
 };
 
 /**
- * Mock data for VinceLifestyleService
- */
-export const mockLifestyleData = {
-  suggestions: {
-    health: [{ suggestion: "Morning swim", reason: "Pool season" }],
-    dining: [
-      {
-        suggestion: "Sushi for lunch",
-        reason: "Friday treat",
-        daySpecific: true,
-      },
-    ],
-    hotel: [{ suggestion: "Four Seasons", reason: "Pool access" }],
-    activity: [{ suggestion: "Strike selection", reason: "Friday ritual" }],
-  },
-  isFriday: true,
-  season: "pool" as const,
-};
-
-/**
  * Mock data for paper trading services
  */
 export const mockPaperTradingData = {
@@ -271,30 +251,6 @@ export const mockPaperTradingData = {
       entryPrice: 82000,
       currentPrice: 85000,
       pnl: 300,
-    },
-  ],
-};
-
-/**
- * Mock daily briefing data for VinceLifestyleService
- */
-export const mockDailyBriefing = {
-  day: "friday",
-  date: "2026-02-01",
-  specialNotes: ["Strike selection ritual day"],
-  suggestions: [
-    { category: "health", suggestion: "Morning swim", reason: "Pool season" },
-    {
-      category: "dining",
-      suggestion: "Sushi for lunch",
-      reason: "Friday treat",
-      daySpecific: true,
-    },
-    { category: "hotel", suggestion: "Four Seasons", reason: "Pool access" },
-    {
-      category: "activity",
-      suggestion: "Strike selection",
-      reason: "Friday ritual",
     },
   ],
 };
@@ -423,14 +379,6 @@ export function createMockServices() {
       getIndices: async () => mockHIP3Data.indices,
       getAllData: async () => mockHIP3Data,
       getHIP3Pulse: async () => mockHIP3Pulse,
-      refreshData: async () => {},
-    },
-    VINCE_LIFESTYLE_SERVICE: {
-      getDailySuggestions: async () => mockLifestyleData.suggestions,
-      isFriday: () => mockLifestyleData.isFriday,
-      getSeason: () => mockLifestyleData.season,
-      getDailyBriefing: () => mockDailyBriefing,
-      getCurrentSeason: () => mockLifestyleData.season,
       refreshData: async () => {},
     },
     VINCE_TOP_TRADERS_SERVICE: {
