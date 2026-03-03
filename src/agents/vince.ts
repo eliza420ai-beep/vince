@@ -52,6 +52,8 @@ import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
 // Inter-agent communication: ASK_AGENT + A2A loop guard for Discord chat
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
+// Polymarket discovery (read-only) so Vince can derive prediction-market sentiment for perps + Solus
+import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discovery/src/index.ts";
 
 // Load Discord for VINCE when he has his own bot (VINCE_DISCORD_* set and different from Eliza's app).
 // No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to use Discord (see DISCORD.md).
@@ -559,6 +561,7 @@ const buildPlugins = (): Plugin[] =>
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
       : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
+    polymarketDiscoveryPlugin, // Read-only: Polymarket sentiment for perps signal + Solus context
     interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
   ] as Plugin[];
 

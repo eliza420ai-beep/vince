@@ -34,6 +34,7 @@ import type { VinceBinanceService } from "./binance.service";
 import type { VinceBinanceLiquidationService } from "./binanceLiquidation.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
 import type { VinceXSentimentService } from "./xSentiment.service";
+import type { VincePolymarketSentimentService } from "./polymarketSentiment.service";
 import type { VinceDeribitService } from "./deribit.service";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceSanbaseService } from "./sanbase.service";
@@ -1095,6 +1096,70 @@ export class VinceSignalAggregatorService extends Service {
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] X sentiment error: ${e}`);
         triedNoContribution.push("XSentiment");
+      }
+    }
+
+    // =========================================
+    // 5b2. Polymarket Sentiment — prediction-market odds (BTC/ETH/SOL/macro/stocks) from Polymarket discovery
+    // =========================================
+    const polymarketSentimentService = this.runtime.getService(
+      "VINCE_POLYMARKET_SENTIMENT_SERVICE",
+    ) as VincePolymarketSentimentService | null;
+    if (polymarketSentimentService?.isConfigured()) {
+      try {
+        const pmConfidenceFloor = Math.min(
+          100,
+          Math.max(
+            1,
+            parseInt(
+              process.env.POLYMARKET_SENTIMENT_CONFIDENCE_FLOOR ?? "40",
+              10,
+            ) || 40,
+          ),
+        );
+        const { sentiment, confidence } =
+          polymarketSentimentService.getTradingSentiment(asset);
+        if (sentiment !== "neutral" && confidence >= pmConfidenceFloor) {
+          const strength = Math.round(50 + Math.min(14, confidence / 6));
+          const discount = Math.min(
+            100,
+            Math.max(1, Math.round(confidence * 0.8)),
+          );
+          const factorLabel = `Polymarket ${sentiment} (${confidence}%)`;
+          if (sentiment === "bullish") {
+            signals.push({
+              asset,
+              direction: "long",
+              strength,
+              confidence: discount,
+              source: "PolymarketSentiment",
+              factors: [factorLabel],
+              timestamp: Date.now(),
+            });
+            sources.push("PolymarketSentiment");
+            allFactors.push(factorLabel);
+          } else {
+            signals.push({
+              asset,
+              direction: "short",
+              strength,
+              confidence: discount,
+              source: "PolymarketSentiment",
+              factors: [factorLabel],
+              timestamp: Date.now(),
+            });
+            sources.push("PolymarketSentiment");
+            allFactors.push(factorLabel);
+          }
+        }
+        if (!sources.includes("PolymarketSentiment")) {
+          triedNoContribution.push("PolymarketSentiment");
+        }
+      } catch (e) {
+        logger.debug(
+          `[VinceSignalAggregator] Polymarket sentiment error: ${e}`,
+        );
+        triedNoContribution.push("PolymarketSentiment");
       }
     }
 

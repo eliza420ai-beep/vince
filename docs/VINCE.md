@@ -17,7 +17,7 @@ VINCE is the **CDO (Chief Data Officer)** agent: unified data intelligence acros
 ## What VINCE Can Do Today
 
 - **Briefing:** ALOHA (one-word vibe, majors, trade or wait), gm-style briefing (options, perps, memes, context, lifestyle, NFT).
-- **Paper bot:** Signal aggregation, Kelly sizing, circuit breakers (e.g. $200 daily cap), goals ($420/day, $10K/month). Status, deep-dive meme, “Grok Expert” prompts. Thompson Sampling and embeddings; ONNX when trained.
+- **Paper bot:** Signal aggregation, Kelly sizing, circuit breakers (e.g. $200 daily cap), goals ($420/day, $10K/month). Status, deep-dive meme, “Grok Expert” prompts. Thompson Sampling and embeddings; ONNX when trained. **Polymarket sentiment** (VincePolymarketSentimentService) feeds the aggregator as source PolymarketSentiment when Polymarket discovery is loaded; see SIGNAL_SOURCES.md.
 - **Options:** Hypersurface view (covered calls, secured puts); Deribit IV, Greeks, DVOL via data sources; handoff to Solus for strike/execution.
 - **Perps:** Hyperliquid signals, funding, regime; paper execution in-app (no onchain unless Otaku executes).
 - **Memes / TradFi / Art:** Meme scan (DexScreener, traction, liquidity); HIP-3 (gold, NVDA, SPX, etc.); NFT floor tracking (curated collections).

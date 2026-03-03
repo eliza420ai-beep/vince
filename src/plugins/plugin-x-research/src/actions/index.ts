@@ -13,3 +13,4 @@ export { xSaveResearchAction } from "./xSaveResearch.action";
 export { xSearchAction } from "./xSearch.action";
 export { clawtermDayReportAction } from "./clawtermDayReport.action";
 export { whatsTheTradeAction } from "./whatsTheTrade.action";
+export { polymarketVibeAction } from "./polymarketVibe.action";
