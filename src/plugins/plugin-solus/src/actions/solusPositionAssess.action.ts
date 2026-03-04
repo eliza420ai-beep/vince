@@ -13,6 +13,10 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { isSolus } from "../utils/solus";
+import {
+  buildCloseEarlyRecommendationFromState,
+  formatCloseEarlyRecommendation,
+} from "../utils/closeEarlyRecommendation";
 
 const TRIGGERS = [
   "assess my position",
@@ -99,15 +103,33 @@ export const solusPositionAssessAction: Action = {
       ]);
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
+      const closeEarlyRec = buildCloseEarlyRecommendationFromState(
+        state,
+        userText,
+      );
+      const closeEarlyBlock = formatCloseEarlyRecommendation(closeEarlyRec);
 
       const prompt = `You are Solus, the on-chain options expert. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], (3) spot/regime in [Solus market context] and [Hypersurface spot USD], (4) when present [Solus options context — Deribit] with spot, DVOL, ATM IV, and best strikes for BTC/ETH/SOL; (5) [Solus calibration] with Brier and recent outcomes when present. Use this data to give one clear call.
 
 **RULE — you must follow:** Do NOT say you need VINCE, need to ask anyone for IV, or need "VINCE's current SOL IV". If [Solus options context] includes SOL, use that IV and best strikes. If it does not, give your assessment and strike guidance from [Solus sizing state] and spot only (e.g. "SOL spot from context; our stack at $141 cost basis; strikes around $90–95 could collect premium — exact amount depends on current IV"). Never deflect the user to another chat or agent.
 
-Using the context below and the user message, (1) Interpret what they have: notional, premium, collateral (e.g. USDT0), expiry, strike if mentioned, and how it lines up with the wheel plan in [Solus sizing state]. (2) State invalidation (what would change your mind). (3) Give one clear call: hold, roll, or adjust. If key details are missing, ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust.
+Use the deterministic [Close early recommendation] block as a hard prior for weekly re-evaluation:
+- If Action is CLOSE_EARLY_NOW, your one call must be close early now.
+- If Action is WATCH_CLOSE_WINDOW with USDT0 insufficient, your one call must include funding/bridge warning and what to do next.
+- If Action is ROLL_NEXT_WEEK, your one call must be roll.
+- If Action is HOLD_TO_EXPIRY, your one call should be hold unless user gives stronger contrary constraints.
+
+Using the context below and the user message, return this structure in prose:
+(1) One recommendation: hold, roll, close early, or redeploy.
+(2) Why now: strike distance, momentum, and time-to-expiry.
+(3) Invalidation: one clear condition that flips the call.
+(4) Ops caveat: mention USDT0 sufficiency for close debit when relevant; mention settlement window (up to ~2h after Friday 08:00 UTC) when expiry/withdrawals are relevant.
+If key details are missing, ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust/close.
 
 Context:
 ${contextBlock}
+
+${closeEarlyBlock}
 
 User: ${userText}
 
@@ -130,10 +152,20 @@ Reply with assessment and one call only.`;
       const sourceLine = hasOptionsContext
         ? "*Source: Hypersurface mechanics, CoinGecko spot, Deribit IV/strikes*"
         : "*Source: Hypersurface mechanics, CoinGecko spot*";
+      const closeEngineLine = closeEarlyRec
+        ? `*Close-early engine: ${closeEarlyRec.action} (${(
+            closeEarlyRec.confidence * 100
+          ).toFixed(0)}% confidence)*`
+        : "*Close-early engine: no active CC/CSP found in sizing state*";
+      const opsChecklistLine =
+        "*Operator check: Thu monitor ITM/early exercise; Fri 08:00 UTC expiry; allow up to ~2h settlement before withdrawal checks.*";
       const sections = [
         `**Position Assessment** _${dateStr}_`,
         "",
         text.trim(),
+        "",
+        closeEngineLine,
+        opsChecklistLine,
         "",
         sourceLine,
         "",

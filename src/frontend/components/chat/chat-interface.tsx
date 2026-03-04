@@ -248,6 +248,31 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "Assess my Hypersurface position — hold, roll, or adjust?",
     },
     {
+      label: "Close early check",
+      message:
+        "Run close early check on our current Hypersurface positions and tell me hold/close/roll with invalidation.",
+    },
+    {
+      label: "Close early + USDT0",
+      message:
+        "Should we buy back early now? Include USDT0 funding gap and bridge warning if we cannot close yet.",
+    },
+    {
+      label: "Settlement timing",
+      message:
+        "Explain Hypersurface settlement timing: Friday 08:00 UTC expiry, early exercise window, and why settlement can take up to 2 hours.",
+    },
+    {
+      label: "Settle All help",
+      message:
+        "I cannot find my collateral after expiry. What should I do on Hypersurface?",
+    },
+    {
+      label: "Sell probability caveat",
+      message:
+        "How should I interpret sell probability on Hypersurface? Is it guaranteed?",
+    },
+    {
       label: "Size or skip?",
       message: "Give me size, skip, or watch and invalidation for this week",
     },

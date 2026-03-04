@@ -29,6 +29,18 @@ const TRIGGERS = [
   "how do secured puts work",
   "secured puts vs covered calls",
   "when do i sell secured puts",
+  "settlement time",
+  "when does settlement happen",
+  "settle all",
+  "exercise window",
+  "can i be exercised early",
+  "sell probability",
+  "is sell probability guaranteed",
+  "wrapped assets",
+  "api wallet",
+  "cannot find my collateral after expiry",
+  "can't find my collateral after expiry",
+  "what should i do after expiry",
 ];
 
 function wantsExplain(text: string): boolean {
@@ -64,7 +76,19 @@ export const solusHypersurfaceExplainAction: Action = {
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Solus, the on-chain options expert. The user wants an explanation of Hypersurface. We don't have funding/IV/sentiment; for where price lands by Friday, that's VINCE or pasted context. Using the context below, explain in plain language: expiry (Friday 08:00 UTC), covered calls vs cash-secured puts, the wheel, and early exercise. Keep it short and benefit-led. End with: for live IV and strike data (and for a pulse on where price lands by Friday), say "options" to VINCE and paste his answer here for the strike call. Reply in flowing prose; no bullet lists.
+      const prompt = `You are Solus, the on-chain options expert. The user wants an explanation of Hypersurface. We don't have funding/IV/sentiment; for where price lands by Friday, that's VINCE or pasted context.
+
+Using the context below, explain in plain language:
+- Expiry Friday 08:00 UTC and post-expiry settlement can take up to ~2 hours
+- Covered calls vs cash-secured puts and wheel
+- ITM early exercise in final ~24h
+- Close-early path (and USDT0 needed for close debit)
+- Sell probability is an estimate, not guaranteed
+- Wrapped asset / wallet caveat (uBTC/uETH/uHYPE, main Hyperliquid account)
+
+If user asks about missing collateral after expiry, include: Portfolio -> Expired -> Settle All.
+End with: for live IV and strike data (and for a pulse on where price lands by Friday), say "options" to VINCE and paste his answer here for the strike call.
+Reply in flowing prose; no bullet lists.
 
 Context:
 ${contextBlock}
@@ -98,7 +122,7 @@ Reply with the explanation only.`;
     } catch (error) {
       logger.error("[SOLUS_HYPERSURFACE_EXPLAIN] Failed:", error);
       await callback({
-        text: "Hypersurface: weekly options, Friday 08:00 UTC. Covered calls = own asset, sell call, premium; above strike you're assigned. Secured puts = hold stablecoins, sell put, premium; below strike you're assigned (premium cuts cost basis). Wheel: CC → assigned → CSP → assigned → repeat. For live IV and strikes, say 'options' to VINCE and paste here.",
+        text: "Hypersurface: weekly options, Friday 08:00 UTC expiry. Settlement can take up to around 2 hours after expiry in busy periods. Covered calls = own asset, sell call, premium; above strike you're assigned. Secured puts = hold stablecoins, sell put, premium; below strike you're assigned (premium cuts cost basis). ITM exercise can happen in the final ~24h, so Thursday checks matter. Sell probability is an estimate, not a guarantee. If collateral looks missing after expiry, go to Portfolio -> Expired -> Settle All. For live IV and strikes, say 'options' to VINCE and paste here.",
       });
       return {
         success: false,

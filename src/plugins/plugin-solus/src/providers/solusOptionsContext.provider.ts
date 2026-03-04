@@ -306,7 +306,9 @@ export async function fetchAndBuildOptionsContext(
     }
   }
 
-  const text = `[Solus options context — Deribit]\n${blocks.join("\n\n")}${tailLine}${portfolioLine}`;
+  const caveatLine =
+    "\nProbability caveat: assignment/sell probability is model-based (GBM/Black-Scholes style estimate), not a guaranteed outcome.";
+  const text = `[Solus options context — Deribit]\n${blocks.join("\n\n")}${tailLine}${portfolioLine}${caveatLine}`;
   return { text, optionsByAsset };
 }
 
