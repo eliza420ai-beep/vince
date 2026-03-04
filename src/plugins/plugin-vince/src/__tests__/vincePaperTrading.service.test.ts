@@ -663,6 +663,10 @@ describe("VincePaperTradingService integration", () => {
       dominantRegimeShare: 0,
       underrepresentedRegimes: new Set<string>(),
       stageDeficitCount: 1,
+      stageDeficitByStage: { onnx_enabled: 3 },
+      pairDeficitByStage: { onnx_enabled: 3 },
+      pairDeficitTotal: 3,
+      treatmentExpectedEdge: 0.2,
       totalClosed: 12,
     });
     (svc as any).getRegimeQuotaBlockReason = () => null;
@@ -778,6 +782,219 @@ describe("VincePaperTradingService integration", () => {
     expect(openPosition).not.toHaveBeenCalled();
     expect(
       recorded.some((row) => row.reason.includes("Regime quota guard")),
+    ).toBe(true);
+  });
+
+  it("suppresses saturated coverage buckets when deficits exist elsewhere", async () => {
+    const openPosition = vi.fn();
+    const services = {
+      ...createMockServices(),
+      VINCE_POSITION_MANAGER_SERVICE: {
+        hasOpenPosition: () => false,
+        getPortfolio: () => ({ totalValue: 10_000 }),
+        getCurrentExposure: () => 0,
+        getOpenPositions: () => [],
+        getPositionByAsset: () => null,
+        restoreState: () => {},
+        openPosition,
+      },
+      VINCE_RISK_MANAGER_SERVICE: {
+        getLimits: () => ({ minSignalStrength: 60, minSignalConfidence: 60 }),
+        validateSignal: (sig: { strength: number; confidence: number }) => ({
+          valid: sig.strength >= 60 && sig.confidence >= 60,
+          reason: "threshold not met",
+        }),
+        validateTrade: () => ({ valid: true, adjustedSize: 500 }),
+        getCorrelationSizeMultiplier: () => ({ multiplier: 1, reason: "" }),
+        getModeRiskMultiplier: () => 1,
+        getTimeModifiers: () => ({
+          sizeMultiplier: 1,
+          session: { session: "US", isWeekend: false, isHoliday: false },
+        }),
+        getRiskState: () => ({ currentDrawdownPct: 0 }),
+        recordTrade: () => {},
+        restoreState: () => {},
+      },
+      VINCE_SIGNAL_AGGREGATOR_SERVICE: {
+        getSignal: async () => ({
+          direction: "long",
+          strength: 61,
+          confidence: 61,
+          confirmingCount: 3,
+          factors: ["x", "y", "z"],
+          sources: ["BinanceTopTraders", "CoinGlass", "MarketRegime"],
+          sourceBreakdown: {
+            BinanceTopTraders: 1,
+            CoinGlass: 1,
+            MarketRegime: 1,
+          },
+        }),
+      },
+      VINCE_MARKET_DATA_SERVICE: {
+        getEnrichedContext: async () => ({
+          currentPrice: 100_000,
+          fundingRate: 0,
+          volumeRatio: 1.1,
+          priceChange24h: 0.5,
+          fearGreedValue: 50,
+        }),
+        getDVOL: async () => 60,
+        estimateRSI: async () => 52,
+      },
+      VINCE_COINGLASS_SERVICE: {
+        getOpenInterest: () => ({ change24h: 5 }),
+        getLongShortRatio: () => ({ ratio: 1.1 }),
+        getFearGreed: () => ({ value: 50, classification: "Neutral" }),
+      },
+      VINCE_FEATURE_STORE_SERVICE: {
+        getExtendedMarketSnapshot: async () => null,
+        recordAvoidedDecision: vi.fn(async () => "rec-1"),
+      } as any,
+      VINCE_MARKET_REGIME_SERVICE: {
+        getRegime: async () => ({
+          regime: "trending",
+          positionSizeMultiplier: 1,
+        }),
+      },
+      VINCE_HIP3_SERVICE: {
+        getMaxLeverageForAsset: async () => 5,
+      },
+      VINCE_ML_INFERENCE_SERVICE: null,
+    };
+    const runtime = createMockRuntime({
+      services,
+      settings: {
+        vince_paper_assets: "BTC",
+        vince_paper_wtt_enabled: false,
+        vince_paper_watchlist_enabled: false,
+      },
+    });
+    const svc = await VincePaperTradingService.start(runtime);
+    (svc as any).buildProofCoverageContext = () => ({
+      stageDepth: { pairDepth: [{ deficitToMin: 3 }] },
+      uplift: { byRegime: [] },
+      regimeMinTarget: 5,
+      dominantRegime: null,
+      dominantRegimeShare: 0,
+      underrepresentedRegimes: new Set<string>(),
+      stageDeficitCount: 1,
+      stageDeficitByStage: { onnx_plus_swarm: 3, onnx_enabled: 0 },
+      pairDeficitByStage: { onnx_plus_swarm: 4, onnx_enabled: 0 },
+      pairDeficitTotal: 4,
+      treatmentExpectedEdge: 0.2,
+      totalClosed: 12,
+    });
+    (svc as any).getRegimeQuotaBlockReason = () => null;
+    await svc.evaluateAndTrade();
+    expect(openPosition).not.toHaveBeenCalled();
+  });
+
+  it("blocks weak treatment-stage signals when expected swarm edge is non-positive", async () => {
+    const recorded: string[] = [];
+    const openPosition = vi.fn();
+    const services = {
+      ...createMockServices(),
+      VINCE_POSITION_MANAGER_SERVICE: {
+        hasOpenPosition: () => false,
+        getPortfolio: () => ({ totalValue: 10_000 }),
+        getCurrentExposure: () => 0,
+        getOpenPositions: () => [],
+        getPositionByAsset: () => null,
+        restoreState: () => {},
+        openPosition,
+      },
+      VINCE_RISK_MANAGER_SERVICE: {
+        getLimits: () => ({ minSignalStrength: 60, minSignalConfidence: 60 }),
+        validateSignal: () => ({ valid: true }),
+        validateTrade: () => ({ valid: true, adjustedSize: 500 }),
+        getCorrelationSizeMultiplier: () => ({ multiplier: 1, reason: "" }),
+        getModeRiskMultiplier: () => 1,
+        getTimeModifiers: () => ({
+          sizeMultiplier: 1,
+          session: { session: "US", isWeekend: false, isHoliday: false },
+        }),
+        getRiskState: () => ({ currentDrawdownPct: 0 }),
+        recordTrade: () => {},
+        restoreState: () => {},
+      },
+      VINCE_SIGNAL_AGGREGATOR_SERVICE: {
+        getSignal: async () => ({
+          direction: "long",
+          strength: 62,
+          confidence: 62,
+          confirmingCount: 3,
+          factors: ["x", "y", "z"],
+          sources: ["swarm_consensus", "CoinGlass", "MarketRegime"],
+          sourceBreakdown: {
+            swarm_consensus: 1,
+            CoinGlass: 1,
+            MarketRegime: 1,
+          },
+        }),
+      },
+      VINCE_MARKET_DATA_SERVICE: {
+        getEnrichedContext: async () => ({
+          currentPrice: 100_000,
+          fundingRate: 0,
+          volumeRatio: 1.1,
+          priceChange24h: 0.5,
+          fearGreedValue: 50,
+        }),
+        getDVOL: async () => 60,
+        estimateRSI: async () => 52,
+      },
+      VINCE_COINGLASS_SERVICE: {
+        getOpenInterest: () => ({ change24h: 5 }),
+        getLongShortRatio: () => ({ ratio: 1.1 }),
+        getFearGreed: () => ({ value: 50, classification: "Neutral" }),
+      },
+      VINCE_FEATURE_STORE_SERVICE: {
+        getExtendedMarketSnapshot: async () => null,
+        recordAvoidedDecision: vi.fn(async (params: { reason: string }) => {
+          recorded.push(params.reason);
+          return "rec-1";
+        }),
+      } as any,
+      VINCE_MARKET_REGIME_SERVICE: {
+        getRegime: async () => ({
+          regime: "trending",
+          positionSizeMultiplier: 1,
+        }),
+      },
+      VINCE_HIP3_SERVICE: {
+        getMaxLeverageForAsset: async () => 5,
+      },
+      VINCE_ML_INFERENCE_SERVICE: null,
+    };
+    const runtime = createMockRuntime({
+      services,
+      settings: {
+        vince_paper_assets: "BTC",
+        vince_paper_wtt_enabled: false,
+        vince_paper_watchlist_enabled: false,
+        VINCE_SWARM_TREATMENT_MIN_EDGE: 0,
+      },
+    });
+    const svc = await VincePaperTradingService.start(runtime);
+    (svc as any).buildProofCoverageContext = () => ({
+      stageDepth: { pairDepth: [{ deficitToMin: 0 }] },
+      uplift: { byRegime: [] },
+      regimeMinTarget: 5,
+      dominantRegime: null,
+      dominantRegimeShare: 0,
+      underrepresentedRegimes: new Set<string>(),
+      stageDeficitCount: 0,
+      stageDeficitByStage: { onnx_plus_swarm: 0 },
+      pairDeficitByStage: { onnx_plus_swarm: 0 },
+      pairDeficitTotal: 0,
+      treatmentExpectedEdge: -0.25,
+      totalClosed: 48,
+    });
+    (svc as any).getRegimeQuotaBlockReason = () => null;
+    await svc.evaluateAndTrade();
+    expect(openPosition).not.toHaveBeenCalled();
+    expect(
+      recorded.some((reason) => reason.includes("Treatment quality gate")),
     ).toBe(true);
   });
 });

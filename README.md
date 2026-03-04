@@ -34,6 +34,17 @@ Every cycle updates how the next decision is made.
 
 This is the core product: a machine that learns from its own behavior and only scales when proof is strong.
 
+### Current build focus: Recursive + ML proof loop
+
+Right now, we are focused on one job: push `Recursive North Star` to stable on-track by improving proof quality, not by loosening gates.
+
+- **Recursion pillar**: raise closed-outcome sufficiency, spread closes across distinct days, and improve regime balance so the allocator can move beyond observe-only with clean evidence.
+- **ML pillar**: keep model/runtime health strong and preserve signal quality discipline while we collect better training data.
+- **1+1=3 Synergy pillar**: prove multi-agent treatment beats ONNX-only baseline with positive uplift, promotion-eligible causal confidence, and minimum per-arm depth.
+- **Operator rhythm**: use Coverage Velocity deltas (`closes`, `days`, `regime`, `stage`, `pair`, `min-arm`) to run a daily proof-coverage sprint until blockers clear.
+
+This phase is about repeatable, auditable improvement. Scores should rise because the system gets better under strict criteria.
+
 ### Structural thesis: crypto, AI, and what to own
 
 In fast markets, signal half-life is short and distribution is crowded.  

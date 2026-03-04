@@ -105,6 +105,12 @@ describe("RecursiveNorthStarTab", () => {
                 missingClosedRowsTo20: 4,
                 missingDistinctDaysTo7: 2,
                 missingRegimeDepthTo5: 1,
+                sprintWindowDays: 7,
+                daysCovered: 3,
+                daysRemaining: 4,
+                closesPerDayNeeded: 1,
+                distinctDaysPerDayNeeded: 0.5,
+                regimeDepthPerDayNeeded: 0.25,
               },
             },
             ml: {
@@ -173,6 +179,12 @@ describe("RecursiveNorthStarTab", () => {
                 stageDeficitTotal: 3,
                 pairDeficitTotal: 2,
                 minSamplesPerArmDeficit: 0,
+                sprintWindowDays: 7,
+                daysCovered: 3,
+                daysRemaining: 4,
+                stageDeficitPerDayNeeded: 0.75,
+                pairDeficitPerDayNeeded: 0.5,
+                minArmPerDayNeeded: 0,
               },
               promotionReasons: ["all_pairs_passed"],
               causalPairs: [
@@ -275,8 +287,18 @@ describe("RecursiveNorthStarTab", () => {
     expect(html).toContain("Coverage Velocity");
     expect(html).toContain("Recursion Delta");
     expect(html).toContain("Synergy Delta");
-    expect(html).toContain("closes 4 · days 2 · regime 1");
-    expect(html).toContain("stage 3 · pair 2 · min-arm 0");
+    expect(html).toContain("closes");
+    expect(html).toContain("regime");
+    expect(html).toContain("min-arm");
+    expect(html).toContain(
+      "Pace (4d left): closes 1/day · days 0.50/day · regime 0.25/day",
+    );
+    expect(html).toContain(
+      "Pace (4d left): stage 0.75/day · pair 0.50/day · min-arm 0/day",
+    );
+    expect(html).toContain("text-red-600");
+    expect(html).toContain("text-amber-600");
+    expect(html).toContain("text-green-600");
     expect(html).toContain("Score Trend (7d vs 30d)");
     expect(html).toContain("Rolling overall history");
     expect(html).toContain("Overall");

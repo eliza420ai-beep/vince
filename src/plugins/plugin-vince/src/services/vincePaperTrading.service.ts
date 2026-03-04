@@ -249,6 +249,8 @@ export class VincePaperTradingService extends Service {
 
   private static readonly COVERAGE_NEAR_THRESHOLD_POINTS = 8;
   private static readonly COVERAGE_SIGNAL_BONUS_POINTS = 4;
+  private static readonly COVERAGE_PAIR_PRIORITY_POINTS = 3;
+  private static readonly COVERAGE_SATURATED_PENALTY_POINTS = 3;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -328,6 +330,27 @@ export class VincePaperTradingService extends Service {
     return Number.isNaN(n) ? fallback : n;
   }
 
+  private hasSwarmTreatmentSource(signal: AggregatedTradeSignal): boolean {
+    const sources = Object.keys(signal.sourceBreakdown ?? {});
+    return sources.some((source) =>
+      [
+        "swarm",
+        "swarm_consensus",
+        "swarm_orchestrator",
+        "swarm_coordination",
+      ].includes(source.toLowerCase()),
+    );
+  }
+
+  private inferCoverageStages(signal: AggregatedTradeSignal): string[] {
+    const stages = new Set<string>();
+    stages.add("onnx_enabled");
+    if (this.hasSwarmTreatmentSource(signal)) {
+      stages.add("onnx_plus_swarm");
+    }
+    return Array.from(stages);
+  }
+
   private buildProofCoverageContext(): {
     stageDepth: CausalStageDepthSummary;
     uplift: UpliftSnapshot;
@@ -336,6 +359,10 @@ export class VincePaperTradingService extends Service {
     dominantRegimeShare: number;
     underrepresentedRegimes: Set<string>;
     stageDeficitCount: number;
+    stageDeficitByStage: Record<string, number>;
+    pairDeficitByStage: Record<string, number>;
+    pairDeficitTotal: number;
+    treatmentExpectedEdge: number;
     totalClosed: number;
   } {
     const minSamplesPerArm = this.getNumericSettingOrEnv(
@@ -369,6 +396,31 @@ export class VincePaperTradingService extends Service {
     const stageDeficitCount = stageDepth.pairDepth.filter(
       (row) => row.deficitToMin > 0,
     ).length;
+    const stageDeficitByStage: Record<string, number> = {};
+    for (const row of stageDepth.perStage ?? []) {
+      stageDeficitByStage[row.stage] = Math.max(
+        0,
+        Number(row.deficitToMin ?? 0),
+      );
+    }
+    const pairDeficitByStage: Record<string, number> = {};
+    let pairDeficitTotal = 0;
+    for (const row of stageDepth.pairDepth ?? []) {
+      const deficit = Math.max(0, Number(row.deficitToMin ?? 0));
+      if (deficit <= 0) continue;
+      pairDeficitTotal += deficit;
+      pairDeficitByStage[row.controlStage] =
+        (pairDeficitByStage[row.controlStage] ?? 0) + deficit;
+      pairDeficitByStage[row.treatmentStage] =
+        (pairDeficitByStage[row.treatmentStage] ?? 0) + deficit;
+    }
+    const avgPnlByStage = new Map<string, number>();
+    for (const row of uplift.byStage ?? []) {
+      avgPnlByStage.set(row.stage, Number(row.avgPnl ?? 0));
+    }
+    const treatmentExpectedEdge =
+      (avgPnlByStage.get("onnx_plus_swarm") ?? 0) -
+      (avgPnlByStage.get("onnx_enabled") ?? 0);
     return {
       stageDepth,
       uplift,
@@ -377,6 +429,10 @@ export class VincePaperTradingService extends Service {
       dominantRegimeShare,
       underrepresentedRegimes,
       stageDeficitCount,
+      stageDeficitByStage,
+      pairDeficitByStage,
+      pairDeficitTotal,
+      treatmentExpectedEdge,
       totalClosed: Math.max(0, Number(uplift.totalClosed ?? 0)),
     };
   }
@@ -392,10 +448,22 @@ export class VincePaperTradingService extends Service {
   }): void {
     const { tradeSignal, coverage, signalLimits, regimeKey } = params;
     if (tradeSignal.direction === "neutral") return;
-    const stageNeedsHelp = coverage.stageDeficitCount > 0;
+    const candidateStages = this.inferCoverageStages(tradeSignal);
+    const stageDeficit = candidateStages.reduce(
+      (sum, stage) =>
+        sum + Math.max(0, coverage.stageDeficitByStage?.[stage] ?? 0),
+      0,
+    );
+    const pairDeficit = candidateStages.reduce(
+      (sum, stage) =>
+        sum + Math.max(0, coverage.pairDeficitByStage?.[stage] ?? 0),
+      0,
+    );
+    const stageNeedsHelp = stageDeficit > 0 || coverage.stageDeficitCount > 0;
+    const pairNeedsHelp = pairDeficit > 0 || coverage.pairDeficitTotal > 0;
     const regimeNeedsHelp =
       regimeKey != null && coverage.underrepresentedRegimes.has(regimeKey);
-    if (!stageNeedsHelp && !regimeNeedsHelp) return;
+    if (!stageNeedsHelp && !pairNeedsHelp && !regimeNeedsHelp) return;
 
     const nearStrength =
       tradeSignal.strength >=
@@ -405,17 +473,64 @@ export class VincePaperTradingService extends Service {
       tradeSignal.confidence >=
       signalLimits.minSignalConfidence -
         VincePaperTradingService.COVERAGE_NEAR_THRESHOLD_POINTS;
+    const deficitsRemainElsewhere = stageNeedsHelp || pairNeedsHelp;
+    const candidateIsSaturated =
+      deficitsRemainElsewhere &&
+      stageDeficit <= 0 &&
+      pairDeficit <= 0 &&
+      !regimeNeedsHelp;
+    if (candidateIsSaturated) {
+      tradeSignal.strength = Math.max(
+        0,
+        tradeSignal.strength -
+          VincePaperTradingService.COVERAGE_SATURATED_PENALTY_POINTS,
+      );
+      tradeSignal.confidence = Math.max(
+        0,
+        tradeSignal.confidence -
+          VincePaperTradingService.COVERAGE_SATURATED_PENALTY_POINTS,
+      );
+      return;
+    }
     if (!nearStrength && !nearConfidence) return;
 
     const bonus =
       (stageNeedsHelp
         ? VincePaperTradingService.COVERAGE_SIGNAL_BONUS_POINTS
         : 0) +
+      (pairNeedsHelp
+        ? VincePaperTradingService.COVERAGE_PAIR_PRIORITY_POINTS
+        : 0) +
       (regimeNeedsHelp
         ? VincePaperTradingService.COVERAGE_SIGNAL_BONUS_POINTS
         : 0);
     tradeSignal.strength = Math.min(100, tradeSignal.strength + bonus);
     tradeSignal.confidence = Math.min(100, tradeSignal.confidence + bonus);
+  }
+
+  private getTreatmentQualityBlockReason(params: {
+    tradeSignal: AggregatedTradeSignal;
+    coverage: ReturnType<VincePaperTradingService["buildProofCoverageContext"]>;
+    signalLimits: {
+      minSignalStrength: number;
+      minSignalConfidence: number;
+    };
+  }): string | null {
+    const { tradeSignal, coverage, signalLimits } = params;
+    if (tradeSignal.direction === "neutral") return null;
+    if (!this.hasSwarmTreatmentSource(tradeSignal)) return null;
+    const minEdge = this.getNumericSettingOrEnv(
+      "VINCE_SWARM_TREATMENT_MIN_EDGE",
+      0,
+    );
+    if (coverage.treatmentExpectedEdge > minEdge) return null;
+    const strengthMargin =
+      tradeSignal.strength - signalLimits.minSignalStrength;
+    const confidenceMargin =
+      tradeSignal.confidence - signalLimits.minSignalConfidence;
+    const strongEnoughToOverride = strengthMargin >= 5 && confidenceMargin >= 5;
+    if (strongEnoughToOverride) return null;
+    return `Treatment quality gate: expected swarm edge ${coverage.treatmentExpectedEdge.toFixed(2)} <= ${minEdge.toFixed(2)}, require stronger signal margins`;
   }
 
   private getRegimeQuotaBlockReason(params: {
@@ -1963,6 +2078,21 @@ Reply format: APPROVE reason or VETO reason`;
             regimeQuotaReason,
           );
           incrementFunnelReason(funnel, "regime_quota_guard");
+          continue;
+        }
+        const treatmentQualityReason = this.getTreatmentQualityBlockReason({
+          tradeSignal,
+          coverage: coverageContext,
+          signalLimits,
+        });
+        if (treatmentQualityReason) {
+          this.logSignalRejection(asset, tradeSignal, treatmentQualityReason);
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            treatmentQualityReason,
+          );
+          incrementFunnelReason(funnel, "treatment_quality_gate");
           continue;
         }
 
