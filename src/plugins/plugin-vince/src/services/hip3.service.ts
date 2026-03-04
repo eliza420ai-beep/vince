@@ -682,11 +682,11 @@ export class VinceHIP3Service extends Service {
 
         if (!response.ok) {
           if (response.status === 429) {
-            // Rate limited - exponential backoff with jitter
+            // Rate limited - exponential backoff with jitter (log at debug to avoid flood)
             const backoffMs =
               BASE_RETRY_DELAY_MS * Math.pow(2, attempt) +
               Math.floor(Math.random() * 500);
-            logger.warn(
+            logger.debug(
               `[VinceHIP3] Rate limited, backing off ${backoffMs}ms (attempt ${attempt + 1})`,
             );
             await new Promise((resolve) => setTimeout(resolve, backoffMs));
@@ -694,9 +694,9 @@ export class VinceHIP3Service extends Service {
           }
 
           if (response.status >= 500) {
-            // Server error - retry with backoff
+            // Server error - retry with backoff (log at debug to avoid flood)
             const backoffMs = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
-            logger.warn(
+            logger.debug(
               `[VinceHIP3] Server error ${response.status}, retrying in ${backoffMs}ms`,
             );
             await new Promise((resolve) => setTimeout(resolve, backoffMs));
@@ -1318,33 +1318,38 @@ export class VinceHIP3Service extends Service {
       `[VinceHIP3] Fetching from ${hip3Dexes.length} HIP-3 DEXes: ${hip3Dexes.join(", ")}`,
     );
 
-    // Fetch from each DEX in parallel
-    const dexPromises = hip3Dexes.map(async (dex) => {
+    // Fetch from each DEX sequentially to avoid rate limits (was parallel, caused 429 flood)
+    const dexResults: Array<{
+      data: HyperliquidMetaAndAssetCtxs | null;
+      dex: string;
+      assetCount: number;
+      ok: boolean;
+    }> = [];
+    for (const dex of hip3Dexes) {
       try {
         const data = await this.fetchDexData(dex);
         const assetCount = data ? data[0].universe.length : 0;
         if (data) {
           logger.debug(`[VinceHIP3] DEX ${dex}: ${assetCount} assets`);
           perDexSummary.push({ dex, assetCount, ok: true });
-          return { data, dex, assetCount, ok: true as const };
+          dexResults.push({ data, dex, assetCount, ok: true });
+        } else {
+          logger.debug(`[VinceHIP3] DEX ${dex} fetch failed: invalid response`);
+          perDexSummary.push({
+            dex,
+            assetCount: 0,
+            ok: false,
+            error: "invalid response",
+          });
+          dexResults.push({ data: null, dex, assetCount: 0, ok: false });
         }
-        logger.debug(`[VinceHIP3] DEX ${dex} fetch failed: invalid response`);
-        perDexSummary.push({
-          dex,
-          assetCount: 0,
-          ok: false,
-          error: "invalid response",
-        });
-        return { data: null, dex, assetCount: 0, ok: false as const };
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         logger.debug(`[VinceHIP3] DEX ${dex} fetch failed: ${errMsg}`);
         perDexSummary.push({ dex, assetCount: 0, ok: false, error: errMsg });
-        return { data: null, dex, assetCount: 0, ok: false as const };
+        dexResults.push({ data: null, dex, assetCount: 0, ok: false });
       }
-    });
-
-    const dexResults = await Promise.all(dexPromises);
+    }
 
     for (const r of dexResults) {
       if (r.data) results.push(r.data);

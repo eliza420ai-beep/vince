@@ -4,17 +4,17 @@
 
 ## Trade Snapshot
 
-- ETH long closed stop_loss: entry $2050.91 -> exit $2011.90, P&L $-56.02 (2869.704158584531 USD, 3x).
-- Entry time (UTC): 2026-03-02T20:06:24.202Z
+- ETH long closed stop_loss: entry $2002.30 -> exit $1985.70, P&L $-72.13 (8205.128205128205 USD, 10x).
+- Entry time (UTC): 2026-03-03T16:31:21.384Z
 - Hold window target: intraday
-- Max loss budget: $43.14 (4.51%)
+- Max loss budget: $64.11 (7.81%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 362 minutes
-- Adverse move: 1.902%
+- Hold duration: 4 minutes
+- Adverse move: 0.829%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,28 +24,28 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 30%
+- Confidence: 40%
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: timestamp, entry_datetime
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment at entry vs. exit? Was there a macro catalyst (Fed news, BTC dump, liquidation cascade) that broke the thesis, or pure technicals?
+**Missing key context:** When did you enter (date/time)? What was CT sentiment at entry vs. exit? Was there a macro catalyst (Fed, inflation data, BTC move) that shifted the vibe between those two points?
 
-That said — **$56 loss on a 3x leveraged ETH long is tight risk management**, which is solid. If you entered into extreme bullish sentiment and exited into capitulation, that's textbook "got shaken out before the bounce." If you entered into already-neutral/bearish CT and it got worse, the sentiment thesis was weak from the jump.
+**On the trade itself:** An $8.2k loss on a $2k entry suggests conviction was there, but ETH longs got crushed into a support zone — classic "sentiment flipped faster than expected" move. If CT was still bullish at your entry and turned bearish mid-trade, that's a signal timing issue (you were right directionally but caught a local reversal). If CT was already cautious, that's a setup problem.
 
-**Need the timestamp and what CT was saying at entry/exit to give you real feedback.** Sentiment doesn't move price alone, but it *predicts* who's left to sell.
+**What I'd need to give you real feedback:** The exact entry timestamp + a quick X pulse from that window to see if you were fighting against the vibe.
 
-Confidence: 0.3 (incomplete data).
+Confidence: 0.4 (can't assess sentiment without timing and
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 55%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: none
+- Missing data flags: entry_datetime
 
-**Missing context:** ETH/USD pair timeframe (4h, 1d?), entry signal source (paper bot model, Polymarket edge, macro?), and whether this hit stop or closed on signal. That said: a 2% loss on 3x leverage into a down regime is textbook risk management—the stop worked. Check if Polymarket's ETH macro markets (Fed policy, inflation bets) shifted *before* your entry; if so, the regime signal was already priced in and your edge window had closed. If this was model-driven, compare the paper bot's fair-value assumption at $2050 vs. what the market was actually pricing (check our ETH prediction markets for consensus)—mismatch there tells you if the model lagged price discovery.
+**Missing context:** I need the trade date/time and the ETH weekly options chain (IV rank, skew, strike clustering) to tie this to Polymarket pricing on macro regime. Without knowing if this was a mean-reversion setup vs. breakout, or whether Poly's macro markets (recession, Fed cuts, BTC dominance) were pricing tail risk that day, I can't isolate whether the stop was too tight for realized vol or if market structure shifted against you.
 
-**Confidence: 0.55** (need entry rationale and timeframe to isolate whether this was regime miss or execution timing).
+**What I can say:** A $16.60 stop on a 10x levered long is ~0.8% of notional—tight for intraday ETH noise. If this was a weekly strike play and you closed before expiration, Polymarket's BTC/macro sentiment and open interest on crypto-related events would've telegraphed the regime shift. Pull the event/market detail from that morning and I can map it to your
 
 ### Solus
 
@@ -54,17 +54,19 @@ Confidence: 0.3 (incomplete data).
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** leverage ratio (3x noted but need confirmation on notional), position duration (hours? days?), and what triggered entry—was this a perp signal or discretionary? On mechanics: 2% loss on a 3x leveraged position is tight risk management, but the stop-hit suggests either entry was borderline or volatility whipsawed you fast. For paper trades, this is good discipline—you're proving the stop works. **Confidence: 0.6** (can't assess structure without knowing signal quality and hold time).
+**Missing context:** entry time, hold duration, and what triggered the stop (market structure break vs. noise). That said: **$72 loss on $8.2K notional at 10x is tight risk management**—your stop was only ~0.8% below entry, which is good discipline but leaves you vulnerable to wick noise on low-volume candles. **Mechanics call:** if this was a 1–4h hold, the stop was right; if sub-1h, you're fighting the bid-ask spread and getting clipped by noise. Next trade: paste entry time + structure (support/resistance/MA) so I can assess if the stop placement was sound or if you need wider breathing room.
+
+**Confidence: 0.6** (need hold duration and market structure to rate the setup).
 
 ## Root-Cause Tags
 
-- Primary: regime_conflict
-- Secondary: none
+- Primary: sizing_too_aggressive
+- Secondary: stop_too_tight_for_vol
 
 ## Corrective Actions
 
 1. [immediate] owner=vince due=next_trade
-   - action: Require PTQG completion and explicit max-loss check before next entry.
+   - action: Cap leverage on this asset class and widen stop to volatility-adjusted range before next entry.
    - success_metric: Next trade includes complete PTQG fields and no missing_data flags.
    - rollback: If signal quality drops for 10+ trades, review cap thresholds.
 2. [policy] owner=sentinel due=72h
@@ -78,24 +80,24 @@ Confidence: 0.3 (incomplete data).
 
 ## Confidence and Data Gaps
 
-- Quality score: 91/100
+- Quality score: 94/100
 - Escalate to Sentinel: false
-- Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
+- Score breakdown: completeness=30, evidence=25, diagnosis=20, actionability=15, ownership=10
 - Context completeness: 92.9%
-- Regime vs execution: regime_miss
+- Regime vs execution: execution_miss
 
 ## What changes on next trade?
 
 - Keep PTQG required fields hard-enforced.
 - Current post-mortem quality is acceptable; continue weekly monitoring.
-- No temporary leverage override required.
+- Apply temporary leverage cap for this asset class in next 7 days.
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 91
+- PM_QUALITY_SCORE: 94
 - PM_QUALITY_ESCALATE: false
-- PM_PRIMARY_CAUSE: regime_conflict
-- PM_SECONDARY_CAUSES: none
+- PM_PRIMARY_CAUSE: sizing_too_aggressive
+- PM_SECONDARY_CAUSES: stop_too_tight_for_vol
 - PM_PTQG_COMPLETE: true
 - PM_PMEP_COMPLETENESS_PCT: 100
 - PM_MISSING_DATA_COUNT: 0
@@ -103,41 +105,46 @@ Confidence: 0.3 (incomplete data).
 
 ```json
 {
-  "qualityScore": 91,
+  "qualityScore": 94,
   "qualityEscalate": false,
-  "primaryCause": "regime_conflict",
-  "secondaryCauses": [],
+  "primaryCause": "sizing_too_aggressive",
+  "secondaryCauses": [
+    "stop_too_tight_for_vol"
+  ],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 362,
-  "adverseMovePct": 1.902,
+  "holdMinutes": 4,
+  "adverseMovePct": 0.829,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-02T20:06:24.202Z",
-    "exitTimestampUtc": "2026-03-03T02:08:51.078Z",
+    "entryTimestampUtc": "2026-03-03T16:31:21.384Z",
+    "exitTimestampUtc": "2026-03-03T16:35:05.758Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-02T20:06:24.202Z",
-    "exitTimestampUtc": "2026-03-03T02:08:51.078Z"
+    "entryTimestampUtc": "2026-03-03T16:31:21.384Z",
+    "exitTimestampUtc": "2026-03-03T16:35:05.758Z"
   },
   "solusContext": {
     "assetClass": "crypto",
     "thesisClass": "momentum",
-    "leverage": 3,
-    "stopDistancePct": 1.503,
-    "maxLossUsd": 43.14,
-    "maxLossPct": 4.51,
-    "entryAtrPct": 1.5032460732984292
+    "leverage": 10,
+    "stopDistancePct": 0.781,
+    "maxLossUsd": 64.11,
+    "maxLossPct": 7.81,
+    "entryAtrPct": 1.5627225130890052
   },
   "agentContextMissing": {
     "Echo": [
       "timestamp",
       "entry_datetime"
+    ],
+    "Oracle": [
+      "entry_datetime"
     ]
   },
   "contextCompletenessPct": 92.9,
-  "regimeVsExecution": "regime_miss"
+  "regimeVsExecution": "execution_miss"
 }
 ```
