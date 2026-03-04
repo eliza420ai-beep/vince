@@ -19,42 +19,48 @@
 
 ---
 
-## What We Built: One-Month Hackathon
+## What We Built: A Recursive Trading Intelligence Engine
 
-**V4.2.0 — The Genome.** One month. One PRD. Phases 1-5 shipped end-to-end.  
-Then we finished phases 6-15 and closed the loop.  
-VINCE now learns from outcomes, grades its own proof, and scales risk only when evidence is strong.  
-We also hardened **X research** (plugin-x-research): machine-readable signals (e.g. BTC long-term sentiment), day-report source stats and ranking, save-with-metadata and reason codes, and contract tests so ECHO and downstream agents get stable, actionable payloads.
+Markets are now an AI-vs-AI game.  
+The edge is not a one-off model. The edge is a loop that compounds.
 
-### Build arc: 15 phases, one machine
+VINCE runs that loop end to end:
 
-VINCE is not a group of smart bots anymore.  
-It is one operating machine: research → decision → trade → attribution → policy update.
+**research → decision → trade → attribution → retraining → policy update**
 
-**What you get, phase by phase:**
+Every decision is explained before risk is taken.  
+Every outcome is written back into the system.  
+Every cycle updates how the next decision is made.
 
-- **Phases 1–4** — One shared view of performance. Clean handoffs between agents, shared scorecards, and regime-aware gates so every decision sees the same picture.
-- **Phases 5–9** — The system improves from its own trades. Strategy parameters evolve; every move is stress-tested; calibration and research lineage are visible so you know where an edge came from.
-- **Phases 10–12** — Guardrails and a clear rollback path. Capital buckets, policy-as-code, and operator visibility so you can trust the system under stress and recover fast when something breaks.
-- **Phase 13** — Decisions from consensus, not one model. Paper trading is gated by multi-agent agreement and reliability weighting, so a single overconfident signal can’t push risk up alone.
-- **Phases 14–15** — Risk only scales when the proof is strong enough. Attribution, sufficiency grading, and source-quality controls ensure promotion is earned by evidence, not vibes.
+This is the core product: a machine that learns from its own behavior and only scales when proof is strong.
 
-### Why this matters
+### Structural thesis: crypto, AI, and what to own
 
-Most systems scale on vibes.  
-We scale on proof.
+In fast markets, signal half-life is short and distribution is crowded.  
+What holds value is owning the full learning stack:
 
-Promotion requires sufficiency and causal confidence, not headline uplift.  
-Every trade updates attribution, calibration, and policy.  
-Public claims pass verified thresholds before distribution.  
-Rollout stays staged (observe → recommend → guarded auto) with rollback drills so you never lose control.
+1. **Own the data exhaust** - your fills, misses, timing, regime context, and source lineage.
+2. **Own the decision policy** - explicit gates, capital rules, and rollback paths that survive stress.
+3. **Own the recursive ML loop** - retraining from live outcomes, not static backtests.
 
-### Phase-15 snapshot (what you get today)
+If you own all three, your system compounds intelligence while others re-run prompts.
 
-- **Paper dashboard** — Causal and sufficiency views in one place (`proofSummary`: causal30d, sufficiencyTasks, solus30d) so you see whether the system has earned more risk.
-- **Allocator** — A causal-confidence gate and rollback-aware path; the allocator only steps up when the numbers support it.
-- **Sufficiency & source quality** — Sample size, regime breadth, time coverage, and stability checks so weak or noisy evidence doesn’t drive promotion.
-- **Verified claims** — Content and trades traceable to proof; artifacts written for audit and operator review.
+### 15 phases were delivery milestones, not the story
+
+The phase map shows how we shipped the machine:
+
+- **Phases 1–4** - Shared scorecards and regime-aware gates.
+- **Phases 5–9** - Trade attribution and self-improvement from outcomes.
+- **Phases 10–12** - Guardrails, policy-as-code, and rollback drills.
+- **Phase 13** - Multi-agent consensus and reliability weighting.
+- **Phases 14–15** - Sufficiency + causal confidence gates for risk promotion.
+
+### What you get today
+
+- **Proof-gated allocator** - risk scales only when causal and sufficiency checks pass.
+- **Full attribution surface** - each decision is traceable to sources, confidence, and realized outcome.
+- **Continuous retraining loop** - trades feed features, models update, policies adapt.
+- **Operator control under stress** - staged rollout (observe -> recommend -> guarded auto) with rollback ready.
 
 ### Read more (detailed docs)
 
@@ -66,7 +72,7 @@ Rollout stays staged (observe → recommend → guarded auto) with rollback dril
 
 Earlier versions shipped the paper bot ML loop (feature store, ONNX, VinceBench), HIP-3 spot tokens alongside Hyperliquid perps, the Polymarket edge engine (three strategies, Kelly-sized), zero AI slop across all ten agents, the leaderboard with cost transparency, and the content flywheel (Eliza publishing real results to Substack).
 
-Releases: [v4.2.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.2.0) · [v4.0.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.0.0) · [v3.7](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.7) · [v3.6](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.6.0) · [v3.4](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.4.0) · [v3.3](https://github.com/IkigaiLabsETH/vince/releases/tag/v3.3.0) · [Tags](https://github.com/IkigaiLabsETH/vince/tags) · [Changelog](CHANGELOG.md)
+
 
 ---
 
