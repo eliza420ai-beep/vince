@@ -14,6 +14,10 @@ import { logger, ModelType } from "@elizaos/core";
 import { isSolus } from "../utils/solus";
 import { getNextFriday0800UTC } from "../utils/assignmentProbability";
 import { appendRecord } from "../utils/assignmentPredictionsStore";
+import {
+  buildCloseEarlyRecommendationFromState,
+  formatCloseEarlyRecommendation,
+} from "../utils/closeEarlyRecommendation";
 
 const TRIGGERS = [
   "optimal strike",
@@ -129,15 +133,29 @@ export const solusOptimalStrikeAction: Action = {
       );
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
+      const closeEarlyRec = buildCloseEarlyRecommendationFromState(
+        state,
+        userText,
+      );
+      const closeEarlyBlock = formatCloseEarlyRecommendation(closeEarlyRec);
 
       const prompt = `You are Solus, the on-chain options expert. The user wants an optimal strike call. You have: (1) [Solus sizing state] (weekly premium targets, assigned wheels, spot stacks), (2) [Solus market context] (spot, 24h move, regime), (3) [Solus options context — Deribit] (spot, DVOL, ATM IV, skew, best CC/CSP strikes for BTC/ETH/SOL). Use this data to give one clear call. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
 
 Use current spot from [Hypersurface spot USD] or [Solus market context]. Frame the call as weekly (next 7 days to expiry). If [Solus sizing state] states we hold the asset (covered calls) or have a CSP wheel, anchor size/skip/watch and strike to that plan. When [Solus options context] is present, use IV and best strikes; when missing, give strike/structure and invalidation from sizing + spot and note you could refine with live IV. When [Solus calibration] is present, use it: if Brier is high or recent outcomes show bias, temper confidence or note it; if well-calibrated, you can say so.
 
-Using the context below, give: (1) asset (BTC/ETH/SOL/HYPE), (2) OTM % and strike guidance, (3) size/skip/watch, (4) invalidation in one phrase. Be direct; one clear call.
+Use the deterministic [Close early recommendation] block as hard gating:
+- If Action is CLOSE_EARLY_NOW, first call is close now, then redeploy strike guidance for next leg.
+- If Action is WATCH_CLOSE_WINDOW with USDT0 insufficient, first call is fund/bridge USDT0 and monitor close window before redeploy.
+- If Action is ROLL_NEXT_WEEK, frame strike guidance as a roll (next expiry).
+
+Using the context below, give: (1) asset (BTC/ETH/SOL/HYPE), (2) OTM % and strike guidance, (3) size/skip/watch (or close/redeploy), (4) invalidation in one phrase.
+Add one operational caveat when relevant: USDT0 needed for close debit, early exercise in final ~24h, or post-expiry settlement delay (up to ~2h).
+If mentioning sell/assignment probability, state it is an estimate, not guaranteed. Be direct; one clear call.
 
 Context:
 ${contextBlock}
+
+${closeEarlyBlock}
 
 User: ${userText}
 
@@ -196,6 +214,13 @@ End your reply with exactly one line in this form (for internal tracking only; u
         `**Strike Call** _${dateStr}_`,
         "",
         text.trim(),
+        "",
+        closeEarlyRec
+          ? `*Close-early engine: ${closeEarlyRec.action} (${(
+              closeEarlyRec.confidence * 100
+            ).toFixed(0)}% confidence)*`
+          : "*Close-early engine: no active CC/CSP found in sizing state*",
+        "*Operator check: Treat sell probability as estimate; Thu monitor early exercise; Fri 08:00 UTC expiry then settlement may take up to ~2h.*",
         "",
         "*Source: Hypersurface mechanics, CoinGecko spot, Deribit options context*",
         "",

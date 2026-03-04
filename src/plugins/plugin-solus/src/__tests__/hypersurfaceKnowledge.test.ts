@@ -54,6 +54,10 @@ const HYPERSURFACE_FACTS = {
     "funding",
     "sentiment",
   ],
+  settlementOps: ["settlement", "2 hours", "settle all", "expired"],
+  probabilityCaveat: ["probability", "estimate", "not", "guaranteed"],
+  walletAssets: ["wrapped", "ubtc", "ueth", "uhype", "api wallet"],
+  collateralRisk: ["fully collateralized", "no liquidation"],
 } as const;
 
 function createMessage(text: string): Memory {
@@ -202,6 +206,42 @@ describe("Hypersurface mechanics — full understanding", () => {
       expect(text).toMatch(/put|happily|funding|sentiment/);
     });
 
+    it("returned text contains settlement ops caveats (2h delay, settle all path)", async () => {
+      const result = await hypersurfaceContextProvider.get(
+        createSolusRuntime() as IAgentRuntime,
+        createMessage(""),
+      );
+      const text = (result?.text ?? "").toLowerCase();
+      expect(text).toContain("settlement");
+      expect(text).toMatch(/2 hours|~2 hours|2h/);
+      expect(text).toContain("settle all");
+      expect(text).toContain("expired");
+    });
+
+    it("returned text contains wallet and wrapped asset caveats", async () => {
+      const result = await hypersurfaceContextProvider.get(
+        createSolusRuntime() as IAgentRuntime,
+        createMessage(""),
+      );
+      const text = (result?.text ?? "").toLowerCase();
+      const { ok, missing } = textContainsAll(
+        text,
+        HYPERSURFACE_FACTS.walletAssets,
+      );
+      expect(missing).toEqual([]);
+      expect(ok).toBe(true);
+    });
+
+    it("returned text contains probability caveat and collateralized/no-liquidation framing", async () => {
+      const result = await hypersurfaceContextProvider.get(
+        createSolusRuntime() as IAgentRuntime,
+        createMessage(""),
+      );
+      const text = (result?.text ?? "").toLowerCase();
+      expect(text).toMatch(/probability.*estimate|not a guaranteed outcome/);
+      expect(text).toMatch(/fully collateralized|no liquidation/);
+    });
+
     it("returned text contains data-boundary framing (no live sentiment, where price lands by Friday, paste VINCE)", async () => {
       const result = await hypersurfaceContextProvider.get(
         createSolusRuntime() as IAgentRuntime,
@@ -341,6 +381,22 @@ describe("Hypersurface mechanics — full understanding", () => {
       expect(calls[0].text.toLowerCase()).toMatch(
         /friday|08:00|covered call|secured put|wheel|premium|cost basis|vince/,
       );
+    });
+
+    it("validate catches FAQ-style explain prompts (settlement/probability/wrapped assets)", async () => {
+      const runtime = createSolusRuntime();
+      const phrases = [
+        "What is the settlement time on Hypersurface?",
+        "Is sell probability guaranteed?",
+        "Do I need wrapped assets or can I use API wallet?",
+      ];
+      for (const phrase of phrases) {
+        const isValid = await solusHypersurfaceExplainAction.validate!(
+          runtime,
+          createMessage(phrase),
+        );
+        expect(isValid).toBe(true);
+      }
     });
   });
 });
