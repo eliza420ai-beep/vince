@@ -6,6 +6,7 @@ import RebelsRanking from "@/frontend/components/dashboard/rebels-ranking";
 import DashboardCard from "@/frontend/components/dashboard/card";
 import { MarketLeaderboardSection } from "@/frontend/components/dashboard/leaderboard/market-leaderboard-section";
 import { ChartsTab } from "@/frontend/components/dashboard/leaderboard/charts-tab";
+import { RecursiveNorthStarTab } from "@/frontend/components/dashboard/leaderboard/recursive-northstar-tab";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
 import {
@@ -43,11 +44,13 @@ import {
   fetchPolymarketDeskTrades,
   fetchPolymarketDeskPositions,
   fetchSubstackPostsWithError,
+  fetchRecursiveNorthStarWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type {
   PaperResponse,
   KnowledgeResponse,
+  RecursiveNorthStarResponse,
   PolymarketPaperPositionsFetchResult,
   PolymarketPaperPosition,
 } from "@/frontend/lib/leaderboardsApi";
@@ -383,6 +386,7 @@ type MainTab =
   | "markets"
   | "charts"
   | "news"
+  | "recursive"
   | "trading_bot"
   | "usage"
   | "polymarket";
@@ -390,6 +394,7 @@ type MainTab =
 /** Tabs that are actually shown in the UI. Trading context / more was removed and must not reappear. */
 const VISIBLE_MAIN_TABS: MainTab[] = [
   "trading_bot",
+  "recursive",
   "news",
   "markets",
   "knowledge",
@@ -401,6 +406,7 @@ const VISIBLE_MAIN_TABS: MainTab[] = [
 /** Display labels for each tab. Only VISIBLE_MAIN_TABS are rendered. */
 const MAIN_TAB_LABELS: Record<MainTab, string> = {
   trading_bot: "Trading Bot",
+  recursive: "Recursive",
   news: "News",
   markets: "Markets",
   knowledge: "Knowledge",
@@ -523,6 +529,22 @@ export default function LeaderboardPage({
     queryKey: ["usage", leaderboardsAgentId],
     queryFn: () => fetchUsageWithError(leaderboardsAgentId),
     enabled: mainTab === "usage" && !!leaderboardsAgentId,
+    staleTime: 60 * 1000,
+  });
+
+  const {
+    data: recursiveResult,
+    isLoading: recursiveLoading,
+    isFetching: recursiveFetching,
+    refetch: refetchRecursive,
+  } = useQuery<{
+    data: RecursiveNorthStarResponse | null;
+    error: string | null;
+    status: number | null;
+  }>({
+    queryKey: ["recursive-north-star", leaderboardsAgentId],
+    queryFn: () => fetchRecursiveNorthStarWithError(leaderboardsAgentId),
+    enabled: mainTab === "recursive" && !!leaderboardsAgentId,
     staleTime: 60 * 1000,
   });
 
@@ -830,13 +852,15 @@ export default function LeaderboardPage({
         ? "HIP-3 and HL Crypto (perps) — no need to ask VINCE"
         : mainTab === "news"
           ? "MandoMinutes headlines with TLDR and deep dive"
-          : mainTab === "usage"
-            ? "Session token usage and estimated cost (TREASURY)"
-            : mainTab === "polymarket"
-              ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
-              : mainTab === "charts"
-                ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
-                : "No tilt. Every decision explained. Every outcome learned.";
+          : mainTab === "recursive"
+            ? "Recursive North Star: self-improvement + 1+1=3 proof"
+            : mainTab === "usage"
+              ? "Session token usage and estimated cost (TREASURY)"
+              : mainTab === "polymarket"
+                ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
+                : mainTab === "charts"
+                  ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
+                  : "No tilt. Every decision explained. Every outcome learned.";
 
   return (
     <DashboardPageLayout
@@ -887,6 +911,22 @@ export default function LeaderboardPage({
                   className={cn(
                     "w-4 h-4 mr-2",
                     paperFetching && "animate-spin",
+                  )}
+                />
+                Refresh
+              </Button>
+            )}
+            {mainTab === "recursive" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchRecursive()}
+                disabled={recursiveFetching}
+              >
+                <RefreshCw
+                  className={cn(
+                    "w-4 h-4 mr-2",
+                    recursiveFetching && "animate-spin",
                   )}
                 />
                 Refresh
@@ -2976,6 +3016,17 @@ export default function LeaderboardPage({
                 </div>
               ) : null}
             </div>
+          </TabsContent>
+
+          <TabsContent
+            value="recursive"
+            className="mt-6 flex-1 min-h-0 overflow-auto"
+          >
+            <RecursiveNorthStarTab
+              loading={recursiveLoading || recursiveFetching}
+              error={recursiveResult?.error ?? null}
+              data={recursiveResult?.data ?? null}
+            />
           </TabsContent>
 
           {/* Usage / TREASURY tab: session token usage and estimated cost */}
