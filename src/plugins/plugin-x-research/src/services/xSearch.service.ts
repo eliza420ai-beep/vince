@@ -182,6 +182,8 @@ export class XSearchService {
 
     const results = new Map<string, XTweet[]>();
     const seenIds = new Set<string>();
+    const failedTopics: string[] = [];
+    let lastError: unknown = null;
 
     // Search topics in parallel (with some throttling)
     const batchSize = 3;
@@ -199,6 +201,8 @@ export class XSearchService {
             return { topicId, tweets };
           } catch (error) {
             console.error(`[xSearch] Error searching ${topicId}:`, error);
+            failedTopics.push(topicId);
+            lastError = error;
             return { topicId, tweets: [] };
           }
         }),
@@ -219,6 +223,17 @@ export class XSearchService {
       if (i + batchSize < topicsIds.length) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
+    }
+
+    // If every topic failed with API errors, bubble up a real failure
+    // so actions can return an actionable message instead of "no data."
+    if (topicsIds.length > 0 && failedTopics.length === topicsIds.length) {
+      if (lastError instanceof Error) {
+        throw lastError;
+      }
+      throw new Error(
+        `X search failed for all topics: ${failedTopics.join(", ")}`,
+      );
     }
 
     return results;
