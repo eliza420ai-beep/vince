@@ -621,7 +621,11 @@ export class VinceNewsSentimentService extends Service {
       // If runtime cache is empty/invalid, try shared file cache used across agents.
       if (!forceDirect && (!cached || !cached.articles?.length)) {
         const shared = this.loadSharedMandoCache();
-        if (shared && this.isValidMandoPayload(shared)) {
+        if (
+          shared &&
+          this.isValidMandoPayload(shared) &&
+          this.isMandoPayloadFresh(shared)
+        ) {
           const ageMinutes = Math.round(
             (Date.now() - shared.timestamp) / 60000,
           );
@@ -629,6 +633,13 @@ export class VinceNewsSentimentService extends Service {
             `[VinceNewsSentiment] Using shared Mando cache with ${shared.articles.length} articles (${ageMinutes}m old)`,
           );
           cached = shared;
+        } else if (shared && this.isValidMandoPayload(shared)) {
+          const ageMinutes = Math.round(
+            (Date.now() - shared.timestamp) / 60000,
+          );
+          logger.info(
+            `[VinceNewsSentiment] Shared Mando cache is stale (${ageMinutes}m old) - fetching fresh`,
+          );
         } else if (shared) {
           logger.warn(
             `[VinceNewsSentiment] Ignoring low-quality shared Mando cache (${shared.articles?.length ?? 0} items)`,
@@ -640,7 +651,11 @@ export class VinceNewsSentimentService extends Service {
       // runtime/shared caches are empty or junk.
       if (!forceDirect && (!cached || !cached.articles?.length)) {
         const lastGood = this.loadLastGoodSharedMandoCache();
-        if (lastGood && this.isValidMandoPayload(lastGood)) {
+        if (
+          lastGood &&
+          this.isValidMandoPayload(lastGood) &&
+          this.isMandoPayloadFresh(lastGood)
+        ) {
           const ageMinutes = Math.round(
             (Date.now() - lastGood.timestamp) / 60000,
           );
@@ -648,6 +663,13 @@ export class VinceNewsSentimentService extends Service {
             `[VinceNewsSentiment] Restored last-known-good Mando cache (${lastGood.articles.length} articles, ${ageMinutes}m old)`,
           );
           cached = lastGood;
+        } else if (lastGood && this.isValidMandoPayload(lastGood)) {
+          const ageMinutes = Math.round(
+            (Date.now() - lastGood.timestamp) / 60000,
+          );
+          logger.info(
+            `[VinceNewsSentiment] Last-known-good Mando cache is stale (${ageMinutes}m old) - fetching fresh`,
+          );
         }
       }
 
@@ -1376,6 +1398,15 @@ export class VinceNewsSentimentService extends Service {
     // Allow occasional shorter editions when content quality is otherwise clean.
     if (uniqueSubstantive >= 5 && junkCount === 0) return true;
     return false;
+  }
+
+  private isMandoPayloadFresh(
+    payload: MandoCacheData | null | undefined,
+    maxAgeMs = this.MANDO_CACHE_TTL_MS * 2,
+  ): boolean {
+    if (!payload?.timestamp || !Number.isFinite(payload.timestamp))
+      return false;
+    return Date.now() - payload.timestamp <= maxAgeMs;
   }
 
   private async invalidateMandoCache(cacheKey: string): Promise<void> {
