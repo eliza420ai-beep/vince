@@ -43,6 +43,25 @@ describe("buildRecursiveNorthStarResponse", () => {
                 },
               ],
             }),
+            getCausalStageDepthSummary: () => ({
+              minimumSamplesPerArm: 12,
+              allStagesReady: true,
+              perStage: [
+                { stage: "baseline_rule_based", count: 18, deficitToMin: 0 },
+                { stage: "onnx_enabled", count: 20, deficitToMin: 0 },
+              ],
+              pairDepth: [
+                {
+                  label: "rule_vs_onnx",
+                  controlStage: "baseline_rule_based",
+                  treatmentStage: "onnx_enabled",
+                  controlCount: 18,
+                  treatmentCount: 20,
+                  minArmSamples: 18,
+                  deficitToMin: 0,
+                },
+              ],
+            }),
           };
         }
         if (id === "VINCE_ML_INFERENCE_SERVICE") {
@@ -55,6 +74,8 @@ describe("buildRecursiveNorthStarResponse", () => {
               tpLevelSkipped: null,
               suggestedMinStrength: 54,
               suggestedMinConfidence: 51,
+              lastLoadErrorCode: null,
+              runtimeProbe: null,
             }),
           };
         }
@@ -103,8 +124,11 @@ describe("buildRecursiveNorthStarResponse", () => {
     ]);
     expect(payload.metrics.synergy.upliftDelta).toBe(3);
     expect(Array.isArray(payload.metrics.synergy.causalPairs)).toBe(true);
+    expect(payload.metrics.synergy.stageDepth.allStagesReady).toBe(true);
     expect(payload.metrics.ml.modelCount).toBe(3);
     expect(Array.isArray(payload.metrics.ml.readinessReasons)).toBe(true);
+    expect(payload.metrics.ml).toHaveProperty("lastLoadErrorCode");
+    expect(payload.metrics.ml).toHaveProperty("runtimeProbe");
     expect(payload.trend?.windows?.length).toBeGreaterThanOrEqual(2);
     expect(Array.isArray(payload.trend?.history)).toBe(true);
     expect(payload.milestones.recursion3d).toHaveProperty("pass");

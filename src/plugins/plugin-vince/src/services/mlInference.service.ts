@@ -139,6 +139,22 @@ export interface ImprovementReportTuning {
   signal_quality_calibration?: SignalQualityCalibration;
 }
 
+export type MlLoadErrorCode =
+  | "import_error"
+  | "backend_unavailable"
+  | "model_load_failed"
+  | "unknown";
+
+export interface OnnxRuntimeProbeResult {
+  checkedAt: number;
+  importOk: boolean;
+  cpuBackendOk: boolean;
+  modelSessionOk: boolean;
+  modelPathChecked: string | null;
+  code: MlLoadErrorCode | null;
+  message: string | null;
+}
+
 // ==========================================
 // Configuration
 // ==========================================
@@ -215,6 +231,8 @@ export class VinceMLInferenceService extends Service {
   private slOptimizerSession: any = null;
   private ort: any = null;
   private lastLoadError: string | null = null;
+  private lastLoadErrorCode: MlLoadErrorCode | null = null;
+  private lastRuntimeProbe: OnnxRuntimeProbeResult | null = null;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -261,9 +279,11 @@ export class VinceMLInferenceService extends Service {
       logger.info("[MLInference] ONNX runtime loaded successfully");
       // Try to load models
       await this.loadModels();
+      await this.runOnnxRuntimeProbe();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       this.lastLoadError = msg;
+      this.lastLoadErrorCode = "import_error";
       logger.info(
         `[MLInference] ONNX runtime not available: ${msg}. Use rule-based fallbacks or run \`bun rebuild onnxruntime-node\`.`,
       );
@@ -283,8 +303,11 @@ export class VinceMLInferenceService extends Service {
     this.predictionCache.clear();
     this.modelsLoaded = false;
     this.lastLoadError = null;
+    this.lastLoadErrorCode = null;
+    this.lastRuntimeProbe = null;
     this.loadImprovementReport();
     await this.loadModels();
+    await this.runOnnxRuntimeProbe();
   }
 
   /** Read improvement report from training_metadata.json (threshold, tp_level_performance, suggested_tuning). */
@@ -457,6 +480,8 @@ export class VinceMLInferenceService extends Service {
     modelsDir: string;
     onnxRuntimeAvailable: boolean;
     lastLoadError: string | null;
+    lastLoadErrorCode: MlLoadErrorCode | null;
+    runtimeProbe: OnnxRuntimeProbeResult | null;
   } {
     const modelsLoaded = Array.from(this.modelInfo.keys());
     const tpIndices = this.getTPLevelIndicesToUse();
@@ -477,7 +502,13 @@ export class VinceMLInferenceService extends Service {
     if (!hasAnyOnnx) readinessReasons.push("no_onnx_files_found");
     if (missingModelFiles.length > 0)
       readinessReasons.push("missing_expected_model_files");
-    if (!this.ort) readinessReasons.push("onnxruntime_unavailable");
+    if (!this.ort && this.lastLoadErrorCode === "import_error") {
+      readinessReasons.push("onnxruntime_import_failed");
+    } else if (!this.ort && this.lastLoadErrorCode === "backend_unavailable") {
+      readinessReasons.push("onnx_cpu_backend_unavailable");
+    } else if (!this.ort) {
+      readinessReasons.push("onnxruntime_unavailable");
+    }
     if (hasAnyOnnx && this.ort && modelsLoaded.length === 0)
       readinessReasons.push("models_failed_to_load");
     if (this.lastLoadError) readinessReasons.push("model_load_error");
@@ -493,7 +524,53 @@ export class VinceMLInferenceService extends Service {
       modelsDir: baseDir,
       onnxRuntimeAvailable: this.ort !== null,
       lastLoadError: this.lastLoadError,
+      lastLoadErrorCode: this.lastLoadErrorCode,
+      runtimeProbe: this.lastRuntimeProbe,
     };
+  }
+
+  getOnnxRuntimeProbe(): OnnxRuntimeProbeResult | null {
+    return this.lastRuntimeProbe;
+  }
+
+  async runOnnxRuntimeProbe(): Promise<OnnxRuntimeProbeResult> {
+    const baseDir = this.resolvedModelsDir || path.resolve(ML_CONFIG.modelsDir);
+    const modelPath = path.join(baseDir, ML_CONFIG.models.signalQuality);
+    const probe: OnnxRuntimeProbeResult = {
+      checkedAt: Date.now(),
+      importOk: false,
+      cpuBackendOk: false,
+      modelSessionOk: false,
+      modelPathChecked: fs.existsSync(modelPath) ? modelPath : null,
+      code: null,
+      message: null,
+    };
+    try {
+      const ort = this.ort ?? (await import("onnxruntime-node"));
+      probe.importOk = Boolean(ort);
+      if (!probe.modelPathChecked) {
+        probe.cpuBackendOk = probe.importOk;
+        this.lastRuntimeProbe = probe;
+        return probe;
+      }
+      await ort.InferenceSession.create(probe.modelPathChecked, {
+        executionProviders: ["cpu"],
+      });
+      probe.cpuBackendOk = true;
+      probe.modelSessionOk = true;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      probe.message = msg;
+      if (msg.toLowerCase().includes("backend")) {
+        probe.code = "backend_unavailable";
+      } else if (!probe.importOk) {
+        probe.code = "import_error";
+      } else {
+        probe.code = "model_load_failed";
+      }
+    }
+    this.lastRuntimeProbe = probe;
+    return probe;
   }
 
   async stop(): Promise<void> {
@@ -588,6 +665,7 @@ export class VinceMLInferenceService extends Service {
       });
 
       this.lastLoadError = null;
+      this.lastLoadErrorCode = null;
       logger.info(`[MLInference] Loaded model: ${name}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -595,6 +673,7 @@ export class VinceMLInferenceService extends Service {
         // ONNX runtime has no usable native backend on this platform; disable and use rule-based fallbacks.
         this.ort = null;
         this.lastLoadError = msg;
+        this.lastLoadErrorCode = "backend_unavailable";
         logger.info(
           "[MLInference] ONNX backend not available on this platform — using rule-based fallbacks. " +
             "Paper bot still runs. To enable ML: try `bun rebuild onnxruntime-node` or reinstall deps; see Node/OS compatibility at https://www.npmjs.com/package/onnxruntime-node.",
@@ -602,6 +681,7 @@ export class VinceMLInferenceService extends Service {
         return;
       }
       this.lastLoadError = msg;
+      this.lastLoadErrorCode = "model_load_failed";
       logger.error(`[MLInference] Failed to load ${name}: ${error}`);
     }
   }

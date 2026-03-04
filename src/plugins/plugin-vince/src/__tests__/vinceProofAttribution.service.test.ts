@@ -186,4 +186,30 @@ describe("VinceXSourceAttributionService phase14 snapshots", () => {
     ).toBe(true);
     expect(causal.promotionEligible).toBe(false);
   });
+
+  it("returns stage-depth deficits for causal unblocking", () => {
+    const dir = mkTempDir();
+    const svc = new VinceXSourceAttributionService(dir);
+    seedStageOutcomes(svc, "baseline_rule_based", 13, 7, "depth");
+    seedStageOutcomes(svc, "onnx_enabled", 9, 5, "depth");
+    seedStageOutcomes(svc, "onnx_plus_swarm", 7, 4, "depth");
+    seedStageOutcomes(svc, "onnx_plus_swarm_plus_adversary", 3, 2, "depth");
+
+    const summary = svc.getCausalStageDepthSummary(30, 12);
+    const baseline = summary.perStage.find(
+      (row) => row.stage === "baseline_rule_based",
+    );
+    const adversary = summary.perStage.find(
+      (row) => row.stage === "onnx_plus_swarm_plus_adversary",
+    );
+    const swarmVsAdversary = summary.pairDepth.find(
+      (row) => row.label === "swarm_vs_adversary",
+    );
+
+    expect(summary.minimumSamplesPerArm).toBe(12);
+    expect(summary.allStagesReady).toBe(false);
+    expect(baseline?.deficitToMin).toBe(0);
+    expect(adversary?.deficitToMin).toBe(9);
+    expect(swarmVsAdversary?.deficitToMin).toBe(9);
+  });
 });

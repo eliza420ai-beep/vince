@@ -30,7 +30,10 @@ import {
   buildDebugXSentimentResponse,
 } from "./routes/dashboardLeaderboards";
 import { buildPaperResponse } from "./routes/dashboardPaper";
-import { buildRecursiveNorthStarResponse } from "./routes/dashboardRecursiveNorthStar";
+import {
+  buildRecursiveNorthStarOperatorStatus,
+  buildRecursiveNorthStarResponse,
+} from "./routes/dashboardRecursiveNorthStar";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 import { buildBankrResponse } from "./routes/dashboardBankr";
@@ -613,6 +616,47 @@ export const vincePlugin: Plugin = {
           logger.warn(`[VINCE] Recursive north star route error: ${err}`);
           res.status(500).json({
             error: "Failed to build recursive north star snapshot",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      },
+    },
+    {
+      name: "vince-recursive-north-star-operator-status",
+      path: "/vince/recursive-north-star/operator-status",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error:
+              "Recursive north star operator status requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/recursive-north-star/operator-status",
+          });
+          return;
+        }
+        try {
+          const data =
+            await buildRecursiveNorthStarOperatorStatus(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(
+            `[VINCE] Recursive north star operator status route error: ${err}`,
+          );
+          res.status(500).json({
+            error: "Failed to build recursive north star operator status",
             message: err instanceof Error ? err.message : String(err),
           });
           return;

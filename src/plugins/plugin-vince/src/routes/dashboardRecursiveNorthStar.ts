@@ -34,6 +34,10 @@ export interface RecursiveNorthStarResponse {
       blockingTaskCount: number;
       allocatorStage: string;
       allocatorMode: string;
+      allocatorSummaryAvailable: boolean;
+      sufficiencyBlockingReasons: string[];
+      sufficiencyBlockersByDimension: Record<string, string>;
+      sufficiencyActions: string[];
     };
     ml: {
       modelsLoaded: string[];
@@ -48,7 +52,17 @@ export interface RecursiveNorthStarResponse {
       modelsDir: string;
       onnxRuntimeAvailable: boolean;
       lastLoadError: string | null;
+      lastLoadErrorCode: string | null;
       banditInitError: string | null;
+      runtimeProbe: {
+        checkedAt: number;
+        importOk: boolean;
+        cpuBackendOk: boolean;
+        modelSessionOk: boolean;
+        modelPathChecked: string | null;
+        code: string | null;
+        message: string | null;
+      } | null;
     };
     synergy: {
       upliftDelta: number;
@@ -70,6 +84,24 @@ export interface RecursiveNorthStarResponse {
         passed: boolean;
         failureReason?: string;
       }>;
+      stageDepth: {
+        minimumSamplesPerArm: number;
+        allStagesReady: boolean;
+        perStage: Array<{
+          stage: string;
+          count: number;
+          deficitToMin: number;
+        }>;
+        pairDepth: Array<{
+          label: string;
+          controlStage: string;
+          treatmentStage: string;
+          controlCount: number;
+          treatmentCount: number;
+          minArmSamples: number;
+          deficitToMin: number;
+        }>;
+      };
     };
   };
   northStar: {
@@ -114,6 +146,45 @@ export interface RecursiveNorthStarResponse {
   lastUpdated: number;
 }
 
+export interface RecursiveNorthStarOperatorStatus {
+  blockers: {
+    recursion: string[];
+    ml: string[];
+    synergy: string[];
+  };
+  triage: {
+    ml: {
+      readinessReasons: string[];
+      lastLoadError: string | null;
+      lastLoadErrorCode: string | null;
+      probe: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeProbe"];
+      nextActions: string[];
+    };
+    recursion: {
+      sufficiencyTasks: string[];
+      nextActions: string[];
+    };
+    synergy: {
+      promotionReasons: string[];
+      stageDeficits: Array<{
+        stage: string;
+        deficitToMin: number;
+      }>;
+      pairDeficits: Array<{
+        label: string;
+        deficitToMin: number;
+      }>;
+      nextActions: string[];
+    };
+  };
+  weeklySnapshot: {
+    available: boolean;
+    path: string | null;
+    capturedAtMs: number | null;
+  };
+  generatedAt: number;
+}
+
 const clamp = (value: number, min = 0, max = 100): number =>
   Math.max(min, Math.min(max, value));
 const HISTORY_FILE = path.join(
@@ -125,6 +196,12 @@ const HISTORY_FILE = path.join(
 const HISTORY_MAX_POINTS = 240;
 const HISTORY_MIN_APPEND_MS = 30 * 60 * 1000;
 const HISTORY_MIN_SCORE_DELTA = 1;
+const WEEKLY_SNAPSHOT_DIR = path.join(
+  process.cwd(),
+  "docs",
+  "standup",
+  "recursive-snapshots",
+);
 
 const toStatus = (score: number): NorthStarStatus => {
   if (score >= 75) return "on_track";
@@ -193,6 +270,40 @@ function appendHistoryPoint(next: HistoryPoint): HistoryPoint[] {
   return updated.slice(-HISTORY_MAX_POINTS);
 }
 
+function getLatestWeeklySnapshotMeta(): {
+  available: boolean;
+  path: string | null;
+  capturedAtMs: number | null;
+} {
+  try {
+    if (!fs.existsSync(WEEKLY_SNAPSHOT_DIR)) {
+      return { available: false, path: null, capturedAtMs: null };
+    }
+    const files = fs
+      .readdirSync(WEEKLY_SNAPSHOT_DIR)
+      .filter((name) => name.endsWith(".json"));
+    if (files.length === 0) {
+      return { available: false, path: null, capturedAtMs: null };
+    }
+    let latest: { name: string; mtimeMs: number } | null = null;
+    for (const name of files) {
+      const fullPath = path.join(WEEKLY_SNAPSHOT_DIR, name);
+      const stat = fs.statSync(fullPath);
+      if (!latest || stat.mtimeMs > latest.mtimeMs) {
+        latest = { name, mtimeMs: stat.mtimeMs };
+      }
+    }
+    if (!latest) return { available: false, path: null, capturedAtMs: null };
+    return {
+      available: true,
+      path: path.join("docs", "standup", "recursive-snapshots", latest.name),
+      capturedAtMs: Math.round(latest.mtimeMs),
+    };
+  } catch {
+    return { available: false, path: null, capturedAtMs: null };
+  }
+}
+
 export async function buildRecursiveNorthStarResponse(
   runtime: IAgentRuntime,
 ): Promise<RecursiveNorthStarResponse> {
@@ -231,6 +342,8 @@ export async function buildRecursiveNorthStarResponse(
     modelsDir: "",
     onnxRuntimeAvailable: false,
     lastLoadError: null,
+    lastLoadErrorCode: null,
+    runtimeProbe: null,
     ...mlStatusRaw,
   };
   const banditStatus = bandit?.getBanditStatus?.() ?? {
@@ -243,6 +356,8 @@ export async function buildRecursiveNorthStarResponse(
     const sufficiency = sufficiencyService?.getSnapshot?.(windowDays) ?? {
       grade: "LOW" as const,
       sampleCount: 0,
+      blockingReasons: [],
+      blockersByDimension: {},
     };
     const uplift = upliftService?.getSnapshot?.(windowDays) ?? null;
     const causal =
@@ -334,6 +449,14 @@ export async function buildRecursiveNorthStarResponse(
   const sufficiency = window30.sufficiency;
   const uplift = window30.uplift;
   const causal = window30.causal;
+  const stageDepth =
+    upliftService?.getCausalStageDepthSummary?.(30, 12) ??
+    ({
+      minimumSamplesPerArm: 12,
+      allStagesReady: false,
+      perStage: [],
+      pairDepth: [],
+    } as const);
   const completeTrades30d = window30.completeTrades;
   const upliftDelta = window30.upliftDelta;
   const minSamplesPerArm = window30.minSamplesPerArm;
@@ -487,6 +610,10 @@ export async function buildRecursiveNorthStarResponse(
         blockingTaskCount: sufficiencyTasks.length,
         allocatorStage: allocator?.rolloutStage ?? "observe_only",
         allocatorMode: allocator?.mode ?? "observe_only",
+        allocatorSummaryAvailable: Boolean(allocator),
+        sufficiencyBlockingReasons: sufficiency.blockingReasons ?? [],
+        sufficiencyBlockersByDimension: sufficiency.blockersByDimension ?? {},
+        sufficiencyActions: sufficiencyTasks.map((task) => task.action),
       },
       ml: {
         modelsLoaded: mlStatus.modelsLoaded,
@@ -501,7 +628,9 @@ export async function buildRecursiveNorthStarResponse(
         modelsDir: mlStatus.modelsDir ?? "",
         onnxRuntimeAvailable: Boolean(mlStatus.onnxRuntimeAvailable),
         lastLoadError: mlStatus.lastLoadError ?? null,
+        lastLoadErrorCode: mlStatus.lastLoadErrorCode ?? null,
         banditInitError: banditStatus.initError ?? null,
+        runtimeProbe: mlStatus.runtimeProbe ?? null,
       },
       synergy: {
         upliftDelta,
@@ -524,6 +653,24 @@ export async function buildRecursiveNorthStarResponse(
             passed: pair.passed,
             failureReason: pair.failureReason,
           })) ?? [],
+        stageDepth: {
+          minimumSamplesPerArm: stageDepth.minimumSamplesPerArm,
+          allStagesReady: stageDepth.allStagesReady,
+          perStage: stageDepth.perStage.map((row) => ({
+            stage: row.stage,
+            count: row.count,
+            deficitToMin: row.deficitToMin,
+          })),
+          pairDepth: stageDepth.pairDepth.map((row) => ({
+            label: row.label,
+            controlStage: row.controlStage,
+            treatmentStage: row.treatmentStage,
+            controlCount: row.controlCount,
+            treatmentCount: row.treatmentCount,
+            minArmSamples: row.minArmSamples,
+            deficitToMin: row.deficitToMin,
+          })),
+        },
       },
     },
     northStar: {
@@ -569,5 +716,59 @@ export async function buildRecursiveNorthStarResponse(
       history: persistedHistory,
     },
     lastUpdated: now,
+  };
+}
+
+export async function buildRecursiveNorthStarOperatorStatus(
+  runtime: IAgentRuntime,
+): Promise<RecursiveNorthStarOperatorStatus> {
+  const snapshot = await buildRecursiveNorthStarResponse(runtime);
+  const weeklySnapshot = getLatestWeeklySnapshotMeta();
+  const stageDeficits = snapshot.metrics.synergy.stageDepth.perStage
+    .filter((row) => row.deficitToMin > 0)
+    .map((row) => ({ stage: row.stage, deficitToMin: row.deficitToMin }));
+  const pairDeficits = snapshot.metrics.synergy.stageDepth.pairDepth
+    .filter((row) => row.deficitToMin > 0)
+    .map((row) => ({ label: row.label, deficitToMin: row.deficitToMin }));
+
+  return {
+    blockers: {
+      recursion: snapshot.pillars.recursion.blockers,
+      ml: snapshot.pillars.ml.blockers,
+      synergy: snapshot.pillars.synergy.blockers,
+    },
+    triage: {
+      ml: {
+        readinessReasons: snapshot.metrics.ml.readinessReasons,
+        lastLoadError: snapshot.metrics.ml.lastLoadError,
+        lastLoadErrorCode: snapshot.metrics.ml.lastLoadErrorCode,
+        probe: snapshot.metrics.ml.runtimeProbe,
+        nextActions: [
+          "Restart VINCE runtime after onnxruntime rebuild to clear stale disabled backend state.",
+          "Run onnxruntime CPU backend probe against signal_quality.onnx and verify session create succeeds.",
+          "If backend still fails, reinstall deps with a stable Node LTS runtime and re-check modelsLoaded.",
+        ],
+      },
+      recursion: {
+        sufficiencyTasks: snapshot.pillars.recursion.blockers,
+        nextActions: [
+          "Increase closed outcomes to at least 20 rows in 30d.",
+          "Spread closed outcomes across at least 7 days.",
+          "Raise minimum per-regime depth to 5 before introducing more regimes.",
+        ],
+      },
+      synergy: {
+        promotionReasons: snapshot.metrics.synergy.promotionReasons,
+        stageDeficits,
+        pairDeficits,
+        nextActions: [
+          "Fill per-stage deficits to minimumSamplesPerArm=12 for all causal arms.",
+          "Prioritize onnx_vs_swarm and swarm_vs_adversary pair depth to remove insufficient_samples failures.",
+          "Improve treatment-stage edge so ciLower >= 0.02 while keeping upliftDelta positive.",
+        ],
+      },
+    },
+    weeklySnapshot,
+    generatedAt: Date.now(),
   };
 }

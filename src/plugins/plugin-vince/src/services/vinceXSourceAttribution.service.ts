@@ -130,6 +130,27 @@ export interface CausalUpliftSnapshot {
   promotionReasons: string[];
 }
 
+export interface CausalStageDepthSummary {
+  generatedAt: number;
+  windowDays: number;
+  minimumSamplesPerArm: number;
+  perStage: Array<{
+    stage: UpliftStage;
+    count: number;
+    deficitToMin: number;
+  }>;
+  pairDepth: Array<{
+    label: string;
+    controlStage: UpliftStage;
+    treatmentStage: UpliftStage;
+    controlCount: number;
+    treatmentCount: number;
+    minArmSamples: number;
+    deficitToMin: number;
+  }>;
+  allStagesReady: boolean;
+}
+
 interface DbAdapterLike {
   db?: {
     execute?: (query: string, params?: unknown[]) => unknown;
@@ -669,6 +690,66 @@ export class VinceXSourceAttributionService {
         failedPairs.length === 0
           ? ["all_pairs_passed"]
           : failedPairs.map((p) => `${p.label}:${p.failureReason}`),
+    };
+  }
+
+  getCausalStageDepthSummary(
+    windowDays = 30,
+    minimumSamplesPerArm = 12,
+  ): CausalStageDepthSummary {
+    const closed = this.getRecords(windowDays).filter((r) => r.outcome);
+    const stageCount = new Map<UpliftStage, number>();
+    for (const stage of STAGE_LABELS) stageCount.set(stage, 0);
+    for (const row of closed) {
+      const stage = this.stageOf(row);
+      stageCount.set(stage, (stageCount.get(stage) ?? 0) + 1);
+    }
+
+    const perStage = STAGE_LABELS.map((stage) => {
+      const count = stageCount.get(stage) ?? 0;
+      return {
+        stage,
+        count,
+        deficitToMin: Math.max(0, minimumSamplesPerArm - count),
+      };
+    });
+
+    const pairDepth = [
+      {
+        label: "rule_vs_onnx",
+        controlStage: "baseline_rule_based" as const,
+        treatmentStage: "onnx_enabled" as const,
+      },
+      {
+        label: "onnx_vs_swarm",
+        controlStage: "onnx_enabled" as const,
+        treatmentStage: "onnx_plus_swarm" as const,
+      },
+      {
+        label: "swarm_vs_adversary",
+        controlStage: "onnx_plus_swarm" as const,
+        treatmentStage: "onnx_plus_swarm_plus_adversary" as const,
+      },
+    ].map((pair) => {
+      const controlCount = stageCount.get(pair.controlStage) ?? 0;
+      const treatmentCount = stageCount.get(pair.treatmentStage) ?? 0;
+      const minArmSamples = Math.min(controlCount, treatmentCount);
+      return {
+        ...pair,
+        controlCount,
+        treatmentCount,
+        minArmSamples,
+        deficitToMin: Math.max(0, minimumSamplesPerArm - minArmSamples),
+      };
+    });
+
+    return {
+      generatedAt: Date.now(),
+      windowDays,
+      minimumSamplesPerArm,
+      perStage,
+      pairDepth,
+      allStagesReady: perStage.every((row) => row.deficitToMin === 0),
     };
   }
 

@@ -3,12 +3,17 @@ import DashboardCard from "@/frontend/components/dashboard/card";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
 import { cn } from "@/frontend/lib/utils";
-import type { RecursiveNorthStarResponse } from "@/frontend/lib/leaderboardsApi";
+import type {
+  RecursiveNorthStarOperatorStatus,
+  RecursiveNorthStarResponse,
+} from "@/frontend/lib/leaderboardsApi";
 
 type RecursiveNorthStarTabProps = {
   loading: boolean;
   error: string | null;
   data: RecursiveNorthStarResponse | null;
+  operatorError?: string | null;
+  operatorData?: RecursiveNorthStarOperatorStatus | null;
 };
 
 const statusClass = (status: "on_track" | "at_risk" | "blocked"): string =>
@@ -24,6 +29,16 @@ const scoreClass = (score: number): string =>
     : score >= 50
       ? "text-amber-600 dark:text-amber-400"
       : "text-red-600 dark:text-red-400";
+
+const snapshotAgeClass = (ageDays: number): string =>
+  ageDays < 3
+    ? "text-green-600 dark:text-green-400"
+    : ageDays < 7
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
+
+const snapshotAgeLabel = (ageDays: number): "fresh" | "aging" | "stale" =>
+  ageDays < 3 ? "fresh" : ageDays < 7 ? "aging" : "stale";
 
 function buildSparklinePath(
   values: number[],
@@ -130,10 +145,14 @@ export function RecursiveNorthStarTab({
   loading,
   error,
   data,
+  operatorError,
+  operatorData,
 }: RecursiveNorthStarTabProps) {
   const [selectedTrendMetric, setSelectedTrendMetric] = useState<
     "overall" | "recursion" | "ml" | "synergy"
   >("overall");
+  const [copiedRunbook, setCopiedRunbook] = useState(false);
+  const [copiedWeeklyRunbook, setCopiedWeeklyRunbook] = useState(false);
   const trendHistory = data?.trend?.history ?? [];
   const historyValues = useMemo(() => {
     if (selectedTrendMetric === "recursion") {
@@ -208,6 +227,26 @@ export function RecursiveNorthStarTab({
   } as const;
   const sparklinePath = buildSparklinePath(historyValues, 420, 72);
   const sparklinePoints = buildSparklinePoints(historyValues, 420, 72);
+  const runbookCommand = `AGENT_ID="<your-agent-id>" && curl -s "http://localhost:3000/api/agents/$AGENT_ID/plugins/plugin-vince/vince/recursive-north-star/operator-status?agentId=$AGENT_ID" && echo "" && curl -s "http://localhost:3000/api/agents/$AGENT_ID/plugins/plugin-vince/vince/recursive-north-star?agentId=$AGENT_ID" && echo "" && curl -s "http://localhost:3000/api/agents/$AGENT_ID/plugins/plugin-vince/vince/paper?agentId=$AGENT_ID"`;
+  const weeklyReviewCommand = `AGENT_ID="<your-agent-id>" && SNAP_DIR="./docs/standup/recursive-snapshots" && TS="$(date -u +%Y-%m-%dT%H-%M-%SZ)" && mkdir -p "$SNAP_DIR" && OUT="$SNAP_DIR/$TS.json" && printf '{\\n' > "$OUT" && printf '  "capturedAt":"%s",\\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$OUT" && printf '  "operatorStatus":' >> "$OUT" && curl -s "http://localhost:3000/api/agents/$AGENT_ID/plugins/plugin-vince/vince/recursive-north-star/operator-status?agentId=$AGENT_ID" >> "$OUT" && printf ',\\n  "northStar":' >> "$OUT" && curl -s "http://localhost:3000/api/agents/$AGENT_ID/plugins/plugin-vince/vince/recursive-north-star?agentId=$AGENT_ID" >> "$OUT" && printf ',\\n  "paper":' >> "$OUT" && curl -s "http://localhost:3000/api/agents/$AGENT_ID/plugins/plugin-vince/vince/paper?agentId=$AGENT_ID" >> "$OUT" && printf '\\n}\\n' >> "$OUT" && echo "Wrote $OUT"`;
+  const copyRunbookCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(runbookCommand);
+      setCopiedRunbook(true);
+      setTimeout(() => setCopiedRunbook(false), 1500);
+    } catch {
+      window.prompt("Copy runbook command:", runbookCommand);
+    }
+  };
+  const copyWeeklyReviewCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(weeklyReviewCommand);
+      setCopiedWeeklyRunbook(true);
+      setTimeout(() => setCopiedWeeklyRunbook(false), 1500);
+    } catch {
+      window.prompt("Copy weekly review command:", weeklyReviewCommand);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -436,6 +475,128 @@ export function RecursiveNorthStarTab({
           </ul>
         )}
       </DashboardCard>
+
+      {(operatorData || operatorError) && (
+        <DashboardCard title="Operator Unblock Checklist">
+          {operatorError && !operatorData ? (
+            <p className="text-sm text-muted-foreground">{operatorError}</p>
+          ) : (
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Use one command to snapshot blockers and paper status.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={copiedRunbook ? "default" : "outline"}
+                    className="h-7 text-[11px]"
+                    onClick={copyRunbookCommand}
+                  >
+                    {copiedRunbook ? "Copied" : "Copy runbook command"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={copiedWeeklyRunbook ? "default" : "outline"}
+                    className="h-7 text-[11px]"
+                    onClick={copyWeeklyReviewCommand}
+                  >
+                    {copiedWeeklyRunbook
+                      ? "Copied weekly"
+                      : "Copy weekly review command"}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Last weekly snapshot:{" "}
+                <span
+                  className="inline-block align-middle text-muted-foreground/80"
+                  title="Snapshot freshness thresholds: fresh < 3d, aging < 7d, stale >= 7d."
+                >
+                  (i)
+                </span>{" "}
+                {operatorData?.weeklySnapshot?.available &&
+                operatorData.weeklySnapshot.capturedAtMs ? (
+                  <>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        snapshotAgeClass(
+                          (Date.now() -
+                            operatorData.weeklySnapshot.capturedAtMs) /
+                            (24 * 60 * 60 * 1000),
+                        ),
+                      )}
+                    >
+                      {snapshotAgeLabel(
+                        (Date.now() -
+                          operatorData.weeklySnapshot.capturedAtMs) /
+                          (24 * 60 * 60 * 1000),
+                      )}
+                    </span>{" "}
+                    -{" "}
+                    {`${new Date(operatorData.weeklySnapshot.capturedAtMs).toLocaleString()} (${operatorData.weeklySnapshot.path})`}
+                  </>
+                ) : (
+                  "none yet"
+                )}
+              </p>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  ML Next Actions
+                </p>
+                <ul className="space-y-1 text-muted-foreground">
+                  {operatorData?.triage.ml.nextActions?.map((line, idx) => (
+                    <li key={`ml-action-${idx}`}>{line}</li>
+                  )) ?? <li>No ML action guidance yet.</li>}
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  Recursion Next Actions
+                </p>
+                <ul className="space-y-1 text-muted-foreground">
+                  {operatorData?.triage.recursion.nextActions?.map(
+                    (line, idx) => (
+                      <li key={`recursion-action-${idx}`}>{line}</li>
+                    ),
+                  ) ?? <li>No recursion action guidance yet.</li>}
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  Synergy Deficits
+                </p>
+                <ul className="space-y-1 text-muted-foreground">
+                  {(operatorData?.triage.synergy.stageDeficits ?? []).length ===
+                    0 &&
+                  (operatorData?.triage.synergy.pairDeficits ?? []).length ===
+                    0 ? (
+                    <li>No current stage/pair deficits.</li>
+                  ) : (
+                    <>
+                      {(operatorData?.triage.synergy.stageDeficits ?? []).map(
+                        (row, idx) => (
+                          <li key={`stage-deficit-${idx}`}>
+                            stage {row.stage}: deficit {row.deficitToMin}
+                          </li>
+                        ),
+                      )}
+                      {(operatorData?.triage.synergy.pairDeficits ?? []).map(
+                        (row, idx) => (
+                          <li key={`pair-deficit-${idx}`}>
+                            pair {row.label}: deficit {row.deficitToMin}
+                          </li>
+                        ),
+                      )}
+                    </>
+                  )}
+                </ul>
+              </div>
+            </div>
+          )}
+        </DashboardCard>
+      )}
 
       <DashboardCard title="Milestone Gates">
         <div className="grid gap-3 sm:grid-cols-3">

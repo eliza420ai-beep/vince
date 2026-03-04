@@ -45,12 +45,14 @@ import {
   fetchPolymarketDeskPositions,
   fetchSubstackPostsWithError,
   fetchRecursiveNorthStarWithError,
+  fetchRecursiveNorthStarOperatorStatusWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type {
   PaperResponse,
   KnowledgeResponse,
   RecursiveNorthStarResponse,
+  RecursiveNorthStarOperatorStatus,
   PolymarketPaperPositionsFetchResult,
   PolymarketPaperPosition,
 } from "@/frontend/lib/leaderboardsApi";
@@ -547,6 +549,22 @@ export default function LeaderboardPage({
     enabled: mainTab === "recursive" && !!leaderboardsAgentId,
     staleTime: 60 * 1000,
   });
+  const {
+    data: recursiveOperatorResult,
+    isLoading: recursiveOperatorLoading,
+    isFetching: recursiveOperatorFetching,
+    refetch: refetchRecursiveOperator,
+  } = useQuery<{
+    data: RecursiveNorthStarOperatorStatus | null;
+    error: string | null;
+    status: number | null;
+  }>({
+    queryKey: ["recursive-north-star-operator", leaderboardsAgentId],
+    queryFn: () =>
+      fetchRecursiveNorthStarOperatorStatusWithError(leaderboardsAgentId),
+    enabled: mainTab === "recursive" && !!leaderboardsAgentId,
+    staleTime: 60 * 1000,
+  });
 
   const queryClient = useQueryClient();
   const {
@@ -920,13 +938,17 @@ export default function LeaderboardPage({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => refetchRecursive()}
-                disabled={recursiveFetching}
+                onClick={() => {
+                  refetchRecursive();
+                  refetchRecursiveOperator();
+                }}
+                disabled={recursiveFetching || recursiveOperatorFetching}
               >
                 <RefreshCw
                   className={cn(
                     "w-4 h-4 mr-2",
-                    recursiveFetching && "animate-spin",
+                    (recursiveFetching || recursiveOperatorFetching) &&
+                      "animate-spin",
                   )}
                 />
                 Refresh
@@ -3023,9 +3045,16 @@ export default function LeaderboardPage({
             className="mt-6 flex-1 min-h-0 overflow-auto"
           >
             <RecursiveNorthStarTab
-              loading={recursiveLoading || recursiveFetching}
+              loading={
+                recursiveLoading ||
+                recursiveFetching ||
+                recursiveOperatorLoading ||
+                recursiveOperatorFetching
+              }
               error={recursiveResult?.error ?? null}
               data={recursiveResult?.data ?? null}
+              operatorError={recursiveOperatorResult?.error ?? null}
+              operatorData={recursiveOperatorResult?.data ?? null}
             />
           </TabsContent>
 
