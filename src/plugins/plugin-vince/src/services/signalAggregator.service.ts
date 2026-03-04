@@ -170,6 +170,51 @@ const ML_CONFIG = {
 let cachedBanditWeights: Map<string, number> | null = null;
 let banditWeightsCacheTime = 0;
 const BANDIT_CACHE_TTL_MS = 5000;
+const UPLIFT_GUARDRAIL_CACHE_MS = 10_000;
+let upliftGuardrailCache: { checkedAt: number; delta: number } = {
+  checkedAt: 0,
+  delta: 0,
+};
+const UPLIFT_SENSITIVE_SOURCES = new Set([
+  "XSentiment",
+  "PolymarketSentiment",
+  "NewsSentiment",
+  "WTT",
+  "GrokDailyRecommendation",
+  "GrokResearchIdea",
+]);
+
+const getUpliftGuardrailMultiplier = (
+  source: string,
+  runtime?: any,
+): number => {
+  if (!runtime || !UPLIFT_SENSITIVE_SOURCES.has(source)) return 1;
+  const now = Date.now();
+  if (now - upliftGuardrailCache.checkedAt > UPLIFT_GUARDRAIL_CACHE_MS) {
+    let delta = 0;
+    try {
+      const upliftService = runtime.getService(
+        "VINCE_UPLIFT_EVALUATOR_SERVICE",
+      ) as {
+        getSnapshot?: (windowDays?: number) => {
+          byStage?: Array<{ stage: string; avgPnl?: number }>;
+        } | null;
+      } | null;
+      const snap = upliftService?.getSnapshot?.(30);
+      const onnx = snap?.byStage?.find((s) => s.stage === "onnx_enabled");
+      const swarm = snap?.byStage?.find((s) => s.stage === "onnx_plus_swarm");
+      delta = (swarm?.avgPnl ?? 0) - (onnx?.avgPnl ?? 0);
+    } catch {
+      delta = 0;
+    }
+    upliftGuardrailCache = {
+      checkedAt: now,
+      delta,
+    };
+  }
+  if (upliftGuardrailCache.delta > 0) return 1;
+  return upliftGuardrailCache.delta < 0 ? 0.9 : 0.95;
+};
 
 // Get weight for a source - uses bandit sampling when available
 const getSourceWeight = (source: string, runtime?: any): number => {
@@ -182,7 +227,7 @@ const getSourceWeight = (source: string, runtime?: any): number => {
     ) {
       const banditWeight = cachedBanditWeights.get(source);
       if (banditWeight !== undefined) {
-        return banditWeight;
+        return banditWeight * getUpliftGuardrailMultiplier(source, runtime);
       }
     }
 
@@ -203,7 +248,10 @@ const getSourceWeight = (source: string, runtime?: any): number => {
   }
 
   // Fallback to dynamic config weights
-  return getDynamicSourceWeight(source);
+  return (
+    getDynamicSourceWeight(source) *
+    getUpliftGuardrailMultiplier(source, runtime)
+  );
 };
 
 // ==========================================

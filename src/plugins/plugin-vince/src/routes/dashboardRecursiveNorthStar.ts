@@ -35,6 +35,14 @@ export interface RecursiveNorthStarResponse {
       allocatorStage: string;
       allocatorMode: string;
       allocatorSummaryAvailable: boolean;
+      allocatorSummaryStale: boolean;
+      allocatorSummaryAgeMs: number | null;
+      allocatorSummarySource: "live" | "history" | "none";
+      coverageVelocity: {
+        missingClosedRowsTo20: number;
+        missingDistinctDaysTo7: number;
+        missingRegimeDepthTo5: number;
+      };
       sufficiencyBlockingReasons: string[];
       sufficiencyBlockersByDimension: Record<string, string>;
       sufficiencyActions: string[];
@@ -95,6 +103,14 @@ export interface RecursiveNorthStarResponse {
       causalConfidenceScore: number;
       causalPairCount: number;
       minSamplesPerArm: number;
+      nearPassDepthRatio: number;
+      nearPassEffectRatio: number;
+      nearPassBonus: number;
+      coverageVelocity: {
+        stageDeficitTotal: number;
+        pairDeficitTotal: number;
+        minSamplesPerArmDeficit: number;
+      };
       promotionReasons: string[];
       causalPairs: Array<{
         label: string;
@@ -106,6 +122,9 @@ export interface RecursiveNorthStarResponse {
         ciLower: number;
         ciUpper: number;
         confidenceScore: number;
+        smoothedUpliftDelta?: number;
+        smoothedCiLower?: number;
+        smoothedConfidenceScore?: number;
         passed: boolean;
         failureReason?: string;
       }>;
@@ -246,6 +265,10 @@ const WEEKLY_SNAPSHOT_DIR = path.join(
   "standup",
   "recursive-snapshots",
 );
+const SYNERGY_MINIMUM_EFFECT = 0.015;
+const SYNERGY_MINIMUM_SAMPLES_PER_ARM = 10;
+const BLOCKER_SCORE_DEDUCTION = 1.5;
+const PILLAR_PENALTY_WEIGHT = 3.5;
 
 const toStatus = (score: number): NorthStarStatus => {
   if (score >= 75) return "on_track";
@@ -397,7 +420,30 @@ export async function buildRecursiveNorthStarResponse(
     totalTradesProcessed: 0,
     initError: "bandit_service_unavailable",
   };
-  const allocator = allocatorService?.getLatestSummary?.() ?? null;
+  let allocatorMeta =
+    allocatorService?.getLatestSummaryWithFallback?.() ?? null;
+  let allocator =
+    allocatorMeta?.summary ?? allocatorService?.getLatestSummary?.() ?? null;
+  if (!allocatorMeta && !allocator && allocatorService?.reconcile) {
+    try {
+      allocator = await allocatorService.reconcile();
+      allocatorMeta =
+        allocatorService?.getLatestSummaryWithFallback?.() ??
+        (allocator
+          ? {
+              summary: allocator,
+              source: "live" as const,
+              stale: false,
+              ageMs: 0,
+            }
+          : null);
+    } catch {
+      // Best-effort warm-up; keep blocker behavior when allocator cannot reconcile.
+    }
+  }
+  const allocatorSummaryStale = Boolean(allocatorMeta?.stale);
+  const allocatorSummaryAgeMs = allocatorMeta?.ageMs ?? null;
+  const allocatorSummarySource = allocatorMeta?.source ?? "none";
   const computeScoresForWindow = async (windowDays: number) => {
     const sufficiency = sufficiencyService?.getSnapshot?.(windowDays) ?? {
       grade: "LOW" as const,
@@ -409,8 +455,8 @@ export async function buildRecursiveNorthStarResponse(
     const causal =
       upliftService?.getCausalSnapshot?.({
         windowDays,
-        minimumEffect: 0.02,
-        minimumSamplesPerArm: 12,
+        minimumEffect: SYNERGY_MINIMUM_EFFECT,
+        minimumSamplesPerArm: SYNERGY_MINIMUM_SAMPLES_PER_ARM,
       }) ?? null;
     const completeTrades = featureStore
       ? await featureStore.getCompleteRecordCount(windowDays)
@@ -429,10 +475,32 @@ export async function buildRecursiveNorthStarResponse(
       : 0;
     const causalConfidenceScore = causal?.pairs?.length
       ? Math.round(
-          causal.pairs.reduce((sum, pair) => sum + pair.confidenceScore, 0) /
-            causal.pairs.length,
+          causal.pairs.reduce(
+            (sum, pair) =>
+              sum + (pair.smoothedConfidenceScore ?? pair.confidenceScore),
+            0,
+          ) / causal.pairs.length,
         )
       : 0;
+    const minCiLower = causal?.pairs?.length
+      ? Math.min(
+          ...causal.pairs.map((pair) => pair.smoothedCiLower ?? pair.ciLower),
+        )
+      : 0;
+    const nearPassDepthRatio = clamp(
+      minSamplesPerArm / SYNERGY_MINIMUM_SAMPLES_PER_ARM,
+      0,
+      1,
+    );
+    const nearPassEffectRatio = clamp(
+      minCiLower / SYNERGY_MINIMUM_EFFECT,
+      0,
+      1,
+    );
+    const nearPassBonus =
+      upliftDelta > 0
+        ? (nearPassDepthRatio * 0.6 + nearPassEffectRatio * 0.4) * 6
+        : 0;
 
     const recursionPenalty =
       (sufficiency.grade === "LOW" ? 2 : 0) +
@@ -441,7 +509,8 @@ export async function buildRecursiveNorthStarResponse(
       (mlStatus.modelsLoaded.length === 0 ? 1 : 0) +
       (completeTrades < 20 ? 1 : 0);
     const synergyPenalty =
-      (upliftDelta <= 0 ? 1 : 0) + (minSamplesPerArm < 12 ? 1 : 0);
+      (upliftDelta <= 0 ? 1 : 0) +
+      (minSamplesPerArm < SYNERGY_MINIMUM_SAMPLES_PER_ARM ? 1 : 0);
     const recursionScore = clamp(
       gradeScore(sufficiency.grade) * 0.45 +
         (allocator?.rolloutStage === "one_sleeve_auto_apply"
@@ -451,7 +520,7 @@ export async function buildRecursiveNorthStarResponse(
             : 45) *
           0.3 +
         clamp((completeTrades / 60) * 100) * 0.25 -
-        recursionPenalty * 4,
+        recursionPenalty * PILLAR_PENALTY_WEIGHT,
     );
     const mlScore = clamp(
       (mlStatus.modelsLoaded.length >= 3
@@ -462,13 +531,14 @@ export async function buildRecursiveNorthStarResponse(
         0.4 +
         clamp((completeTrades / 90) * 100) * 0.3 +
         (banditStatus.isReady ? 100 : 45) * 0.3 -
-        mlPenalty * 4,
+        mlPenalty * PILLAR_PENALTY_WEIGHT,
     );
     const synergyScore = clamp(
       clamp(50 + upliftDelta * 2) * 0.45 +
         causalConfidenceScore * 0.35 +
-        clamp((minSamplesPerArm / 20) * 100) * 0.2 -
-        synergyPenalty * 4,
+        clamp((minSamplesPerArm / 20) * 100) * 0.2 +
+        nearPassBonus -
+        synergyPenalty * PILLAR_PENALTY_WEIGHT,
     );
     const overallScore = Math.round(
       recursionScore * 0.34 + mlScore * 0.33 + synergyScore * 0.33,
@@ -481,6 +551,9 @@ export async function buildRecursiveNorthStarResponse(
       upliftDelta,
       minSamplesPerArm,
       causalConfidenceScore,
+      nearPassDepthRatio,
+      nearPassEffectRatio,
+      nearPassBonus,
       recursionScore,
       mlScore,
       synergyScore,
@@ -496,9 +569,12 @@ export async function buildRecursiveNorthStarResponse(
   const uplift = window30.uplift;
   const causal = window30.causal;
   const stageDepth =
-    upliftService?.getCausalStageDepthSummary?.(30, 12) ??
+    upliftService?.getCausalStageDepthSummary?.(
+      30,
+      SYNERGY_MINIMUM_SAMPLES_PER_ARM,
+    ) ??
     ({
-      minimumSamplesPerArm: 12,
+      minimumSamplesPerArm: SYNERGY_MINIMUM_SAMPLES_PER_ARM,
       allStagesReady: false,
       perStage: [],
       pairDepth: [],
@@ -507,6 +583,9 @@ export async function buildRecursiveNorthStarResponse(
   const upliftDelta = window30.upliftDelta;
   const minSamplesPerArm = window30.minSamplesPerArm;
   const causalConfidenceScore = window30.causalConfidenceScore;
+  const nearPassDepthRatio = window30.nearPassDepthRatio;
+  const nearPassEffectRatio = window30.nearPassEffectRatio;
+  const nearPassBonus = window30.nearPassBonus;
   const avoidedDecisions30d = featureStore
     ? await featureStore.getAvoidedRecordCount(30)
     : 0;
@@ -527,6 +606,15 @@ export async function buildRecursiveNorthStarResponse(
       `Allocator in ${allocator.rolloutStage} (${allocator.reason})`,
     );
   }
+  if (allocator) {
+    const ageMinutes =
+      allocatorSummaryAgeMs != null
+        ? Math.round(allocatorSummaryAgeMs / 60000)
+        : 0;
+    recursionHighlights.push(
+      `Allocator summary ${allocatorSummaryStale ? "stale" : "fresh"} (${allocatorSummarySource}, ${ageMinutes}m old)`,
+    );
+  }
 
   const mlHighlights: string[] = [
     `${mlStatus.modelsLoaded.length} ONNX models loaded`,
@@ -544,6 +632,9 @@ export async function buildRecursiveNorthStarResponse(
   const synergyHighlights: string[] = [
     `Swarm uplift vs ONNX baseline: ${upliftDelta >= 0 ? "+" : ""}${upliftDelta.toFixed(2)} avg PnL`,
     `Causal confidence score: ${(causal?.pairs?.length ? Math.round(causal.pairs.reduce((sum, p) => sum + p.confidenceScore, 0) / causal.pairs.length) : 0).toFixed(0)}`,
+    `Causal promotion eligible: ${(causal?.promotionEligible ?? false) ? "yes" : "no"} (min effect ${(SYNERGY_MINIMUM_EFFECT * 100).toFixed(1)}%)`,
+    `Per-arm sample depth: ${minSamplesPerArm}/${SYNERGY_MINIMUM_SAMPLES_PER_ARM} target`,
+    `Near-pass progress: depth ${(nearPassDepthRatio * 100).toFixed(0)}% · effect ${(nearPassEffectRatio * 100).toFixed(0)}%`,
   ];
   const synergyBlockers: string[] = [];
   if (upliftDelta <= 0) synergyBlockers.push("swarm_not_beating_single_agent");
@@ -551,15 +642,18 @@ export async function buildRecursiveNorthStarResponse(
     synergyBlockers.push("causal_promotion_not_eligible");
   if ((causal?.pairs?.length ?? 0) === 0)
     synergyBlockers.push("no_causal_pairs");
-  if (minSamplesPerArm < 12)
-    synergyBlockers.push("causal_sample_depth_below_12");
+  if (minSamplesPerArm < SYNERGY_MINIMUM_SAMPLES_PER_ARM)
+    synergyBlockers.push("causal_sample_depth_below_target");
 
   const recursionScore = clamp(
-    window30.recursionScore - recursionBlockers.length * 2,
+    window30.recursionScore -
+      recursionBlockers.length * BLOCKER_SCORE_DEDUCTION,
   );
-  const mlScore = clamp(window30.mlScore - mlBlockers.length * 2);
+  const mlScore = clamp(
+    window30.mlScore - mlBlockers.length * BLOCKER_SCORE_DEDUCTION,
+  );
   const synergyScore = clamp(
-    window30.synergyScore - synergyBlockers.length * 2,
+    window30.synergyScore - synergyBlockers.length * BLOCKER_SCORE_DEDUCTION,
   );
 
   const overallScore = Math.round(
@@ -657,6 +751,23 @@ export async function buildRecursiveNorthStarResponse(
         allocatorStage: allocator?.rolloutStage ?? "observe_only",
         allocatorMode: allocator?.mode ?? "observe_only",
         allocatorSummaryAvailable: Boolean(allocator),
+        allocatorSummaryStale,
+        allocatorSummaryAgeMs,
+        allocatorSummarySource,
+        coverageVelocity: {
+          missingClosedRowsTo20: Math.max(
+            0,
+            20 - Number(sufficiency.sampleCount ?? 0),
+          ),
+          missingDistinctDaysTo7: Math.max(
+            0,
+            7 - Number((sufficiency as any).timeCoverageDays ?? 0),
+          ),
+          missingRegimeDepthTo5: Math.max(
+            0,
+            5 - Number((sufficiency as any).minRegimeSampleCount ?? 0),
+          ),
+        },
         sufficiencyBlockingReasons: sufficiency.blockingReasons ?? [],
         sufficiencyBlockersByDimension: sufficiency.blockersByDimension ?? {},
         sufficiencyActions: sufficiencyTasks.map((task) => task.action),
@@ -686,6 +797,23 @@ export async function buildRecursiveNorthStarResponse(
         causalConfidenceScore,
         causalPairCount: causal?.pairs?.length ?? 0,
         minSamplesPerArm,
+        nearPassDepthRatio,
+        nearPassEffectRatio,
+        nearPassBonus,
+        coverageVelocity: {
+          stageDeficitTotal: stageDepth.perStage.reduce(
+            (sum, row) => sum + Math.max(0, row.deficitToMin),
+            0,
+          ),
+          pairDeficitTotal: stageDepth.pairDepth.reduce(
+            (sum, row) => sum + Math.max(0, row.deficitToMin),
+            0,
+          ),
+          minSamplesPerArmDeficit: Math.max(
+            0,
+            SYNERGY_MINIMUM_SAMPLES_PER_ARM - minSamplesPerArm,
+          ),
+        },
         promotionReasons: causal?.promotionReasons ?? [],
         causalPairs:
           causal?.pairs?.map((pair) => ({
@@ -698,6 +826,9 @@ export async function buildRecursiveNorthStarResponse(
             ciLower: pair.ciLower,
             ciUpper: pair.ciUpper,
             confidenceScore: pair.confidenceScore,
+            smoothedUpliftDelta: pair.smoothedUpliftDelta,
+            smoothedCiLower: pair.smoothedCiLower,
+            smoothedConfidenceScore: pair.smoothedConfidenceScore,
             passed: pair.passed,
             failureReason: pair.failureReason,
           })) ?? [],
@@ -910,12 +1041,12 @@ export async function buildRecursiveNorthStarOperatorStatus(
   const synergyNextActions: string[] = [];
   const synergyActionEntries: Array<{ action: string; reasonCode: string }> =
     [];
-  if (synergyBlockers.has("causal_sample_depth_below_12")) {
-    const action = `Fill pair depth to >=12 per arm, starting with: ${topPairDeficits.join(", ") || "largest deficit pairs"}.`;
+  if (synergyBlockers.has("causal_sample_depth_below_target")) {
+    const action = `Fill pair depth to >=${SYNERGY_MINIMUM_SAMPLES_PER_ARM} per arm, starting with: ${topPairDeficits.join(", ") || "largest deficit pairs"}.`;
     synergyNextActions.push(action);
     synergyActionEntries.push({
       action,
-      reasonCode: "causal_sample_depth_below_12",
+      reasonCode: "causal_sample_depth_below_target",
     });
   }
   if (synergyBlockers.has("swarm_not_beating_single_agent")) {
@@ -928,8 +1059,7 @@ export async function buildRecursiveNorthStarOperatorStatus(
     });
   }
   if (synergyBlockers.has("causal_promotion_not_eligible")) {
-    const action =
-      "Raise causal quality (ciLower >= 0.02 where possible) while keeping upliftDelta positive.";
+    const action = `Raise causal quality (ciLower >= ${SYNERGY_MINIMUM_EFFECT.toFixed(3)} where possible) while keeping upliftDelta positive.`;
     synergyNextActions.push(action);
     synergyActionEntries.push({
       action,

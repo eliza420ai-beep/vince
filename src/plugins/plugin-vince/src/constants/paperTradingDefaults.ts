@@ -219,7 +219,8 @@ export const AGGRESSIVE_RISK_LIMITS: RiskLimits = {
   ...DEFAULT_RISK_LIMITS,
   maxLeverage: 40,
   maxPositionSizePct: 50,
-  maxTotalExposurePct: 60,
+  // Paper-data preset: allow full budget deployment in aggressive mode.
+  maxTotalExposurePct: 100,
   /** No cooldown in aggressive (learning) mode so we can generate more trades for ML. */
   cooldownAfterLossMs: 0,
 };

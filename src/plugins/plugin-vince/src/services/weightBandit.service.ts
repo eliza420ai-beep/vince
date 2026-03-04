@@ -63,6 +63,7 @@ interface BanditState {
   arms: Record<string, BetaParams>;
   totalTradesProcessed: number;
   explorationRate: number;
+  negativeStreaks?: Record<string, number>;
 }
 
 function isValidBanditState(state: unknown): state is BanditState {
@@ -96,6 +97,25 @@ const SWARM_BRIDGE_CONFIG = {
   enabled: true,
   maxAdjustment: 0.25, // ±25% around Vince bandit weight at extremes
 } as const;
+const NEGATIVE_STREAK_CONFIG = {
+  penaltyStartsAt: 2,
+  perStepPenalty: 0.12,
+  minPenaltyMultiplier: 0.45,
+} as const;
+const UPLIFT_GUARDRAIL_CONFIG = {
+  cacheMs: 10_000,
+  negativeOrFlatDelta: 0,
+  mildPenalty: 0.92,
+  strongPenalty: 0.85,
+} as const;
+const SWARM_DERIVED_SOURCES = new Set([
+  "XSentiment",
+  "PolymarketSentiment",
+  "NewsSentiment",
+  "WTT",
+  "GrokDailyRecommendation",
+  "GrokResearchIdea",
+]);
 
 // Known signal sources with their baseline weights from dynamicConfig
 // NOTE: TopTraders and SanbaseWhales are disabled (weight=0) because:
@@ -211,6 +231,16 @@ export class VinceWeightBanditService extends Service {
   private cachedSampledWeights: Map<string, number> = new Map();
   private lastSampleTime = 0;
   private readonly SAMPLE_CACHE_MS = 5000; // Resample every 5 seconds
+  private negativeStreaks: Map<string, number> = new Map();
+  private upliftGuardrailCache: {
+    checkedAt: number;
+    delta: number;
+    active: boolean;
+  } = {
+    checkedAt: 0,
+    delta: 0,
+    active: false,
+  };
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -379,7 +409,61 @@ export class VinceWeightBanditService extends Service {
       }
     }
 
+    const negativeStreak = this.negativeStreaks.get(source) ?? 0;
+    if (negativeStreak >= NEGATIVE_STREAK_CONFIG.penaltyStartsAt) {
+      const steps = negativeStreak - NEGATIVE_STREAK_CONFIG.penaltyStartsAt + 1;
+      const streakMultiplier = Math.max(
+        NEGATIVE_STREAK_CONFIG.minPenaltyMultiplier,
+        1 - steps * NEGATIVE_STREAK_CONFIG.perStepPenalty,
+      );
+      weight = weight * streakMultiplier;
+    }
+
+    const upliftGuardrailMult = this.getUpliftGuardrailMultiplier(source);
+    if (upliftGuardrailMult < 1) {
+      weight = weight * upliftGuardrailMult;
+    }
+
+    const minWeight = baseWeight * MIN_WEIGHT_MULTIPLIER;
+    const maxWeight = baseWeight * MAX_WEIGHT_MULTIPLIER;
+    weight = Math.max(minWeight, Math.min(maxWeight, weight));
+
     return weight;
+  }
+
+  private getUpliftGuardrailMultiplier(source: string): number {
+    if (!SWARM_DERIVED_SOURCES.has(source)) return 1;
+    const now = Date.now();
+    if (
+      now - this.upliftGuardrailCache.checkedAt >
+      UPLIFT_GUARDRAIL_CONFIG.cacheMs
+    ) {
+      let delta = 0;
+      try {
+        const upliftService = this.runtime.getService(
+          "VINCE_UPLIFT_EVALUATOR_SERVICE",
+        ) as {
+          getSnapshot?: (windowDays?: number) => {
+            byStage?: Array<{ stage: string; avgPnl?: number }>;
+          } | null;
+        } | null;
+        const snap = upliftService?.getSnapshot?.(30);
+        const onnx = snap?.byStage?.find((s) => s.stage === "onnx_enabled");
+        const swarm = snap?.byStage?.find((s) => s.stage === "onnx_plus_swarm");
+        delta = (swarm?.avgPnl ?? 0) - (onnx?.avgPnl ?? 0);
+      } catch {
+        delta = 0;
+      }
+      this.upliftGuardrailCache = {
+        checkedAt: now,
+        delta,
+        active: delta <= UPLIFT_GUARDRAIL_CONFIG.negativeOrFlatDelta,
+      };
+    }
+    if (!this.upliftGuardrailCache.active) return 1;
+    return this.upliftGuardrailCache.delta < 0
+      ? UPLIFT_GUARDRAIL_CONFIG.strongPenalty
+      : UPLIFT_GUARDRAIL_CONFIG.mildPenalty;
   }
 
   /**
@@ -447,10 +531,13 @@ export class VinceWeightBanditService extends Service {
         // Weight the update by how profitable
         const winBonus = Math.min(1, Math.abs(pnlPct) / 5); // Max 1.0 for 5%+ profit
         arm.alpha += 1 + winBonus;
+        this.negativeStreaks.set(source, 0);
       } else {
         // Weight the update by how much was lost
         const lossWeight = Math.min(1, Math.abs(pnlPct) / 5);
         arm.beta += 1 + lossWeight;
+        const currentStreak = this.negativeStreaks.get(source) ?? 0;
+        this.negativeStreaks.set(source, currentStreak + 1);
       }
 
       arm.count++;
@@ -617,6 +704,7 @@ export class VinceWeightBanditService extends Service {
         arms: Object.fromEntries(this.arms),
         totalTradesProcessed: this.totalTradesProcessed,
         explorationRate: this.explorationRate,
+        negativeStreaks: Object.fromEntries(this.negativeStreaks),
       };
 
       fs.writeFileSync(this.statePath, JSON.stringify(state, null, 2));
@@ -635,6 +723,12 @@ export class VinceWeightBanditService extends Service {
         this.arms.set(source, params);
       }
     }
+    this.negativeStreaks = new Map(
+      Object.entries(state.negativeStreaks ?? {}).map(([source, streak]) => [
+        source,
+        Number(streak) || 0,
+      ]),
+    );
   }
 
   /**
@@ -652,6 +746,7 @@ export class VinceWeightBanditService extends Service {
     this.totalTradesProcessed = 0;
     this.explorationRate = 1.0;
     this.cachedSampledWeights.clear();
+    this.negativeStreaks.clear();
 
     await this.saveState();
     logger.warn("[WeightBandit] Reset to initial priors");

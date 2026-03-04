@@ -115,7 +115,10 @@ export interface CausalPairSnapshot {
   upliftDelta: number;
   ciLower: number;
   ciUpper: number;
+  smoothedUpliftDelta?: number;
+  smoothedCiLower?: number;
   confidenceScore: number;
+  smoothedConfidenceScore?: number;
   passed: boolean;
   failureReason?: string;
 }
@@ -592,13 +595,6 @@ export class VinceXSourceAttributionService {
     const minimumSamplesPerArm = params?.minimumSamplesPerArm ?? 12;
     const closed = this.getRecords(windowDays).filter((r) => r.outcome);
 
-    const byStage = new Map<UpliftStage, AttributionRecord[]>();
-    for (const stage of STAGE_LABELS) byStage.set(stage, []);
-    for (const row of closed) {
-      const stage = this.stageOf(row);
-      byStage.get(stage)?.push(row);
-    }
-
     const stagePairs: Array<{
       label: string;
       control: UpliftStage;
@@ -621,60 +617,105 @@ export class VinceXSourceAttributionService {
       },
     ];
 
-    const pairs: CausalPairSnapshot[] = stagePairs.map((pair) => {
-      const controlRows = byStage.get(pair.control) ?? [];
-      const treatmentRows = byStage.get(pair.treatment) ?? [];
-      const controlCount = controlRows.length;
-      const treatmentCount = treatmentRows.length;
-      const controlWins = controlRows.filter((r) => r.outcome === "win").length;
-      const treatmentWins = treatmentRows.filter(
-        (r) => r.outcome === "win",
-      ).length;
-      const controlWinRate = controlCount > 0 ? controlWins / controlCount : 0;
-      const treatmentWinRate =
-        treatmentCount > 0 ? treatmentWins / treatmentCount : 0;
-      const upliftDelta = treatmentWinRate - controlWinRate;
-      const controlLower = this.wilsonLowerBound(controlWins, controlCount);
-      const treatmentLower = this.wilsonLowerBound(
-        treatmentWins,
-        treatmentCount,
-      );
-      const ciLower = treatmentLower - controlWinRate;
-      const ciUpper = treatmentWinRate - controlLower;
-      const confidenceScore = Math.max(
-        0,
-        Math.min(
-          100,
-          ((treatmentLower - controlLower + 1) / 2) * 100 +
-            Math.min(20, Math.log10(treatmentCount + controlCount + 1) * 5),
-        ),
-      );
-      let passed = true;
-      let failureReason: string | undefined;
-      if (
-        controlCount < minimumSamplesPerArm ||
-        treatmentCount < minimumSamplesPerArm
-      ) {
-        passed = false;
-        failureReason = "insufficient_samples";
-      } else if (ciLower < minimumEffect) {
-        passed = false;
-        failureReason = "effect_below_threshold";
+    const computePairs = (
+      rows: AttributionRecord[],
+    ): Array<
+      Omit<CausalPairSnapshot, "passed" | "failureReason"> & {
+        passed: boolean;
+        failureReason?: string;
       }
+    > => {
+      const byStage = new Map<UpliftStage, AttributionRecord[]>();
+      for (const stage of STAGE_LABELS) byStage.set(stage, []);
+      for (const row of rows) {
+        const stage = this.stageOf(row);
+        byStage.get(stage)?.push(row);
+      }
+      return stagePairs.map((pair) => {
+        const controlRows = byStage.get(pair.control) ?? [];
+        const treatmentRows = byStage.get(pair.treatment) ?? [];
+        const controlCount = controlRows.length;
+        const treatmentCount = treatmentRows.length;
+        const controlWins = controlRows.filter(
+          (r) => r.outcome === "win",
+        ).length;
+        const treatmentWins = treatmentRows.filter(
+          (r) => r.outcome === "win",
+        ).length;
+        const controlWinRate =
+          controlCount > 0 ? controlWins / controlCount : 0;
+        const treatmentWinRate =
+          treatmentCount > 0 ? treatmentWins / treatmentCount : 0;
+        const upliftDelta = treatmentWinRate - controlWinRate;
+        const controlLower = this.wilsonLowerBound(controlWins, controlCount);
+        const treatmentLower = this.wilsonLowerBound(
+          treatmentWins,
+          treatmentCount,
+        );
+        const ciLower = treatmentLower - controlWinRate;
+        const ciUpper = treatmentWinRate - controlLower;
+        const confidenceScore = Math.max(
+          0,
+          Math.min(
+            100,
+            ((treatmentLower - controlLower + 1) / 2) * 100 +
+              Math.min(20, Math.log10(treatmentCount + controlCount + 1) * 5),
+          ),
+        );
+        let passed = true;
+        let failureReason: string | undefined;
+        if (
+          controlCount < minimumSamplesPerArm ||
+          treatmentCount < minimumSamplesPerArm
+        ) {
+          passed = false;
+          failureReason = "insufficient_samples";
+        } else if (ciLower < minimumEffect) {
+          passed = false;
+          failureReason = "effect_below_threshold";
+        }
+        return {
+          label: pair.label,
+          controlStage: pair.control,
+          treatmentStage: pair.treatment,
+          controlCount,
+          treatmentCount,
+          controlWinRate,
+          treatmentWinRate,
+          upliftDelta,
+          ciLower,
+          ciUpper,
+          confidenceScore,
+          passed,
+          failureReason,
+        };
+      });
+    };
+
+    const shortWindowDays = Math.max(7, Math.min(windowDays, 14));
+    const shortClosed = this.getRecords(shortWindowDays).filter(
+      (r) => r.outcome,
+    );
+    const pairsNow = computePairs(closed);
+    const shortPairs = computePairs(shortClosed);
+    const shortPairByLabel = new Map(shortPairs.map((p) => [p.label, p]));
+
+    const pairs: CausalPairSnapshot[] = pairsNow.map((pair) => {
+      const short = shortPairByLabel.get(pair.label);
+      const smoothedUpliftDelta = short
+        ? pair.upliftDelta * 0.7 + short.upliftDelta * 0.3
+        : pair.upliftDelta;
+      const smoothedCiLower = short
+        ? pair.ciLower * 0.7 + short.ciLower * 0.3
+        : pair.ciLower;
+      const smoothedConfidenceScore = short
+        ? pair.confidenceScore * 0.7 + short.confidenceScore * 0.3
+        : pair.confidenceScore;
       return {
-        label: pair.label,
-        controlStage: pair.control,
-        treatmentStage: pair.treatment,
-        controlCount,
-        treatmentCount,
-        controlWinRate,
-        treatmentWinRate,
-        upliftDelta,
-        ciLower,
-        ciUpper,
-        confidenceScore,
-        passed,
-        failureReason,
+        ...pair,
+        smoothedUpliftDelta,
+        smoothedCiLower,
+        smoothedConfidenceScore,
       };
     });
 

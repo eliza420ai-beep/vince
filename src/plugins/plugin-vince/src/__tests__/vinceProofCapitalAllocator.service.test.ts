@@ -56,6 +56,38 @@ function mockRuntime(mode: string, grade: "LOW" | "MEDIUM" | "HIGH") {
 }
 
 describe("VinceProofCapitalAllocatorService", () => {
+  it("returns latest summary metadata with live and history fallback", async () => {
+    const svc = new VinceProofCapitalAllocatorService(
+      mockRuntime("observe_only", "MEDIUM") as any,
+    );
+    const liveSummary = {
+      generatedAt: Date.now() - 60_000,
+      mode: "recommendation" as const,
+      sufficiencyGrade: "MEDIUM" as const,
+      causalPromotionEligible: true,
+      causalConfidenceScore: 72,
+      recommendedMaxSingleTradeUsd: 6000,
+      currentMaxSingleTradeUsd: 5800,
+      applied: false,
+      rolloutStage: "recommendation" as const,
+      reason: "cached_live",
+    };
+    (svc as any).latestSummary = liveSummary;
+    const liveMeta = svc.getLatestSummaryWithFallback();
+    expect(liveMeta?.source).toBe("live");
+    expect(liveMeta?.stale).toBe(false);
+
+    (svc as any).latestSummary = null;
+    (svc as any).getLastHistoryEntry = () => ({
+      ...liveSummary,
+      generatedAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+      reason: "cached_history",
+    });
+    const historyMeta = svc.getLatestSummaryWithFallback();
+    expect(historyMeta?.source).toBe("history");
+    expect(historyMeta?.stale).toBe(true);
+  });
+
   it("does not auto-apply in observe_only mode", async () => {
     const dataDir = mkTempDir();
     VinceCapitalBucketsService.setInstance(

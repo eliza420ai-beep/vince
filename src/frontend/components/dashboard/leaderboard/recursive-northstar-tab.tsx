@@ -47,6 +47,49 @@ const priorityBadgeClass = (label: "P1" | "P2" | "P3"): string =>
       ? "text-amber-700 bg-amber-500/10 border-amber-500/30 dark:text-amber-300"
       : "text-blue-700 bg-blue-500/10 border-blue-500/30 dark:text-blue-300";
 
+const BLOCKER_LABELS: Record<string, string> = {
+  sample_count_below_20: "Need at least 20 closed outcomes in 30d",
+  time_coverage_below_7d: "Need closes spread across 7 distinct days",
+  regime_depth_below_5: "Need stronger regime depth balance",
+  allocator_summary_unavailable: "Allocator summary is unavailable",
+  allocator_still_in_observe_only: "Allocator is still in observe-only mode",
+  no_models_loaded: "No ONNX models loaded",
+  not_enough_complete_trades_30d: "Need more complete trades in 30d",
+  weight_bandit_not_ready: "Weight bandit is not ready",
+  swarm_not_beating_single_agent: "Swarm uplift is not beating ONNX baseline",
+  causal_promotion_not_eligible: "Causal promotion gate is not eligible",
+  no_causal_pairs: "No causal pairs available yet",
+  causal_sample_depth_below_target: "Need deeper per-arm causal sample depth",
+  causal_sample_depth_below_12: "Need deeper per-arm causal sample depth",
+};
+
+const SYNERGY_BLOCKER_ACTIONS: Record<string, string> = {
+  swarm_not_beating_single_agent:
+    "Improve treatment-stage edge so uplift stays positive.",
+  causal_promotion_not_eligible:
+    "Lift ciLower while preserving positive uplift.",
+  no_causal_pairs: "Generate balanced stage outcomes to form causal pairs.",
+  causal_sample_depth_below_target:
+    "Add balanced closes until each arm reaches minimum depth.",
+  causal_sample_depth_below_12:
+    "Add balanced closes until each arm reaches minimum depth.",
+};
+
+const formatBlockerLabel = (code: string): string =>
+  BLOCKER_LABELS[code] ?? code;
+
+const formatSynergyBlocker = (code: string): string => {
+  const label = formatBlockerLabel(code);
+  const nextAction = SYNERGY_BLOCKER_ACTIONS[code];
+  return nextAction ? `${label} - Next: ${nextAction}` : label;
+};
+
+const formatMinutesAgo = (ageMs?: number | null): string => {
+  if (ageMs == null || !Number.isFinite(ageMs)) return "unknown age";
+  const mins = Math.max(0, Math.round(ageMs / 60000));
+  return `${mins}m ago`;
+};
+
 function buildSparklinePath(
   values: number[],
   width: number,
@@ -89,12 +132,14 @@ function PillarCard({
   status,
   highlights,
   blockers,
+  blockerFormatter,
 }: {
   title: string;
   score: number;
   status: "on_track" | "at_risk" | "blocked";
   highlights: string[];
   blockers: string[];
+  blockerFormatter?: (blockerCode: string) => string;
 }) {
   return (
     <DashboardCard title={title}>
@@ -133,7 +178,7 @@ function PillarCard({
             {blockers.length > 0 ? (
               blockers.map((line, idx) => (
                 <li key={idx} className="text-muted-foreground">
-                  {line}
+                  {(blockerFormatter ?? formatBlockerLabel)(line)}
                 </li>
               ))
             ) : (
@@ -272,6 +317,18 @@ export function RecursiveNorthStarTab({
       return `${model}[${summary}]`;
     })
     .join(" | ");
+  const allocatorSource =
+    data.metrics.recursion.allocatorSummarySource ?? "none";
+  const allocatorIsStale =
+    data.metrics.recursion.allocatorSummaryStale ?? false;
+  const allocatorAgeText = formatMinutesAgo(
+    data.metrics.recursion.allocatorSummaryAgeMs,
+  );
+  const nearPassDepthRatio = data.metrics.synergy.nearPassDepthRatio ?? 0;
+  const nearPassEffectRatio = data.metrics.synergy.nearPassEffectRatio ?? 0;
+  const nearPassBonus = data.metrics.synergy.nearPassBonus ?? 0;
+  const recursionCoverage = data.metrics.recursion.coverageVelocity;
+  const synergyCoverage = data.metrics.synergy.coverageVelocity;
 
   return (
     <div className="space-y-6">
@@ -293,10 +350,53 @@ export function RecursiveNorthStarTab({
         </p>
       </div>
 
+      {(recursionCoverage || synergyCoverage) && (
+        <DashboardCard title="Coverage Velocity">
+          <div className="grid gap-3 sm:grid-cols-2 text-sm">
+            <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+              <p className="text-xs text-muted-foreground uppercase mb-1">
+                Recursion Delta
+              </p>
+              {recursionCoverage ? (
+                <p className="text-muted-foreground">
+                  closes {recursionCoverage.missingClosedRowsTo20} · days{" "}
+                  {recursionCoverage.missingDistinctDaysTo7} · regime{" "}
+                  {recursionCoverage.missingRegimeDepthTo5}
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  No recursion coverage data.
+                </p>
+              )}
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+              <p className="text-xs text-muted-foreground uppercase mb-1">
+                Synergy Delta
+              </p>
+              {synergyCoverage ? (
+                <p className="text-muted-foreground">
+                  stage {synergyCoverage.stageDeficitTotal} · pair{" "}
+                  {synergyCoverage.pairDeficitTotal} · min-arm{" "}
+                  {synergyCoverage.minSamplesPerArmDeficit}
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  No synergy coverage data.
+                </p>
+              )}
+            </div>
+          </div>
+        </DashboardCard>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         <PillarCard title="Recursion" {...data.pillars.recursion} />
         <PillarCard title="ML Loop" {...data.pillars.ml} />
-        <PillarCard title="1+1=3 Synergy" {...data.pillars.synergy} />
+        <PillarCard
+          title="1+1=3 Synergy"
+          {...data.pillars.synergy}
+          blockerFormatter={formatSynergyBlocker}
+        />
       </div>
 
       {trendWindows.length > 0 && (
@@ -484,6 +584,33 @@ export function RecursiveNorthStarTab({
               <li key={idx}>{line}</li>
             ))}
           </ul>
+          <p className="text-xs text-muted-foreground">
+            Allocator summary:{" "}
+            <span
+              className={cn(
+                "font-medium",
+                allocatorSource === "none"
+                  ? "text-red-600 dark:text-red-400"
+                  : allocatorIsStale
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-green-600 dark:text-green-400",
+              )}
+            >
+              {allocatorSource === "none"
+                ? "missing"
+                : allocatorIsStale
+                  ? "stale"
+                  : "fresh"}
+            </span>{" "}
+            ({allocatorSource}, {allocatorAgeText})
+          </p>
+          {recursionCoverage && (
+            <p className="text-xs text-muted-foreground">
+              Coverage delta: closes {recursionCoverage.missingClosedRowsTo20} ·
+              days {recursionCoverage.missingDistinctDaysTo7} · regime{" "}
+              {recursionCoverage.missingRegimeDepthTo5}
+            </p>
+          )}
         </div>
       </DashboardCard>
 
@@ -495,7 +622,7 @@ export function RecursiveNorthStarTab({
         ) : (
           <ul className="space-y-1 text-sm text-muted-foreground">
             {topBlockers.map((blocker, idx) => (
-              <li key={idx}>{blocker}</li>
+              <li key={idx}>{formatBlockerLabel(blocker)}</li>
             ))}
           </ul>
         )}
@@ -810,6 +937,19 @@ export function RecursiveNorthStarTab({
 
       <DashboardCard title="Causal Pair Drilldown">
         <div className="space-y-2">
+          <p className="text-[12px] text-muted-foreground">
+            Near-pass: depth {(nearPassDepthRatio * 100).toFixed(0)}% · effect{" "}
+            {(nearPassEffectRatio * 100).toFixed(0)}% · bonus +
+            {nearPassBonus.toFixed(1)}
+          </p>
+          {synergyCoverage && (
+            <p className="text-[12px] text-muted-foreground">
+              Coverage velocity: stage deficit{" "}
+              {synergyCoverage.stageDeficitTotal} · pair deficit{" "}
+              {synergyCoverage.pairDeficitTotal} · min-arm gap{" "}
+              {synergyCoverage.minSamplesPerArmDeficit}
+            </p>
+          )}
           {data.metrics.synergy.causalPairs.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No causal pairs available yet.
@@ -841,6 +981,15 @@ export function RecursiveNorthStarTab({
                   uplift {pair.upliftDelta.toFixed(3)} · ciLower{" "}
                   {pair.ciLower.toFixed(3)} · ciUpper {pair.ciUpper.toFixed(3)}
                 </p>
+                {(pair.smoothedCiLower !== undefined ||
+                  pair.smoothedUpliftDelta !== undefined) && (
+                  <p className="text-muted-foreground text-[12px]">
+                    smoothed uplift{" "}
+                    {(pair.smoothedUpliftDelta ?? pair.upliftDelta).toFixed(3)}{" "}
+                    · smoothed ciLower{" "}
+                    {(pair.smoothedCiLower ?? pair.ciLower).toFixed(3)}
+                  </p>
+                )}
               </div>
             ))
           )}

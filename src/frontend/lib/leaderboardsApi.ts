@@ -894,6 +894,14 @@ export interface RecursiveNorthStarResponse {
       allocatorStage: string;
       allocatorMode: string;
       allocatorSummaryAvailable?: boolean;
+      allocatorSummaryStale?: boolean;
+      allocatorSummaryAgeMs?: number | null;
+      allocatorSummarySource?: "live" | "history" | "none";
+      coverageVelocity?: {
+        missingClosedRowsTo20: number;
+        missingDistinctDaysTo7: number;
+        missingRegimeDepthTo5: number;
+      };
       sufficiencyBlockingReasons?: string[];
       sufficiencyBlockersByDimension?: Record<string, string>;
       sufficiencyActions?: string[];
@@ -956,6 +964,14 @@ export interface RecursiveNorthStarResponse {
       causalConfidenceScore: number;
       causalPairCount: number;
       minSamplesPerArm: number;
+      nearPassDepthRatio?: number;
+      nearPassEffectRatio?: number;
+      nearPassBonus?: number;
+      coverageVelocity?: {
+        stageDeficitTotal: number;
+        pairDeficitTotal: number;
+        minSamplesPerArmDeficit: number;
+      };
       promotionReasons: string[];
       causalPairs: Array<{
         label: string;
@@ -967,6 +983,9 @@ export interface RecursiveNorthStarResponse {
         ciLower: number;
         ciUpper: number;
         confidenceScore: number;
+        smoothedUpliftDelta?: number;
+        smoothedCiLower?: number;
+        smoothedConfidenceScore?: number;
         passed: boolean;
         failureReason?: string;
       }>;
