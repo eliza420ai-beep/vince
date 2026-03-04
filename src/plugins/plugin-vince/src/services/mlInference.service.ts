@@ -214,6 +214,7 @@ export class VinceMLInferenceService extends Service {
   private tpOptimizerSession: any = null;
   private slOptimizerSession: any = null;
   private ort: any = null;
+  private lastLoadError: string | null = null;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -262,6 +263,7 @@ export class VinceMLInferenceService extends Service {
       await this.loadModels();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
+      this.lastLoadError = msg;
       logger.info(
         `[MLInference] ONNX runtime not available: ${msg}. Use rule-based fallbacks or run \`bun rebuild onnxruntime-node\`.`,
       );
@@ -280,6 +282,7 @@ export class VinceMLInferenceService extends Service {
     this.modelInfo.clear();
     this.predictionCache.clear();
     this.modelsLoaded = false;
+    this.lastLoadError = null;
     this.loadImprovementReport();
     await this.loadModels();
   }
@@ -449,6 +452,11 @@ export class VinceMLInferenceService extends Service {
     suggestedMinConfidence: number | null;
     tpLevelIndices: number[];
     tpLevelSkipped: number | null;
+    readinessReasons: string[];
+    missingModelFiles: string[];
+    modelsDir: string;
+    onnxRuntimeAvailable: boolean;
+    lastLoadError: string | null;
   } {
     const modelsLoaded = Array.from(this.modelInfo.keys());
     const tpIndices = this.getTPLevelIndicesToUse();
@@ -457,6 +465,22 @@ export class VinceMLInferenceService extends Service {
       tpIndices.length < 3
         ? (allIndices.find((i) => !tpIndices.includes(i)) ?? null)
         : null;
+    const baseDir = this.resolvedModelsDir || path.resolve(ML_CONFIG.modelsDir);
+    const missingModelFiles = Object.values(ML_CONFIG.models).filter(
+      (file) => !fs.existsSync(path.join(baseDir, file)),
+    );
+    const readinessReasons: string[] = [];
+    if (!fs.existsSync(baseDir)) readinessReasons.push("models_dir_missing");
+    const hasAnyOnnx =
+      fs.existsSync(baseDir) &&
+      fs.readdirSync(baseDir).some((f: string) => f.endsWith(".onnx"));
+    if (!hasAnyOnnx) readinessReasons.push("no_onnx_files_found");
+    if (missingModelFiles.length > 0)
+      readinessReasons.push("missing_expected_model_files");
+    if (!this.ort) readinessReasons.push("onnxruntime_unavailable");
+    if (hasAnyOnnx && this.ort && modelsLoaded.length === 0)
+      readinessReasons.push("models_failed_to_load");
+    if (this.lastLoadError) readinessReasons.push("model_load_error");
     return {
       modelsLoaded,
       signalQualityThreshold: this.getSignalQualityThreshold(),
@@ -464,6 +488,11 @@ export class VinceMLInferenceService extends Service {
       suggestedMinConfidence: this.getSuggestedMinConfidence(),
       tpLevelIndices: tpIndices,
       tpLevelSkipped,
+      readinessReasons,
+      missingModelFiles,
+      modelsDir: baseDir,
+      onnxRuntimeAvailable: this.ort !== null,
+      lastLoadError: this.lastLoadError,
     };
   }
 
@@ -558,18 +587,21 @@ export class VinceMLInferenceService extends Service {
         avgLatencyMs: 0,
       });
 
+      this.lastLoadError = null;
       logger.info(`[MLInference] Loaded model: ${name}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg.includes("no available backend found")) {
         // ONNX runtime has no usable native backend on this platform; disable and use rule-based fallbacks.
         this.ort = null;
+        this.lastLoadError = msg;
         logger.info(
           "[MLInference] ONNX backend not available on this platform — using rule-based fallbacks. " +
             "Paper bot still runs. To enable ML: try `bun rebuild onnxruntime-node` or reinstall deps; see Node/OS compatibility at https://www.npmjs.com/package/onnxruntime-node.",
         );
         return;
       }
+      this.lastLoadError = msg;
       logger.error(`[MLInference] Failed to load ${name}: ${error}`);
     }
   }

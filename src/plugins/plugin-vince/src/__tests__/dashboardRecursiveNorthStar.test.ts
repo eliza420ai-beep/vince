@@ -83,6 +83,7 @@ describe("buildRecursiveNorthStarResponse", () => {
       "pillars",
       "metrics",
       "northStar",
+      "milestones",
       "trend",
       "lastUpdated",
     ]);
@@ -101,9 +102,12 @@ describe("buildRecursiveNorthStarResponse", () => {
       "why",
     ]);
     expect(payload.metrics.synergy.upliftDelta).toBe(3);
+    expect(Array.isArray(payload.metrics.synergy.causalPairs)).toBe(true);
     expect(payload.metrics.ml.modelCount).toBe(3);
+    expect(Array.isArray(payload.metrics.ml.readinessReasons)).toBe(true);
     expect(payload.trend?.windows?.length).toBeGreaterThanOrEqual(2);
     expect(Array.isArray(payload.trend?.history)).toBe(true);
+    expect(payload.milestones.recursion3d).toHaveProperty("pass");
     expect(payload.scorecard.status).toMatch(/on_track|at_risk|blocked/);
   });
 

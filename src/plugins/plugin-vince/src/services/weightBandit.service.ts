@@ -65,6 +65,19 @@ interface BanditState {
   explorationRate: number;
 }
 
+function isValidBanditState(state: unknown): state is BanditState {
+  if (!state || typeof state !== "object") return false;
+  const s = state as BanditState;
+  return (
+    typeof s.totalTradesProcessed === "number" &&
+    typeof s.explorationRate === "number" &&
+    typeof s.lastUpdated === "number" &&
+    typeof s.version === "string" &&
+    typeof s.arms === "object" &&
+    s.arms !== null
+  );
+}
+
 // ==========================================
 // Configuration
 // ==========================================
@@ -194,6 +207,7 @@ export class VinceWeightBanditService extends Service {
   private explorationRate = 1.0; // Starts at full exploration
   private statePath: string | null = null;
   private initialized = false;
+  private initError: string | null = null;
   private cachedSampledWeights: Map<string, number> = new Map();
   private lastSampleTime = 0;
   private readonly SAMPLE_CACHE_MS = 5000; // Resample every 5 seconds
@@ -233,20 +247,43 @@ export class VinceWeightBanditService extends Service {
 
       // Try to load existing state
       if (fs.existsSync(this.statePath)) {
-        const data = JSON.parse(
-          fs.readFileSync(this.statePath, "utf-8"),
-        ) as BanditState;
-        this.loadState(data);
-        logger.info(
-          `[WeightBandit] Loaded state with ${this.totalTradesProcessed} trades processed`,
-        );
+        try {
+          const data = JSON.parse(
+            fs.readFileSync(this.statePath, "utf-8"),
+          ) as unknown;
+          if (isValidBanditState(data)) {
+            this.loadState(data);
+            logger.info(
+              `[WeightBandit] Loaded state with ${this.totalTradesProcessed} trades processed`,
+            );
+          } else {
+            throw new Error("state schema invalid");
+          }
+        } catch (stateErr) {
+          this.initError =
+            stateErr instanceof Error ? stateErr.message : String(stateErr);
+          logger.warn(
+            `[WeightBandit] State unreadable, resetting to priors: ${this.initError}`,
+          );
+          try {
+            const backupPath = `${this.statePath}.corrupt-${Date.now()}`;
+            fs.copyFileSync(this.statePath, backupPath);
+            logger.warn(
+              `[WeightBandit] Corrupt state backed up to ${backupPath}`,
+            );
+          } catch {
+            // non-fatal
+          }
+        }
       }
 
       this.initialized = true;
+      this.initError = null;
       logger.info(
         "[WeightBandit] ✅ Thompson Sampling initialized for source weight optimization",
       );
     } catch (error) {
+      this.initError = error instanceof Error ? error.message : String(error);
       logger.error(`[WeightBandit] Initialization error: ${error}`);
     }
   }
@@ -630,10 +667,15 @@ export class VinceWeightBanditService extends Service {
   /**
    * Status for dashboard: Thompson Sampling from recorded trade outcomes.
    */
-  getBanditStatus(): { isReady: boolean; totalTradesProcessed: number } {
+  getBanditStatus(): {
+    isReady: boolean;
+    totalTradesProcessed: number;
+    initError?: string;
+  } {
     return {
       isReady: this.initialized,
       totalTradesProcessed: this.totalTradesProcessed,
+      ...(this.initError ? { initError: this.initError } : {}),
     };
   }
 }

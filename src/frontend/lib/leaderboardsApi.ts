@@ -902,6 +902,12 @@ export interface RecursiveNorthStarResponse {
       avoidedDecisions30d: number;
       banditReady: boolean;
       banditTradesProcessed: number;
+      readinessReasons: string[];
+      missingModelFiles: string[];
+      modelsDir: string;
+      onnxRuntimeAvailable: boolean;
+      lastLoadError: string | null;
+      banditInitError: string | null;
     };
     synergy: {
       upliftDelta: number;
@@ -909,12 +915,43 @@ export interface RecursiveNorthStarResponse {
       causalConfidenceScore: number;
       causalPairCount: number;
       minSamplesPerArm: number;
+      promotionReasons: string[];
+      causalPairs: Array<{
+        label: string;
+        controlStage: string;
+        treatmentStage: string;
+        controlCount: number;
+        treatmentCount: number;
+        upliftDelta: number;
+        ciLower: number;
+        ciUpper: number;
+        confidenceScore: number;
+        passed: boolean;
+        failureReason?: string;
+      }>;
     };
   };
   northStar: {
     fullRecursionReady: boolean;
     onePlusOneEqThreeReady: boolean;
     why: string[];
+  };
+  milestones: {
+    recursion3d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
+    ml3d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
+    synergy7d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
   };
   trend?: {
     windows: Array<{

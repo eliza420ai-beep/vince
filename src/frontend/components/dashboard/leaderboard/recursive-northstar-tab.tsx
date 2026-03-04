@@ -436,6 +436,111 @@ export function RecursiveNorthStarTab({
           </ul>
         )}
       </DashboardCard>
+
+      <DashboardCard title="Milestone Gates">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              ["Recursion 3d", data.milestones.recursion3d],
+              ["ML 3d", data.milestones.ml3d],
+              ["Synergy 7d", data.milestones.synergy7d],
+            ] as const
+          ).map(([label, milestone]) => (
+            <div
+              key={label}
+              className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
+            >
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p
+                className={cn(
+                  "text-sm font-semibold",
+                  milestone.pass
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-amber-600 dark:text-amber-400",
+                )}
+              >
+                {milestone.pass ? "pass" : "in_progress"}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {milestone.observedPoints} points in window
+              </p>
+            </div>
+          ))}
+        </div>
+      </DashboardCard>
+
+      {(data.metrics.ml.readinessReasons.length > 0 ||
+        data.metrics.ml.missingModelFiles.length > 0 ||
+        data.metrics.ml.lastLoadError ||
+        data.metrics.ml.banditInitError) && (
+        <DashboardCard title="ML Readiness Diagnostics">
+          <div className="space-y-2 text-sm">
+            {data.metrics.ml.readinessReasons.length > 0 && (
+              <p className="text-muted-foreground">
+                Reasons: {data.metrics.ml.readinessReasons.join(", ")}
+              </p>
+            )}
+            {data.metrics.ml.missingModelFiles.length > 0 && (
+              <p className="text-muted-foreground">
+                Missing model files:{" "}
+                {data.metrics.ml.missingModelFiles.join(", ")}
+              </p>
+            )}
+            {data.metrics.ml.lastLoadError && (
+              <p className="text-muted-foreground">
+                Last model load error: {data.metrics.ml.lastLoadError}
+              </p>
+            )}
+            {data.metrics.ml.banditInitError && (
+              <p className="text-muted-foreground">
+                Bandit init error: {data.metrics.ml.banditInitError}
+              </p>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Models dir: {data.metrics.ml.modelsDir || "unset"}
+            </p>
+          </div>
+        </DashboardCard>
+      )}
+
+      <DashboardCard title="Causal Pair Drilldown">
+        <div className="space-y-2">
+          {data.metrics.synergy.causalPairs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No causal pairs available yet.
+            </p>
+          ) : (
+            data.metrics.synergy.causalPairs.map((pair) => (
+              <div
+                key={pair.label}
+                className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium">{pair.label}</p>
+                  <span
+                    className={cn(
+                      "text-xs",
+                      pair.passed
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-amber-600 dark:text-amber-400",
+                    )}
+                  >
+                    {pair.passed ? "pass" : (pair.failureReason ?? "fail")}
+                  </span>
+                </div>
+                <p className="text-muted-foreground text-[12px]">
+                  {pair.controlStage} ({pair.controlCount}) {"->"}{" "}
+                  {pair.treatmentStage} ({pair.treatmentCount})
+                </p>
+                <p className="text-muted-foreground text-[12px]">
+                  uplift {pair.upliftDelta.toFixed(3)} · ciLower{" "}
+                  {pair.ciLower.toFixed(3)} · ciUpper {pair.ciUpper.toFixed(3)}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </DashboardCard>
     </div>
   );
 }
