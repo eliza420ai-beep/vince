@@ -23,246 +23,36 @@
 
 **V4.2.0 — The Genome.** One month, one PRD, the first 5 phases shipped end‑to‑end. Since then we executed the full **12‑phase One Dream roadmap (80 tasks)**: a self-evolving trading system that observes its own performance, rewrites its own parameters, and earns the right to trade real money through sustained results. The hackathon is closed. Here's what shipped.
 
-### The problem we solved
+### What We Built: 15 Phases, One System
 
-Every agent was strong solo — Vince had 13 quick actions, Solus had 16, Echo had 11, Otaku was ready to execute — but every cross-agent handoff required copy/paste. Echo knew CT was bearish; Vince didn't care. Losing trades repeated because nobody post-mortemed together. No unified scorecard, no sentiment-adjusted sizing, no learning loop. The user was the bottleneck.
+We turned VINCE from a set of strong solo agents into a coordinated system that can learn, prove, and then scale risk.
 
-### Phase 1 — Handoffs & Scorecard (7 tasks)
+Phases 1-4 established the operating foundation: clean handoffs, shared scorecards, and decision gates that include sentiment and regime context.  
+Phases 5-9 made the system adaptive: strategy evolution, adversarial checks, calibration tracking, and research-to-trade lineage with skill telemetry.  
+Phases 10-12 added governance for live-capital readiness: policy engine controls, rollback paths, and transparent operator surfaces.  
+Phase 13 introduced swarm consensus so trade gating is reliability-aware across agents, not single-model confidence.  
+Phases 14-15 converted that learning into allocation discipline with proof attribution, sufficiency grading, source-quality control, and causal confidence gates.
 
-Eliminated copy/paste between agents. Solus gets Vince's options data automatically. Vince gets Echo's sentiment score (1–10 numeric) and Oracle's regime indicator (risk-on/risk-off/uncertain). Eliza gets trading performance for content production. Kelly's `WEEKLY_REVIEW` pulls a unified scorecard from all nine agents — paper bot P&L, premium income, sentiment accuracy, execution history, features shipped, content output — measured against $1,923/week ($100K annualized).
+### Why this matters
 
-### Phase 2 — Intelligence & Learning (6 tasks)
+Risk is earned, not assumed. Promotions now require evidence quality (sufficiency) and causal confidence, not just directional uplift.  
+Learning compounds by design: every trade feeds attribution, calibration, and policy decisions.  
+Distribution stays honest: public claims are gated by verified proof thresholds.  
+Operations stay safe through staged rollout (`observe_only` -> `recommendation` -> guarded `auto_apply`) with rollback drills.
 
-The paper bot stopped trading in a vacuum. A **sentiment gate** checks Echo and Oracle before every trade: risk-off halves position size, bearish sentiment skips new longs, full size only on bullish + risk-on. Automated **post-mortems** on every losing trade — Vince asks Echo, Oracle, and Solus what they saw, aggregates into structured analysis, Sentinel surfaces patterns weekly. Every trade now records `sentimentScore`, `regime`, and `adjustmentApplied`.
+### Current phase-15 status
 
-### Phase 3 — Autonomy (4 tasks)
+- `/vince/paper` now includes `causal30d`, `sufficiencyTasks`, and `solus30d` in `proofSummary`.
+- Allocator hardening is live: causal-confidence gate with rollback-aware reduction path.
+- Sufficiency v2 covers sample size, asset/regime breadth, time coverage, regime depth, and variance context.
+- Source quality v2 includes lag-aware scoring, dominant-regime tagging, cooldown, and hysteresis controls.
+- Verified artifacts are live in `.elizadb/vince-paper-bot/verified-claims.json` and `.elizadb/vince-paper-bot/sufficiency-tasks.json`.
 
-Scheduled daily briefings with real data from all agents. Sentinel auto-generates PRD stubs from recurring post-mortem patterns. Otaku opt-in auto-execute when paper bot confidence exceeds threshold. Echo's watchlist tokens merge into the paper bot's trading universe automatically. The system proactively finds, sizes, and evaluates trades with minimal user intervention.
+### Read more (detailed docs)
 
-### Phase 4 — Measurement & Readiness (6 tasks)
-
-`$100K PACE` — one number: on track or behind. Vince → Solus strike handoff via cache (no more copy/paste for options). Confidence scores (0–100) in the signal cache so Otaku's auto-execute fires on high-conviction signals. One-tap weekly Substack draft + tweets from real trading numbers. Sentiment accuracy tracking: did Echo's call match the outcome? Go-live readiness checklist: paper stats + sentiment + explicit confirm before real execution.
-
-### Phase 5 — The Genome (8 tasks)
-
-The system became self-evolving:
-
-- **Counterfactual engine** — Replays every avoided decision. "You were right to skip 73% — but missed 4 winners worth +$840. `minStrength` is 6 pts too high in trending-bull regimes."
-- **Strategy genome** — 15+ tunable parameters as a JSON genome. Weekly: mutate → replay against feature store history → rank by Sharpe × win-rate / drawdown → auto-promote the best variant.
-- **Regime profiles** — Five market personalities (TRENDING_BULL, CHOPPY, CAPITULATION, EUPHORIA, RECOVERY) auto-switch from Oracle + Echo + technicals. Per-profile performance tracked separately.
-- **Grok intelligence** — Daily Grok sub-agent reports parsed into structured signals, registered as a Thompson Sampling arm. Research becomes alpha.
-- **Portfolio construction** — Rolling correlation matrix, portfolio heat caps, Kelly-criterion sizing, opportunity cost analysis (new trade vs weakest open position).
-- **Execution graduation** — Four trust levels (L0 paper-only → L1 notify → L2 confirm-execute → L3 auto-execute), earned through sustained weekly performance, automatic demotion on drawdown, circuit breaker on 3%+ daily loss.
-- **Collective memory** — Weekly intelligence brief synthesized from all agents, stored as shared knowledge. Institutional memory compounds.
-- **Flywheel score** — Composite 0–100 health metric: signal quality (25%), trade performance (25%), sentiment accuracy (15%), content output (10%), knowledge growth (10%), engineering velocity (10%), genome improvement (5%). One number that answers "is the system getting better?"
-
-### Phase 6 — The Adversary (8 tasks)
-
-Phase 6 made one core change: confidence alone is not enough. Every trade now has to earn execution.
-
-- **Pre-mortem engine** — Before entry, VINCE scores likely failure scenarios, computes survival probability, and blocks trades below threshold.
-- **War Room Monte Carlo** — 1000-run bootstrap tail simulation compares incumbent vs candidate genomes and blocks promotions that worsen downside (`p05`).
-- **Internal prediction market** — VINCE registers and validates trade/genome predictions, scores outcomes with Brier calibration, and tracks calibration by agent.
-- **Devil's Advocate protocol** — Counter-thesis risk scoring can downgrade or block fragile trade ideas and weak genome promotions.
-- **Narrative radar** — Classifies narrative phase (`inception`, `growth`, `peak`, `decline`, `uncertain`) and blocks phase-mismatched entries.
-- **Temporal coherence** — Multi-timeframe alignment gate scores setup quality before entry.
-- **Immune system** — Attack-pattern matcher loads known trap regimes and blocks high-loss setups.
-- **Wired into runtime** — Daily prediction validation and weekly counterfactual reporting are live, with adversarial metadata persisted in the trading loop.
-
-### Phase 7 — Calibration Everywhere
-
-Phase 7 turned calibration into a first-class operating metric across the team:
-
-- **Prediction calibration API + action** — `/vince/prediction-calibration` endpoint and `VINCE_PREDICTION_CALIBRATION` action expose real calibration status on demand.
-- **Cross-agent reporting** — Sentinel and Kelly reporting now surface VINCE prediction calibration so weekly reviews cover calibration drift, not just PnL.
-- **Closed accountability loop** — Predictions are made, resolved, scored, and reported in one system-wide path.
-
-### Phase 8 — The Compounding Edge: Research → Alpha → Distribution
-
-Phase 8 wired **X research, trading, and publishing into a single compounding loop**.
-
-- **X source quality & narrative lag**: score signal accounts, measure narrative-to-price lag, and feed `lagAdjustedConfidence` into the paper bot.
-- **Research-to-trade attribution**: every trade now carries lineage back to source threads, accounts, and prompts so alpha is auditable.
-- **Execution quality lens**: track when a good thesis was hurt by late entries, bad exits, or size errors instead of blaming the idea.
-- **Content performance feedback**: Substack posts and tweets are scored back to their source inputs; high-performing sources get more weight in future research.
-- **Alpha memos + X-Research command center**: weekly auto-drafted alpha memos and a command chip that turns saved research into a live routing surface.
-
-### Phase 9 — Skills Operating System: Skill-First Execution
-
-Phase 9 treated **skills as first-class citizens**, not hidden prompts.
-
-- **Skill registry + router**: a typed index of skills (research, trading, content, ops) with routing rules for ASK_AGENT.
-- **Skill telemetry + scoreboard**: per-skill success rates, latencies, and drift so we know which skills actually earn their keep.
-- **Skill QA harness**: repeatable tests that keep high-risk skills honest before they touch trading or capital.
-- **Skill-to-content pipeline**: the `ELIZA_SKILL_CONTENT` path turns X research skills into ready-to-publish briefs instead of starting from a blank page.
-- **Skill governance**: promotion and deprecation rules so the system keeps a sharp, small set of trusted skills.
-
-### Phase 10 — Live Capital Pilot: Earned Risk, Not Assumed Risk
-
-Phase 10 built the **bridge from paper to live** without crossing the risk line.
-
-- **Capital buckets + risk budgets**: explicit sleeves and limits for different strategies instead of one undifferentiated pool.
-- **Live/paper drift sentinel**: continuous checks that live execution tracks paper decisions; automatic downshift when drift widens.
-- **Execution audit trail + hard circuit stack**: every live trade logged with policy context and a multi-layer circuit breaker that can halt execution instantly.
-- **Operator console**: Kelly + Sentinel surfaces a single live safety view so humans can see, in plain language, whether the pilot is safe to keep running.
-- **Promotion ladder v2**: live capital size is earned through sustained performance, not a one-time decision.
-
-### Phase 11 — Portfolio Intelligence + Distribution Moat
-
-Phase 11 focused on **portfolio quality and truth in output**.
-
-- **Strategy sleeve allocator**: capital flows into sleeves based on their current edge, not equal-weight habits.
-- **Cross-asset contagion + opportunity cost**: detect correlated stress, cut crowded risk, and reallocate from weakest sleeve to strongest alternative.
-- **Narrative shelf-life & decay**: track how long a story stays investable before edge decays and position sizing should shrink.
-- **Content truth + insight packaging**: a truth layer that forces performance claims to cite metrics/sources, plus an insight packager that turns research into repeatable formats.
-- **Source reputation + feedback loop**: persistent reputation scores for signal sources and audience feedback flowing straight into the research queue.
-
-### Phase 12 — Autonomous Compounding Governance (Final Phase)
-
-Phase 12 closed the loop: **the system governs itself, with clear policy and rollback paths**.
-
-- **Policy engine as code**: YAML policies parsed into a runtime engine with audit refs on every decision.
-- **Automatic rollback orchestrator**: tested rollback paths for models, policies, and configurations with drills baked in.
-- **Shadow challenger framework + forecast merge**: live strategies constantly challenged by shadow variants, with forecasts merged into promotion decisions.
-- **Institutional memory graph**: key decisions, incidents, and improvements persisted as a graph so new work builds on real history.
-- **Trust transparency dashboard + SLA**: Kelly’s dashboard and Sentinel’s SLA document make system trust, health, and obligations visible at a glance.
-- **Final graduation gate**: a formal gate that proves autonomy, policy compliance, and rollback readiness before calling the system “done”.
-
-### By the numbers
-
-| | |
-|---|---|
-| Tasks implemented | 80 (One Dream Phases 1–12) |
-| Phases completed | 12 (through autonomous governance) |
-| Agents involved | 9 |
-| New services (Phase 6) | 8 |
-| Tunable genome parameters | 15+ |
-| Regime profiles | 5 |
-| Trust levels | 4 (L0 → L3) |
-| Flywheel score components | 7 |
-| TypeScript errors | 0 |
-
-### Phase 13 — Swarm Intelligence (2026-02-26 → now)
-
-One month after closing the One Dream PRD, the swarm got a **paper-traded brain upgrade**. The current system matches the architecture described in *[The Day the Swarm Woke Up](https://ikigaistudio.substack.com/p/the-day-the-swarm-woke-up)* where we have real code and tests, and stays quiet everywhere else.
-
-- **Shared Thompson-sampling bandit (paper only)** — `SwarmCoordinationService` maintains a shared `SwarmBanditState` across signal sources and agents, with regime-aware pools, agent reliability, signal correlations, and `consensusHistory` persisted to JSON + optional DB. All learning today happens in the paper bot, not on live capital.
-- **Swarm coordination + orchestrator** — VINCE contributes a canonical `AgentVote` every time the paper bot considers a trade. `VinceSwarmOrchestratorService` can add Echo, Oracle, Solus, Otaku, Kelly, Sentinel, Eliza, Clawterm, and Naval votes when their `SWARM_INCLUDE_*` flags are enabled; agents without real data wired in return neutral, low-confidence votes instead of hallucinated opinions.
-- **Consensus-driven gating in the trade loop** — `VincePaperTradingService` calls `getSwarmConsensus` when `VINCE_SWARM_ENABLED=true` and uses multi-agent consensus to veto trades or shrink size based on confidence and dissent. Otaku remains **observe-only** for swarm output; no live execution is driven directly by consensus.
-- **Dashboards and explanations wired to real stats** — `/vince/paper` surfaces `swarmSummary` (per-agent reliability, regime performance, total outcomes). `VINCE_WHY_TRADE` includes a `SWARM SNAPSHOT` paragraph only when swarm is enabled and real consensus exists, and never claims “all ten agents” unless ten distinct agents actually voted.
-- **Swarm learning architecture + test plan** — [SWARM_LEARNING_ARCHITECTURE.md](docs/SWARM_LEARNING_ARCHITECTURE.md) describes the design; [SWARM_E2E_CHECKLIST.md](docs/SWARM_E2E_CHECKLIST.md) documents exactly how to test VINCE-only, limited, and full-swarm-capable modes after `bun start` without overpromising.
-- **Phases 1–12 unchanged, flags as escape hatch** — All existing paper/live logic from earlier phases (sentiment gate, genome, adversary, policy engine, execution ladder) still behaves as before. Setting `VINCE_SWARM_ENABLED=false` cleanly reverts the runtime to the pre‑swarm behavior for both paper and live capital paths.
-
-| Stat | Value (Phase 13) |
-|------|------------------|
-| Lines shipped on 2026-02-26 | 7,555 |
-| New scripts that day | 11 |
-| New services | 2 (`swarm-coordination`, `dailyStandup`) |
-| Assets post-mortemed (launch day) | 10 |
-| Agents wired for swarm votes | 10 (VINCE always on; others flag-gated) |
-| Test coverage | Unit + integration (swarm core, orchestrator, paper bot, dashboard, WHY_THIS_TRADE) |
-
-Phase 13 gives the system a **shared bandit and consensus gate**; Phase 14 ships the missing layer that converts outcomes into allocation decisions.
-
-### Phase 14 — Proof-to-Capital Engine (shipped)
-
-Phase 14 closes the gap between “we learn” and “we allocate.” The runtime now records proof, scores that proof, and uses it to constrain or adjust risk in a controlled way.
-
-- **Proof attribution ledger is live** — `VincePaperTradingService` writes open/close attribution with gate-stack metadata (rule-based/ONNX/swarm/adversary), source lineage, regime/sleeve tags, and outcome impact. Solus resolve flow also writes proof attribution artifacts for assignment outcomes.
-- **Uplift and sufficiency services are live** — `VinceUpliftEvaluatorService` and `VinceDataSufficiencyService` compute rolling snapshots (7d/30d), stage-level uplift, regime views, and `LOW/MEDIUM/HIGH` sufficiency grades.
-- **Source quality scoring is live** — `VinceSourceQualityService` builds quality snapshots and recommendation multipliers from contribution quality; it can auto-apply weight updates only when allocator mode allows it.
-- **Proof-to-capital allocator is live** — `VinceProofCapitalAllocatorService` supports `observe_only`, `recommendation`, and `auto_apply`; it writes allocator history and enforces sufficiency gating before risk increases.
-- **Operator surfaces are wired** — `/vince/paper` now returns `proofSummary`; `VINCE_WHY_TRADE` includes a `PROOF SNAPSHOT`; Sentinel operator dashboard includes a Phase 14 proof section.
-- **Safety-by-default rollout controls** — new env controls (`VINCE_PHASE14_PROOF_ENGINE_ENABLED`, `VINCE_PROOF_ALLOCATOR_MODE`, `VINCE_PROOF_MIN_SUFFICIENCY_GRADE`, `VINCE_SOURCE_QUALITY_ENABLED`) keep rollout progressive and reversible.
-
-PRD: [PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md](docs/standup/prds/PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md)
-
-### Phase 15 — Causal Confidence + Proof Parity (shipped)
-
-Phase 15 hardens the Phase 14 engine so capital promotions are earned through causal confidence, not just directional uplift.
-
-- **Causal Uplift Lab is live** — attribution now computes shadow stage pairs (`rule_based -> onnx -> swarm -> adversary`) with confidence-bounded uplift deltas and promotion eligibility.
-- **Promotion gate is stricter** — allocator increases are blocked unless sufficiency and causal confidence both pass; rollback-aware behavior reduces risk when confidence regresses.
-- **Sufficiency v2 is actionable** — snapshot grading now includes time coverage, regime depth, and variance context, plus machine-readable blocker tasks written for operators.
-- **Source quality v2 is stable** — quality snapshots include lag penalty + dominant regime context; auto updates now apply cooldown and hysteresis to prevent oscillation.
-- **Solus proof parity + combined operator view** — Solus now emits proof snapshots with shared confidence semantics; Sentinel dashboard includes a combined perps/options proof summary.
-- **Eliza verified distribution loop** — allocator writes confidence-gated verified claims; Eliza content provider only injects claims above threshold into essay/tweet context.
-
-### Phase 15 impact (current)
-
-| Metric | Value |
-|---|---|
-| New Phase 15 proof surfaces | 3 (`causal30d`, `sufficiencyTasks`, `solus30d` in `/vince/paper` `proofSummary`) |
-| Allocator hardening | Causal-confidence gate + rollback-aware reduction path |
-| Sufficiency model | Expanded dimensions (sample count, assets, regimes, time coverage, regime depth, variance context) |
-| Source quality controls | Lag-aware scoring + dominant-regime tagging + cooldown/hysteresis updates |
-| Verified distribution artifacts | `.elizadb/vince-paper-bot/verified-claims.json` and `.elizadb/vince-paper-bot/sufficiency-tasks.json` |
-| New Phase 15 env controls | 5 (`VINCE_PHASE15_CAUSAL_MIN_EFFECT`, `VINCE_PHASE15_CAUSAL_MIN_SAMPLES_PER_ARM`, `VINCE_SOURCE_QUALITY_COOLDOWN_HOURS`, `VINCE_SOURCE_QUALITY_HYSTERESIS_POINTS`, `ELIZA_VERIFIED_CLAIMS_MIN_CONFIDENCE`) |
-| Phase 15 tests added/updated | Causal gating + sufficiency/source-quality stability + dashboard proof surface coverage |
-
-### Phase 15 rollout checklist
-
-Use this sequence to operationalize the shipped Phase 15 controls safely:
-
-1. `VINCE_PROOF_ALLOCATOR_MODE=observe_only` for baseline confidence windows.
-2. Confirm causal pairs pass thresholds (`minimum effect`, `minimum samples per arm`) across consecutive windows.
-3. Move to `VINCE_PROOF_ALLOCATOR_MODE=recommendation`; verify no oscillation in source-weight recommendations.
-4. Enable narrow `auto_apply` only after rollback drill passes and sufficiency blockers are under control.
-5. Keep claim distribution gated by `ELIZA_VERIFIED_CLAIMS_MIN_CONFIDENCE` so published claims stay traceable to verified proof.
-
-### Phase 15 quickstart
-
-```bash
-# 1) Enable proof engine in safe mode first
-export VINCE_PHASE14_PROOF_ENGINE_ENABLED=true
-export VINCE_PROOF_ALLOCATOR_MODE=observe_only
-export VINCE_PROOF_MIN_SUFFICIENCY_GRADE=MEDIUM
-
-# 2) Phase 15 causal + source-quality controls
-export VINCE_PHASE15_CAUSAL_MIN_EFFECT=0.02
-export VINCE_PHASE15_CAUSAL_MIN_SAMPLES_PER_ARM=12
-export VINCE_SOURCE_QUALITY_COOLDOWN_HOURS=24
-export VINCE_SOURCE_QUALITY_HYSTERESIS_POINTS=5
-
-# 3) Verified claim distribution threshold for Eliza content
-export ELIZA_VERIFIED_CLAIMS_MIN_CONFIDENCE=0.6
-
-# 4) Start runtime
-bun start
-
-# 5) Verify proof artifacts and rollout signals
-rg '"tradeId"' data/trade-attribution.jsonl | wc -l
-rg '"gateStack"' data/trade-attribution.jsonl | wc -l
-rg '"sourceLineage"' data/trade-attribution.jsonl | wc -l
-rg '.' .elizadb/vince-paper-bot/proof-allocator-history.jsonl | wc -l
-rg '.' .elizadb/vince-paper-bot/source-quality-history.jsonl | wc -l
-rg '.' .elizadb/vince-paper-bot/verified-claims.json
-rg '.' .elizadb/vince-paper-bot/sufficiency-tasks.json
-```
-
-Runbook: [PHASE_15_7DAY_RUNBOOK.md](docs/standup/prds/PHASE_15_7DAY_RUNBOOK.md)
-
-### How the 12 phases became the paper bot and ML loop
-
-The 80 tasks across 12 phases produced the **paper trading algo** (signals → aggregator with ML quality → evaluateAndTrade gates → open/skip → position management → close → feature store) and the **ML pipeline** (feature store → train_models.py → ONNX + improvement report + Sentinel tasks → ML inference and suggested thresholds back into the bot). Phases 2–5 and 12 are where this lives in code: Phase 2 (sentiment gate, post-mortems), Phase 5 (genome, counterfactual, improvement-report weights), Phase 12 (policy engine in the trade path). Phase 10 is the bridge from paper to live (readiness, capital pilot). **What we're proving:** (1) the paper bot on Hyperliquid perps is **recursive**—it improves from its own trades via ONNX and improvement weights—and (2) **Solus** on Hypersurface options has the same pattern (calibration context + TRAIN_SOLUS_CALIBRATION_WHEN_READY → ML-calibrated P(assign)), so both the left curve (perps) and the right curve (options) get better over time. Full algo and pipeline: [PRD: Paper Trading Algo and How ML Improves It](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md), [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md). Proof doc: [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md).
-
-### What's next
-
-Phase 15 shipped the first hardening pass. Next is scaling breadth and automation across more sleeves and longer windows:
-
-**1. Phase 16 candidate: Causal cohort expansion.** Add sleeve-level, time-paired cohorts and stricter confidence bands per regime so promotion rules can operate at finer granularity.
-
-**2. Allocation policy escalation playbooks.** Formalize drills and one-sleeve-to-multi-sleeve expansion with explicit rollback contracts and incident runbooks.
-
-**3. Source quality v3.** Add explicit lag attribution to source payloads and expand regime-conditioned scoring for X + Polymarket across longer horizons.
-
-**4. Cross-agent proof distribution.** Push verified claims into more downstream surfaces (reports, prompts, publishing templates) with stricter provenance traces.
-
-**5. Proof-to-capital automation.** Use stability checks from allocator history to auto-advance staged rollout (`observe_only` -> `recommendation` -> narrow `auto_apply`) when confidence remains stable.
-
-### Phase 14 baseline (historical)
-
-Phase 14 remains the foundation (`proof attribution`, `uplift/sufficiency`, `source quality`, `proof allocator`), while Phase 15 adds causal confidence gating, sufficiency-task outputs, source-stability controls, Solus parity, and verified-claim distribution.
+- Detailed phase-by-phase overview: [PHASES_1_15_DETAILED.md](docs/PHASES_1_15_DETAILED.md)
+- Phase 14 PRD: [PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md](docs/standup/prds/PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md)
+- Phase 15 operational runbook: [PHASE_15_7DAY_RUNBOOK.md](docs/standup/prds/PHASE_15_7DAY_RUNBOOK.md)
 
 ### Prior releases
 
