@@ -17,6 +17,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
+import { createRequire } from "module";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import { downloadModelsFromSupabase } from "../utils/supabaseMlModels";
 import type {
@@ -153,6 +154,25 @@ export interface OnnxRuntimeProbeResult {
   modelPathChecked: string | null;
   code: MlLoadErrorCode | null;
   message: string | null;
+  providerAttempts: Array<{
+    strategy: "cpu_explicit" | "default";
+    success: boolean;
+    error: string | null;
+    code: MlLoadErrorCode | null;
+  }>;
+}
+
+export interface MlRuntimeFingerprint {
+  capturedAt: number;
+  execPath: string;
+  releaseName: string;
+  nodeVersion: string;
+  napiVersion: string | null;
+  nodeOptions: string | null;
+  nativeAddonsDisabled: boolean;
+  recoveryCooldownUntil: number | null;
+  onnxModulePath: string | null;
+  onnxLoaderStrategy: "import" | "require" | "unresolved";
 }
 
 // ==========================================
@@ -196,6 +216,11 @@ const ML_CONFIG = {
   },
 };
 
+const ML_RECOVERY_CONFIG = {
+  cooldownMs: 2 * 60 * 1000,
+  minFailuresBeforeCooldown: 2,
+};
+
 // ==========================================
 // ML Inference Service
 // ==========================================
@@ -233,6 +258,16 @@ export class VinceMLInferenceService extends Service {
   private lastLoadError: string | null = null;
   private lastLoadErrorCode: MlLoadErrorCode | null = null;
   private lastRuntimeProbe: OnnxRuntimeProbeResult | null = null;
+  private runtimeFingerprint: MlRuntimeFingerprint | null = null;
+  private providerAttemptsByModel: Record<
+    string,
+    OnnxRuntimeProbeResult["providerAttempts"]
+  > = {};
+  private onnxModulePath: string | null = null;
+  private onnxLoaderStrategy: "import" | "require" | "unresolved" =
+    "unresolved";
+  private recoveryFailureCount = 0;
+  private recoveryCooldownUntil: number | null = null;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -272,14 +307,19 @@ export class VinceMLInferenceService extends Service {
     }
     // Load improvement report (threshold, TP level performance, optional tuning)
     this.loadImprovementReport();
+    this.runtimeFingerprint = this.captureRuntimeFingerprint();
     // Try to load ONNX runtime
     try {
-      // Dynamic import to handle cases where onnxruntime is not installed
-      this.ort = await import("onnxruntime-node");
+      this.ort = await this.loadOnnxRuntimeModule();
       logger.info("[MLInference] ONNX runtime loaded successfully");
       // Try to load models
-      await this.loadModels();
-      await this.runOnnxRuntimeProbe();
+      const probe = await this.resetAndLoadModelsWithProbe();
+      if (
+        probe.code === "backend_unavailable" &&
+        this.onnxLoaderStrategy === "import"
+      ) {
+        await this.tryRequireFallbackAfterBackendFailure();
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       this.lastLoadError = msg;
@@ -305,6 +345,8 @@ export class VinceMLInferenceService extends Service {
     this.lastLoadError = null;
     this.lastLoadErrorCode = null;
     this.lastRuntimeProbe = null;
+    this.providerAttemptsByModel = {};
+    this.runtimeFingerprint = this.captureRuntimeFingerprint();
     this.loadImprovementReport();
     await this.loadModels();
     await this.runOnnxRuntimeProbe();
@@ -451,7 +493,7 @@ export class VinceMLInferenceService extends Service {
    * so the first dashboard open can trigger a load (e.g. after training or path fix) without restart.
    */
   async ensureModelsLoaded(): Promise<void> {
-    if (this.modelsLoaded || !this.ort) return;
+    if (this.modelsLoaded) return;
     if (!this.lazyLoadPromise) {
       this.lazyLoadPromise = (async () => {
         const dir = this.resolvedModelsDir || path.resolve(ML_CONFIG.modelsDir);
@@ -459,10 +501,16 @@ export class VinceMLInferenceService extends Service {
           fs.existsSync(dir) &&
           fs.readdirSync(dir).some((f: string) => f.endsWith(".onnx"));
         if (!hasOnnx) return;
+        if (!this.ort) {
+          const recovered = await this.tryRecoverOnnxRuntime();
+          if (!recovered) return;
+        }
         await this.loadModels();
+        await this.runOnnxRuntimeProbe();
       })();
     }
     await this.lazyLoadPromise;
+    this.lazyLoadPromise = null;
   }
 
   /**
@@ -482,6 +530,11 @@ export class VinceMLInferenceService extends Service {
     lastLoadError: string | null;
     lastLoadErrorCode: MlLoadErrorCode | null;
     runtimeProbe: OnnxRuntimeProbeResult | null;
+    runtimeFingerprint: MlRuntimeFingerprint | null;
+    providerAttemptsByModel: Record<
+      string,
+      OnnxRuntimeProbeResult["providerAttempts"]
+    >;
   } {
     const modelsLoaded = Array.from(this.modelInfo.keys());
     const tpIndices = this.getTPLevelIndicesToUse();
@@ -512,6 +565,14 @@ export class VinceMLInferenceService extends Service {
     if (hasAnyOnnx && this.ort && modelsLoaded.length === 0)
       readinessReasons.push("models_failed_to_load");
     if (this.lastLoadError) readinessReasons.push("model_load_error");
+    const now = Date.now();
+    if (
+      this.recoveryCooldownUntil !== null &&
+      this.recoveryCooldownUntil > now &&
+      !this.ort
+    ) {
+      readinessReasons.push("onnx_recovery_cooldown_active");
+    }
     return {
       modelsLoaded,
       signalQualityThreshold: this.getSignalQualityThreshold(),
@@ -526,6 +587,8 @@ export class VinceMLInferenceService extends Service {
       lastLoadError: this.lastLoadError,
       lastLoadErrorCode: this.lastLoadErrorCode,
       runtimeProbe: this.lastRuntimeProbe,
+      runtimeFingerprint: this.captureRuntimeFingerprint(),
+      providerAttemptsByModel: this.providerAttemptsByModel,
     };
   }
 
@@ -544,20 +607,60 @@ export class VinceMLInferenceService extends Service {
       modelPathChecked: fs.existsSync(modelPath) ? modelPath : null,
       code: null,
       message: null,
+      providerAttempts: [],
     };
     try {
-      const ort = this.ort ?? (await import("onnxruntime-node"));
+      const ort = this.ort ?? (await this.loadOnnxRuntimeModule());
       probe.importOk = Boolean(ort);
       if (!probe.modelPathChecked) {
         probe.cpuBackendOk = probe.importOk;
         this.lastRuntimeProbe = probe;
         return probe;
       }
-      await ort.InferenceSession.create(probe.modelPathChecked, {
+      const providerAttempts: OnnxRuntimeProbeResult["providerAttempts"] = [];
+      const tryProbeProvider = async (
+        strategy: "cpu_explicit" | "default",
+        options?: { executionProviders: string[] },
+      ) => {
+        try {
+          await ort.InferenceSession.create(probe.modelPathChecked!, options);
+          providerAttempts.push({
+            strategy,
+            success: true,
+            error: null,
+            code: null,
+          });
+          return true;
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          const normalized = msg.toLowerCase().includes("backend")
+            ? "backend_unavailable"
+            : "model_load_failed";
+          providerAttempts.push({
+            strategy,
+            success: false,
+            error: msg,
+            code: normalized,
+          });
+          return false;
+        }
+      };
+      const cpuOk = await tryProbeProvider("cpu_explicit", {
         executionProviders: ["cpu"],
       });
-      probe.cpuBackendOk = true;
-      probe.modelSessionOk = true;
+      probe.cpuBackendOk = cpuOk;
+      if (cpuOk) {
+        probe.modelSessionOk = true;
+      } else {
+        probe.modelSessionOk = await tryProbeProvider("default");
+      }
+      probe.providerAttempts = providerAttempts;
+      const failedAttempts = providerAttempts.filter((entry) => !entry.success);
+      if (!probe.modelSessionOk && failedAttempts.length > 0) {
+        const firstFailure = failedAttempts[0];
+        probe.code = firstFailure.code ?? "model_load_failed";
+        probe.message = firstFailure.error;
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       probe.message = msg;
@@ -625,16 +728,59 @@ export class VinceMLInferenceService extends Service {
     }
 
     try {
-      // Explicitly use CPU execution provider to avoid "no available backend found"
-      // on some platforms (e.g. macOS ARM) where default backend detection can fail.
-      const sessionOptions: { executionProviders?: string[] } = {};
-      if (typeof this.ort.InferenceSession?.create === "function") {
-        sessionOptions.executionProviders = ["cpu"];
+      const attempts: OnnxRuntimeProbeResult["providerAttempts"] = [];
+      const loadWithStrategy = async (
+        strategy: "cpu_explicit" | "default",
+        options?: { executionProviders: string[] },
+      ) => {
+        try {
+          const session = await this.ort.InferenceSession.create(
+            modelPath,
+            options,
+          );
+          attempts.push({
+            strategy,
+            success: true,
+            error: null,
+            code: null,
+          });
+          return session;
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          const code = msg.toLowerCase().includes("backend")
+            ? "backend_unavailable"
+            : "model_load_failed";
+          attempts.push({
+            strategy,
+            success: false,
+            error: msg,
+            code,
+          });
+          return null;
+        }
+      };
+      const session =
+        (await loadWithStrategy("cpu_explicit", {
+          executionProviders: ["cpu"],
+        })) ?? (await loadWithStrategy("default"));
+      this.providerAttemptsByModel[name] = attempts;
+      if (!session) {
+        const firstFailedAttempt = attempts.find((attempt) => !attempt.success);
+        const combinedError = attempts
+          .filter((attempt) => attempt.error)
+          .map((attempt) => `[${attempt.strategy}] ${attempt.error}`)
+          .join(" | ");
+        this.lastLoadError = combinedError || "unknown model load failure";
+        this.lastLoadErrorCode =
+          firstFailedAttempt?.code ?? "model_load_failed";
+        if (this.lastLoadErrorCode === "backend_unavailable") {
+          this.ort = null;
+        }
+        logger.error(
+          `[MLInference] Failed to load ${name}: ${this.lastLoadError}`,
+        );
+        return;
       }
-      const session = await this.ort.InferenceSession.create(
-        modelPath,
-        sessionOptions,
-      );
 
       // Store session
       switch (name) {
@@ -683,6 +829,179 @@ export class VinceMLInferenceService extends Service {
       this.lastLoadError = msg;
       this.lastLoadErrorCode = "model_load_failed";
       logger.error(`[MLInference] Failed to load ${name}: ${error}`);
+    }
+  }
+
+  private sanitizeNodeOptions(raw: string | undefined): string | null {
+    if (!raw) return null;
+    return raw.replace(/\s+/g, " ").trim().slice(0, 300) || null;
+  }
+
+  private captureRuntimeFingerprint(): MlRuntimeFingerprint {
+    const nodeOptions = this.sanitizeNodeOptions(process.env.NODE_OPTIONS);
+    const disablePattern = /(^|\s)--no-addons(\s|$)/;
+    const nativeAddonsDisabled = disablePattern.test(nodeOptions ?? "");
+    this.runtimeFingerprint = {
+      capturedAt: Date.now(),
+      execPath: process.execPath,
+      releaseName: process.release?.name ?? "unknown",
+      nodeVersion: process.version,
+      napiVersion:
+        typeof process.versions?.napi === "string"
+          ? process.versions.napi
+          : null,
+      nodeOptions,
+      nativeAddonsDisabled,
+      recoveryCooldownUntil: this.recoveryCooldownUntil,
+      onnxModulePath: this.onnxModulePath,
+      onnxLoaderStrategy: this.onnxLoaderStrategy,
+    };
+    return this.runtimeFingerprint;
+  }
+
+  private resolveOnnxModulePathWithRequire(req: NodeRequire): string | null {
+    try {
+      return req.resolve("onnxruntime-node");
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadOnnxRuntimeModule(preferRequire = false): Promise<any> {
+    const tryImport = async (): Promise<any> => {
+      const mod = await import("onnxruntime-node");
+      this.onnxLoaderStrategy = "import";
+      const req = createRequire(import.meta.url);
+      this.onnxModulePath = this.resolveOnnxModulePathWithRequire(req);
+      return mod;
+    };
+    const tryRequire = (): any => {
+      const req = createRequire(import.meta.url);
+      const modulePath = this.resolveOnnxModulePathWithRequire(req);
+      const mod = req("onnxruntime-node");
+      this.onnxLoaderStrategy = "require";
+      this.onnxModulePath = modulePath;
+      return mod;
+    };
+
+    const first = preferRequire ? "require" : "import";
+    const second = preferRequire ? "import" : "require";
+    const errors: string[] = [];
+    const runAttempt = async (kind: "import" | "require"): Promise<any> => {
+      try {
+        return kind === "import" ? await tryImport() : tryRequire();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        errors.push(`${kind}:${msg}`);
+        return null;
+      }
+    };
+
+    const firstResult = await runAttempt(first);
+    if (firstResult) return firstResult;
+    const secondResult = await runAttempt(second);
+    if (secondResult) return secondResult;
+
+    this.onnxLoaderStrategy = "unresolved";
+    this.onnxModulePath = null;
+    throw new Error(
+      `[MLInference] Failed to load onnxruntime-node via ${first}/${second}: ${errors.join(" | ")}`,
+    );
+  }
+
+  private async resetAndLoadModelsWithProbe(): Promise<OnnxRuntimeProbeResult> {
+    this.signalQualitySession = null;
+    this.positionSizingSession = null;
+    this.tpOptimizerSession = null;
+    this.slOptimizerSession = null;
+    this.modelInfo.clear();
+    this.modelsLoaded = false;
+    this.providerAttemptsByModel = {};
+    await this.loadModels();
+    return this.runOnnxRuntimeProbe();
+  }
+
+  private async tryRequireFallbackAfterBackendFailure(): Promise<boolean> {
+    try {
+      this.ort = await this.loadOnnxRuntimeModule(true);
+      const probe = await this.resetAndLoadModelsWithProbe();
+      if (probe.importOk && probe.modelSessionOk) {
+        this.lastLoadError = null;
+        this.lastLoadErrorCode = null;
+        this.captureRuntimeFingerprint();
+        logger.info(
+          "[MLInference] Recovered ONNX backend via require loader fallback.",
+        );
+        return true;
+      }
+      return false;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.warn(
+        `[MLInference] Require-loader fallback failed after backend error: ${msg}`,
+      );
+      return false;
+    }
+  }
+
+  private async tryRecoverOnnxRuntime(): Promise<boolean> {
+    const now = Date.now();
+    if (this.recoveryCooldownUntil && now < this.recoveryCooldownUntil) {
+      this.captureRuntimeFingerprint();
+      return false;
+    }
+    try {
+      this.ort = await this.loadOnnxRuntimeModule();
+      const probe = await this.resetAndLoadModelsWithProbe();
+      if (
+        probe.code === "backend_unavailable" &&
+        this.onnxLoaderStrategy === "import"
+      ) {
+        const recoveredViaRequire =
+          await this.tryRequireFallbackAfterBackendFailure();
+        if (recoveredViaRequire) {
+          this.recoveryFailureCount = 0;
+          this.recoveryCooldownUntil = null;
+          this.lastLoadError = null;
+          this.lastLoadErrorCode = null;
+          this.captureRuntimeFingerprint();
+          return true;
+        }
+      }
+      if (probe.importOk && probe.modelSessionOk) {
+        this.recoveryFailureCount = 0;
+        this.recoveryCooldownUntil = null;
+        this.lastLoadError = null;
+        this.lastLoadErrorCode = null;
+        this.captureRuntimeFingerprint();
+        return true;
+      }
+      this.recoveryFailureCount += 1;
+      this.lastLoadError = probe.message;
+      this.lastLoadErrorCode = probe.code ?? "model_load_failed";
+      if (
+        this.recoveryFailureCount >=
+        ML_RECOVERY_CONFIG.minFailuresBeforeCooldown
+      ) {
+        this.recoveryCooldownUntil = now + ML_RECOVERY_CONFIG.cooldownMs;
+      }
+      this.ort = null;
+      this.captureRuntimeFingerprint();
+      return false;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.recoveryFailureCount += 1;
+      this.lastLoadError = msg;
+      this.lastLoadErrorCode = "import_error";
+      if (
+        this.recoveryFailureCount >=
+        ML_RECOVERY_CONFIG.minFailuresBeforeCooldown
+      ) {
+        this.recoveryCooldownUntil = now + ML_RECOVERY_CONFIG.cooldownMs;
+      }
+      this.ort = null;
+      this.captureRuntimeFingerprint();
+      return false;
     }
   }
 

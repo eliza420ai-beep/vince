@@ -62,7 +62,32 @@ export interface RecursiveNorthStarResponse {
         modelPathChecked: string | null;
         code: string | null;
         message: string | null;
+        providerAttempts: Array<{
+          strategy: "cpu_explicit" | "default";
+          success: boolean;
+          error: string | null;
+          code: string | null;
+        }>;
       } | null;
+      runtimeFingerprint: {
+        capturedAt: number;
+        execPath: string;
+        releaseName: string;
+        nodeVersion: string;
+        napiVersion: string | null;
+        nodeOptions: string | null;
+        nativeAddonsDisabled: boolean;
+        recoveryCooldownUntil: number | null;
+      } | null;
+      providerAttemptsByModel: Record<
+        string,
+        Array<{
+          strategy: "cpu_explicit" | "default";
+          success: boolean;
+          error: string | null;
+          code: string | null;
+        }>
+      >;
     };
     synergy: {
       upliftDelta: number;
@@ -158,11 +183,24 @@ export interface RecursiveNorthStarOperatorStatus {
       lastLoadError: string | null;
       lastLoadErrorCode: string | null;
       probe: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeProbe"];
+      runtimeFingerprint: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeFingerprint"];
       nextActions: string[];
+      prioritizedNextActions: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
     };
     recursion: {
       sufficiencyTasks: string[];
       nextActions: string[];
+      prioritizedNextActions: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
     };
     synergy: {
       promotionReasons: string[];
@@ -175,6 +213,12 @@ export interface RecursiveNorthStarOperatorStatus {
         deficitToMin: number;
       }>;
       nextActions: string[];
+      prioritizedNextActions: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
     };
   };
   weeklySnapshot: {
@@ -344,6 +388,8 @@ export async function buildRecursiveNorthStarResponse(
     lastLoadError: null,
     lastLoadErrorCode: null,
     runtimeProbe: null,
+    runtimeFingerprint: null,
+    providerAttemptsByModel: {},
     ...mlStatusRaw,
   };
   const banditStatus = bandit?.getBanditStatus?.() ?? {
@@ -631,6 +677,8 @@ export async function buildRecursiveNorthStarResponse(
         lastLoadErrorCode: mlStatus.lastLoadErrorCode ?? null,
         banditInitError: banditStatus.initError ?? null,
         runtimeProbe: mlStatus.runtimeProbe ?? null,
+        runtimeFingerprint: mlStatus.runtimeFingerprint ?? null,
+        providerAttemptsByModel: mlStatus.providerAttemptsByModel ?? {},
       },
       synergy: {
         upliftDelta,
@@ -724,12 +772,179 @@ export async function buildRecursiveNorthStarOperatorStatus(
 ): Promise<RecursiveNorthStarOperatorStatus> {
   const snapshot = await buildRecursiveNorthStarResponse(runtime);
   const weeklySnapshot = getLatestWeeklySnapshotMeta();
+  const hasMlBlocker = snapshot.pillars.ml.blockers.length > 0;
+  const hasRecursionBlocker = snapshot.pillars.recursion.blockers.length > 0;
+  const hasSynergyBlocker = snapshot.pillars.synergy.blockers.length > 0;
+  const mlReasons = new Set(snapshot.metrics.ml.readinessReasons);
+  const recursionBlockers = new Set(snapshot.pillars.recursion.blockers);
+  const synergyBlockers = new Set(snapshot.pillars.synergy.blockers);
   const stageDeficits = snapshot.metrics.synergy.stageDepth.perStage
     .filter((row) => row.deficitToMin > 0)
+    .sort((a, b) => b.deficitToMin - a.deficitToMin)
     .map((row) => ({ stage: row.stage, deficitToMin: row.deficitToMin }));
   const pairDeficits = snapshot.metrics.synergy.stageDepth.pairDepth
     .filter((row) => row.deficitToMin > 0)
+    .sort((a, b) => b.deficitToMin - a.deficitToMin)
     .map((row) => ({ label: row.label, deficitToMin: row.deficitToMin }));
+  const toPrioritizedActions = (
+    entries: Array<{ action: string; reasonCode: string }>,
+  ): Array<{
+    priority: 1 | 2 | 3;
+    label: "P1" | "P2" | "P3";
+    reasonCode: string;
+    action: string;
+  }> =>
+    entries.map((entry, idx) => {
+      const priority = (Math.min(idx + 1, 3) as 1 | 2 | 3) ?? 3;
+      return {
+        priority,
+        label: `P${priority}` as "P1" | "P2" | "P3",
+        reasonCode: entry.reasonCode,
+        action: entry.action,
+      };
+    });
+  const mlNextActions: string[] = [];
+  const mlActionEntries: Array<{ action: string; reasonCode: string }> = [];
+  if (
+    snapshot.pillars.ml.blockers.includes("no_models_loaded") ||
+    mlReasons.has("onnxruntime_import_failed") ||
+    mlReasons.has("onnxruntime_unavailable")
+  ) {
+    const action =
+      "Restore ONNX runtime first: verify Node LTS runtime, reinstall deps, and confirm modelsLoaded > 0.";
+    mlNextActions.push(action);
+    mlActionEntries.push({
+      action,
+      reasonCode: "no_models_loaded_or_runtime_unavailable",
+    });
+  }
+  if (mlReasons.has("onnx_cpu_backend_unavailable")) {
+    const action =
+      "Backend probe is failing in-process: verify runtimeFingerprint (node, loader, module path) and rerun recursive endpoint after restart.";
+    mlNextActions.push(action);
+    mlActionEntries.push({
+      action,
+      reasonCode: "onnx_cpu_backend_unavailable",
+    });
+  }
+  if (mlReasons.has("missing_expected_model_files")) {
+    const action =
+      "Regenerate or sync missing model artifacts in modelsDir before next ML cycle.";
+    mlNextActions.push(action);
+    mlActionEntries.push({
+      action,
+      reasonCode: "missing_expected_model_files",
+    });
+  }
+  if (
+    snapshot.metrics.ml.runtimeFingerprint?.recoveryCooldownUntil &&
+    snapshot.metrics.ml.runtimeFingerprint.recoveryCooldownUntil > Date.now()
+  ) {
+    const action =
+      "Recovery cooldown is active; wait for cooldown expiry, then trigger a fresh model load probe.";
+    mlNextActions.push(action);
+    mlActionEntries.push({
+      action,
+      reasonCode: "onnx_recovery_cooldown_active",
+    });
+  }
+  if (!hasMlBlocker) {
+    const action =
+      "ML loop is healthy; keep model/runtime checks in daily review and focus effort on recursion + synergy blockers.";
+    mlNextActions.push(action);
+    mlActionEntries.push({
+      action,
+      reasonCode: "ml_loop_healthy",
+    });
+  }
+
+  const recursionNextActions: string[] = [];
+  const recursionActionEntries: Array<{ action: string; reasonCode: string }> =
+    [];
+  if (recursionBlockers.has("sample_count_below_20")) {
+    const action = "Increase closed outcomes to at least 20 rows in 30d.";
+    recursionNextActions.push(action);
+    recursionActionEntries.push({
+      action,
+      reasonCode: "sample_count_below_20",
+    });
+  }
+  if (recursionBlockers.has("time_coverage_below_7d")) {
+    const action =
+      "Spread closes across at least 7 distinct days (avoid one-day bursts).";
+    recursionNextActions.push(action);
+    recursionActionEntries.push({
+      action,
+      reasonCode: "time_coverage_below_7d",
+    });
+  }
+  if (recursionBlockers.has("regime_depth_below_5")) {
+    const action =
+      "Balance closes across active regimes so each regime reaches minimum depth >= 5.";
+    recursionNextActions.push(action);
+    recursionActionEntries.push({
+      action,
+      reasonCode: "regime_depth_below_5",
+    });
+  }
+  if (recursionBlockers.has("allocator_summary_unavailable")) {
+    const action =
+      "Restore allocator summary visibility (service health + latest summary persistence).";
+    recursionNextActions.push(action);
+    recursionActionEntries.push({
+      action,
+      reasonCode: "allocator_summary_unavailable",
+    });
+  }
+  if (!hasRecursionBlocker) {
+    const action =
+      "Recursion loop is clear; preserve balanced close cadence to keep sufficiency green.";
+    recursionNextActions.push(action);
+    recursionActionEntries.push({
+      action,
+      reasonCode: "recursion_loop_healthy",
+    });
+  }
+
+  const topPairDeficits = pairDeficits.slice(0, 2).map((row) => row.label);
+  const synergyNextActions: string[] = [];
+  const synergyActionEntries: Array<{ action: string; reasonCode: string }> =
+    [];
+  if (synergyBlockers.has("causal_sample_depth_below_12")) {
+    const action = `Fill pair depth to >=12 per arm, starting with: ${topPairDeficits.join(", ") || "largest deficit pairs"}.`;
+    synergyNextActions.push(action);
+    synergyActionEntries.push({
+      action,
+      reasonCode: "causal_sample_depth_below_12",
+    });
+  }
+  if (synergyBlockers.has("swarm_not_beating_single_agent")) {
+    const action =
+      "Improve treatment-stage edge so swarm avg PnL stays above ONNX baseline.";
+    synergyNextActions.push(action);
+    synergyActionEntries.push({
+      action,
+      reasonCode: "swarm_not_beating_single_agent",
+    });
+  }
+  if (synergyBlockers.has("causal_promotion_not_eligible")) {
+    const action =
+      "Raise causal quality (ciLower >= 0.02 where possible) while keeping upliftDelta positive.";
+    synergyNextActions.push(action);
+    synergyActionEntries.push({
+      action,
+      reasonCode: "causal_promotion_not_eligible",
+    });
+  }
+  if (!hasSynergyBlocker) {
+    const action =
+      "Synergy proof is clear; maintain balanced stage sampling to protect promotion eligibility.";
+    synergyNextActions.push(action);
+    synergyActionEntries.push({
+      action,
+      reasonCode: "synergy_proof_healthy",
+    });
+  }
 
   return {
     blockers: {
@@ -743,29 +958,21 @@ export async function buildRecursiveNorthStarOperatorStatus(
         lastLoadError: snapshot.metrics.ml.lastLoadError,
         lastLoadErrorCode: snapshot.metrics.ml.lastLoadErrorCode,
         probe: snapshot.metrics.ml.runtimeProbe,
-        nextActions: [
-          "Restart VINCE runtime after onnxruntime rebuild to clear stale disabled backend state.",
-          "Run onnxruntime CPU backend probe against signal_quality.onnx and verify session create succeeds.",
-          "If backend still fails, reinstall deps with a stable Node LTS runtime and re-check modelsLoaded.",
-        ],
+        runtimeFingerprint: snapshot.metrics.ml.runtimeFingerprint,
+        nextActions: mlNextActions,
+        prioritizedNextActions: toPrioritizedActions(mlActionEntries),
       },
       recursion: {
         sufficiencyTasks: snapshot.pillars.recursion.blockers,
-        nextActions: [
-          "Increase closed outcomes to at least 20 rows in 30d.",
-          "Spread closed outcomes across at least 7 days.",
-          "Raise minimum per-regime depth to 5 before introducing more regimes.",
-        ],
+        nextActions: recursionNextActions,
+        prioritizedNextActions: toPrioritizedActions(recursionActionEntries),
       },
       synergy: {
         promotionReasons: snapshot.metrics.synergy.promotionReasons,
         stageDeficits,
         pairDeficits,
-        nextActions: [
-          "Fill per-stage deficits to minimumSamplesPerArm=12 for all causal arms.",
-          "Prioritize onnx_vs_swarm and swarm_vs_adversary pair depth to remove insufficient_samples failures.",
-          "Improve treatment-stage edge so ciLower >= 0.02 while keeping upliftDelta positive.",
-        ],
+        nextActions: synergyNextActions,
+        prioritizedNextActions: toPrioritizedActions(synergyActionEntries),
       },
     },
     weeklySnapshot,

@@ -129,6 +129,8 @@ describe("buildRecursiveNorthStarResponse", () => {
     expect(Array.isArray(payload.metrics.ml.readinessReasons)).toBe(true);
     expect(payload.metrics.ml).toHaveProperty("lastLoadErrorCode");
     expect(payload.metrics.ml).toHaveProperty("runtimeProbe");
+    expect(payload.metrics.ml).toHaveProperty("runtimeFingerprint");
+    expect(payload.metrics.ml).toHaveProperty("providerAttemptsByModel");
     expect(payload.trend?.windows?.length).toBeGreaterThanOrEqual(2);
     expect(Array.isArray(payload.trend?.history)).toBe(true);
     expect(payload.milestones.recursion3d).toHaveProperty("pass");
