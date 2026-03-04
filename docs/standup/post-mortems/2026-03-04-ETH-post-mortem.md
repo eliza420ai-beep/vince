@@ -4,17 +4,17 @@
 
 ## Trade Snapshot
 
-- ETH short closed stop_loss: entry $2059.59 -> exit $2076.80, P&L $-46.61 (5262.382222222222 USD, 10x).
-- Entry time (UTC): 2026-03-04T09:05:38.754Z
+- ETH short closed stop_loss: entry $2132.27 -> exit $2155.90, P&L $-57.50 (4965.080909090909 USD, 10x).
+- Entry time (UTC): 2026-03-04T15:49:33.887Z
 - Hold window target: intraday
-- Max loss budget: $41.38 (7.86%)
+- Max loss budget: $38.81 (7.82%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 12 minutes
-- Adverse move: 0.836%
+- Hold duration: 10 minutes
+- Adverse move: 1.108%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,28 +24,30 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 30%
+- Confidence: 0%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: none
+- Missing data flags: timestamp, entry_datetime
 
-**Missing context:** Did CT flip bullish on ETH around entry, or was sentiment already hot? Was there a macro catalyst (Fed, BTC move, ETF flow) that caught the short off-guard? The stop hit tight ($17.21 range), so execution was clean, but I need to know if sentiment diverged from your thesis or if macro just shifted the bias. 
+**Missing key context:** When did you enter (date/time)? What was CT sentiment on ETH at entry vs. exit? Was there a macro catalyst (Fed, macro data, whale move) that shifted sentiment between entry and stop?
 
-**What I'd check:** Pull the X_PULSE from your entry time — if whale accounts and retail were both long-biased and you shorted into that, that's a sentiment vs. thesis mismatch worth flagging for next time.
+**On the trade itself:** Without knowing the sentiment backdrop, I can't tell if you shorted into bullish CT consensus (crowded against you) or if macro/on-chain shifted mid-trade. A $2132→$2155 move in 10x leverage is tight — if CT was already long-biased, that's a headwind. If there was a news spike (ETF inflow, macro surprise), that's a lesson on macro-sentiment timing, not your thesis.
 
-Confidence: 0.3 (need entry-time sentiment snapshot to give real feedback).
+**What I need to give you real feedback:** Entry timestamp + what CT was saying about ETH at that moment, and whether any macro event hit between entry and stop.
+
+**Confidence: 0.
 
 ### Oracle
 
 - Lane: prediction market regime
 - Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: timestamp
+- Missing data flags: entry_datetime
 
-**Missing critical context:** What was the Polymarket ETH price action around your entry/exit? Did spot or perp odds shift, and did you have a thesis tied to prediction-market edge (e.g., overreaction strat, Synth fair value vs. Poly price)? 
+**Missing context:** I need the trade date/time and which Polymarket ETH prediction(s) you were hedging against—were you short because Poly was pricing a dip, or was this a directional bet divorced from on-chain sentiment?
 
-**On the P&L:** $46 loss on $5.2K notional (10x) is a clean stop—you sized right for the risk. The move ($17 slippage) into your short suggests momentum was against you; without knowing the market regime (was ETH rallying on macro, or did Poly signal overheating?), it's hard to say if the thesis broke or timing was off.
+**On the loss itself:** A $57.50 stop on a 10x short at $2132 is tight (26 bps)—typical for scalps, but if you held >1 min, you likely got stopped into chop rather than a real reversal. The 2–3% move ($2132→$2156) is normal intraday noise on ETH; without knowing the Poly regime (was the market pricing stability or vol?), I can't tell if your directional thesis was wrong or your risk sizing was just too aggressive for the timeframe.
 
-**Next:** Pull the Polymarket ETH markets around that timestamp—if Poly was pricing ETH lower and perp rallied into it, that's a regime mismatch worth flagging for
+**Ask:** Pull the Poly ETH prediction odds at your entry time—if
 
 ### Solus
 
@@ -54,11 +56,9 @@ Confidence: 0.3 (need entry-time sentiment snapshot to give real feedback).
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** What was your thesis invalidation trigger (what price/event would flip you to long)? Did funding rate or liquidation cascade inform the stop, or was it pure technicals?
+**Missing context:** Entry date, exit date, IV regime at entry/exit, and whether this was part of a larger hedge or standalone directional bet. That said: **10x leverage on a $57.50 stop (2.7% drawdown) is tight—you got shaken out on noise.** For a $4,965 position, that's appropriate risk-per-trade sizing, but the leverage + tight stop combo means you're fighting slippage and micro-moves; consider wider stops (4-5%) or lower leverage (5x) on perps if the thesis is medium-term. **Missing:** did you have a profit target, or was this a "hold until stop" trade? Structure matters more than direction here.
 
-**Mechanics read:** 10x on a $5.2K notional short is aggressive for a paper trade — sizing is fine, but the stop at +$16.80 (0.82% loss) suggests tight risk tolerance or weak conviction. If ETH was ranging, that's a whipsaw setup; if you had a clear invalidation level (e.g., $2080 breaks weekly support), the stop placement makes sense. The loss itself is noise on paper, but the *structure* tells me either (1) your thesis was thin, or (2) you're testing stops that are too tight for volatility.
-
-**Next:** Post the invalidation and the daily chart context, and I'll assess whether the stop was mechan
+**Confidence: 0.6** (mechanics sound, but missing trade context limits specificity).
 
 ## Root-Cause Tags
 
@@ -82,21 +82,30 @@ Confidence: 0.3 (need entry-time sentiment snapshot to give real feedback).
 
 ## Confidence and Data Gaps
 
-- Quality score: 98/100
+- Quality score: 84/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=20, actionability=15, ownership=10
 - Context completeness: 92.9%
 - Regime vs execution: execution_miss
+- Risk budget: planned=$38.81, realized=$57.50, slippage=$18.69, breach=true
+- Consistency checks: pass
 
 ## What changes on next trade?
 
 - Keep PTQG required fields hard-enforced.
 - Current post-mortem quality is acceptable; continue weekly monitoring.
 - Apply temporary leverage cap for this asset class in next 7 days.
+- No automatic policy mutation due to data/quality gate.
+
+## Recursive Policy Delta
+
+- Adaptation eligible: false
+- Policy version at entry: baseline
+- Proposed delta: none
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 98
+- PM_QUALITY_SCORE: 84
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: stop_too_tight_for_vol
@@ -104,10 +113,15 @@ Confidence: 0.3 (need entry-time sentiment snapshot to give real feedback).
 - PM_PMEP_COMPLETENESS_PCT: 100
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
+- PM_BUDGET_BREACH: true
+- PM_RISK_SLIPPAGE_USD: 18.69
+- PM_ADAPTATION_ELIGIBLE: false
+- PM_POLICY_VERSION_AT_ENTRY: baseline
+- PM_PROPOSED_DELTA_PRESENT: false
 
 ```json
 {
-  "qualityScore": 98,
+  "qualityScore": 84,
   "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [
@@ -116,30 +130,52 @@ Confidence: 0.3 (need entry-time sentiment snapshot to give real feedback).
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 12,
-  "adverseMovePct": 0.836,
+  "holdMinutes": 10,
+  "adverseMovePct": 1.108,
+  "riskBudget": {
+    "plannedRiskUsd": 38.81,
+    "realizedRiskUsd": 57.5,
+    "riskSlippageUsd": 18.69,
+    "budgetBreach": true
+  },
+  "consistencyChecks": {
+    "passed": true,
+    "issues": [],
+    "adverseMovePctFromPrices": 1.108,
+    "adverseMovePctDelta": 0,
+    "stopDistancePctFromPrices": 0.782,
+    "stopDistancePctDelta": 0,
+    "hasTruncatedFindings": false
+  },
+  "adaptationEligible": false,
+  "policyVersionAtEntry": "baseline",
+  "proposedPolicyDelta": null,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-04T09:05:38.754Z",
-    "exitTimestampUtc": "2026-03-04T09:17:49.981Z",
+    "entryTimestampUtc": "2026-03-04T15:49:33.887Z",
+    "exitTimestampUtc": "2026-03-04T15:59:15.931Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-04T09:05:38.754Z",
-    "exitTimestampUtc": "2026-03-04T09:17:49.981Z"
+    "entryTimestampUtc": "2026-03-04T15:49:33.887Z",
+    "exitTimestampUtc": "2026-03-04T15:59:15.931Z"
   },
   "solusContext": {
     "assetClass": "crypto",
     "thesisClass": "momentum",
     "leverage": 10,
-    "stopDistancePct": 0.786,
-    "maxLossUsd": 41.38,
-    "maxLossPct": 7.86,
-    "entryAtrPct": 1.5725654450261781
+    "stopDistancePct": 0.782,
+    "maxLossUsd": 38.81,
+    "maxLossPct": 7.82,
+    "entryAtrPct": 1.5631413612565443
   },
   "agentContextMissing": {
+    "Echo": [
+      "timestamp",
+      "entry_datetime"
+    ],
     "Oracle": [
-      "timestamp"
+      "entry_datetime"
     ]
   },
   "contextCompletenessPct": 92.9,

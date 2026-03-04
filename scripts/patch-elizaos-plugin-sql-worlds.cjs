@@ -11,23 +11,31 @@
 const fs = require("fs");
 const path = require("path");
 
-const file = path.join(
-  __dirname,
-  "..",
-  "node_modules",
-  "@elizaos",
-  "plugin-sql",
-  "dist",
-  "node",
-  "index.node.js",
-);
-
-if (!fs.existsSync(file)) {
-  console.warn("patch-elizaos-plugin-sql-worlds: file not found, skipping");
-  process.exit(0);
-}
-
-let s = fs.readFileSync(file, "utf8");
+const files = [
+  path.join(
+    __dirname,
+    "..",
+    "node_modules",
+    "@elizaos",
+    "plugin-sql",
+    "dist",
+    "node",
+    "index.node.js",
+  ),
+  path.join(
+    __dirname,
+    "..",
+    "node_modules",
+    "@elizaos",
+    "server",
+    "node_modules",
+    "@elizaos",
+    "plugin-sql",
+    "dist",
+    "node",
+    "index.node.js",
+  ),
+];
 
 const unpatched = `
   async createWorld(world) {
@@ -120,15 +128,12 @@ const createEntitiesPatched = `
             metadata: entity2.metadata || {}
           }));
           try {
-            await tx.insert(entityTable).values(normalizedEntities);
+            await tx.insert(entityTable).values(normalizedEntities).onConflictDoNothing();
           } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            if (message.includes("cannot insert multiple commands into a prepared statement")) {
-              for (const entity2 of normalizedEntities) {
-                await tx.insert(entityTable).values(entity2);
-              }
-            } else {
-              throw error;
+            // Some engines wrap/alter the bulk-insert error message. Always retry
+            // row-by-row with conflict-safe inserts before failing hard.
+            for (const entity2 of normalizedEntities) {
+              await tx.insert(entityTable).values(entity2).onConflictDoNothing();
             }
           }
           return true;
@@ -171,45 +176,83 @@ const ensureSchemaPatched = `
     }
   }`;
 
-if (s.includes(patched)) {
-  // Already patched
-} else if (s.includes(unpatched)) {
-  s = s.replace(unpatched, patched);
-  console.log("patch-elizaos-plugin-sql-worlds: createWorld duplicate-key guard applied");
-} else {
-  console.warn(
-    "patch-elizaos-plugin-sql-worlds: createWorld pattern not found, skipping",
-  );
+// On schema-less engines, references like "migrations._migrations" fail even if
+// CREATE SCHEMA is skipped. Normalize runtime migrator metadata tables to the
+// default namespace so table creation and queries are consistent.
+const migrationTableRewrites = [
+  ["migrations._migrations", "_migrations"],
+  ["migrations._journal", "_journal"],
+  ["migrations._snapshots", "_snapshots"],
+];
+
+let patchedAny = false;
+for (const file of files) {
+  if (!fs.existsSync(file)) {
+    console.warn(
+      `patch-elizaos-plugin-sql-worlds: file not found, skipping ${file}`,
+    );
+    continue;
+  }
+  let s = fs.readFileSync(file, "utf8");
+  if (s.includes(patched)) {
+    // Already patched
+  } else if (s.includes(unpatched)) {
+    s = s.replace(unpatched, patched);
+    console.log(
+      "patch-elizaos-plugin-sql-worlds: createWorld duplicate-key guard applied",
+    );
+  } else {
+    console.warn(
+      "patch-elizaos-plugin-sql-worlds: createWorld pattern not found, skipping",
+    );
+  }
+
+  if (s.includes(createEntitiesPatched)) {
+    // Already patched
+  } else if (s.includes(createEntitiesUnpatched)) {
+    s = s.replace(createEntitiesUnpatched, createEntitiesPatched);
+    console.log(
+      "patch-elizaos-plugin-sql-worlds: createEntities fallback hardened",
+    );
+  } else {
+    console.warn(
+      "patch-elizaos-plugin-sql-worlds: createEntities pattern not found, skipping",
+    );
+  }
+
+  if (s.includes(ensureSchemaPatched)) {
+    // Already patched
+  } else if (s.includes(ensureSchemaUnpatched)) {
+    s = s.replace(ensureSchemaUnpatched, ensureSchemaPatched);
+    console.log(
+      "patch-elizaos-plugin-sql-worlds: MigrationTracker.ensureSchema fallback applied",
+    );
+  } else {
+    console.warn(
+      "patch-elizaos-plugin-sql-worlds: ensureSchema pattern not found, skipping",
+    );
+  }
+
+  let rewroteMigrationRefs = 0;
+  for (const [from, to] of migrationTableRewrites) {
+    if (!s.includes(from)) continue;
+    s = s.split(from).join(to);
+    rewroteMigrationRefs++;
+  }
+  if (rewroteMigrationRefs > 0) {
+    console.log(
+      `patch-elizaos-plugin-sql-worlds: normalized migration table refs (${rewroteMigrationRefs} patterns)`,
+    );
+  }
+
+  fs.writeFileSync(file, s, "utf8");
+  patchedAny = true;
+  console.log(`patch-elizaos-plugin-sql-worlds: applied ${file}`);
 }
 
-if (s.includes(createEntitiesPatched)) {
-  // Already patched
-} else if (s.includes(createEntitiesUnpatched)) {
-  s = s.replace(createEntitiesUnpatched, createEntitiesPatched);
-  console.log(
-    "patch-elizaos-plugin-sql-worlds: createEntities multi-command fallback applied",
-  );
-} else {
-  console.warn(
-    "patch-elizaos-plugin-sql-worlds: createEntities pattern not found, skipping",
-  );
+if (!patchedAny) {
+  console.warn("patch-elizaos-plugin-sql-worlds: no files patched");
 }
-
-if (s.includes(ensureSchemaPatched)) {
-  // Already patched
-} else if (s.includes(ensureSchemaUnpatched)) {
-  s = s.replace(ensureSchemaUnpatched, ensureSchemaPatched);
-  console.log(
-    "patch-elizaos-plugin-sql-worlds: MigrationTracker.ensureSchema fallback applied",
-  );
-} else {
-  console.warn(
-    "patch-elizaos-plugin-sql-worlds: ensureSchema pattern not found, skipping",
-  );
-}
-
-fs.writeFileSync(file, s, "utf8");
-console.log("patch-elizaos-plugin-sql-worlds: applied");
 
 process.exit(0);
 

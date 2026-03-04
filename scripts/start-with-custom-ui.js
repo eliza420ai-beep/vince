@@ -14,7 +14,6 @@ EventEmitter.defaultMaxListeners = Math.max(
   20,
 );
 
-import { AgentServer } from "@elizaos/server";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import fs from "fs";
@@ -157,11 +156,34 @@ async function main() {
   }));
 
   const port = parseInt(process.env.SERVER_PORT || "3000", 10);
-  const dataDir =
-    process.env.PGLITE_DATA_DIR || path.resolve(rootDir, ".eliza/.elizadb");
+  const hasCustomDataDir = !!process.env.PGLITE_DATA_DIR;
+  const legacyDefaultDataDir = path.resolve(rootDir, ".eliza/.elizadb");
+  const runtimeDataDir = path.resolve(
+    rootDir,
+    `.eliza/.elizadb-runtime-${process.pid}`,
+  );
+  let initialDataDir = process.env.PGLITE_DATA_DIR;
+  if (!initialDataDir) {
+    initialDataDir = fs.existsSync(legacyDefaultDataDir)
+      ? runtimeDataDir
+      : legacyDefaultDataDir;
+  }
+
+  if (!hasCustomDataDir && initialDataDir !== legacyDefaultDataDir) {
+    console.warn(
+      `[start] Using isolated PGLite data dir: ${initialDataDir} (legacy default exists at ${legacyDefaultDataDir})`,
+    );
+  }
+
+  // Important: some DB internals read PGLITE_DATA_DIR at module init time, so
+  // set it before importing AgentServer.
+  process.env.PGLITE_DATA_DIR = initialDataDir;
+  const { AgentServer } = await import("@elizaos/server");
 
   // Start server with single start(): HTTP server is brought up first, then agents.
   // This order is required so MessageBusService fetch to localhost succeeds when using central/cloud messaging.
+  const dataDir = initialDataDir;
+  fs.mkdirSync(dataDir, { recursive: true });
   const server = new AgentServer();
   await server.start({
     port,
@@ -170,8 +192,10 @@ async function main() {
     dataDir,
     postgresUrl: postgresUrl || undefined,
   });
+
   console.log(" Started", agents.length, "agent(s)");
   console.log(" Serving Otaku-style UI from:", clientPath);
+  console.log(" Database dir:", dataDir);
   console.log("\n Open: http://localhost:" + port + "\n");
 }
 
