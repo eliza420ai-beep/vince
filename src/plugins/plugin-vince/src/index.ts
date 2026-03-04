@@ -30,6 +30,7 @@ import {
   buildDebugXSentimentResponse,
 } from "./routes/dashboardLeaderboards";
 import { buildPaperResponse } from "./routes/dashboardPaper";
+import { buildRecursiveNorthStarResponse } from "./routes/dashboardRecursiveNorthStar";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 import { buildBankrResponse } from "./routes/dashboardBankr";
@@ -575,6 +576,43 @@ export const vincePlugin: Plugin = {
           logger.warn(`[VINCE] Paper route error: ${err}`);
           res.status(500).json({
             error: "Failed to build paper trading data",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      },
+    },
+    {
+      name: "vince-recursive-north-star",
+      path: "/vince/recursive-north-star",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Recursive north star requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/recursive-north-star",
+          });
+          return;
+        }
+        try {
+          const data = await buildRecursiveNorthStarResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Recursive north star route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build recursive north star snapshot",
             message: err instanceof Error ? err.message : String(err),
           });
           return;

@@ -867,6 +867,75 @@ export interface RecentTradeItem {
   closedAt: number;
 }
 
+export type NorthStarStatus = "on_track" | "at_risk" | "blocked";
+
+export interface RecursiveNorthStarPillar {
+  score: number;
+  status: NorthStarStatus;
+  highlights: string[];
+  blockers: string[];
+}
+
+export interface RecursiveNorthStarResponse {
+  scorecard: {
+    overallScore: number;
+    status: NorthStarStatus;
+  };
+  pillars: {
+    recursion: RecursiveNorthStarPillar;
+    ml: RecursiveNorthStarPillar;
+    synergy: RecursiveNorthStarPillar;
+  };
+  metrics: {
+    recursion: {
+      sufficiencyGrade: "LOW" | "MEDIUM" | "HIGH";
+      sufficiencySampleCount: number;
+      blockingTaskCount: number;
+      allocatorStage: string;
+      allocatorMode: string;
+    };
+    ml: {
+      modelsLoaded: string[];
+      modelCount: number;
+      signalQualityThreshold: number;
+      completeTrades30d: number;
+      avoidedDecisions30d: number;
+      banditReady: boolean;
+      banditTradesProcessed: number;
+    };
+    synergy: {
+      upliftDelta: number;
+      causalPromotionEligible: boolean;
+      causalConfidenceScore: number;
+      causalPairCount: number;
+      minSamplesPerArm: number;
+    };
+  };
+  northStar: {
+    fullRecursionReady: boolean;
+    onePlusOneEqThreeReady: boolean;
+    why: string[];
+  };
+  trend?: {
+    windows: Array<{
+      windowDays: number;
+      overallScore: number;
+      recursionScore: number;
+      mlScore: number;
+      synergyScore: number;
+    }>;
+    deltaVs7d: number;
+    history: Array<{
+      at: number;
+      overallScore: number;
+      recursionScore: number;
+      mlScore: number;
+      synergyScore: number;
+    }>;
+  };
+  lastUpdated: number;
+}
+
 export async function fetchPaperWithError(agentId: string): Promise<{
   data: PaperResponse | null;
   error: string | null;
@@ -891,6 +960,42 @@ export async function fetchPaperWithError(agentId: string): Promise<{
       return { data: null, error: msg, status: res.status };
     }
     return { data: body as PaperResponse, error: null, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchRecursiveNorthStarWithError(
+  agentId: string,
+): Promise<{
+  data: RecursiveNorthStarResponse | null;
+  error: string | null;
+  status: number | null;
+}> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/recursive-north-star?agentId=${encodeURIComponent(agentId)}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+      cache: "no-store",
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as RecursiveNorthStarResponse,
+      error: null,
+      status: res.status,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };
