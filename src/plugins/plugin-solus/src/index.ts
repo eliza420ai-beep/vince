@@ -13,6 +13,8 @@ import { solusMarketContextProvider } from "./providers/solusMarketContext.provi
 import { solusOptionsContextProvider } from "./providers/solusOptionsContext.provider";
 import { solusCalibrationContextProvider } from "./providers/solusCalibrationContext.provider";
 import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
+import { solusStockCalibrationContextProvider } from "./providers/solusStockCalibrationContext.provider";
+import { solusThemeBriefProvider } from "./providers/solusThemeBrief.provider";
 import { vinceStrikeSuggestionProvider } from "./providers/vinceStrikeSuggestion.provider";
 import { AlphaVantageService } from "./services/alphaVantage.service";
 import { FinnhubService } from "./services/finnhub.service";
@@ -20,16 +22,19 @@ import { FMPService } from "./services/fmp.service";
 import { MissionControlService } from "./services/missionControl.service";
 import { SolusMlInferenceService } from "./services/solusMlInference.service";
 import { SolusOptionsCacheService } from "./services/solusOptionsCache.service";
+import { SolusThemeBriefService } from "./services/solusThemeBrief.service";
 import { registerSolusAssignmentResolveReminderTask } from "./tasks/solusAssignmentResolveReminder.tasks";
 import { registerSolusOptionsRefreshTask } from "./tasks/solusOptionsRefresh.tasks";
 import { registerSolusCalibrationNotesTask } from "./tasks/solusCalibrationNotes.tasks";
 import { registerSolusTrainCalibrationTask } from "./tasks/solusTrainCalibration.tasks";
+import { registerSolusStockCalibrationTask } from "./tasks/solusStockCalibration.tasks";
 import {
   solusStrikeRitualAction,
   solusHypersurfaceExplainAction,
   solusPositionAssessAction,
   solusOptimalStrikeAction,
   solusAnalyzeAction,
+  solusThemeRadarAction,
   solusEarningsCalendarAction,
   solusPremiumPnlAction,
   solusAssignmentCalibrationAction,
@@ -50,6 +55,7 @@ export const solusPlugin: Plugin = {
     MissionControlService,
     SolusMlInferenceService,
     SolusOptionsCacheService,
+    SolusThemeBriefService,
   ],
   providers: [
     hypersurfaceContextProvider,
@@ -59,6 +65,8 @@ export const solusPlugin: Plugin = {
     solusOptionsContextProvider,
     solusCalibrationContextProvider,
     solusStockPulseProvider,
+    solusStockCalibrationContextProvider,
+    solusThemeBriefProvider,
     vinceStrikeSuggestionProvider,
   ],
   actions: [
@@ -67,6 +75,7 @@ export const solusPlugin: Plugin = {
     solusPositionAssessAction,
     solusOptimalStrikeAction,
     solusAnalyzeAction,
+    solusThemeRadarAction,
     solusEarningsCalendarAction,
     solusPremiumPnlAction,
     solusAssignmentCalibrationAction,
@@ -110,6 +119,9 @@ export const solusPlugin: Plugin = {
       registerSolusOptionsRefreshTask(runtime).catch((err) => {
         logger.warn("[Solus] registerSolusOptionsRefreshTask failed:", err);
       });
+      registerSolusStockCalibrationTask(runtime).catch((err) => {
+        logger.warn("[Solus] registerSolusStockCalibrationTask failed:", err);
+      });
     });
   },
 };
@@ -117,15 +129,19 @@ export const solusPlugin: Plugin = {
 export { hypersurfaceContextProvider } from "./providers/hypersurfaceContext.provider";
 export { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPrices.provider";
 export { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
+export { solusStockCalibrationContextProvider } from "./providers/solusStockCalibrationContext.provider";
+export { solusThemeBriefProvider } from "./providers/solusThemeBrief.provider";
 export { AlphaVantageService } from "./services/alphaVantage.service";
 export { FinnhubService } from "./services/finnhub.service";
 export { FMPService } from "./services/fmp.service";
+export { SolusThemeBriefService } from "./services/solusThemeBrief.service";
 export { MissionControlService } from "./services/missionControl.service";
 export { solusStrikeRitualAction } from "./actions/solusStrikeRitual.action";
 export { solusHypersurfaceExplainAction } from "./actions/solusHypersurfaceExplain.action";
 export { solusPositionAssessAction } from "./actions/solusPositionAssess.action";
 export { solusOptimalStrikeAction } from "./actions/solusOptimalStrike.action";
 export { solusAnalyzeAction } from "./actions/solusAnalyze.action";
+export { solusThemeRadarAction } from "./actions/solusThemeRadar.action";
 export { solusEarningsCalendarAction } from "./actions/solusEarningsCalendar.action";
 export { solusPremiumPnlAction } from "./actions/solusPremiumPnl.action";
 export { solusAssignmentCalibrationAction } from "./actions/solusAssignmentCalibration.action";
@@ -136,3 +152,4 @@ export { registerSolusAssignmentResolveReminderTask } from "./tasks/solusAssignm
 export { registerSolusCalibrationNotesTask } from "./tasks/solusCalibrationNotes.tasks";
 export { registerSolusTrainCalibrationTask } from "./tasks/solusTrainCalibration.tasks";
 export { registerSolusOptionsRefreshTask } from "./tasks/solusOptionsRefresh.tasks";
+export { registerSolusStockCalibrationTask } from "./tasks/solusStockCalibration.tasks";
