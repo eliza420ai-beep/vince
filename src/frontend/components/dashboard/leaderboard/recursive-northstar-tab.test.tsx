@@ -23,6 +23,41 @@ describe("RecursiveNorthStarTab", () => {
       <RecursiveNorthStarTab
         loading={false}
         error={null}
+        operatorError={null}
+        operatorData={{
+          blockers: {
+            recursion: ["sample_count_below_20"],
+            ml: ["no_models_loaded"],
+            synergy: ["causal_sample_depth_below_12"],
+          },
+          triage: {
+            ml: {
+              readinessReasons: ["onnxruntime_unavailable"],
+              lastLoadError: "backend not found",
+              lastLoadErrorCode: "backend_unavailable",
+              probe: null,
+              nextActions: ["Restart VINCE runtime after onnxruntime rebuild."],
+            },
+            recursion: {
+              sufficiencyTasks: ["sample_count_below_20"],
+              nextActions: ["Increase closed outcomes to at least 20 rows."],
+            },
+            synergy: {
+              promotionReasons: ["onnx_vs_swarm:insufficient_samples"],
+              stageDeficits: [{ stage: "onnx_enabled", deficitToMin: 7 }],
+              pairDeficits: [{ label: "onnx_vs_swarm", deficitToMin: 7 }],
+              nextActions: [
+                "Fill per-stage deficits to minimumSamplesPerArm=12.",
+              ],
+            },
+          },
+          weeklySnapshot: {
+            available: true,
+            path: "docs/standup/recursive-snapshots/2026-03-04T08-00-00Z.json",
+            capturedAtMs: Date.now() - 5 * 60 * 1000,
+          },
+          generatedAt: Date.now(),
+        }}
         data={{
           scorecard: { overallScore: 78, status: "on_track" },
           pillars: {
@@ -183,6 +218,13 @@ describe("RecursiveNorthStarTab", () => {
     expect(html).toContain("Milestone Gates");
     expect(html).toContain("ML Readiness Diagnostics");
     expect(html).toContain("Causal Pair Drilldown");
+    expect(html).toContain("Operator Unblock Checklist");
+    expect(html).toContain("Copy runbook command");
+    expect(html).toContain("Copy weekly review command");
+    expect(html).toContain("Last weekly snapshot:");
+    expect(html).toContain("Snapshot freshness thresholds:");
+    expect(html).toContain("fresh");
+    expect(html).toContain("stage onnx_enabled: deficit 7");
     expect(html).toContain("missing_expected_model_files");
     expect(html).toContain("onnx_vs_swarm");
   });

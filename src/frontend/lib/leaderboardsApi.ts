@@ -893,6 +893,10 @@ export interface RecursiveNorthStarResponse {
       blockingTaskCount: number;
       allocatorStage: string;
       allocatorMode: string;
+      allocatorSummaryAvailable?: boolean;
+      sufficiencyBlockingReasons?: string[];
+      sufficiencyBlockersByDimension?: Record<string, string>;
+      sufficiencyActions?: string[];
     };
     ml: {
       modelsLoaded: string[];
@@ -907,7 +911,17 @@ export interface RecursiveNorthStarResponse {
       modelsDir: string;
       onnxRuntimeAvailable: boolean;
       lastLoadError: string | null;
+      lastLoadErrorCode?: string | null;
       banditInitError: string | null;
+      runtimeProbe?: {
+        checkedAt: number;
+        importOk: boolean;
+        cpuBackendOk: boolean;
+        modelSessionOk: boolean;
+        modelPathChecked: string | null;
+        code: string | null;
+        message: string | null;
+      } | null;
     };
     synergy: {
       upliftDelta: number;
@@ -929,6 +943,24 @@ export interface RecursiveNorthStarResponse {
         passed: boolean;
         failureReason?: string;
       }>;
+      stageDepth?: {
+        minimumSamplesPerArm: number;
+        allStagesReady: boolean;
+        perStage: Array<{
+          stage: string;
+          count: number;
+          deficitToMin: number;
+        }>;
+        pairDepth: Array<{
+          label: string;
+          controlStage: string;
+          treatmentStage: string;
+          controlCount: number;
+          treatmentCount: number;
+          minArmSamples: number;
+          deficitToMin: number;
+        }>;
+      };
     };
   };
   northStar: {
@@ -971,6 +1003,45 @@ export interface RecursiveNorthStarResponse {
     }>;
   };
   lastUpdated: number;
+}
+
+export interface RecursiveNorthStarOperatorStatus {
+  blockers: {
+    recursion: string[];
+    ml: string[];
+    synergy: string[];
+  };
+  triage: {
+    ml: {
+      readinessReasons: string[];
+      lastLoadError: string | null;
+      lastLoadErrorCode: string | null;
+      probe: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeProbe"];
+      nextActions: string[];
+    };
+    recursion: {
+      sufficiencyTasks: string[];
+      nextActions: string[];
+    };
+    synergy: {
+      promotionReasons: string[];
+      stageDeficits: Array<{
+        stage: string;
+        deficitToMin: number;
+      }>;
+      pairDeficits: Array<{
+        label: string;
+        deficitToMin: number;
+      }>;
+      nextActions: string[];
+    };
+  };
+  weeklySnapshot: {
+    available: boolean;
+    path: string | null;
+    capturedAtMs: number | null;
+  };
+  generatedAt: number;
 }
 
 export async function fetchPaperWithError(agentId: string): Promise<{
@@ -1030,6 +1101,42 @@ export async function fetchRecursiveNorthStarWithError(
     }
     return {
       data: body as RecursiveNorthStarResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchRecursiveNorthStarOperatorStatusWithError(
+  agentId: string,
+): Promise<{
+  data: RecursiveNorthStarOperatorStatus | null;
+  error: string | null;
+  status: number | null;
+}> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/recursive-north-star/operator-status?agentId=${encodeURIComponent(agentId)}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+      cache: "no-store",
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as RecursiveNorthStarOperatorStatus,
       error: null,
       status: res.status,
     };

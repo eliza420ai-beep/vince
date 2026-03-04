@@ -1,6 +1,7 @@
 import { Service, type IAgentRuntime } from "@elizaos/core";
 import {
   VinceXSourceAttributionService,
+  type CausalStageDepthSummary,
   type CausalUpliftSnapshot,
   type UpliftSnapshot,
 } from "./vinceXSourceAttribution.service";
@@ -38,5 +39,15 @@ export class VinceUpliftEvaluatorService extends Service {
     minimumSamplesPerArm?: number;
   }): CausalUpliftSnapshot {
     return this.attribution.getCausalUpliftSnapshot(params);
+  }
+
+  getCausalStageDepthSummary(
+    windowDays = 30,
+    minimumSamplesPerArm = 12,
+  ): CausalStageDepthSummary {
+    return this.attribution.getCausalStageDepthSummary(
+      windowDays,
+      minimumSamplesPerArm,
+    );
   }
 }
