@@ -107,6 +107,10 @@ import { VinceTemporalCoherenceService } from "./services/vinceTemporalCoherence
 import { VinceImmuneSystemService } from "./services/vinceImmuneSystem.service";
 import { VinceSwarmInsightsService } from "./services/vinceSwarmInsights.service";
 import { VinceSwarmOrchestratorService } from "./services/vinceSwarmOrchestrator.service";
+import { VinceUpliftEvaluatorService } from "./services/vinceUpliftEvaluator.service";
+import { VinceDataSufficiencyService } from "./services/vinceDataSufficiency.service";
+import { VinceSourceQualityService } from "./services/vinceSourceQuality.service";
+import { VinceProofCapitalAllocatorService } from "./services/vinceProofCapitalAllocator.service";
 
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
@@ -261,6 +265,10 @@ export const vincePlugin: Plugin = {
     PredictionTrackerService,
     VinceSwarmInsightsService,
     VinceSwarmOrchestratorService,
+    VinceUpliftEvaluatorService,
+    VinceDataSufficiencyService,
+    VinceSourceQualityService,
+    VinceProofCapitalAllocatorService,
   ] as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
 
   // Actions - focus areas + paper trading bot controls

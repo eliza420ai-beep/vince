@@ -228,7 +228,7 @@ export class VincePaperTradingService extends Service {
 
   // Throttle "Could not get entry price" to once per asset per minute (avoids log spam when CoinGecko is slow)
   private lastEntryPriceWarnByAsset: Map<string, number> = new Map();
-  private attributionSvc = new VinceXSourceAttributionService();
+  private attributionSvc: VinceXSourceAttributionService;
   private static readonly ENTRY_PRICE_WARN_THROTTLE_MS = 60_000;
 
   // Throttle "No WTT pick for today" to once per calendar day (update loop runs every 30s)
@@ -244,6 +244,10 @@ export class VincePaperTradingService extends Service {
 
   constructor(protected runtime: IAgentRuntime) {
     super();
+    this.attributionSvc = new VinceXSourceAttributionService(
+      undefined,
+      runtime as unknown as { databaseAdapter?: { db?: unknown } },
+    );
   }
 
   static async start(
@@ -2769,6 +2773,23 @@ Reply format: APPROVE reason or VETO reason`;
               tradeSignal.confidence < 65 || sentimentGate.sizeMultiplier < 1,
             blocked: false,
           },
+          proofMeta: {
+            regime: regime?.regime ?? "unknown",
+            sleeve: "paper",
+            onnxEnabled:
+              !!mlService &&
+              ((mlService.getMLStatus?.().modelsLoaded ?? []).length > 0 ||
+                typeof (signal as AggregatedSignal).mlQualityScore ===
+                  "number"),
+            swarmEnabled: swarmEnabled && !!swarmConsensus,
+            adversaryEnabled:
+              !!preMortemResult ||
+              !!devilMeta ||
+              !!immunePattern ||
+              !!narrativePhase,
+            sourceLineage: contributingSources,
+            strength: tradeSignal.strength,
+          },
         });
         if (openedPosition && swarmConsensus?.consensusId) {
           const agents =
@@ -2986,6 +3007,15 @@ Reply format: APPROVE reason or VETO reason`;
       block: boolean;
     };
     ptqgMeta?: PtqgMetaInput;
+    proofMeta?: {
+      regime?: string;
+      sleeve?: string;
+      onnxEnabled?: boolean;
+      swarmEnabled?: boolean;
+      adversaryEnabled?: boolean;
+      sourceLineage?: string[];
+      strength?: number;
+    };
   }): Promise<Position | null> {
     const {
       asset,
@@ -3001,6 +3031,7 @@ Reply format: APPROVE reason or VETO reason`;
       narrativePhase,
       immunePattern,
       ptqgMeta,
+      proofMeta,
     } = params;
 
     const positionManager = this.getPositionManager();
@@ -3588,6 +3619,18 @@ Reply format: APPROVE reason or VETO reason`;
           direction,
           clusters,
           signal.confidence,
+          {
+            sourceLineage: proofMeta?.sourceLineage ?? clusters,
+            strength: proofMeta?.strength ?? signal.strength,
+            regime: proofMeta?.regime,
+            sleeve: proofMeta?.sleeve ?? "paper",
+            gateStack: {
+              ruleBased: true,
+              onnxEnabled: proofMeta?.onnxEnabled === true,
+              swarmEnabled: proofMeta?.swarmEnabled === true,
+              adversaryEnabled: proofMeta?.adversaryEnabled === true,
+            },
+          },
         );
       } catch (e) {
         logger.debug(`[VincePaperTrading] Attribution recordOpen failed: ${e}`);
@@ -3754,7 +3797,15 @@ Reply format: APPROVE reason or VETO reason`;
       const tradePnl = closedPosition.realizedPnl ?? 0;
       const outcome: "win" | "loss" | "scratch" =
         tradePnl > 0 ? "win" : tradePnl < 0 ? "loss" : "scratch";
-      this.attributionSvc.recordClose(positionId, tradePnl, outcome);
+      this.attributionSvc.recordClose(positionId, tradePnl, outcome, {
+        pnlPct: closedPosition.realizedPnlPct,
+        decisionImpact:
+          outcome === "win"
+            ? "better"
+            : outcome === "loss"
+              ? "worse"
+              : "neutral",
+      });
     } catch (e) {
       logger.debug(`[VincePaperTrading] Attribution recordClose failed: ${e}`);
     }

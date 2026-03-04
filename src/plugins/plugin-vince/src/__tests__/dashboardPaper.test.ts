@@ -120,6 +120,7 @@ describe("buildPaperResponse swarm integration", () => {
 
     const resp = await buildPaperResponse(runtime);
     expect(resp.swarmSummary).toBeNull();
+    expect(resp.proofSummary).toBeNull();
   });
 
   it("maps swarm stats and agent performance when available", async () => {
@@ -144,5 +145,53 @@ describe("buildPaperResponse swarm integration", () => {
     expect(summary.regimes[0].regime).toBe("TRENDING_BULL");
     expect(summary.regimes[0].totalTrades).toBe(4);
     expect(summary.regimes[0].topSource).toBe("BinanceTopTraders");
+  });
+
+  it("includes proof summary when proof services exist", async () => {
+    const runtime = {
+      getService: (id: string) => {
+        if (id === "VINCE_POSITION_MANAGER_SERVICE")
+          return {
+            getOpenPositions: () => [],
+            getPortfolio: () => ({
+              balance: 0,
+              initialBalance: 0,
+              realizedPnl: 0,
+              unrealizedPnl: 0,
+              totalValue: 0,
+              returnPct: 0,
+              tradeCount: 0,
+              winCount: 0,
+              lossCount: 0,
+              winRate: 0,
+              maxDrawdown: 0,
+              maxDrawdownPct: 0,
+              lastUpdate: Date.now(),
+            }),
+          };
+        if (id === "VINCE_UPLIFT_EVALUATOR_SERVICE")
+          return {
+            getSnapshot: () => ({ byStage: [], byRegime: [] }),
+            getCausalSnapshot: () => ({ promotionEligible: false, pairs: [] }),
+          };
+        if (id === "VINCE_DATA_SUFFICIENCY_SERVICE")
+          return {
+            getSnapshot: () => ({ grade: "MEDIUM" }),
+            getBlockingTasks: () => [],
+          };
+        if (id === "VINCE_SOURCE_QUALITY_SERVICE")
+          return {
+            getSnapshot: () => ({ sources: [{ source: "XSentiment" }] }),
+          };
+        if (id === "VINCE_PROOF_CAPITAL_ALLOCATOR_SERVICE")
+          return { getLatestSummary: () => ({ mode: "observe_only" }) };
+        return null;
+      },
+    } as unknown as IAgentRuntime;
+
+    const resp = await buildPaperResponse(runtime);
+    expect(resp.proofSummary).not.toBeNull();
+    expect(resp.proofSummary?.sourceQualityTop?.[0]?.source).toBe("XSentiment");
+    expect(resp.proofSummary?.causal30d?.promotionEligible).toBe(false);
   });
 });

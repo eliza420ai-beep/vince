@@ -162,7 +162,85 @@ One month after closing the One Dream PRD, the swarm got a **paper-traded brain 
 | Agents wired for swarm votes | 10 (VINCE always on; others flag-gated) |
 | Test coverage | Unit + integration (swarm core, orchestrator, paper bot, dashboard, WHY_THIS_TRADE) |
 
-Phase 13 gives the system a **shared bandit and consensus gate**; the **recursive + ML proof** (paper bot and Solus improving from their own outcomes) and **data/content priorities** (X, Polymarket, Eliza Substack/tweets) are in **What's next** below.
+Phase 13 gives the system a **shared bandit and consensus gate**; Phase 14 ships the missing layer that converts outcomes into allocation decisions.
+
+### Phase 14 — Proof-to-Capital Engine (shipped)
+
+Phase 14 closes the gap between “we learn” and “we allocate.” The runtime now records proof, scores that proof, and uses it to constrain or adjust risk in a controlled way.
+
+- **Proof attribution ledger is live** — `VincePaperTradingService` writes open/close attribution with gate-stack metadata (rule-based/ONNX/swarm/adversary), source lineage, regime/sleeve tags, and outcome impact. Solus resolve flow also writes proof attribution artifacts for assignment outcomes.
+- **Uplift and sufficiency services are live** — `VinceUpliftEvaluatorService` and `VinceDataSufficiencyService` compute rolling snapshots (7d/30d), stage-level uplift, regime views, and `LOW/MEDIUM/HIGH` sufficiency grades.
+- **Source quality scoring is live** — `VinceSourceQualityService` builds quality snapshots and recommendation multipliers from contribution quality; it can auto-apply weight updates only when allocator mode allows it.
+- **Proof-to-capital allocator is live** — `VinceProofCapitalAllocatorService` supports `observe_only`, `recommendation`, and `auto_apply`; it writes allocator history and enforces sufficiency gating before risk increases.
+- **Operator surfaces are wired** — `/vince/paper` now returns `proofSummary`; `VINCE_WHY_TRADE` includes a `PROOF SNAPSHOT`; Sentinel operator dashboard includes a Phase 14 proof section.
+- **Safety-by-default rollout controls** — new env controls (`VINCE_PHASE14_PROOF_ENGINE_ENABLED`, `VINCE_PROOF_ALLOCATOR_MODE`, `VINCE_PROOF_MIN_SUFFICIENCY_GRADE`, `VINCE_SOURCE_QUALITY_ENABLED`) keep rollout progressive and reversible.
+
+PRD: [PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md](docs/standup/prds/PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md)
+
+### Phase 15 — Causal Confidence + Proof Parity (shipped)
+
+Phase 15 hardens the Phase 14 engine so capital promotions are earned through causal confidence, not just directional uplift.
+
+- **Causal Uplift Lab is live** — attribution now computes shadow stage pairs (`rule_based -> onnx -> swarm -> adversary`) with confidence-bounded uplift deltas and promotion eligibility.
+- **Promotion gate is stricter** — allocator increases are blocked unless sufficiency and causal confidence both pass; rollback-aware behavior reduces risk when confidence regresses.
+- **Sufficiency v2 is actionable** — snapshot grading now includes time coverage, regime depth, and variance context, plus machine-readable blocker tasks written for operators.
+- **Source quality v2 is stable** — quality snapshots include lag penalty + dominant regime context; auto updates now apply cooldown and hysteresis to prevent oscillation.
+- **Solus proof parity + combined operator view** — Solus now emits proof snapshots with shared confidence semantics; Sentinel dashboard includes a combined perps/options proof summary.
+- **Eliza verified distribution loop** — allocator writes confidence-gated verified claims; Eliza content provider only injects claims above threshold into essay/tweet context.
+
+### Phase 15 impact (current)
+
+| Metric | Value |
+|---|---|
+| New Phase 15 proof surfaces | 3 (`causal30d`, `sufficiencyTasks`, `solus30d` in `/vince/paper` `proofSummary`) |
+| Allocator hardening | Causal-confidence gate + rollback-aware reduction path |
+| Sufficiency model | Expanded dimensions (sample count, assets, regimes, time coverage, regime depth, variance context) |
+| Source quality controls | Lag-aware scoring + dominant-regime tagging + cooldown/hysteresis updates |
+| Verified distribution artifacts | `.elizadb/vince-paper-bot/verified-claims.json` and `.elizadb/vince-paper-bot/sufficiency-tasks.json` |
+| New Phase 15 env controls | 5 (`VINCE_PHASE15_CAUSAL_MIN_EFFECT`, `VINCE_PHASE15_CAUSAL_MIN_SAMPLES_PER_ARM`, `VINCE_SOURCE_QUALITY_COOLDOWN_HOURS`, `VINCE_SOURCE_QUALITY_HYSTERESIS_POINTS`, `ELIZA_VERIFIED_CLAIMS_MIN_CONFIDENCE`) |
+| Phase 15 tests added/updated | Causal gating + sufficiency/source-quality stability + dashboard proof surface coverage |
+
+### Phase 15 rollout checklist
+
+Use this sequence to operationalize the shipped Phase 15 controls safely:
+
+1. `VINCE_PROOF_ALLOCATOR_MODE=observe_only` for baseline confidence windows.
+2. Confirm causal pairs pass thresholds (`minimum effect`, `minimum samples per arm`) across consecutive windows.
+3. Move to `VINCE_PROOF_ALLOCATOR_MODE=recommendation`; verify no oscillation in source-weight recommendations.
+4. Enable narrow `auto_apply` only after rollback drill passes and sufficiency blockers are under control.
+5. Keep claim distribution gated by `ELIZA_VERIFIED_CLAIMS_MIN_CONFIDENCE` so published claims stay traceable to verified proof.
+
+### Phase 15 quickstart
+
+```bash
+# 1) Enable proof engine in safe mode first
+export VINCE_PHASE14_PROOF_ENGINE_ENABLED=true
+export VINCE_PROOF_ALLOCATOR_MODE=observe_only
+export VINCE_PROOF_MIN_SUFFICIENCY_GRADE=MEDIUM
+
+# 2) Phase 15 causal + source-quality controls
+export VINCE_PHASE15_CAUSAL_MIN_EFFECT=0.02
+export VINCE_PHASE15_CAUSAL_MIN_SAMPLES_PER_ARM=12
+export VINCE_SOURCE_QUALITY_COOLDOWN_HOURS=24
+export VINCE_SOURCE_QUALITY_HYSTERESIS_POINTS=5
+
+# 3) Verified claim distribution threshold for Eliza content
+export ELIZA_VERIFIED_CLAIMS_MIN_CONFIDENCE=0.6
+
+# 4) Start runtime
+bun start
+
+# 5) Verify proof artifacts and rollout signals
+rg '"tradeId"' data/trade-attribution.jsonl | wc -l
+rg '"gateStack"' data/trade-attribution.jsonl | wc -l
+rg '"sourceLineage"' data/trade-attribution.jsonl | wc -l
+rg '.' .elizadb/vince-paper-bot/proof-allocator-history.jsonl | wc -l
+rg '.' .elizadb/vince-paper-bot/source-quality-history.jsonl | wc -l
+rg '.' .elizadb/vince-paper-bot/verified-claims.json
+rg '.' .elizadb/vince-paper-bot/sufficiency-tasks.json
+```
+
+Runbook: [PHASE_15_7DAY_RUNBOOK.md](docs/standup/prds/PHASE_15_7DAY_RUNBOOK.md)
 
 ### How the 12 phases became the paper bot and ML loop
 
@@ -170,17 +248,21 @@ The 80 tasks across 12 phases produced the **paper trading algo** (signals → a
 
 ### What's next
 
-We're proving three things and lifting two ceilings:
+Phase 15 shipped the first hardening pass. Next is scaling breadth and automation across more sleeves and longer windows:
 
-**1. Paper bot (Hyperliquid perps) is recursive and ML works.** The loop is already in code: trades → feature store → `TRAIN_ONNX_WHEN_READY` → new ONNX + suggested thresholds/weights → next cycle uses them. Proof: holdout metrics in `training_metadata.json`, `validate_ml_improvement.py` on historical data, and the autopilot trail (task logs, improvement report). Next step: run long enough and report that **recursive improvement is measurable** (e.g. win rate or Sharpe on a fixed holdout window improves after N training cycles).
+**1. Phase 16 candidate: Causal cohort expansion.** Add sleeve-level, time-paired cohorts and stricter confidence bands per regime so promotion rules can operate at finer granularity.
 
-**2. Solus (Hypersurface options) has a recursive loop and ML.** Solus already has **SOLUS_CALIBRATION_CONTEXT** (Brier + last 10 outcomes in every strike prompt), **SOLUS_UPDATE_CALIBRATION_NOTES** (daily Brier-by-asset/IV), and **TRAIN_SOLUS_CALIBRATION_WHEN_READY** (50+ resolved rows → train → `assignment_calibrator.onnx` → ML-calibrated P(assign)). So Solus gets better over time for onchain options the same way the paper bot does for perps. Next step: **prove** that Solus ML improves strike quality (e.g. Brier or assignment accuracy over time) and that the recursive loop is documented and visible.
+**2. Allocation policy escalation playbooks.** Formalize drills and one-sleeve-to-multi-sleeve expansion with explicit rollback contracts and incident runbooks.
 
-**3. Enough data for both loops?** The paper bot needs enough closed trades and rich features (funding deltas, DVOL, ETF flow, WTT rubric, etc.) for ONNX to generalize. Solus needs enough resolved assignment predictions (50+ for first training, more for stability). Open question: **do we have enough data** for the paper bot and Solus to be "as good as it gets" for HL perps and onchain options, or do we need more history, more assets, or more feature coverage? This drives feature-store expansion and Solus resolve discipline.
+**3. Source quality v3.** Add explicit lag attribution to source payloads and expand regime-conditioned scoring for X + Polymarket across longer horizons.
 
-**4. X and Polymarket insights are not yet good enough.** We use X (ECHO) and Polymarket (Oracle) for sentiment, regime, and edge—but the quality and depth of those insights are a known gap. Next: **improve signal quality from X and Polymarket** (better parsing, narrative lag, source scoring, regime integration) so the paper bot and Solus get sharper external inputs instead of relying only on price/options data.
+**4. Cross-agent proof distribution.** Push verified claims into more downstream surfaces (reports, prompts, publishing templates) with stricter provenance traces.
 
-**5. Eliza: Substack gold and banger tweets.** Eliza already does WRITE_ESSAY, DRAFT_TWEETS, CONTENT_AUDIT. Next: **get better at suggesting and producing Substack gold and high-impact tweets for X**—topic selection, timing, voice, and performance feedback so content compounds like the trading loops do.
+**5. Proof-to-capital automation.** Use stability checks from allocator history to auto-advance staged rollout (`observe_only` -> `recommendation` -> narrow `auto_apply`) when confidence remains stable.
+
+### Phase 14 baseline (historical)
+
+Phase 14 remains the foundation (`proof attribution`, `uplift/sufficiency`, `source quality`, `proof allocator`), while Phase 15 adds causal confidence gating, sufficiency-task outputs, source-stability controls, Solus parity, and verified-claim distribution.
 
 ### Prior releases
 
