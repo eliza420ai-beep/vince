@@ -17,6 +17,7 @@ import type {
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { runWhatsTheTradeReport } from "../tasks/whatsTheTradeDaily.tasks";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 export const whatsTheTradeAction: Action = {
   name: "ECHO_WHATS_THE_TRADE",
@@ -58,21 +59,15 @@ export const whatsTheTradeAction: Action = {
       const sent = filepath
         ? `Report saved to \`${filepath}\`.\n\n---\n\n${report}`
         : report;
-      if (callback) {
-        await callback({
-          text: sent,
-          actions: ["ECHO_WHATS_THE_TRADE"],
-        });
-      }
+      await sendActionResponse(callback, "ECHO_WHATS_THE_TRADE", {
+        text: sent,
+      });
       return { success: true };
     } catch (error) {
       logger.error({ error }, "[ECHO_WHATS_THE_TRADE] Failed");
-      if (callback) {
-        await callback({
-          text: `Couldn't run the report: ${(error as Error).message}. Check logs and that \`skills/whats-the-trade\` has \`bun install\` and adapter scripts.`,
-          actions: ["ECHO_WHATS_THE_TRADE"],
-        });
-      }
+      await sendActionResponse(callback, "ECHO_WHATS_THE_TRADE", {
+        text: `Couldn't run the report: ${(error as Error).message}. Check logs and that \`skills/whats-the-trade\` has \`bun install\` and adapter scripts.`,
+      });
       return { success: false, error: (error as Error).message };
     }
   },
@@ -84,7 +79,7 @@ export const whatsTheTradeAction: Action = {
         name: "ECHO",
         content: {
           text: "Ran the belief-router report. **What's the trade** _Tuesday, Feb 18_ … [narrative + trade card]. Report saved to docs/standup/whats-the-trade/2026-02-18-whats-the-trade.md.",
-          actions: ["ECHO_WHATS_THE_TRADE"],
+          action: "ECHO_WHATS_THE_TRADE",
         },
       },
     ],

@@ -16,6 +16,7 @@ import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
 import { solusStockCalibrationContextProvider } from "./providers/solusStockCalibrationContext.provider";
 import { solusThemeBriefProvider } from "./providers/solusThemeBrief.provider";
 import { vinceStrikeSuggestionProvider } from "./providers/vinceStrikeSuggestion.provider";
+import { echoWttSignalProvider } from "./providers/echoWttSignal.provider";
 import { AlphaVantageService } from "./services/alphaVantage.service";
 import { FinnhubService } from "./services/finnhub.service";
 import { FMPService } from "./services/fmp.service";
@@ -68,6 +69,7 @@ export const solusPlugin: Plugin = {
     solusStockCalibrationContextProvider,
     solusThemeBriefProvider,
     vinceStrikeSuggestionProvider,
+    echoWttSignalProvider,
   ],
   actions: [
     solusStrikeRitualAction,
@@ -131,6 +133,7 @@ export { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPric
 export { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
 export { solusStockCalibrationContextProvider } from "./providers/solusStockCalibrationContext.provider";
 export { solusThemeBriefProvider } from "./providers/solusThemeBrief.provider";
+export { echoWttSignalProvider } from "./providers/echoWttSignal.provider";
 export { AlphaVantageService } from "./services/alphaVantage.service";
 export { FinnhubService } from "./services/finnhub.service";
 export { FMPService } from "./services/fmp.service";

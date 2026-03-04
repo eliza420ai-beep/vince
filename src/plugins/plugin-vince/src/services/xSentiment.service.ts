@@ -285,6 +285,7 @@ export class VinceXSentimentService extends Service {
   private rateLimitedUntilMs = 0;
   /** Last refresh timestamp per asset (for priority stagger). */
   private lastRefreshByAsset = new Map<string, number>();
+  private hasLoggedMissingXResearchService = false;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -439,11 +440,18 @@ export class VinceXSentimentService extends Service {
         };
       } | null;
       if (xResearchService?.isConfigured?.()) {
+        this.hasLoggedMissingXResearchService = false;
         const result = xResearchService.getTradingSentiment(asset);
         return {
           ...result,
           updatedAt: Date.now(),
         };
+      }
+      if (!this.hasLoggedMissingXResearchService) {
+        logger.debug(
+          "[VinceXSentimentService] X_SENTIMENT_USE_X_RESEARCH_PLUGIN=true but X_RESEARCH_TRADING_SENTIMENT_SERVICE is unavailable or unconfigured. Falling back to VINCE_X_SENTIMENT cache.",
+        );
+        this.hasLoggedMissingXResearchService = true;
       }
     }
     const floor = Math.min(

@@ -185,3 +185,17 @@ export function normalizeUserResponse(raw: {
   if (!raw.data) return { data: undefined };
   return { data: normalizeUser(raw.data) };
 }
+
+/** Normalize user list response { data: user[], meta?: { next_token } } (e.g. following/followers) */
+export function normalizeUserArrayResponse(raw: {
+  data?: Record<string, unknown>[];
+  meta?: { next_token?: string };
+}): { data: XUser[]; meta?: { nextToken?: string } } {
+  const list = Array.isArray(raw.data) ? raw.data : [];
+  const data = list.map((u) => normalizeUser(u));
+  const nextToken = raw.meta?.next_token;
+  return {
+    data,
+    ...(nextToken && { meta: { nextToken } }),
+  };
+}

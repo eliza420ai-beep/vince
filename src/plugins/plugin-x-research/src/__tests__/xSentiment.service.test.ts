@@ -143,6 +143,37 @@ describe("XSentimentService", () => {
 
       expect(result).toBeNull();
     });
+
+    it("uses boundary-aware matching to avoid eth false positives", () => {
+      const tweets: XTweet[] = [
+        createTweet("methodology is clean but no crypto take"),
+        createTweet("lethargic tape this week"),
+      ];
+      const ethVibe = service.getTopicVibe(tweets, "eth");
+      expect(ethVibe).toBeNull();
+    });
+
+    it("handles explicit ETH hashtags/cashtags as relevant", () => {
+      const tweet = createTweet("Still bullish #ethereum $ETH breakout");
+      tweet.entities = {
+        hashtags: [{ tag: "ethereum" }],
+        cashtags: [{ tag: "ETH" }],
+      };
+      const ethVibe = service.getTopicVibe([tweet], "eth");
+      expect(ethVibe).not.toBeNull();
+      expect(ethVibe?.direction).toBe("bullish");
+    });
+  });
+
+  describe("negation handling", () => {
+    it("reduces bullish bias when phrase is negated", () => {
+      const tweets: XTweet[] = [
+        createTweet("not bullish on BTC into this weekend"),
+        createTweet("no moon for bitcoin right now"),
+      ];
+      const result = service.analyzeSentiment(tweets);
+      expect(result.overallSentiment).not.toBe("bullish");
+    });
   });
 });
 

@@ -246,6 +246,161 @@ const getRecencyDecay = (signalTimestamp: number, source: string): number => {
   return 1.0; // Fresh signal
 };
 
+const BLEND_CONFIG = {
+  fullStrengthBonus: readBlendInt("VINCE_SIGNAL_BLEND_FULL_STRENGTH_BONUS", 8),
+  fullConfidenceBonus: readBlendInt(
+    "VINCE_SIGNAL_BLEND_FULL_CONFIDENCE_BONUS",
+    9,
+  ),
+  pairStrengthBonus: readBlendInt("VINCE_SIGNAL_BLEND_PAIR_STRENGTH_BONUS", 5),
+  pairConfidenceBonus: readBlendInt(
+    "VINCE_SIGNAL_BLEND_PAIR_CONFIDENCE_BONUS",
+    6,
+  ),
+  contradictionStrengthPenalty: readBlendInt(
+    "VINCE_SIGNAL_BLEND_CONTRADICTION_STRENGTH_PENALTY",
+    5,
+  ),
+  contradictionConfidencePenalty: readBlendInt(
+    "VINCE_SIGNAL_BLEND_CONTRADICTION_CONFIDENCE_PENALTY",
+    7,
+  ),
+  minSupportConfidence: readBlendInt(
+    "VINCE_SIGNAL_BLEND_MIN_SUPPORT_CONFIDENCE",
+    48,
+  ),
+  correlatedPairPenalty: readBlendInt(
+    "VINCE_SIGNAL_BLEND_CORRELATED_PAIR_PENALTY",
+    3,
+  ),
+};
+
+function readBlendInt(envKey: string, defaultValue: number): number {
+  const raw = process.env[envKey];
+  if (!raw) return defaultValue;
+  const parsed = parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return defaultValue;
+  return Math.max(0, Math.min(25, parsed));
+}
+
+function averageConfidence(signals: MarketSignal[]): number {
+  if (signals.length === 0) return 0;
+  return (
+    signals.reduce((sum, signal) => sum + Math.max(0, signal.confidence), 0) /
+    signals.length
+  );
+}
+
+function getDailySidecarDecay(dateValue?: string | null): number {
+  if (!dateValue) return 0.7;
+  const parsed = new Date(`${dateValue}T00:00:00.000Z`).getTime();
+  if (!Number.isFinite(parsed)) return 0.7;
+  const ageHours = (Date.now() - parsed) / (1000 * 60 * 60);
+  if (ageHours <= 8) return 1;
+  if (ageHours <= 16) return 0.9;
+  if (ageHours <= 24) return 0.75;
+  if (ageHours <= 36) return 0.55;
+  return 0.4;
+}
+
+/**
+ * Deterministic blend adjustment for cross-source signal agreement:
+ * WTT (curated thesis) + EchoXSignal (ECHO execution card) + live X services.
+ */
+function applyCrossSourceBlend(params: {
+  signals: MarketSignal[];
+  direction: "long" | "short" | "neutral";
+  avgStrength: number;
+  avgConfidence: number;
+  factors: string[];
+}): { strength: number; confidence: number; factors: string[] } {
+  let strength = params.avgStrength;
+  let confidence = params.avgConfidence;
+  const factors = [...params.factors];
+  if (params.direction === "neutral") {
+    return {
+      strength: Math.min(100, Math.max(0, strength)),
+      confidence: Math.min(100, Math.max(0, confidence)),
+      factors,
+    };
+  }
+
+  const wttSignals = params.signals.filter((s) => s.source === "WTT");
+  const echoSignals = params.signals.filter((s) => s.source === "EchoXSignal");
+  const liveXSignals = params.signals.filter((s) =>
+    ["XSentiment", "XListSentiment", "XNews", "XTrending"].includes(s.source),
+  );
+
+  const wttSupportSignals = wttSignals.filter(
+    (s) => s.direction === params.direction,
+  );
+  const echoSupportSignals = echoSignals.filter(
+    (s) => s.direction === params.direction,
+  );
+  const liveXSupportSignals = liveXSignals.filter(
+    (s) => s.direction === params.direction,
+  );
+
+  const hasWttSupport =
+    averageConfidence(wttSupportSignals) >= BLEND_CONFIG.minSupportConfidence;
+  const hasEchoSupport =
+    averageConfidence(echoSupportSignals) >= BLEND_CONFIG.minSupportConfidence;
+  const hasLiveXSupport =
+    averageConfidence(liveXSupportSignals) >= BLEND_CONFIG.minSupportConfidence;
+
+  const hasWttContradiction = wttSignals.some(
+    (s) => s.direction !== "neutral" && s.direction !== params.direction,
+  );
+  const hasEchoContradiction = echoSignals.some(
+    (s) => s.direction !== "neutral" && s.direction !== params.direction,
+  );
+  const hasLiveXContradiction = liveXSignals.some(
+    (s) => s.direction !== "neutral" && s.direction !== params.direction,
+  );
+
+  if (hasWttSupport && hasEchoSupport && hasLiveXSupport) {
+    strength += BLEND_CONFIG.fullStrengthBonus;
+    confidence += BLEND_CONFIG.fullConfidenceBonus;
+    factors.push(
+      "Cross-source blend: WTT, Echo sidecar, and live X all support this direction",
+    );
+  } else if (
+    (hasWttSupport && hasEchoSupport) ||
+    (hasWttSupport && hasLiveXSupport) ||
+    (hasEchoSupport && hasLiveXSupport)
+  ) {
+    strength += BLEND_CONFIG.pairStrengthBonus;
+    confidence += BLEND_CONFIG.pairConfidenceBonus;
+    factors.push("Cross-source blend: two independent X-derived sources align");
+  }
+
+  // WTT and Echo sidecar are partially dependent (shared ECHO pipeline), so
+  // reduce over-boost when they agree without strong independent confirmation.
+  if (hasWttSupport && hasEchoSupport && !hasLiveXSupport) {
+    strength -= BLEND_CONFIG.correlatedPairPenalty;
+    confidence -= BLEND_CONFIG.correlatedPairPenalty;
+    factors.push("Cross-source blend: WTT + Echo correlation penalty applied");
+  }
+
+  if (
+    (hasWttContradiction && hasLiveXSupport) ||
+    (hasLiveXContradiction && hasWttSupport) ||
+    (hasEchoContradiction && hasWttSupport)
+  ) {
+    strength -= BLEND_CONFIG.contradictionStrengthPenalty;
+    confidence -= BLEND_CONFIG.contradictionConfidencePenalty;
+    factors.push(
+      "Cross-source blend: contradiction detected between curated and live flows",
+    );
+  }
+
+  return {
+    strength: Math.min(100, Math.max(0, strength)),
+    confidence: Math.min(100, Math.max(0, confidence)),
+    factors,
+  };
+}
+
 export interface AggregatedSignal {
   asset: string;
   direction: "long" | "short" | "neutral";
@@ -1390,12 +1545,13 @@ export class VinceSignalAggregatorService extends Service {
           ? getStandupSignalForAsset(standupData, asset)
           : undefined;
         if (entry && entry.direction !== "neutral") {
+          const staleness = getDailySidecarDecay(standupData?.date);
           const confidence = Math.min(
             100,
-            Math.max(0, entry.confidence_pct ?? 50),
+            Math.max(0, Math.round((entry.confidence_pct ?? 50) * staleness)),
           );
           if (confidence >= 25) {
-            const strength = 48 + Math.min(12, confidence / 8);
+            const strength = (48 + Math.min(12, confidence / 8)) * staleness;
             const label =
               entry.source === "solus"
                 ? `Solus standup ${entry.direction} (${confidence}%)`
@@ -1406,7 +1562,10 @@ export class VinceSignalAggregatorService extends Service {
               strength: Math.round(strength),
               confidence,
               source: "StandupSignal",
-              factors: [label],
+              factors: [
+                label,
+                `standup staleness decay x${staleness.toFixed(2)}`,
+              ],
               timestamp: Date.now(),
             });
             sources.push("StandupSignal");
@@ -1435,12 +1594,13 @@ export class VinceSignalAggregatorService extends Service {
           ? getEchoXSignalForAsset(echoXData, asset)
           : undefined;
         if (echoEntry && echoEntry.direction !== "neutral") {
+          const staleness = getDailySidecarDecay(echoXData?.date);
           const confidence = Math.min(
             100,
-            Math.max(0, echoEntry.confidence ?? 50),
+            Math.max(0, Math.round((echoEntry.confidence ?? 50) * staleness)),
           );
           if (confidence >= 25) {
-            const strength = 46 + Math.min(10, confidence / 8);
+            const strength = (46 + Math.min(10, confidence / 8)) * staleness;
             const label = `ECHO WTT ${echoEntry.direction} (${confidence}%)`;
             signals.push({
               asset,
@@ -1448,7 +1608,7 @@ export class VinceSignalAggregatorService extends Service {
               strength: Math.round(strength),
               confidence,
               source: "EchoXSignal",
-              factors: [label],
+              factors: [label, `echo staleness decay x${staleness.toFixed(2)}`],
               timestamp: Date.now(),
             });
             sources.push("EchoXSignal");
@@ -2220,9 +2380,18 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // Calculate weighted averages
-    const avgStrength = totalWeight > 0 ? weightedStrength / totalWeight : 50;
-    const avgConfidence =
-      totalWeight > 0 ? weightedConfidence / totalWeight : 0;
+    let avgStrength = totalWeight > 0 ? weightedStrength / totalWeight : 50;
+    let avgConfidence = totalWeight > 0 ? weightedConfidence / totalWeight : 0;
+    const blended = applyCrossSourceBlend({
+      signals,
+      direction,
+      avgStrength,
+      avgConfidence,
+      factors: allFactors,
+    });
+    avgStrength = blended.strength;
+    avgConfidence = blended.confidence;
+    allFactors.splice(0, allFactors.length, ...blended.factors);
 
     // =========================================
     // Volume Confirmation Adjustment

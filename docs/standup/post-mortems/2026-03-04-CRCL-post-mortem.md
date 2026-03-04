@@ -1,20 +1,20 @@
-# Post-mortem: CRCL long (trailing_stop)
+# Post-mortem: CRCL long (stop_loss)
 
 **Date:** 2026-03-04
 
 ## Trade Snapshot
 
-- CRCL long closed trailing_stop: entry $100.84 -> exit $98.90, P&L $-158.53 (8039.132107785897 USD, 5x).
-- Entry time (UTC): 2026-03-03T16:51:18.692Z
+- CRCL long closed stop_loss: entry $104.73 -> exit $102.96, P&L $-142.69 (8195.876288659794 USD, 5x).
+- Entry time (UTC): 2026-03-04T11:47:20.636Z
 - Hold window target: intraday
-- Max loss budget: $120.59 (7.50%)
+- Max loss budget: $122.94 (7.50%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 387 minutes
-- Adverse move: 1.922%
+- Hold duration: 19 minutes
+- Adverse move: 1.691%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -26,43 +26,47 @@
 - Lane: CT sentiment + macro risk pulse
 - Confidence: 30%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: timestamp
+- Missing data flags: lane_coverage_gap
 
-**Missing key context:** When did you enter vs. exit (timestamps)? What was CT sentiment on CRCL during that window — was it a crowded long, contrarian setup, or off-radar? Did macro/BTC dump coincide with your exit, or was CRCL-specific selling?
+**Missing context:** Did CT have conviction on CRCL at entry, or was this a low-sentiment play? Was the stop hit on macro dump (BTC/ETH weakness), or isolated CRCL selling? Without knowing the sentiment backdrop and whether macro betrayed you, I can't tell if this was a signal failure or just bad timing. 
 
-Without those, I can't tell if sentiment shifted against you or if it was macro tide. Give me the trade window and I'll pull X vibe to see if CT was rotating out of that thesis.
+**What I need:** X pulse on CRCL sentiment at entry time, and whether BTC/ETH were dumping when you got stopped.
 
 Confidence: 0.3
+
+(This one's outside my lane without the sentiment data — **ASK_AGENT Solus** for sizing/execution feedback, **ASK_AGENT Vince** for macro context at entry time.)
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 30%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: timestamp, entry_datetime
+- Missing data flags: none
 
-**Missing critical context:** I need the trade date/timeframe, CRCL's Polymarket prediction (if one exists), and whether this was a mean-reversion or trend play. Without knowing if the market repriced CRCL fundamentals or if you got caught in a liquidation cascade, I can't isolate regime vs. execution. **That said:** A 2% stop-loss on 5x levered perps is tight for intraday vol—if CRCL spiked on news, the trailing stop was doing its job; if it was chop, you're fighting slippage. Pull the 1h/4h candle pattern and compare to any Polymarket price action that day—if prediction markets stayed flat while perps dumped, that's a liquidity/leverage regime signal worth logging.
+**Missing context:** I need the trade date, the CRCL prediction-market price at entry/exit, and whether this was a perps or spot trade—that tells me if you were fighting Polymarket consensus or if the market repriced faster than the underlying moved.
 
-**Confidence: 0.3** (need trade timestamp and market context to be useful
+**If perps:** A $1.77 move (1.7%) on 5x leverage is a tight stop; check if CRCL had a Polymarket event (earnings, catalyst) that repriced during your hold—prediction markets often front-run spot by hours. **If spot:** The loss is small relative to size, which is good risk management; without the market context, I can't tell if you were early (regime shift) or just unlucky on timing.
+
+**What I'd pull:** Live CRCL Polymarket odds (if a market exists) and the orderbook depth at your entry price—that shows whether liquidity dried
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 40%
+- Confidence: 60%
 - Source stamp: options_mechanics_snapshot
-- Missing data flags: timestamp
+- Missing data flags: none
 
-**Missing critical context:** entry date, exit date, how long held, what triggered the trailing stop (market move or time decay?), and whether this was paper bot or manual. 
+**Missing critical context:** What was the thesis invalidation trigger (news, chart break, funding spike)? Was this a solo CRCL trade or part of a broader AI infra hedge? 
 
-**On mechanics:** 5x leverage on a $100 stock with $158 loss suggests tight trailing stop (likely 2-3% based on the math)—aggressive for equities in ranging/choppy markets. If this was a paper bot test, the issue isn't the loss; it's whether the stop was *calibrated to the asset's volatility* or just a fixed %. CRCL trades on HyperLiquid perps?—if so, funding rate and liquidation distance matter too.
+**On structure:** $8.2K notional on a $100K stack at 5x is reasonable sizing (~8% risk), but the stop at –1.7% is tight for a leverage trade—you're getting shaken out on noise. For paper bot validation, tighter stops are fine; for live execution, you'd want 2–3% minimum buffer unless the invalidation is explicit and hit.
 
-**Call:** Paste entry/exit timestamps and what moved the market that day. Then I can assess whether the stop was right-sized or if we need to widen for equities.
+**Next:** Log the exact invalidation trigger (what made you pull the plug?) so we know if this was discipline or whipsaw. If whipsaw, widen stops or reduce leverage; if discipline, log it and move on.
 
-**Confidence: 0.4
+**Confidence: 0.6** (mechanics clear, thesis context missing).
 
 ## Root-Cause Tags
 
-- Primary: regime_conflict
+- Primary: agent_lane_mismatch
 - Secondary: none
 
 ## Corrective Actions
@@ -82,72 +86,97 @@ Confidence: 0.3
 
 ## Confidence and Data Gaps
 
-- Quality score: 77/100
+- Quality score: 93/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 - Context completeness: 92.9%
-- Regime vs execution: regime_miss
+- Regime vs execution: unclear
+- Risk budget: planned=$122.94, realized=$142.69, slippage=$19.75, breach=true
+- Consistency checks: pass
 
 ## What changes on next trade?
 
 - Keep PTQG required fields hard-enforced.
 - Current post-mortem quality is acceptable; continue weekly monitoring.
 - No temporary leverage override required.
+- No automatic policy mutation due to data/quality gate.
+
+## Recursive Policy Delta
+
+- Adaptation eligible: false
+- Policy version at entry: baseline
+- Proposed delta: none
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 77
+- PM_QUALITY_SCORE: 93
 - PM_QUALITY_ESCALATE: false
-- PM_PRIMARY_CAUSE: regime_conflict
+- PM_PRIMARY_CAUSE: agent_lane_mismatch
 - PM_SECONDARY_CAUSES: none
 - PM_PTQG_COMPLETE: true
 - PM_PMEP_COMPLETENESS_PCT: 100
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
+- PM_BUDGET_BREACH: true
+- PM_RISK_SLIPPAGE_USD: 19.75
+- PM_ADAPTATION_ELIGIBLE: false
+- PM_POLICY_VERSION_AT_ENTRY: baseline
+- PM_PROPOSED_DELTA_PRESENT: false
 
 ```json
 {
-  "qualityScore": 77,
+  "qualityScore": 93,
   "qualityEscalate": false,
-  "primaryCause": "regime_conflict",
+  "primaryCause": "agent_lane_mismatch",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 387,
-  "adverseMovePct": 1.922,
+  "holdMinutes": 19,
+  "adverseMovePct": 1.691,
+  "riskBudget": {
+    "plannedRiskUsd": 122.94,
+    "realizedRiskUsd": 142.69,
+    "riskSlippageUsd": 19.75,
+    "budgetBreach": true
+  },
+  "consistencyChecks": {
+    "passed": true,
+    "issues": [],
+    "adverseMovePctFromPrices": 1.691,
+    "adverseMovePctDelta": 0,
+    "stopDistancePctFromPrices": 1.5,
+    "stopDistancePctDelta": 0,
+    "hasTruncatedFindings": false
+  },
+  "adaptationEligible": false,
+  "policyVersionAtEntry": "baseline",
+  "proposedPolicyDelta": null,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-03T16:51:18.692Z",
-    "exitTimestampUtc": "2026-03-03T23:17:54.720Z",
+    "entryTimestampUtc": "2026-03-04T11:47:20.636Z",
+    "exitTimestampUtc": "2026-03-04T12:06:32.594Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-03T16:51:18.692Z",
-    "exitTimestampUtc": "2026-03-03T23:17:54.720Z"
+    "entryTimestampUtc": "2026-03-04T11:47:20.636Z",
+    "exitTimestampUtc": "2026-03-04T12:06:32.594Z"
   },
   "solusContext": {
     "assetClass": "equity",
     "thesisClass": "momentum",
     "leverage": 5,
     "stopDistancePct": 1.5,
-    "maxLossUsd": 120.59,
+    "maxLossUsd": 122.94,
     "maxLossPct": 7.5,
     "entryAtrPct": 3
   },
   "agentContextMissing": {
     "Echo": [
-      "timestamp"
-    ],
-    "Oracle": [
-      "timestamp",
-      "entry_datetime"
-    ],
-    "Solus": [
-      "timestamp"
+      "lane_coverage_gap"
     ]
   },
   "contextCompletenessPct": 92.9,
-  "regimeVsExecution": "regime_miss"
+  "regimeVsExecution": "unclear"
 }
 ```

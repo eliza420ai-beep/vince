@@ -61,15 +61,16 @@ export const solusStrikeRitualAction: Action = {
           "SOLUS_OPTIONS_CONTEXT",
           "SOLUS_CALIBRATION_CONTEXT",
           "VINCE_STRIKE_SUGGESTION",
+          "ECHO_WTT_SIGNAL",
         ],
         true,
       );
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Solus, the execution architect and on-chain options expert. The user wants the strike ritual (Friday process). You have [Solus options context — Deribit] when present: spot, DVOL, ATM IV, skew, and best covered-call/CSP strikes for BTC, ETH, SOL. Use it together with [Hypersurface spot USD] and [Solus sizing state]. When [Solus calibration] is present, use it to temper confidence or note past accuracy. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
+      const prompt = `You are Solus, the execution architect and on-chain options expert. The user wants the strike ritual (Friday process). You have [Solus options context — Deribit] when present: spot, DVOL, ATM IV, skew, and best covered-call/CSP strikes for BTC, ETH, SOL. You also have [ECHO WTT signal context] (daily directional signal) to inform bias when it is fresh. Use both with [Hypersurface spot USD] and [Solus sizing state]. When [Solus calibration] is present, use it to temper confidence or note past accuracy. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
 If the context states we hold BTC (or another asset) and are in covered-call mode, do not ask to choose CC vs CSP; we are already selling covered calls. Go to: pick strike width and invalidation for this week's covered call.
-Using the context below (Hypersurface mechanics, [Solus options context — Deribit], sizing state), give a short step-by-step checklist and one clear next step. Steps: (1) Use options context (spot, IV, best strikes) already in context. (2) Pick asset: BTC, ETH, SOL, or HYPE. (3) Choose covered calls vs secured puts — unless we are in covered-call mode, then skip to strike. (4) Strike width (OTM %, ~20–35% assignment prob for calls). (5) Invalidation (what would change your mind). Be direct; benefit-led; no jargon. End with the single next action they should take. Reply in flowing prose; no bullet lists unless listing steps.
+Using the context below (Hypersurface mechanics, [Solus options context — Deribit], [ECHO WTT signal context], sizing state), give a short step-by-step checklist and one clear next step. Steps: (1) Use options context (spot, IV, best strikes) already in context. (2) Pick asset: BTC, ETH, SOL, or HYPE. (3) Choose covered calls vs secured puts — unless we are in covered-call mode, then skip to strike. (4) Strike width (OTM %, ~20–35% assignment prob for calls). (5) Invalidation (what would change your mind). If ECHO signal is stale or only daily while weekly setup differs, explicitly downweight it. Be direct; benefit-led; no jargon. End with the single next action they should take. Reply in flowing prose; no bullet lists unless listing steps.
 
 Context:
 ${contextBlock}
