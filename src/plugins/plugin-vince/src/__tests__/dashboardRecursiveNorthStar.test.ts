@@ -128,8 +128,14 @@ describe("buildRecursiveNorthStarResponse", () => {
     expect(payload.metrics.recursion.coverageVelocity).toHaveProperty(
       "missingClosedRowsTo20",
     );
+    expect(payload.metrics.recursion.coverageVelocity).toHaveProperty(
+      "closesPerDayNeeded",
+    );
     expect(payload.metrics.synergy.coverageVelocity).toHaveProperty(
       "minSamplesPerArmDeficit",
+    );
+    expect(payload.metrics.synergy.coverageVelocity).toHaveProperty(
+      "stageDeficitPerDayNeeded",
     );
     expect(payload.metrics.ml.modelCount).toBe(3);
     expect(Array.isArray(payload.metrics.ml.readinessReasons)).toBe(true);

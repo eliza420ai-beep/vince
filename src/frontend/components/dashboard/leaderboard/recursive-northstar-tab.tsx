@@ -90,6 +90,18 @@ const formatMinutesAgo = (ageMs?: number | null): string => {
   return `${mins}m ago`;
 };
 
+const formatDelta = (value?: number): string => {
+  const safe = Number.isFinite(value) ? Number(value) : 0;
+  return Number.isInteger(safe) ? String(safe) : safe.toFixed(2);
+};
+
+const coverageDeltaClass = (value?: number): string => {
+  const safe = Number.isFinite(value) ? Number(value) : 0;
+  if (safe <= 0) return "text-green-600 dark:text-green-400";
+  if (safe <= 2) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
+};
+
 function buildSparklinePath(
   values: number[],
   width: number,
@@ -358,11 +370,51 @@ export function RecursiveNorthStarTab({
                 Recursion Delta
               </p>
               {recursionCoverage ? (
-                <p className="text-muted-foreground">
-                  closes {recursionCoverage.missingClosedRowsTo20} · days{" "}
-                  {recursionCoverage.missingDistinctDaysTo7} · regime{" "}
-                  {recursionCoverage.missingRegimeDepthTo5}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">
+                    closes{" "}
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        coverageDeltaClass(
+                          recursionCoverage.missingClosedRowsTo20,
+                        ),
+                      )}
+                    >
+                      {formatDelta(recursionCoverage.missingClosedRowsTo20)}
+                    </span>{" "}
+                    · days{" "}
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        coverageDeltaClass(
+                          recursionCoverage.missingDistinctDaysTo7,
+                        ),
+                      )}
+                    >
+                      {formatDelta(recursionCoverage.missingDistinctDaysTo7)}
+                    </span>{" "}
+                    · regime{" "}
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        coverageDeltaClass(
+                          recursionCoverage.missingRegimeDepthTo5,
+                        ),
+                      )}
+                    >
+                      {formatDelta(recursionCoverage.missingRegimeDepthTo5)}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Pace ({formatDelta(recursionCoverage.daysRemaining)}d left):
+                    closes {formatDelta(recursionCoverage.closesPerDayNeeded)}
+                    /day · days{" "}
+                    {formatDelta(recursionCoverage.distinctDaysPerDayNeeded)}
+                    /day · regime{" "}
+                    {formatDelta(recursionCoverage.regimeDepthPerDayNeeded)}/day
+                  </p>
+                </div>
               ) : (
                 <p className="text-muted-foreground">
                   No recursion coverage data.
@@ -374,11 +426,48 @@ export function RecursiveNorthStarTab({
                 Synergy Delta
               </p>
               {synergyCoverage ? (
-                <p className="text-muted-foreground">
-                  stage {synergyCoverage.stageDeficitTotal} · pair{" "}
-                  {synergyCoverage.pairDeficitTotal} · min-arm{" "}
-                  {synergyCoverage.minSamplesPerArmDeficit}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">
+                    stage{" "}
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        coverageDeltaClass(synergyCoverage.stageDeficitTotal),
+                      )}
+                    >
+                      {formatDelta(synergyCoverage.stageDeficitTotal)}
+                    </span>{" "}
+                    · pair{" "}
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        coverageDeltaClass(synergyCoverage.pairDeficitTotal),
+                      )}
+                    >
+                      {formatDelta(synergyCoverage.pairDeficitTotal)}
+                    </span>{" "}
+                    · min-arm{" "}
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        coverageDeltaClass(
+                          synergyCoverage.minSamplesPerArmDeficit,
+                        ),
+                      )}
+                    >
+                      {formatDelta(synergyCoverage.minSamplesPerArmDeficit)}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Pace ({formatDelta(synergyCoverage.daysRemaining)}d left):
+                    stage{" "}
+                    {formatDelta(synergyCoverage.stageDeficitPerDayNeeded)}/day
+                    · pair{" "}
+                    {formatDelta(synergyCoverage.pairDeficitPerDayNeeded)}
+                    /day · min-arm{" "}
+                    {formatDelta(synergyCoverage.minArmPerDayNeeded)}/day
+                  </p>
+                </div>
               ) : (
                 <p className="text-muted-foreground">
                   No synergy coverage data.

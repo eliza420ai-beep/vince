@@ -901,6 +901,12 @@ export interface RecursiveNorthStarResponse {
         missingClosedRowsTo20: number;
         missingDistinctDaysTo7: number;
         missingRegimeDepthTo5: number;
+        sprintWindowDays?: number;
+        daysCovered?: number;
+        daysRemaining?: number;
+        closesPerDayNeeded?: number;
+        distinctDaysPerDayNeeded?: number;
+        regimeDepthPerDayNeeded?: number;
       };
       sufficiencyBlockingReasons?: string[];
       sufficiencyBlockersByDimension?: Record<string, string>;
@@ -971,6 +977,12 @@ export interface RecursiveNorthStarResponse {
         stageDeficitTotal: number;
         pairDeficitTotal: number;
         minSamplesPerArmDeficit: number;
+        sprintWindowDays?: number;
+        daysCovered?: number;
+        daysRemaining?: number;
+        stageDeficitPerDayNeeded?: number;
+        pairDeficitPerDayNeeded?: number;
+        minArmPerDayNeeded?: number;
       };
       promotionReasons: string[];
       causalPairs: Array<{

@@ -42,6 +42,12 @@ export interface RecursiveNorthStarResponse {
         missingClosedRowsTo20: number;
         missingDistinctDaysTo7: number;
         missingRegimeDepthTo5: number;
+        sprintWindowDays: number;
+        daysCovered: number;
+        daysRemaining: number;
+        closesPerDayNeeded: number;
+        distinctDaysPerDayNeeded: number;
+        regimeDepthPerDayNeeded: number;
       };
       sufficiencyBlockingReasons: string[];
       sufficiencyBlockersByDimension: Record<string, string>;
@@ -110,6 +116,12 @@ export interface RecursiveNorthStarResponse {
         stageDeficitTotal: number;
         pairDeficitTotal: number;
         minSamplesPerArmDeficit: number;
+        sprintWindowDays: number;
+        daysCovered: number;
+        daysRemaining: number;
+        stageDeficitPerDayNeeded: number;
+        pairDeficitPerDayNeeded: number;
+        minArmPerDayNeeded: number;
       };
       promotionReasons: string[];
       causalPairs: Array<{
@@ -250,6 +262,7 @@ export interface RecursiveNorthStarOperatorStatus {
 
 const clamp = (value: number, min = 0, max = 100): number =>
   Math.max(min, Math.min(max, value));
+const round2 = (value: number): number => Math.round(value * 100) / 100;
 const HISTORY_FILE = path.join(
   process.cwd(),
   ".elizadb",
@@ -718,6 +731,35 @@ export async function buildRecursiveNorthStarResponse(
     history7d.length > 0 &&
     history7d.every((point) => point.synergyScore >= 75);
 
+  const sprintWindowDays = 7;
+  const daysCovered = Math.max(
+    0,
+    Number((sufficiency as any).timeCoverageDays ?? 0),
+  );
+  const clampedCoveredDays = Math.min(sprintWindowDays, daysCovered);
+  const daysRemaining = Math.max(1, sprintWindowDays - clampedCoveredDays);
+  const missingClosedRowsTo20 = Math.max(
+    0,
+    20 - Number(sufficiency.sampleCount ?? 0),
+  );
+  const missingDistinctDaysTo7 = Math.max(0, 7 - daysCovered);
+  const missingRegimeDepthTo5 = Math.max(
+    0,
+    5 - Number((sufficiency as any).minRegimeSampleCount ?? 0),
+  );
+  const stageDeficitTotal = stageDepth.perStage.reduce(
+    (sum, row) => sum + Math.max(0, row.deficitToMin),
+    0,
+  );
+  const pairDeficitTotal = stageDepth.pairDepth.reduce(
+    (sum, row) => sum + Math.max(0, row.deficitToMin),
+    0,
+  );
+  const minSamplesPerArmDeficit = Math.max(
+    0,
+    SYNERGY_MINIMUM_SAMPLES_PER_ARM - minSamplesPerArm,
+  );
+
   return {
     scorecard: {
       overallScore,
@@ -755,17 +797,18 @@ export async function buildRecursiveNorthStarResponse(
         allocatorSummaryAgeMs,
         allocatorSummarySource,
         coverageVelocity: {
-          missingClosedRowsTo20: Math.max(
-            0,
-            20 - Number(sufficiency.sampleCount ?? 0),
+          missingClosedRowsTo20,
+          missingDistinctDaysTo7,
+          missingRegimeDepthTo5,
+          sprintWindowDays,
+          daysCovered: round2(clampedCoveredDays),
+          daysRemaining: round2(daysRemaining),
+          closesPerDayNeeded: round2(missingClosedRowsTo20 / daysRemaining),
+          distinctDaysPerDayNeeded: round2(
+            missingDistinctDaysTo7 / daysRemaining,
           ),
-          missingDistinctDaysTo7: Math.max(
-            0,
-            7 - Number((sufficiency as any).timeCoverageDays ?? 0),
-          ),
-          missingRegimeDepthTo5: Math.max(
-            0,
-            5 - Number((sufficiency as any).minRegimeSampleCount ?? 0),
+          regimeDepthPerDayNeeded: round2(
+            missingRegimeDepthTo5 / daysRemaining,
           ),
         },
         sufficiencyBlockingReasons: sufficiency.blockingReasons ?? [],
@@ -801,18 +844,15 @@ export async function buildRecursiveNorthStarResponse(
         nearPassEffectRatio,
         nearPassBonus,
         coverageVelocity: {
-          stageDeficitTotal: stageDepth.perStage.reduce(
-            (sum, row) => sum + Math.max(0, row.deficitToMin),
-            0,
-          ),
-          pairDeficitTotal: stageDepth.pairDepth.reduce(
-            (sum, row) => sum + Math.max(0, row.deficitToMin),
-            0,
-          ),
-          minSamplesPerArmDeficit: Math.max(
-            0,
-            SYNERGY_MINIMUM_SAMPLES_PER_ARM - minSamplesPerArm,
-          ),
+          stageDeficitTotal,
+          pairDeficitTotal,
+          minSamplesPerArmDeficit,
+          sprintWindowDays,
+          daysCovered: round2(clampedCoveredDays),
+          daysRemaining: round2(daysRemaining),
+          stageDeficitPerDayNeeded: round2(stageDeficitTotal / daysRemaining),
+          pairDeficitPerDayNeeded: round2(pairDeficitTotal / daysRemaining),
+          minArmPerDayNeeded: round2(minSamplesPerArmDeficit / daysRemaining),
         },
         promotionReasons: causal?.promotionReasons ?? [],
         causalPairs:
