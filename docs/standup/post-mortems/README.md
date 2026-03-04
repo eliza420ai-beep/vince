@@ -52,6 +52,11 @@ For weekly governance and KPI rollups, include these lines:
 - `PM_PMEP_COMPLETENESS_PCT: <0-100>`
 - `PM_MISSING_DATA_COUNT: <integer>`
 - `PM_CONTEXT_COMPLETENESS_PCT: <0-100>` (Echo/Oracle/Solus lane context filled vs expected)
+- `PM_BUDGET_BREACH: <true|false>`
+- `PM_RISK_SLIPPAGE_USD: <number>`
+- `PM_ADAPTATION_ELIGIBLE: <true|false>`
+- `PM_POLICY_VERSION_AT_ENTRY: <string|unknown>`
+- `PM_PROPOSED_DELTA_PRESENT: <true|false>`
 
 ## Root-cause taxonomy (canonical tags)
 
@@ -83,6 +88,44 @@ Each post-mortem ends with a fenced JSON block under **Machine-Readable Summary*
   "missingData": ["fieldA", "fieldB"],
   "holdMinutes": 0,
   "adverseMovePct": 0,
+  "riskBudget": {
+    "plannedRiskUsd": 0,
+    "realizedRiskUsd": 0,
+    "riskSlippageUsd": 0,
+    "budgetBreach": false
+  },
+  "consistencyChecks": {
+    "passed": true,
+    "issues": [],
+    "adverseMovePctFromPrices": 0,
+    "adverseMovePctDelta": 0,
+    "stopDistancePctFromPrices": 0,
+    "stopDistancePctDelta": 0,
+    "hasTruncatedFindings": false
+  },
+  "adaptationEligible": false,
+  "policyVersionAtEntry": "risk-2026-03-04.1 | null",
+  "proposedPolicyDelta": {
+    "confidence": 0.7,
+    "sampleSizeHint": 20,
+    "maxStepChangePct": 20,
+    "expiresAtUtc": "YYYY-MM-DDTHH:MM:SS.sssZ",
+    "riskIntent": {
+      "stopToAtrMin": 1.2,
+      "maxLeverageByAssetClass": { "crypto": 7 },
+      "maxSingleTradeUsd": 5000,
+      "enforcePreTradeRiskCheck": true
+    },
+    "validationPlan": {
+      "windowTrades": 20,
+      "targetMetrics": {
+        "maxBudgetBreachRate": 0.2,
+        "minExpectancyUsd": -5,
+        "maxDrawdownPct": 15
+      },
+      "rollbackTriggers": ["budget_breach_rate_worse_than_baseline"]
+    }
+  },
   "echoContext": {
     "entryTimestampUtc": "YYYY-MM-DDTHH:MM:SS.sssZ",
     "exitTimestampUtc": "YYYY-MM-DDTHH:MM:SS.sssZ",

@@ -180,9 +180,12 @@ describe("postMortem utils", () => {
     expect(md).toContain("## Corrective Actions");
     expect(md).toContain("## Confidence and Data Gaps");
     expect(md).toContain("## What changes on next trade?");
+    expect(md).toContain("## Recursive Policy Delta");
     expect(md).toContain("## Machine-Readable Summary");
     expect(md).toContain("PM_QUALITY_SCORE:");
     expect(md).toContain("PM_PRIMARY_CAUSE:");
     expect(md).toContain("PM_MISSING_DATA_COUNT:");
+    expect(md).toContain("PM_BUDGET_BREACH:");
+    expect(md).toContain("PM_ADAPTATION_ELIGIBLE:");
   });
 });

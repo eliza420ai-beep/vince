@@ -258,6 +258,34 @@ The paper bot can **run on autopilot** so it keeps getting better from its own t
 
 So: **trades → features → train → new models + weights → better decisions → more trades** is a **recursive loop** that runs without manual steps once the agent is up and the env flag is set. See [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) for how we **prove** the loop improves the bot.
 
+### ML loop vs post-mortem loop (simple)
+
+Both loops are recursive, but they do different jobs:
+
+- **ML loop = performance engine.** It learns from many trades and predicts better signal quality, size, and TP/SL behavior.
+- **Post-mortem loop = safety engine.** It learns from losses and applies bounded guardrails (for example: lower leverage cap, minimum stop-vs-ATR floor), then validates and rolls back if results do not improve.
+
+Think of it this way:
+
+- ML says: "Within our rules, what is the best move?"
+- Post-mortem policy says: "What mistakes are temporarily off-limits until proven safe again?"
+
+They are **complementary**, not conflicting, because of precedence:
+
+1. Hard risk limits and policy guardrails (including post-mortem candidate overlays)
+2. Policy engine checks (block/warn/size-reduce)
+3. ML optimization inside those limits
+
+This avoids double-counting risk while still allowing ML to improve decisions. If a post-mortem policy hurts outcomes, the candidate is rolled back automatically.
+
+```mermaid
+flowchart TD
+  pmLoss[LossPostMortem] --> guardrails[BoundedGuardrails]
+  mlTrain[MLTrainingLoop] --> optimize[MLOptimization]
+  guardrails --> tradeDecision[FinalTradeDecision]
+  optimize --> tradeDecision
+```
+
 ### Improving the paper algo after training (manual)
 
 1. Run `bun run train-models` when you have 90+ closed trades.
