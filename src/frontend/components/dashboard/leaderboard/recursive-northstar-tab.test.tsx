@@ -61,6 +61,12 @@ describe("RecursiveNorthStarTab", () => {
               avoidedDecisions30d: 17,
               banditReady: false,
               banditTradesProcessed: 128,
+              readinessReasons: ["missing_expected_model_files"],
+              missingModelFiles: ["sl_optimizer.onnx"],
+              modelsDir: ".elizadb/vince-paper-bot/models",
+              onnxRuntimeAvailable: true,
+              lastLoadError: null,
+              banditInitError: null,
             },
             synergy: {
               upliftDelta: 3,
@@ -68,12 +74,44 @@ describe("RecursiveNorthStarTab", () => {
               causalConfidenceScore: 72,
               causalPairCount: 1,
               minSamplesPerArm: 10,
+              promotionReasons: ["all_pairs_passed"],
+              causalPairs: [
+                {
+                  label: "onnx_vs_swarm",
+                  controlStage: "onnx_enabled",
+                  treatmentStage: "onnx_plus_swarm",
+                  controlCount: 18,
+                  treatmentCount: 20,
+                  upliftDelta: 0.03,
+                  ciLower: 0.01,
+                  ciUpper: 0.06,
+                  confidenceScore: 72,
+                  passed: true,
+                },
+              ],
             },
           },
           northStar: {
             fullRecursionReady: false,
             onePlusOneEqThreeReady: false,
             why: ["Recursive loop still has blockers before full autonomy."],
+          },
+          milestones: {
+            recursion3d: {
+              pass: false,
+              observedPoints: 3,
+              target: "No recursion blockers and recursion score >= 75 for 3d",
+            },
+            ml3d: {
+              pass: false,
+              observedPoints: 3,
+              target: "No ML blockers and ML score >= 70 for 3d",
+            },
+            synergy7d: {
+              pass: false,
+              observedPoints: 4,
+              target: "1+1=3 ready and synergy score >= 75 for 7d",
+            },
           },
           trend: {
             windows: [
@@ -142,5 +180,10 @@ describe("RecursiveNorthStarTab", () => {
     expect(html).toContain("weakening");
     expect(html).toContain("causal_sample_depth_below_12");
     expect(html).toContain("weight_bandit_not_ready");
+    expect(html).toContain("Milestone Gates");
+    expect(html).toContain("ML Readiness Diagnostics");
+    expect(html).toContain("Causal Pair Drilldown");
+    expect(html).toContain("missing_expected_model_files");
+    expect(html).toContain("onnx_vs_swarm");
   });
 });

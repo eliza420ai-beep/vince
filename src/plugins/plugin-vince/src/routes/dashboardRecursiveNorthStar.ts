@@ -43,6 +43,12 @@ export interface RecursiveNorthStarResponse {
       avoidedDecisions30d: number;
       banditReady: boolean;
       banditTradesProcessed: number;
+      readinessReasons: string[];
+      missingModelFiles: string[];
+      modelsDir: string;
+      onnxRuntimeAvailable: boolean;
+      lastLoadError: string | null;
+      banditInitError: string | null;
     };
     synergy: {
       upliftDelta: number;
@@ -50,12 +56,43 @@ export interface RecursiveNorthStarResponse {
       causalConfidenceScore: number;
       causalPairCount: number;
       minSamplesPerArm: number;
+      promotionReasons: string[];
+      causalPairs: Array<{
+        label: string;
+        controlStage: string;
+        treatmentStage: string;
+        controlCount: number;
+        treatmentCount: number;
+        upliftDelta: number;
+        ciLower: number;
+        ciUpper: number;
+        confidenceScore: number;
+        passed: boolean;
+        failureReason?: string;
+      }>;
     };
   };
   northStar: {
     fullRecursionReady: boolean;
     onePlusOneEqThreeReady: boolean;
     why: string[];
+  };
+  milestones: {
+    recursion3d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
+    ml3d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
+    synergy7d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
   };
   trend?: {
     windows: Array<{
@@ -181,17 +218,25 @@ export async function buildRecursiveNorthStarResponse(
   if (mlService?.ensureModelsLoaded) {
     await mlService.ensureModelsLoaded();
   }
-  const mlStatus = mlService?.getMLStatus?.() ?? {
+  const mlStatusRaw = mlService?.getMLStatus?.() ?? {};
+  const mlStatus = {
     modelsLoaded: [],
     signalQualityThreshold: 0.6,
     tpLevelIndices: [],
     tpLevelSkipped: null,
     suggestedMinStrength: null,
     suggestedMinConfidence: null,
+    readinessReasons: ["ml_service_unavailable"],
+    missingModelFiles: [],
+    modelsDir: "",
+    onnxRuntimeAvailable: false,
+    lastLoadError: null,
+    ...mlStatusRaw,
   };
   const banditStatus = bandit?.getBanditStatus?.() ?? {
     isReady: false,
     totalTradesProcessed: 0,
+    initError: "bandit_service_unavailable",
   };
   const allocator = allocatorService?.getLatestSummary?.() ?? null;
   const computeScoresForWindow = async (windowDays: number) => {
@@ -319,6 +364,9 @@ export async function buildRecursiveNorthStarResponse(
     `${completeTrades30d} complete trades in 30d`,
     `Signal quality threshold ${mlStatus.signalQualityThreshold.toFixed(2)}`,
   ];
+  if (mlStatus.readinessReasons.length > 0) {
+    mlHighlights.push(`ML readiness: ${mlStatus.readinessReasons.join(", ")}`);
+  }
   const mlBlockers: string[] = [];
   if (mlStatus.modelsLoaded.length === 0) mlBlockers.push("no_models_loaded");
   if (completeTrades30d < 20) mlBlockers.push("not_enough_complete_trades_30d");
@@ -388,6 +436,24 @@ export async function buildRecursiveNorthStarResponse(
     mlScore: Math.round(mlScore),
     synergyScore: Math.round(synergyScore),
   });
+  const history3d = persistedHistory.filter(
+    (point) => now - point.at <= 3 * 24 * 60 * 60 * 1000,
+  );
+  const history7d = persistedHistory.filter(
+    (point) => now - point.at <= 7 * 24 * 60 * 60 * 1000,
+  );
+  const recursion3dPass =
+    recursionBlockers.length === 0 &&
+    history3d.length > 0 &&
+    history3d.every((point) => point.recursionScore >= 75);
+  const ml3dPass =
+    mlBlockers.length === 0 &&
+    history3d.length > 0 &&
+    history3d.every((point) => point.mlScore >= 70);
+  const synergy7dPass =
+    onePlusOneEqThreeReady &&
+    history7d.length > 0 &&
+    history7d.every((point) => point.synergyScore >= 75);
 
   return {
     scorecard: {
@@ -430,6 +496,12 @@ export async function buildRecursiveNorthStarResponse(
         avoidedDecisions30d,
         banditReady: Boolean(banditStatus.isReady),
         banditTradesProcessed: Number(banditStatus.totalTradesProcessed ?? 0),
+        readinessReasons: mlStatus.readinessReasons ?? [],
+        missingModelFiles: mlStatus.missingModelFiles ?? [],
+        modelsDir: mlStatus.modelsDir ?? "",
+        onnxRuntimeAvailable: Boolean(mlStatus.onnxRuntimeAvailable),
+        lastLoadError: mlStatus.lastLoadError ?? null,
+        banditInitError: banditStatus.initError ?? null,
       },
       synergy: {
         upliftDelta,
@@ -437,12 +509,44 @@ export async function buildRecursiveNorthStarResponse(
         causalConfidenceScore,
         causalPairCount: causal?.pairs?.length ?? 0,
         minSamplesPerArm,
+        promotionReasons: causal?.promotionReasons ?? [],
+        causalPairs:
+          causal?.pairs?.map((pair) => ({
+            label: pair.label,
+            controlStage: pair.controlStage,
+            treatmentStage: pair.treatmentStage,
+            controlCount: pair.controlCount,
+            treatmentCount: pair.treatmentCount,
+            upliftDelta: pair.upliftDelta,
+            ciLower: pair.ciLower,
+            ciUpper: pair.ciUpper,
+            confidenceScore: pair.confidenceScore,
+            passed: pair.passed,
+            failureReason: pair.failureReason,
+          })) ?? [],
       },
     },
     northStar: {
       fullRecursionReady,
       onePlusOneEqThreeReady,
       why,
+    },
+    milestones: {
+      recursion3d: {
+        pass: recursion3dPass,
+        observedPoints: history3d.length,
+        target: "No recursion blockers and recursion score >= 75 for 3d",
+      },
+      ml3d: {
+        pass: ml3dPass,
+        observedPoints: history3d.length,
+        target: "No ML blockers and ML score >= 70 for 3d",
+      },
+      synergy7d: {
+        pass: synergy7dPass,
+        observedPoints: history7d.length,
+        target: "1+1=3 ready and synergy score >= 75 for 7d",
+      },
     },
     trend: {
       windows: [
