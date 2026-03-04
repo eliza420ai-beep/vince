@@ -110,6 +110,10 @@ import {
   scoreWttPickQuality,
 } from "../utils/wttQualityScore";
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
+import type {
+  CausalStageDepthSummary,
+  UpliftSnapshot,
+} from "./vinceXSourceAttribution.service";
 import { VincePolicyEngineService } from "./vincePolicyEngine.service";
 import { VinceCapitalBucketsService } from "./vinceCapitalBuckets.service";
 import type { VincePostMortemPolicyLoopService } from "./vincePostMortemPolicyLoop.service";
@@ -243,6 +247,9 @@ export class VincePaperTradingService extends Service {
   private tradesOpenedToday = 0;
   private tradesOpenedTodayDate = "";
 
+  private static readonly COVERAGE_NEAR_THRESHOLD_POINTS = 8;
+  private static readonly COVERAGE_SIGNAL_BONUS_POINTS = 4;
+
   constructor(protected runtime: IAgentRuntime) {
     super();
     this.attributionSvc = new VinceXSourceAttributionService(
@@ -319,6 +326,113 @@ export class VincePaperTradingService extends Service {
     const n =
       typeof raw === "number" ? raw : Number.parseFloat(String(raw).trim());
     return Number.isNaN(n) ? fallback : n;
+  }
+
+  private buildProofCoverageContext(): {
+    stageDepth: CausalStageDepthSummary;
+    uplift: UpliftSnapshot;
+    regimeMinTarget: number;
+    dominantRegime: string | null;
+    dominantRegimeShare: number;
+    underrepresentedRegimes: Set<string>;
+    stageDeficitCount: number;
+    totalClosed: number;
+  } {
+    const minSamplesPerArm = this.getNumericSettingOrEnv(
+      "VINCE_PHASE15_CAUSAL_MIN_SAMPLES_PER_ARM",
+      10,
+    );
+    const regimeMinTarget = this.getNumericSettingOrEnv(
+      "VINCE_RECURSION_MIN_REGIME_DEPTH",
+      5,
+    );
+    const stageDepth = this.attributionSvc.getCausalStageDepthSummary(
+      30,
+      Math.max(1, Math.round(minSamplesPerArm)),
+    );
+    const uplift = this.attributionSvc.getUpliftSnapshot(30);
+    const regimes = Array.isArray(uplift.byRegime) ? uplift.byRegime : [];
+    const total = Math.max(
+      1,
+      regimes.reduce((sum, row) => sum + Math.max(0, row.count ?? 0), 0),
+    );
+    const dominant = regimes
+      .slice()
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))[0];
+    const dominantRegime = dominant?.regime ?? null;
+    const dominantRegimeShare = dominant ? (dominant.count ?? 0) / total : 0;
+    const underrepresentedRegimes = new Set(
+      regimes
+        .filter((row) => (row.count ?? 0) < regimeMinTarget)
+        .map((r) => r.regime),
+    );
+    const stageDeficitCount = stageDepth.pairDepth.filter(
+      (row) => row.deficitToMin > 0,
+    ).length;
+    return {
+      stageDepth,
+      uplift,
+      regimeMinTarget,
+      dominantRegime,
+      dominantRegimeShare,
+      underrepresentedRegimes,
+      stageDeficitCount,
+      totalClosed: Math.max(0, Number(uplift.totalClosed ?? 0)),
+    };
+  }
+
+  private applyCoverageBias(params: {
+    tradeSignal: AggregatedTradeSignal;
+    coverage: ReturnType<VincePaperTradingService["buildProofCoverageContext"]>;
+    signalLimits: {
+      minSignalStrength: number;
+      minSignalConfidence: number;
+    };
+    regimeKey?: string | null;
+  }): void {
+    const { tradeSignal, coverage, signalLimits, regimeKey } = params;
+    if (tradeSignal.direction === "neutral") return;
+    const stageNeedsHelp = coverage.stageDeficitCount > 0;
+    const regimeNeedsHelp =
+      regimeKey != null && coverage.underrepresentedRegimes.has(regimeKey);
+    if (!stageNeedsHelp && !regimeNeedsHelp) return;
+
+    const nearStrength =
+      tradeSignal.strength >=
+      signalLimits.minSignalStrength -
+        VincePaperTradingService.COVERAGE_NEAR_THRESHOLD_POINTS;
+    const nearConfidence =
+      tradeSignal.confidence >=
+      signalLimits.minSignalConfidence -
+        VincePaperTradingService.COVERAGE_NEAR_THRESHOLD_POINTS;
+    if (!nearStrength && !nearConfidence) return;
+
+    const bonus =
+      (stageNeedsHelp
+        ? VincePaperTradingService.COVERAGE_SIGNAL_BONUS_POINTS
+        : 0) +
+      (regimeNeedsHelp
+        ? VincePaperTradingService.COVERAGE_SIGNAL_BONUS_POINTS
+        : 0);
+    tradeSignal.strength = Math.min(100, tradeSignal.strength + bonus);
+    tradeSignal.confidence = Math.min(100, tradeSignal.confidence + bonus);
+  }
+
+  private getRegimeQuotaBlockReason(params: {
+    coverage: ReturnType<VincePaperTradingService["buildProofCoverageContext"]>;
+    regimeKey?: string | null;
+  }): string | null {
+    const { coverage, regimeKey } = params;
+    if (!regimeKey) return null;
+    if (coverage.totalClosed < 30) return null;
+    if (coverage.underrepresentedRegimes.size === 0) return null;
+    if (!coverage.dominantRegime || coverage.dominantRegime !== regimeKey)
+      return null;
+    const dominantShareThreshold = 0.55;
+    if (coverage.dominantRegimeShare <= dominantShareThreshold) return null;
+    return `Regime quota guard: ${regimeKey} is dominant (${(
+      coverage.dominantRegimeShare * 100
+    ).toFixed(0)}%), prioritize underrepresented regimes first`;
   }
 
   private async initialize(): Promise<void> {
@@ -689,7 +803,10 @@ export class VincePaperTradingService extends Service {
 
     // Get base thresholds from risk manager
     const riskManager = this.getRiskManager();
-    const limits = riskManager?.getLimits();
+    const limits =
+      riskManager && typeof (riskManager as any).getLimits === "function"
+        ? (riskManager as any).getLimits()
+        : undefined;
     let minStrength = limits?.minSignalStrength ?? 60;
     let minConfidence = limits?.minSignalConfidence ?? 60;
     // HIP-3 and HYPE have fewer signal sources; primary source gate ensures quality
@@ -1455,6 +1572,20 @@ Reply format: APPROVE reason or VETO reason`;
     if (isWttEnabled(this.runtime)) await this.evaluateWttPick();
 
     const assets = getPaperTradeAssetsWithWatchlist(this.runtime);
+    const regimeQuotaEnabled =
+      this.runtime.getSetting?.("VINCE_PROOF_REGIME_QUOTA_ENABLED") === true ||
+      this.runtime.getSetting?.("VINCE_PROOF_REGIME_QUOTA_ENABLED") ===
+        "true" ||
+      process.env.VINCE_PROOF_REGIME_QUOTA_ENABLED === "true";
+    const coverageContext = this.buildProofCoverageContext();
+    const regimeService = this.getMarketRegime();
+    const signalLimits = (() => {
+      const limits = riskManager.getLimits?.();
+      return {
+        minSignalStrength: limits?.minSignalStrength ?? 60,
+        minSignalConfidence: limits?.minSignalConfidence ?? 60,
+      };
+    })();
     const funnel = {
       passedValidation: 0,
       policyBlock: 0,
@@ -1802,6 +1933,38 @@ Reply format: APPROVE reason or VETO reason`;
           mlQualityScore: (signal as AggregatedSignal).mlQualityScore,
           openWindowBoost: (signal as AggregatedSignal).openWindowBoost,
         };
+        let regime: MarketRegime | null = null;
+        if (regimeService) {
+          try {
+            regime = await regimeService.getRegime(asset);
+          } catch (e) {
+            logger.debug(
+              `[VincePaperTrading] Could not get regime for ${asset}: ${e}`,
+            );
+          }
+        }
+        this.applyCoverageBias({
+          tradeSignal,
+          coverage: coverageContext,
+          signalLimits,
+          regimeKey: regime?.regime ?? null,
+        });
+        const regimeQuotaReason = regimeQuotaEnabled
+          ? this.getRegimeQuotaBlockReason({
+              coverage: coverageContext,
+              regimeKey: regime?.regime ?? null,
+            })
+          : null;
+        if (regimeQuotaReason) {
+          this.logSignalRejection(asset, tradeSignal, regimeQuotaReason);
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            regimeQuotaReason,
+          );
+          incrementFunnelReason(funnel, "regime_quota_guard");
+          continue;
+        }
 
         // Log extended market snapshot when available (DATA_LEVERAGE debugging)
         if (extendedSnapshot && signal.direction !== "neutral") {
@@ -1977,22 +2140,11 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Apply regime-based sizing adjustment
-        const regimeService = this.getMarketRegime();
-        let regime: MarketRegime | null = null;
-        if (regimeService) {
-          try {
-            regime = await regimeService.getRegime(asset);
-            if (regime.positionSizeMultiplier !== 1.0) {
-              baseSizeUsd = baseSizeUsd * regime.positionSizeMultiplier;
-              logger.debug(
-                `[VincePaperTrading] ${asset} regime ${regime.regime}: size ${regime.positionSizeMultiplier}x`,
-              );
-            }
-          } catch (e) {
-            logger.debug(
-              `[VincePaperTrading] Could not get regime for ${asset}: ${e}`,
-            );
-          }
+        if (regime && regime.positionSizeMultiplier !== 1.0) {
+          baseSizeUsd = baseSizeUsd * regime.positionSizeMultiplier;
+          logger.debug(
+            `[VincePaperTrading] ${asset} regime ${regime.regime}: size ${regime.positionSizeMultiplier}x`,
+          );
         }
 
         // Volume-based sizing: scale position size based on volume ratio vs 7-day average
@@ -2527,10 +2679,13 @@ Reply format: APPROVE reason or VETO reason`;
 
         // Swarm consensus: VINCE contributes a vote and, when enabled,
         // consensus can veto trades or scale size based on disagreement.
+        const swarmSetting = this.runtime.getSetting?.("VINCE_SWARM_ENABLED");
         const swarmEnabled =
-          this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
-          this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
-          process.env.VINCE_SWARM_ENABLED === "true";
+          swarmSetting === true || swarmSetting === "true"
+            ? true
+            : swarmSetting === false || swarmSetting === "false"
+              ? false
+              : process.env.VINCE_SWARM_ENABLED === "true";
 
         if (swarmEnabled && signal.direction !== "neutral") {
           try {

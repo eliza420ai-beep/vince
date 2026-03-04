@@ -289,6 +289,14 @@ export async function buildPaperResponse(
   const allocatorService = runtime.getService(
     "VINCE_PROOF_CAPITAL_ALLOCATOR_SERVICE",
   ) as VinceProofCapitalAllocatorService | null;
+  let allocatorSummary = allocatorService?.getLatestSummary?.() ?? null;
+  if (!allocatorSummary && allocatorService?.reconcile) {
+    try {
+      allocatorSummary = await allocatorService.reconcile();
+    } catch {
+      // Best-effort warm-up; leave summary null when reconciliation fails.
+    }
+  }
   const proofSummary = upliftService
     ? {
         uplift7d: upliftService.getSnapshot?.(7) ?? null,
@@ -303,7 +311,7 @@ export async function buildPaperResponse(
         sufficiencyTasks: sufficiencyService?.getBlockingTasks?.(30) ?? [],
         sourceQualityTop:
           sourceQualityService?.getSnapshot?.(30)?.sources?.slice(0, 5) ?? [],
-        allocator: allocatorService?.getLatestSummary?.() ?? null,
+        allocator: allocatorSummary,
         solus30d: getSolusProofSnapshot(30),
       }
     : null;

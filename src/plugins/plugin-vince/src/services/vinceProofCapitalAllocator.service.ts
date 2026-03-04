@@ -23,6 +23,13 @@ export interface ProofAllocatorSummary {
   reason: string;
 }
 
+export interface ProofAllocatorSummaryWithMeta {
+  summary: ProofAllocatorSummary;
+  source: "live" | "history";
+  stale: boolean;
+  ageMs: number;
+}
+
 export class VinceProofCapitalAllocatorService extends Service {
   static serviceType = "VINCE_PROOF_CAPITAL_ALLOCATOR_SERVICE";
   capabilityDescription =
@@ -70,6 +77,30 @@ export class VinceProofCapitalAllocatorService extends Service {
 
   getLatestSummary(): ProofAllocatorSummary | null {
     return this.latestSummary;
+  }
+
+  getLatestSummaryWithFallback(
+    maxAgeMs = 24 * 60 * 60 * 1000,
+  ): ProofAllocatorSummaryWithMeta | null {
+    const live = this.latestSummary;
+    if (live) {
+      const ageMs = Math.max(0, Date.now() - live.generatedAt);
+      return {
+        summary: live,
+        source: "live",
+        stale: ageMs > maxAgeMs,
+        ageMs,
+      };
+    }
+    const fromHistory = this.getLastHistoryEntry();
+    if (!fromHistory) return null;
+    const ageMs = Math.max(0, Date.now() - fromHistory.generatedAt);
+    return {
+      summary: fromHistory,
+      source: "history",
+      stale: ageMs > maxAgeMs,
+      ageMs,
+    };
   }
 
   async reconcile(): Promise<ProofAllocatorSummary> {

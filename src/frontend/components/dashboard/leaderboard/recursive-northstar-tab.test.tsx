@@ -28,7 +28,7 @@ describe("RecursiveNorthStarTab", () => {
           blockers: {
             recursion: ["sample_count_below_20"],
             ml: ["no_models_loaded"],
-            synergy: ["causal_sample_depth_below_12"],
+            synergy: ["causal_sample_depth_below_target"],
           },
           triage: {
             ml: {
@@ -87,7 +87,7 @@ describe("RecursiveNorthStarTab", () => {
               score: 74,
               status: "at_risk",
               highlights: ["Swarm uplift vs ONNX baseline: +3.00 avg PnL"],
-              blockers: ["causal_sample_depth_below_12"],
+              blockers: ["causal_sample_depth_below_target"],
             },
           },
           metrics: {
@@ -97,6 +97,15 @@ describe("RecursiveNorthStarTab", () => {
               blockingTaskCount: 1,
               allocatorStage: "recommendation",
               allocatorMode: "recommendation",
+              allocatorSummaryAvailable: true,
+              allocatorSummaryStale: false,
+              allocatorSummaryAgeMs: 5 * 60 * 1000,
+              allocatorSummarySource: "live",
+              coverageVelocity: {
+                missingClosedRowsTo20: 4,
+                missingDistinctDaysTo7: 2,
+                missingRegimeDepthTo5: 1,
+              },
             },
             ml: {
               modelsLoaded: ["signalQuality", "positionSizing", "tpOptimizer"],
@@ -157,6 +166,14 @@ describe("RecursiveNorthStarTab", () => {
               causalConfidenceScore: 72,
               causalPairCount: 1,
               minSamplesPerArm: 10,
+              nearPassDepthRatio: 1,
+              nearPassEffectRatio: 0.8,
+              nearPassBonus: 4.8,
+              coverageVelocity: {
+                stageDeficitTotal: 3,
+                pairDeficitTotal: 2,
+                minSamplesPerArmDeficit: 0,
+              },
               promotionReasons: ["all_pairs_passed"],
               causalPairs: [
                 {
@@ -169,6 +186,8 @@ describe("RecursiveNorthStarTab", () => {
                   ciLower: 0.01,
                   ciUpper: 0.06,
                   confidenceScore: 72,
+                  smoothedUpliftDelta: 0.031,
+                  smoothedCiLower: 0.012,
                   passed: true,
                 },
               ],
@@ -253,6 +272,11 @@ describe("RecursiveNorthStarTab", () => {
     expect(html).toContain("Recursive North Star score: 78");
     expect(html).toContain("1+1=3 Synergy");
     expect(html).toContain("What is blocking proof");
+    expect(html).toContain("Coverage Velocity");
+    expect(html).toContain("Recursion Delta");
+    expect(html).toContain("Synergy Delta");
+    expect(html).toContain("closes 4 · days 2 · regime 1");
+    expect(html).toContain("stage 3 · pair 2 · min-arm 0");
     expect(html).toContain("Score Trend (7d vs 30d)");
     expect(html).toContain("Rolling overall history");
     expect(html).toContain("Overall");
@@ -261,8 +285,11 @@ describe("RecursiveNorthStarTab", () => {
     expect(html).toContain("↓1");
     expect(html).toContain("improving");
     expect(html).toContain("weakening");
-    expect(html).toContain("causal_sample_depth_below_12");
-    expect(html).toContain("weight_bandit_not_ready");
+    expect(html).toContain("Need deeper per-arm causal sample depth");
+    expect(html).toContain(
+      "Next: Add balanced closes until each arm reaches minimum depth.",
+    );
+    expect(html).toContain("Weight bandit is not ready");
     expect(html).toContain("Milestone Gates");
     expect(html).toContain("ML Readiness Diagnostics");
     expect(html).toContain("Causal Pair Drilldown");
@@ -278,5 +305,13 @@ describe("RecursiveNorthStarTab", () => {
     expect(html).toContain("stage onnx_enabled: deficit 7");
     expect(html).toContain("missing_expected_model_files");
     expect(html).toContain("onnx_vs_swarm");
+    expect(html).toContain("Allocator summary:");
+    expect(html).toContain("(live, 5m ago)");
+    expect(html).toContain("Coverage delta: closes 4 · days 2 · regime 1");
+    expect(html).toContain("Near-pass: depth 100% · effect 80% · bonus +4.8");
+    expect(html).toContain(
+      "Coverage velocity: stage deficit 3 · pair deficit 2 · min-arm gap 0",
+    );
+    expect(html).toContain("smoothed ciLower 0.012");
   });
 });

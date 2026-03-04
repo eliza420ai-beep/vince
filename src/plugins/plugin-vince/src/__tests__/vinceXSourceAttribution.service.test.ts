@@ -107,4 +107,75 @@ describe("VinceXSourceAttributionService", () => {
     const stats = svc.getAttributionStats();
     expect(stats).toHaveLength(0);
   });
+
+  it("exposes smoothed causal metrics to reduce one-window noise", () => {
+    const svc = new VinceXSourceAttributionService(tmpDir);
+    const filePath = path.join(tmpDir, "trade-attribution.jsonl");
+    const now = Date.now();
+    const oldTs = now - 20 * 24 * 60 * 60 * 1000;
+    const recentTs = now - 2 * 24 * 60 * 60 * 1000;
+
+    const mk = (
+      id: string,
+      stage: "onnx_enabled" | "onnx_plus_swarm",
+      outcome: "win" | "loss",
+      ts: number,
+    ) =>
+      JSON.stringify({
+        tradeId: id,
+        asset: "BTC",
+        direction: "long",
+        openedAt: new Date(ts).toISOString(),
+        openedAtMs: ts,
+        sourceClusters: ["@x"],
+        confidence: 70,
+        gateStack: {
+          ruleBased: true,
+          onnxEnabled: true,
+          swarmEnabled: stage === "onnx_plus_swarm",
+          adversaryEnabled: false,
+        },
+        closedAt: new Date(ts + 60_000).toISOString(),
+        closedAtMs: ts + 60_000,
+        pnl: outcome === "win" ? 100 : -100,
+        outcome,
+      });
+
+    const lines: string[] = [];
+    for (let i = 0; i < 8; i++) {
+      lines.push(mk(`old-c-win-${i}`, "onnx_enabled", "win", oldTs + i));
+      lines.push(mk(`old-t-win-${i}`, "onnx_plus_swarm", "win", oldTs + i));
+    }
+    for (let i = 0; i < 2; i++) {
+      lines.push(
+        mk(`old-c-loss-${i}`, "onnx_enabled", "loss", oldTs + 100 + i),
+      );
+      lines.push(
+        mk(`old-t-loss-${i}`, "onnx_plus_swarm", "loss", oldTs + 100 + i),
+      );
+    }
+    for (let i = 0; i < 3; i++) {
+      lines.push(
+        mk(`recent-c-loss-${i}`, "onnx_enabled", "loss", recentTs + i),
+      );
+    }
+    lines.push(mk("recent-c-win", "onnx_enabled", "win", recentTs + 10));
+    for (let i = 0; i < 4; i++) {
+      lines.push(
+        mk(`recent-t-win-${i}`, "onnx_plus_swarm", "win", recentTs + 20 + i),
+      );
+    }
+
+    fs.writeFileSync(filePath, lines.join("\n") + "\n", "utf-8");
+    const causal = svc.getCausalUpliftSnapshot({
+      windowDays: 30,
+      minimumEffect: 0.01,
+      minimumSamplesPerArm: 5,
+    });
+    const pair = causal.pairs.find((p) => p.label === "onnx_vs_swarm");
+    expect(pair).toBeDefined();
+    expect(pair?.smoothedUpliftDelta).toBeGreaterThan(pair?.upliftDelta ?? 0);
+    expect(pair?.smoothedCiLower).toBeDefined();
+    expect(pair?.smoothedConfidenceScore).toBeDefined();
+  });
 });

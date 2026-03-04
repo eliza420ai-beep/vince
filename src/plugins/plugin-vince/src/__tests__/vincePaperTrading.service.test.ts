@@ -558,4 +558,226 @@ describe("VincePaperTradingService integration", () => {
     // With strong consensus, no swarm-based avoided decision should be recorded
     expect(recorded.length).toBe(0);
   });
+
+  it("applies proof-coverage bias for near-threshold candidates", async () => {
+    const openPosition = vi.fn(() => ({
+      id: "pos-1",
+      asset: "BTC",
+      direction: "long",
+      entryPrice: 100_000,
+      sizeUsd: 500,
+      leverage: 5,
+      stopLoss: 98_500,
+      takeProfit: 102_000,
+      openedAt: Date.now(),
+      status: "open",
+    }));
+    const services = {
+      ...createMockServices(),
+      VINCE_POSITION_MANAGER_SERVICE: {
+        hasOpenPosition: () => false,
+        getPortfolio: () => ({ totalValue: 10_000 }),
+        getCurrentExposure: () => 0,
+        getOpenPositions: () => [],
+        getPositionByAsset: () => null,
+        restoreState: () => {},
+        openPosition,
+      },
+      VINCE_RISK_MANAGER_SERVICE: {
+        getLimits: () => ({ minSignalStrength: 60, minSignalConfidence: 60 }),
+        validateSignal: (sig: { strength: number; confidence: number }) => ({
+          valid: sig.strength >= 60 && sig.confidence >= 60,
+          reason: "threshold not met",
+        }),
+        validateTrade: () => ({ valid: true, adjustedSize: 500 }),
+        getCorrelationSizeMultiplier: () => ({ multiplier: 1, reason: "" }),
+        getModeRiskMultiplier: () => 1,
+        getTimeModifiers: () => ({
+          sizeMultiplier: 1,
+          session: { session: "US", isWeekend: false, isHoliday: false },
+        }),
+        getRiskState: () => ({ currentDrawdownPct: 0 }),
+        recordTrade: () => {},
+        restoreState: () => {},
+      },
+      VINCE_SIGNAL_AGGREGATOR_SERVICE: {
+        getSignal: async () => ({
+          direction: "long",
+          strength: 57,
+          confidence: 57,
+          confirmingCount: 3,
+          factors: ["x", "y", "z"],
+          sources: ["BinanceTopTraders", "CoinGlass", "MarketRegime"],
+          sourceBreakdown: {
+            BinanceTopTraders: 1,
+            CoinGlass: 1,
+            MarketRegime: 1,
+          },
+        }),
+      },
+      VINCE_MARKET_DATA_SERVICE: {
+        getEnrichedContext: async () => ({
+          currentPrice: 100_000,
+          fundingRate: 0,
+          volumeRatio: 1.1,
+          priceChange24h: 0.5,
+          fearGreedValue: 50,
+        }),
+        getDVOL: async () => 60,
+        estimateRSI: async () => 52,
+      },
+      VINCE_COINGLASS_SERVICE: {
+        getOpenInterest: () => ({ change24h: 5 }),
+        getLongShortRatio: () => ({ ratio: 1.1 }),
+        getFearGreed: () => ({ value: 50, classification: "Neutral" }),
+      },
+      VINCE_FEATURE_STORE_SERVICE: {
+        getExtendedMarketSnapshot: async () => null,
+        recordAvoidedDecision: vi.fn(async () => "rec-1"),
+      } as any,
+      VINCE_MARKET_REGIME_SERVICE: {
+        getRegime: async () => ({
+          regime: "trending",
+          positionSizeMultiplier: 1,
+        }),
+      },
+      VINCE_HIP3_SERVICE: {
+        getMaxLeverageForAsset: async () => 5,
+      },
+      VINCE_ML_INFERENCE_SERVICE: null,
+    };
+    const runtime = createMockRuntime({
+      services,
+      settings: {
+        vince_paper_assets: "BTC",
+        vince_paper_wtt_enabled: false,
+        vince_paper_watchlist_enabled: false,
+      },
+    });
+    const svc = await VincePaperTradingService.start(runtime);
+    (svc as any).buildProofCoverageContext = () => ({
+      stageDepth: { pairDepth: [{ deficitToMin: 3 }] },
+      uplift: { byRegime: [] },
+      regimeMinTarget: 5,
+      dominantRegime: null,
+      dominantRegimeShare: 0,
+      underrepresentedRegimes: new Set<string>(),
+      stageDeficitCount: 1,
+      totalClosed: 12,
+    });
+    (svc as any).getRegimeQuotaBlockReason = () => null;
+    await svc.evaluateAndTrade();
+    expect(openPosition).toHaveBeenCalledTimes(1);
+  });
+
+  it("enforces regime quota guard and records avoided reason", async () => {
+    const recorded: Array<{ asset: string; reason: string }> = [];
+    const openPosition = vi.fn();
+    const services = {
+      ...createMockServices(),
+      VINCE_POSITION_MANAGER_SERVICE: {
+        hasOpenPosition: () => false,
+        getPortfolio: () => ({ totalValue: 10_000 }),
+        getCurrentExposure: () => 0,
+        getOpenPositions: () => [],
+        getPositionByAsset: () => null,
+        restoreState: () => {},
+        openPosition,
+      },
+      VINCE_RISK_MANAGER_SERVICE: {
+        getLimits: () => ({ minSignalStrength: 60, minSignalConfidence: 60 }),
+        validateSignal: () => ({ valid: true }),
+        validateTrade: () => ({ valid: true, adjustedSize: 500 }),
+        getCorrelationSizeMultiplier: () => ({ multiplier: 1, reason: "" }),
+        getModeRiskMultiplier: () => 1,
+        getTimeModifiers: () => ({
+          sizeMultiplier: 1,
+          session: { session: "US", isWeekend: false, isHoliday: false },
+        }),
+        getRiskState: () => ({ currentDrawdownPct: 0 }),
+        recordTrade: () => {},
+        restoreState: () => {},
+      },
+      VINCE_SIGNAL_AGGREGATOR_SERVICE: {
+        getSignal: async () => ({
+          direction: "long",
+          strength: 70,
+          confidence: 72,
+          confirmingCount: 3,
+          factors: ["x", "y", "z"],
+          sources: ["BinanceTopTraders", "CoinGlass", "MarketRegime"],
+          sourceBreakdown: {
+            BinanceTopTraders: 1,
+            CoinGlass: 1,
+            MarketRegime: 1,
+          },
+        }),
+      },
+      VINCE_MARKET_DATA_SERVICE: {
+        getEnrichedContext: async () => ({
+          currentPrice: 100_000,
+          fundingRate: 0,
+          volumeRatio: 1.1,
+          priceChange24h: 0.5,
+          fearGreedValue: 50,
+        }),
+        getDVOL: async () => 60,
+        estimateRSI: async () => 52,
+      },
+      VINCE_COINGLASS_SERVICE: {
+        getOpenInterest: () => ({ change24h: 5 }),
+        getLongShortRatio: () => ({ ratio: 1.1 }),
+        getFearGreed: () => ({ value: 50, classification: "Neutral" }),
+      },
+      VINCE_FEATURE_STORE_SERVICE: {
+        getExtendedMarketSnapshot: async () => null,
+        recordAvoidedDecision: vi.fn(
+          async (params: { asset: string; reason: string }) => {
+            recorded.push({ asset: params.asset, reason: params.reason });
+            return "rec-1";
+          },
+        ),
+      } as any,
+      VINCE_MARKET_REGIME_SERVICE: {
+        getRegime: async () => ({
+          regime: "trending",
+          positionSizeMultiplier: 1,
+        }),
+      },
+      VINCE_HIP3_SERVICE: {
+        getMaxLeverageForAsset: async () => 5,
+      },
+      VINCE_ML_INFERENCE_SERVICE: null,
+    };
+    const runtime = createMockRuntime({
+      services,
+      settings: {
+        vince_paper_assets: "BTC",
+        vince_paper_wtt_enabled: false,
+        vince_paper_watchlist_enabled: false,
+        VINCE_PROOF_REGIME_QUOTA_ENABLED: true,
+      },
+    });
+    const svc = await VincePaperTradingService.start(runtime);
+    (svc as any).buildProofCoverageContext = () => ({
+      stageDepth: { pairDepth: [{ deficitToMin: 0 }] },
+      uplift: {
+        byRegime: [
+          { regime: "trending", count: 10 },
+          { regime: "ranging", count: 2 },
+        ],
+      },
+      regimeMinTarget: 5,
+      dominantRegime: "trending",
+      dominantRegimeShare: 0.83,
+      underrepresentedRegimes: new Set<string>(["ranging"]),
+      stageDeficitCount: 0,
+      totalClosed: 64,
+    });
+    await svc.evaluateAndTrade();
+    expect(openPosition).not.toHaveBeenCalled();
+    expect(
+      recorded.some((row) => row.reason.includes("Regime quota guard")),
+    ).toBe(true);
+  });
 });
