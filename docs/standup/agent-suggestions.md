@@ -171,3 +171,7 @@
 - Eliza: Map Camillo's social arbitrage timing edge into HYPE-WHEEL.md to surface low-liquidity strike entry mechanics.
 - Clawterm: Prioritize nix-openclaw one-liner installer to reduce user setup friction.
 - Oracle: Surface synthetics vs spot edge check results to Solus for next week's strike sizing decision.
+## 2026-03-04
+
+- Clawterm: Invest in nix-openclaw reproducible deploys and 'Pete's setup' content series to reduce Tailscale friction and boost adoption.
+- Eliza: Bake trading desk schema (agent roles, tool ownership, signal→order pipeline) directly into OPTIONS-PLAYBOOK for cross-agent signal flow clarity.
