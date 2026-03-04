@@ -1,20 +1,20 @@
-# Post-mortem: COIN long (stop_loss)
+# Post-mortem: COIN short (stop_loss)
 
 **Date:** 2026-03-03
 
 ## Trade Snapshot
 
-- COIN long closed stop_loss: entry $184.17 -> exit $181.19, P&L $-123.24 (7395.680570063747 USD, 5x).
-- Entry time (UTC): 2026-03-02T20:18:39.467Z
+- COIN short closed stop_loss: entry $181.74 -> exit $184.59, P&L $-47.62 (2946.5146773272418 USD, 5x).
+- Entry time (UTC): 2026-03-03T16:51:17.312Z
 - Hold window target: intraday
-- Max loss budget: $110.94 (7.50%)
+- Max loss budget: $44.20 (7.50%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 472 minutes
-- Adverse move: 1.616%
+- Hold duration: 100 minutes
+- Adverse move: 1.566%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,35 +24,37 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 30%
+- Confidence: 60%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: entry_datetime
+- Missing data flags: timestamp
 
-**Missing key context:** What was CT's sentiment on COIN when you entered vs. exited? Was there a macro shift (Fed news, BTC dump, sector rotation)? Did whale accounts flip bearish before your stop hit? 
+**Missing key context:** When did you enter (exact time/date)? What was CT sentiment on COIN at entry vs. exit? Was there a macro catalyst (Fed news, BTC move, etc.) that shifted the vibe? 
 
-Without the sentiment timeline, I can't tell you if this was a "you missed the signal" or a "sentiment was genuinely mixed and stopped you out fairly." Run me the entry date/time and I'll pull X_PULSE to see what the vibe was — that'll show if CT had already turned or if this was just volatility noise.
+**Without that:** A 5x short on a mid-cap alt that stops at +1.6% suggests the risk/reward was tight to begin with — sentiment-wise, COIN probably wasn't showing extreme bearish divergence (whale short positioning, negative alpha threads) to justify leveraged short thesis. If you entered into neutral-to-bullish CT vibes, that's the lesson.
 
-**Confidence: 0.3** (need sentiment data to be useful here).
+**What I'd need to give you real feedback:** Entry timestamp + the X pulse/vibe at that moment (was COIN being discussed? by whom? bullish or bearish?). Then I can tell you if sentiment was actually on your side or if you were fighting the crowd.
+
+Confidence
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 60%
+- Confidence: 30%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: timestamp
+- Missing data flags: none
 
-Missing key context: **entry/exit timestamps, Polymarket COIN prediction at entry vs exit, and what regime shift (if any) triggered the stop.** That said, a $184→$181 move on 5x levered perps is tight—if Polymarket was pricing COIN >55% and spot dropped below that threshold on news, the stop was likely correct (you got shaken out of a mean-reversion setup that didn't mean-revert). If Polymarket stayed flat and spot just bled, that's regime drift—your thesis died, not your execution. Pull the Poly odds at entry time and compare; that tells you if you sized wrong or timed wrong. Confidence: 0.6 (need Polymarket price history + timestamp to isolate the regime call).
+**Missing context:** I need the Polymarket odds for COIN at entry and exit to assess whether the market repriced against you or you caught a genuine regime shift. A $2.85 move on 5x is tight—was there news, or did perp liquidity just thin out? Without the prediction-market read, I can't tell if this was bad timing or bad thesis. Pull the live COIN market odds if you want me to compare: did Poly stay flat while perps rallied, or did both shift?
+
+**Confidence: 0.3** (missing the key signal—Polymarket price action relative to your entry/exit).
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 60%
+- Confidence: 65%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing critical context:** Was this perps (leverage) or spot? What was your thesis invalidation—did funding spike, did macro shift, or did technicals break? At 5x on COIN ($7.4K notional), the stop at $181.19 is tight (~1.6% from entry); if you were betting on a specific catalyst or macro move, that's a reasonable structural stop, but I need to know *what changed* to assess if the stop was right-sized or if you got shaken out of a valid thesis.
-
-**If this was perps:** The sizing is reasonable for a $100K stack (7.4K = 7.4%), but 5x leverage on a single name is aggressive without a clear short-term edge—consider 2-3x for thesis trades to survive noise. **If spot:** A $123 loss on a $7.4K position is solid risk management
+**Missing context:** Entry thesis (why short COIN?), exit trigger (stop hit or discretionary?), and current market regime for COIN/equities. That said: **5x on a $181 equity short is aggressive sizing for a paper bot—typical leverage for equities should be 2-3x max unless you're hedging a long position.** The $47 loss on a $2,946 notional suggests tight stop (1.6% from entry), which is reasonable, but if this was a thesis trade (not a scalp), the stop was probably too close given equity vol. **Confidence: 0.65** (need entry thesis and regime context to assess whether structure was sound or stop placement was the issue).
 
 ## Root-Cause Tags
 
@@ -76,7 +78,7 @@ Missing key context: **entry/exit timestamps, Polymarket COIN prediction at entr
 
 ## Confidence and Data Gaps
 
-- Quality score: 91/100
+- Quality score: 93/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 - Context completeness: 92.9%
@@ -90,7 +92,7 @@ Missing key context: **entry/exit timestamps, Polymarket COIN prediction at entr
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 91
+- PM_QUALITY_SCORE: 93
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: regime_conflict
 - PM_SECONDARY_CAUSES: none
@@ -101,39 +103,36 @@ Missing key context: **entry/exit timestamps, Polymarket COIN prediction at entr
 
 ```json
 {
-  "qualityScore": 91,
+  "qualityScore": 93,
   "qualityEscalate": false,
   "primaryCause": "regime_conflict",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 472,
-  "adverseMovePct": 1.616,
+  "holdMinutes": 100,
+  "adverseMovePct": 1.566,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-02T20:18:39.467Z",
-    "exitTimestampUtc": "2026-03-03T04:10:25.852Z",
+    "entryTimestampUtc": "2026-03-03T16:51:17.312Z",
+    "exitTimestampUtc": "2026-03-03T18:31:46.764Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-02T20:18:39.467Z",
-    "exitTimestampUtc": "2026-03-03T04:10:25.852Z"
+    "entryTimestampUtc": "2026-03-03T16:51:17.312Z",
+    "exitTimestampUtc": "2026-03-03T18:31:46.764Z"
   },
   "solusContext": {
     "assetClass": "equity",
     "thesisClass": "momentum",
     "leverage": 5,
     "stopDistancePct": 1.5,
-    "maxLossUsd": 110.94,
+    "maxLossUsd": 44.2,
     "maxLossPct": 7.5,
     "entryAtrPct": 3
   },
   "agentContextMissing": {
     "Echo": [
-      "entry_datetime"
-    ],
-    "Oracle": [
       "timestamp"
     ]
   },

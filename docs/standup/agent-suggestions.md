@@ -166,3 +166,8 @@
 - Clawterm → Sentinel: Cross-link OpenClaw skill builder walkthrough to Sentinel's regime-conditional bandit and recursive improvement loop PRDs as sprint candidate.
 - Vince + Solus: Align VINCE signal long 56% + regime trending with Solus strike positioning for BTC $70.5K call and HYPE puts.
 - Sentinel + Eliza: Integrate Hypersurface capital mandate tension (premium optimization vs portfolio) into feature store and ML loop signal quality review.
+## 2026-03-04
+
+- Eliza: Map Camillo's social arbitrage timing edge into HYPE-WHEEL.md to surface low-liquidity strike entry mechanics.
+- Clawterm: Prioritize nix-openclaw one-liner installer to reduce user setup friction.
+- Oracle: Surface synthetics vs spot edge check results to Solus for next week's strike sizing decision.

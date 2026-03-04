@@ -1,20 +1,20 @@
-# Post-mortem: BTC short (stop_loss)
+# Post-mortem: ETH long (stop_loss)
 
-**Date:** 2026-03-03
+**Date:** 2026-03-04
 
 ## Trade Snapshot
 
-- BTC short closed stop_loss: entry $67995.40 -> exit $68501.00, P&L $-41.24 (5196.999169690432 USD, 10x).
-- Entry time (UTC): 2026-03-03T16:50:45.198Z
+- ETH long closed stop_loss: entry $1985.60 -> exit $1957.80, P&L $-91.18 (6288.275576470588 USD, 10x).
+- Entry time (UTC): 2026-03-03T18:31:49.771Z
 - Hold window target: intraday
-- Max loss budget: $33.78 (6.50%)
+- Max loss budget: $49.27 (7.84%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 92 minutes
-- Adverse move: 0.744%
+- Hold duration: 592 minutes
+- Adverse move: 1.4%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -28,31 +28,33 @@
 - Source stamp: x_sentiment_snapshot
 - Missing data flags: timestamp, entry_datetime
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment at entry vs. exit? Was there a macro catalyst (Fed, jobs, BTC whale move) that shifted the narrative between those two points?
+Missing key context: **When did you enter and exit?** (date/time). Sentiment moves fast — if you took this trade during a CT dump or macro shock, that's a different lesson than if you rode through a local pullback.
 
-That said — a $41 stop on a $68k short at 10x is tight for BTC's intraday noise. If CT was already bullish at entry (ETF inflows, macro tailwinds), you were fighting sentiment from the jump. Post-mortem: Check if sentiment had already flipped before you entered, or if a specific tweet/news event broke the short thesis mid-trade.
+That said: ETH was trading heavy mid-range most of the week; if you caught the top of a relief rally and got stopped on retest, that's a timing miss, not a sentiment miss. **Check if CT was euphoric at entry or capitulating at exit** — that tells us if you were fighting consensus or if macro turned.
 
-**Confidence: 0.4** (need trade timestamp + CT vibe snapshot at entry/exit to give you real feedback).
+Confidence: 0.4 (need entry/exit timestamps + what CT was saying those hours).
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 30%
+- Confidence: 40%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: none
+- Missing data flags: timestamp
 
-**Missing critical context:** What was your thesis entry signal (overreaction strat, model fair value, Synth forecast edge)? What was the Polymarket BTC price action during the hold—did it confirm or reject your directional bias? Without the prediction-market regime (odds moved, volume, spread tightening/widening), I can't tell if this was a bad entry, bad timing, or the market correctly repriced mid-hold. **Confidence: 0.3** — need the PM data to give you real feedback.
+**Missing context:** ETH/USD perps entry time, exit time, and current Polymarket odds on ETH price direction (weekly/monthly). Those timestamps tell us if you got caught in a liquidation cascade or macro vol spike; the Poly odds show whether the market repriced fundamentals or just overreacted intraday.
+
+**Take:** A $91 loss on 10x leverage into a $1,985 entry is tight risk management—you caught the stop cleanly. Without the trade timestamps and Poly context, I can't tell if this was a regime shift (macro reversal) or a wick-driven false breakout. Pull the Poly ETH markets for the same period and we can see if price action was justified or a reversion play.
+
+**Confidence: 0.4** (need timestamps + Poly odds snapshot to diagnose).
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 72%
+- Confidence: 60%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** notional size ($5,196 on 10x = $51,960 notional), trade duration, and funding rate accrual during hold. On mechanics alone: $505 loss on a $51,960 short is tight risk (0.97% of notional), but 10x leverage on a $67,995 entry with a $506 stop is aggressive for BTC's intraday vol—you're fighting gamma in a tight range. If this was <2h hold, the funding bleed is secondary; if >4h, funding likely ate more than the directional miss. Tighten stops to 3-5 ticks ($200–$350 range) or drop to 5x for BTC shorts in choppy markets.
-
-**Confidence: 0.72** (sizing and stop structure visible, but funding accrual and hold duration would sharpen the call
+**Missing context:** Entry date, hold time, IV regime at entry/exit, funding rate at entry, and whether this was part of a larger hedge or standalone directional bet. That said: **10x leverage on a $6.3K notional is aggressive for a $100K stack**—that's 6.3% of capital risked on one trade. If this was a solo directional long in a bear/ranging regime, the sizing is the issue, not the mechanics. **Mechanics check:** Stop at $1957.80 (−1.4% from entry) is tight; funding or a wick could've clipped it. If you're running paper perps to prove edge, tighter stops are fine—but only if your win rate and avg win size justify it. **Next:** Track win rate, avg win/loss ratio, and hold time to see if this is variance or a signal to widen stops or reduce
 
 ## Root-Cause Tags
 
@@ -76,7 +78,7 @@ That said — a $41 stop on a $68k short at 10x is tight for BTC's intraday nois
 
 ## Confidence and Data Gaps
 
-- Quality score: 96/100
+- Quality score: 94/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=20, actionability=15, ownership=10
 - Context completeness: 92.9%
@@ -90,7 +92,7 @@ That said — a $41 stop on a $68k short at 10x is tight for BTC's intraday nois
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 96
+- PM_QUALITY_SCORE: 94
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: stop_too_tight_for_vol
@@ -101,7 +103,7 @@ That said — a $41 stop on a $68k short at 10x is tight for BTC's intraday nois
 
 ```json
 {
-  "qualityScore": 96,
+  "qualityScore": 94,
   "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [
@@ -110,31 +112,34 @@ That said — a $41 stop on a $68k short at 10x is tight for BTC's intraday nois
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 92,
-  "adverseMovePct": 0.744,
+  "holdMinutes": 592,
+  "adverseMovePct": 1.4,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-03T16:50:45.198Z",
-    "exitTimestampUtc": "2026-03-03T18:22:48.954Z",
+    "entryTimestampUtc": "2026-03-03T18:31:49.771Z",
+    "exitTimestampUtc": "2026-03-04T04:23:30.972Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-03T16:50:45.198Z",
-    "exitTimestampUtc": "2026-03-03T18:22:48.954Z"
+    "entryTimestampUtc": "2026-03-03T18:31:49.771Z",
+    "exitTimestampUtc": "2026-03-04T04:23:30.972Z"
   },
   "solusContext": {
     "assetClass": "crypto",
     "thesisClass": "momentum",
     "leverage": 10,
-    "stopDistancePct": 0.65,
-    "maxLossUsd": 33.78,
-    "maxLossPct": 6.5,
-    "entryAtrPct": 1.1685863874345548
+    "stopDistancePct": 0.784,
+    "maxLossUsd": 49.27,
+    "maxLossPct": 7.84,
+    "entryAtrPct": 1.5671204188481673
   },
   "agentContextMissing": {
     "Echo": [
       "timestamp",
       "entry_datetime"
+    ],
+    "Oracle": [
+      "timestamp"
     ]
   },
   "contextCompletenessPct": 92.9,

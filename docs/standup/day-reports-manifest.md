@@ -60,3 +60,4 @@
 | 2026-03-01 | BTC up 4% but VINCE flipped short on extreme fear (14) while ETFs pulled $507m—c | [View](day-reports/2026-03-01-day-report.md) |
 | 2026-03-01 | Extreme fear (14) but ETF inflows strong ($507m BTC) — whales buying the dip whi | [View](day-reports/2026-03-01-day-report.md) |
 | 2026-03-02 | Extreme fear (10) but VINCE flipped long 66% on liquidation data—shorts getting  | [View](day-reports/2026-03-02-day-report.md) |
+| 2026-03-04 | Extreme fear (14) but VINCE caught the liquidation turn early—shorts getting squ | [View](day-reports/2026-03-04-day-report.md) |
