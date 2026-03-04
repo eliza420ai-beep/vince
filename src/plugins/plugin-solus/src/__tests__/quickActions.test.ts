@@ -11,6 +11,7 @@ import { solusHypersurfaceExplainAction } from "../actions/solusHypersurfaceExpl
 import { solusPositionAssessAction } from "../actions/solusPositionAssess.action";
 import { solusOptimalStrikeAction } from "../actions/solusOptimalStrike.action";
 import { solusAnalyzeAction } from "../actions/solusAnalyze.action";
+import { solusThemeRadarAction } from "../actions/solusThemeRadar.action";
 import { solusEarningsCalendarAction } from "../actions/solusEarningsCalendar.action";
 import { solusPremiumPnlAction } from "../actions/solusPremiumPnl.action";
 
@@ -51,6 +52,7 @@ const SOLUS_QUICK_ACTIONS = [
   { label: "Analyze TSLA", message: "analyze TSLA" },
   { label: "Analyze AMD", message: "analyze AMD" },
   { label: "Analyze AAPL", message: "analyze AAPL" },
+  { label: "Theme Radar", message: "theme radar for AI bottleneck stocks" },
   { label: "Earnings Calendar", message: "earnings calendar" },
   {
     label: "Sector: AI Infra",
@@ -84,6 +86,7 @@ const SOLUS_ACTIONS = [
   solusPositionAssessAction,
   solusOptimalStrikeAction,
   solusAnalyzeAction,
+  solusThemeRadarAction,
   solusEarningsCalendarAction,
   solusPremiumPnlAction,
 ];
