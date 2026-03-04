@@ -19,34 +19,40 @@
 
 ---
 
-## What We Built: The One-Month Hackathon
+## What We Built: One-Month Hackathon
 
-**V4.2.0 — The Genome.** One month, one PRD, the first 5 phases shipped end‑to‑end. Since then we executed the full **12‑phase One Dream roadmap (80 tasks)**: a self-evolving trading system that observes its own performance, rewrites its own parameters, and earns the right to trade real money through sustained results. The hackathon is closed. Here's what shipped.
+**V4.2.0 — The Genome.** One month. One PRD. Phases 1-5 shipped end-to-end.  
+Then we finished phases 6-15 and closed the loop.  
+VINCE now learns from outcomes, grades its own proof, and scales risk only when evidence is strong.
 
-### What We Built: 15 Phases, One System
+### Build arc: 15 phases, one machine
 
-We turned VINCE from a set of strong solo agents into a coordinated system that can learn, prove, and then scale risk.
+VINCE is not a group of smart bots anymore.  
+It is one operating machine: research → decision → trade → attribution → policy update.
 
-Phases 1-4 established the operating foundation: clean handoffs, shared scorecards, and decision gates that include sentiment and regime context.  
-Phases 5-9 made the system adaptive: strategy evolution, adversarial checks, calibration tracking, and research-to-trade lineage with skill telemetry.  
-Phases 10-12 added governance for live-capital readiness: policy engine controls, rollback paths, and transparent operator surfaces.  
-Phase 13 introduced swarm consensus so trade gating is reliability-aware across agents, not single-model confidence.  
-Phases 14-15 converted that learning into allocation discipline with proof attribution, sufficiency grading, source-quality control, and causal confidence gates.
+Phases 1-4: spine - clean handoffs, shared scorecards, regime-aware gates.  
+Phases 5-9: adaptation - strategy evolution, adversarial checks, calibration tracking, research-to-trade telemetry.  
+Phases 10-12: control - policy guardrails, rollback paths, operator visibility.  
+Phase 13: consensus - reliability-aware trade gating across agents, not single-model confidence.  
+Phases 14-15: discipline - proof attribution, sufficiency grading, source-quality controls, causal-confidence gates.
 
 ### Why this matters
 
-Risk is earned, not assumed. Promotions now require evidence quality (sufficiency) and causal confidence, not just directional uplift.  
-Learning compounds by design: every trade feeds attribution, calibration, and policy decisions.  
-Distribution stays honest: public claims are gated by verified proof thresholds.  
-Operations stay safe through staged rollout (`observe_only` -> `recommendation` -> guarded `auto_apply`) with rollback drills.
+Most systems scale on vibes.  
+We scale on proof.  
 
-### Current phase-15 status
+Promotion requires sufficiency and causal confidence, not headline uplift.  
+Every trade updates attribution, calibration, and policy.  
+Public claims pass verified thresholds before distribution.  
+Rollout stays staged (`observe_only` → `recommendation` → guarded `auto_apply`) with rollback drills.
 
-- `/vince/paper` now includes `causal30d`, `sufficiencyTasks`, and `solus30d` in `proofSummary`.
-- Allocator hardening is live: causal-confidence gate with rollback-aware reduction path.
-- Sufficiency v2 covers sample size, asset/regime breadth, time coverage, regime depth, and variance context.
-- Source quality v2 includes lag-aware scoring, dominant-regime tagging, cooldown, and hysteresis controls.
-- Verified artifacts are live in `.elizadb/vince-paper-bot/verified-claims.json` and `.elizadb/vince-paper-bot/sufficiency-tasks.json`.
+### Phase-15 status snapshot
+
+- `/vince/paper` exposes `causal30d`, `sufficiencyTasks`, and `solus30d` in `proofSummary`.
+- Allocator hardening is live with a causal-confidence gate and rollback-aware reduction path.
+- Sufficiency v2 scores sample size, asset and regime breadth, time coverage, regime depth, and variance context.
+- Source quality v2 adds lag-aware scoring, dominant-regime tagging, cooldown windows, and hysteresis.
+- Verified artifacts are written to `.elizadb/vince-paper-bot/verified-claims.json` and `.elizadb/vince-paper-bot/sufficiency-tasks.json`.
 
 ### Read more (detailed docs)
 
@@ -64,17 +70,17 @@ Releases: [v4.2.0](https://github.com/IkigaiLabsETH/vince/releases/tag/v4.2.0) �
 
 ## Why
 
-Humans are not wired to win in modern markets.
+Modern markets are machine-speed. Human-only workflows are not enough.
 
-For most of history, investing rewarded relationships, judgment, and conviction. That edge worked when information was scarce and markets moved slowly enough for humans to process them.
+For decades, investors could win with access, judgment, and patience. That edge shrank as information latency collapsed.
 
-Today, public and private information is priced in within milliseconds. Strategies that depend on reading filings, reacting to news, or "having an opinion" compete in a game where the half-life of new information approaches zero. No human, no matter how smart, experienced, or well-connected, can manually process that volume of data in real time and execute with perfect discipline across thousands of instruments.
+Now, information is repriced in milliseconds. If your process depends on manual interpretation and manual execution, you are late by default.
 
-The best long-term returns in modern investing come from code, not from humans.
+The durable edge today is code: repeatable process, broad coverage, and zero emotional drift.
 
-Renaissance Technologies' Medallion Fund has earned roughly 39% annual returns since the late 1980s, about double the S&P 500, sustained for decades. The fund closed to outside investors in 1993 because additional capital would dilute returns by pushing trades into less liquid, lower-edge opportunities. By comparison, Berkshire Hathaway's audited record shows roughly 19.9% annualized over the same period.
+Renaissance's Medallion is the clearest proof point: roughly 39% annualized since the late 1980s, about 2x the S&P 500 over the same era. It closed to outside capital in 1993 because extra size would dilute edge. Berkshire's audited long-run record is roughly 19.9% annualized in the same period.
 
-Medallion's edge came from repeating small statistical advantages across thousands of instruments simultaneously. Tiny edges, captured over and over through rapid trades in highly liquid assets. Human investors can closely track a handful of positions. Code can monitor thousands in parallel, spot micro-opportunities in milliseconds, and execute that process with zero emotional drift.
+Medallion won by repeating small statistical edges across many instruments with discipline. Humans can track a handful of positions. Code can monitor thousands, react in milliseconds, and execute the same playbook without fatigue.
 
 ### The foundations
 
@@ -84,9 +90,9 @@ Three breakthroughs between 1952 and 1973 made automation inevitable:
 2. **1964** — William Sharpe introduced CAPM: a way to measure risk, compare returns to a benchmark, and quantify performance.
 3. **1973** — Fischer Black and Myron Scholes published the Black-Scholes equation for pricing options, replacing human estimation with formulas.
 
-To automate investing, you need clear input data, predictable output results, rules that don't rely on human guesses, and the ability to adjust using formulas alone. Black-Scholes provided all four.
+To automate investing, you need clear inputs, measurable outputs, rules that do not depend on judgment calls, and formulas that adapt with data. Black-Scholes delivered that framework.
 
-Edward Thorp turned these frameworks into live returns at Princeton/Newport Partners. Jim Simons scaled them at Renaissance into what is often considered the greatest fund of all time by annual returns.
+Edward Thorp proved these ideas in live markets at Princeton/Newport. Jim Simons scaled them at Renaissance.
 
 ### Five levels of autonomous investing
 
@@ -100,11 +106,11 @@ Edward Thorp turned these frameworks into live returns at Princeton/Newport Part
 
 ### Where VINCE sits
 
-VINCE is built at **Level 5**. Ten agents that research, analyze, paper-trade, evaluate outcomes, and improve their own models. No human in the loop for signal generation, position sizing, or risk management. The self-improving paper trading bot trains in production, stores features in a feature store, and deploys ONNX models back into the decision loop.
+VINCE is built at **Level 5**. Ten agents research, analyze, paper-trade, evaluate outcomes, and improve their own models. No human in the loop for signal generation, position sizing, or risk management. The paper bot trains in production, writes to the feature store, and deploys ONNX models back into the decision loop.
 
-The shift from Level 1 to Level 5 is not about replacing human judgment. It is about recognizing that the primary source of competitive advantage has moved from information access to integrated, code-driven research, risk, and execution, running 24/7 with zero emotional drift.
+The move from Level 1 to Level 5 is not anti-human. It is pro-process. Advantage moved from information access to integrated research, risk, and execution that runs 24/7.
 
-The goal: stay in the game without 12+ hours on screens. Push, not pull.
+Goal: stay in the game without living on screens. Push, not pull.
 
 ---
 
@@ -155,9 +161,13 @@ Solus **measures itself**. Every strike call can auto-record a prediction; at ex
 
 ## TL;DR
 
-VINCE pushes daily intel (options, perps, memes, DeFi) to Discord/Slack. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + "trade today?". Under the hood: a **self-evolving paper trading bot** — ML loop, feature store, ONNX, strategy genome, regime profiles, portfolio construction, execution graduation — that trains in prod and improves its own parameters weekly. Kelly is the lifestyle concierge (travel, wine, dining, health, fitness); she tracks the flywheel score but never gives trading advice.
+VINCE pushes daily market intel (options, perps, memes, DeFi) to Discord and Slack. One command, **ALOHA**, gives the full read: vibe check + PERPS + OPTIONS + "trade today?".
 
-Every losing trade gets an automated, multi‑agent post‑mortem in `docs/standup/post-mortems/`, and `bun run postmortems:ingest` turns those write‑ups into a recursive loop—structured stats, guardrail suggestions, and RAG knowledge that Vince/Sentinel use so each loss tightens the rules for the next trade.
+Underneath is a self-evolving paper bot: ML loop, feature store, ONNX deployment, strategy genome, regime profiles, portfolio construction, and execution graduation. It trains in production and updates parameters weekly.
+
+Kelly runs lifestyle concierge (travel, wine, dining, health, fitness) and tracks the flywheel score. She does not give trading advice.
+
+Every losing trade gets an automated multi-agent post-mortem in `docs/standup/post-mortems/`. `bun run postmortems:ingest` turns those writeups into structured stats, guardrail suggestions, and RAG memory so each loss tightens the next decision.
 
 ---
 
@@ -180,19 +190,19 @@ bun start              # production (Postgres when POSTGRES_URL set)
 ## Features
 
 - **ALOHA** — One command: vibe check + PERPS + OPTIONS + "trade today?"
-- **Self-evolving paper bot** — Signals, trades, feature store, Python train, ONNX deploy (export + smoke test fixed), genome mutation, regime-aware sizing. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rules keep the bot running when models are missing. **Env tuning:** ML threshold, swarm min confidence, aggressive margin/size (see Paper Bot & ML).
-- **Strategy genome** — 15+ tunable parameters mutate weekly, replay against history, auto-promote the best variant by Sharpe and drawdown.
-- **Regime profiles** — Five market personalities auto-switch risk limits, sizing, and signal thresholds based on Oracle regime, Echo sentiment, and technicals.
-- **Execution graduation** — Otaku earns trust through four levels (paper → notify → confirm → auto), demoted by circuit breakers.
-- **Portfolio construction** — Correlation matrix, total heat caps, Kelly-criterion sizing, opportunity cost analysis.
-- **Flywheel score** — Composite 0–100 health metric across signal quality, trade performance, sentiment, content, knowledge, and engineering.
-- **Solus (Hypersurface)** — Strike ritual, optimal strike, assignment prob (GBM + optional ML). Brier calibration, auto-record, Friday resolve reminder; tail risk & portfolio copula. Recursive learning. [SOLUS.md](docs/SOLUS.md)
-- **Multi-agent** — Ask any teammate by name; standups 2x/day; one thread, full team.
-- **Leaderboard** — Single dashboard: Markets, Memetics, News, Digital Art, Trading Bot, Knowledge. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
-- **Kelly** — Lifestyle concierge only; daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
-- **Knowledge ingestion** — VINCE_UPLOAD, ingest-urls; summarize into knowledge/
-- **X research** — Paper algo signal + Cursor skill + VINCE_X_RESEARCH in-chat. [X-RESEARCH.md](docs/X-RESEARCH.md)
-- **Proof & next** — Prove paper bot (HL perps) and Solus (Hypersurface options) are recursive and ML improves them; improve X and Polymarket insight quality; sharpen Eliza for Substack gold and banger tweets. See **What's next**.
+- **Self-evolving paper bot** — End-to-end loop from signal to trade to feature store to training to ONNX deployment. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rule-based fallbacks keep it live when models are missing. Tune with env vars (ML threshold, swarm confidence, margin/size); see `Paper Bot & ML`.
+- **Strategy genome** — 15+ parameters mutate weekly, replay on history, and auto-promote the winner by Sharpe and drawdown.
+- **Regime profiles** — Five market personalities auto-shift risk limits, sizing, and signal thresholds from Oracle regime, Echo sentiment, and technicals.
+- **Execution graduation** — Otaku earns trust through four levels (paper → notify → confirm → auto), with circuit-breaker demotions.
+- **Portfolio construction** — Correlation matrix, heat caps, Kelly sizing, and opportunity-cost checks.
+- **Flywheel score** — One 0-100 health score across signal quality, trading performance, sentiment, content, knowledge, and engineering.
+- **Solus (Hypersurface)** — Strike ritual + optimal strike + assignment probability (GBM with optional ML). Brier calibration, auto-record, Friday resolve reminder, tail risk, and portfolio copula. Recursive learning. [SOLUS.md](docs/SOLUS.md)
+- **Multi-agent** — Ask any teammate by name. Standups run 2x/day. One thread, full team.
+- **Leaderboard** — One dashboard for Markets, Memetics, News, Digital Art, Trading Bot, and Knowledge. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
+- **Kelly** — Lifestyle concierge only. Daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
+- **Knowledge ingestion** — `VINCE_UPLOAD` and ingest-urls pipeline new information into `knowledge/`.
+- **X research** — Paper algo signal + Cursor skill + `VINCE_X_RESEARCH` in chat. [X-RESEARCH.md](docs/X-RESEARCH.md)
+- **Proof & next** — Prove recursive improvement for paper bot (HL perps) and Solus (Hypersurface options), improve X and Polymarket insight quality, and sharpen Eliza for Substack + X output. See **What's next**.
 
 ---
 
