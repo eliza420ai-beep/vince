@@ -131,6 +131,18 @@ describe("XSearchService", () => {
       expect(results.get("btc")?.length).toBe(1);
       expect(results.get("eth")?.length).toBe(0);
     });
+
+    it("should throw when all topic searches fail", async () => {
+      mockClient.searchRecent
+        .mockRejectedValueOnce(new Error("Rate limit"))
+        .mockRejectedValueOnce(new Error("Rate limit"));
+
+      await expect(
+        service.searchMultipleTopics({
+          topicsIds: ["btc", "eth"],
+        }),
+      ).rejects.toThrow("Rate limit");
+    });
   });
 
   describe("getTopEngaging", () => {
