@@ -134,6 +134,19 @@ export function RecursiveNorthStarTab({
   const [selectedTrendMetric, setSelectedTrendMetric] = useState<
     "overall" | "recursion" | "ml" | "synergy"
   >("overall");
+  const trendHistory = data?.trend?.history ?? [];
+  const historyValues = useMemo(() => {
+    if (selectedTrendMetric === "recursion") {
+      return trendHistory.map((point) => point.recursionScore);
+    }
+    if (selectedTrendMetric === "ml") {
+      return trendHistory.map((point) => point.mlScore);
+    }
+    if (selectedTrendMetric === "synergy") {
+      return trendHistory.map((point) => point.synergyScore);
+    }
+    return trendHistory.map((point) => point.overallScore);
+  }, [selectedTrendMetric, trendHistory]);
   if (loading && !data) {
     return (
       <div className="space-y-4">
@@ -193,19 +206,6 @@ export function RecursiveNorthStarTab({
         ? Math.round(trend30.synergyScore - trend7.synergyScore)
         : 0,
   } as const;
-  const trendHistory = data.trend?.history ?? [];
-  const historyValues = useMemo(() => {
-    if (selectedTrendMetric === "recursion") {
-      return trendHistory.map((point) => point.recursionScore);
-    }
-    if (selectedTrendMetric === "ml") {
-      return trendHistory.map((point) => point.mlScore);
-    }
-    if (selectedTrendMetric === "synergy") {
-      return trendHistory.map((point) => point.synergyScore);
-    }
-    return trendHistory.map((point) => point.overallScore);
-  }, [selectedTrendMetric, trendHistory]);
   const sparklinePath = buildSparklinePath(historyValues, 420, 72);
   const sparklinePoints = buildSparklinePoints(historyValues, 420, 72);
 
