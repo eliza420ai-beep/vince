@@ -21,12 +21,24 @@ export interface AssignmentPredictionRow {
   /** Optional context at record time for calibration notes / ML. */
   spotAtRecord?: number;
   atmIvAtRecord?: number;
+  /** Optional lineage tags for Phase 14 attribution. */
+  sourceLineage?: string[];
 }
 
 export interface AssignmentCalibrationReport {
   meanBrier: number;
   count: number;
   windowDays: number;
+}
+
+export interface SolusProofSnapshot {
+  generatedAt: number;
+  windowDays: number;
+  resolvedCount: number;
+  winRate: number;
+  meanBrier: number;
+  confidenceGrade: "LOW" | "MEDIUM" | "HIGH";
+  promotionEligible: boolean;
 }
 
 export function getStoreDir(): string {
@@ -51,6 +63,10 @@ export function getStorePath(): string {
     return process.env.SOLUS_ASSIGNMENT_PREDICTIONS_PATH;
   }
   return path.join(getStoreDir(), FILENAME);
+}
+
+function getProofStorePath(): string {
+  return path.join(getStoreDir(), "solus-proof-attribution.jsonl");
 }
 
 function ensureDir(): void {
@@ -117,6 +133,25 @@ export function appendRecord(
   fs.appendFileSync(getStorePath(), JSON.stringify(full) + "\n");
 }
 
+function appendProofAttribution(row: {
+  asset: string;
+  strike: number;
+  predictedAssignProb: number;
+  outcome: 0 | 1;
+  brier: number;
+  sourceLineage: string[];
+}): void {
+  ensureDir();
+  fs.appendFileSync(
+    getProofStorePath(),
+    JSON.stringify({
+      kind: "solus_assignment",
+      generatedAt: Date.now(),
+      ...row,
+    }) + "\n",
+  );
+}
+
 /**
  * Resolve the latest open prediction matching asset and (optionally) strike.
  * Returns true if one was resolved.
@@ -147,6 +182,18 @@ export function resolveLatestForAssetStrike(
     updated.map((r) => JSON.stringify(r)).join("\n") +
       (updated.length ? "\n" : ""),
   );
+  const brier = (resolved.predictedAssignProb - outcome) ** 2;
+  appendProofAttribution({
+    asset: resolved.asset,
+    strike: resolved.strike,
+    predictedAssignProb: resolved.predictedAssignProb,
+    outcome,
+    brier,
+    sourceLineage:
+      resolved.sourceLineage && resolved.sourceLineage.length > 0
+        ? resolved.sourceLineage
+        : ["options_context", "solus_calibration_context"],
+  });
   return true;
 }
 
@@ -172,5 +219,35 @@ export function computeBrier(windowDays = 30): AssignmentCalibrationReport {
     meanBrier: brierSum / resolved.length,
     count: resolved.length,
     windowDays,
+  };
+}
+
+export function getSolusProofSnapshot(windowDays = 30): SolusProofSnapshot {
+  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const records = loadRecords();
+  const resolved = records.filter(
+    (r) =>
+      r.resolvedAt != null && r.outcome !== undefined && r.resolvedAt >= cutoff,
+  );
+  const count = resolved.length;
+  let wins = 0;
+  let brier = 0;
+  for (const r of resolved) {
+    if (r.outcome === 1) wins += 1;
+    brier += (r.predictedAssignProb - (r.outcome ?? 0)) ** 2;
+  }
+  const meanBrier = count > 0 ? brier / count : 0;
+  const winRate = count > 0 ? wins / count : 0;
+  const confidenceGrade: "LOW" | "MEDIUM" | "HIGH" =
+    count >= 80 ? "HIGH" : count >= 30 ? "MEDIUM" : "LOW";
+  return {
+    generatedAt: Date.now(),
+    windowDays,
+    resolvedCount: count,
+    winRate,
+    meanBrier,
+    confidenceGrade,
+    promotionEligible:
+      confidenceGrade !== "LOW" && meanBrier > 0 && meanBrier <= 0.22,
   };
 }

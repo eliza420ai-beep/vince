@@ -16,6 +16,7 @@ import type {
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
+import { getSolusProofSnapshot } from "../../../plugin-solus/src/utils/assignmentPredictionsStore";
 
 // ==========================================
 // Trigger detection
@@ -108,6 +109,16 @@ interface ReconEntry {
   discrepancyUsd?: number;
 }
 
+interface ProofAllocatorEntry {
+  generatedAt: number;
+  mode: "observe_only" | "recommendation" | "auto_apply";
+  sufficiencyGrade: "LOW" | "MEDIUM" | "HIGH";
+  recommendedMaxSingleTradeUsd: number;
+  currentMaxSingleTradeUsd: number;
+  applied: boolean;
+  reason: string;
+}
+
 // ==========================================
 // Dashboard builder
 // ==========================================
@@ -194,6 +205,39 @@ function buildDashboard(dataDir: string): string {
       Math.abs(r.discrepancyUsd) > 10,
   ).length;
 
+  // Phase 14 proof allocator (if enabled)
+  const proofHistory = readJsonl<ProofAllocatorEntry>(
+    path.join(
+      process.cwd(),
+      ".elizadb",
+      "vince-paper-bot",
+      "proof-allocator-history.jsonl",
+    ),
+  );
+  const latestProof = proofHistory.length
+    ? proofHistory[proofHistory.length - 1]
+    : null;
+  let verifiedClaimsCount = 0;
+  try {
+    const claimsPath = path.join(
+      process.cwd(),
+      ".elizadb",
+      "vince-paper-bot",
+      "verified-claims.json",
+    );
+    if (fs.existsSync(claimsPath)) {
+      const parsed = JSON.parse(fs.readFileSync(claimsPath, "utf-8")) as {
+        claims?: unknown[];
+      };
+      verifiedClaimsCount = Array.isArray(parsed.claims)
+        ? parsed.claims.length
+        : 0;
+    }
+  } catch {
+    // ignore
+  }
+  const solusProof = getSolusProofSnapshot(30);
+
   // System Status
   let systemStatus: string;
   if (anyTripped || driftHalted) {
@@ -256,6 +300,23 @@ function buildDashboard(dataDir: string): string {
   lines.push("### P&L Reconciliation");
   lines.push(
     `Unreconciled: ${unreconciledCount} | Discrepancies > $10: ${bigDiscrepancies}`,
+  );
+  lines.push("");
+
+  lines.push("### Phase 14 Proof");
+  if (!latestProof) {
+    lines.push("No proof allocator history yet");
+  } else {
+    lines.push(
+      `Mode: ${latestProof.mode} | Sufficiency: ${latestProof.sufficiencyGrade} | Current cap: $${latestProof.currentMaxSingleTradeUsd.toFixed(0)} | Recommended cap: $${latestProof.recommendedMaxSingleTradeUsd.toFixed(0)} | Applied: ${latestProof.applied}`,
+    );
+    lines.push(`Reason: ${latestProof.reason}`);
+  }
+  lines.push("");
+
+  lines.push("### Combined Perps + Options Proof");
+  lines.push(
+    `VINCE verified claims: ${verifiedClaimsCount} | Solus resolved: ${solusProof.resolvedCount} | Solus confidence: ${solusProof.confidenceGrade} | Solus promotion eligible: ${solusProof.promotionEligible}`,
   );
   lines.push("");
 

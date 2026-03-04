@@ -10,7 +10,12 @@ import type { VinceMLInferenceService } from "../services/mlInference.service";
 import type { VinceWeightBanditService } from "../services/weightBandit.service";
 import type { VinceGoalTrackerService } from "../services/goalTracker.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
+import type { VinceUpliftEvaluatorService } from "../services/vinceUpliftEvaluator.service";
+import type { VinceDataSufficiencyService } from "../services/vinceDataSufficiency.service";
+import type { VinceSourceQualityService } from "../services/vinceSourceQuality.service";
+import type { VinceProofCapitalAllocatorService } from "../services/vinceProofCapitalAllocator.service";
 import type { Position, Portfolio, KPIProgress } from "../types/paperTrading";
+import { getSolusProofSnapshot } from "../../../plugin-solus/src/utils/assignmentPredictionsStore";
 
 export interface NoTradeEvaluation {
   asset: string;
@@ -90,6 +95,24 @@ export interface PaperResponse {
     bottomSources: { source: string; winRate: number }[];
   } | null;
   swarmSummary: SwarmSummary | null;
+  proofSummary: {
+    uplift7d: ReturnType<VinceUpliftEvaluatorService["getSnapshot"]> | null;
+    uplift30d: ReturnType<VinceUpliftEvaluatorService["getSnapshot"]> | null;
+    causal30d: ReturnType<
+      VinceUpliftEvaluatorService["getCausalSnapshot"]
+    > | null;
+    sufficiency: ReturnType<VinceDataSufficiencyService["getSnapshot"]> | null;
+    sufficiencyTasks: ReturnType<
+      VinceDataSufficiencyService["getBlockingTasks"]
+    >;
+    sourceQualityTop: ReturnType<
+      VinceSourceQualityService["getSnapshot"]
+    >["sources"];
+    allocator: ReturnType<
+      VinceProofCapitalAllocatorService["getLatestSummary"]
+    > | null;
+    solus30d: ReturnType<typeof getSolusProofSnapshot> | null;
+  } | null;
   /** Last closed positions (contributingSources only) for "X contributed to N of K" */
   recentClosedTrades: Array<{ contributingSources?: string[] }>;
   /** Recent closed trades with P&L for dashboard (which trades, how much made) */
@@ -143,6 +166,7 @@ export async function buildPaperResponse(
       signalStatus: null,
       banditSummary: null,
       swarmSummary: null,
+      proofSummary: null,
       recentClosedTrades: [],
       recentTrades: [],
       updatedAt: Date.now(),
@@ -252,6 +276,37 @@ export async function buildPaperResponse(
       };
     }
   }
+
+  const upliftService = runtime.getService(
+    "VINCE_UPLIFT_EVALUATOR_SERVICE",
+  ) as VinceUpliftEvaluatorService | null;
+  const sufficiencyService = runtime.getService(
+    "VINCE_DATA_SUFFICIENCY_SERVICE",
+  ) as VinceDataSufficiencyService | null;
+  const sourceQualityService = runtime.getService(
+    "VINCE_SOURCE_QUALITY_SERVICE",
+  ) as VinceSourceQualityService | null;
+  const allocatorService = runtime.getService(
+    "VINCE_PROOF_CAPITAL_ALLOCATOR_SERVICE",
+  ) as VinceProofCapitalAllocatorService | null;
+  const proofSummary = upliftService
+    ? {
+        uplift7d: upliftService.getSnapshot?.(7) ?? null,
+        uplift30d: upliftService.getSnapshot?.(30) ?? null,
+        causal30d:
+          upliftService.getCausalSnapshot?.({
+            windowDays: 30,
+            minimumEffect: 0.02,
+            minimumSamplesPerArm: 12,
+          }) ?? null,
+        sufficiency: sufficiencyService?.getSnapshot?.(30) ?? null,
+        sufficiencyTasks: sufficiencyService?.getBlockingTasks?.(30) ?? [],
+        sourceQualityTop:
+          sourceQualityService?.getSnapshot?.(30)?.sources?.slice(0, 5) ?? [],
+        allocator: allocatorService?.getLatestSummary?.() ?? null,
+        solus30d: getSolusProofSnapshot(30),
+      }
+    : null;
 
   const recentClosedTrades = paperTrading?.getRecentClosedTrades?.() ?? [];
 
@@ -363,6 +418,7 @@ export async function buildPaperResponse(
     signalStatus,
     banditSummary,
     swarmSummary,
+    proofSummary,
     recentClosedTrades,
     recentTrades,
     updatedAt: Date.now(),
