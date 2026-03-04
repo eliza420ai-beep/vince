@@ -128,6 +128,7 @@ export const solusOptimalStrikeAction: Action = {
           "SOLUS_OPTIONS_CONTEXT",
           "SOLUS_CALIBRATION_CONTEXT",
           "VINCE_STRIKE_SUGGESTION",
+          "ECHO_WTT_SIGNAL",
         ],
         true,
       );
@@ -139,9 +140,9 @@ export const solusOptimalStrikeAction: Action = {
       );
       const closeEarlyBlock = formatCloseEarlyRecommendation(closeEarlyRec);
 
-      const prompt = `You are Solus, the on-chain options expert. The user wants an optimal strike call. You have: (1) [Solus sizing state] (weekly premium targets, assigned wheels, spot stacks), (2) [Solus market context] (spot, 24h move, regime), (3) [Solus options context — Deribit] (spot, DVOL, ATM IV, skew, best CC/CSP strikes for BTC/ETH/SOL). Use this data to give one clear call. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
+      const prompt = `You are Solus, the on-chain options expert. The user wants an optimal strike call. You have: (1) [Solus sizing state] (weekly premium targets, assigned wheels, spot stacks), (2) [Solus market context] (spot, 24h move, regime), (3) [Solus options context — Deribit] (spot, DVOL, ATM IV, skew, best CC/CSP strikes for BTC/ETH/SOL), (4) [ECHO WTT signal context] (daily directional signal with freshness + crowding/invalidation hints). Use this data to give one clear call. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
 
-Use current spot from [Hypersurface spot USD] or [Solus market context]. Frame the call as weekly (next 7 days to expiry). If [Solus sizing state] states we hold the asset (covered calls) or have a CSP wheel, anchor size/skip/watch and strike to that plan. When [Solus options context] is present, use IV and best strikes; when missing, give strike/structure and invalidation from sizing + spot and note you could refine with live IV. When [Solus calibration] is present, use it: if Brier is high or recent outcomes show bias, temper confidence or note it; if well-calibrated, you can say so.
+Use current spot from [Hypersurface spot USD] or [Solus market context]. Frame the call as weekly (next 7 days to expiry). If [Solus sizing state] states we hold the asset (covered calls) or have a CSP wheel, anchor size/skip/watch and strike to that plan. When [Solus options context] is present, use IV and best strikes; when missing, give strike/structure and invalidation from sizing + spot and note you could refine with live IV. When [Solus calibration] is present, use it: if Brier is high or recent outcomes show bias, temper confidence or note it; if well-calibrated, you can say so. Use [ECHO WTT signal context] as directional prior only when fresh; if stale or contradictory to weekly structure, downweight it and say so briefly.
 
 Use the deterministic [Close early recommendation] block as hard gating:
 - If Action is CLOSE_EARLY_NOW, first call is close now, then redeploy strike guidance for next leg.

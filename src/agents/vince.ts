@@ -49,6 +49,7 @@ import openaiPlugin from "@elizaos/plugin-openai";
 import { getAnthropicLargeModel } from "../model-config.ts";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
+import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 
 // Inter-agent communication: ASK_AGENT + A2A loop guard for Discord chat
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
@@ -561,6 +562,9 @@ const buildPlugins = (): Plugin[] =>
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
       : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
+    ...(process.env.VINCE_ENABLE_X_RESEARCH_PLUGIN === "true"
+      ? [xResearchPlugin]
+      : []), // Optional live bridge for X_RESEARCH_TRADING_SENTIMENT_SERVICE
     polymarketDiscoveryPlugin, // Read-only: Polymarket sentiment for perps signal + Solus context
     interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
   ] as Plugin[];

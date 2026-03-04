@@ -2,7 +2,74 @@
  * Topics We Care About
  *
  * From VINCE README — these are our focus areas for X research.
+ * Keep this ticker mirror aligned with plugin-vince target assets.
  */
+
+// Mirrored from plugin-vince/src/constants/targetAssets.ts
+const VINCE_TARGET_CORE_ASSETS = ["BTC", "ETH", "SOL", "HYPE"] as const;
+const VINCE_TARGET_PRIORITY_ASSETS = [
+  "BTC",
+  "ETH",
+  "SOL",
+  "HYPE",
+  "XMR",
+  "ZEC",
+  "ONDO",
+  "ENA",
+  "AAVE",
+  "UNI",
+  "MORPHO",
+  "PENDLE",
+  "SYRUP",
+  "LINK",
+  "FIL",
+  "TAO",
+  "AIXBT",
+  "ZEREBRO",
+  "FARTCOIN",
+  "JUP",
+  "AVNT",
+  "ZORA",
+  "SUI",
+] as const;
+const VINCE_TARGET_HIP3_ASSETS = [
+  "GOLD",
+  "SILVER",
+  "COPPER",
+  "NATGAS",
+  "OIL",
+  "USOIL",
+  "XYZ100",
+  "US500",
+  "SMALL2000",
+  "MAG7",
+  "SEMIS",
+  "INFOTECH",
+  "ROBOT",
+  "NVDA",
+  "TSLA",
+  "AAPL",
+  "AMZN",
+  "GOOGL",
+  "META",
+  "MSFT",
+  "PLTR",
+  "COIN",
+  "HOOD",
+  "NFLX",
+  "MSTR",
+  "AMD",
+  "INTC",
+  "ORCL",
+  "MU",
+  "SNDK",
+  "CRCL",
+  "RIVN",
+  "OPENAI",
+  "ANTHROPIC",
+  "SPACEX",
+] as const;
+const VINCE_TARGET_AI_INFRA_ASSETS = ["FIL", "TAO"] as const;
 
 export interface Topic {
   id: string;
@@ -128,8 +195,18 @@ export const ECOSYSTEM_TOPICS: Topic[] = [
       "autonomous agent",
       "crypto AI",
       "agent framework",
+      "openclaw",
+      "claude code",
+      "claude co work",
+      "perplexity computer",
     ],
-    hashtags: ["aiagents", "autonomousagents"],
+    hashtags: [
+      "aiagents",
+      "autonomousagents",
+      "openclaw",
+      "claudecode",
+      "perplexity",
+    ],
     category: "ecosystem",
     priority: "medium",
   },
@@ -203,8 +280,10 @@ export const META_TOPICS: Topic[] = [
       "hyperliquid stock",
       "tokenized stock",
       "HL stock perp",
+      ...VINCE_TARGET_HIP3_ASSETS.map((t) => `$${t}`),
     ],
     hashtags: ["hip3", "hyperliquid"],
+    cashtags: [...VINCE_TARGET_HIP3_ASSETS],
     category: "meta",
     priority: "high",
   },
@@ -249,8 +328,22 @@ export const ALL_TOPICS: Topic[] = [
 // Quick lookups
 export const TOPIC_BY_ID = Object.fromEntries(ALL_TOPICS.map((t) => [t.id, t]));
 
-export const FOCUS_TICKERS = ["BTC", "ETH", "SOL", "HYPE"];
+/**
+ * Focus tickers for X news/pulse relevance:
+ * - VINCE core assets
+ * - VINCE priority assets
+ * - HIP-3 universe
+ */
+export const FOCUS_TICKERS = Array.from(
+  new Set<string>([
+    ...VINCE_TARGET_CORE_ASSETS,
+    ...VINCE_TARGET_PRIORITY_ASSETS,
+    ...VINCE_TARGET_HIP3_ASSETS,
+  ]),
+);
 export const FOCUS_CASHTAGS = FOCUS_TICKERS.map((t) => `$${t}`);
 
 /** Tokenized AI agents and AI infra (e.g. BANKR/BNKR); included in news and pulse. */
-export const AI_INFRA_TICKERS = ["BNKR"];
+export const AI_INFRA_TICKERS = Array.from(
+  new Set<string>(["BNKR", ...VINCE_TARGET_AI_INFRA_ASSETS]),
+);

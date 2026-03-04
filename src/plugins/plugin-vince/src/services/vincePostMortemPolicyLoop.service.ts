@@ -266,15 +266,17 @@ export class VincePostMortemPolicyLoopService extends Service {
         const parsed = JSON.parse(
           fs.readFileSync(this.statePath, "utf-8"),
         ) as PolicyLoopState;
+        const tradeOutcomes = Array.isArray(parsed.tradeOutcomes)
+          ? parsed.tradeOutcomes
+          : [];
+        const history = Array.isArray(parsed.history) ? parsed.history : [];
         return {
-          version: 1,
-          tradeOutcomes: [],
-          history: [],
-          ...parsed,
-          tradeOutcomes: Array.isArray(parsed.tradeOutcomes)
-            ? parsed.tradeOutcomes
-            : [],
-          history: Array.isArray(parsed.history) ? parsed.history : [],
+          version: Number.isFinite(parsed.version) ? parsed.version : 1,
+          lastProcessedPostMortemKey: parsed.lastProcessedPostMortemKey,
+          candidate: parsed.candidate,
+          applied: parsed.applied,
+          tradeOutcomes,
+          history,
         };
       }
     } catch (e) {

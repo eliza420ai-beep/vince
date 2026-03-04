@@ -133,6 +133,31 @@ export class SourceReputationService {
   }
 
   /**
+   * Get a handle's stored reputation record when present.
+   */
+  getByHandle(handle: string): SourceReputationRecord | null {
+    const normalized = handle.trim().toLowerCase();
+    if (!normalized) return null;
+    return (
+      this.loadAll().find((r) => r.handle.toLowerCase() === normalized) ?? null
+    );
+  }
+
+  /**
+   * Reputation multiplier for downstream scoring.
+   * - tier-1/high score: boost
+   * - watchlist/low score: downweight
+   */
+  getReputationMultiplier(handle: string): number {
+    const record = this.getByHandle(handle);
+    if (!record) return 1.0;
+    if (record.reputationScore >= 70) return 1.2;
+    if (record.reputationScore >= 55) return 1.1;
+    if (record.reputationScore <= 25) return 0.8;
+    return 1.0;
+  }
+
+  /**
    * Recalculate all handles known to the quality service.
    */
   updateAllFromQuality(qualityService: XSourceQualityService): void {

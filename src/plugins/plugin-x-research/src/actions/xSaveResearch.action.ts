@@ -8,14 +8,16 @@
 import {
   type Action,
   type ActionResult,
+  logger,
   type IAgentRuntime,
   type Memory,
   type State,
   type HandlerCallback,
 } from "@elizaos/core";
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { mkdir, access, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getLastResearch } from "../store/lastResearchStore";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 function getSaveDir(): string {
   const env = process.env.X_RESEARCH_SAVE_DIR;
@@ -30,7 +32,42 @@ function generateFilename(): string {
   const d = String(now.getDate()).padStart(2, "0");
   const h = String(now.getHours()).padStart(2, "0");
   const min = String(now.getMinutes()).padStart(2, "0");
-  return `research-${y}-${m}-${d}-${h}${min}.md`;
+  const sec = String(now.getSeconds()).padStart(2, "0");
+  return `research-${y}-${m}-${d}-${h}${min}${sec}.md`;
+}
+
+function looksLowValue(content: string): boolean {
+  const compact = content.replace(/\s+/g, " ").trim();
+  return compact.length < 40;
+}
+
+async function resolveUniquePath(
+  dir: string,
+  baseName: string,
+): Promise<string> {
+  const candidate = join(dir, baseName);
+  try {
+    await access(candidate);
+  } catch {
+    return candidate;
+  }
+  const stamp = Date.now().toString().slice(-5);
+  return join(dir, baseName.replace(/\.md$/, `-${stamp}.md`));
+}
+
+function buildDocumentBody(content: string, roomId: string): string {
+  const iso = new Date().toISOString();
+  return [
+    "---",
+    "source: plugin-x-research",
+    "action: X_SAVE_RESEARCH",
+    `roomId: ${roomId}`,
+    `savedAt: ${iso}`,
+    "---",
+    "",
+    content.trim(),
+    "",
+  ].join("\n");
 }
 
 export const xSaveResearchAction: Action = {
@@ -77,37 +114,49 @@ export const xSaveResearchAction: Action = {
   ): Promise<ActionResult | undefined> => {
     const roomId = message.roomId;
     if (!roomId) {
-      callback?.({
+      await sendActionResponse(callback, "X_SAVE_RESEARCH", {
         text: 'Couldn\'t determine room; try running a pulse or vibe first, then say "save that".',
-        action: "X_SAVE_RESEARCH",
+        reason: "no_room",
       });
       return { success: true };
     }
 
     const text = getLastResearch(roomId);
     if (!text) {
-      callback?.({
+      await sendActionResponse(callback, "X_SAVE_RESEARCH", {
         text: 'Nothing to save — run an X pulse, vibe, or news first, then say "save that" within a few minutes.',
-        action: "X_SAVE_RESEARCH",
+        reason: "no_recent_data",
+      });
+      return { success: true };
+    }
+    if (looksLowValue(text)) {
+      await sendActionResponse(callback, "X_SAVE_RESEARCH", {
+        text: "Latest research looks too short to save safely (reason: low_value_filtered). Run pulse/vibe/news again and retry.",
+        reason: "low_value_filtered",
       });
       return { success: true };
     }
 
     try {
       const dir = getSaveDir();
-      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-      const filepath = join(dir, generateFilename());
-      writeFileSync(filepath, text, "utf-8");
-      callback?.({
+      await mkdir(dir, { recursive: true });
+      const filepath = await resolveUniquePath(dir, generateFilename());
+      const body = buildDocumentBody(text, roomId);
+      await writeFile(filepath, body, "utf-8");
+      await sendActionResponse(callback, "X_SAVE_RESEARCH", {
         text: `Saved to \`${filepath}\`.`,
-        action: "X_SAVE_RESEARCH",
+        saveMeta: {
+          chars: body.length,
+          hasMetadataHeader: true,
+        },
       });
       return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      callback?.({
-        text: `Failed to save: ${errMsg}`,
-        action: "X_SAVE_RESEARCH",
+      logger.warn({ err: error }, "[X_SAVE_RESEARCH] write failed");
+      await sendActionResponse(callback, "X_SAVE_RESEARCH", {
+        text: `Failed to save (reason: write_failed): ${errMsg}`,
+        reason: "write_failed",
       });
       return {
         success: false,

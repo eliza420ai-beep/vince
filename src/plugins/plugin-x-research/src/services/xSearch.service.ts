@@ -9,6 +9,7 @@
  */
 
 import { getXClient, XClientService } from "./xClient.service";
+import { logger } from "@elizaos/core";
 import type {
   XTweet,
   XSearchResponse,
@@ -37,6 +38,96 @@ export interface MultiSearchOptions {
   quick?: boolean;
   /** Cache TTL for search requests (e.g. 1h for pulse). */
   cacheTtlMs?: number;
+}
+
+const STRICT_CONTEXT_BY_TOPIC: Record<
+  string,
+  { requireAny?: string[]; excludeAny?: string[] }
+> = {
+  perps: {
+    requireAny: [
+      "crypto",
+      "bitcoin",
+      "btc",
+      "eth",
+      "sol",
+      "hype",
+      "hyperliquid",
+      "funding",
+      "open interest",
+      "liquidation",
+      "perp",
+    ],
+  },
+  options: {
+    requireAny: [
+      "crypto",
+      "bitcoin",
+      "btc",
+      "eth",
+      "sol",
+      "hype",
+      "deribit",
+      "iv",
+      "dvol",
+      "option",
+      "volatility",
+    ],
+  },
+  liquidations: {
+    requireAny: [
+      "crypto",
+      "btc",
+      "eth",
+      "sol",
+      "hype",
+      "perp",
+      "futures",
+      "liquidation",
+    ],
+  },
+  macro: {
+    requireAny: [
+      "crypto",
+      "bitcoin",
+      "btc",
+      "eth",
+      "sol",
+      "hype",
+      "risk on",
+      "risk off",
+    ],
+  },
+};
+
+export function selectFairQuickTopics(
+  topicIds: string[],
+  count = 4,
+  date: Date = new Date(),
+): string[] {
+  if (topicIds.length <= count) return topicIds;
+  const anchors = ["btc", "sol", "hype", "perps", "options"];
+  const availableAnchors = anchors.filter((id) => topicIds.includes(id));
+  const daySeed = Math.floor(date.getTime() / (24 * 60 * 60 * 1000));
+  const selected: string[] = [];
+
+  if (availableAnchors.length > 0) {
+    const start = daySeed % availableAnchors.length;
+    for (
+      let i = 0;
+      i < availableAnchors.length && selected.length < count;
+      i++
+    ) {
+      selected.push(availableAnchors[(start + i) % availableAnchors.length]);
+    }
+  }
+
+  const startFill = daySeed % topicIds.length;
+  for (let i = 0; i < topicIds.length && selected.length < count; i++) {
+    const candidate = topicIds[(startFill + i) % topicIds.length];
+    if (!selected.includes(candidate)) selected.push(candidate);
+  }
+  return selected;
 }
 
 export interface FreeFormSearchOptions {
@@ -85,12 +176,15 @@ export class XSearchService {
       excludeReplies = true,
       hoursBack = 24,
     } = options;
+    const strictTopics =
+      (process.env.X_SEARCH_STRICT_TOPICS ?? "true") !== "false";
 
     // Build query
     const query = this.buildTopicQuery(topic, {
       excludeRetweets,
       excludeReplies,
       minLikes,
+      strictTopics,
     });
 
     // Calculate time range
@@ -107,7 +201,17 @@ export class XSearchService {
 
     // Enrich tweets with computed fields, then apply min-likes filter post-fetch
     const enriched = this.enrichTweets(response);
-    return this.filterByMinLikes(enriched, minLikes);
+    const filteredByLikes = this.filterByMinLikes(enriched, minLikes);
+    if (!strictTopics) return filteredByLikes;
+    const filtered = filteredByLikes.filter((tweet) =>
+      this.isStrictRelevant(tweet, topic),
+    );
+    if (filtered.length < filteredByLikes.length) {
+      logger.debug(
+        `[xSearch] strict topic filter dropped ${filteredByLikes.length - filtered.length}/${filteredByLikes.length} tweets for ${topic.id}`,
+      );
+    }
+    return filtered;
   }
 
   /**
@@ -177,7 +281,9 @@ export class XSearchService {
       cacheTtlMs,
     } = options;
 
-    const topicsIds = quick ? rawTopicsIds.slice(0, 2) : rawTopicsIds;
+    const topicsIds = quick
+      ? selectFairQuickTopics(rawTopicsIds, 4)
+      : rawTopicsIds;
     const maxResultsPerTopic = quick ? 10 : rawMaxResults;
 
     const results = new Map<string, XTweet[]>();
@@ -200,7 +306,9 @@ export class XSearchService {
             });
             return { topicId, tweets };
           } catch (error) {
-            console.error(`[xSearch] Error searching ${topicId}:`, error);
+            logger.warn(
+              `[xSearch] Error searching ${topicId}: ${String(error)}`,
+            );
             failedTopics.push(topicId);
             lastError = error;
             return { topicId, tweets: [] };
@@ -286,9 +394,8 @@ export class XSearchService {
           spikes.push(spike);
         }
       } catch (error) {
-        console.error(
-          `[xSearch] Error checking volume for ${topic.id}:`,
-          error,
+        logger.warn(
+          `[xSearch] Error checking volume for ${topic.id}: ${String(error)}`,
         );
       }
     }
@@ -306,12 +413,14 @@ export class XSearchService {
       excludeRetweets?: boolean;
       excludeReplies?: boolean;
       minLikes?: number;
+      strictTopics?: boolean;
     },
   ): string {
     const {
       excludeRetweets = true,
       excludeReplies = true,
       minLikes = 0,
+      strictTopics = true,
     } = options;
 
     // Combine search terms with OR
@@ -327,12 +436,65 @@ export class XSearchService {
       query = `(${termPart} OR ${cashtagPart})`;
     }
 
+    if (strictTopics) {
+      const ctx = STRICT_CONTEXT_BY_TOPIC[topic.id];
+      if (ctx?.requireAny?.length) {
+        const guard = ctx.requireAny
+          .map((term) => (term.includes(" ") ? `"${term}"` : term))
+          .join(" OR ");
+        query += ` (${guard})`;
+      }
+      if (ctx?.excludeAny?.length) {
+        for (const term of ctx.excludeAny) {
+          query += term.includes(" ") ? ` -\"${term}\"` : ` -${term}`;
+        }
+      }
+    }
+
     // Filters (min_faves is not available on all X API tiers; we filter post-fetch instead)
     query += " lang:en";
     if (excludeRetweets) query += " -is:retweet";
     if (excludeReplies) query += " -is:reply";
 
     return query;
+  }
+
+  private isStrictRelevant(tweet: XTweet, topic: Topic): boolean {
+    const text = (tweet.text ?? "").toLowerCase();
+    const matchedTerm = topic.searchTerms.some((term) =>
+      this.containsTopicTerm(text, term),
+    );
+    const matchedHashtag =
+      topic.hashtags?.some((ht) =>
+        (tweet.entities?.hashtags ?? []).some(
+          (entity) => entity.tag.toLowerCase() === ht.toLowerCase(),
+        ),
+      ) ?? false;
+    const matchedCashtag =
+      topic.cashtags?.some((ct) =>
+        (tweet.entities?.cashtags ?? []).some(
+          (entity) => entity.tag.toUpperCase() === ct.toUpperCase(),
+        ),
+      ) ?? false;
+    if (!(matchedTerm || matchedHashtag || matchedCashtag)) return false;
+
+    const strictCtx = STRICT_CONTEXT_BY_TOPIC[topic.id];
+    if (!strictCtx?.requireAny?.length) return true;
+    return strictCtx.requireAny.some((term) =>
+      this.containsTopicTerm(text, term),
+    );
+  }
+
+  private containsTopicTerm(text: string, term: string): boolean {
+    const t = term.trim().toLowerCase();
+    if (!t) return false;
+    if (t.includes(" ")) return text.includes(t);
+    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return (
+      new RegExp(`\\b${escaped}\\b`, "i").test(text) ||
+      new RegExp(`#${escaped}\\b`, "i").test(text) ||
+      new RegExp(`\\$${escaped}\\b`, "i").test(text)
+    );
   }
 
   /** Filter tweets by minimum likes post-fetch (min_faves operator not available on all tiers). */
@@ -377,7 +539,7 @@ export class XSearchService {
           qualityTier: tier,
           isThread:
             tweet.conversationId === tweet.id &&
-            (tweet.text.includes("🧵") || tweet.text.includes("Thread")),
+            /🧵|\bthread\b/i.test(tweet.text),
         },
       };
     });

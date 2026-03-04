@@ -156,9 +156,8 @@ describe("XAccountsService", () => {
 
   describe("isQualityAccount", () => {
     it("should return true for known quality accounts", () => {
-      // caboronto is in our quality list
-      expect(service.isQualityAccount("caboronto")).toBe(true);
-      expect(service.isQualityAccount("@caboronto")).toBe(true);
+      expect(service.isQualityAccount("elonmusk")).toBe(true);
+      expect(service.isQualityAccount("@elonmusk")).toBe(true);
     });
 
     it("should return false for unknown accounts", () => {

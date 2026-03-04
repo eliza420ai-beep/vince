@@ -13,10 +13,17 @@ import {
   type State,
   type HandlerCallback,
   ModelType,
+  logger,
 } from "@elizaos/core";
 import { getXThreadsService } from "../services/xThreads.service";
 import { initXClientFromEnv } from "../services/xClient.service";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+import { sendActionResponse } from "./helpers/actionResponse";
+import { parseTweetIdOrUrl } from "./helpers/inputParsers";
+import {
+  formatTradingSignalBlock,
+  inferTradingSignalFromTexts,
+} from "./helpers/signalScoring";
 
 export const xThreadAction: Action = {
   name: "X_THREAD",
@@ -67,19 +74,12 @@ export const xThreadAction: Action = {
       initXClientFromEnv(runtime);
 
       const text = message.content?.text ?? "";
-
-      // Extract URL or tweet ID
-      const urlMatch = text.match(
-        /(?:x\.com|twitter\.com)\/\w+\/status\/(\d+)/,
-      );
-      const idMatch = text.match(/\b(\d{10,})\b/);
-
-      const tweetId = urlMatch?.[1] ?? idMatch?.[1];
+      const parsed = parseTweetIdOrUrl(text);
+      const tweetId = parsed.tweetId;
 
       if (!tweetId) {
-        callback?.({
-          text: "I need a tweet URL or ID to fetch the thread. Example:\n`Summarize this thread: https://x.com/user/status/123456789`",
-          action: "X_THREAD",
+        await sendActionResponse(callback, "X_THREAD", {
+          text: "I need a tweet URL or ID to fetch the thread (reason: no_target). Example:\n`Summarize this thread: https://x.com/user/status/123456789`",
         });
         return { success: true };
       }
@@ -90,9 +90,8 @@ export const xThreadAction: Action = {
       const tweets = await threadsService.getThread(tweetId);
 
       if (tweets.length === 0) {
-        callback?.({
-          text: "Couldn't fetch the thread. The tweet might be deleted, protected, or the API is rate limited.",
-          action: "X_THREAD",
+        await sendActionResponse(callback, "X_THREAD", {
+          text: "Couldn't fetch the thread (reason: no_recent_data). The tweet might be deleted, protected, or the API is rate limited.",
         });
         return { success: true };
       }
@@ -101,15 +100,17 @@ export const xThreadAction: Action = {
       const summary = threadsService.summarizeThread(tweets);
 
       if (!summary) {
-        callback?.({
-          text: "Couldn't summarize the thread.",
-          action: "X_THREAD",
+        await sendActionResponse(callback, "X_THREAD", {
+          text: "Couldn't summarize the thread (reason: low_quality_filtered).",
         });
         return { success: true };
       }
 
       // Combine all tweet text
-      const fullText = tweets.map((t, i) => `${i + 1}. ${t.text}`).join("\n\n");
+      const evidenceTweets = selectThreadEvidenceTweets(tweets).slice(0, 14);
+      const fullText = evidenceTweets
+        .map((t, i) => `${i + 1}. ${t.text}`)
+        .join("\n\n");
 
       // Use LLM to generate a flowing narrative TL;DR (ALOHA style)
       const prompt = `You are summarizing a Twitter thread for a crypto trader. Write one short paragraph TL;DR—flowing prose, no numbered list, no bullet points. Capture the main argument, key data, and conclusion.
@@ -138,21 +139,22 @@ Write one short paragraph TL;DR:`;
       }
 
       const response = `🧵 **Thread Summary**\n\n**Author:** @${summary.author.username}${summary.author.tier !== "standard" ? ` (${summary.author.tier})` : ""}\n**Length:** ${summary.tweetCount} tweets\n**Engagement:** ${formatNumber(summary.engagement.likes)} likes, ${formatNumber(summary.engagement.retweets)} RTs\n\n**TL;DR:**\n${llmSummary.trim()}\n\n🔗 ${summary.url}`;
-
-      callback?.({
-        text: response,
-        action: "X_THREAD",
+      const signal = inferTradingSignalFromTexts(
+        evidenceTweets.map((t) => t.text),
+        7,
+      );
+      await sendActionResponse(callback, "X_THREAD", {
+        text: `${response}\n\n${formatTradingSignalBlock(signal)}`,
       });
 
       return { success: true };
     } catch (error) {
-      console.error("[X_THREAD] Error:", error);
+      logger.warn({ err: error }, "[X_THREAD] Error");
 
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      callback?.({
-        text: `🧵 **Thread**\n\n❌ Error: ${errorMessage}`,
-        action: "X_THREAD",
+      await sendActionResponse(callback, "X_THREAD", {
+        text: `🧵 **Thread**\n\n❌ Error (reason: api_limited): ${errorMessage}`,
       });
 
       return {
@@ -167,6 +169,18 @@ function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
   return String(num);
+}
+
+function selectThreadEvidenceTweets(tweets: Array<{ text: string }>) {
+  const keywordRe =
+    /\b(btc|eth|sol|hype|cpi|fomc|funding|open interest|oi|liquidation|volatility|iv|dvol|call|put|long|short|breakout|breakdown)\b/i;
+  return [...tweets].sort((a, b) => {
+    const aSignal = keywordRe.test(a.text) ? 1 : 0;
+    const bSignal = keywordRe.test(b.text) ? 1 : 0;
+    const aDigits = /\d/.test(a.text) ? 1 : 0;
+    const bDigits = /\d/.test(b.text) ? 1 : 0;
+    return bSignal + bDigits - (aSignal + aDigits);
+  });
 }
 
 export default xThreadAction;

@@ -370,6 +370,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "What's the trade", message: "What's the trade today?" },
     { label: "X Pulse", message: "What's CT saying today?" },
     { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
+    {
+      label: "BTC LT Sentiment",
+      message: "Give me BTC long-term sentiment and price targets",
+    },
     { label: "Vibe: ETH", message: "Sentiment on ETH" },
     { label: "Vibe: SOL", message: "What's the sentiment on SOL?" },
     { label: "Check watchlist", message: "Check my watchlist" },

@@ -106,6 +106,35 @@ describe("XClientService", () => {
       await client.searchRecent("bitcoin");
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
+
+    it("uses strict cache keys across time window and sort variations", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        json: () => Promise.resolve({ data: [], meta: { result_count: 0 } }),
+      });
+      const client = new XClientService({
+        bearerToken: "token",
+        cacheEnabled: true,
+      });
+      await client.searchRecent("bitcoin", {
+        maxResults: 50,
+        sortOrder: "relevancy",
+        startTime: "2026-03-01T00:00:00.000Z",
+      });
+      await client.searchRecent("bitcoin", {
+        maxResults: 50,
+        sortOrder: "recency",
+        startTime: "2026-03-01T00:00:00.000Z",
+      });
+      await client.searchRecent("bitcoin", {
+        maxResults: 50,
+        sortOrder: "recency",
+        startTime: "2026-03-02T00:00:00.000Z",
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(client.getCacheStats().size).toBe(3);
+    });
   });
 
   describe("error handling", () => {

@@ -4,8 +4,8 @@
 
 ## Trade Snapshot
 
-- BTC short closed stop_loss: entry $70835.83 -> exit $71374.00, P&L $-56.68 (7000 USD, 10x).
-- Entry time (UTC): 2026-03-04T09:05:24.141Z
+- BTC short closed stop_loss: entry $71073.78 -> exit $71539.00, P&L $-49.32 (7000 USD, 10x).
+- Entry time (UTC): 2026-03-04T11:46:38.435Z
 - Hold window target: intraday
 - Max loss budget: $45.50 (6.50%)
 
@@ -13,8 +13,8 @@
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 12 minutes
-- Adverse move: 0.76%
+- Hold duration: 82 minutes
+- Adverse move: 0.655%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,28 +24,28 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 60%
+- Confidence: 30%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: timestamp
+- Missing data flags: entry_datetime
 
-**Missing key context:** When did you enter? What was CT sentiment at entry vs. exit? Was there a macro catalyst (Fed news, ETF flow, whale buying) that shifted the vibe between those two timestamps?
+**Missing key context:** When did you enter (date/time)? What was CT sentiment at entry vs. exit? Was there a macro catalyst (Fed, inflation data, BTC inflow spike) that moved price against you, or pure liquidation cascade? Without the sentiment snapshot at your entry and the 24h vibe around that trade window, I can't tell you if you were contrarian-right-but-early or if you missed a signal. 
 
-That said — a $7k loss on a BTC short in a macro environment where CT has been cautiously bullish (ETF inflows, supply shock narratives dominating) suggests you were fighting sentiment headwinds. If you shorted into rising whale accumulation or positive macro chatter, that's a sentiment mismatch, not a sizing issue. Next time: check X_PULSE before entry to see if CT conviction is against your thesis.
+**What I'd need:** X_PULSE from your entry window + whether whales/alpha accounts were calling the short or fading it.
 
-**Confidence: 0.6** (need timestamps and CT vibe at entry/exit to give you real signal).
+Confidence: 0.3 (can't assess without sentiment data)
 
 ### Oracle
 
 - Lane: prediction market regime
 - Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: none
+- Missing data flags: timestamp, entry_datetime
 
-**Missing context:** What was your thesis entry signal (technicals, macro narrative, Polymarket odds on BTC direction)? Was this a hedge against a long options position, or a directional bet? Without knowing the regime you were trading (range, trend, volatility regime) and what Polymarket priced BTC at entry/exit, I can't isolate whether this was a bad call or bad timing.
+**Missing context:** I need the trade date/time and which Polymarket BTC prediction(s) were pricing that move—were they showing >50% odds of a break above $71.5K, or was the market already pricing in that volatility? Without that regime lens, I can't tell if you shorted into a consensus fade or into crowd conviction.
 
-**What I can say:** A $56.68 loss on 10x leverage into a $71K asset suggests tight stops—good risk management. But if Polymarket odds on "BTC above $72K by [date]" were >60% at entry, you were fighting consensus pricing; if they were <40%, you had edge and bad luck. The regime matters: in a bull breakout, shorts get liquidated fast. In a choppy macro, tight stops bleed.
+**On the P&L alone:** $49 on 10x into a $71K range is tight risk-management (0.07% move), but if Poly was showing <40% odds of that upside, the trade thesis was sound—the loss is just variance in a tight setup. If Poly was showing >60% bull, you were fighting the market's own forecast.
 
-**Next time:** Ping
+**What I'd pull:** Run the trade timestamp against the orderbook depth and live odds for the BTC weekly/monthly prediction markets—that'll show whether you were early (good thesis
 
 ### Solus
 
@@ -54,7 +54,11 @@ That said — a $7k loss on a BTC short in a macro environment where CT has been
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** entry signal (why short at $70,835?), stop placement logic (why $71,374 = 0.76% above entry?), and intended hold duration. That said: **the stop is tight for a 10x perp**—0.76% move is noise on BTC hourly, especially if this was a swing/daily thesis. At 10x, you're fighting funding bleed + volatility tax; a 50–100 bps stop would've given the trade room to breathe without being reckless. **Sizing-wise:** $56.68 loss on a $7K notional is clean (risk-managed), but if this was a high-conviction setup, the tight stop suggests either (a) conviction wasn't there, or (b) the entry was tactical/scalp-style and should've been smaller notional with looser stops. **Next:** paste the
+**Missing critical context:** (1) What was your thesis invalidation trigger—was $71,539 your planned stop or did momentum shift unexpectedly? (2) What's your current perps sizing relative to options income ($1K+/week target)—is leverage eating into wheel capital? (3) Was this a hedge against our Hypersurface $70,500 BTC calls, or standalone directional?
+
+**If standalone short:** $49.32 loss on $7K notional (0.7% slippage + fee drag) is clean, but 10x on a short in a bull regime without a clear invalidation signal suggests you're fighting momentum rather than trading structure. Better move: if you're bearish intraday, either (a) size smaller and tighter stop, or (b) use options (buy puts on Hypersurface, defined risk, no liquidation).
+
+**
 
 ## Root-Cause Tags
 
@@ -78,21 +82,30 @@ That said — a $7k loss on a BTC short in a macro environment where CT has been
 
 ## Confidence and Data Gaps
 
-- Quality score: 98/100
+- Quality score: 94/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=20, actionability=15, ownership=10
 - Context completeness: 92.9%
 - Regime vs execution: execution_miss
+- Risk budget: planned=$45.50, realized=$49.32, slippage=$3.82, breach=true
+- Consistency checks: pass
 
 ## What changes on next trade?
 
 - Keep PTQG required fields hard-enforced.
 - Current post-mortem quality is acceptable; continue weekly monitoring.
 - Apply temporary leverage cap for this asset class in next 7 days.
+- No automatic policy mutation due to data/quality gate.
+
+## Recursive Policy Delta
+
+- Adaptation eligible: false
+- Policy version at entry: baseline
+- Proposed delta: none
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 98
+- PM_QUALITY_SCORE: 94
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: stop_too_tight_for_vol
@@ -100,10 +113,15 @@ That said — a $7k loss on a BTC short in a macro environment where CT has been
 - PM_PMEP_COMPLETENESS_PCT: 100
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
+- PM_BUDGET_BREACH: true
+- PM_RISK_SLIPPAGE_USD: 3.82
+- PM_ADAPTATION_ELIGIBLE: false
+- PM_POLICY_VERSION_AT_ENTRY: baseline
+- PM_PROPOSED_DELTA_PRESENT: false
 
 ```json
 {
-  "qualityScore": 98,
+  "qualityScore": 94,
   "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [
@@ -112,17 +130,35 @@ That said — a $7k loss on a BTC short in a macro environment where CT has been
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 12,
-  "adverseMovePct": 0.76,
+  "holdMinutes": 82,
+  "adverseMovePct": 0.655,
+  "riskBudget": {
+    "plannedRiskUsd": 45.5,
+    "realizedRiskUsd": 49.32,
+    "riskSlippageUsd": 3.82,
+    "budgetBreach": true
+  },
+  "consistencyChecks": {
+    "passed": true,
+    "issues": [],
+    "adverseMovePctFromPrices": 0.655,
+    "adverseMovePctDelta": 0,
+    "stopDistancePctFromPrices": 0.65,
+    "stopDistancePctDelta": 0,
+    "hasTruncatedFindings": false
+  },
+  "adaptationEligible": false,
+  "policyVersionAtEntry": "baseline",
+  "proposedPolicyDelta": null,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-04T09:05:24.141Z",
-    "exitTimestampUtc": "2026-03-04T09:17:49.950Z",
+    "entryTimestampUtc": "2026-03-04T11:46:38.435Z",
+    "exitTimestampUtc": "2026-03-04T13:09:03.544Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-04T09:05:24.141Z",
-    "exitTimestampUtc": "2026-03-04T09:17:49.950Z"
+    "entryTimestampUtc": "2026-03-04T11:46:38.435Z",
+    "exitTimestampUtc": "2026-03-04T13:09:03.544Z"
   },
   "solusContext": {
     "assetClass": "crypto",
@@ -131,11 +167,15 @@ That said — a $7k loss on a BTC short in a macro environment where CT has been
     "stopDistancePct": 0.65,
     "maxLossUsd": 45.5,
     "maxLossPct": 6.5,
-    "entryAtrPct": 1.1589528795811517
+    "entryAtrPct": 1.1641884816753927
   },
   "agentContextMissing": {
     "Echo": [
-      "timestamp"
+      "entry_datetime"
+    ],
+    "Oracle": [
+      "timestamp",
+      "entry_datetime"
     ]
   },
   "contextCompletenessPct": 92.9,

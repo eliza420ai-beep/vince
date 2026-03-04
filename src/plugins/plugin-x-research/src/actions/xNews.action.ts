@@ -16,12 +16,16 @@ import {
   logger,
 } from "@elizaos/core";
 import { getXNewsService } from "../services/xNews.service";
-import { getXSearchService } from "../services/xSearch.service";
+import {
+  getXSearchService,
+  selectFairQuickTopics,
+} from "../services/xSearch.service";
 import { initXClientFromEnv } from "../services/xClient.service";
 import { getMandoContextForX } from "../utils/mandoContext";
 import { ALL_TOPICS } from "../constants/topics";
 import { setLastResearch } from "../store/lastResearchStore";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 const X_NEWS_SUMMARY_MAX_CHARS = process.env.X_NEWS_SUMMARY_MAX_CHARS
   ? parseInt(process.env.X_NEWS_SUMMARY_MAX_CHARS, 10)
@@ -192,12 +196,11 @@ export const xNewsAction: Action = {
           const liveLine = await getLivePriceLine();
           const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
           if (message.roomId) setLastResearch(message.roomId, text);
-          callback?.({ text, action: "X_NEWS" });
+          await sendActionResponse(callback, "X_NEWS", { text });
           return { success: true };
         }
-        callback?.({
+        await sendActionResponse(callback, "X_NEWS", {
           text: "📰 **X News**\n\nNo crypto news found. The News API might not have recent stories or is rate limited.",
-          action: "X_NEWS",
         });
         return { success: true };
       }
@@ -260,9 +263,8 @@ export const xNewsAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
-      callback?.({
+      await sendActionResponse(callback, "X_NEWS", {
         text: response,
-        action: "X_NEWS",
       });
 
       return { success: true };
@@ -280,19 +282,17 @@ export const xNewsAction: Action = {
       if (fallback) {
         const liveLine = await getLivePriceLine();
         const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
-        callback?.({ text, action: "X_NEWS" });
+        await sendActionResponse(callback, "X_NEWS", { text });
         return { success: true };
       }
 
       if (isNewsApiUnavailable) {
-        callback?.({
+        await sendActionResponse(callback, "X_NEWS", {
           text: "📰 **X News**\n\n⚠️ X News API is not available. This endpoint may require specific API access or isn't enabled for your account.",
-          action: "X_NEWS",
         });
       } else {
-        callback?.({
+        await sendActionResponse(callback, "X_NEWS", {
           text: `📰 **X News**\n\n❌ Error: ${errorMessage}`,
-          action: "X_NEWS",
         });
       }
 
@@ -383,13 +383,14 @@ async function buildNewsFallback(
   try {
     initXClientFromEnv(runtime);
     const searchService = getXSearchService();
-    const topicIds = ALL_TOPICS.filter((t) => t.priority === "high")
-      .map((t) => t.id)
-      .slice(0, 2);
+    const topicIds = selectFairQuickTopics(
+      ALL_TOPICS.filter((t) => t.priority === "high").map((t) => t.id),
+      4,
+    );
     const results = await searchService.searchMultipleTopics({
       topicsIds: topicIds,
       maxResultsPerTopic: 10,
-      quick: true,
+      quick: false,
       cacheTtlMs: 60 * 60 * 1000,
     });
     const tweets = Array.from(results.values()).flat();

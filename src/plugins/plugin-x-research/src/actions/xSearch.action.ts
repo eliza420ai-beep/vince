@@ -23,6 +23,7 @@ import { setLastResearch } from "../store/lastResearchStore";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 import { getFriendlyXErrorMessage } from "../utils/xErrorMessages";
 import type { XTweet } from "../types/tweet.types";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100; // X API allows 100 per page
@@ -147,9 +148,8 @@ export const xSearchAction: Action = {
 
       const query = extractQuery(text);
       if (!query) {
-        callback?.({
+        await sendActionResponse(callback, "X_SEARCH", {
           text: 'I need a search query. Example: "Search X for BNKR" or "What are people saying about ETH?"',
-          action: "X_SEARCH",
         });
         return { success: true };
       }
@@ -214,17 +214,15 @@ export const xSearchAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
-      callback?.({
+      await sendActionResponse(callback, "X_SEARCH", {
         text: response,
-        action: "X_SEARCH",
       });
       return { success: true };
     } catch (error) {
       logger.warn({ err: error }, "[X_SEARCH] X API error");
       const friendly = getFriendlyXErrorMessage(error);
-      callback?.({
+      await sendActionResponse(callback, "X_SEARCH", {
         text: `**X Search**\n\n⚠️ ${friendly}`,
-        action: "X_SEARCH",
       });
       return {
         success: false,

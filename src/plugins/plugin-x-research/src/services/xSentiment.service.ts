@@ -22,6 +22,8 @@ import {
 } from "../constants/qualityAccounts";
 import { ALL_TOPICS, TOPIC_BY_ID } from "../constants/topics";
 import { loadWatchlistUsernames } from "../utils/watchlist";
+import { XSourceQualityService } from "./xSourceQuality.service";
+import { SourceReputationService } from "./sourceReputation.service";
 
 export interface SentimentOptions {
   topics?: string[]; // Filter to specific topics
@@ -35,12 +37,18 @@ interface TweetSentimentScore {
   matchedKeywords: string[];
   tier: AccountTier;
   tierWeight: number;
+  reliability: number;
+  freshnessScore: number; // 0-100
+  sourceMultiplier: number;
 }
 
 /**
  * X Sentiment Service
  */
 export class XSentimentService {
+  private sourceQuality = new XSourceQualityService();
+  private sourceReputation = new SourceReputationService();
+
   /**
    * Analyze sentiment from a batch of tweets
    */
@@ -158,10 +166,25 @@ export class XSentimentService {
 
     // Score based on matched keywords
     for (const keyword of ALL_KEYWORDS) {
-      if (text.includes(keyword.word.toLowerCase())) {
+      if (this.matchesKeyword(text, keyword.word)) {
         matchedKeywords.push(keyword.word);
-        rawScore += keyword.weight * 100; // Scale to -100 to +100
+        let signedWeight = keyword.weight;
+        if (this.hasNegationNear(text, keyword.word)) {
+          signedWeight = signedWeight * -0.6;
+        }
+        rawScore += signedWeight * 100; // Scale to -100 to +100
       }
+    }
+
+    // Phrase-level overrides to reduce common CT polarity mistakes.
+    if (/\bshort squeeze\b/i.test(text)) rawScore += 22;
+    if (/\bbear trap\b/i.test(text)) rawScore += 16;
+    if (/\bbull trap\b/i.test(text)) rawScore -= 16;
+    if (/\blong squeeze\b/i.test(text)) rawScore -= 22;
+
+    // Spam dampener: repeated keyword-heavy text should not dominate score.
+    if (matchedKeywords.length >= 6) {
+      rawScore *= 0.8;
     }
 
     // Normalize score
@@ -177,7 +200,11 @@ export class XSentimentService {
     ) {
       tier = "alpha";
     }
-    const tierWeight = weightByTier ? this.getTierWeight(tier) : 1;
+    const reliability = getAccountReliability(username);
+    const sourceMultiplier = this.getSourceMultiplier(username);
+    const tierWeight = weightByTier
+      ? this.getTierWeight(tier) * sourceMultiplier
+      : 1;
 
     return {
       tweet,
@@ -185,6 +212,9 @@ export class XSentimentService {
       matchedKeywords,
       tier,
       tierWeight,
+      reliability,
+      freshnessScore: this.computeFreshnessScore(tweet),
+      sourceMultiplier,
     };
   }
 
@@ -278,25 +308,48 @@ export class XSentimentService {
 
   private calculateConfidence(scores: TweetSentimentScore[]): number {
     if (scores.length === 0) return 0;
-
-    // Confidence based on:
-    // 1. Sample size (more tweets = more confident)
-    // 2. Agreement (less variance = more confident)
-    // 3. Quality accounts (more quality = more confident)
-
-    const sampleFactor = Math.min(scores.length / 50, 1) * 40; // Up to 40 points for sample size
+    const sampleQuality = Math.min(1, scores.length / 60);
 
     const avgScore =
-      scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
+      scores.reduce((sum, score) => sum + score.score, 0) / scores.length;
     const variance =
-      scores.reduce((sum, s) => sum + Math.pow(s.score - avgScore, 2), 0) /
+      scores.reduce(
+        (sum, score) => sum + Math.pow(score.score - avgScore, 2),
+        0,
+      ) / scores.length;
+    const stdDev = Math.sqrt(variance);
+    const agreement = Math.max(0, 1 - stdDev / 80);
+
+    const sourceQuality =
+      scores.reduce((sum, score) => {
+        const tierNorm = Math.min(1, score.tierWeight / 3);
+        const reliabilityNorm = Math.min(
+          1,
+          Math.max(0, score.reliability / 100),
+        );
+        return sum + (tierNorm + reliabilityNorm) / 2;
+      }, 0) / scores.length;
+
+    const freshness =
+      scores.reduce((sum, score) => sum + score.freshnessScore / 100, 0) /
       scores.length;
-    const agreementFactor = Math.max(0, 30 - variance / 100); // Up to 30 points for agreement
 
-    const qualityCount = scores.filter((s) => s.tier !== "standard").length;
-    const qualityFactor = Math.min(qualityCount / 10, 1) * 30; // Up to 30 points for quality
+    const topicPurity =
+      scores.filter((score) => score.matchedKeywords.length > 0).length /
+      scores.length;
 
-    return Math.round(sampleFactor + agreementFactor + qualityFactor);
+    const anomalyPenalty = this.computeAnomalyPenalty(scores);
+
+    const confidence =
+      100 *
+        (0.3 * agreement +
+          0.25 * sourceQuality +
+          0.2 * sampleQuality +
+          0.15 * freshness +
+          0.1 * topicPurity) -
+      anomalyPenalty;
+
+    return Math.max(0, Math.min(100, Math.round(confidence)));
   }
 
   private isRelevantToTopic(
@@ -307,7 +360,7 @@ export class XSentimentService {
 
     // Check search terms
     for (const term of topic.searchTerms) {
-      if (text.includes(term.toLowerCase())) return true;
+      if (this.containsTopicTerm(text, term)) return true;
     }
 
     // Check hashtags
@@ -382,6 +435,78 @@ export class XSentimentService {
       timestamp: Date.now(),
       sampleSize: 0,
     };
+  }
+
+  private containsTopicTerm(text: string, term: string): boolean {
+    const normalizedTerm = term.trim().toLowerCase();
+    if (!normalizedTerm) return false;
+    if (normalizedTerm.includes(" ")) {
+      return text.includes(normalizedTerm);
+    }
+    const escaped = this.escapeRegExp(normalizedTerm);
+    return (
+      new RegExp(`\\b${escaped}\\b`, "i").test(text) ||
+      new RegExp(`#${escaped}\\b`, "i").test(text) ||
+      new RegExp(`\\$${escaped}\\b`, "i").test(text)
+    );
+  }
+
+  private matchesKeyword(text: string, keyword: string): boolean {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    if (!normalizedKeyword) return false;
+    if (normalizedKeyword.includes(" ")) {
+      return text.includes(normalizedKeyword);
+    }
+    const escaped = this.escapeRegExp(normalizedKeyword);
+    return new RegExp(`\\b${escaped}\\b`, "i").test(text);
+  }
+
+  private hasNegationNear(text: string, keyword: string): boolean {
+    const escaped = this.escapeRegExp(keyword.trim().toLowerCase());
+    return new RegExp(
+      `\\b(?:not|no|never|without)\\b(?:\\W+\\w+){0,2}\\W+${escaped}\\b`,
+      "i",
+    ).test(text);
+  }
+
+  private computeFreshnessScore(tweet: XTweet): number {
+    if (!tweet.createdAt) return 55;
+    const ageMs = Date.now() - new Date(tweet.createdAt).getTime();
+    if (!Number.isFinite(ageMs) || ageMs < 0) return 55;
+    const ageHours = ageMs / (1000 * 60 * 60);
+    return Math.max(15, Math.min(100, Math.round(100 - ageHours * 6)));
+  }
+
+  private computeAnomalyPenalty(scores: TweetSentimentScore[]): number {
+    const byAuthor = new Map<string, number>();
+    for (const score of scores) {
+      const key = (score.tweet.author?.username ?? "unknown").toLowerCase();
+      byAuthor.set(key, (byAuthor.get(key) ?? 0) + 1);
+    }
+    const maxShare = Math.max(...Array.from(byAuthor.values())) / scores.length;
+    const concentrationPenalty = maxShare > 0.4 ? (maxShare - 0.4) * 35 : 0;
+    const lowKeywordPenalty =
+      scores.filter((score) => score.matchedKeywords.length === 0).length /
+        scores.length >
+      0.55
+        ? 8
+        : 0;
+    return concentrationPenalty + lowKeywordPenalty;
+  }
+
+  private getSourceMultiplier(username: string): number {
+    if (!username?.trim()) return 1.0;
+    const qualityMultiplier = this.sourceQuality.getQualityMultiplier(username);
+    const reputationMultiplier =
+      this.sourceReputation.getReputationMultiplier(username);
+    return Math.max(
+      0.6,
+      Math.min(1.8, qualityMultiplier * reputationMultiplier),
+    );
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 }
 

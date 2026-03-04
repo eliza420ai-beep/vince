@@ -25,7 +25,10 @@ import type { IAgentRuntime, UUID } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 import { initXClientFromEnv } from "../services/xClient.service";
-import { getXSearchService } from "../services/xSearch.service";
+import {
+  getXSearchService,
+  selectFairQuickTopics,
+} from "../services/xSearch.service";
 import { ALL_TOPICS } from "../constants/topics";
 import { getMandoContextForX } from "../utils/mandoContext";
 import { getPolymarketContextForWtt } from "../utils/polymarketContext";
@@ -33,48 +36,37 @@ import {
   HIP3_STOCKS,
   WTT_UNIVERSE_LABEL,
   WTT_UNIVERSE_TICKERS,
-} from "../../../plugin-vince/src/constants/targetAssets";
+  normalizeWttTicker,
+} from "../constants/wttUniverse";
+import type {
+  WttPick,
+  WttCatalystSource,
+} from "../../../../shared/wttContract";
+import {
+  buildPolymarketContextBlock,
+  derivePolymarketQuery,
+} from "./wtt/query";
+import { computeWttPickConfidence, evaluateThesisQuality } from "./wtt/quality";
+import { ensureContractValidPick } from "./wtt/pick";
+export {
+  buildPolymarketContextBlock,
+  derivePolymarketQuery,
+} from "./wtt/query";
+export { computeWttPickConfidence } from "./wtt/quality";
+export { extractPickFromNarrativeFallback };
 
 /** Comma-separated HIP-3 stocks for Robinhood adapter (offchain context). */
 const ROBINHOOD_HIP3_TICKERS = (HIP3_STOCKS as readonly string[]).join(",");
 
 /** Check if a WTT ticker is in the onchain-tradeable universe (core + HIP-3). */
 function isWttUniverseTicker(ticker: string): boolean {
-  return (WTT_UNIVERSE_TICKERS as readonly string[]).includes(
-    ticker.trim().toUpperCase(),
-  );
+  return normalizeWttUniverseTicker(ticker) !== null;
 }
 
-/** Structured pick for paper bot and ML (saved as JSON sidecar). */
-/** Catalyst source tags for feedback: which inputs drove this thesis (headlines, CT, polymarket, or generic). */
-export type WttCatalystSource = "headlines" | "ct" | "polymarket" | "generic";
-
-export interface WttPick {
-  date: string;
-  thesis: string;
-  primaryTicker: string;
-  primaryDirection: "long" | "short";
-  primaryInstrument: string;
-  primaryEntryPrice: number;
-  primaryRiskUsd: number;
-  invalidateCondition: string;
-  altTicker?: string;
-  altDirection?: "long" | "short";
-  altInstrument?: string;
-  rubric: {
-    alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
-    edge: "undiscovered" | "emerging" | "consensus" | "crowded";
-    payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
-    timingForgiveness:
-      | "very_forgiving"
-      | "forgiving"
-      | "punishing"
-      | "very_punishing";
-  };
-  evThresholdPct?: number;
-  killConditions: string[];
-  /** Which inputs drove this thesis; used for WTT performance by catalyst (e.g. headline-driven vs CT-driven). */
-  catalystSources?: WttCatalystSource[];
+/** Normalize ticker (including aliases like GOOG -> GOOGL) and validate against WTT universe. */
+function normalizeWttUniverseTicker(ticker: string): string | null {
+  if (!ticker?.trim()) return null;
+  return normalizeWttTicker(ticker.trim().toUpperCase());
 }
 
 const DEFAULT_HOUR_UTC = 9;
@@ -126,24 +118,42 @@ export interface EchoXSignalEntry {
   confidence?: number;
 }
 
+interface EchoXSignalsSidecar {
+  schemaVersion: number;
+  date: string;
+  signals: EchoXSignalEntry[];
+}
+
+const ECHO_X_SIGNAL_SCHEMA_VERSION = 2;
+const WTT_PICK_SCHEMA_VERSION = 2;
+const MIN_FALLBACK_EVIDENCE_SCORE = 2;
+const wttStats = {
+  fallbackAttempts: 0,
+  fallbackAccepted: 0,
+  fallbackRejectedLowEvidence: 0,
+  invalidPickReads: 0,
+};
+
 /** Write EchoXSignal file for aggregator (EchoXSignal source). */
 async function saveEchoXSignalsFile(
   pick: WttPick | null,
   date: Date,
+  repeatCount = 0,
 ): Promise<void> {
   if (!pick) return;
+  const primaryConfidence = computeWttPickConfidence(pick, repeatCount);
   const signals: EchoXSignalEntry[] = [
     {
       asset: pick.primaryTicker,
       direction: pick.primaryDirection,
-      confidence: 60,
+      confidence: primaryConfidence,
     },
   ];
   if (pick.altTicker && pick.altDirection) {
     signals.push({
       asset: pick.altTicker,
       direction: pick.altDirection,
-      confidence: 50,
+      confidence: Math.max(35, primaryConfidence - 10),
     });
   }
   try {
@@ -153,7 +163,11 @@ async function saveEchoXSignalsFile(
     await fs.writeFile(
       filepath,
       JSON.stringify(
-        { date: date.toISOString().slice(0, 10), signals },
+        {
+          schemaVersion: ECHO_X_SIGNAL_SCHEMA_VERSION,
+          date: date.toISOString().slice(0, 10),
+          signals,
+        } satisfies EchoXSignalsSidecar,
         null,
         2,
       ),
@@ -202,12 +216,26 @@ async function getRecentWttPrimaryTickers(
       const filepath = path.join(dir, `${dateStr}-whats-the-trade.json`);
       try {
         const raw = await fs.readFile(filepath, "utf-8");
-        const data = JSON.parse(raw) as { primaryTicker?: string };
-        if (data.primaryTicker && typeof data.primaryTicker === "string") {
-          tickers.push(data.primaryTicker.trim().toUpperCase());
+        const data = JSON.parse(raw) as unknown;
+        if (
+          typeof data === "object" &&
+          data &&
+          "schemaVersion" in (data as Record<string, unknown>)
+        ) {
+          const sidecar = data as Record<string, unknown>;
+          const schemaVersion = Number(sidecar.schemaVersion ?? 0);
+          if (schemaVersion > WTT_PICK_SCHEMA_VERSION) {
+            wttStats.invalidPickReads += 1;
+            continue;
+          }
+        }
+        const maybeValidated = ensureContractValidPick(data as WttPick);
+        if (maybeValidated?.primaryTicker) {
+          tickers.push(maybeValidated.primaryTicker.trim().toUpperCase());
         }
       } catch {
         // skip unreadable or invalid JSON
+        wttStats.invalidPickReads += 1;
       }
     }
     return tickers;
@@ -287,12 +315,6 @@ function buildNewsContextBlock(newsContext: string | null): string {
   return `\n\nToday's top headlines (use if one suggests a clear trade—e.g. company wins contract, regulatory deal, sector catalyst):\n${newsContext.trim()}\nIf one of these suggests a trade, prefer that thesis and name the asset.`;
 }
 
-/** Build a short block for Polymarket odds so the model can reinforce or contrast the thesis with prediction markets. */
-function buildPolymarketContextBlock(polymarketContext: string | null): string {
-  if (!polymarketContext || !polymarketContext.trim()) return "";
-  return `\n\n${polymarketContext.trim()}\nUse if relevant to your thesis (e.g. odds support or contradict the narrative).`;
-}
-
 /** Chris Camillo / social-arbitrage lens for thesis: information imbalance, meaningful behavioral shift, pure play. */
 const CAMILLO_LENS_THESIS =
   "\n\nApply a social-arbitrage lens: the edge is seeing a meaningful behavioral or social signal (real-world, headlines, or CT) before the market has fully priced it. Prefer theses that name a concrete information imbalance (what you see that may not yet be in the price). Prefer the clearest expression (pure play) of that thesis.";
@@ -349,6 +371,46 @@ function buildSentimentExtremityHint(xNarrative: string): string {
   return ` Sentiment is extreme on ${asset}; consider whether the edge is to fade the crowd.`;
 }
 
+async function generateQualityCheckedThesis(
+  runtime: IAgentRuntime,
+  prompt: string,
+  fallbackLabel: string,
+): Promise<string> {
+  const raw = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt,
+    maxTokens: 80,
+  });
+  const candidate = String(raw)
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  const quality = evaluateThesisQuality(
+    candidate,
+    WTT_UNIVERSE_TICKERS as readonly string[],
+  );
+  if (quality.ok) return candidate;
+
+  const tightenedPrompt =
+    prompt +
+    `\n\nYour prior draft failed quality checks (${quality.reasons.join(", ")}). Retry once with a single sentence that names a tradable ticker and explicit asymmetry (relative mispricing, spread, discount/premium, or outperformance/underperformance).`;
+  const retry = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt: tightenedPrompt,
+    maxTokens: 80,
+  });
+  const retryCandidate = String(retry)
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  const retryQuality = evaluateThesisQuality(
+    retryCandidate,
+    WTT_UNIVERSE_TICKERS as readonly string[],
+  );
+  if (retryQuality.ok) return retryCandidate;
+
+  logger.warn(
+    `[ECHO WhatstheTrade] ${fallbackLabel} thesis quality gate fallback: ${retryQuality.reasons.join(", ")}`,
+  );
+  return "SOL outperforms ETH this week on relative strength divergence the market has not fully priced.";
+}
+
 /**
  * Thesis is derived from a generic LLM suggestion (no X data injected yet).
  * When X-driven thesis is enabled, suggestThesisFromX() can use X_PULSE or a dedicated X scan.
@@ -386,13 +448,7 @@ async function suggestThesis(
     rotationHint +
     " Reply with only that one sentence, no quotes or preamble.";
   try {
-    const out = await runtime.useModel(ModelType.TEXT_LARGE, {
-      prompt,
-      maxTokens: 80,
-    });
-    return String(out)
-      .trim()
-      .replace(/^["']|["']$/g, "");
+    return await generateQualityCheckedThesis(runtime, prompt, "generic");
   } catch (e) {
     logger.warn(
       "[ECHO WhatstheTrade] Thesis suggestion failed, using fallback",
@@ -412,14 +468,15 @@ async function fetchCtNarrativeForWtt(
   try {
     initXClientFromEnv(runtime);
     const searchService = getXSearchService();
-    const highPriorityIds = ALL_TOPICS.filter((t) => t.priority === "high")
-      .map((t) => t.id)
-      .slice(0, 2);
+    const highPriorityIds = ALL_TOPICS.filter((t) => t.priority === "high").map(
+      (t) => t.id,
+    );
+    const quickTopicIds = selectFairQuickTopics(highPriorityIds, 4);
     const topicResults = await searchService.searchMultipleTopics({
-      topicsIds: highPriorityIds,
+      topicsIds: quickTopicIds,
       maxResultsPerTopic: 15,
       cacheTtlMs: 5 * 60 * 1000,
-      quick: true,
+      quick: false,
     });
     const allTweets = Array.from(topicResults.values()).flat();
     if (allTweets.length === 0) return null;
@@ -488,13 +545,7 @@ Turn this into exactly one tradeable thesis (one sentence) that states a clear m
 
 Reply with only that one sentence, no quotes or preamble.`;
   try {
-    const out = await runtime.useModel(ModelType.TEXT_LARGE, {
-      prompt,
-      maxTokens: 80,
-    });
-    return String(out)
-      .trim()
-      .replace(/^["']|["']$/g, "");
+    return await generateQualityCheckedThesis(runtime, prompt, "x-driven");
   } catch (e) {
     logger.warn(
       "[ECHO WhatstheTrade] X-driven thesis suggestion failed, using fallback",
@@ -815,6 +866,14 @@ Output only the JSON object, no markdown or explanation.`;
     )
       pick.evThresholdPct = parsed.evThresholdPct;
 
+    const normalizedPrimary = normalizeWttUniverseTicker(pick.primaryTicker);
+    if (normalizedPrimary) pick.primaryTicker = normalizedPrimary;
+
+    if (pick.altTicker) {
+      const normalizedAlt = normalizeWttUniverseTicker(pick.altTicker);
+      pick.altTicker = normalizedAlt ?? undefined;
+    }
+
     if (hip3Only && !isWttUniverseTicker(pick.primaryTicker)) {
       logger.warn(
         "[ECHO WhatstheTrade] primaryTicker not in WTT universe: " +
@@ -849,8 +908,10 @@ function extractPickFromNarrativeFallback(
   thesis: string,
   dateStr: string,
 ): WttPick | null {
+  wttStats.fallbackAttempts += 1;
   const text = (narrative + "\n" + thesis).toLowerCase();
-  let direction: "long" | "short" = "long";
+  let direction: "long" | "short" | null = null;
+  let evidenceScore = 0;
   const shortMatch = text.match(
     /\bshort\s+(\w+)\b|(\w+)[-\s]perp\s+perp\s+short/i,
   );
@@ -859,6 +920,15 @@ function extractPickFromNarrativeFallback(
   );
   if (shortMatch) {
     direction = "short";
+    evidenceScore += 1;
+  }
+  if (longMatch) {
+    if (direction === "short") {
+      wttStats.fallbackRejectedLowEvidence += 1;
+      return null;
+    }
+    direction = "long";
+    evidenceScore += 1;
   }
   const tickerCandidates: string[] = [];
   for (const t of WTT_UNIVERSE_TICKERS) {
@@ -876,25 +946,43 @@ function extractPickFromNarrativeFallback(
   );
   if (perpLine) {
     const ticker = perpLine[1].toUpperCase().replace(/-/g, "");
-    if (isWttUniverseTicker(ticker)) {
+    if (ticker && isWttUniverseTicker(ticker)) {
       tickerCandidates.unshift(ticker);
     }
     if (perpLine[2].toUpperCase() === "SHORT") {
       direction = "short";
+    } else {
+      direction = "long";
     }
+    evidenceScore += 2;
   }
   const priceMatch = narrative.match(/\$\s*([\d,.]+)/);
+  if (priceMatch) evidenceScore += 1;
+  if (
+    /\b(outperform|underperform|mispricing|relative strength|discount|premium)\b/i.test(
+      thesis,
+    )
+  ) {
+    evidenceScore += 1;
+  }
   const entryPrice = priceMatch
     ? parseFloat(priceMatch[1].replace(/,/g, ""))
     : 0;
-  const ticker = tickerCandidates[0];
-  if (!ticker || !isWttUniverseTicker(ticker)) {
+  const ticker = tickerCandidates
+    .map((t) => normalizeWttUniverseTicker(t))
+    .find((t): t is string => Boolean(t));
+  if (!ticker || !isWttUniverseTicker(ticker) || !direction) {
+    wttStats.fallbackRejectedLowEvidence += 1;
+    return null;
+  }
+  if (evidenceScore < MIN_FALLBACK_EVIDENCE_SCORE) {
+    wttStats.fallbackRejectedLowEvidence += 1;
     return null;
   }
   logger.info(
     `[ECHO WhatstheTrade] Fallback pick: ${ticker} ${direction} (from narrative)`,
   );
-  return {
+  const fallback: WttPick = {
     date: dateStr,
     thesis,
     primaryTicker: ticker,
@@ -902,10 +990,13 @@ function extractPickFromNarrativeFallback(
     primaryInstrument: "perp",
     primaryEntryPrice: entryPrice,
     primaryRiskUsd: 0,
-    invalidateCondition: "",
-    killConditions: [],
+    invalidateCondition:
+      "invalidate if price action rejects thesis with sustained reversal",
+    killConditions: ["exit on thesis invalidation or crowding unwind"],
     rubric: FALLBACK_RUBRIC,
   };
+  wttStats.fallbackAccepted += 1;
+  return fallback;
 }
 
 /**
@@ -922,8 +1013,10 @@ function parseStructuredPickFromMarkdown(
     /^\s*([A-Z0-9]+)\s*·\s*perp\s*·\s*(LONG|SHORT)\s*$/im,
   );
   if (pickLine) {
-    const ticker = pickLine[1].toUpperCase().replace(/-/g, "");
-    if (isWttUniverseTicker(ticker)) {
+    const ticker = normalizeWttUniverseTicker(
+      pickLine[1].toUpperCase().replace(/-/g, ""),
+    );
+    if (ticker && isWttUniverseTicker(ticker)) {
       const direction =
         pickLine[2].toUpperCase() === "SHORT" ? "short" : "long";
       logger.info(
@@ -932,13 +1025,14 @@ function parseStructuredPickFromMarkdown(
       return {
         date: dateStr,
         thesis: "",
-        primaryTicker: ticker,
+        primaryTicker: ticker!,
         primaryDirection: direction,
         primaryInstrument: "perp",
         primaryEntryPrice: 0,
         primaryRiskUsd: 0,
-        invalidateCondition: "",
-        killConditions: [],
+        invalidateCondition:
+          "invalidate if follow-through fails after catalyst window",
+        killConditions: ["exit on thesis invalidation or crowding unwind"],
         rubric: FALLBACK_RUBRIC,
       };
     }
@@ -982,7 +1076,15 @@ async function savePickJson(pick: WttPick, date: Date): Promise<string | null> {
     const dir = getOutputDir();
     await fs.mkdir(dir, { recursive: true });
     const filepath = getOutputPathJson(date);
-    await fs.writeFile(filepath, JSON.stringify(pick, null, 2), "utf-8");
+    await fs.writeFile(
+      filepath,
+      JSON.stringify(
+        { schemaVersion: WTT_PICK_SCHEMA_VERSION, ...pick },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
     logger.info("[ECHO WhatstheTrade] Saved pick to " + filepath);
     return filepath;
   } catch (err) {
@@ -1116,18 +1218,19 @@ export async function runWhatsTheTradeReport(
     );
   }
 
+  const xNarrative = xDriven ? await fetchCtNarrativeForWtt(runtime) : null;
   // Polymarket odds (Gamma public-search) so thesis can reinforce or contrast with prediction markets
   let polymarketContext: string | null = null;
   try {
-    const searchQuery =
-      newsContext
-        ?.split(/\s+/)
-        .filter((w) => w.length > 3)[0]
-        ?.slice(0, 30) || "crypto bitcoin";
+    const searchQuery = derivePolymarketQuery({
+      newsContext,
+      xNarrative,
+      thesis: null, // thesis is generated after this stage
+    });
     polymarketContext = await getPolymarketContextForWtt(searchQuery);
     if (polymarketContext) {
       logger.info(
-        "[ECHO WhatstheTrade] Injecting Polymarket context into thesis suggestion",
+        `[ECHO WhatstheTrade] Injecting Polymarket context into thesis suggestion (query="${searchQuery}")`,
       );
     }
   } catch (e) {
@@ -1136,7 +1239,6 @@ export async function runWhatsTheTradeReport(
     );
   }
 
-  const xNarrative = xDriven ? await fetchCtNarrativeForWtt(runtime) : null;
   let thesis: string;
   if (xNarrative) {
     logger.info("[ECHO WhatstheTrade] Using X-driven thesis");
@@ -1220,15 +1322,34 @@ export async function runWhatsTheTradeReport(
     }
   }
 
+  const recentTickersForRisk = pick
+    ? await getRecentWttPrimaryTickers(dateStr, RECENT_WTT_DAYS)
+    : [];
+  const primaryTickerForRisk = pick?.primaryTicker;
+  const repeatCount = primaryTickerForRisk
+    ? recentTickersForRisk.filter((t) => t === primaryTickerForRisk).length
+    : 0;
+
   if (pick) {
+    pick = ensureContractValidPick(pick);
+  }
+  if (pick) {
+    if (repeatCount >= ROTATION_NUDGE_THRESHOLD) {
+      const crowdingNote = `crowding risk: ${pick.primaryTicker} appeared ${repeatCount}/${recentTickersForRisk.length} recent WTT primary picks`;
+      if (
+        !pick.killConditions.some((k) =>
+          k.toLowerCase().includes("crowding risk"),
+        )
+      ) {
+        pick.killConditions.push(crowdingNote);
+      }
+    }
     pick.catalystSources = catalystSources;
     await savePickJson(pick, now);
-    await saveEchoXSignalsFile(pick, now);
+    await saveEchoXSignalsFile(pick, now, repeatCount);
   } else {
-    const fallbackPick = extractPickFromNarrativeFallback(
-      narrative,
-      thesis,
-      dateStr,
+    const fallbackPick = ensureContractValidPick(
+      extractPickFromNarrativeFallback(narrative, thesis, dateStr),
     );
     if (fallbackPick) {
       fallbackPick.catalystSources = catalystSources;
@@ -1252,7 +1373,9 @@ export async function runWhatsTheTradeReport(
   });
   const filepath = await saveReport(fullReport, now);
   if (!pick && filepath) {
-    const mdFallback = parseStructuredPickFromMarkdown(fullReport, dateStr);
+    const mdFallback = ensureContractValidPick(
+      parseStructuredPickFromMarkdown(fullReport, dateStr),
+    );
     if (mdFallback) {
       mdFallback.catalystSources = catalystSources;
       await savePickJson(mdFallback, now);
@@ -1263,6 +1386,9 @@ export async function runWhatsTheTradeReport(
       );
     }
   }
+  logger.debug(
+    `[ECHO WhatstheTrade] stats fallback_attempts=${wttStats.fallbackAttempts} fallback_accepted=${wttStats.fallbackAccepted} fallback_rejected_low_evidence=${wttStats.fallbackRejectedLowEvidence} invalid_pick_reads=${wttStats.invalidPickReads}`,
+  );
   return { filepath, report: fullReport, pick };
 }
 
