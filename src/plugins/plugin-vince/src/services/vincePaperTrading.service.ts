@@ -112,6 +112,7 @@ import {
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
 import { VincePolicyEngineService } from "./vincePolicyEngine.service";
 import { VinceCapitalBucketsService } from "./vinceCapitalBuckets.service";
+import type { VincePostMortemPolicyLoopService } from "./vincePostMortemPolicyLoop.service";
 import { CircuitBreakerService } from "src/plugins/plugin-otaku/src/services/circuitBreaker.service";
 
 // ==========================================
@@ -363,6 +364,12 @@ export class VincePaperTradingService extends Service {
     ) as VinceTradeJournalService | null;
   }
 
+  private getPostMortemPolicyLoop(): VincePostMortemPolicyLoopService | null {
+    return this.runtime.getService(
+      "VINCE_POST_MORTEM_POLICY_LOOP_SERVICE",
+    ) as VincePostMortemPolicyLoopService | null;
+  }
+
   private getSignalAggregator(): VinceSignalAggregatorService | null {
     return this.runtime.getService(
       "VINCE_SIGNAL_AGGREGATOR_SERVICE",
@@ -474,7 +481,17 @@ export class VincePaperTradingService extends Service {
     }
     const assetClass = inferPtqgAssetClass(asset);
     const classCap = getAssetClassMaxLeverage(assetClass, this.runtime);
-    return Math.min(assetCap, classCap);
+    const policyLoop = this.getPostMortemPolicyLoop();
+    const adaptiveCap =
+      policyLoop?.getEffectiveOverlay().maxLeverageByAssetClass?.[assetClass];
+    const capped = Math.min(
+      assetCap,
+      classCap,
+      typeof adaptiveCap === "number" && Number.isFinite(adaptiveCap)
+        ? adaptiveCap
+        : Number.POSITIVE_INFINITY,
+    );
+    return capped;
   }
 
   /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). Optional VINCE_TP_FIRST_MULTIPLIER tightens first TP when level 0 (no TP hit) dominates. */
@@ -1423,10 +1440,13 @@ Reply format: APPROVE reason or VETO reason`;
     const riskManager = this.getRiskManager();
     const signalAggregator = this.getSignalAggregator();
     const marketData = this.getMarketData();
+    const policyLoop = this.getPostMortemPolicyLoop();
 
     if (!positionManager || !riskManager || !signalAggregator) {
       return;
     }
+
+    policyLoop?.refreshFromPostMortems();
 
     // First, check pending entries for pullbacks
     await this.checkPendingEntries();
@@ -2136,11 +2156,19 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Validate trade
+        const adaptiveOverlay = policyLoop?.getEffectiveOverlay();
+        const adaptiveMaxLeverage =
+          adaptiveOverlay?.maxLeverageByAssetClass?.[
+            inferPtqgAssetClass(asset)
+          ];
         const tradeValidation = riskManager.validateTrade({
           sizeUsd: baseSizeUsd,
           leverage,
           portfolioValue: portfolio.totalValue,
           currentExposure: positionManager.getCurrentExposure(),
+          ...(typeof adaptiveMaxLeverage === "number"
+            ? { maxLeverageOverride: adaptiveMaxLeverage }
+            : {}),
         });
 
         if (!tradeValidation.valid) {
@@ -2390,13 +2418,25 @@ Reply format: APPROVE reason or VETO reason`;
           } catch {
             paperBucketMaxSingleTradeUsd = undefined;
           }
+          const adaptiveMaxSingleTradeUsd =
+            policyLoop?.getEffectiveOverlay().maxSingleTradeUsd;
+          const effectiveMaxSingleTradeUsd =
+            typeof adaptiveMaxSingleTradeUsd === "number" &&
+            Number.isFinite(adaptiveMaxSingleTradeUsd)
+              ? typeof paperBucketMaxSingleTradeUsd === "number"
+                ? Math.min(
+                    paperBucketMaxSingleTradeUsd,
+                    adaptiveMaxSingleTradeUsd,
+                  )
+                : adaptiveMaxSingleTradeUsd
+              : paperBucketMaxSingleTradeUsd;
           if (
-            typeof paperBucketMaxSingleTradeUsd === "number" &&
-            finalTradeSize > paperBucketMaxSingleTradeUsd
+            typeof effectiveMaxSingleTradeUsd === "number" &&
+            finalTradeSize > effectiveMaxSingleTradeUsd
           ) {
-            finalTradeSize = paperBucketMaxSingleTradeUsd;
+            finalTradeSize = effectiveMaxSingleTradeUsd;
             logger.debug(
-              `[VincePaperTrading] ${asset} size capped to $${paperBucketMaxSingleTradeUsd} (bucket max)`,
+              `[VincePaperTrading] ${asset} size capped to $${effectiveMaxSingleTradeUsd} (policy max)`,
             );
           }
           const utcDate = new Date().toISOString().slice(0, 10);
@@ -2432,8 +2472,8 @@ Reply format: APPROVE reason or VETO reason`;
             openPositionCount,
             maxDailyTrades: maxDailyTrades ?? Number.POSITIVE_INFINITY,
             maxOpenPositions: maxOpenPositions ?? Number.POSITIVE_INFINITY,
-            ...(typeof paperBucketMaxSingleTradeUsd === "number"
-              ? { maxSingleTradeUsd: paperBucketMaxSingleTradeUsd }
+            ...(typeof effectiveMaxSingleTradeUsd === "number"
+              ? { maxSingleTradeUsd: effectiveMaxSingleTradeUsd }
               : {}),
           };
           const policyResult = policyEngine.evaluate(policyCtx);
@@ -3372,6 +3412,32 @@ Reply format: APPROVE reason or VETO reason`;
       }
     }
 
+    const activePolicyLoop = this.getPostMortemPolicyLoop();
+    const adaptiveOverlay = activePolicyLoop?.getEffectiveOverlay();
+    const minStopToAtr = adaptiveOverlay?.stopToAtrMin;
+    if (
+      typeof minStopToAtr === "number" &&
+      Number.isFinite(minStopToAtr) &&
+      minStopToAtr > 0 &&
+      typeof entryATRPct === "number" &&
+      entryATRPct > 0
+    ) {
+      const currentStopPct =
+        (Math.abs(stopLossPrice - entryPrice) / entryPrice) * 100;
+      const requiredStopPct = entryATRPct * minStopToAtr;
+      if (currentStopPct < requiredStopPct) {
+        const boundedRequiredPct = Math.min(8, requiredStopPct);
+        const adjustedDistance = entryPrice * (boundedRequiredPct / 100);
+        stopLossPrice =
+          direction === "long"
+            ? entryPrice - adjustedDistance
+            : entryPrice + adjustedDistance;
+        logger.debug(
+          `[VincePaperTrading] ${asset} adaptive stop floor applied: ${currentStopPct.toFixed(2)}% -> ${boundedRequiredPct.toFixed(2)}% (ATR ${entryATRPct.toFixed(2)}%, min ${minStopToAtr.toFixed(2)}x)`,
+        );
+      }
+    }
+
     // Contributing source names for bandit outcome feedback (weight optimization)
     const contributingSources = Object.keys(
       signal.sourceBreakdown ?? {},
@@ -3433,6 +3499,7 @@ Reply format: APPROVE reason or VETO reason`;
       lowConfidenceMode: ptqgMeta?.lowConfidenceMode ?? false,
       blocked: ptqgMeta?.blocked ?? false,
     };
+    const policyVersionAtEntry = activePolicyLoop?.getPolicyVersionTag();
 
     // Open position with ATR and full signal snapshot for dashboard
     const position = positionManager.openPosition({
@@ -3491,6 +3558,7 @@ Reply format: APPROVE reason or VETO reason`;
         ...(narrativePhase ? { narrativePhase } : {}),
         ...(immunePattern ? { immunePattern } : {}),
         ptqgMeta: finalizedPtqgMeta,
+        ...(policyVersionAtEntry ? { policyVersionAtEntry } : {}),
       },
     });
 
@@ -3742,6 +3810,15 @@ Reply format: APPROVE reason or VETO reason`;
 
     // Post-mortem: on loss, ask Echo/Oracle/Solus and write docs/standup/post-mortems/
     const pnlForPm = closedPosition.realizedPnl ?? 0;
+    const plannedRiskUsd = Number(
+      (closedPosition.metadata?.ptqgMeta as { maxLossUsd?: number } | undefined)
+        ?.maxLossUsd ?? 0,
+    );
+    this.getPostMortemPolicyLoop()?.recordClosedTrade({
+      realizedPnlUsd: pnlForPm,
+      budgetBreach:
+        plannedRiskUsd > 0 ? Math.abs(pnlForPm) > plannedRiskUsd + 0.01 : false,
+    });
     if (pnlForPm < 0) {
       this.lastClosedLosingPosition = closedPosition;
       void runPostMortem(this.runtime, closedPosition).catch((e) =>

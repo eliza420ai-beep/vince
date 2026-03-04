@@ -111,6 +111,7 @@ import { VinceUpliftEvaluatorService } from "./services/vinceUpliftEvaluator.ser
 import { VinceDataSufficiencyService } from "./services/vinceDataSufficiency.service";
 import { VinceSourceQualityService } from "./services/vinceSourceQuality.service";
 import { VinceProofCapitalAllocatorService } from "./services/vinceProofCapitalAllocator.service";
+import { VincePostMortemPolicyLoopService } from "./services/vincePostMortemPolicyLoop.service";
 
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
@@ -269,6 +270,7 @@ export const vincePlugin: Plugin = {
     VinceDataSufficiencyService,
     VinceSourceQualityService,
     VinceProofCapitalAllocatorService,
+    VincePostMortemPolicyLoopService,
   ] as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
 
   // Actions - focus areas + paper trading bot controls
@@ -1346,6 +1348,7 @@ export { VinceNotificationService } from "./services/notification.service";
 export { VinceAlertService } from "./services/alert.service";
 export { VinceParameterTunerService } from "./services/parameterTuner.service";
 export { VinceImprovementJournalService } from "./services/improvementJournal.service";
+export { VincePostMortemPolicyLoopService } from "./services/vincePostMortemPolicyLoop.service";
 
 // ==========================================
 // Target Assets Exports

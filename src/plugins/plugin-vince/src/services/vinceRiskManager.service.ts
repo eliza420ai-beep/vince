@@ -586,8 +586,15 @@ export class VinceRiskManagerService extends Service {
     leverage: number;
     portfolioValue: number;
     currentExposure: number;
+    maxLeverageOverride?: number;
   }): { valid: boolean; reason: string; adjustedSize?: number } {
-    const { sizeUsd, leverage, portfolioValue, currentExposure } = params;
+    const {
+      sizeUsd,
+      leverage,
+      portfolioValue,
+      currentExposure,
+      maxLeverageOverride,
+    } = params;
 
     // Check if paused
     if (this.state.isPaused) {
@@ -603,10 +610,16 @@ export class VinceRiskManagerService extends Service {
     }
 
     // Check leverage
-    if (leverage > this.limits.maxLeverage) {
+    const effectiveMaxLeverage =
+      typeof maxLeverageOverride === "number" &&
+      Number.isFinite(maxLeverageOverride) &&
+      maxLeverageOverride > 0
+        ? Math.min(this.limits.maxLeverage, maxLeverageOverride)
+        : this.limits.maxLeverage;
+    if (leverage > effectiveMaxLeverage) {
       return {
         valid: false,
-        reason: `Leverage ${leverage}x exceeds maximum ${this.limits.maxLeverage}x`,
+        reason: `Leverage ${leverage}x exceeds maximum ${effectiveMaxLeverage}x`,
       };
     }
 

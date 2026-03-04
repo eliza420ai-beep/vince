@@ -27,6 +27,8 @@ export interface PolicyContext {
   maxDailyTrades?: number;
   /** Max open positions (env VINCE_PAPER_MAX_OPEN_POSITIONS); unset = no cap */
   maxOpenPositions?: number;
+  /** Effective max single trade size after bucket + adaptive policy overlay */
+  maxSingleTradeUsd?: number;
   [key: string]: string | number | boolean | undefined;
 }
 

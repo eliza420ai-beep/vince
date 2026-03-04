@@ -171,6 +171,25 @@ Each action must include:
 - success metric,
 - rollback condition (if experiment worsens outcome).
 
+### 5.6 Recursive policy loop contract
+
+Each post-mortem should emit a bounded machine delta:
+
+- `riskBudget`: planned risk, realized risk, slippage, breach flag.
+- `consistencyChecks`: math reconciliation and truncated-findings detection.
+- `adaptationEligible`: strict gate (`quality >= 75`, no key data gaps, consistency pass).
+- `proposedPolicyDelta`: bounded changes only (no auto risk expansion), with:
+  - `riskIntent` (`stopToAtrMin`, `maxLeverageByAssetClass`, `maxSingleTradeUsd`, `enforcePreTradeRiskCheck`)
+  - `validationPlan` (`windowTrades`, target metrics, rollback triggers)
+  - expiry and step-size guardrails.
+
+Runtime requirements:
+
+- candidate policy activates in paper mode only,
+- validate over rolling trade window,
+- auto-promote only on improvement,
+- auto-rollback with explicit reason when targets are missed.
+
 ---
 
 ## 6. Non-Goals

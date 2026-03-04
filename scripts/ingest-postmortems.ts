@@ -13,7 +13,10 @@
  *         qualityScore, qualityEscalate,
  *         primaryCause, secondaryCauses,
  *         ptqgComplete, pmevCompletenessPct, missingData,
- *         holdMinutes, adverseMovePct, file
+ *         holdMinutes, adverseMovePct,
+ *         riskBudget, consistencyChecks, adaptationEligible,
+ *         policyVersionAtEntry, proposedPolicyDelta,
+ *         file
  *       }
  *   - .elizadb/vince-paper-bot/postmortems/root_cause_stats.json
  *       Aggregated counts and averages by assetClass + primaryCause.
@@ -71,6 +74,44 @@ interface MachineSummaryJson {
   missingData: string[];
   holdMinutes: number;
   adverseMovePct: number;
+  riskBudget?: {
+    plannedRiskUsd: number;
+    realizedRiskUsd: number;
+    riskSlippageUsd: number;
+    budgetBreach: boolean;
+  };
+  consistencyChecks?: {
+    passed: boolean;
+    issues: string[];
+    adverseMovePctFromPrices: number;
+    adverseMovePctDelta: number;
+    stopDistancePctFromPrices: number;
+    stopDistancePctDelta: number;
+    hasTruncatedFindings: boolean;
+  };
+  adaptationEligible?: boolean;
+  policyVersionAtEntry?: string | null;
+  proposedPolicyDelta?: {
+    confidence: number;
+    sampleSizeHint: number;
+    maxStepChangePct: number;
+    expiresAtUtc: string;
+    riskIntent: {
+      stopToAtrMin?: number;
+      maxLeverageByAssetClass?: Partial<Record<PtqgAssetClass, number>>;
+      maxSingleTradeUsd?: number;
+      enforcePreTradeRiskCheck: boolean;
+    };
+    validationPlan: {
+      windowTrades: number;
+      targetMetrics: {
+        maxBudgetBreachRate?: number;
+        minExpectancyUsd?: number;
+        maxDrawdownPct?: number;
+      };
+      rollbackTriggers: string[];
+    };
+  } | null;
 }
 
 interface PostMortemSummary extends MachineSummaryJson {
@@ -198,6 +239,116 @@ function normalizeWhitespace(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function validateOptionalRiskBudget(
+  summary: PostMortemSummary,
+  fileRel: string,
+): boolean {
+  const rb = summary.riskBudget;
+  if (!rb) return true;
+  if (
+    !isFiniteNumber(rb.plannedRiskUsd) ||
+    !isFiniteNumber(rb.realizedRiskUsd) ||
+    !isFiniteNumber(rb.riskSlippageUsd) ||
+    typeof rb.budgetBreach !== "boolean"
+  ) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: invalid riskBudget fields.`,
+    );
+    return false;
+  }
+  if (rb.plannedRiskUsd < 0 || rb.realizedRiskUsd < 0) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: riskBudget values cannot be negative.`,
+    );
+    return false;
+  }
+  return true;
+}
+
+function validateOptionalProposedDelta(
+  summary: PostMortemSummary,
+  fileRel: string,
+): boolean {
+  const delta = summary.proposedPolicyDelta;
+  if (!delta) return true;
+  if (
+    !isFiniteNumber(delta.confidence) ||
+    delta.confidence < 0 ||
+    delta.confidence > 1 ||
+    !isFiniteNumber(delta.sampleSizeHint) ||
+    delta.sampleSizeHint < 1 ||
+    !isFiniteNumber(delta.maxStepChangePct) ||
+    delta.maxStepChangePct < 0 ||
+    delta.maxStepChangePct > 100
+  ) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: invalid proposedPolicyDelta bounds.`,
+    );
+    return false;
+  }
+  if (
+    !delta.validationPlan ||
+    !isFiniteNumber(delta.validationPlan.windowTrades) ||
+    delta.validationPlan.windowTrades < 1 ||
+    !Array.isArray(delta.validationPlan.rollbackTriggers)
+  ) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: invalid proposedPolicyDelta.validationPlan.`,
+    );
+    return false;
+  }
+  if (
+    delta.riskIntent &&
+    delta.riskIntent.stopToAtrMin !== undefined &&
+    (!isFiniteNumber(delta.riskIntent.stopToAtrMin) ||
+      delta.riskIntent.stopToAtrMin <= 0 ||
+      delta.riskIntent.stopToAtrMin > 5)
+  ) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: stopToAtrMin out of bounds.`,
+    );
+    return false;
+  }
+  if (
+    delta.riskIntent &&
+    delta.riskIntent.maxSingleTradeUsd !== undefined &&
+    (!isFiniteNumber(delta.riskIntent.maxSingleTradeUsd) ||
+      delta.riskIntent.maxSingleTradeUsd <= 0)
+  ) {
+    console.warn(
+      `[ingest-postmortems] Skipping ${fileRel}: maxSingleTradeUsd must be positive.`,
+    );
+    return false;
+  }
+  if (
+    delta.riskIntent &&
+    delta.riskIntent.maxLeverageByAssetClass &&
+    typeof delta.riskIntent.maxLeverageByAssetClass === "object"
+  ) {
+    for (const [cls, lev] of Object.entries(
+      delta.riskIntent.maxLeverageByAssetClass,
+    )) {
+      if (!["crypto", "equity", "commodity", "other"].includes(cls)) {
+        console.warn(
+          `[ingest-postmortems] Skipping ${fileRel}: invalid asset class in maxLeverageByAssetClass (${cls}).`,
+        );
+        return false;
+      }
+      if (!isFiniteNumber(lev) || lev <= 0 || lev > 100) {
+        console.warn(
+          `[ingest-postmortems] Skipping ${fileRel}: invalid leverage value (${lev}) for ${cls}.`,
+        );
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 // -----------------------------
 // Parsers
 // -----------------------------
@@ -315,6 +466,12 @@ function validatePostMortemSummary(
     console.warn(
       `[ingest-postmortems] Skipping ${fileRel}: missing or invalid assetClass.`,
     );
+    return false;
+  }
+  if (!validateOptionalRiskBudget(summary, fileRel)) {
+    return false;
+  }
+  if (!validateOptionalProposedDelta(summary, fileRel)) {
     return false;
   }
   return true;
