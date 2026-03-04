@@ -23,36 +23,38 @@
 
 **V4.2.0 — The Genome.** One month. One PRD. Phases 1-5 shipped end-to-end.  
 Then we finished phases 6-15 and closed the loop.  
-VINCE now learns from outcomes, grades its own proof, and scales risk only when evidence is strong.
+VINCE now learns from outcomes, grades its own proof, and scales risk only when evidence is strong.  
+We also hardened **X research** (plugin-x-research): machine-readable signals (e.g. BTC long-term sentiment), day-report source stats and ranking, save-with-metadata and reason codes, and contract tests so ECHO and downstream agents get stable, actionable payloads.
 
 ### Build arc: 15 phases, one machine
 
 VINCE is not a group of smart bots anymore.  
 It is one operating machine: research → decision → trade → attribution → policy update.
 
-Phases 1-4: spine - clean handoffs, shared scorecards, regime-aware gates.  
-Phases 5-9: adaptation - strategy evolution, adversarial checks, calibration tracking, research-to-trade telemetry.  
-Phases 10-12: control - policy guardrails, rollback paths, operator visibility.  
-Phase 13: consensus - reliability-aware trade gating across agents, not single-model confidence.  
-Phases 14-15: discipline - proof attribution, sufficiency grading, source-quality controls, causal-confidence gates.
+**What you get, phase by phase:**
+
+- **Phases 1–4** — One shared view of performance. Clean handoffs between agents, shared scorecards, and regime-aware gates so every decision sees the same picture.
+- **Phases 5–9** — The system improves from its own trades. Strategy parameters evolve; every move is stress-tested; calibration and research lineage are visible so you know where an edge came from.
+- **Phases 10–12** — Guardrails and a clear rollback path. Capital buckets, policy-as-code, and operator visibility so you can trust the system under stress and recover fast when something breaks.
+- **Phase 13** — Decisions from consensus, not one model. Paper trading is gated by multi-agent agreement and reliability weighting, so a single overconfident signal can’t push risk up alone.
+- **Phases 14–15** — Risk only scales when the proof is strong enough. Attribution, sufficiency grading, and source-quality controls ensure promotion is earned by evidence, not vibes.
 
 ### Why this matters
 
 Most systems scale on vibes.  
-We scale on proof.  
+We scale on proof.
 
 Promotion requires sufficiency and causal confidence, not headline uplift.  
 Every trade updates attribution, calibration, and policy.  
 Public claims pass verified thresholds before distribution.  
-Rollout stays staged (`observe_only` → `recommendation` → guarded `auto_apply`) with rollback drills.
+Rollout stays staged (observe → recommend → guarded auto) with rollback drills so you never lose control.
 
-### Phase-15 status snapshot
+### Phase-15 snapshot (what you get today)
 
-- `/vince/paper` exposes `causal30d`, `sufficiencyTasks`, and `solus30d` in `proofSummary`.
-- Allocator hardening is live with a causal-confidence gate and rollback-aware reduction path.
-- Sufficiency v2 scores sample size, asset and regime breadth, time coverage, regime depth, and variance context.
-- Source quality v2 adds lag-aware scoring, dominant-regime tagging, cooldown windows, and hysteresis.
-- Verified artifacts are written to `.elizadb/vince-paper-bot/verified-claims.json` and `.elizadb/vince-paper-bot/sufficiency-tasks.json`.
+- **Paper dashboard** — Causal and sufficiency views in one place (`proofSummary`: causal30d, sufficiencyTasks, solus30d) so you see whether the system has earned more risk.
+- **Allocator** — A causal-confidence gate and rollback-aware path; the allocator only steps up when the numbers support it.
+- **Sufficiency & source quality** — Sample size, regime breadth, time coverage, and stability checks so weak or noisy evidence doesn’t drive promotion.
+- **Verified claims** — Content and trades traceable to proof; artifacts written for audit and operator review.
 
 ### Read more (detailed docs)
 
@@ -122,7 +124,7 @@ Clear lanes, no overlap: data, plan, call, lifestyle, infra.
 | :--- | :--- |
 | **Eliza** | Knowledge, research, brainstorm, Substack content. WRITE_ESSAY, DRAFT_TWEETS, CONTENT_AUDIT. The base everything builds on; next: Substack gold + banger tweets for X. |
 | **VINCE** | Objective data: options, perps, memes, news, paper bot, 15+ signal sources. Push, not pull. |
-| **ECHO** | CT sentiment, X research, social alpha, contrarian flags. Your ears on X; insight quality from X is a focus for improvement. |
+| **ECHO** | CT sentiment, X research, social alpha, contrarian flags. Your ears on X. Plugin-x-research ships BTC long-term sentiment (machine-readable signal), clawterm day report with source stats and ranking, and save-with-metadata; contract tests keep payloads stable for other agents. |
 | **Oracle** | Prediction markets: Polymarket discovery, odds, portfolio (read-only). Polymarket insight depth is a focus for improvement. |
 | **Solus** | Hypersurface options: strike ritual, optimal strike, assignment prob (GBM + ML when ONNX loaded). Brier calibration, auto-record, Friday resolve reminder; tail risk & portfolio copula. **RecursiveLoop + ML:** calibration context and TRAIN_SOLUS_CALIBRATION_WHEN_READY so Solus gets better over time for onchain options. [SOLUS.md](docs/SOLUS.md) |
 | **Otaku** | **Only agent with a wallet.** Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Execution graduation (L0→L3). |
@@ -201,7 +203,7 @@ bun start              # production (Postgres when POSTGRES_URL set)
 - **Leaderboard** — One dashboard for Markets, Memetics, News, Digital Art, Trading Bot, and Knowledge. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
 - **Kelly** — Lifestyle concierge only. Daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
 - **Knowledge ingestion** — `VINCE_UPLOAD` and ingest-urls pipeline new information into `knowledge/`.
-- **X research** — Paper algo signal + Cursor skill + `VINCE_X_RESEARCH` in chat. [X-RESEARCH.md](docs/X-RESEARCH.md)
+- **X research (plugin-x-research)** — ALOHA-style X pulse and vibe, day reports, and machine-readable signals for downstream agents. **BTC long-term sentiment** delivers a structured payload (direction, confidence, targets, cue counts) so other agents can act on it without parsing prose. **Clawterm day report** ranks and dedupes X + web sources, exposes source stats (candidates, selected, dropped, reason), and returns clear no-data reasons. **Save research** writes to file with metadata and reason codes (no_room, low_value_filtered, etc.). Contract tests lock sourceStats and saveMeta shapes so integrations stay stable. [X-RESEARCH.md](docs/X-RESEARCH.md) · [plugin-x-research](src/plugins/plugin-x-research/)
 - **Proof & next** — Prove recursive improvement for paper bot (HL perps) and Solus (Hypersurface options), improve X and Polymarket insight quality, and sharpen Eliza for Substack + X output. See **What's next**.
 
 ---
