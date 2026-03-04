@@ -36,6 +36,16 @@ describe("RecursiveNorthStarTab", () => {
               lastLoadError: "backend not found",
               lastLoadErrorCode: "backend_unavailable",
               probe: null,
+              runtimeFingerprint: {
+                capturedAt: Date.now(),
+                execPath: "/usr/local/bin/node",
+                releaseName: "node",
+                nodeVersion: "v22.15.0",
+                napiVersion: "10",
+                nodeOptions: "--max-old-space-size=4096",
+                nativeAddonsDisabled: false,
+                recoveryCooldownUntil: null,
+              },
               nextActions: ["Restart VINCE runtime after onnxruntime rebuild."],
             },
             recursion: {
@@ -102,6 +112,44 @@ describe("RecursiveNorthStarTab", () => {
               onnxRuntimeAvailable: true,
               lastLoadError: null,
               banditInitError: null,
+              runtimeProbe: {
+                checkedAt: Date.now(),
+                importOk: true,
+                cpuBackendOk: true,
+                modelSessionOk: true,
+                modelPathChecked:
+                  ".elizadb/vince-paper-bot/models/signal_quality.onnx",
+                code: null,
+                message: null,
+                providerAttempts: [
+                  {
+                    strategy: "cpu_explicit",
+                    success: true,
+                    error: null,
+                    code: null,
+                  },
+                ],
+              },
+              runtimeFingerprint: {
+                capturedAt: Date.now(),
+                execPath: "/usr/local/bin/node",
+                releaseName: "node",
+                nodeVersion: "v22.15.0",
+                napiVersion: "10",
+                nodeOptions: "--max-old-space-size=4096",
+                nativeAddonsDisabled: false,
+                recoveryCooldownUntil: null,
+              },
+              providerAttemptsByModel: {
+                signalQuality: [
+                  {
+                    strategy: "cpu_explicit",
+                    success: true,
+                    error: null,
+                    code: null,
+                  },
+                ],
+              },
             },
             synergy: {
               upliftDelta: 3,
@@ -224,6 +272,9 @@ describe("RecursiveNorthStarTab", () => {
     expect(html).toContain("Last weekly snapshot:");
     expect(html).toContain("Snapshot freshness thresholds:");
     expect(html).toContain("fresh");
+    expect(html).toContain("Runtime context:");
+    expect(html).toContain("Probe attempts:");
+    expect(html).toContain("Model load attempts:");
     expect(html).toContain("stage onnx_enabled: deficit 7");
     expect(html).toContain("missing_expected_model_files");
     expect(html).toContain("onnx_vs_swarm");

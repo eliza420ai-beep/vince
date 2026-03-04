@@ -40,6 +40,13 @@ const snapshotAgeClass = (ageDays: number): string =>
 const snapshotAgeLabel = (ageDays: number): "fresh" | "aging" | "stale" =>
   ageDays < 3 ? "fresh" : ageDays < 7 ? "aging" : "stale";
 
+const priorityBadgeClass = (label: "P1" | "P2" | "P3"): string =>
+  label === "P1"
+    ? "text-red-700 bg-red-500/10 border-red-500/30 dark:text-red-300"
+    : label === "P2"
+      ? "text-amber-700 bg-amber-500/10 border-amber-500/30 dark:text-amber-300"
+      : "text-blue-700 bg-blue-500/10 border-blue-500/30 dark:text-blue-300";
+
 function buildSparklinePath(
   values: number[],
   width: number,
@@ -247,6 +254,24 @@ export function RecursiveNorthStarTab({
       window.prompt("Copy weekly review command:", weeklyReviewCommand);
     }
   };
+  const runtimeContext =
+    operatorData?.triage.ml.runtimeFingerprint ??
+    data.metrics.ml.runtimeFingerprint ??
+    null;
+  const providerAttemptSummary = Object.entries(
+    data.metrics.ml.providerAttemptsByModel ?? {},
+  )
+    .map(([model, attempts]) => {
+      const summary = attempts
+        .map((attempt) =>
+          attempt.success
+            ? `${attempt.strategy}:ok`
+            : `${attempt.strategy}:fail`,
+        )
+        .join(", ");
+      return `${model}[${summary}]`;
+    })
+    .join(" | ");
 
   return (
     <div className="space-y-6">
@@ -507,6 +532,33 @@ export function RecursiveNorthStarTab({
                   </Button>
                 </div>
               </div>
+              <p className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
+                <span>Priority legend:</span>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+                    priorityBadgeClass("P1"),
+                  )}
+                >
+                  P1 critical
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+                    priorityBadgeClass("P2"),
+                  )}
+                >
+                  P2 important
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold",
+                    priorityBadgeClass("P3"),
+                  )}
+                >
+                  P3 nice-to-have
+                </span>
+              </p>
               <p className="text-[11px] text-muted-foreground">
                 Last weekly snapshot:{" "}
                 <span
@@ -546,9 +598,26 @@ export function RecursiveNorthStarTab({
                   ML Next Actions
                 </p>
                 <ul className="space-y-1 text-muted-foreground">
-                  {operatorData?.triage.ml.nextActions?.map((line, idx) => (
-                    <li key={`ml-action-${idx}`}>{line}</li>
-                  )) ?? <li>No ML action guidance yet.</li>}
+                  {(operatorData?.triage.ml.prioritizedNextActions?.length ??
+                    0) > 0
+                    ? operatorData?.triage.ml.prioritizedNextActions?.map(
+                        (row, idx) => (
+                          <li key={`ml-action-${idx}`}>
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold mr-1",
+                                priorityBadgeClass(row.label),
+                              )}
+                            >
+                              {row.label}
+                            </span>{" "}
+                            {row.action}
+                          </li>
+                        ),
+                      )
+                    : (operatorData?.triage.ml.nextActions?.map((line, idx) => (
+                        <li key={`ml-action-${idx}`}>{line}</li>
+                      )) ?? <li>No ML action guidance yet.</li>)}
                 </ul>
               </div>
               <div>
@@ -556,11 +625,28 @@ export function RecursiveNorthStarTab({
                   Recursion Next Actions
                 </p>
                 <ul className="space-y-1 text-muted-foreground">
-                  {operatorData?.triage.recursion.nextActions?.map(
-                    (line, idx) => (
-                      <li key={`recursion-action-${idx}`}>{line}</li>
-                    ),
-                  ) ?? <li>No recursion action guidance yet.</li>}
+                  {(operatorData?.triage.recursion.prioritizedNextActions
+                    ?.length ?? 0) > 0
+                    ? operatorData?.triage.recursion.prioritizedNextActions?.map(
+                        (row, idx) => (
+                          <li key={`recursion-action-${idx}`}>
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold mr-1",
+                                priorityBadgeClass(row.label),
+                              )}
+                            >
+                              {row.label}
+                            </span>{" "}
+                            {row.action}
+                          </li>
+                        ),
+                      )
+                    : (operatorData?.triage.recursion.nextActions?.map(
+                        (line, idx) => (
+                          <li key={`recursion-action-${idx}`}>{line}</li>
+                        ),
+                      ) ?? <li>No recursion action guidance yet.</li>)}
                 </ul>
               </div>
               <div>
@@ -568,6 +654,23 @@ export function RecursiveNorthStarTab({
                   Synergy Deficits
                 </p>
                 <ul className="space-y-1 text-muted-foreground">
+                  {(operatorData?.triage.synergy.prioritizedNextActions
+                    ?.length ?? 0) > 0 &&
+                    operatorData?.triage.synergy.prioritizedNextActions?.map(
+                      (row, idx) => (
+                        <li key={`synergy-action-${idx}`}>
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold mr-1",
+                              priorityBadgeClass(row.label),
+                            )}
+                          >
+                            {row.label}
+                          </span>{" "}
+                          {row.action}
+                        </li>
+                      ),
+                    )}
                   {(operatorData?.triage.synergy.stageDeficits ?? []).length ===
                     0 &&
                   (operatorData?.triage.synergy.pairDeficits ?? []).length ===
@@ -655,6 +758,47 @@ export function RecursiveNorthStarTab({
             {data.metrics.ml.banditInitError && (
               <p className="text-muted-foreground">
                 Bandit init error: {data.metrics.ml.banditInitError}
+              </p>
+            )}
+            {runtimeContext && (
+              <p className="text-[11px] text-muted-foreground">
+                Runtime context: {runtimeContext.releaseName}{" "}
+                {runtimeContext.nodeVersion} (napi{" "}
+                {runtimeContext.napiVersion ?? "unknown"}){" "}
+                {runtimeContext.nativeAddonsDisabled
+                  ? "native_addons_disabled"
+                  : "native_addons_enabled"}
+                {runtimeContext.nodeOptions
+                  ? ` · NODE_OPTIONS=${runtimeContext.nodeOptions}`
+                  : ""}
+                {runtimeContext.onnxLoaderStrategy
+                  ? ` · loader=${runtimeContext.onnxLoaderStrategy}`
+                  : ""}
+                {runtimeContext.onnxModulePath
+                  ? ` · module=${runtimeContext.onnxModulePath}`
+                  : ""}
+                {runtimeContext.recoveryCooldownUntil &&
+                runtimeContext.recoveryCooldownUntil > Date.now()
+                  ? ` · cooldown until ${new Date(runtimeContext.recoveryCooldownUntil).toLocaleTimeString()}`
+                  : ""}
+              </p>
+            )}
+            {data.metrics.ml.runtimeProbe?.providerAttempts &&
+              data.metrics.ml.runtimeProbe.providerAttempts.length > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Probe attempts:{" "}
+                  {data.metrics.ml.runtimeProbe.providerAttempts
+                    .map((attempt) =>
+                      attempt.success
+                        ? `${attempt.strategy}=ok`
+                        : `${attempt.strategy}=fail`,
+                    )
+                    .join(", ")}
+                </p>
+              )}
+            {providerAttemptSummary && (
+              <p className="text-[11px] text-muted-foreground">
+                Model load attempts: {providerAttemptSummary}
               </p>
             )}
             <p className="text-[11px] text-muted-foreground">

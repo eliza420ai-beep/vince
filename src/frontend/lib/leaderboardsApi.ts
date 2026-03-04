@@ -921,7 +921,34 @@ export interface RecursiveNorthStarResponse {
         modelPathChecked: string | null;
         code: string | null;
         message: string | null;
+        providerAttempts: Array<{
+          strategy: "cpu_explicit" | "default";
+          success: boolean;
+          error: string | null;
+          code: string | null;
+        }>;
       } | null;
+      runtimeFingerprint?: {
+        capturedAt: number;
+        execPath: string;
+        releaseName: string;
+        nodeVersion: string;
+        napiVersion: string | null;
+        nodeOptions: string | null;
+        nativeAddonsDisabled: boolean;
+        recoveryCooldownUntil: number | null;
+        onnxModulePath?: string | null;
+        onnxLoaderStrategy?: "import" | "require" | "unresolved";
+      } | null;
+      providerAttemptsByModel?: Record<
+        string,
+        Array<{
+          strategy: "cpu_explicit" | "default";
+          success: boolean;
+          error: string | null;
+          code: string | null;
+        }>
+      >;
     };
     synergy: {
       upliftDelta: number;
@@ -1017,11 +1044,24 @@ export interface RecursiveNorthStarOperatorStatus {
       lastLoadError: string | null;
       lastLoadErrorCode: string | null;
       probe: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeProbe"];
+      runtimeFingerprint: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeFingerprint"];
       nextActions: string[];
+      prioritizedNextActions?: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
     };
     recursion: {
       sufficiencyTasks: string[];
       nextActions: string[];
+      prioritizedNextActions?: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
     };
     synergy: {
       promotionReasons: string[];
@@ -1034,6 +1074,12 @@ export interface RecursiveNorthStarOperatorStatus {
         deficitToMin: number;
       }>;
       nextActions: string[];
+      prioritizedNextActions?: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
     };
   };
   weeklySnapshot: {
