@@ -185,6 +185,36 @@ type PtqgMetaInput = {
   blocked: boolean;
 };
 
+type TreatmentQualityDecision = {
+  asset: string;
+  accepted: boolean;
+  reason: string | null;
+  expectedEdge: number;
+  minEdge: number;
+  strengthMargin: number;
+  confidenceMargin: number;
+  requiredOverrideMargin: number;
+  candidateStages: string[];
+  stageDeficitCount: number;
+  pairDeficitTotal: number;
+  minSamplesPerArmDeficit: number;
+};
+
+type TreatmentQualityCycleTelemetry = {
+  generatedAt: number;
+  swarmCandidates: number;
+  accepted: number;
+  blocked: number;
+  avgExpectedEdge: number;
+  avgStrengthMargin: number;
+  avgConfidenceMargin: number;
+  minEdge: number;
+  coverageStageDeficitCount: number;
+  coveragePairDeficitTotal: number;
+  coverageMinSamplesPerArmDeficit: number;
+  reasons: Record<string, number>;
+};
+
 function inferPtqgAssetClass(asset: string): PtqgMetaInput["assetClass"] {
   const upper = asset.toUpperCase();
   if (
@@ -246,6 +276,8 @@ export class VincePaperTradingService extends Service {
   // Daily trade count for policy max-daily-trades (UTC day; resets when date changes)
   private tradesOpenedToday = 0;
   private tradesOpenedTodayDate = "";
+  private lastTreatmentQualityTelemetry: TreatmentQualityCycleTelemetry | null =
+    null;
 
   private static readonly COVERAGE_NEAR_THRESHOLD_POINTS = 8;
   private static readonly COVERAGE_SIGNAL_BONUS_POINTS = 4;
@@ -362,7 +394,9 @@ export class VincePaperTradingService extends Service {
     stageDeficitByStage: Record<string, number>;
     pairDeficitByStage: Record<string, number>;
     pairDeficitTotal: number;
+    minSamplesPerArmDeficit: number;
     treatmentExpectedEdge: number;
+    topPairDeficits: Array<{ label: string; deficitToMin: number }>;
     totalClosed: number;
   } {
     const minSamplesPerArm = this.getNumericSettingOrEnv(
@@ -414,6 +448,18 @@ export class VincePaperTradingService extends Service {
       pairDeficitByStage[row.treatmentStage] =
         (pairDeficitByStage[row.treatmentStage] ?? 0) + deficit;
     }
+    const minSamplesPerArmObserved = stageDepth.pairDepth.length
+      ? Math.min(...stageDepth.pairDepth.map((row) => row.minArmSamples))
+      : 0;
+    const minSamplesPerArmDeficit = Math.max(
+      0,
+      stageDepth.minimumSamplesPerArm - minSamplesPerArmObserved,
+    );
+    const topPairDeficits = stageDepth.pairDepth
+      .filter((row) => row.deficitToMin > 0)
+      .sort((a, b) => b.deficitToMin - a.deficitToMin)
+      .slice(0, 3)
+      .map((row) => ({ label: row.label, deficitToMin: row.deficitToMin }));
     const avgPnlByStage = new Map<string, number>();
     for (const row of uplift.byStage ?? []) {
       avgPnlByStage.set(row.stage, Number(row.avgPnl ?? 0));
@@ -432,7 +478,9 @@ export class VincePaperTradingService extends Service {
       stageDeficitByStage,
       pairDeficitByStage,
       pairDeficitTotal,
+      minSamplesPerArmDeficit,
       treatmentExpectedEdge,
+      topPairDeficits,
       totalClosed: Math.max(0, Number(uplift.totalClosed ?? 0)),
     };
   }
@@ -504,33 +552,89 @@ export class VincePaperTradingService extends Service {
       (regimeNeedsHelp
         ? VincePaperTradingService.COVERAGE_SIGNAL_BONUS_POINTS
         : 0);
-    tradeSignal.strength = Math.min(100, tradeSignal.strength + bonus);
-    tradeSignal.confidence = Math.min(100, tradeSignal.confidence + bonus);
+    const deficitPressureBonus = Math.min(
+      4,
+      Math.max(0, Math.ceil((stageDeficit + pairDeficit) / 4)),
+    );
+    const depthRecoveryBonus = coverage.minSamplesPerArmDeficit > 0 ? 2 : 0;
+    const topPairPriorityBonus = coverage.topPairDeficits.some(
+      (row) => row.deficitToMin > 0,
+    )
+      ? 1
+      : 0;
+    const totalBonus =
+      bonus + deficitPressureBonus + depthRecoveryBonus + topPairPriorityBonus;
+    tradeSignal.strength = Math.min(100, tradeSignal.strength + totalBonus);
+    tradeSignal.confidence = Math.min(100, tradeSignal.confidence + totalBonus);
   }
 
-  private getTreatmentQualityBlockReason(params: {
+  private evaluateTreatmentQualityGate(params: {
+    asset: string;
     tradeSignal: AggregatedTradeSignal;
     coverage: ReturnType<VincePaperTradingService["buildProofCoverageContext"]>;
     signalLimits: {
       minSignalStrength: number;
       minSignalConfidence: number;
     };
-  }): string | null {
-    const { tradeSignal, coverage, signalLimits } = params;
+  }): TreatmentQualityDecision | null {
+    const { asset, tradeSignal, coverage, signalLimits } = params;
     if (tradeSignal.direction === "neutral") return null;
     if (!this.hasSwarmTreatmentSource(tradeSignal)) return null;
     const minEdge = this.getNumericSettingOrEnv(
       "VINCE_SWARM_TREATMENT_MIN_EDGE",
       0,
     );
-    if (coverage.treatmentExpectedEdge > minEdge) return null;
     const strengthMargin =
       tradeSignal.strength - signalLimits.minSignalStrength;
     const confidenceMargin =
       tradeSignal.confidence - signalLimits.minSignalConfidence;
-    const strongEnoughToOverride = strengthMargin >= 5 && confidenceMargin >= 5;
-    if (strongEnoughToOverride) return null;
-    return `Treatment quality gate: expected swarm edge ${coverage.treatmentExpectedEdge.toFixed(2)} <= ${minEdge.toFixed(2)}, require stronger signal margins`;
+    const edgeShortfall = Math.max(0, minEdge - coverage.treatmentExpectedEdge);
+    const requiredOverrideMargin =
+      edgeShortfall >= 1
+        ? 10
+        : edgeShortfall >= 0.5
+          ? 8
+          : edgeShortfall > 0
+            ? 6
+            : 5;
+    const requiredMarginWithDepthPenalty =
+      coverage.minSamplesPerArmDeficit > 0
+        ? requiredOverrideMargin + 1
+        : requiredOverrideMargin;
+    const strongEnoughToOverride =
+      strengthMargin >= requiredMarginWithDepthPenalty &&
+      confidenceMargin >= requiredMarginWithDepthPenalty;
+    const accepted =
+      coverage.treatmentExpectedEdge > minEdge || strongEnoughToOverride;
+    const reason = accepted
+      ? null
+      : `Treatment quality gate: expected swarm edge ${coverage.treatmentExpectedEdge.toFixed(2)} <= ${minEdge.toFixed(2)}, require >=${requiredMarginWithDepthPenalty} strength/confidence margins`;
+    return {
+      asset,
+      accepted,
+      reason,
+      expectedEdge: coverage.treatmentExpectedEdge,
+      minEdge,
+      strengthMargin,
+      confidenceMargin,
+      requiredOverrideMargin: requiredMarginWithDepthPenalty,
+      candidateStages: this.inferCoverageStages(tradeSignal),
+      stageDeficitCount: coverage.stageDeficitCount,
+      pairDeficitTotal: coverage.pairDeficitTotal,
+      minSamplesPerArmDeficit: coverage.minSamplesPerArmDeficit,
+    };
+  }
+
+  private logTreatmentQualityDecision(
+    decision: TreatmentQualityDecision,
+  ): void {
+    const verdict = decision.accepted ? "accepted" : "blocked";
+    logger.debug(
+      `[VincePaperTrading] Treatment gate ${verdict}: ${decision.asset} edge=${decision.expectedEdge.toFixed(2)} minEdge=${decision.minEdge.toFixed(2)} ` +
+        `margins(str=${decision.strengthMargin.toFixed(1)},conf=${decision.confidenceMargin.toFixed(1)},req=${decision.requiredOverrideMargin.toFixed(1)}) ` +
+        `stages=${decision.candidateStages.join("|")} depthDeficit=${decision.minSamplesPerArmDeficit} ` +
+        `pairDeficit=${decision.pairDeficitTotal} stageDeficitCount=${decision.stageDeficitCount}`,
+    );
   }
 
   private getRegimeQuotaBlockReason(params: {
@@ -1709,6 +1813,15 @@ Reply format: APPROVE reason or VETO reason`;
       otherBlock: 0,
       reasons: {} as Record<string, number>,
     };
+    const treatmentGateCycle = {
+      swarmCandidates: 0,
+      accepted: 0,
+      blocked: 0,
+      sumExpectedEdge: 0,
+      sumStrengthMargin: 0,
+      sumConfidenceMargin: 0,
+      reasons: {} as Record<string, number>,
+    };
     function incrementFunnelReason(
       f: { otherBlock: number; reasons: Record<string, number> },
       key: string,
@@ -2080,12 +2193,33 @@ Reply format: APPROVE reason or VETO reason`;
           incrementFunnelReason(funnel, "regime_quota_guard");
           continue;
         }
-        const treatmentQualityReason = this.getTreatmentQualityBlockReason({
+        const treatmentQualityDecision = this.evaluateTreatmentQualityGate({
+          asset,
           tradeSignal,
           coverage: coverageContext,
           signalLimits,
         });
-        if (treatmentQualityReason) {
+        if (treatmentQualityDecision) {
+          this.logTreatmentQualityDecision(treatmentQualityDecision);
+          treatmentGateCycle.swarmCandidates++;
+          treatmentGateCycle.sumExpectedEdge +=
+            treatmentQualityDecision.expectedEdge;
+          treatmentGateCycle.sumStrengthMargin +=
+            treatmentQualityDecision.strengthMargin;
+          treatmentGateCycle.sumConfidenceMargin +=
+            treatmentQualityDecision.confidenceMargin;
+          if (treatmentQualityDecision.accepted) {
+            treatmentGateCycle.accepted++;
+          } else {
+            treatmentGateCycle.blocked++;
+            const reasonKey = "expected_edge_below_gate";
+            treatmentGateCycle.reasons[reasonKey] =
+              (treatmentGateCycle.reasons[reasonKey] ?? 0) + 1;
+          }
+        }
+        if (treatmentQualityDecision && !treatmentQualityDecision.accepted) {
+          const treatmentQualityReason =
+            treatmentQualityDecision.reason ?? "treatment_quality_gate";
           this.logSignalRejection(asset, tradeSignal, treatmentQualityReason);
           void this.recordAvoidedDecisionIfNeeded(
             asset,
@@ -2216,6 +2350,22 @@ Reply format: APPROVE reason or VETO reason`;
             ? effectiveMarginUsd * leverage
             : portfolio.totalValue * (effectiveBaseSizePct / 100)
           : portfolio.totalValue * 0.05;
+        if (this.hasSwarmTreatmentSource(tradeSignal)) {
+          const minEdge = this.getNumericSettingOrEnv(
+            "VINCE_SWARM_TREATMENT_MIN_EDGE",
+            0,
+          );
+          const softEdgeFloor = minEdge + 0.5;
+          if (coverageContext.treatmentExpectedEdge < softEdgeFloor) {
+            const shortfall =
+              softEdgeFloor - coverageContext.treatmentExpectedEdge;
+            const sizeMultiplier = Math.max(0.55, 1 - shortfall * 0.12);
+            baseSizeUsd *= sizeMultiplier;
+            logger.debug(
+              `[VincePaperTrading] ${asset} swarm edge guardrail: edge=${coverageContext.treatmentExpectedEdge.toFixed(2)} < softFloor=${softEdgeFloor.toFixed(2)} -> size x${sizeMultiplier.toFixed(2)}`,
+            );
+          }
+        }
         if (
           aggressive &&
           baseSizeUsd >
@@ -3146,6 +3296,52 @@ Reply format: APPROVE reason or VETO reason`;
       Object.keys(funnel.reasons).length > 0
         ? ` other_reasons=${JSON.stringify(funnel.reasons)}`
         : "";
+    if (treatmentGateCycle.swarmCandidates > 0) {
+      const divisor = Math.max(1, treatmentGateCycle.swarmCandidates);
+      this.lastTreatmentQualityTelemetry = {
+        generatedAt: Date.now(),
+        swarmCandidates: treatmentGateCycle.swarmCandidates,
+        accepted: treatmentGateCycle.accepted,
+        blocked: treatmentGateCycle.blocked,
+        avgExpectedEdge: treatmentGateCycle.sumExpectedEdge / divisor,
+        avgStrengthMargin: treatmentGateCycle.sumStrengthMargin / divisor,
+        avgConfidenceMargin: treatmentGateCycle.sumConfidenceMargin / divisor,
+        minEdge: this.getNumericSettingOrEnv(
+          "VINCE_SWARM_TREATMENT_MIN_EDGE",
+          0,
+        ),
+        coverageStageDeficitCount: coverageContext.stageDeficitCount,
+        coveragePairDeficitTotal: coverageContext.pairDeficitTotal,
+        coverageMinSamplesPerArmDeficit:
+          coverageContext.minSamplesPerArmDeficit,
+        reasons: treatmentGateCycle.reasons,
+      };
+      logger.info(
+        `[VincePaperTrading] Treatment gate telemetry: candidates=${treatmentGateCycle.swarmCandidates} accepted=${treatmentGateCycle.accepted} blocked=${treatmentGateCycle.blocked} ` +
+          `avgEdge=${(treatmentGateCycle.sumExpectedEdge / divisor).toFixed(2)} ` +
+          `avgMargins(str=${(treatmentGateCycle.sumStrengthMargin / divisor).toFixed(1)},conf=${(treatmentGateCycle.sumConfidenceMargin / divisor).toFixed(1)}) ` +
+          `depthDeficit=${coverageContext.minSamplesPerArmDeficit} pairDeficit=${coverageContext.pairDeficitTotal}`,
+      );
+    } else {
+      this.lastTreatmentQualityTelemetry = {
+        generatedAt: Date.now(),
+        swarmCandidates: 0,
+        accepted: 0,
+        blocked: 0,
+        avgExpectedEdge: 0,
+        avgStrengthMargin: 0,
+        avgConfidenceMargin: 0,
+        minEdge: this.getNumericSettingOrEnv(
+          "VINCE_SWARM_TREATMENT_MIN_EDGE",
+          0,
+        ),
+        coverageStageDeficitCount: coverageContext.stageDeficitCount,
+        coveragePairDeficitTotal: coverageContext.pairDeficitTotal,
+        coverageMinSamplesPerArmDeficit:
+          coverageContext.minSamplesPerArmDeficit,
+        reasons: {},
+      };
+    }
     logger.info(
       `[VincePaperTrading] Funnel this cycle: passed=${funnel.passedValidation} policy_block=${funnel.policyBlock} opened=${funnel.opened} open_failed=${funnel.openFailed} other_block=${funnel.otherBlock}${reasonsStr}`,
     );
@@ -4661,6 +4857,7 @@ Reply format: APPROVE reason or VETO reason`;
     openPositions: number;
     portfolioValue: number;
     returnPct: number;
+    treatmentQualityTelemetry: TreatmentQualityCycleTelemetry | null;
   } {
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
@@ -4675,6 +4872,7 @@ Reply format: APPROVE reason or VETO reason`;
       openPositions: positionManager?.getOpenPositions().length || 0,
       portfolioValue: portfolio?.totalValue || 0,
       returnPct: portfolio?.returnPct || 0,
+      treatmentQualityTelemetry: this.lastTreatmentQualityTelemetry,
     };
   }
 }

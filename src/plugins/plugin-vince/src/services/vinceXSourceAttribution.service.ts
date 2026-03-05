@@ -11,6 +11,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { resolveCausalThresholds } from "../utils/causalThresholds";
 
 // ==========================================
 // Types
@@ -591,8 +592,17 @@ export class VinceXSourceAttributionService {
     minimumSamplesPerArm?: number;
   }): CausalUpliftSnapshot {
     const windowDays = params?.windowDays ?? 30;
-    const minimumEffect = params?.minimumEffect ?? 0.02;
-    const minimumSamplesPerArm = params?.minimumSamplesPerArm ?? 12;
+    const defaults = resolveCausalThresholds({
+      getSetting:
+        typeof this.runtime?.getSetting === "function"
+          ? this.runtime.getSetting.bind(this.runtime)
+          : undefined,
+      fallbackMinimumEffect: 0.015,
+      fallbackMinimumSamplesPerArm: 10,
+    });
+    const minimumEffect = params?.minimumEffect ?? defaults.minimumEffect;
+    const minimumSamplesPerArm =
+      params?.minimumSamplesPerArm ?? defaults.minimumSamplesPerArm;
     const closed = this.getRecords(windowDays).filter((r) => r.outcome);
 
     const stagePairs: Array<{
@@ -736,8 +746,18 @@ export class VinceXSourceAttributionService {
 
   getCausalStageDepthSummary(
     windowDays = 30,
-    minimumSamplesPerArm = 12,
+    minimumSamplesPerArm?: number,
   ): CausalStageDepthSummary {
+    const defaults = resolveCausalThresholds({
+      getSetting:
+        typeof this.runtime?.getSetting === "function"
+          ? this.runtime.getSetting.bind(this.runtime)
+          : undefined,
+      fallbackMinimumEffect: 0.015,
+      fallbackMinimumSamplesPerArm: 10,
+    });
+    const depthMinSamples =
+      minimumSamplesPerArm ?? defaults.minimumSamplesPerArm;
     const closed = this.getRecords(windowDays).filter((r) => r.outcome);
     const stageCount = new Map<UpliftStage, number>();
     for (const stage of STAGE_LABELS) stageCount.set(stage, 0);
@@ -751,7 +771,7 @@ export class VinceXSourceAttributionService {
       return {
         stage,
         count,
-        deficitToMin: Math.max(0, minimumSamplesPerArm - count),
+        deficitToMin: Math.max(0, depthMinSamples - count),
       };
     });
 
@@ -780,14 +800,14 @@ export class VinceXSourceAttributionService {
         controlCount,
         treatmentCount,
         minArmSamples,
-        deficitToMin: Math.max(0, minimumSamplesPerArm - minArmSamples),
+        deficitToMin: Math.max(0, depthMinSamples - minArmSamples),
       };
     });
 
     return {
       generatedAt: Date.now(),
       windowDays,
-      minimumSamplesPerArm,
+      minimumSamplesPerArm: depthMinSamples,
       perStage,
       pairDepth,
       allStagesReady: perStage.every((row) => row.deficitToMin === 0),

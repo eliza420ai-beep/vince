@@ -16,6 +16,7 @@ import type { VinceSourceQualityService } from "../services/vinceSourceQuality.s
 import type { VinceProofCapitalAllocatorService } from "../services/vinceProofCapitalAllocator.service";
 import type { Position, Portfolio, KPIProgress } from "../types/paperTrading";
 import { getSolusProofSnapshot } from "../../../plugin-solus/src/utils/assignmentPredictionsStore";
+import { resolveCausalThresholds } from "../utils/causalThresholds";
 
 export interface NoTradeEvaluation {
   asset: string;
@@ -290,6 +291,11 @@ export async function buildPaperResponse(
     "VINCE_PROOF_CAPITAL_ALLOCATOR_SERVICE",
   ) as VinceProofCapitalAllocatorService | null;
   let allocatorSummary = allocatorService?.getLatestSummary?.() ?? null;
+  const causalThresholds = resolveCausalThresholds({
+    getSetting: runtime.getSetting?.bind(runtime),
+    fallbackMinimumEffect: 0.015,
+    fallbackMinimumSamplesPerArm: 10,
+  });
   if (!allocatorSummary && allocatorService?.reconcile) {
     try {
       allocatorSummary = await allocatorService.reconcile();
@@ -304,8 +310,8 @@ export async function buildPaperResponse(
         causal30d:
           upliftService.getCausalSnapshot?.({
             windowDays: 30,
-            minimumEffect: 0.02,
-            minimumSamplesPerArm: 12,
+            minimumEffect: causalThresholds.minimumEffect,
+            minimumSamplesPerArm: causalThresholds.minimumSamplesPerArm,
           }) ?? null,
         sufficiency: sufficiencyService?.getSnapshot?.(30) ?? null,
         sufficiencyTasks: sufficiencyService?.getBlockingTasks?.(30) ?? [],

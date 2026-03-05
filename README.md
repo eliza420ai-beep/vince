@@ -45,6 +45,74 @@ Right now, we are focused on one job: push `Recursive North Star` to stable on-t
 
 This phase is about repeatable, auditable improvement. Scores should rise because the system gets better under strict criteria.
 
+### Why we push ML + recursion this hard (VINCE-specific)
+
+In VINCE, **ML** and **recursion** are not two buzzwords. They are two different jobs in one proof system.
+
+- **ML is the optimizer**: ONNX models score signal quality, adjust size, and shape exits from real closed outcomes.
+- **Recursion is the governor**: each cycle writes outcomes back, checks sufficiency/causal gates, then decides whether policy and capital can move.
+- **Together they prevent two failure modes**:
+  - ML-only drift: model gets "better" on paper but ignores risk discipline.
+  - Rules-only stagnation: process is stable but stops adapting when market microstructure changes.
+
+For our Hyperliquid perps paper bot, the loop is concrete:
+
+`signal -> gate -> paper trade -> close outcome -> attribution -> feature store -> train -> ONNX deploy -> next gate`
+
+If any link breaks, the loop does not compound.
+
+### Why proving `1+1=3` is hard (and why it should be hard)
+
+`1+1=3` means: **multi-agent treatment beats ONNX-only baseline with causal evidence**, not just a lucky week.
+
+In our stack, that proof must pass all of this at once:
+
+1. **Positive treatment uplift**: `onnx_plus_swarm` must outperform `onnx_enabled` on avg PnL.
+2. **Causal promotion gate**: pair-level lower-bound effect must clear threshold (ciLower gate), not just point estimate.
+3. **Per-arm depth**: each causal pair needs minimum sample depth per arm (no shallow wins).
+4. **Safety integrity**: fewer execution mistakes (sizing blowups, regime mismatch, budget breaches) while uplift improves.
+
+Why this is difficult for VINCE specifically:
+
+- **Stage coupling problem**: improving one stage can starve another stage of depth, which delays causal eligibility.
+- **Market regime churn**: perps behavior shifts quickly; edge seen in one regime can vanish in the next.
+- **Small-N in the right buckets**: total trades can look fine while the exact pair/regime buckets needed for proof are still thin.
+- **Guardrail drag is intentional**: when treatment edge weakens, we block or downsize. That slows data collection but protects quality.
+- **No threshold games allowed**: we do bounded threshold alignment, but score gains must come from better outcomes, not easier gates.
+
+This is why the Synergy pillar can stay blocked even with visible activity: the bar is designed to reject weak or noisy "wins."  
+We only promote when uplift, confidence, depth, and safety all agree.
+
+### Operator playbook: move Synergy from blocked to on-track
+
+Run this daily, in order. Do not skip steps.
+
+1. **Check treatment gate telemetry first**
+   - Target: rising pass rate, positive `avg edge`, shrinking `depth deficit`.
+   - If pass rate is low and edge is flat/negative, do not loosen risk; fix treatment quality first.
+2. **Close depth deficits where they are largest**
+   - Fill the biggest stage/pair deficits until minimum per-arm depth is met.
+   - Goal: remove `causal_sample_depth_below_target`.
+3. **Protect uplift while collecting samples**
+   - Keep swarm edge positive with execution discipline (avoid repeated sizing/stop mistakes).
+   - Goal: remove `swarm_not_beating_single_agent`.
+4. **Re-check causal eligibility**
+   - Confirm promotion reasons are shrinking and ci-lower quality is improving.
+   - Goal: remove `causal_promotion_not_eligible`.
+5. **Promote only on sustained proof**
+   - Milestones: `upliftDelta > 0`, `promotionEligible=true`, `minSamplesPerArm>=target`, `synergyScore>=50` then `>=75` over the 7d window.
+   - If budget breaches or uplift quality worsen, roll back threshold tweaks and prioritize safety.
+
+**Daily standup prompt (copy/paste)**
+
+`Synergy daily check:`
+`1) Treatment gate telemetry: pass rate, avg edge, depth deficit.`
+`2) Top stage/pair deficits to close today (exact counts).`
+`3) Uplift status vs ONNX baseline and main blockers.`
+`4) Causal promotion status + failing pair reasons.`
+`5) Execution-risk check: budget breaches, sizing/stop errors, regime mismatches.`
+`6) Today’s actions (max 3), owner, and expected metric impact by tomorrow.`
+
 ### Structural thesis: crypto, AI, and what to own
 
 In fast markets, signal half-life is short and distribution is crowded.  
