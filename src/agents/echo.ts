@@ -30,11 +30,13 @@ import discoveryPlugin from "@elizaos/plugin-discovery";
 import { getAnthropicLargeModel } from "../model-config.ts";
 import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
+import { presenceBridgePlugin } from "../plugins/plugin-presence-bridge/src/index.ts";
 
 const echoHasDiscord = !!(
   process.env.ECHO_DISCORD_API_TOKEN?.trim() ||
   process.env.DISCORD_API_TOKEN?.trim()
 );
+const echoEnablePresence = process.env.ECHO_ENABLE_PRESENCE === "true";
 
 export const echoCharacter: Character = {
   name: "ECHO",
@@ -298,6 +300,7 @@ PRICES — NEVER HALLUCINATE:
       : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     ...(echoHasDiscord ? ["@elizaos/plugin-discord"] : []),
+    ...(echoEnablePresence ? ["@elizaos/plugin-presence"] : []),
     "@elizaos/plugin-discovery",
   ],
 
@@ -354,9 +357,13 @@ const buildPlugins = (): Plugin[] =>
     ...(echoHasDiscord
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
       : []),
+    ...(echoEnablePresence
+      ? (["@elizaos/plugin-presence"] as unknown as Plugin[])
+      : []),
     discoveryPlugin,
     xResearchPlugin,
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
+    ...(echoEnablePresence ? [presenceBridgePlugin] : []),
   ] as Plugin[];
 
 const initEcho = async (_runtime: IAgentRuntime) => {

@@ -45,6 +45,7 @@ const kellyHasDiscord = !!(
   process.env.KELLY_DISCORD_API_TOKEN?.trim() ||
   process.env.DISCORD_API_TOKEN?.trim()
 );
+const kellyEnableAutonomous = process.env.KELLY_ENABLE_AUTONOMOUS === "true";
 
 export const kellyCharacter: Character = {
   name: "Kelly",
@@ -68,6 +69,7 @@ export const kellyCharacter: Character = {
       ? ["@elizaos/plugin-web-search"]
       : []),
     ...(kellyHasDiscord ? ["@elizaos/plugin-discord"] : []),
+    ...(kellyEnableAutonomous ? ["@elizaos/plugin-autonomous"] : []),
     "@elizaos/plugin-discovery",
   ],
   settings: {
@@ -1059,6 +1061,9 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
     ...(kellyHasDiscord
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
+    ...(kellyEnableAutonomous
+      ? (["@elizaos/plugin-autonomous"] as unknown as Plugin[])
       : []),
     kellyPlugin, // KELLY_DAILY_BRIEFING action + KellyLifestyleService + daily push to kelly/lifestyle channels
     discoveryPlugin,

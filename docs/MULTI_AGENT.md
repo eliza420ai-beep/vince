@@ -124,6 +124,38 @@ So Oracle's prediction-market view feeds directly into Vince's paper bot and ris
 - **plugin-inter-agent** (this repo): **Multi-runtime** A2A—ask another **agent** by name (ASK_AGENT) and standups (Kelly-coordinated 2×/day). Different runtimes (Vince, Kelly, Sentinel, etc.); `elizaOS.getAgents()` / `handleMessage(agentId, msg)` route to the correct runtime. Use for "Kelly asks Vince" and autonomous standups.
 - **plugin-agent-orchestrator** ([next/typescript](https://github.com/elizaos-plugins/plugin-agent-orchestrator/tree/next/typescript)): Task lifecycle (CREATE_TASK, PAUSE, RESUME, CANCEL), **same-agent** subagent (new room, background run, announce), session-based SEND_TO_SESSION, MessagingService (cross-platform send), sandbox. Orchestrator A2A is single-runtime (session/room within one process). It does **not** replace inter-agent for "Kelly asks Vince" (different runtimes). Use orchestrator for "spawn a background task for this agent" or unified messaging APIs.
 
+## Operating Model: Four Plugin Lanes
+
+Use this split to avoid ownership overlap:
+
+- **`plugin-inter-agent` (required):** cross-runtime ASK_AGENT, A2A loop guard, standups.
+- **`plugin-agent-orchestrator` (optional):** coding-task execution lane (PTY sessions, workspaces, PR lifecycle), piloted on Sentinel only.
+- **`plugin-autonomous` (optional):** response coordination, brevity, and cost-aware behavior; pilot on Kelly + Sentinel first.
+- **`plugin-presence` (optional):** "who is around now" context provider; pilot as read-only context on VINCE + ECHO.
+
+If a feature needs cross-runtime handoff between named team agents, route it through `plugin-inter-agent` first.
+
+## Pilot Flags (Current Rollout)
+
+Set these to `true` only for pilot windows:
+
+- `SENTINEL_ENABLE_AGENT_ORCHESTRATOR`
+- `SENTINEL_ENABLE_AUTONOMOUS`
+- `KELLY_ENABLE_AUTONOMOUS`
+- `VINCE_ENABLE_PRESENCE`
+- `ECHO_ENABLE_PRESENCE`
+- `ENABLE_PRESENCE_BRIDGE` (required for presence source registration)
+
+All defaults should remain `false` unless actively validating.
+
+## Presence Pilot Notes
+
+Presence is treated as context, not automation:
+
+- Source: `plugin-presence-bridge` publishes current in-process agent registry as a presence domain.
+- Consumer: `plugin-presence` provider can enrich prompts with current "online/nearby" agent context.
+- Guardrail: no behavior should auto-trigger from presence during pilot.
+
 ## Subagent-Style Flow (Future)
 
 Today ASK_AGENT is **synchronous**: the requester waits up to ~90s for the target's reply. If you want "ask Vince, continue the conversation, and get his answer when ready":
@@ -302,3 +334,13 @@ _Summary derived from validated research (Nature, Anthropic, DeepMind, causal id
 ### Discord: "Could not find guild for channel (not in cache and fetch failed)"
 
 This warning comes from the Discord plugin’s VOICESTATE provider when it tries to resolve the guild for a channel and the guild isn’t in the client cache (e.g. channel from another server, or right after the bot joins). It is usually **benign** and does not affect normal text messaging or ASK_AGENT. If you need voice-state behavior in that channel, ensure the bot is in the same server as the channel and the guild is loaded; otherwise you can ignore the warning.
+
+### Pilot rollback (new plugins)
+
+If standup or ASK_AGENT regresses after enabling pilot plugins:
+
+1. Set all pilot flags to `false` (`*_ENABLE_AUTONOMOUS`, `*_ENABLE_PRESENCE`, `ENABLE_PRESENCE_BRIDGE`, `SENTINEL_ENABLE_AGENT_ORCHESTRATOR`).
+2. Restart runtimes.
+3. Re-test manual kickoff in `#daily-standup` and one ASK_AGENT hop.
+
+This returns the system to the previous `plugin-inter-agent`-only control plane.

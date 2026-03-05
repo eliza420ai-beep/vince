@@ -44,6 +44,10 @@ const sentinelHasDiscord = !!(
   process.env.SENTINEL_DISCORD_API_TOKEN?.trim() ||
   process.env.DISCORD_API_TOKEN?.trim()
 );
+const sentinelEnableAutonomous =
+  process.env.SENTINEL_ENABLE_AUTONOMOUS === "true";
+const sentinelEnableAgentOrchestrator =
+  process.env.SENTINEL_ENABLE_AGENT_ORCHESTRATOR === "true";
 
 export const sentinelCharacter: Character = {
   name: "Sentinel",
@@ -75,6 +79,10 @@ export const sentinelCharacter: Character = {
       ? ["@elizaos/plugin-web-search"]
       : []),
     ...(sentinelHasDiscord ? ["@elizaos/plugin-discord"] : []),
+    ...(sentinelEnableAutonomous ? ["@elizaos/plugin-autonomous"] : []),
+    ...(sentinelEnableAgentOrchestrator
+      ? ["@elizaos/plugin-agent-orchestrator"]
+      : []),
   ],
   settings: {
     secrets: {
@@ -720,6 +728,12 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
     ...(sentinelHasDiscord
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
+    ...(sentinelEnableAutonomous
+      ? (["@elizaos/plugin-autonomous"] as unknown as Plugin[])
+      : []),
+    ...(sentinelEnableAgentOrchestrator
+      ? (["@elizaos/plugin-agent-orchestrator"] as unknown as Plugin[])
       : []),
     sentinelPlugin,
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
