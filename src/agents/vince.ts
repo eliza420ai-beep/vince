@@ -55,6 +55,7 @@ import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 // Polymarket discovery (read-only) so Vince can derive prediction-market sentiment for perps + Solus
 import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discovery/src/index.ts";
+import { presenceBridgePlugin } from "../plugins/plugin-presence-bridge/src/index.ts";
 
 // Load Discord for VINCE when he has his own bot (VINCE_DISCORD_* set and different from Eliza's app).
 // No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to use Discord (see DISCORD.md).
@@ -64,6 +65,7 @@ const vinceHasOwnDiscord =
   (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() ||
     process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !==
       process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+const vinceEnablePresence = process.env.VINCE_ENABLE_PRESENCE === "true";
 
 // ==========================================
 // Character Definition
@@ -86,6 +88,7 @@ export const vinceCharacter: Character = {
     ...(process.env.TELEGRAM_BOT_TOKEN?.trim()
       ? ["@elizaos/plugin-telegram"]
       : []),
+    ...(vinceEnablePresence ? ["@elizaos/plugin-presence"] : []),
   ],
   settings: {
     secrets: {
@@ -561,12 +564,16 @@ const buildPlugins = (): Plugin[] =>
     ...(vinceHasOwnDiscord
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
       : []),
+    ...(vinceEnablePresence
+      ? (["@elizaos/plugin-presence"] as unknown as Plugin[])
+      : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
     ...(process.env.VINCE_ENABLE_X_RESEARCH_PLUGIN === "true"
       ? [xResearchPlugin]
       : []), // Optional live bridge for X_RESEARCH_TRADING_SENTIMENT_SERVICE
     polymarketDiscoveryPlugin, // Read-only: Polymarket sentiment for perps signal + Solus context
     interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
+    ...(vinceEnablePresence ? [presenceBridgePlugin] : []),
   ] as Plugin[];
 
 // ==========================================

@@ -42,6 +42,77 @@ import {
 } from "../services/openclawKnowledge.service";
 import { NO_AI_SLOP } from "../utils/alohaStyle";
 
+function getTargetRepoUrl(): string {
+  return (
+    process.env.SENTINEL_TARGET_REPO_URL?.trim() ||
+    "https://github.com/eliza420ai-beep/vince"
+  );
+}
+
+function toIssueTitle(input: string): string {
+  const clean = input
+    .replace(/^\d+\.\s+/, "")
+    .replace(/\*\*/g, "")
+    .trim();
+  return clean.length > 80 ? `${clean.slice(0, 77)}...` : clean;
+}
+
+function toIssueBody(item: WorkItem): string {
+  const target = item.plugin
+    ? `Target plugin: ${item.plugin}`
+    : "Target: repo-wide";
+  return [
+    "## Why",
+    item.description,
+    "",
+    "## Scope",
+    target,
+    "",
+    "## Acceptance",
+    "- [ ] Implement core change",
+    "- [ ] Validate behavior and no regressions",
+    "- [ ] Update docs where needed",
+  ].join("\n");
+}
+
+function buildGithubIssueSuggestions(
+  ranked: Array<WorkItem & { score: { totalScore: number } }>,
+): string[] {
+  return ranked.slice(0, 3).map((item, idx) => {
+    const title = toIssueTitle(item.title);
+    const body = toIssueBody(item)
+      .split("\n")
+      .map((line) => `   ${line}`)
+      .join("\n");
+    return [
+      `${idx + 1}. **${title}**`,
+      `   - Labels: \`sentinel\`, \`priority\`, \`${item.category}\``,
+      "   - Body:",
+      body,
+    ].join("\n");
+  });
+}
+
+function shellDoubleQuoted(value: string): string {
+  return JSON.stringify(value);
+}
+
+function buildGhIssueCommands(
+  ranked: Array<WorkItem & { score: { totalScore: number } }>,
+  targetRepoUrl: string,
+): string[] {
+  return ranked.slice(0, 3).map((item) => {
+    const title = toIssueTitle(item.title);
+    const body = toIssueBody(item);
+    return [
+      `gh issue create --repo ${targetRepoUrl} --title ${shellDoubleQuoted(title)} --body "$(cat <<'EOF'`,
+      `${body}`,
+      "EOF",
+      ')"',
+    ].join("\n");
+  });
+}
+
 const SUGGEST_TRIGGERS = [
   "suggest",
   "suggestions",
@@ -331,6 +402,7 @@ ${patternsText}
 
       // Main suggestions flow
       logger.info("[SENTINEL_SUGGEST] Scanning project state...");
+      const targetRepoUrl = getTargetRepoUrl();
 
       // Get current project state
       const projectState = scanProject();
@@ -359,6 +431,7 @@ ${patternsText}
           .join("\n");
         const stateLine = `${projectState.plugins.length} plugins, ${projectState.inProgress.length} in progress, ${projectState.blocked.length} blocked, ${projectState.allTodos.filter((t) => t.priority === "high").length} high-priority TODOs`;
         const narrativePrompt = `You are Sentinel. Given these impact-ranked priorities and project state, write one short narrative paragraph (flowing prose, no bullet list) that tells the user what to focus on and why. North star: 24/7 market research is top priority; OpenClaw matters a lot. Sound like a sharp colleague, not a report.
+Target GitHub repo for issue suggestions: ${targetRepoUrl}
 
 Top priorities:\n${topTitles}
 
@@ -434,6 +507,15 @@ One paragraph only, no preamble:`;
       }
 
       response += `\n---\n*For a full PRD: "PRD for <feature>". For a task brief: "brief for Claude to <task>".*`;
+      const issueCandidates = buildGithubIssueSuggestions(ranked);
+      if (issueCandidates.length > 0) {
+        response += `\n\n**🐙 GitHub Issue Candidates (${targetRepoUrl}):**\n`;
+        response += `${issueCandidates.join("\n\n")}\n`;
+        const ghCommands = buildGhIssueCommands(ranked, targetRepoUrl);
+        if (ghCommands.length > 0) {
+          response += `\n**Ready-to-paste commands:**\n\n\`\`\`bash\n${ghCommands.join("\n\n")}\n\`\`\`\n`;
+        }
+      }
 
       const out = "Here are my suggestions—\n\n" + response;
       await callback({ text: out });

@@ -26,6 +26,80 @@ import { VinceShadowChallengerService } from "../../../plugin-vince/src/services
 
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
+const DEFAULT_TARGET_REPO = "https://github.com/eliza420ai-beep/vince";
+
+function getTargetRepoUrl(): string {
+  return process.env.SENTINEL_TARGET_REPO_URL?.trim() || DEFAULT_TARGET_REPO;
+}
+
+function extractTopSuggestionLines(list: string): string[] {
+  return list
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^\d+\.\s+/.test(line))
+    .slice(0, 3);
+}
+
+function buildIssueBlockFromSuggestions(list: string): string {
+  const repo = getTargetRepoUrl();
+  const lines = extractTopSuggestionLines(list);
+  if (lines.length === 0) return "";
+  const issues = lines.map((line, idx) => {
+    const title = line
+      .replace(/^\d+\.\s+/, "")
+      .replace(/\*\*/g, "")
+      .trim()
+      .slice(0, 90);
+    return `${idx + 1}. ${title}`;
+  });
+  return [
+    "",
+    `**GitHub issues to open (${repo}):**`,
+    ...issues.map((i) => `- ${i}`),
+  ].join("\n");
+}
+
+function buildIssueCommandBlockFromSuggestions(list: string): string {
+  const repo = getTargetRepoUrl();
+  const lines = extractTopSuggestionLines(list);
+  if (lines.length === 0) return "";
+
+  const commands = lines.map((line) => {
+    const title = line
+      .replace(/^\d+\.\s+/, "")
+      .replace(/\*\*/g, "")
+      .trim()
+      .slice(0, 90);
+    const body = [
+      "## Why",
+      line.replace(/^\d+\.\s+/, "").trim(),
+      "",
+      "## Scope",
+      "Target: sentinel weekly top priority",
+      "",
+      "## Acceptance",
+      "- [ ] Define exact implementation scope",
+      "- [ ] Implement and test",
+      "- [ ] Update docs if behavior changes",
+    ].join("\n");
+    return [
+      `gh issue create --repo ${repo} --title ${JSON.stringify(title)} --body "$(cat <<'EOF'`,
+      body,
+      "EOF",
+      ')"',
+    ].join("\n");
+  });
+
+  return [
+    "",
+    "**Ready-to-paste gh issue create commands:**",
+    "```bash",
+    ...commands.flatMap((cmd, idx) =>
+      idx === commands.length - 1 ? [cmd] : [cmd, ""],
+    ),
+    "```",
+  ].join("\n");
+}
 
 type PostMortemMetrics = {
   file: string;
@@ -57,7 +131,9 @@ async function generateWeeklySuggestions(
     undefined,
   );
   const contextBlock = typeof state.text === "string" ? state.text : "";
-  const prompt = `You are Sentinel. North star: 24/7 coding, self-improving, ML/ONNX obsessed, ART, openclaw, best settings. You use all .md in knowledge and are responsible for doc improvements and consolidating progress. Using the context below, produce a short prioritized list of improvement suggestions. Categories: **24/7 market research (top priority):** Vince push, X research, signals, knowledge pipeline—ensure this is running and improving before other work; architecture/ops, ONNX/feature-store health (run train_models if 90+ rows), openclaw spin-up, ART gems from elizaOS examples (especially art), best-settings nudge, benchmarks alignment (use ELIZAOS_BENCHMARKS in sentinel-docs for run commands: context_bench, agentbench, solana, gauntlet), relevant plugins (openclaw-adapter—OPENCLAW_ADAPTER; plugin-elevenlabs—PLUGIN_ELEVENLABS; plugin-mcp—PLUGIN_MCP; plugin-xai for Grok/xAI—PLUGIN_XAI; we underuse Grok), tech debt, doc improvements (outdated sections, missing refs), progress consolidation (PROGRESS-CONSOLIDATED, run sync-sentinel-docs.sh). Number each item; one line per item with a short ref. No intro—just the numbered list.\n\nContext:\n${contextBlock}`;
+  const prompt = `You are Sentinel. North star: 24/7 coding, self-improving, ML/ONNX obsessed, ART, openclaw, best settings. You use all .md in knowledge and are responsible for doc improvements and consolidating progress. Using the context below, produce a short prioritized list of improvement suggestions. Categories: **24/7 market research (top priority):** Vince push, X research, signals, knowledge pipeline—ensure this is running and improving before other work; architecture/ops, ONNX/feature-store health (run train_models if 90+ rows), openclaw spin-up, ART gems from elizaOS examples (especially art), best-settings nudge, benchmarks alignment (use ELIZAOS_BENCHMARKS in sentinel-docs for run commands: context_bench, agentbench, solana, gauntlet), relevant plugins (openclaw-adapter—OPENCLAW_ADAPTER; plugin-elevenlabs—PLUGIN_ELEVENLABS; plugin-mcp—PLUGIN_MCP; plugin-xai for Grok/xAI—PLUGIN_XAI; we underuse Grok), tech debt, doc improvements (outdated sections, missing refs), progress consolidation (PROGRESS-CONSOLIDATED, run sync-sentinel-docs.sh). Number each item; one line per item with a short ref. No intro—just the numbered list.
+Target GitHub repository for issues: ${getTargetRepoUrl()}.
+\nContext:\n${contextBlock}`;
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
   return typeof response === "string"
     ? response
@@ -608,6 +684,8 @@ export async function registerSentinelWeeklyTask(
             : "Prediction calibration: predictionBrier=n/a predictionCount=0",
           "",
           listTrimmed,
+          buildIssueBlockFromSuggestions(listTrimmed),
+          buildIssueCommandBlockFromSuggestions(listTrimmed),
           postMortemsBlock,
           rollupBlock,
           guardrailReviewBlock,
