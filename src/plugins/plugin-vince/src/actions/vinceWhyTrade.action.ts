@@ -25,6 +25,7 @@ import type { SwarmConsensus } from "../types/swarm";
 import type { Position } from "../types/paperTrading";
 import { BOT_FOOTER } from "../constants/botFormat";
 import { getGrokMarketReadSection } from "../utils/grokPulseParser";
+import { resolveCausalThresholds } from "../utils/causalThresholds";
 
 // ==========================================
 // Data Context Types
@@ -421,6 +422,11 @@ export const vinceWhyTradeAction: Action = {
       }
 
       try {
+        const causalThresholds = resolveCausalThresholds({
+          getSetting: runtime.getSetting?.bind(runtime),
+          fallbackMinimumEffect: 0.015,
+          fallbackMinimumSamplesPerArm: 10,
+        });
         const upliftService = runtime.getService(
           "VINCE_UPLIFT_EVALUATOR_SERVICE",
         ) as {
@@ -461,8 +467,8 @@ export const vinceWhyTradeAction: Action = {
           } | null
         )?.getCausalSnapshot?.({
           windowDays: 30,
-          minimumEffect: 0.02,
-          minimumSamplesPerArm: 12,
+          minimumEffect: causalThresholds.minimumEffect,
+          minimumSamplesPerArm: causalThresholds.minimumSamplesPerArm,
         });
         const stage =
           uplift30?.byStage?.find(

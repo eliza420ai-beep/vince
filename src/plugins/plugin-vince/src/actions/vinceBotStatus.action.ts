@@ -215,6 +215,20 @@ export const vinceBotStatusAction: Action = {
         const total = signalStatus.dataSources.length;
         lines.push(`📡 Data: ${activeCount}/${total} sources`);
       }
+      const treatmentTelemetry = status.treatmentQualityTelemetry;
+      if (treatmentTelemetry) {
+        const passRate =
+          treatmentTelemetry.swarmCandidates > 0
+            ? Math.round(
+                (treatmentTelemetry.accepted /
+                  treatmentTelemetry.swarmCandidates) *
+                  100,
+              )
+            : 0;
+        lines.push(
+          `🧪 Swarm gate: ${treatmentTelemetry.accepted}/${treatmentTelemetry.swarmCandidates} pass (${passRate}%) · avg edge ${treatmentTelemetry.avgExpectedEdge.toFixed(2)} · depth deficit ${treatmentTelemetry.coverageMinSamplesPerArmDeficit}`,
+        );
+      }
       lines.push("");
 
       // Portfolio

@@ -7,6 +7,7 @@ import type { VinceDataSufficiencyService } from "../services/vinceDataSufficien
 import type { VinceMLInferenceService } from "../services/mlInference.service";
 import type { VinceFeatureStoreService } from "../services/vinceFeatureStore.service";
 import type { VinceWeightBanditService } from "../services/weightBandit.service";
+import { resolveCausalThresholds } from "../utils/causalThresholds";
 
 export type NorthStarStatus = "on_track" | "at_risk" | "blocked";
 
@@ -104,6 +105,8 @@ export interface RecursiveNorthStarResponse {
       >;
     };
     synergy: {
+      minimumEffect: number;
+      minimumSamplesPerArmTarget: number;
       upliftDelta: number;
       causalPromotionEligible: boolean;
       causalConfidenceScore: number;
@@ -278,8 +281,6 @@ const WEEKLY_SNAPSHOT_DIR = path.join(
   "standup",
   "recursive-snapshots",
 );
-const SYNERGY_MINIMUM_EFFECT = 0.015;
-const SYNERGY_MINIMUM_SAMPLES_PER_ARM = 10;
 const BLOCKER_SCORE_DEDUCTION = 1.5;
 const PILLAR_PENALTY_WEIGHT = 3.5;
 
@@ -387,6 +388,13 @@ function getLatestWeeklySnapshotMeta(): {
 export async function buildRecursiveNorthStarResponse(
   runtime: IAgentRuntime,
 ): Promise<RecursiveNorthStarResponse> {
+  const causalThresholds = resolveCausalThresholds({
+    getSetting: runtime.getSetting?.bind(runtime),
+    fallbackMinimumEffect: 0.015,
+    fallbackMinimumSamplesPerArm: 10,
+  });
+  const synergyMinimumEffect = causalThresholds.minimumEffect;
+  const synergyMinimumSamplesPerArm = causalThresholds.minimumSamplesPerArm;
   const upliftService = runtime.getService(
     "VINCE_UPLIFT_EVALUATOR_SERVICE",
   ) as VinceUpliftEvaluatorService | null;
@@ -468,8 +476,8 @@ export async function buildRecursiveNorthStarResponse(
     const causal =
       upliftService?.getCausalSnapshot?.({
         windowDays,
-        minimumEffect: SYNERGY_MINIMUM_EFFECT,
-        minimumSamplesPerArm: SYNERGY_MINIMUM_SAMPLES_PER_ARM,
+        minimumEffect: synergyMinimumEffect,
+        minimumSamplesPerArm: synergyMinimumSamplesPerArm,
       }) ?? null;
     const completeTrades = featureStore
       ? await featureStore.getCompleteRecordCount(windowDays)
@@ -501,15 +509,11 @@ export async function buildRecursiveNorthStarResponse(
         )
       : 0;
     const nearPassDepthRatio = clamp(
-      minSamplesPerArm / SYNERGY_MINIMUM_SAMPLES_PER_ARM,
+      minSamplesPerArm / synergyMinimumSamplesPerArm,
       0,
       1,
     );
-    const nearPassEffectRatio = clamp(
-      minCiLower / SYNERGY_MINIMUM_EFFECT,
-      0,
-      1,
-    );
+    const nearPassEffectRatio = clamp(minCiLower / synergyMinimumEffect, 0, 1);
     const nearPassBonus =
       upliftDelta > 0
         ? (nearPassDepthRatio * 0.6 + nearPassEffectRatio * 0.4) * 6
@@ -523,7 +527,7 @@ export async function buildRecursiveNorthStarResponse(
       (completeTrades < 20 ? 1 : 0);
     const synergyPenalty =
       (upliftDelta <= 0 ? 1 : 0) +
-      (minSamplesPerArm < SYNERGY_MINIMUM_SAMPLES_PER_ARM ? 1 : 0);
+      (minSamplesPerArm < synergyMinimumSamplesPerArm ? 1 : 0);
     const recursionScore = clamp(
       gradeScore(sufficiency.grade) * 0.45 +
         (allocator?.rolloutStage === "one_sleeve_auto_apply"
@@ -584,10 +588,10 @@ export async function buildRecursiveNorthStarResponse(
   const stageDepth =
     upliftService?.getCausalStageDepthSummary?.(
       30,
-      SYNERGY_MINIMUM_SAMPLES_PER_ARM,
+      synergyMinimumSamplesPerArm,
     ) ??
     ({
-      minimumSamplesPerArm: SYNERGY_MINIMUM_SAMPLES_PER_ARM,
+      minimumSamplesPerArm: synergyMinimumSamplesPerArm,
       allStagesReady: false,
       perStage: [],
       pairDepth: [],
@@ -645,9 +649,10 @@ export async function buildRecursiveNorthStarResponse(
   const synergyHighlights: string[] = [
     `Swarm uplift vs ONNX baseline: ${upliftDelta >= 0 ? "+" : ""}${upliftDelta.toFixed(2)} avg PnL`,
     `Causal confidence score: ${(causal?.pairs?.length ? Math.round(causal.pairs.reduce((sum, p) => sum + p.confidenceScore, 0) / causal.pairs.length) : 0).toFixed(0)}`,
-    `Causal promotion eligible: ${(causal?.promotionEligible ?? false) ? "yes" : "no"} (min effect ${(SYNERGY_MINIMUM_EFFECT * 100).toFixed(1)}%)`,
-    `Per-arm sample depth: ${minSamplesPerArm}/${SYNERGY_MINIMUM_SAMPLES_PER_ARM} target`,
+    `Causal promotion eligible: ${(causal?.promotionEligible ?? false) ? "yes" : "no"} (min effect ${(synergyMinimumEffect * 100).toFixed(1)}%)`,
+    `Per-arm sample depth: ${minSamplesPerArm}/${synergyMinimumSamplesPerArm} target`,
     `Near-pass progress: depth ${(nearPassDepthRatio * 100).toFixed(0)}% · effect ${(nearPassEffectRatio * 100).toFixed(0)}%`,
+    `Causal gates in use: effect ${(synergyMinimumEffect * 100).toFixed(1)}% · min samples ${synergyMinimumSamplesPerArm}/arm`,
   ];
   const synergyBlockers: string[] = [];
   if (upliftDelta <= 0) synergyBlockers.push("swarm_not_beating_single_agent");
@@ -655,7 +660,7 @@ export async function buildRecursiveNorthStarResponse(
     synergyBlockers.push("causal_promotion_not_eligible");
   if ((causal?.pairs?.length ?? 0) === 0)
     synergyBlockers.push("no_causal_pairs");
-  if (minSamplesPerArm < SYNERGY_MINIMUM_SAMPLES_PER_ARM)
+  if (minSamplesPerArm < synergyMinimumSamplesPerArm)
     synergyBlockers.push("causal_sample_depth_below_target");
 
   const recursionScore = clamp(
@@ -757,7 +762,7 @@ export async function buildRecursiveNorthStarResponse(
   );
   const minSamplesPerArmDeficit = Math.max(
     0,
-    SYNERGY_MINIMUM_SAMPLES_PER_ARM - minSamplesPerArm,
+    synergyMinimumSamplesPerArm - minSamplesPerArm,
   );
 
   return {
@@ -835,6 +840,8 @@ export async function buildRecursiveNorthStarResponse(
         providerAttemptsByModel: mlStatus.providerAttemptsByModel ?? {},
       },
       synergy: {
+        minimumEffect: synergyMinimumEffect,
+        minimumSamplesPerArmTarget: synergyMinimumSamplesPerArm,
         upliftDelta,
         causalPromotionEligible: Boolean(causal?.promotionEligible),
         causalConfidenceScore,
@@ -1082,7 +1089,7 @@ export async function buildRecursiveNorthStarOperatorStatus(
   const synergyActionEntries: Array<{ action: string; reasonCode: string }> =
     [];
   if (synergyBlockers.has("causal_sample_depth_below_target")) {
-    const action = `Fill pair depth to >=${SYNERGY_MINIMUM_SAMPLES_PER_ARM} per arm, starting with: ${topPairDeficits.join(", ") || "largest deficit pairs"}.`;
+    const action = `Fill pair depth to >=${synergyMinimumSamplesPerArm} per arm, starting with: ${topPairDeficits.join(", ") || "largest deficit pairs"}.`;
     synergyNextActions.push(action);
     synergyActionEntries.push({
       action,
@@ -1099,7 +1106,7 @@ export async function buildRecursiveNorthStarOperatorStatus(
     });
   }
   if (synergyBlockers.has("causal_promotion_not_eligible")) {
-    const action = `Raise causal quality (ciLower >= ${SYNERGY_MINIMUM_EFFECT.toFixed(3)} where possible) while keeping upliftDelta positive.`;
+    const action = `Raise causal quality (ciLower >= ${synergyMinimumEffect.toFixed(3)} where possible) while keeping upliftDelta positive.`;
     synergyNextActions.push(action);
     synergyActionEntries.push({
       action,
