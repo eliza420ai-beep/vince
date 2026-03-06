@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-03-05",
+  "signals": [
+    {
+      "asset": "MSTR",
+      "direction": "long",
+      "confidence": 74
+    },
+    {
+      "asset": "BTC",
+      "direction": "long",
+      "confidence": 64
+    }
+  ]
+}
