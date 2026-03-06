@@ -1,0 +1,29 @@
+{
+  "date": "2026-03-05",
+  "thesis": "MSTR trades at discount to BTC proxy value; 98% certainty of massive BTC purchase this week creates leveraged upside with defined catalyst",
+  "primaryTicker": "MSTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 185,
+  "primaryRiskUsd": 800,
+  "invalidateCondition": "BTC < $62k",
+  "killConditions": [
+    "purchase delayed beyond this week",
+    "broader equity markets tank",
+    "BTC crashes before announcement"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "max_asymmetry",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "BTC",
+  "altDirection": "long",
+  "altInstrument": "perp",
+  "evThresholdPct": 2,
+  "catalystSources": [
+    "headlines",
+    "polymarket"
+  ]
+}

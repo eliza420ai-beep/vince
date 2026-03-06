@@ -62,3 +62,5 @@
 | 2026-03-02 | Extreme fear (10) but VINCE flipped long 66% on liquidation data—shorts getting  | [View](day-reports/2026-03-02-day-report.md) |
 | 2026-03-04 | Extreme fear (14) but VINCE caught the liquidation turn early—shorts getting squ | [View](day-reports/2026-03-04-day-report.md) |
 | 2026-03-04 | Fed cuts priced out, whales accumulating under retail caution, paper bot caught  | [View](day-reports/2026-03-04-day-report.md) |
+| 2026-03-05 | BTC long signal at 57% confidence but mixed tape (HYPE down 2.1%) and regulatory | [View](day-reports/2026-03-05-day-report.md) |
+| 2026-03-05 | BTC holding $71K while Fear Index hits 22, whales accumulating on $462M ETF infl | [View](day-reports/2026-03-05-day-report.md) |

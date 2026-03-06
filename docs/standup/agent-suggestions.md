@@ -175,3 +175,11 @@
 
 - Clawterm: Invest in nix-openclaw reproducible deploys and 'Pete's setup' content series to reduce Tailscale friction and boost adoption.
 - Eliza: Bake trading desk schema (agent roles, tool ownership, signal→order pipeline) directly into OPTIONS-PLAYBOOK for cross-agent signal flow clarity.
+## 2026-03-05
+
+- Clawterm → Sentinel: Cross-link content-factory skill template build to recursive-ml pipeline validation for sprint prioritization.
+- Eliza: Map polymarket funding-rate arbitrage into options sizing rules to complete capital allocation framework for desk cross-sell.
+- Vince: Consider pausing auto-trades until signal quality improves above 50% and regime chop clears.
+## 2026-03-05
+
+- Clawterm → Sentinel: Cross-link Blender skill template sprint to recursive north star acceleration for unified builder momentum.

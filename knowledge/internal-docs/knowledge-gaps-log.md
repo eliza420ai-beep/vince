@@ -2568,3 +2568,6 @@
 - **2026-02-13**: : Quantify altcoin rotation signals using NVT ratio crossovers.
 
 (148 words)
+- **2026-03-05**: Compile HIP-3 performance stats in neutral regimes (win rate, Sharpe >1.2?).  
+
+(148 words)
