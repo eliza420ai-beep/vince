@@ -1,0 +1,20 @@
+{
+  "name": "@elizaos/plugin-forge",
+  "version": "0.1.0",
+  "description": "Forge — MLX AutoResearch layer for VINCE v2. Overnight self-optimization experiments.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@elizaos/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

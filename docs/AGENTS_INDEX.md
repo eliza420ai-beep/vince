@@ -16,6 +16,7 @@ This folder contains **one briefing document per agent** in the VINCE multi-agen
 | **Otaku**    | [OTAKU.md](OTAKU.md)       | COO  | Only agent with a funded wallet; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution.              |
 | **Kelly**    | [KELLY.md](KELLY.md)       | CVO  | Lifestyle concierge; one team one dream (orchestrates others via ASK_AGENT); plugin-personality (self-modification).  |
 | **Sentinel** | [SENTINEL.md](SENTINEL.md) | CTO  | Core dev: PRDs, project radar, impact suggestions, OpenClaw expert, cost status, ART; weekly + optional daily tasks.  |
+| **Forge**    | [FORGE.md](FORGE.md)       | —    | MLX AutoResearch: overnight self-optimization experiments; mutate policy/prompts/ML weights → commit winners.         |
 
 ---
 
