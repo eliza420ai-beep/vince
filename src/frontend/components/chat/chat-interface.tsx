@@ -385,6 +385,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Who is @user?", message: "Who is @crediblecrypto?" },
     { label: "X News", message: "What's the crypto news on X?" },
     { label: "Save that", message: "save that" },
+    { label: "Command Center", message: "X research command center" },
   ],
   // Oracle: Polymarket discovery + desk (edge check, risk snapshot, perf report). One agent for all.
   oracle: [
