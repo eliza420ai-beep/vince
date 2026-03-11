@@ -66,7 +66,7 @@ export X_RESEARCH_QUALITY_LIST_ID="your-list-id"
 | `X_RESEARCH_QUALITY_LIST_ID` | X list ID for quality-filtered results                                                                                                | —                                       |
 | `X_SEARCH_MAX_RESULTS`       | Posts to fetch for X_SEARCH (deeper insight)                                                                                          | `60`                                    |
 
-**Plugin-vince (paper-bot sentiment):** `X_SENTIMENT_SHOW_COST=true` or `LOG_LEVEL=debug` logs estimated cost after each sentiment refresh.
+**Plugin-vince (paper-bot sentiment):** `X_SENTIMENT_SHOW_COST=true` or `LOG_LEVEL=debug` logs estimated cost after each sentiment refresh. When **X_SENTIMENT_USE_X_RESEARCH_PLUGIN=true**, VINCE’s paper trading aggregator uses this plugin’s topic + quality-weighted sentiment (**X_RESEARCH_TRADING_SENTIMENT_SERVICE**). Keyword lexicon lives in `src/constants/sentimentKeywords.ts`; for consistency with plugin-vince’s sentiment, keep bullish/bearish/risk lists in sync (see plugin-vince **SIGNAL_SOURCES.md** § Keyword lexicon and source quality).
 
 ## Security
 
@@ -203,7 +203,7 @@ Get crypto news from X's News API.
 ```
 plugin-x-research/
 ├── src/
-│   ├── index.ts              # Plugin entry (5 actions)
+│   ├── index.ts              # Plugin entry (12 actions)
 │   ├── types/                # TypeScript types
 │   │   ├── tweet.types.ts    # Tweet, User, SearchResponse
 │   │   ├── news.types.ts     # News API types
@@ -224,11 +224,18 @@ plugin-x-research/
 │   │   ├── xThreads.service  # Thread detection & fetching
 │   │   └── xAccounts.service # Account analysis
 │   ├── actions/
-│   │   ├── xPulse.action     # 🎯 North star - full briefing
-│   │   ├── xVibe.action      # Quick topic sentiment
-│   │   ├── xThread.action    # Thread summarization
-│   │   ├── xAccount.action   # Account analysis
-│   │   └── xNews.action      # News headlines
+│   │   ├── xPulse.action         # 🎯 North star - full briefing
+│   │   ├── xVibe.action          # Quick topic sentiment
+│   │   ├── xThread.action        # Thread summarization
+│   │   ├── xAccount.action       # Account analysis
+│   │   ├── xMentions.action      # Mention monitoring
+│   │   ├── xNews.action          # News headlines
+│   │   ├── xWatchlist.action     # Watchlist check (read-only)
+│   │   ├── xSaveResearch.action  # Save last research
+│   │   ├── xSearch.action        # Manual search
+│   │   ├── clawtermDayReport.action # OpenClaw day report
+│   │   ├── whatsTheTrade.action  # What's-the-trade response
+│   │   └── polymarketVibe.action # Polymarket vibe
 │   └── __tests__/            # Vitest tests
 ```
 
@@ -298,10 +305,12 @@ bun run dev
 - ✅ `X_NEWS` - News headlines
 - ✅ `X_WATCHLIST` - In-chat watchlist check (read-only)
 - ✅ `X_SAVE_RESEARCH` - Save last research to file
+- ✅ `X_SEARCH` - Manual search with custom filters
+- ✅ `WHATS_THE_TRADE` - Fast trade expression (Echo lane)
+- ✅ `POLYMARKET_VIBE` - Polymarket-linked vibe check
 
 **Planned:**
 
-- `X_SEARCH` - Manual search with custom filters
 - `X_ALPHA` - Alpha discovery (new accounts, emerging narratives)
 - Providers for VINCE signal aggregation
 - X Spaces monitoring

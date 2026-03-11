@@ -213,7 +213,9 @@ describe("InsightPackagingService", () => {
         .filter((l) => l.trim())
         .map((l) => {
           const r = JSON.parse(l);
-          r.packagedAt = new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(); // 10h ago
+          r.packagedAt = new Date(
+            Date.now() - 10 * 60 * 60 * 1000,
+          ).toISOString(); // 10h ago
           return JSON.stringify(r);
         });
       fs.writeFileSync(filePath, insights.join("\n") + "\n");

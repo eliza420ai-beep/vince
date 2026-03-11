@@ -72,55 +72,63 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
     "GASLESS_REBALANCE",
   ],
 
-  parameters: {
-    inputToken: {
-      type: "string",
+  parameters: [
+    {
+      name: "inputToken",
       description:
         "Input token symbol or address (e.g., 'usdc', 'eth', '0x...')",
       required: true,
+      schema: { type: "string" },
     },
-    inputChain: {
-      type: "string",
+    {
+      name: "inputChain",
       description: "Input chain name (ethereum, base, arbitrum)",
       required: true,
+      schema: { type: "string" },
     },
-    inputAmount: {
-      type: "string",
+    {
+      name: "inputAmount",
       description:
         "Amount to use in human-readable format (e.g., '1000' for 1000 USDC)",
       required: true,
+      schema: { type: "string" },
     },
-    targetTokens: {
-      type: "string",
+    {
+      name: "targetTokens",
       description:
         "Target token symbols or addresses, comma-separated (e.g., 'weth,usdt')",
       required: true,
+      schema: { type: "string" },
     },
-    targetChains: {
-      type: "string",
+    {
+      name: "targetChains",
       description:
         "Target chain names, comma-separated, matching targetTokens order (e.g., 'base,arbitrum')",
       required: true,
+      schema: { type: "string" },
     },
-    targetWeights: {
-      type: "string",
+    {
+      name: "targetWeights",
       description:
         "Target weights as decimals summing to 1.0, comma-separated (e.g., '0.6,0.4' for 60%/40%)",
       required: true,
+      schema: { type: "string" },
     },
-    slippage: {
-      type: "number",
+    {
+      name: "slippage",
       description:
         "Slippage tolerance as percentage (e.g., 1 for 1%, 5 for 5%). Default: 1. Max: 5% unless confirmed.",
       required: false,
+      schema: { type: "number" },
     },
-    confirmHighSlippage: {
-      type: "boolean",
+    {
+      name: "confirmHighSlippage",
       description:
         "Set to true to confirm slippage above 5%. Required if slippage > 5.",
       required: false,
+      schema: { type: "boolean" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateBiconomyService(

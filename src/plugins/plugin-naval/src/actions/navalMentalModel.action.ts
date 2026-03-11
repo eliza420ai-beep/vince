@@ -50,7 +50,7 @@ export const navalMentalModelAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_MENTAL_MODEL] Action fired");
     try {
       const state = await runtime.composeState(message);

@@ -65,7 +65,7 @@ export const navalAvoidRuinAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_AVOID_RUIN] Action fired");
     try {
       const state = await runtime.composeState(message);

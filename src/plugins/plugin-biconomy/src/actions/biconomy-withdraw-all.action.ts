@@ -184,37 +184,42 @@ Parameters: chain, token, amount (required for native tokens), fundingAmount (op
     "BICONOMY_WITHDRAW_TOKEN",
   ],
 
-  parameters: {
-    chain: {
-      type: "string",
+  parameters: [
+    {
+      name: "chain",
       description:
         "Chain name (e.g., 'base', 'ethereum', 'arbitrum'). Default: base",
       required: false,
+      schema: { type: "string" },
     },
-    token: {
-      type: "string",
+    {
+      name: "token",
       description:
         "Token symbol or contract address to withdraw from Smart Account (e.g., 'usdc', 'weth', 'eth', 'pol', '0x...'). Supports native tokens (ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon).",
       required: true,
+      schema: { type: "string" },
     },
-    amount: {
-      type: "string",
+    {
+      name: "amount",
       description:
         "Amount to withdraw (e.g., '0.5', '100'). REQUIRED for native tokens (ETH, POL). For ERC20 tokens, omit to withdraw full balance.",
       required: false,
+      schema: { type: "string" },
     },
-    fundingAmount: {
-      type: "string",
+    {
+      name: "fundingAmount",
       description:
         "Amount of funding token to use from EOA for orchestration fees (e.g., '1'). System will auto-find a suitable token (USDC, USDT, DAI, etc.). Default: 1",
       required: false,
+      schema: { type: "string" },
     },
-    withdrawAddress: {
-      type: "string",
+    {
+      name: "withdrawAddress",
       description: "Address to withdraw tokens to. Default: user's EOA address",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateBiconomyService(

@@ -29,6 +29,12 @@ import type {
   VinceMarketRegimeService,
   MarketRegime,
 } from "./marketRegime.service";
+import type {
+  AgentVote,
+  SwarmConsensus,
+  SwarmMarketRegime,
+} from "../types/swarm";
+import type { SwarmVoteContext } from "./vinceSwarmOrchestrator.service";
 // V4: ML Integration Services
 import type { VinceFeatureStoreService } from "./vinceFeatureStore.service";
 import type { VinceWeightBanditService } from "./weightBandit.service";
@@ -61,6 +67,7 @@ import {
   getPaperTradeAssets,
   getPaperTradeAssetsWithWatchlist,
   getAssetMaxLeverage,
+  getAssetClassMaxLeverage,
   TIMING,
   PERSISTENCE_DIR,
   PRIMARY_SIGNAL_SOURCES,
@@ -103,6 +110,40 @@ import {
   scoreWttPickQuality,
 } from "../utils/wttQualityScore";
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
+import type {
+  CausalStageDepthSummary,
+  UpliftSnapshot,
+} from "./vinceXSourceAttribution.service";
+import { VincePolicyEngineService } from "./vincePolicyEngine.service";
+import { VinceCapitalBucketsService } from "./vinceCapitalBuckets.service";
+import type { VincePostMortemPolicyLoopService } from "./vincePostMortemPolicyLoop.service";
+import { CircuitBreakerService } from "src/plugins/plugin-otaku/src/services/circuitBreaker.service";
+
+// ==========================================
+// Regime helpers
+// ==========================================
+
+function mapMarketRegimeToSwarmRegime(
+  regime: MarketRegime | null,
+  direction: "long" | "short" | "neutral",
+): SwarmMarketRegime {
+  if (!regime) {
+    return "UNKNOWN";
+  }
+
+  switch (regime.regime) {
+    case "trending":
+      // Long in a trend = bullish, short can be thought of as fade/recovery.
+      return direction === "long" ? "TRENDING_BULL" : "RECOVERY";
+    case "ranging":
+      return "CHOPPY";
+    case "volatile":
+      // Volatile + long ≈ euphoria; volatile + short ≈ capitulation.
+      return direction === "long" ? "EUPHORIA" : "CAPITULATION";
+    default:
+      return "RECOVERY";
+  }
+}
 
 // ==========================================
 // Pending Entry Types
@@ -144,6 +185,36 @@ type PtqgMetaInput = {
   blocked: boolean;
 };
 
+type TreatmentQualityDecision = {
+  asset: string;
+  accepted: boolean;
+  reason: string | null;
+  expectedEdge: number;
+  minEdge: number;
+  strengthMargin: number;
+  confidenceMargin: number;
+  requiredOverrideMargin: number;
+  candidateStages: string[];
+  stageDeficitCount: number;
+  pairDeficitTotal: number;
+  minSamplesPerArmDeficit: number;
+};
+
+type TreatmentQualityCycleTelemetry = {
+  generatedAt: number;
+  swarmCandidates: number;
+  accepted: number;
+  blocked: number;
+  avgExpectedEdge: number;
+  avgStrengthMargin: number;
+  avgConfidenceMargin: number;
+  minEdge: number;
+  coverageStageDeficitCount: number;
+  coveragePairDeficitTotal: number;
+  coverageMinSamplesPerArmDeficit: number;
+  reasons: Record<string, number>;
+};
+
 function inferPtqgAssetClass(asset: string): PtqgMetaInput["assetClass"] {
   const upper = asset.toUpperCase();
   if (
@@ -180,9 +251,19 @@ export class VincePaperTradingService extends Service {
   private recentTradeOutcomes: boolean[] = []; // true = win, false = loss
   private readonly MAX_STREAK_HISTORY = 5;
 
+  // Swarm consensus tracking: position.id → consensus metadata
+  private swarmConsensusByPositionId: Map<
+    string,
+    {
+      consensusId: string;
+      agents: string[];
+      regimeKey?: SwarmMarketRegime;
+    }
+  > = new Map();
+
   // Throttle "Could not get entry price" to once per asset per minute (avoids log spam when CoinGecko is slow)
   private lastEntryPriceWarnByAsset: Map<string, number> = new Map();
-  private attributionSvc = new VinceXSourceAttributionService();
+  private attributionSvc: VinceXSourceAttributionService;
   private static readonly ENTRY_PRICE_WARN_THROTTLE_MS = 60_000;
 
   // Throttle "No WTT pick for today" to once per calendar day (update loop runs every 30s)
@@ -192,8 +273,23 @@ export class VincePaperTradingService extends Service {
   private wttTradedToday: { date: string; asset: string } | null = null;
   private lastWttAlreadyTradedLogDate: string | null = null;
 
+  // Daily trade count for policy max-daily-trades (UTC day; resets when date changes)
+  private tradesOpenedToday = 0;
+  private tradesOpenedTodayDate = "";
+  private lastTreatmentQualityTelemetry: TreatmentQualityCycleTelemetry | null =
+    null;
+
+  private static readonly COVERAGE_NEAR_THRESHOLD_POINTS = 8;
+  private static readonly COVERAGE_SIGNAL_BONUS_POINTS = 4;
+  private static readonly COVERAGE_PAIR_PRIORITY_POINTS = 3;
+  private static readonly COVERAGE_SATURATED_PENALTY_POINTS = 3;
+
   constructor(protected runtime: IAgentRuntime) {
     super();
+    this.attributionSvc = new VinceXSourceAttributionService(
+      undefined,
+      runtime as unknown as { databaseAdapter?: { db?: unknown } },
+    );
   }
 
   static async start(
@@ -205,8 +301,43 @@ export class VincePaperTradingService extends Service {
       runtime.getSetting?.("vince_paper_aggressive") === true ||
       runtime.getSetting?.("vince_paper_aggressive") === "true";
     const assets = getPaperTradeAssets(runtime).join(",");
+    const swarmEnabled =
+      runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
+      runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
+      process.env.VINCE_SWARM_ENABLED === "true";
+    const swarmAgents: string[] = [];
+    const agentFlags = [
+      "ECHO",
+      "ORACLE",
+      "SOLUS",
+      "OTAKU",
+      "KELLY",
+      "SENTINEL",
+      "ELIZA",
+      "CLAWTERM",
+      "NAVAL",
+    ];
+    for (const key of agentFlags) {
+      const settingKey = `SWARM_INCLUDE_${key}`;
+      const raw = runtime.getSetting?.(settingKey) ?? process.env[settingKey];
+      if (
+        raw === true ||
+        raw === "true" ||
+        raw === "1" ||
+        (typeof raw === "string" && raw.trim().toLowerCase() === "yes")
+      ) {
+        swarmAgents.push(key.toLowerCase());
+      }
+    }
+    const swarmMode = !swarmEnabled
+      ? "VINCE-only"
+      : swarmAgents.length === 0
+        ? "VINCE-only (swarm gated but no extra agents)"
+        : swarmAgents.length <= 2
+          ? "limited swarm"
+          : "full swarm-capable";
     logger.info(
-      `[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}`,
+      `[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}, swarm=${swarmMode}, swarmAgents=[vince${swarmAgents.length ? "," + swarmAgents.join(",") : ""}]`,
     );
     return service;
   }
@@ -218,6 +349,309 @@ export class VincePaperTradingService extends Service {
     }
     await this.persistState();
     logger.info("[VincePaperTrading] Service stopped");
+  }
+
+  /** Read numeric setting or env (e.g. VINCE_AGGRESSIVE_MARGIN_USD); invalid/missing → fallback. */
+  private getNumericSettingOrEnv(key: string, fallback: number): number {
+    const raw =
+      (this.runtime.getSetting?.(key) as string | number | undefined) ??
+      process.env[key];
+    if (raw === undefined || raw === "") return fallback;
+    const n =
+      typeof raw === "number" ? raw : Number.parseFloat(String(raw).trim());
+    return Number.isNaN(n) ? fallback : n;
+  }
+
+  private hasSwarmTreatmentSource(signal: AggregatedTradeSignal): boolean {
+    const sources = Object.keys(signal.sourceBreakdown ?? {});
+    return sources.some((source) =>
+      [
+        "swarm",
+        "swarm_consensus",
+        "swarm_orchestrator",
+        "swarm_coordination",
+      ].includes(source.toLowerCase()),
+    );
+  }
+
+  private inferCoverageStages(signal: AggregatedTradeSignal): string[] {
+    const stages = new Set<string>();
+    stages.add("onnx_enabled");
+    if (this.hasSwarmTreatmentSource(signal)) {
+      stages.add("onnx_plus_swarm");
+    }
+    return Array.from(stages);
+  }
+
+  private buildProofCoverageContext(): {
+    stageDepth: CausalStageDepthSummary;
+    uplift: UpliftSnapshot;
+    regimeMinTarget: number;
+    dominantRegime: string | null;
+    dominantRegimeShare: number;
+    underrepresentedRegimes: Set<string>;
+    stageDeficitCount: number;
+    stageDeficitByStage: Record<string, number>;
+    pairDeficitByStage: Record<string, number>;
+    pairDeficitTotal: number;
+    minSamplesPerArmDeficit: number;
+    treatmentExpectedEdge: number;
+    topPairDeficits: Array<{ label: string; deficitToMin: number }>;
+    totalClosed: number;
+  } {
+    const minSamplesPerArm = this.getNumericSettingOrEnv(
+      "VINCE_PHASE15_CAUSAL_MIN_SAMPLES_PER_ARM",
+      10,
+    );
+    const regimeMinTarget = this.getNumericSettingOrEnv(
+      "VINCE_RECURSION_MIN_REGIME_DEPTH",
+      5,
+    );
+    const stageDepth = this.attributionSvc.getCausalStageDepthSummary(
+      30,
+      Math.max(1, Math.round(minSamplesPerArm)),
+    );
+    const uplift = this.attributionSvc.getUpliftSnapshot(30);
+    const regimes = Array.isArray(uplift.byRegime) ? uplift.byRegime : [];
+    const total = Math.max(
+      1,
+      regimes.reduce((sum, row) => sum + Math.max(0, row.count ?? 0), 0),
+    );
+    const dominant = regimes
+      .slice()
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))[0];
+    const dominantRegime = dominant?.regime ?? null;
+    const dominantRegimeShare = dominant ? (dominant.count ?? 0) / total : 0;
+    const underrepresentedRegimes = new Set(
+      regimes
+        .filter((row) => (row.count ?? 0) < regimeMinTarget)
+        .map((r) => r.regime),
+    );
+    const stageDeficitCount = stageDepth.pairDepth.filter(
+      (row) => row.deficitToMin > 0,
+    ).length;
+    const stageDeficitByStage: Record<string, number> = {};
+    for (const row of stageDepth.perStage ?? []) {
+      stageDeficitByStage[row.stage] = Math.max(
+        0,
+        Number(row.deficitToMin ?? 0),
+      );
+    }
+    const pairDeficitByStage: Record<string, number> = {};
+    let pairDeficitTotal = 0;
+    for (const row of stageDepth.pairDepth ?? []) {
+      const deficit = Math.max(0, Number(row.deficitToMin ?? 0));
+      if (deficit <= 0) continue;
+      pairDeficitTotal += deficit;
+      pairDeficitByStage[row.controlStage] =
+        (pairDeficitByStage[row.controlStage] ?? 0) + deficit;
+      pairDeficitByStage[row.treatmentStage] =
+        (pairDeficitByStage[row.treatmentStage] ?? 0) + deficit;
+    }
+    const minSamplesPerArmObserved = stageDepth.pairDepth.length
+      ? Math.min(...stageDepth.pairDepth.map((row) => row.minArmSamples))
+      : 0;
+    const minSamplesPerArmDeficit = Math.max(
+      0,
+      stageDepth.minimumSamplesPerArm - minSamplesPerArmObserved,
+    );
+    const topPairDeficits = stageDepth.pairDepth
+      .filter((row) => row.deficitToMin > 0)
+      .sort((a, b) => b.deficitToMin - a.deficitToMin)
+      .slice(0, 3)
+      .map((row) => ({ label: row.label, deficitToMin: row.deficitToMin }));
+    const avgPnlByStage = new Map<string, number>();
+    for (const row of uplift.byStage ?? []) {
+      avgPnlByStage.set(row.stage, Number(row.avgPnl ?? 0));
+    }
+    const treatmentExpectedEdge =
+      (avgPnlByStage.get("onnx_plus_swarm") ?? 0) -
+      (avgPnlByStage.get("onnx_enabled") ?? 0);
+    return {
+      stageDepth,
+      uplift,
+      regimeMinTarget,
+      dominantRegime,
+      dominantRegimeShare,
+      underrepresentedRegimes,
+      stageDeficitCount,
+      stageDeficitByStage,
+      pairDeficitByStage,
+      pairDeficitTotal,
+      minSamplesPerArmDeficit,
+      treatmentExpectedEdge,
+      topPairDeficits,
+      totalClosed: Math.max(0, Number(uplift.totalClosed ?? 0)),
+    };
+  }
+
+  private applyCoverageBias(params: {
+    tradeSignal: AggregatedTradeSignal;
+    coverage: ReturnType<VincePaperTradingService["buildProofCoverageContext"]>;
+    signalLimits: {
+      minSignalStrength: number;
+      minSignalConfidence: number;
+    };
+    regimeKey?: string | null;
+  }): void {
+    const { tradeSignal, coverage, signalLimits, regimeKey } = params;
+    if (tradeSignal.direction === "neutral") return;
+    const candidateStages = this.inferCoverageStages(tradeSignal);
+    const stageDeficit = candidateStages.reduce(
+      (sum, stage) =>
+        sum + Math.max(0, coverage.stageDeficitByStage?.[stage] ?? 0),
+      0,
+    );
+    const pairDeficit = candidateStages.reduce(
+      (sum, stage) =>
+        sum + Math.max(0, coverage.pairDeficitByStage?.[stage] ?? 0),
+      0,
+    );
+    const stageNeedsHelp = stageDeficit > 0 || coverage.stageDeficitCount > 0;
+    const pairNeedsHelp = pairDeficit > 0 || coverage.pairDeficitTotal > 0;
+    const regimeNeedsHelp =
+      regimeKey != null && coverage.underrepresentedRegimes.has(regimeKey);
+    if (!stageNeedsHelp && !pairNeedsHelp && !regimeNeedsHelp) return;
+
+    const nearStrength =
+      tradeSignal.strength >=
+      signalLimits.minSignalStrength -
+        VincePaperTradingService.COVERAGE_NEAR_THRESHOLD_POINTS;
+    const nearConfidence =
+      tradeSignal.confidence >=
+      signalLimits.minSignalConfidence -
+        VincePaperTradingService.COVERAGE_NEAR_THRESHOLD_POINTS;
+    const deficitsRemainElsewhere = stageNeedsHelp || pairNeedsHelp;
+    const candidateIsSaturated =
+      deficitsRemainElsewhere &&
+      stageDeficit <= 0 &&
+      pairDeficit <= 0 &&
+      !regimeNeedsHelp;
+    if (candidateIsSaturated) {
+      tradeSignal.strength = Math.max(
+        0,
+        tradeSignal.strength -
+          VincePaperTradingService.COVERAGE_SATURATED_PENALTY_POINTS,
+      );
+      tradeSignal.confidence = Math.max(
+        0,
+        tradeSignal.confidence -
+          VincePaperTradingService.COVERAGE_SATURATED_PENALTY_POINTS,
+      );
+      return;
+    }
+    if (!nearStrength && !nearConfidence) return;
+
+    const bonus =
+      (stageNeedsHelp
+        ? VincePaperTradingService.COVERAGE_SIGNAL_BONUS_POINTS
+        : 0) +
+      (pairNeedsHelp
+        ? VincePaperTradingService.COVERAGE_PAIR_PRIORITY_POINTS
+        : 0) +
+      (regimeNeedsHelp
+        ? VincePaperTradingService.COVERAGE_SIGNAL_BONUS_POINTS
+        : 0);
+    const deficitPressureBonus = Math.min(
+      4,
+      Math.max(0, Math.ceil((stageDeficit + pairDeficit) / 4)),
+    );
+    const depthRecoveryBonus = coverage.minSamplesPerArmDeficit > 0 ? 2 : 0;
+    const topPairPriorityBonus = coverage.topPairDeficits.some(
+      (row) => row.deficitToMin > 0,
+    )
+      ? 1
+      : 0;
+    const totalBonus =
+      bonus + deficitPressureBonus + depthRecoveryBonus + topPairPriorityBonus;
+    tradeSignal.strength = Math.min(100, tradeSignal.strength + totalBonus);
+    tradeSignal.confidence = Math.min(100, tradeSignal.confidence + totalBonus);
+  }
+
+  private evaluateTreatmentQualityGate(params: {
+    asset: string;
+    tradeSignal: AggregatedTradeSignal;
+    coverage: ReturnType<VincePaperTradingService["buildProofCoverageContext"]>;
+    signalLimits: {
+      minSignalStrength: number;
+      minSignalConfidence: number;
+    };
+  }): TreatmentQualityDecision | null {
+    const { asset, tradeSignal, coverage, signalLimits } = params;
+    if (tradeSignal.direction === "neutral") return null;
+    if (!this.hasSwarmTreatmentSource(tradeSignal)) return null;
+    const minEdge = this.getNumericSettingOrEnv(
+      "VINCE_SWARM_TREATMENT_MIN_EDGE",
+      0,
+    );
+    const strengthMargin =
+      tradeSignal.strength - signalLimits.minSignalStrength;
+    const confidenceMargin =
+      tradeSignal.confidence - signalLimits.minSignalConfidence;
+    const edgeShortfall = Math.max(0, minEdge - coverage.treatmentExpectedEdge);
+    const requiredOverrideMargin =
+      edgeShortfall >= 1
+        ? 10
+        : edgeShortfall >= 0.5
+          ? 8
+          : edgeShortfall > 0
+            ? 6
+            : 5;
+    const requiredMarginWithDepthPenalty =
+      coverage.minSamplesPerArmDeficit > 0
+        ? requiredOverrideMargin + 1
+        : requiredOverrideMargin;
+    const strongEnoughToOverride =
+      strengthMargin >= requiredMarginWithDepthPenalty &&
+      confidenceMargin >= requiredMarginWithDepthPenalty;
+    const accepted =
+      coverage.treatmentExpectedEdge > minEdge || strongEnoughToOverride;
+    const reason = accepted
+      ? null
+      : `Treatment quality gate: expected swarm edge ${coverage.treatmentExpectedEdge.toFixed(2)} <= ${minEdge.toFixed(2)}, require >=${requiredMarginWithDepthPenalty} strength/confidence margins`;
+    return {
+      asset,
+      accepted,
+      reason,
+      expectedEdge: coverage.treatmentExpectedEdge,
+      minEdge,
+      strengthMargin,
+      confidenceMargin,
+      requiredOverrideMargin: requiredMarginWithDepthPenalty,
+      candidateStages: this.inferCoverageStages(tradeSignal),
+      stageDeficitCount: coverage.stageDeficitCount,
+      pairDeficitTotal: coverage.pairDeficitTotal,
+      minSamplesPerArmDeficit: coverage.minSamplesPerArmDeficit,
+    };
+  }
+
+  private logTreatmentQualityDecision(
+    decision: TreatmentQualityDecision,
+  ): void {
+    const verdict = decision.accepted ? "accepted" : "blocked";
+    logger.debug(
+      `[VincePaperTrading] Treatment gate ${verdict}: ${decision.asset} edge=${decision.expectedEdge.toFixed(2)} minEdge=${decision.minEdge.toFixed(2)} ` +
+        `margins(str=${decision.strengthMargin.toFixed(1)},conf=${decision.confidenceMargin.toFixed(1)},req=${decision.requiredOverrideMargin.toFixed(1)}) ` +
+        `stages=${decision.candidateStages.join("|")} depthDeficit=${decision.minSamplesPerArmDeficit} ` +
+        `pairDeficit=${decision.pairDeficitTotal} stageDeficitCount=${decision.stageDeficitCount}`,
+    );
+  }
+
+  private getRegimeQuotaBlockReason(params: {
+    coverage: ReturnType<VincePaperTradingService["buildProofCoverageContext"]>;
+    regimeKey?: string | null;
+  }): string | null {
+    const { coverage, regimeKey } = params;
+    if (!regimeKey) return null;
+    if (coverage.totalClosed < 30) return null;
+    if (coverage.underrepresentedRegimes.size === 0) return null;
+    if (!coverage.dominantRegime || coverage.dominantRegime !== regimeKey)
+      return null;
+    const dominantShareThreshold = 0.55;
+    if (coverage.dominantRegimeShare <= dominantShareThreshold) return null;
+    return `Regime quota guard: ${regimeKey} is dominant (${(
+      coverage.dominantRegimeShare * 100
+    ).toFixed(0)}%), prioritize underrepresented regimes first`;
   }
 
   private async initialize(): Promise<void> {
@@ -261,6 +695,12 @@ export class VincePaperTradingService extends Service {
     return this.runtime.getService(
       "VINCE_TRADE_JOURNAL_SERVICE",
     ) as VinceTradeJournalService | null;
+  }
+
+  private getPostMortemPolicyLoop(): VincePostMortemPolicyLoopService | null {
+    return this.runtime.getService(
+      "VINCE_POST_MORTEM_POLICY_LOOP_SERVICE",
+    ) as VincePostMortemPolicyLoopService | null;
   }
 
   private getSignalAggregator(): VinceSignalAggregatorService | null {
@@ -351,26 +791,43 @@ export class VincePaperTradingService extends Service {
   /**
    * Max leverage cap for an asset. For HIP-3 assets uses Hyperliquid meta when
    * available (VinceHIP3Service.getMaxLeverageForAsset), else getAssetMaxLeverage.
+   * Then applies asset-class cap (min of asset cap and class cap from env/ASSET_CLASS_MAX_LEVERAGE).
    */
   private async getMaxLeverageCap(asset: string): Promise<number> {
     const hip3 = this.runtime.getService("VINCE_HIP3_SERVICE") as {
       getMaxLeverageForAsset?(s: string): Promise<number | null>;
     } | null;
+    let assetCap: number;
     if (
       hip3?.getMaxLeverageForAsset &&
       (HIP3_ASSETS as readonly string[]).includes(asset.toUpperCase())
     ) {
       try {
         const hl = await hip3.getMaxLeverageForAsset(asset);
-        if (typeof hl === "number") return hl;
+        if (typeof hl === "number") assetCap = hl;
+        else assetCap = getAssetMaxLeverage(asset);
       } catch (_) {
-        // fall through to static cap
+        assetCap = getAssetMaxLeverage(asset);
       }
+    } else {
+      assetCap = getAssetMaxLeverage(asset);
     }
-    return getAssetMaxLeverage(asset);
+    const assetClass = inferPtqgAssetClass(asset);
+    const classCap = getAssetClassMaxLeverage(assetClass, this.runtime);
+    const policyLoop = this.getPostMortemPolicyLoop();
+    const adaptiveCap =
+      policyLoop?.getEffectiveOverlay().maxLeverageByAssetClass?.[assetClass];
+    const capped = Math.min(
+      assetCap,
+      classCap,
+      typeof adaptiveCap === "number" && Number.isFinite(adaptiveCap)
+        ? adaptiveCap
+        : Number.POSITIVE_INFINITY,
+    );
+    return capped;
   }
 
-  /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). */
+  /** TP multipliers to use (fast_tp = 1R,2R,3R for more closed trades; else improvement report or default). Optional VINCE_TP_FIRST_MULTIPLIER tightens first TP when level 0 (no TP hit) dominates. */
   private getTPMultipliersForReport(): number[] {
     const fastTp =
       this.runtime.getSetting?.("vince_paper_fast_tp") === true ||
@@ -384,10 +841,20 @@ export class VincePaperTradingService extends Service {
     const indices = (
       ml as { getTPLevelIndicesToUse?: () => number[] }
     )?.getTPLevelIndicesToUse?.() ?? [0, 1, 2];
-    const mults = indices
+    let mults = indices
       .map((i) => DEFAULT_TAKE_PROFIT_TARGETS[i])
       .filter((m): m is number => m != null);
-    return mults.length > 0 ? mults : [...DEFAULT_TAKE_PROFIT_TARGETS];
+    if (mults.length === 0) mults = [...DEFAULT_TAKE_PROFIT_TARGETS];
+    const firstOverride =
+      this.runtime.getSetting?.("VINCE_TP_FIRST_MULTIPLIER") ??
+      process.env.VINCE_TP_FIRST_MULTIPLIER;
+    if (firstOverride != null && firstOverride !== "" && mults.length > 0) {
+      const n = Number(firstOverride);
+      if (Number.isFinite(n) && n >= 0.5 && n <= 3) {
+        mults = [n, ...mults.slice(1)];
+      }
+    }
+    return mults;
   }
 
   // ==========================================
@@ -472,6 +939,28 @@ export class VincePaperTradingService extends Service {
   // ==========================================
 
   /**
+   * Build a standardized AgentVote for VINCE from the current aggregated signal.
+   */
+  private buildVinceAgentVote(
+    asset: string,
+    signal: AggregatedSignal,
+    tradeSignal: AggregatedTradeSignal,
+  ): AgentVote {
+    const contributingSignals = Object.keys(tradeSignal.sourceBreakdown ?? {});
+    return {
+      agentId: "vince",
+      direction: signal.direction,
+      confidence: tradeSignal.confidence / 100,
+      supportingSignals:
+        contributingSignals.length > 0
+          ? contributingSignals
+          : ["signal_aggregator"],
+      riskAssessment: 0.5,
+      reasoning: `VINCE aggregated signal for ${asset}`,
+    };
+  }
+
+  /**
    * Convert AggregatedSignal (from signal aggregator) to AggregatedTradeSignal (full type for logging/validation).
    */
   private toAggregatedTradeSignal(
@@ -533,7 +1022,10 @@ export class VincePaperTradingService extends Service {
 
     // Get base thresholds from risk manager
     const riskManager = this.getRiskManager();
-    const limits = riskManager?.getLimits();
+    const limits =
+      riskManager && typeof (riskManager as any).getLimits === "function"
+        ? (riskManager as any).getLimits()
+        : undefined;
     let minStrength = limits?.minSignalStrength ?? 60;
     let minConfidence = limits?.minSignalConfidence ?? 60;
     // HIP-3 and HYPE have fewer signal sources; primary source gate ensures quality
@@ -1225,6 +1717,12 @@ Reply format: APPROVE reason or VETO reason`;
 
     this.wttTradedToday = { date: today, asset };
     await this.persistWttTradedToday();
+    const utcDate = new Date().toISOString().slice(0, 10);
+    if (this.tradesOpenedTodayDate !== utcDate) {
+      this.tradesOpenedTodayDate = utcDate;
+      this.tradesOpenedToday = 0;
+    }
+    this.tradesOpenedToday++;
 
     // Store WTT thesis and invalidate condition for WHY THIS TRADE (explainer + notifications)
     position.metadata = {
@@ -1236,6 +1734,12 @@ Reply format: APPROVE reason or VETO reason`;
       wttPrimaryOrAlt: "primary",
     };
 
+    const rubric = pick.rubric ?? {
+      alignment: "partial" as const,
+      edge: "consensus" as const,
+      payoffShape: "moderate" as const,
+      timingForgiveness: "forgiving" as const,
+    };
     const wttBlock = wttPickToWttBlock({
       primary: true,
       primaryOrAlt: "primary",
@@ -1243,7 +1747,7 @@ Reply format: APPROVE reason or VETO reason`;
       qualityScore: quality.score,
       ticker: pick.primaryTicker,
       thesis: pick.thesis,
-      rubric: pick.rubric,
+      rubric,
       invalidateCondition: pick.invalidateCondition || undefined,
       evThresholdPct: pick.evThresholdPct,
     });
@@ -1272,10 +1776,13 @@ Reply format: APPROVE reason or VETO reason`;
     const riskManager = this.getRiskManager();
     const signalAggregator = this.getSignalAggregator();
     const marketData = this.getMarketData();
+    const policyLoop = this.getPostMortemPolicyLoop();
 
     if (!positionManager || !riskManager || !signalAggregator) {
       return;
     }
+
+    policyLoop?.refreshFromPostMortems();
 
     // First, check pending entries for pullbacks
     await this.checkPendingEntries();
@@ -1284,6 +1791,44 @@ Reply format: APPROVE reason or VETO reason`;
     if (isWttEnabled(this.runtime)) await this.evaluateWttPick();
 
     const assets = getPaperTradeAssetsWithWatchlist(this.runtime);
+    const regimeQuotaEnabled =
+      this.runtime.getSetting?.("VINCE_PROOF_REGIME_QUOTA_ENABLED") === true ||
+      this.runtime.getSetting?.("VINCE_PROOF_REGIME_QUOTA_ENABLED") ===
+        "true" ||
+      process.env.VINCE_PROOF_REGIME_QUOTA_ENABLED === "true";
+    const coverageContext = this.buildProofCoverageContext();
+    const regimeService = this.getMarketRegime();
+    const signalLimits = (() => {
+      const limits = riskManager.getLimits?.();
+      return {
+        minSignalStrength: limits?.minSignalStrength ?? 60,
+        minSignalConfidence: limits?.minSignalConfidence ?? 60,
+      };
+    })();
+    const funnel = {
+      passedValidation: 0,
+      policyBlock: 0,
+      opened: 0,
+      openFailed: 0,
+      otherBlock: 0,
+      reasons: {} as Record<string, number>,
+    };
+    const treatmentGateCycle = {
+      swarmCandidates: 0,
+      accepted: 0,
+      blocked: 0,
+      sumExpectedEdge: 0,
+      sumStrengthMargin: 0,
+      sumConfidenceMargin: 0,
+      reasons: {} as Record<string, number>,
+    };
+    function incrementFunnelReason(
+      f: { otherBlock: number; reasons: Record<string, number> },
+      key: string,
+    ): void {
+      f.otherBlock++;
+      f.reasons[key] = (f.reasons[key] ?? 0) + 1;
+    }
     for (const asset of assets) {
       try {
         // Skip if we already have a position in this asset
@@ -1302,6 +1847,9 @@ Reply format: APPROVE reason or VETO reason`;
 
         // HIP-3 diagnostics: log signal for non-core assets so we can see why trades aren't opening
         const isHip3Asset = !(CORE_ASSETS as readonly string[]).includes(asset);
+        const paperAggressive =
+          this.runtime.getSetting?.("vince_paper_aggressive") === true ||
+          this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         if (
           isHip3Asset &&
           signal.direction !== "neutral" &&
@@ -1314,8 +1862,10 @@ Reply format: APPROVE reason or VETO reason`;
 
         // HIP-3 guardrail: if news is driving the trade but asset-specific news
         // confidence is weak, skip to avoid BTC/ETH sentiment bleed-through.
+        // Skip this guardrail when vince_paper_aggressive so more HIP-3 paper trades can open.
         if (
           isHip3Asset &&
+          !paperAggressive &&
           Array.isArray(signal.sources) &&
           signal.sources.includes("NewsSentiment")
         ) {
@@ -1344,6 +1894,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
+            incrementFunnelReason(funnel, "hip3_news_guardrail");
             continue;
           }
         }
@@ -1383,6 +1934,7 @@ Reply format: APPROVE reason or VETO reason`;
                 reason,
               );
             }
+            incrementFunnelReason(funnel, "ml_threshold");
             continue;
           }
         }
@@ -1418,6 +1970,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
+            incrementFunnelReason(funnel, "signal_validation");
             continue;
           }
           if (
@@ -1438,6 +1991,7 @@ Reply format: APPROVE reason or VETO reason`;
               signal as AggregatedSignal,
               reason,
             );
+            incrementFunnelReason(funnel, "signal_validation");
             continue;
           }
         }
@@ -1463,6 +2017,7 @@ Reply format: APPROVE reason or VETO reason`;
               reason,
             );
           }
+          incrementFunnelReason(funnel, "ml_similarity_avoid");
           continue;
         }
 
@@ -1500,6 +2055,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             reason,
           );
+          incrementFunnelReason(funnel, "book_imbalance");
           continue;
         }
         let fundingRate = 0;
@@ -1605,6 +2161,74 @@ Reply format: APPROVE reason or VETO reason`;
           mlQualityScore: (signal as AggregatedSignal).mlQualityScore,
           openWindowBoost: (signal as AggregatedSignal).openWindowBoost,
         };
+        let regime: MarketRegime | null = null;
+        if (regimeService) {
+          try {
+            regime = await regimeService.getRegime(asset);
+          } catch (e) {
+            logger.debug(
+              `[VincePaperTrading] Could not get regime for ${asset}: ${e}`,
+            );
+          }
+        }
+        this.applyCoverageBias({
+          tradeSignal,
+          coverage: coverageContext,
+          signalLimits,
+          regimeKey: regime?.regime ?? null,
+        });
+        const regimeQuotaReason = regimeQuotaEnabled
+          ? this.getRegimeQuotaBlockReason({
+              coverage: coverageContext,
+              regimeKey: regime?.regime ?? null,
+            })
+          : null;
+        if (regimeQuotaReason) {
+          this.logSignalRejection(asset, tradeSignal, regimeQuotaReason);
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            regimeQuotaReason,
+          );
+          incrementFunnelReason(funnel, "regime_quota_guard");
+          continue;
+        }
+        const treatmentQualityDecision = this.evaluateTreatmentQualityGate({
+          asset,
+          tradeSignal,
+          coverage: coverageContext,
+          signalLimits,
+        });
+        if (treatmentQualityDecision) {
+          this.logTreatmentQualityDecision(treatmentQualityDecision);
+          treatmentGateCycle.swarmCandidates++;
+          treatmentGateCycle.sumExpectedEdge +=
+            treatmentQualityDecision.expectedEdge;
+          treatmentGateCycle.sumStrengthMargin +=
+            treatmentQualityDecision.strengthMargin;
+          treatmentGateCycle.sumConfidenceMargin +=
+            treatmentQualityDecision.confidenceMargin;
+          if (treatmentQualityDecision.accepted) {
+            treatmentGateCycle.accepted++;
+          } else {
+            treatmentGateCycle.blocked++;
+            const reasonKey = "expected_edge_below_gate";
+            treatmentGateCycle.reasons[reasonKey] =
+              (treatmentGateCycle.reasons[reasonKey] ?? 0) + 1;
+          }
+        }
+        if (treatmentQualityDecision && !treatmentQualityDecision.accepted) {
+          const treatmentQualityReason =
+            treatmentQualityDecision.reason ?? "treatment_quality_gate";
+          this.logSignalRejection(asset, tradeSignal, treatmentQualityReason);
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            treatmentQualityReason,
+          );
+          incrementFunnelReason(funnel, "treatment_quality_gate");
+          continue;
+        }
 
         // Log extended market snapshot when available (DATA_LEVERAGE debugging)
         if (extendedSnapshot && signal.direction !== "neutral") {
@@ -1633,6 +2257,7 @@ Reply format: APPROVE reason or VETO reason`;
               `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
             );
           }
+          incrementFunnelReason(funnel, "no_primary_signal");
           continue;
         }
 
@@ -1656,6 +2281,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
           );
+          incrementFunnelReason(funnel, "sentiment_gate_long");
           continue;
         }
         if (
@@ -1673,6 +2299,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal as AggregatedSignal,
             `Sentiment gate: ${sentimentGate.adjustmentApplied}`,
           );
+          incrementFunnelReason(funnel, "sentiment_gate_short");
           continue;
         }
 
@@ -1689,6 +2316,7 @@ Reply format: APPROVE reason or VETO reason`;
               reason,
             );
           }
+          incrementFunnelReason(funnel, "signal_validation");
           continue;
         }
 
@@ -1709,11 +2337,35 @@ Reply format: APPROVE reason or VETO reason`;
           : DEFAULT_LEVERAGE;
         const cap = await this.getMaxLeverageCap(asset);
         const leverage = Math.min(baseLeverage, cap);
+        const effectiveMarginUsd = this.getNumericSettingOrEnv(
+          "VINCE_AGGRESSIVE_MARGIN_USD",
+          AGGRESSIVE_MARGIN_USD,
+        );
+        const effectiveBaseSizePct = this.getNumericSettingOrEnv(
+          "VINCE_AGGRESSIVE_BASE_SIZE_PCT",
+          AGGRESSIVE_BASE_SIZE_PCT,
+        );
         let baseSizeUsd = aggressive
-          ? portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
-            ? AGGRESSIVE_MARGIN_USD * leverage
-            : portfolio.totalValue * (AGGRESSIVE_BASE_SIZE_PCT / 100)
+          ? portfolio.totalValue >= effectiveMarginUsd
+            ? effectiveMarginUsd * leverage
+            : portfolio.totalValue * (effectiveBaseSizePct / 100)
           : portfolio.totalValue * 0.05;
+        if (this.hasSwarmTreatmentSource(tradeSignal)) {
+          const minEdge = this.getNumericSettingOrEnv(
+            "VINCE_SWARM_TREATMENT_MIN_EDGE",
+            0,
+          );
+          const softEdgeFloor = minEdge + 0.5;
+          if (coverageContext.treatmentExpectedEdge < softEdgeFloor) {
+            const shortfall =
+              softEdgeFloor - coverageContext.treatmentExpectedEdge;
+            const sizeMultiplier = Math.max(0.55, 1 - shortfall * 0.12);
+            baseSizeUsd *= sizeMultiplier;
+            logger.debug(
+              `[VincePaperTrading] ${asset} swarm edge guardrail: edge=${coverageContext.treatmentExpectedEdge.toFixed(2)} < softFloor=${softEdgeFloor.toFixed(2)} -> size x${sizeMultiplier.toFixed(2)}`,
+            );
+          }
+        }
         if (
           aggressive &&
           baseSizeUsd >
@@ -1768,22 +2420,11 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Apply regime-based sizing adjustment
-        const regimeService = this.getMarketRegime();
-        let regime: MarketRegime | null = null;
-        if (regimeService) {
-          try {
-            regime = await regimeService.getRegime(asset);
-            if (regime.positionSizeMultiplier !== 1.0) {
-              baseSizeUsd = baseSizeUsd * regime.positionSizeMultiplier;
-              logger.debug(
-                `[VincePaperTrading] ${asset} regime ${regime.regime}: size ${regime.positionSizeMultiplier}x`,
-              );
-            }
-          } catch (e) {
-            logger.debug(
-              `[VincePaperTrading] Could not get regime for ${asset}: ${e}`,
-            );
-          }
+        if (regime && regime.positionSizeMultiplier !== 1.0) {
+          baseSizeUsd = baseSizeUsd * regime.positionSizeMultiplier;
+          logger.debug(
+            `[VincePaperTrading] ${asset} regime ${regime.regime}: size ${regime.positionSizeMultiplier}x`,
+          );
         }
 
         // Volume-based sizing: scale position size based on volume ratio vs 7-day average
@@ -1947,11 +2588,19 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Validate trade
+        const adaptiveOverlay = policyLoop?.getEffectiveOverlay();
+        const adaptiveMaxLeverage =
+          adaptiveOverlay?.maxLeverageByAssetClass?.[
+            inferPtqgAssetClass(asset)
+          ];
         const tradeValidation = riskManager.validateTrade({
           sizeUsd: baseSizeUsd,
           leverage,
           portfolioValue: portfolio.totalValue,
           currentExposure: positionManager.getCurrentExposure(),
+          ...(typeof adaptiveMaxLeverage === "number"
+            ? { maxLeverageOverride: adaptiveMaxLeverage }
+            : {}),
         });
 
         if (!tradeValidation.valid) {
@@ -1961,6 +2610,7 @@ Reply format: APPROVE reason or VETO reason`;
             signal.direction as "long" | "short",
             tradeValidation.reason || "risk check failed",
           );
+          incrementFunnelReason(funnel, "risk_check");
           continue;
         }
 
@@ -1983,6 +2633,7 @@ Reply format: APPROVE reason or VETO reason`;
             logger.debug(
               `[VincePaperTrading] ${asset} entry gate veto – skipping trade`,
             );
+            incrementFunnelReason(funnel, "entry_gate_veto");
             continue;
           }
         }
@@ -2027,6 +2678,7 @@ Reply format: APPROVE reason or VETO reason`;
               undefined,
               undefined,
             );
+            incrementFunnelReason(funnel, "temporal_coherence");
             continue;
           }
         }
@@ -2057,6 +2709,7 @@ Reply format: APPROVE reason or VETO reason`;
               undefined,
               narrative.phase,
             );
+            incrementFunnelReason(funnel, "narrative_radar");
             continue;
           }
         }
@@ -2094,6 +2747,7 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
+            incrementFunnelReason(funnel, "immune_system");
             continue;
           }
         }
@@ -2130,11 +2784,13 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
+            incrementFunnelReason(funnel, "pre_mortem");
             continue;
           }
         }
 
         let finalTradeSize = finalSize;
+        let swarmConsensus: SwarmConsensus | null = null;
         if (devilsAdvocateService) {
           const challenge = devilsAdvocateService.challengeTrade({
             asset,
@@ -2169,12 +2825,388 @@ Reply format: APPROVE reason or VETO reason`;
               narrativePhase,
               immunePattern,
             );
+            incrementFunnelReason(funnel, "devils_advocate");
             continue;
           }
           if (challenge.downgradeMultiplier < 1) {
             finalTradeSize = finalTradeSize * challenge.downgradeMultiplier;
             logger.info(
               `[VincePaperTrading] ${asset} devil's advocate size downgrade to ${Math.round(challenge.downgradeMultiplier * 100)}%`,
+            );
+          }
+        }
+
+        // Phase 12 — Policy Engine check (Task #73)
+        try {
+          const circuitBreaker = CircuitBreakerService.getInstance();
+          const isHalted = circuitBreaker.isHalted();
+          const policyEngine = VincePolicyEngineService.getInstance();
+          let paperBucketMaxSingleTradeUsd: number | undefined;
+          try {
+            paperBucketMaxSingleTradeUsd =
+              VinceCapitalBucketsService.getInstance().getBucket(
+                "paper",
+              ).maxSingleTradeUsd;
+          } catch {
+            paperBucketMaxSingleTradeUsd = undefined;
+          }
+          const adaptiveMaxSingleTradeUsd =
+            policyLoop?.getEffectiveOverlay().maxSingleTradeUsd;
+          const effectiveMaxSingleTradeUsd =
+            typeof adaptiveMaxSingleTradeUsd === "number" &&
+            Number.isFinite(adaptiveMaxSingleTradeUsd)
+              ? typeof paperBucketMaxSingleTradeUsd === "number"
+                ? Math.min(
+                    paperBucketMaxSingleTradeUsd,
+                    adaptiveMaxSingleTradeUsd,
+                  )
+                : adaptiveMaxSingleTradeUsd
+              : paperBucketMaxSingleTradeUsd;
+          if (
+            typeof effectiveMaxSingleTradeUsd === "number" &&
+            finalTradeSize > effectiveMaxSingleTradeUsd
+          ) {
+            finalTradeSize = effectiveMaxSingleTradeUsd;
+            logger.debug(
+              `[VincePaperTrading] ${asset} size capped to $${effectiveMaxSingleTradeUsd} (policy max)`,
+            );
+          }
+          const utcDate = new Date().toISOString().slice(0, 10);
+          if (this.tradesOpenedTodayDate !== utcDate) {
+            this.tradesOpenedTodayDate = utcDate;
+            this.tradesOpenedToday = 0;
+          }
+          const positionManager = this.getPositionManager();
+          const openPositionCount =
+            positionManager?.getOpenPositions?.()?.length ?? 0;
+          const maxDailyTradesRaw =
+            this.runtime.getSetting?.("VINCE_PAPER_MAX_DAILY_TRADES") ??
+            process.env.VINCE_PAPER_MAX_DAILY_TRADES;
+          const maxOpenPositionsRaw =
+            this.runtime.getSetting?.("VINCE_PAPER_MAX_OPEN_POSITIONS") ??
+            process.env.VINCE_PAPER_MAX_OPEN_POSITIONS;
+          const maxDailyTrades =
+            maxDailyTradesRaw != null && maxDailyTradesRaw !== ""
+              ? Number(maxDailyTradesRaw)
+              : undefined;
+          const maxOpenPositions =
+            maxOpenPositionsRaw != null && maxOpenPositionsRaw !== ""
+              ? Number(maxOpenPositionsRaw)
+              : undefined;
+          const policyCtx = {
+            tradeSize: finalTradeSize,
+            confidence: tradeSignal.confidence,
+            executionType: "paper" as const,
+            circuitBreakerActive: isHalted,
+            sentimentScore: sentimentGate.sentimentScore,
+            direction: signal.direction as "long" | "short",
+            tradesToday: this.tradesOpenedToday,
+            openPositionCount,
+            maxDailyTrades: maxDailyTrades ?? Number.POSITIVE_INFINITY,
+            maxOpenPositions: maxOpenPositions ?? Number.POSITIVE_INFINITY,
+            ...(typeof effectiveMaxSingleTradeUsd === "number"
+              ? { maxSingleTradeUsd: effectiveMaxSingleTradeUsd }
+              : {}),
+          };
+          const policyResult = policyEngine.evaluate(policyCtx);
+          if (!policyResult.passed) {
+            const capNote = policyResult.hardBlocks.includes(
+              "max-single-trade-usd",
+            )
+              ? (() => {
+                  try {
+                    const bucket =
+                      VinceCapitalBucketsService.getInstance().getBucket(
+                        "paper",
+                      );
+                    return ` > $${bucket.maxSingleTradeUsd} cap`;
+                  } catch {
+                    return "";
+                  }
+                })()
+              : "";
+            logger.info(
+              `[VincePaperTrading] ${asset} blocked by policy engine: ${policyResult.hardBlocks.join(",")} (requested $${Math.round(finalTradeSize)}${capNote}) | auditRef: ${policyResult.auditRef}`,
+            );
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `Policy engine: blocked by ${policyResult.hardBlocks.join(",")} (auditRef: ${policyResult.auditRef})`,
+              undefined,
+              devilMeta,
+              narrativePhase,
+              immunePattern,
+            );
+            funnel.policyBlock++;
+            continue;
+          }
+          if (
+            policyResult.sizeModifier < 1.0 &&
+            policyResult.sizeModifier > 0
+          ) {
+            finalTradeSize = finalTradeSize * policyResult.sizeModifier;
+            logger.info(
+              `[VincePaperTrading] ${asset} policy engine size reduction to ${Math.round(policyResult.sizeModifier * 100)}% | auditRef: ${policyResult.auditRef}`,
+            );
+          }
+        } catch (policyErr) {
+          // Policy engine is non-blocking on error (fail-open for paper trading)
+          logger.debug(
+            "[VincePaperTrading] Policy engine check skipped:",
+            policyErr,
+          );
+        }
+
+        // Swarm consensus: VINCE contributes a vote and, when enabled,
+        // consensus can veto trades or scale size based on disagreement.
+        const swarmSetting = this.runtime.getSetting?.("VINCE_SWARM_ENABLED");
+        const swarmEnabled =
+          swarmSetting === true || swarmSetting === "true"
+            ? true
+            : swarmSetting === false || swarmSetting === "false"
+              ? false
+              : process.env.VINCE_SWARM_ENABLED === "true";
+
+        if (swarmEnabled && signal.direction !== "neutral") {
+          try {
+            const swarmService = this.runtime.getService(
+              "swarm-coordination",
+            ) as {
+              getSwarmConsensus?: (
+                votes: AgentVote[],
+                minimumAgents?: number,
+                consensusThreshold?: number,
+              ) => Promise<SwarmConsensus>;
+              getSwarmStats?: () => any;
+            } | null;
+
+            if (swarmService?.getSwarmConsensus) {
+              // Prefer multi-agent votes via orchestrator when available; fall back to VINCE-only.
+              let votes: AgentVote[] = [];
+              const orchestrator = this.runtime.getService(
+                "VINCE_SWARM_ORCHESTRATOR_SERVICE",
+              ) as {
+                collectVotes?: (ctx: SwarmVoteContext) => Promise<AgentVote[]>;
+              } | null;
+
+              if (orchestrator?.collectVotes) {
+                const voteCtx: SwarmVoteContext = {
+                  asset,
+                  vinceSignal: signal as AggregatedSignal,
+                  tradeSignal,
+                  regime,
+                };
+                votes = await orchestrator.collectVotes(voteCtx);
+              } else {
+                votes = [
+                  this.buildVinceAgentVote(
+                    asset,
+                    signal as AggregatedSignal,
+                    tradeSignal,
+                  ),
+                ];
+              }
+
+              const nonNeutralVotes = votes.filter(
+                (v) => v.direction !== "neutral",
+              );
+
+              const consensusThresholdRaw =
+                (this.runtime.getSetting?.(
+                  "VINCE_SWARM_CONSENSUS_THRESHOLD",
+                ) as string | number | boolean | undefined) ??
+                process.env.VINCE_SWARM_CONSENSUS_THRESHOLD;
+              const consensusThreshold =
+                typeof consensusThresholdRaw === "number"
+                  ? consensusThresholdRaw
+                  : typeof consensusThresholdRaw === "string" &&
+                      !Number.isNaN(Number.parseFloat(consensusThresholdRaw))
+                    ? Number.parseFloat(consensusThresholdRaw)
+                    : 0.6;
+
+              swarmConsensus = await swarmService.getSwarmConsensus(
+                votes,
+                Math.max(1, nonNeutralVotes.length),
+                consensusThreshold,
+              );
+
+              const minConfRaw =
+                (this.runtime.getSetting?.("VINCE_SWARM_MIN_CONFIDENCE") as
+                  | string
+                  | number
+                  | boolean
+                  | undefined) ?? process.env.VINCE_SWARM_MIN_CONFIDENCE;
+              const swarmMinConf =
+                typeof minConfRaw === "number"
+                  ? minConfRaw
+                  : typeof minConfRaw === "string" &&
+                      !Number.isNaN(Number.parseFloat(minConfRaw))
+                    ? Number.parseFloat(minConfRaw)
+                    : 0.5;
+
+              let usedNeutralOverride = false;
+              if (
+                !swarmConsensus.consensusReached ||
+                swarmConsensus.confidenceLevel < swarmMinConf
+              ) {
+                // Optional: allow trade when swarm is neutral but aggregated signal is strong (smaller size).
+                const overrideEnabled =
+                  this.runtime.getSetting?.(
+                    "VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED",
+                  ) === true ||
+                  this.runtime.getSetting?.(
+                    "VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED",
+                  ) === "true" ||
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_ENABLED === "true";
+                const overrideMinStrengthRaw =
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_MIN_STRENGTH;
+                const overrideMinStrength =
+                  overrideMinStrengthRaw != null &&
+                  !Number.isNaN(Number.parseFloat(overrideMinStrengthRaw))
+                    ? Number.parseFloat(overrideMinStrengthRaw)
+                    : 55;
+                const overrideMinConfRaw =
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_MIN_CONFIDENCE;
+                const overrideMinConf =
+                  overrideMinConfRaw != null &&
+                  !Number.isNaN(Number.parseFloat(overrideMinConfRaw))
+                    ? Number.parseFloat(overrideMinConfRaw)
+                    : 50;
+                const overrideSizeMultRaw =
+                  process.env.VINCE_SWARM_NEUTRAL_OVERRIDE_SIZE_MULTIPLIER;
+                const overrideSizeMult =
+                  overrideSizeMultRaw != null &&
+                  !Number.isNaN(Number.parseFloat(overrideSizeMultRaw))
+                    ? Number.parseFloat(overrideSizeMultRaw)
+                    : 0.7;
+
+                const hasDirection =
+                  signal.direction === "long" || signal.direction === "short";
+                if (
+                  overrideEnabled &&
+                  hasDirection &&
+                  tradeSignal.strength >= overrideMinStrength &&
+                  tradeSignal.confidence >= overrideMinConf
+                ) {
+                  usedNeutralOverride = true;
+                  finalTradeSize = finalTradeSize * overrideSizeMult;
+                  logger.debug(
+                    `[VincePaperTrading] ${asset} swarm neutral override: using aggregated direction ${signal.direction}, size ${overrideSizeMult}x`,
+                  );
+                } else {
+                  const reason = `Swarm consensus below threshold: dir=${swarmConsensus.weightedDirection}, conf=${(
+                    swarmConsensus.confidenceLevel * 100
+                  ).toFixed(0)}% < ${(swarmMinConf * 100).toFixed(0)}%`;
+                  this.logSignalRejection(asset, tradeSignal, reason);
+                  void this.recordAvoidedDecisionIfNeeded(
+                    asset,
+                    signal as AggregatedSignal,
+                    reason,
+                  );
+                  incrementFunnelReason(funnel, "swarm_min_confidence");
+                  continue;
+                }
+              }
+
+              const dissent = swarmConsensus.dissentScore ?? 0;
+              const sizeMultiplier = Math.max(0.5, 1 - dissent * 0.5);
+              if (sizeMultiplier !== 1 && !usedNeutralOverride) {
+                finalTradeSize = finalTradeSize * sizeMultiplier;
+                logger.debug(
+                  `[VincePaperTrading] ${asset} swarm size multiplier ${sizeMultiplier.toFixed(
+                    2,
+                  )}x (dissent=${(dissent * 100).toFixed(0)}%)`,
+                );
+              }
+
+              // Optional regime-aware tuning (paper bot only, flag-gated).
+              const swarmRegimeTuningEnabled =
+                this.runtime.getSetting?.(
+                  "VINCE_SWARM_REGIME_TUNING_ENABLED",
+                ) === true ||
+                this.runtime.getSetting?.(
+                  "VINCE_SWARM_REGIME_TUNING_ENABLED",
+                ) === "true" ||
+                process.env.VINCE_SWARM_REGIME_TUNING_ENABLED === "true";
+
+              if (swarmRegimeTuningEnabled && swarmService?.getSwarmStats) {
+                const swarmStats = swarmService.getSwarmStats();
+                const regimes = Array.isArray(swarmStats?.regimes)
+                  ? swarmStats.regimes
+                  : [];
+
+                const swarmRegimeKey = mapMarketRegimeToSwarmRegime(
+                  regime ?? null,
+                  signal.direction as "long" | "short" | "neutral",
+                );
+
+                const perf = regimes.find(
+                  (r: any) => r.regime === swarmRegimeKey,
+                );
+
+                const minTradesForRegime = 15;
+                if (
+                  perf &&
+                  typeof perf.totalTrades === "number" &&
+                  perf.totalTrades >= minTradesForRegime
+                ) {
+                  const winRateRaw =
+                    typeof perf.winRate === "number" ? perf.winRate : 0;
+
+                  // Size-only adjustments: shrink in weak regimes, never boost size.
+                  let regimeSizeMultiplier = 1.0;
+                  if (winRateRaw < 0.35) {
+                    regimeSizeMultiplier = 0.5;
+                  } else if (winRateRaw < 0.45) {
+                    regimeSizeMultiplier = 0.7;
+                  } else if (winRateRaw < 0.5) {
+                    regimeSizeMultiplier = 0.85;
+                  }
+
+                  if (regimeSizeMultiplier < 1.0) {
+                    finalTradeSize = finalTradeSize * regimeSizeMultiplier;
+                    logger.debug(
+                      `[VincePaperTrading] ${asset} swarm regime tuning: ${swarmRegimeKey} · win ${(
+                        winRateRaw * 100
+                      ).toFixed(
+                        1,
+                      )}% over ${perf.totalTrades} trades → size ${regimeSizeMultiplier.toFixed(
+                        2,
+                      )}x`,
+                    );
+                  }
+
+                  // Extra protective veto: if regime is consistently weak AND consensus is only marginally above the minimum, stand aside. Skip when we used swarm neutral override.
+                  const protectiveWinFloor = 0.35;
+                  const consensusHeadroom = 0.05;
+                  if (
+                    !usedNeutralOverride &&
+                    winRateRaw < protectiveWinFloor &&
+                    swarmConsensus.confidenceLevel <
+                      swarmMinConf + consensusHeadroom
+                  ) {
+                    const reason = `Swarm regime veto: regime ${swarmRegimeKey} win ${(
+                      winRateRaw * 100
+                    ).toFixed(
+                      1,
+                    )}% over ${perf.totalTrades} trades with consensus ${(
+                      swarmConsensus.confidenceLevel * 100
+                    ).toFixed(0)}% near floor`;
+                    this.logSignalRejection(asset, tradeSignal, reason);
+                    void this.recordAvoidedDecisionIfNeeded(
+                      asset,
+                      signal as AggregatedSignal,
+                      reason,
+                    );
+                    incrementFunnelReason(funnel, "swarm_near_floor");
+                    continue;
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            logger.debug(
+              `[VincePaperTrading] ${asset} swarm consensus skipped: ${e}`,
             );
           }
         }
@@ -2187,7 +3219,8 @@ Reply format: APPROVE reason or VETO reason`;
         }
 
         // Execute immediately - pullback entries were causing too many missed trades
-        await this.openTrade({
+        funnel.passedValidation++;
+        const openedPosition = await this.openTrade({
           asset,
           direction: signal.direction as "long" | "short",
           sizeUsd: finalTradeSize,
@@ -2215,11 +3248,103 @@ Reply format: APPROVE reason or VETO reason`;
               tradeSignal.confidence < 65 || sentimentGate.sizeMultiplier < 1,
             blocked: false,
           },
+          proofMeta: {
+            regime: regime?.regime ?? "unknown",
+            sleeve: "paper",
+            onnxEnabled:
+              !!mlService &&
+              ((mlService.getMLStatus?.().modelsLoaded ?? []).length > 0 ||
+                typeof (signal as AggregatedSignal).mlQualityScore ===
+                  "number"),
+            swarmEnabled: swarmEnabled && !!swarmConsensus,
+            adversaryEnabled:
+              !!preMortemResult ||
+              !!devilMeta ||
+              !!immunePattern ||
+              !!narrativePhase,
+            sourceLineage: contributingSources,
+            strength: tradeSignal.strength,
+          },
         });
+        if (openedPosition && swarmConsensus?.consensusId) {
+          const agents =
+            Array.isArray(swarmConsensus.participatingAgents) &&
+            swarmConsensus.participatingAgents.length > 0
+              ? swarmConsensus.participatingAgents
+              : ["vince"];
+
+          const regimeKey = mapMarketRegimeToSwarmRegime(
+            regime ?? null,
+            signal.direction as "long" | "short" | "neutral",
+          );
+
+          this.swarmConsensusByPositionId.set(openedPosition.id, {
+            consensusId: swarmConsensus.consensusId,
+            agents,
+            regimeKey,
+          });
+        }
+        if (openedPosition) {
+          funnel.opened++;
+          this.tradesOpenedToday++;
+        } else funnel.openFailed++;
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
       }
     }
+    const reasonsStr =
+      Object.keys(funnel.reasons).length > 0
+        ? ` other_reasons=${JSON.stringify(funnel.reasons)}`
+        : "";
+    if (treatmentGateCycle.swarmCandidates > 0) {
+      const divisor = Math.max(1, treatmentGateCycle.swarmCandidates);
+      this.lastTreatmentQualityTelemetry = {
+        generatedAt: Date.now(),
+        swarmCandidates: treatmentGateCycle.swarmCandidates,
+        accepted: treatmentGateCycle.accepted,
+        blocked: treatmentGateCycle.blocked,
+        avgExpectedEdge: treatmentGateCycle.sumExpectedEdge / divisor,
+        avgStrengthMargin: treatmentGateCycle.sumStrengthMargin / divisor,
+        avgConfidenceMargin: treatmentGateCycle.sumConfidenceMargin / divisor,
+        minEdge: this.getNumericSettingOrEnv(
+          "VINCE_SWARM_TREATMENT_MIN_EDGE",
+          0,
+        ),
+        coverageStageDeficitCount: coverageContext.stageDeficitCount,
+        coveragePairDeficitTotal: coverageContext.pairDeficitTotal,
+        coverageMinSamplesPerArmDeficit:
+          coverageContext.minSamplesPerArmDeficit,
+        reasons: treatmentGateCycle.reasons,
+      };
+      logger.info(
+        `[VincePaperTrading] Treatment gate telemetry: candidates=${treatmentGateCycle.swarmCandidates} accepted=${treatmentGateCycle.accepted} blocked=${treatmentGateCycle.blocked} ` +
+          `avgEdge=${(treatmentGateCycle.sumExpectedEdge / divisor).toFixed(2)} ` +
+          `avgMargins(str=${(treatmentGateCycle.sumStrengthMargin / divisor).toFixed(1)},conf=${(treatmentGateCycle.sumConfidenceMargin / divisor).toFixed(1)}) ` +
+          `depthDeficit=${coverageContext.minSamplesPerArmDeficit} pairDeficit=${coverageContext.pairDeficitTotal}`,
+      );
+    } else {
+      this.lastTreatmentQualityTelemetry = {
+        generatedAt: Date.now(),
+        swarmCandidates: 0,
+        accepted: 0,
+        blocked: 0,
+        avgExpectedEdge: 0,
+        avgStrengthMargin: 0,
+        avgConfidenceMargin: 0,
+        minEdge: this.getNumericSettingOrEnv(
+          "VINCE_SWARM_TREATMENT_MIN_EDGE",
+          0,
+        ),
+        coverageStageDeficitCount: coverageContext.stageDeficitCount,
+        coveragePairDeficitTotal: coverageContext.pairDeficitTotal,
+        coverageMinSamplesPerArmDeficit:
+          coverageContext.minSamplesPerArmDeficit,
+        reasons: {},
+      };
+    }
+    logger.info(
+      `[VincePaperTrading] Funnel this cycle: passed=${funnel.passedValidation} policy_block=${funnel.policyBlock} opened=${funnel.opened} open_failed=${funnel.openFailed} other_block=${funnel.otherBlock}${reasonsStr}`,
+    );
   }
 
   // ==========================================
@@ -2403,6 +3528,15 @@ Reply format: APPROVE reason or VETO reason`;
       block: boolean;
     };
     ptqgMeta?: PtqgMetaInput;
+    proofMeta?: {
+      regime?: string;
+      sleeve?: string;
+      onnxEnabled?: boolean;
+      swarmEnabled?: boolean;
+      adversaryEnabled?: boolean;
+      sourceLineage?: string[];
+      strength?: number;
+    };
   }): Promise<Position | null> {
     const {
       asset,
@@ -2418,6 +3552,7 @@ Reply format: APPROVE reason or VETO reason`;
       narrativePhase,
       immunePattern,
       ptqgMeta,
+      proofMeta,
     } = params;
 
     const positionManager = this.getPositionManager();
@@ -2758,6 +3893,32 @@ Reply format: APPROVE reason or VETO reason`;
       }
     }
 
+    const activePolicyLoop = this.getPostMortemPolicyLoop();
+    const adaptiveOverlay = activePolicyLoop?.getEffectiveOverlay();
+    const minStopToAtr = adaptiveOverlay?.stopToAtrMin;
+    if (
+      typeof minStopToAtr === "number" &&
+      Number.isFinite(minStopToAtr) &&
+      minStopToAtr > 0 &&
+      typeof entryATRPct === "number" &&
+      entryATRPct > 0
+    ) {
+      const currentStopPct =
+        (Math.abs(stopLossPrice - entryPrice) / entryPrice) * 100;
+      const requiredStopPct = entryATRPct * minStopToAtr;
+      if (currentStopPct < requiredStopPct) {
+        const boundedRequiredPct = Math.min(8, requiredStopPct);
+        const adjustedDistance = entryPrice * (boundedRequiredPct / 100);
+        stopLossPrice =
+          direction === "long"
+            ? entryPrice - adjustedDistance
+            : entryPrice + adjustedDistance;
+        logger.debug(
+          `[VincePaperTrading] ${asset} adaptive stop floor applied: ${currentStopPct.toFixed(2)}% -> ${boundedRequiredPct.toFixed(2)}% (ATR ${entryATRPct.toFixed(2)}%, min ${minStopToAtr.toFixed(2)}x)`,
+        );
+      }
+    }
+
     // Contributing source names for bandit outcome feedback (weight optimization)
     const contributingSources = Object.keys(
       signal.sourceBreakdown ?? {},
@@ -2819,6 +3980,7 @@ Reply format: APPROVE reason or VETO reason`;
       lowConfidenceMode: ptqgMeta?.lowConfidenceMode ?? false,
       blocked: ptqgMeta?.blocked ?? false,
     };
+    const policyVersionAtEntry = activePolicyLoop?.getPolicyVersionTag();
 
     // Open position with ATR and full signal snapshot for dashboard
     const position = positionManager.openPosition({
@@ -2877,6 +4039,7 @@ Reply format: APPROVE reason or VETO reason`;
         ...(narrativePhase ? { narrativePhase } : {}),
         ...(immunePattern ? { immunePattern } : {}),
         ptqgMeta: finalizedPtqgMeta,
+        ...(policyVersionAtEntry ? { policyVersionAtEntry } : {}),
       },
     });
 
@@ -3005,6 +4168,18 @@ Reply format: APPROVE reason or VETO reason`;
           direction,
           clusters,
           signal.confidence,
+          {
+            sourceLineage: proofMeta?.sourceLineage ?? clusters,
+            strength: proofMeta?.strength ?? signal.strength,
+            regime: proofMeta?.regime,
+            sleeve: proofMeta?.sleeve ?? "paper",
+            gateStack: {
+              ruleBased: true,
+              onnxEnabled: proofMeta?.onnxEnabled === true,
+              swarmEnabled: proofMeta?.swarmEnabled === true,
+              adversaryEnabled: proofMeta?.adversaryEnabled === true,
+            },
+          },
         );
       } catch (e) {
         logger.debug(`[VincePaperTrading] Attribution recordOpen failed: ${e}`);
@@ -3116,6 +4291,15 @@ Reply format: APPROVE reason or VETO reason`;
 
     // Post-mortem: on loss, ask Echo/Oracle/Solus and write docs/standup/post-mortems/
     const pnlForPm = closedPosition.realizedPnl ?? 0;
+    const plannedRiskUsd = Number(
+      (closedPosition.metadata?.ptqgMeta as { maxLossUsd?: number } | undefined)
+        ?.maxLossUsd ?? 0,
+    );
+    this.getPostMortemPolicyLoop()?.recordClosedTrade({
+      realizedPnlUsd: pnlForPm,
+      budgetBreach:
+        plannedRiskUsd > 0 ? Math.abs(pnlForPm) > plannedRiskUsd + 0.01 : false,
+    });
     if (pnlForPm < 0) {
       this.lastClosedLosingPosition = closedPosition;
       void runPostMortem(this.runtime, closedPosition).catch((e) =>
@@ -3171,7 +4355,15 @@ Reply format: APPROVE reason or VETO reason`;
       const tradePnl = closedPosition.realizedPnl ?? 0;
       const outcome: "win" | "loss" | "scratch" =
         tradePnl > 0 ? "win" : tradePnl < 0 ? "loss" : "scratch";
-      this.attributionSvc.recordClose(positionId, tradePnl, outcome);
+      this.attributionSvc.recordClose(positionId, tradePnl, outcome, {
+        pnlPct: closedPosition.realizedPnlPct,
+        decisionImpact:
+          outcome === "win"
+            ? "better"
+            : outcome === "loss"
+              ? "worse"
+              : "neutral",
+      });
     } catch (e) {
       logger.debug(`[VincePaperTrading] Attribution recordClose failed: ${e}`);
     }
@@ -3391,6 +4583,31 @@ Reply format: APPROVE reason or VETO reason`;
           `[VincePaperTrading] Could not record bandit outcome: ${e}`,
         );
       }
+    }
+
+    // Record in swarm coordination service for multi-agent learning
+    try {
+      const swarmMeta = this.swarmConsensusByPositionId.get(position.id);
+      if (swarmMeta) {
+        const swarmService = this.runtime.getService("swarm-coordination") as {
+          recordSwarmOutcome?: (...args: any[]) => Promise<void>;
+        } | null;
+
+        if (swarmService?.recordSwarmOutcome) {
+          const regimeKey: SwarmMarketRegime = swarmMeta.regimeKey ?? "UNKNOWN";
+          await swarmService.recordSwarmOutcome(
+            swarmMeta.consensusId,
+            isWin ? "win" : "loss",
+            pnlPct,
+            swarmMeta.agents,
+            regimeKey,
+          );
+        }
+
+        this.swarmConsensusByPositionId.delete(position.id);
+      }
+    } catch (e) {
+      logger.debug(`[VincePaperTrading] Could not record swarm outcome: ${e}`);
     }
 
     // Record in similarity service
@@ -3640,6 +4857,7 @@ Reply format: APPROVE reason or VETO reason`;
     openPositions: number;
     portfolioValue: number;
     returnPct: number;
+    treatmentQualityTelemetry: TreatmentQualityCycleTelemetry | null;
   } {
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
@@ -3654,6 +4872,7 @@ Reply format: APPROVE reason or VETO reason`;
       openPositions: positionManager?.getOpenPositions().length || 0,
       portfolioValue: portfolio?.totalValue || 0,
       returnPct: portfolio?.returnPct || 0,
+      treatmentQualityTelemetry: this.lastTreatmentQualityTelemetry,
     };
   }
 }

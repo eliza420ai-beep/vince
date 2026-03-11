@@ -1324,36 +1324,48 @@ export async function fetchEchoData(
   runtime: IAgentRuntime,
   contextHints?: string[],
 ): Promise<string> {
-  // Fetch latest WTT (What's The Trade) for the standup
+  // Yesterday's WTT (What's The Trade) for narrative → outcome visibility in daily digest
   let wttSection = "";
   try {
-    const wttDir = path.join(
-      process.cwd(),
-      "docs",
-      "standup",
-      "whats-the-trade",
-    );
-    if (fs.existsSync(wttDir)) {
-      const files = fs
-        .readdirSync(wttDir)
-        .filter((f) => f.endsWith("-whats-the-trade.md"))
-        .sort()
-        .reverse();
-      if (files.length > 0) {
-        const latestWtt = files[0];
-        const wttContent = fs.readFileSync(
-          path.join(wttDir, latestWtt),
-          "utf-8",
-        );
-        // Extract key parts: thesis, direction, size
+    const baseDir = process.env.STANDUP_DELIVERABLES_DIR?.trim()
+      ? path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR)
+      : path.join(process.cwd(), "docs", "standup");
+    const wttDir = path.join(baseDir, "whats-the-trade");
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().slice(0, 10);
+    const jsonPath = path.join(wttDir, `${dateStr}-whats-the-trade.json`);
+    if (fs.existsSync(jsonPath)) {
+      const raw = fs.readFileSync(jsonPath, "utf-8");
+      const data = JSON.parse(raw) as {
+        thesis?: string;
+        primaryTicker?: string;
+        primaryDirection?: string;
+        catalystSources?: string[];
+      };
+      const thesis = (data.thesis ?? "").slice(0, 120);
+      const ticker = data.primaryTicker ?? "";
+      const dir = data.primaryDirection ?? "";
+      const catalysts = Array.isArray(data.catalystSources)
+        ? data.catalystSources.join("/")
+        : "";
+      if (thesis || ticker) {
+        const catalystLine = catalysts ? ` Catalysts: ${catalysts}.` : "";
+        wttSection = `\n> **Yesterday's WTT:** ${thesis || "—"} Primary: ${ticker} ${dir}.${catalystLine} Paper bot: N/A.\n`;
+      }
+    }
+    if (!wttSection) {
+      const mdPath = path.join(wttDir, `${dateStr}-whats-the-trade.md`);
+      if (fs.existsSync(mdPath)) {
+        const wttContent = fs.readFileSync(mdPath, "utf-8");
         const thesisMatch = wttContent.match(/\*\*.*?\*\*.*?\n\n([^\n]+)/);
         const directionMatch = wttContent.match(
           /(LONG|SHORT|HOLD).*?@\s*\$?[\d.]+/,
         );
-        const thesis = thesisMatch ? thesisMatch[1].slice(0, 150) : "";
-        const direction = directionMatch ? directionMatch[0].slice(0, 80) : "";
+        const thesis = thesisMatch ? thesisMatch[1].slice(0, 120) : "";
+        const direction = directionMatch ? directionMatch[0].slice(0, 60) : "";
         if (thesis || direction) {
-          wttSection = `\n> **Latest WTT:** ${direction || thesis}\n`;
+          wttSection = `\n> **Yesterday's WTT:** ${thesis || direction}. Paper bot: N/A.\n`;
         }
       }
     }
@@ -1466,6 +1478,9 @@ export async function fetchEchoData(
     );
 
     let sentimentBlock = `## ECHO — CT Pulse\n\n`;
+    if (wttSection) {
+      sentimentBlock += wttSection;
+    }
 
     if (runtime.useModel) {
       try {
@@ -1501,11 +1516,6 @@ export async function fetchEchoData(
       }
     } else {
       sentimentBlock += generateBasicVibe(allTweets);
-    }
-
-    // Add WTT section if available
-    if (wttSection) {
-      sentimentBlock += wttSection;
     }
 
     return sentimentBlock;

@@ -42,6 +42,8 @@ const FEATURE_TO_SOURCE: Record<string, string> = {
   signal_xSentimentScore: "XSentiment",
   session_isOpenWindow: "_session",
 };
+// XSentiment contribution can also be quality-adjusted via data/x-source-quality.jsonl
+// (per-handle precision → 0.5x / 1.0x / 1.5x) in the aggregator; see xSourceQualityReader.
 
 export interface ImprovementReport {
   feature_importances?: {

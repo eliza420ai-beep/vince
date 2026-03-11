@@ -21,6 +21,16 @@ const HYPERSURFACE_COIN_IDS = [
 const CACHE_KEY = "solus:hypersurface_spot_prices";
 const CACHE_TTL_MS = 60_000;
 
+const HYPERLIQUID_SYMBOLS: Record<
+  (typeof HYPERSURFACE_COIN_IDS)[number],
+  string
+> = {
+  bitcoin: "BTC",
+  ethereum: "ETH",
+  solana: "SOL",
+  hyperliquid: "HYPE",
+};
+
 function formatPrices(prices: Record<string, number>): string {
   const btc = prices.bitcoin;
   const eth = prices.ethereum;
@@ -50,7 +60,7 @@ function formatPrices(prices: Record<string, number>): string {
 export const hypersurfaceSpotPricesProvider: Provider = {
   name: "SOLUS_HYPERSURFACE_SPOT_PRICES",
   description:
-    "Real-time spot prices (USD) for Hypersurface assets: BTC, ETH, SOL, HYPE. From CoinGecko via plugin-coingecko. Cached 60s.",
+    "Real-time spot prices (USD) for Hypersurface assets: BTC, ETH, SOL, HYPE. Uses Hyperliquid when available, otherwise CoinGecko via plugin-coingecko. Cached 60s.",
   position: -4,
 
   get: async (
@@ -76,6 +86,43 @@ export const hypersurfaceSpotPricesProvider: Provider = {
       }
     }
 
+    // Try Hyperliquid first for BTC/ETH/SOL/HYPE
+    const hlService = runtime.getService("HYPERLIQUID_SERVICE") as unknown as {
+      getMarkPriceAndChange?: (
+        symbol: string,
+      ) => Promise<{ price: number } | null>;
+    } | null;
+
+    if (hlService?.getMarkPriceAndChange) {
+      const hlPrices: Record<string, number> = {};
+      for (const id of HYPERSURFACE_COIN_IDS) {
+        const symbol = HYPERLIQUID_SYMBOLS[id];
+        try {
+          const data = await hlService.getMarkPriceAndChange(symbol);
+          if (data && typeof data.price === "number" && data.price > 0) {
+            hlPrices[id] = data.price;
+          }
+        } catch (error) {
+          logger.debug(
+            `[Solus] Hyperliquid price fetch failed for ${symbol}: ` +
+              (error instanceof Error ? error.message : String(error)),
+          );
+        }
+      }
+
+      if (Object.keys(hlPrices).length > 0) {
+        await runtime.setCache(CACHE_KEY, { prices: hlPrices, ts: Date.now() });
+        const text = formatPrices(hlPrices);
+        if (text) {
+          return {
+            text: `[Hypersurface spot USD] ${text}`,
+            values: { hypersurfaceSpotPrices: hlPrices },
+          };
+        }
+      }
+    }
+
+    // Fallback: CoinGecko via plugin-coingecko
     const service = runtime.getService("COINGECKO_SERVICE") as unknown as {
       getSimplePrices: (ids: string[]) => Promise<Record<string, number>>;
     } | null;

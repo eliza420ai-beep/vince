@@ -33,25 +33,28 @@ export const getChainTvlHistoryAction: Action = {
   similes: ["CHAIN_TVL_HISTORY", "CHAIN_TVL_TREND", "CHAIN_TVL_CHART"],
   description:
     "Fetch historical TVL data for a specific blockchain, optionally filtered by segment (e.g., staking).",
-  parameters: {
-    chain: {
-      type: "string",
+  parameters: [
+    {
+      name: "chain",
       description: "Chain name (e.g., 'Ethereum', 'Base').",
       required: true,
+      schema: { type: "string" },
     },
-    filter: {
-      type: "string",
+    {
+      name: "filter",
       description:
         "Optional DefiLlama filter (e.g., 'staking', 'borrowed', 'pool2').",
       required: false,
+      schema: { type: "string" },
     },
-    days: {
-      type: "number",
+    {
+      name: "days",
       description:
         "Optional number of most recent days to include (default 365).",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
   validate: async (
     runtime: IAgentRuntime,
     message: Memory,

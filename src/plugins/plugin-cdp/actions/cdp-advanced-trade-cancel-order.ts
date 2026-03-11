@@ -33,13 +33,14 @@ export const cdpAdvancedTradeCancelOrder: Action = {
   description:
     "Cancel one or more open orders on Coinbase (Advanced Trade). Provide order_ids (array of order ID strings). Use after COINBASE_LIST_ORDERS to cancel by ID. Requires Advanced Trade API keys.",
 
-  parameters: {
-    order_ids: {
-      type: "array",
+  parameters: [
+    {
+      name: "order_ids",
       description: "Order IDs to cancel (e.g. from COINBASE_LIST_ORDERS)",
       required: true,
+      schema: { type: "array" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime) => isAdvancedTradeConfigured(),
 
@@ -81,7 +82,7 @@ export const cdpAdvancedTradeCancelOrder: Action = {
       return {
         success: failed.length === 0,
         text,
-        data: data as Record<string, unknown>,
+        data: data as import("@elizaos/core").ProviderDataRecord,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

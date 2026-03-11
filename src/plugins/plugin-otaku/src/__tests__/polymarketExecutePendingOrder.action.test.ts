@@ -216,6 +216,79 @@ describe("plugin-otaku: POLYMARKET_EXECUTE_PENDING_ORDER", () => {
       expect(clobOrderIdx).toBeGreaterThanOrEqual(0);
     });
 
+    it("when credentials set but POLYMARKET_DESK_LIVE_ENABLED not true: records paper fill (no CLOB call)", async () => {
+      const queryCalls: { sql: string; values?: unknown[] }[] = [];
+      const runtime = {
+        getConnection: async () => ({
+          query: async (sql: string, values?: unknown[]) => {
+            queryCalls.push({ sql, values });
+            if (
+              sql.includes("sized_orders") &&
+              sql.includes("pending") &&
+              !sql.includes("$1")
+            )
+              return {
+                rows: [
+                  {
+                    id: "order-2",
+                    signal_id: "sig-2",
+                    market_id: "0xcond",
+                    side: "NO",
+                    size_usd: 25,
+                    max_price: 0.45,
+                    slippage_bps: 30,
+                  },
+                ],
+              };
+            if (sql.includes("signals") && sql.includes("market_price"))
+              return { rows: [{ market_price: 0.5 }] };
+            return { rows: [] };
+          },
+        }),
+        getService: vi.fn(() => null),
+        getSetting: vi.fn((key: string) => {
+          if (key === "POLYMARKET_CLOB_API_URL")
+            return "https://clob.polymarket.com";
+          if (key === "POLYMARKET_PRIVATE_KEY") return "0xdead";
+          if (key === "POLYMARKET_CLOB_API_KEY") return "key";
+          if (key === "POLYMARKET_CLOB_SECRET") return "secret";
+          if (key === "POLYMARKET_CLOB_PASSPHRASE") return "pass";
+          if (key === "POLYMARKET_FUNDER_ADDRESS") return "0xfunder";
+          if (key === "POLYMARKET_DESK_LIVE_ENABLED") return undefined;
+          return null;
+        }),
+      } as unknown as IAgentRuntime;
+
+      let callbackText = "";
+      await polymarketExecutePendingOrderAction.handler!(
+        runtime,
+        createMessage("execute polymarket order"),
+        undefined,
+        undefined,
+        (c) => {
+          callbackText = (c as { text?: string }).text ?? "";
+        },
+      );
+
+      expect(callbackText).toContain("Paper fill recorded");
+      expect(callbackText).toContain("POLYMARKET_DESK_LIVE_ENABLED not set");
+      const updateFilled = queryCalls.filter(
+        (q) =>
+          q.sql.includes("UPDATE") &&
+          q.sql.includes("sized_orders") &&
+          q.sql.includes("filled"),
+      );
+      expect(updateFilled).toHaveLength(1);
+      const insertTradeLog = queryCalls.filter(
+        (q) =>
+          q.sql.includes("INSERT") &&
+          q.sql.includes("trade_log") &&
+          q.values?.includes("paper"),
+      );
+      expect(insertTradeLog).toHaveLength(1);
+      expect(insertTradeLog[0].values).toContain("paper");
+    });
+
     it("when discovery service null: credentials missing still records paper fill", async () => {
       const queryCalls: { sql: string; values?: unknown[] }[] = [];
       const runtime = {

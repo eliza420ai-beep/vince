@@ -30,20 +30,22 @@ export const cdpCheckTxConfirmation: Action = {
   description:
     "Checks the block confirmation status of a transaction using viem. Returns transaction receipt details including block number, confirmation status (success/reverted), gas used, and number of confirmations. Use this to verify if a transaction has been confirmed on-chain and whether it succeeded or failed.",
 
-  parameters: {
-    hash: {
-      type: "string",
+  parameters: [
+    {
+      name: "hash",
       description:
         "Transaction hash (0x-prefixed hex string, 66 characters total)",
       required: true,
+      schema: { type: "string" },
     },
-    network: {
-      type: "string",
+    {
+      name: "network",
       description:
         "Blockchain network: 'base', 'ethereum', 'arbitrum', 'base-sepolia', or 'ethereum-sepolia'",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpPluginContext("CHECK_TX_CONFIRMATION", state, message);
@@ -297,13 +299,13 @@ export const cdpCheckTxConfirmation: Action = {
 
         callback?.({
           text,
-          content: data,
+          content: data as unknown as import("@elizaos/core").ContentValue,
         });
 
         return {
           text,
           success: true,
-          data,
+          data: data as import("@elizaos/core").ProviderDataRecord,
           values: {
             confirmed: true,
             status: receipt.status,
@@ -345,13 +347,13 @@ export const cdpCheckTxConfirmation: Action = {
 
           callback?.({
             text,
-            content: data,
+            content: data as unknown as import("@elizaos/core").ContentValue,
           });
 
           return {
             text,
             success: true,
-            data,
+            data: data as import("@elizaos/core").ProviderDataRecord,
             values: {
               confirmed: false,
               status: "pending",

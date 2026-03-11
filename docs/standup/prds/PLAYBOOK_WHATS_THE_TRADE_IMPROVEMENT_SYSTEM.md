@@ -3,6 +3,8 @@
 **Purpose:** Day-to-day operating SOP for `PRD_WHATS_THE_TRADE_IMPROVEMENT_SYSTEM.md`.  
 **Owner:** Sentinel (governance) + Vince (execution loop)
 
+**Narrative trading (catalysts, feedback, roadmap):** [NARRATIVE_TRADING_IMPROVEMENTS.md](../NARRATIVE_TRADING_IMPROVEMENTS.md)
+
 ---
 
 ## 1. Daily Operating Rhythm

@@ -190,7 +190,7 @@ export const otakuApproveAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text ?? "";
 
     let request: ApproveRequest | null = parseApproveRequest(text);

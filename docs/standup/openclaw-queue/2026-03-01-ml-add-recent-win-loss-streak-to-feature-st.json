@@ -1,0 +1,16 @@
+{
+  "id": "ml-20260301-006",
+  "title": "Add Recent win/loss streak to feature store",
+  "description": "Cold/hot streak for position sizing.. present but 1% non-null \u2014 consider populating",
+  "scope": "In scope: feature store and signal aggregator. Out of scope: model architecture.",
+  "acceptanceCriteria": [
+    "Task completed and verified."
+  ],
+  "expectedOutcome": "Cold/hot streak for position sizing.",
+  "source": "ml_training",
+  "branchName": "sentinel/2026-03-01-ml-add-recent-win-loss-strea",
+  "createdAt": "2026-03-01T04:01:21.271211",
+  "plugin": "plugin-vince",
+  "priority": "P2",
+  "effort": "XS"
+}

@@ -309,17 +309,19 @@ Set `POLYMARKET_DESK_SCHEDULE_ENABLED=false` to disable all desk recurring tasks
 
 When the schedule is enabled, **Risk 15m** approves one pending signal per run (invokes `POLYMARKET_RISK_APPROVE`) and writes one row to `sized_orders`. **Otaku 2m** executes one pending sized order per run (invokes `POLYMARKET_EXECUTE_PENDING_ORDER` directly, no LLM) and writes to `trade_log`. Both run via Bootstrap TaskService (tasks are tagged `queue` + `repeat`).
 
-**Otaku execution (live)** requires these env vars on the Otaku agent. If any are missing, the execute action records a **paper fill** instead (see Paper-only mode below):
+**Otaku execution (live)** requires **both** of the following:
 
-- `POLYMARKET_PRIVATE_KEY` or `EVM_PRIVATE_KEY`
-- `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`
-- `POLYMARKET_FUNDER_ADDRESS`
+1. **`POLYMARKET_DESK_LIVE_ENABLED=true`** — Explicit opt-in for live execution. If unset or not `true`, the execute action always records a **paper fill** (see Paper-only mode below), even when CLOB credentials are set.
+2. These env vars on the Otaku agent (if any are missing, the execute action records a paper fill):
+   - `POLYMARKET_PRIVATE_KEY` or `EVM_PRIVATE_KEY`
+   - `POLYMARKET_CLOB_API_KEY`, `POLYMARKET_CLOB_SECRET`, `POLYMARKET_CLOB_PASSPHRASE`
+   - `POLYMARKET_FUNDER_ADDRESS`
 
 See `.env.example` (Polymarket / Otaku sections) for all desk and execution variables.
 
 ### Paper-only mode
 
-When Otaku does **not** have Polymarket CLOB credentials set, the execute action **records a paper fill**: it updates the sized order to `status = 'filled'` and inserts a row into `trade_log` (with `wallet = 'paper'`, `clob_order_id = null`). Fill price is taken from the signal's market price, or from Polymarket discovery (current YES/NO price) when available. No CLOB credentials are required for paper trading. The 2 minute poll will consume pending orders one-by-one and write these paper fills, so the Leaderboard **“Recent trades”**, **“Trades today”**, and **Execution P&L** all reflect paper activity and you can validate strategies and P&L without real execution. Once credentials are configured, the same flow places real orders on the CLOB and writes live fills to the trade log.
+Paper-only is the **default**. When `POLYMARKET_DESK_LIVE_ENABLED` is not set to `true`, or when Otaku does **not** have Polymarket CLOB credentials set, the execute action **records a paper fill**: it updates the sized order to `status = 'filled'` and inserts a row into `trade_log` (with `wallet = 'paper'`, `clob_order_id = null`). Fill price is taken from the signal's market price, or from Polymarket discovery (current YES/NO price) when available. No CLOB credentials are required for paper trading. The 2 minute poll will consume pending orders one-by-one and write these paper fills, so the Leaderboard **“Recent trades”**, **“Trades today”**, and **Execution P&L** all reflect paper activity and you can validate strategies and P&L without real execution. To allow real execution only after proving win rate with paper, set credentials **and** `POLYMARKET_DESK_LIVE_ENABLED=true`.
 
 ### Tuning parameters
 

@@ -74,6 +74,11 @@ const BANNED_PHRASES = [
   "dive into",
 ];
 
+function expectExactKeys(value: unknown, expected: string[]): void {
+  const obj = value as Record<string, unknown>;
+  expect(Object.keys(obj).sort()).toEqual([...expected].sort());
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetXSearchService.mockReturnValue({
@@ -162,8 +167,17 @@ describe("clawtermDayReportAction", () => {
         expect.objectContaining({
           text: MOCK_REPORT,
           action: "CLAWTERM_DAY_REPORT",
+          sourceStats: expect.any(Object),
         }),
       );
+      const payload = (callback as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+      expectExactKeys(payload.sourceStats, [
+        "xCandidates",
+        "xSelected",
+        "xDropped",
+        "xReason",
+        "webSnippets",
+      ]);
       expect(capturedPrompt).toBeDefined();
     });
 
@@ -191,7 +205,9 @@ describe("clawtermDayReportAction", () => {
       );
 
       expect(capturedPrompt).toContain("smart friend over coffee");
-      expect(capturedPrompt).toContain("Don't bullet point");
+      expect(capturedPrompt).toContain(
+        "No bullets, headers, or formal section wrappers.",
+      );
       expect(capturedPrompt).toContain("200-300 words");
       expect(capturedPrompt).toContain("Interestingly");
       expect(capturedPrompt).toContain("notably");

@@ -8,6 +8,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -48,7 +49,7 @@ export const vinceBotPauseAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const paperTrading = runtime.getService(
         "VINCE_PAPER_TRADING_SERVICE",
@@ -134,7 +135,7 @@ export const vinceBotPauseAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "⏸️ **Bot Paused**\n\nPaper trading paused. No new positions until you resume.\nExisting positions still monitored for SL/TP.\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "⏸️ **Bot Paused**\n\nPaper trading paused. No new positions until you resume.\nExisting positions still monitored for SL/TP.\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_BOT_PAUSE"],
         },
       },
@@ -144,7 +145,7 @@ export const vinceBotPauseAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "🟢 **Bot Resumed**\n\nPaper trading active. Evaluating signals and opening positions when conditions are met.\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "🟢 **Bot Resumed**\n\nPaper trading active. Evaluating signals and opening positions when conditions are met.\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_BOT_PAUSE"],
         },
       },

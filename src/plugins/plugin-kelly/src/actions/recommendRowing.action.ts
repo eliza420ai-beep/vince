@@ -8,6 +8,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -63,7 +64,7 @@ export const kellyRecommendRowingAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_ROWING] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();
@@ -131,12 +132,14 @@ Output only the text, no XML. Voice: avoid jargon and filler. ${getVoiceAvoidPro
       });
 
       logger.info("[KELLY_RECOMMEND_ROWING] Recommendation sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_RECOMMEND_ROWING] Error: ${error}`);
       await callback({
         text: "Rowing workout suggestion failed. Try: 20 min steady-state at 22-24 spm — builds the endurance you need for surf paddling and 1000m swims.",
         actions: ["KELLY_RECOMMEND_ROWING"],
       });
+      return undefined;
     }
   },
 

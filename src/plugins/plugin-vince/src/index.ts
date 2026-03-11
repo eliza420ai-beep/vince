@@ -15,8 +15,7 @@
  * - DexScreenerService - Hot memes on SOLANA + BASE
  * - MeteoraService - LP pool discovery for DCA strategy
  *
- * LIFESTYLE + ART:
- * - LifestyleService - Daily suggestions based on day of week
+ * ART:
  * - NFTFloorService - Floor tracking for ~12 curated collections
  *
  * @module @elizaos/plugin-vince
@@ -31,6 +30,10 @@ import {
   buildDebugXSentimentResponse,
 } from "./routes/dashboardLeaderboards";
 import { buildPaperResponse } from "./routes/dashboardPaper";
+import {
+  buildRecursiveNorthStarOperatorStatus,
+  buildRecursiveNorthStarResponse,
+} from "./routes/dashboardRecursiveNorthStar";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 import { buildBankrResponse } from "./routes/dashboardBankr";
@@ -45,7 +48,6 @@ import { VinceNewsSentimentService } from "./services/newsSentiment.service";
 import { VinceDexScreenerService } from "./services/dexscreener.service";
 import { VinceMeteoraService } from "./services/meteora.service";
 import { VinceNFTFloorService } from "./services/nftFloor.service";
-import { VinceLifestyleService } from "./services/lifestyle.service";
 import { VinceDeribitService } from "./services/deribit.service";
 import { VinceNansenService } from "./services/nansen.service";
 import { VinceSanbaseService } from "./services/sanbase.service";
@@ -53,11 +55,13 @@ import { VinceBinanceService } from "./services/binance.service";
 import { VinceBinanceLiquidationService } from "./services/binanceLiquidation.service";
 import { VinceAlliumService } from "./services/allium.service";
 import { VinceHIP3Service } from "./services/hip3.service";
+import { VinceHLCryptoSnapshotService } from "./services/hlCryptoSnapshot.service";
 import { VinceWatchlistService } from "./services/watchlist.service";
 import { VinceNotificationService } from "./services/notification.service";
 import { VinceAlertService } from "./services/alert.service";
 import { VinceXResearchService } from "./services/xResearch.service";
 import { VinceXSentimentService } from "./services/xSentiment.service";
+import { VincePolymarketSentimentService } from "./services/polymarketSentiment.service";
 
 // Fallback services factory (for external service source tracking)
 import {
@@ -90,6 +94,7 @@ import { VinceFeatureStoreService } from "./services/vinceFeatureStore.service";
 import { VinceWeightBanditService } from "./services/weightBandit.service";
 import { VinceSignalSimilarityService } from "./services/signalSimilarity.service";
 import { VinceMLInferenceService } from "./services/mlInference.service";
+import { SwarmCoordinationService } from "./services/swarmCoordination.service";
 
 // Services - Phase 5: The Genome (V4.2.0)
 import { VinceRegimeProfilesService } from "./services/vinceRegimeProfiles.service";
@@ -104,6 +109,13 @@ import { VinceDevilsAdvocateService } from "./services/vinceDevilsAdvocate.servi
 import { VinceNarrativeRadarService } from "./services/vinceNarrativeRadar.service";
 import { VinceTemporalCoherenceService } from "./services/vinceTemporalCoherence.service";
 import { VinceImmuneSystemService } from "./services/vinceImmuneSystem.service";
+import { VinceSwarmInsightsService } from "./services/vinceSwarmInsights.service";
+import { VinceSwarmOrchestratorService } from "./services/vinceSwarmOrchestrator.service";
+import { VinceUpliftEvaluatorService } from "./services/vinceUpliftEvaluator.service";
+import { VinceDataSufficiencyService } from "./services/vinceDataSufficiency.service";
+import { VinceSourceQualityService } from "./services/vinceSourceQuality.service";
+import { VinceProofCapitalAllocatorService } from "./services/vinceProofCapitalAllocator.service";
+import { VincePostMortemPolicyLoopService } from "./services/vincePostMortemPolicyLoop.service";
 
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
@@ -115,11 +127,11 @@ import { vinceOptionsAction } from "./actions/options.action";
 import { vincePerpsAction } from "./actions/perps.action";
 import { vinceMemesAction } from "./actions/memes.action";
 import { vinceAirdropsAction } from "./actions/airdrops.action";
-import { vinceLifestyleAction } from "./actions/lifestyle.action";
 import { vinceNftFloorAction } from "./actions/nftFloor.action";
 import { vinceIntelAction } from "./actions/intel.action";
 import { vinceNewsAction } from "./actions/news.action";
 import { vinceReportAction } from "./actions/report.action";
+import { vinceDailyStandupAction } from "./actions/dailyStandup.action";
 import { vinceHIP3Action } from "./actions/hip3.action";
 import {
   vinceHlCryptoAction,
@@ -163,7 +175,6 @@ import { bankrOrdersProvider } from "./providers/bankrOrders.provider";
 import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
 import { registerTrainOnnxTask } from "./tasks/trainOnnx.tasks";
 import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
-import { registerLifestyleDailyTask } from "./tasks/lifestyleDaily.tasks";
 import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
@@ -187,8 +198,8 @@ export const vincePlugin: Plugin = {
   name: "plugin-vince",
   description:
     "Unified data intelligence for VINCE agent. " +
-    "Consolidates: Deribit, Nansen, Sanbase, CoinGlass, CoinGecko, DexScreener, Meteora, NFT floors, Lifestyle. " +
-    "Core assets: BTC, ETH, SOL, HYPE + HIP-3 tokens. Focus: OPTIONS, PERPS, MEMETICS, AIRDROPS, LIFESTYLE, ART.",
+    "Consolidates: Deribit, Nansen, Sanbase, CoinGlass, CoinGecko, DexScreener, Meteora, NFT floors. " +
+    "Core assets: BTC, ETH, SOL, HYPE + HIP-3 tokens. Focus: OPTIONS, PERPS, MEMETICS, AIRDROPS, ART. Lifestyle: ask Kelly.",
 
   /** Drizzle schema for plugin_vince.paper_bot_features (PGLite/Postgres). */
   schema: paperTradesSchema,
@@ -198,6 +209,7 @@ export const vincePlugin: Plugin = {
   // runtime.getService() never returns null when external plugins aren't loaded. Must be in services
   // array (not init registerService) to avoid blocking initPromise → 30s timeout deadlock.
   // Cast via unknown: start() returns fallback impls (IDeribitService/IHyperliquidService), not Service subclass.
+  // Plugin.services expects ServiceClass[]; Service is abstract so we cast the array.
   services: [
     DeribitServiceAlias as unknown as typeof Service,
     HyperliquidServiceAlias as unknown as typeof Service,
@@ -210,7 +222,6 @@ export const vincePlugin: Plugin = {
     VinceDexScreenerService,
     VinceMeteoraService,
     VinceNFTFloorService,
-    VinceLifestyleService,
     VinceDeribitService,
     VinceNansenService,
     VinceSanbaseService,
@@ -218,9 +229,11 @@ export const vincePlugin: Plugin = {
     VinceBinanceLiquidationService,
     VinceMarketRegimeService,
     VinceHIP3Service,
+    VinceHLCryptoSnapshotService,
     // X services are data-only (paper bot sentiment, aggregator, leaderboard). In-chat X/CT research is Echo (plugin-x-research).
     VinceXResearchService,
     VinceXSentimentService, // X sentiment for paper algo (staggered: one asset per hour by default, cache 24h)
+    VincePolymarketSentimentService, // Prediction-market sentiment from Polymarket (BTC/ETH/SOL/macro/stocks); cache 15–30 min
     // Early Detection System
     VinceWatchlistService,
     VinceNotificationService,
@@ -239,6 +252,7 @@ export const vincePlugin: Plugin = {
     VinceWeightBanditService,
     VinceSignalSimilarityService,
     VinceMLInferenceService,
+    SwarmCoordinationService,
     // On-chain data (Allium API — DEX prices, Hyperliquid without rate limits, chain metrics)
     VinceAlliumService,
     // Phase 5: The Genome (V4.2.0)
@@ -254,7 +268,14 @@ export const vincePlugin: Plugin = {
     VinceTemporalCoherenceService,
     VinceImmuneSystemService,
     PredictionTrackerService,
-  ],
+    VinceSwarmInsightsService,
+    VinceSwarmOrchestratorService,
+    VinceUpliftEvaluatorService,
+    VinceDataSufficiencyService,
+    VinceSourceQualityService,
+    VinceProofCapitalAllocatorService,
+    VincePostMortemPolicyLoopService,
+  ] as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
 
   // Actions - focus areas + paper trading bot controls
   actions: [
@@ -267,11 +288,11 @@ export const vincePlugin: Plugin = {
     vincePerpsAction,
     vinceMemesAction,
     vinceAirdropsAction,
-    vinceLifestyleAction,
     vinceNftFloorAction,
     vinceIntelAction,
     vinceNewsAction,
     vinceReportAction,
+    vinceDailyStandupAction,
     vinceHIP3Action,
     vinceHlCryptoAction,
     vinceChatAction,
@@ -389,6 +410,51 @@ export const vincePlugin: Plugin = {
             message: err instanceof Error ? err.message : String(err),
           });
           return;
+        }
+      },
+    },
+    {
+      name: "vince-hip3-snapshot",
+      path: "/vince/hip3-snapshot",
+      type: "GET",
+      handler: async (
+        _req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (_req as any).runtime ??
+          (_req as any).agentRuntime ??
+          (_req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "HIP-3 snapshot requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/hip3-snapshot",
+          });
+          return;
+        }
+        try {
+          const hip3 = agentRuntime.getService(
+            "VINCE_HIP3_SERVICE",
+          ) as VinceHIP3Service | null;
+          const pulse = hip3?.getCachedPulse?.() ?? null;
+          const status = hip3?.getStatus?.();
+          res.json({
+            updatedAt: status?.lastUpdate ?? null,
+            available: !!pulse,
+            status,
+            pulse,
+          });
+        } catch (err) {
+          logger.warn(`[VINCE] HIP-3 snapshot route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build HIP-3 snapshot",
+            message: err instanceof Error ? err.message : String(err),
+          });
         }
       },
     },
@@ -513,6 +579,84 @@ export const vincePlugin: Plugin = {
           logger.warn(`[VINCE] Paper route error: ${err}`);
           res.status(500).json({
             error: "Failed to build paper trading data",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      },
+    },
+    {
+      name: "vince-recursive-north-star",
+      path: "/vince/recursive-north-star",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Recursive north star requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/recursive-north-star",
+          });
+          return;
+        }
+        try {
+          const data = await buildRecursiveNorthStarResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Recursive north star route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build recursive north star snapshot",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      },
+    },
+    {
+      name: "vince-recursive-north-star-operator-status",
+      path: "/vince/recursive-north-star/operator-status",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error:
+              "Recursive north star operator status requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/recursive-north-star/operator-status",
+          });
+          return;
+        }
+        try {
+          const data =
+            await buildRecursiveNorthStarOperatorStatus(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(
+            `[VINCE] Recursive north star operator status route error: ${err}`,
+          );
+          res.status(500).json({
+            error: "Failed to build recursive north star operator status",
             message: err instanceof Error ? err.message : String(err),
           });
           return;
@@ -1153,17 +1297,6 @@ export const vincePlugin: Plugin = {
       });
     }
 
-    // Lifestyle daily: dining, hotel, health, fitness pushed to Discord/Slack (channels with "lifestyle" in name)
-    if (isVinceAgent(runtime)) {
-      setImmediate(async () => {
-        try {
-          await registerLifestyleDailyTask(runtime);
-        } catch (e) {
-          logger.warn("[VINCE] Failed to register lifestyle daily task:", e);
-        }
-      });
-    }
-
     // News daily: MandoMinutes briefing pushed to Discord/Slack - only when Mando has updated (channels with "news" in name)
     if (isVinceAgent(runtime)) {
       setImmediate(async () => {
@@ -1251,12 +1384,12 @@ export const vincePluginNoX: Plugin = {
   description:
     vincePlugin.description +
     " No X API or Binance WS (Solus). For X/CT research use Echo; VINCE uses X only as sentiment data for the paper bot when enabled.",
-  services: (vincePlugin.services as (typeof Service)[]).filter(
+  services: (vincePlugin.services as unknown as (typeof Service)[]).filter(
     (s) =>
       s !== VinceXResearchService &&
       s !== VinceXSentimentService &&
       s !== VinceBinanceLiquidationService,
-  ),
+  ) as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
   actions: vincePlugin.actions!.filter((a) => a.name !== "VINCE_X_RESEARCH"),
 };
 
@@ -1281,7 +1414,6 @@ export { VinceNewsSentimentService } from "./services/newsSentiment.service";
 export { VinceDexScreenerService } from "./services/dexscreener.service";
 export { VinceMeteoraService } from "./services/meteora.service";
 export { VinceNFTFloorService } from "./services/nftFloor.service";
-export { VinceLifestyleService } from "./services/lifestyle.service";
 export { VinceDeribitService } from "./services/deribit.service";
 export { VinceNansenService } from "./services/nansen.service";
 export { VinceSanbaseService } from "./services/sanbase.service";
@@ -1298,6 +1430,7 @@ export { VinceNotificationService } from "./services/notification.service";
 export { VinceAlertService } from "./services/alert.service";
 export { VinceParameterTunerService } from "./services/parameterTuner.service";
 export { VinceImprovementJournalService } from "./services/improvementJournal.service";
+export { VincePostMortemPolicyLoopService } from "./services/vincePostMortemPolicyLoop.service";
 
 // ==========================================
 // Target Assets Exports
@@ -1318,7 +1451,6 @@ export { vinceOptionsAction } from "./actions/options.action";
 export { vincePerpsAction } from "./actions/perps.action";
 export { vinceMemesAction } from "./actions/memes.action";
 export { vinceAirdropsAction } from "./actions/airdrops.action";
-export { vinceLifestyleAction } from "./actions/lifestyle.action";
 export { vinceNftFloorAction } from "./actions/nftFloor.action";
 export { vinceIntelAction } from "./actions/intel.action";
 export { vinceNewsAction } from "./actions/news.action";

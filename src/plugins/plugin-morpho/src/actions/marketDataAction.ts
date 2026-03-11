@@ -43,20 +43,22 @@ export const marketInfoAction: Action = {
   description:
     "Use this action when you need current Morpho market data, rates, and stats (no positions).",
 
-  parameters: {
-    market: {
-      type: "string",
+  parameters: [
+    {
+      name: "market",
       description:
         "Morpho market identifier - can be a token pair (e.g., 'wstETH/WETH') or a market ID (0x... hex string). If not provided, returns all available markets.",
       required: false,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network to check (e.g., 'base', 'ethereum'). If not provided, uses the default chain configured for the Morpho service.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateMorphoService(
@@ -229,14 +231,14 @@ export const marketInfoAction: Action = {
           text,
           actions: ["GET_MORPHO_MARKET_INFO"],
           source: message.content.source,
-          data,
+          data: data as unknown as import("@elizaos/core").JsonObject,
         });
       }
 
       const successResult: MarketInfoActionResult = {
         text,
         success: true,
-        data,
+        data: data as unknown as import("@elizaos/core").JsonObject,
         input: inputParams,
         values: {
           marketsFetched: true,

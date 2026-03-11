@@ -22,6 +22,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -38,7 +39,6 @@ import type { VinceTopTradersService } from "../services/topTraders.service";
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
 import type { VinceHIP3Service } from "../services/hip3.service";
 import type { VinceNFTFloorService } from "../services/nftFloor.service";
-import type { VinceLifestyleService } from "../services/lifestyle.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
 import type { VinceBinanceService } from "../services/binance.service";
 import type { VinceDeribitService } from "../services/deribit.service";
@@ -145,9 +145,6 @@ async function buildGrokDataContext(
   const nftService = runtime.getService(
     "VINCE_NFT_FLOOR_SERVICE",
   ) as VinceNFTFloorService | null;
-  const lifestyleService = runtime.getService(
-    "VINCE_LIFESTYLE_SERVICE",
-  ) as VinceLifestyleService | null;
   const dexscreenerService = runtime.getService(
     "VINCE_DEXSCREENER_SERVICE",
   ) as VinceDexScreenerService | null;
@@ -326,24 +323,6 @@ async function buildGrokDataContext(
       }
     } catch (e) {
       logger.warn("[GROK_EXPERT] HIP-3 data fetch error");
-    }
-  }
-
-  // Lifestyle Data
-  if (lifestyleService) {
-    try {
-      const briefing = lifestyleService.getDailyBriefing?.();
-      if (briefing) {
-        ctx.lifestyleData.push(`Day: ${briefing.day}`);
-        ctx.lifestyleData.push(
-          `Season: ${lifestyleService.getCurrentSeason?.() || "unknown"}`,
-        );
-        if (briefing.specialNotes?.length > 0) {
-          ctx.lifestyleData.push(`Notes: ${briefing.specialNotes.join(", ")}`);
-        }
-      }
-    } catch (e) {
-      logger.warn("[GROK_EXPERT] Lifestyle data fetch error");
     }
   }
 
@@ -694,7 +673,7 @@ export const vinceGrokExpertAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.info("[GROK_EXPERT] Starting daily pulse generation...");
 

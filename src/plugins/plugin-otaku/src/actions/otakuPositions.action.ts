@@ -94,7 +94,7 @@ export const otakuPositionsAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const otakuSvc = runtime.getService("otaku") as OtakuService;
 
     if (!otakuSvc) {

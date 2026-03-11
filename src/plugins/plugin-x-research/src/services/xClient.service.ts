@@ -22,7 +22,13 @@ import {
   normalizeTweetResponse,
   normalizeTweetArrayResponse,
   normalizeUserResponse,
+  normalizeUserArrayResponse,
 } from "../utils/normalize";
+import {
+  getEndpointGroup,
+  parseRateLimitStateFromHeaders,
+  type XRateLimitState,
+} from "./helpers/xClientRateLimit";
 import type {
   XTweet,
   XUser,
@@ -50,29 +56,19 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
-interface RateLimitState {
-  remaining: number;
-  reset: number;
-  limit: number;
-}
-
 /**
  * X API v2 Client
  */
 export class XClientService {
   private bearerToken: string;
-  private maxRequestsPerMinute: number;
   private cacheEnabled: boolean;
   private cacheTtlMs: number;
 
   private cache: Map<string, CacheEntry<unknown>> = new Map();
-  private rateLimits: Map<string, RateLimitState> = new Map();
-  private requestQueue: Array<() => Promise<void>> = [];
-  private isProcessingQueue = false;
+  private rateLimits: Map<string, XRateLimitState> = new Map();
 
   constructor(config: XClientConfig) {
     this.bearerToken = config.bearerToken;
-    this.maxRequestsPerMinute = config.maxRequestsPerMinute ?? 60;
     this.cacheEnabled = config.cacheEnabled ?? true;
     this.cacheTtlMs = config.cacheTtlMs ?? 60 * 60 * 1000; // 1 hour default
   }
@@ -106,7 +102,18 @@ export class XClientService {
     const cacheKey =
       useFullArchive && options.nextToken
         ? undefined
-        : `search:${searchPath}:${query}:${options.maxResults}:${options.nextToken ?? ""}`;
+        : [
+            "search",
+            searchPath,
+            query,
+            options.maxResults ?? 100,
+            options.sortOrder ?? "",
+            options.startTime ?? "",
+            options.endTime ?? "",
+            options.sinceId ?? "",
+            options.untilId ?? "",
+            options.nextToken ?? "",
+          ].join(":");
 
     const raw = await this.get<Record<string, unknown>>(
       `${searchPath}?${params.toString()}`,
@@ -132,7 +139,15 @@ export class XClientService {
 
     const raw = await this.get<Record<string, unknown>>(
       `${ENDPOINTS.SEARCH_COUNTS}?${params.toString()}`,
-      { cacheKey: `counts:${query}:${options.granularity}` },
+      {
+        cacheKey: [
+          "counts",
+          query,
+          options.granularity ?? "hour",
+          options.startTime ?? "",
+          options.endTime ?? "",
+        ].join(":"),
+      },
     );
     return normalizeCountsResponse(raw);
   }
@@ -222,7 +237,17 @@ export class XClientService {
 
     const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
-      { cacheKey: `user_tweets:${userId}:${options.maxResults}` },
+      {
+        cacheKey: [
+          "user_tweets",
+          userId,
+          options.maxResults ?? 10,
+          options.excludeReplies ? "1" : "0",
+          options.excludeRetweets ? "1" : "0",
+          options.startTime ?? "",
+          options.nextToken ?? "",
+        ].join(":"),
+      },
     );
     const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
@@ -249,12 +274,50 @@ export class XClientService {
     const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
       {
-        cacheKey: `user_mentions:${userId}:${options.maxResults}`,
+        cacheKey: [
+          "user_mentions",
+          userId,
+          options.maxResults ?? 50,
+          options.startTime ?? "",
+          options.nextToken ?? "",
+        ].join(":"),
         cacheTtlMs: 15 * 60 * 1000,
       },
     );
     const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
+  }
+
+  /**
+   * Get users that a given user is following (paginated).
+   * Requires follows.read scope; pay-as-you-go supports this endpoint.
+   */
+  async getUserFollowing(
+    userId: string,
+    options: FollowingOptions = {},
+  ): Promise<{ users: XUser[]; nextToken?: string }> {
+    const endpoint = ENDPOINTS.USER_FOLLOWING.replace(":id", userId);
+    const params = new URLSearchParams({
+      "user.fields": DEFAULT_USER_FIELDS,
+      max_results: String(options.maxResults ?? 1000),
+    });
+    if (options.paginationToken)
+      params.set("pagination_token", options.paginationToken);
+
+    const raw = await this.get<{
+      data?: Record<string, unknown>[];
+      meta?: { next_token?: string };
+    }>(`${endpoint}?${params.toString()}`, {
+      cacheKey: options.paginationToken
+        ? `following:${userId}:${options.paginationToken}`
+        : `following:${userId}:first`,
+      cacheTtlMs: 60 * 60 * 1000,
+    });
+    const response = normalizeUserArrayResponse(raw);
+    return {
+      users: response.data,
+      nextToken: response.meta?.nextToken,
+    };
   }
 
   /**
@@ -276,7 +339,14 @@ export class XClientService {
 
     const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
-      { cacheKey: `list:${listId}:${options.maxResults}` },
+      {
+        cacheKey: [
+          "list",
+          listId,
+          options.maxResults ?? 100,
+          options.nextToken ?? "",
+        ].join(":"),
+      },
     );
     const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
@@ -316,7 +386,7 @@ export class XClientService {
     try {
       return await this.get<XNewsResponse>(
         `${ENDPOINTS.NEWS_SEARCH}?${params.toString()}`,
-        { cacheKey: `news:${query}` },
+        { cacheKey: `news:${query}:${options.maxResults ?? 20}` },
       );
     } catch (err) {
       const e = err as XClientError;
@@ -410,7 +480,7 @@ export class XClientService {
   }
 
   private async waitForRateLimit(path: string): Promise<void> {
-    const endpoint = this.getEndpointGroup(path);
+    const endpoint = getEndpointGroup(path);
     const state = this.rateLimits.get(endpoint);
 
     if (!state) return;
@@ -432,28 +502,9 @@ export class XClientService {
   }
 
   private updateRateLimitState(path: string, response: Response): void {
-    const endpoint = this.getEndpointGroup(path);
-    const remaining = response.headers.get("x-rate-limit-remaining");
-    const reset = response.headers.get("x-rate-limit-reset");
-    const limit = response.headers.get("x-rate-limit-limit");
-
-    if (remaining && reset) {
-      this.rateLimits.set(endpoint, {
-        remaining: parseInt(remaining, 10),
-        reset: parseInt(reset, 10),
-        limit: limit ? parseInt(limit, 10) : 100,
-      });
-    }
-  }
-
-  private getEndpointGroup(path: string): string {
-    // Group endpoints for rate limiting
-    if (path.includes("/tweets/search")) return "search";
-    if (path.includes("/tweets/counts")) return "counts";
-    if (path.includes("/users")) return "users";
-    if (path.includes("/lists")) return "lists";
-    if (path.includes("/news")) return "news";
-    return "default";
+    const endpoint = getEndpointGroup(path);
+    const parsed = parseRateLimitStateFromHeaders(response.headers);
+    if (parsed) this.rateLimits.set(endpoint, parsed);
   }
 
   private async handleError(response: Response): Promise<XClientError> {
@@ -539,6 +590,11 @@ interface UserTweetsOptions {
 interface ListTweetsOptions {
   maxResults?: number;
   nextToken?: string;
+}
+
+export interface FollowingOptions {
+  maxResults?: number;
+  paginationToken?: string;
 }
 
 interface NewsSearchOptions {

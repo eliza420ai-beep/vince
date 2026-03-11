@@ -22,10 +22,12 @@ import { initXClientFromEnv } from "../services/xClient.service";
 import type { XTweet } from "../types/tweet.types";
 import { tavilySearch } from "../utils/tavilySearch";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 const X_SNIPPET_LEN = 120;
 const MAX_TWEETS_PER_QUERY = 15;
 const HOURS_BACK = 24;
+const MAX_SELECTED_TWEETS = 18;
 
 const TRIGGERS = [
   "what's hot",
@@ -38,6 +40,27 @@ const TRIGGERS = [
   "openclaw what's hot",
   "clawterm day report",
 ];
+
+const OPENCLAW_RELEVANCE_TERMS = [
+  "openclaw",
+  "clawterm",
+  "research agent",
+  "research agents",
+  "ai agent",
+  "agents",
+  "agi",
+  "alignment",
+  "gateway",
+  "model",
+];
+
+interface XContextResult {
+  text: string;
+  candidates: number;
+  selected: number;
+  dropped: number;
+  reason: "ok" | "no_token" | "no_recent_data" | "api_limited";
+}
 
 function getXBearerToken(runtime: IAgentRuntime): string | null {
   const fromRuntime = runtime.getSetting?.("X_BEARER_TOKEN");
@@ -58,9 +81,66 @@ function formatTweetForContext(t: XTweet): string {
   return `@${handle}: ${snippet} (${likes} likes)`;
 }
 
-async function fetchXContext(runtime: IAgentRuntime): Promise<string> {
+function normalizeTweetText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function relevanceHits(text: string): number {
+  const lowered = text.toLowerCase();
+  if (
+    lowered.includes("unrelated") ||
+    lowered.includes("not about") ||
+    lowered.includes("offtopic")
+  ) {
+    return 0;
+  }
+  return OPENCLAW_RELEVANCE_TERMS.filter((term) => lowered.includes(term))
+    .length;
+}
+
+function recencyScore(createdAt?: string): number {
+  if (!createdAt) return 0;
+  const ageMs = Date.now() - new Date(createdAt).getTime();
+  if (!Number.isFinite(ageMs) || ageMs < 0) return 0;
+  const ageHours = ageMs / (1000 * 60 * 60);
+  return Math.max(0, 24 - ageHours);
+}
+
+function rankContextTweets(tweets: XTweet[]): XTweet[] {
+  const dedupe = new Map<string, XTweet>();
+  for (const tweet of tweets) {
+    const key = normalizeTweetText(tweet.text);
+    if (!key) continue;
+    if (!dedupe.has(key)) dedupe.set(key, tweet);
+  }
+  const unique = Array.from(dedupe.values());
+  return unique
+    .filter((tweet) => relevanceHits(tweet.text) > 0)
+    .sort((a, b) => {
+      const aScore =
+        relevanceHits(a.text) * 50 +
+        (a.metrics?.likeCount ?? 0) * 0.5 +
+        recencyScore(a.createdAt);
+      const bScore =
+        relevanceHits(b.text) * 50 +
+        (b.metrics?.likeCount ?? 0) * 0.5 +
+        recencyScore(b.createdAt);
+      return bScore - aScore;
+    })
+    .slice(0, MAX_SELECTED_TWEETS);
+}
+
+async function fetchXContext(runtime: IAgentRuntime): Promise<XContextResult> {
   const token = getXBearerToken(runtime);
-  if (!token) return "No X data (set X_BEARER_TOKEN to include X).";
+  if (!token) {
+    return {
+      text: "No X data (set X_BEARER_TOKEN to include X).",
+      candidates: 0,
+      selected: 0,
+      dropped: 0,
+      reason: "no_token",
+    };
+  }
 
   try {
     initXClientFromEnv(runtime);
@@ -83,16 +163,36 @@ async function fetchXContext(runtime: IAgentRuntime): Promise<string> {
 
     const combined = [...openclawTweets, ...agiTweets];
     const byId = new Map(combined.map((t) => [t.id, t]));
-    const deduped = Array.from(byId.values()).slice(0, 25);
+    const candidates = Array.from(byId.values());
+    const ranked = rankContextTweets(candidates);
 
-    if (deduped.length === 0)
-      return "No recent X posts found for OpenClaw/AGI in the last 24h.";
+    if (ranked.length === 0) {
+      return {
+        text: "No recent X posts found for OpenClaw/AGI in the last 24h.",
+        candidates: candidates.length,
+        selected: 0,
+        dropped: candidates.length,
+        reason: "no_recent_data",
+      };
+    }
 
-    return deduped.map(formatTweetForContext).join("\n");
+    return {
+      text: ranked.map(formatTweetForContext).join("\n"),
+      candidates: candidates.length,
+      selected: ranked.length,
+      dropped: Math.max(0, candidates.length - ranked.length),
+      reason: "ok",
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn({ err }, "[CLAWTERM_DAY_REPORT] X search failed");
-    return `X search failed: ${msg}. Proceed with web data only if available.`;
+    return {
+      text: `X search failed: ${msg}. Proceed with web data only if available.`,
+      candidates: 0,
+      selected: 0,
+      dropped: 0,
+      reason: "api_limited",
+    };
   }
 }
 
@@ -174,18 +274,18 @@ export const clawtermDayReportAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     const hasX = !!getXBearerToken(runtime);
     const hasTavily = !!(
       runtime.getSetting?.("TAVILY_API_KEY") || process.env.TAVILY_API_KEY
     );
 
     if (!hasX && !hasTavily) {
-      callback({
+      await sendActionResponse(callback, "CLAWTERM_DAY_REPORT", {
         text: "Set X_BEARER_TOKEN for an X-sourced report. Web-only report is possible if TAVILY_API_KEY is set.",
-        action: "CLAWTERM_DAY_REPORT",
+        reason: "no_data_sources",
       });
       return { success: true };
     }
@@ -196,16 +296,22 @@ export const clawtermDayReportAction: Action = {
       day: "numeric",
     });
 
-    const xBlock = await fetchXContext(runtime);
+    const xContext = await fetchXContext(runtime);
     const webBlock = await fetchWebContext(runtime);
 
-    const dataContext = `=== X (last 24h) ===\n${xBlock}\n\n=== Web ===\n${webBlock}`;
+    const dataContext = `=== X (last 24h) ===\n${xContext.text}\n\n=== Web ===\n${webBlock}`;
 
     const report = await generateReport(runtime, dataContext, date);
 
-    callback({
+    await sendActionResponse(callback, "CLAWTERM_DAY_REPORT", {
       text: report,
-      action: "CLAWTERM_DAY_REPORT",
+      sourceStats: {
+        xCandidates: xContext.candidates,
+        xSelected: xContext.selected,
+        xDropped: xContext.dropped,
+        xReason: xContext.reason,
+        webSnippets: webBlock.startsWith("No web snippets") ? 0 : 1,
+      },
     });
     return { success: true };
   },

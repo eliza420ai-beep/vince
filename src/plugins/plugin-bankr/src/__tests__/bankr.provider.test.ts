@@ -49,7 +49,7 @@ describe("bankrProvider", () => {
     const runtime = createMockRuntime();
     const result = await bankrProvider.get(runtime, createMockMemory());
 
-    expect(result).toContain("Not configured");
+    expect(result.text).toContain("Not configured");
   });
 
   it("should return account info when configured", async () => {
@@ -69,10 +69,10 @@ describe("bankrProvider", () => {
     const runtime = createMockRuntime();
     const result = await bankrProvider.get(runtime, createMockMemory());
 
-    expect(result).toContain("BANKR Status");
-    expect(result).toContain("Wallets: 2");
-    expect(result).toContain("Bankr Club: Active");
-    expect(result).toContain("Rank #42");
+    expect(result.text).toContain("BANKR Status");
+    expect(result.text).toContain("Wallets: 2");
+    expect(result.text).toContain("Bankr Club: Active");
+    expect(result.text).toContain("Rank #42");
   });
 
   it("should show open orders", async () => {
@@ -104,9 +104,9 @@ describe("bankrProvider", () => {
     const runtime = createMockRuntime();
     const result = await bankrProvider.get(runtime, createMockMemory());
 
-    expect(result).toContain("Open Orders (2)");
-    expect(result).toContain("limit: ETH → USDC");
-    expect(result).toContain("dca: USDC → BNKR");
+    expect(result.text).toContain("Open Orders (2)");
+    expect(result.text).toContain("limit: ETH → USDC");
+    expect(result.text).toContain("dca: USDC → BNKR");
   });
 
   it("should handle errors gracefully", async () => {
@@ -117,7 +117,7 @@ describe("bankrProvider", () => {
     const result = await bankrProvider.get(runtime, createMockMemory());
 
     // Provider catches errors and returns "BANKR: Error fetching state"
-    expect(result).toContain("BANKR:");
+    expect(result.text).toContain("BANKR:");
   });
 });
 

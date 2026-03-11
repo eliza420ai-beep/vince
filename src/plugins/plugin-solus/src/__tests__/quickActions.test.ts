@@ -11,6 +11,7 @@ import { solusHypersurfaceExplainAction } from "../actions/solusHypersurfaceExpl
 import { solusPositionAssessAction } from "../actions/solusPositionAssess.action";
 import { solusOptimalStrikeAction } from "../actions/solusOptimalStrike.action";
 import { solusAnalyzeAction } from "../actions/solusAnalyze.action";
+import { solusThemeRadarAction } from "../actions/solusThemeRadar.action";
 import { solusEarningsCalendarAction } from "../actions/solusEarningsCalendar.action";
 import { solusPremiumPnlAction } from "../actions/solusPremiumPnl.action";
 
@@ -40,6 +41,31 @@ const SOLUS_QUICK_ACTIONS = [
       "I have a Hypersurface position — here are the details: [paste strike, notional, premium, expiry]",
   },
   {
+    label: "Close early check",
+    message:
+      "Run close early check on our current Hypersurface positions and tell me hold/close/roll with invalidation.",
+  },
+  {
+    label: "Close early + USDT0",
+    message:
+      "Should we buy back early now? Include USDT0 funding gap and bridge warning if we cannot close yet.",
+  },
+  {
+    label: "Settlement timing",
+    message:
+      "Explain Hypersurface settlement timing: Friday 08:00 UTC expiry, early exercise window, and why settlement can take up to 2 hours.",
+  },
+  {
+    label: "Settle All help",
+    message:
+      "I cannot find my collateral after expiry. What should I do on Hypersurface?",
+  },
+  {
+    label: "Sell probability caveat",
+    message:
+      "How should I interpret sell probability on Hypersurface? Is it guaranteed?",
+  },
+  {
     label: "Size or Skip?",
     message:
       "Give me size, skip, or watch and invalidation — I'll paste context",
@@ -51,6 +77,7 @@ const SOLUS_QUICK_ACTIONS = [
   { label: "Analyze TSLA", message: "analyze TSLA" },
   { label: "Analyze AMD", message: "analyze AMD" },
   { label: "Analyze AAPL", message: "analyze AAPL" },
+  { label: "Theme Radar", message: "theme radar for AI bottleneck stocks" },
   { label: "Earnings Calendar", message: "earnings calendar" },
   {
     label: "Sector: AI Infra",
@@ -84,6 +111,7 @@ const SOLUS_ACTIONS = [
   solusPositionAssessAction,
   solusOptimalStrikeAction,
   solusAnalyzeAction,
+  solusThemeRadarAction,
   solusEarningsCalendarAction,
   solusPremiumPnlAction,
 ];

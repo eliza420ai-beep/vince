@@ -12,6 +12,8 @@ import type {
   State,
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import * as fs from "fs";
+import * as path from "path";
 import { getElizaOS } from "../../../plugin-inter-agent/src/types";
 
 const CACHE_KEY = "eliza:trading_performance";
@@ -31,6 +33,43 @@ function extractReply(content: unknown): string {
   if (typeof c.thought === "string" && c.thought.trim())
     return c.thought.trim();
   return "";
+}
+
+function readVerifiedClaimsForContent(): string {
+  try {
+    const claimsPath = path.join(
+      process.cwd(),
+      ".elizadb",
+      "vince-paper-bot",
+      "verified-claims.json",
+    );
+    if (!fs.existsSync(claimsPath)) return "";
+    const minConfidence = Number(
+      process.env.ELIZA_VERIFIED_CLAIMS_MIN_CONFIDENCE ?? "0.6",
+    );
+    const parsed = JSON.parse(fs.readFileSync(claimsPath, "utf-8")) as {
+      claims?: Array<{
+        label?: string;
+        confidence?: number;
+        effectLowerBound?: number;
+      }>;
+    };
+    const claims = (parsed.claims ?? []).filter(
+      (c) => typeof c.confidence === "number" && c.confidence >= minConfidence,
+    );
+    if (claims.length === 0) return "";
+    const lines = claims.slice(0, 4).map((c) => {
+      const conf = Math.round((c.confidence ?? 0) * 100);
+      const lb =
+        typeof c.effectLowerBound === "number"
+          ? `${(c.effectLowerBound * 100).toFixed(1)}%`
+          : "n/a";
+      return `- ${c.label ?? "proof_claim"} (confidence ${conf}%, lower-bound uplift ${lb})`;
+    });
+    return `Verified proof claims (confidence-gated):\n${lines.join("\n")}`;
+  } catch {
+    return "";
+  }
 }
 
 async function askAgent(
@@ -175,13 +214,16 @@ export const tradingPerformanceProvider: Provider = {
     }
 
     const text = parts.length > 0 ? parts.join("\n") : "";
-    if (text) await runtime.setCache(CACHE_KEY, { text, ts: Date.now() });
+    const verifiedClaims = readVerifiedClaimsForContent();
+    const mergedText = [text, verifiedClaims].filter(Boolean).join("\n\n");
+    if (mergedText)
+      await runtime.setCache(CACHE_KEY, { text: mergedText, ts: Date.now() });
 
-    if (!text) return {};
+    if (!mergedText) return {};
 
     return {
-      text: `[Trading performance — use these numbers in content if relevant]\n${text}`,
-      values: { tradingPerformanceSummary: text },
+      text: `[Trading performance — use these numbers in content if relevant]\n${mergedText}`,
+      values: { tradingPerformanceSummary: mergedText },
     };
   },
 };

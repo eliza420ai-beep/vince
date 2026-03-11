@@ -6,6 +6,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -18,7 +19,8 @@ import {
 } from "../services/researchQueue.service";
 
 function formatItem(item: ResearchQueueItem): string {
-  const assignee = item.assignedTo === "both" ? "Echo + Vince" : item.assignedTo;
+  const assignee =
+    item.assignedTo === "both" ? "Echo + Vince" : item.assignedTo;
   const asset = item.asset ? ` [${item.asset}]` : "";
   const source = item.source;
   return `- ${item.topic}${asset} (${assignee}, source: ${source})`;
@@ -51,7 +53,7 @@ export const kellyResearchQueueAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ) => {
+  ): Promise<ActionResult | undefined> => {
     logger.info("[KellyResearchQueue] Loading priority queue");
 
     try {
@@ -63,7 +65,7 @@ export const kellyResearchQueueAction: Action = {
           text: "## Research Queue\n\nQueue is empty — nothing to research right now.",
           actions: ["KELLY_RESEARCH_QUEUE"],
         });
-        return;
+        return undefined;
       }
 
       const high = queue.filter((i) => i.priority === "high");
@@ -91,12 +93,14 @@ export const kellyResearchQueueAction: Action = {
         text: sections.join("\n"),
         actions: ["KELLY_RESEARCH_QUEUE"],
       });
+      return undefined;
     } catch (e) {
       logger.error(`[KellyResearchQueue] Error: ${e}`);
       await callback({
         text: `Error loading research queue: ${e instanceof Error ? e.message : String(e)}`,
         actions: ["REPLY"],
       });
+      return undefined;
     }
   },
 

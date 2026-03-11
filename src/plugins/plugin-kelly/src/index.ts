@@ -8,6 +8,7 @@
 import type { IAgentRuntime, Plugin } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { kellyDailyBriefingAction } from "./actions/dailyBriefing.action";
+import { kellyLifestyleAction } from "./actions/lifestyle.action";
 import { kellyItineraryAction } from "./actions/itinerary.action";
 import { kellyRecommendPlaceAction } from "./actions/recommendPlace.action";
 import { kellyRecommendWineAction } from "./actions/recommendWine.action";
@@ -33,6 +34,7 @@ import { FlywheelScoreService } from "./services/flywheelScore.service";
 import { kellyFlywheelScoreAction } from "./actions/kellyFlywheelScore.action";
 import { kellyXResearchCommandCenterAction } from "./actions/kellyXResearchCommandCenter.action";
 import { kellyResearchQueueAction } from "./actions/kellyResearchQueue.action";
+import { kellyTrustDashboardAction } from "./actions/kellyTrustDashboard.action";
 import {
   registerKellyLifestyleDailyTask,
   registerKellyNudgeTask,
@@ -48,6 +50,7 @@ export const kellyPlugin: Plugin = {
   services: [KellyLifestyleService, FlywheelScoreService],
   actions: [
     kellyDailyBriefingAction,
+    kellyLifestyleAction,
     kellyRecommendPlaceAction,
     kellyRecommendWineAction,
     kellySurfForecastAction,
@@ -68,6 +71,7 @@ export const kellyPlugin: Plugin = {
     kellyFlywheelScoreAction,
     kellyXResearchCommandCenterAction,
     kellyResearchQueueAction,
+    kellyTrustDashboardAction,
   ],
   evaluators: [lifestyleFeedbackEvaluator],
   providers: [kellyContextProvider, weatherProvider],

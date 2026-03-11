@@ -16,12 +16,16 @@ import {
   logger,
 } from "@elizaos/core";
 import { getXNewsService } from "../services/xNews.service";
-import { getXSearchService } from "../services/xSearch.service";
+import {
+  getXSearchService,
+  selectFairQuickTopics,
+} from "../services/xSearch.service";
 import { initXClientFromEnv } from "../services/xClient.service";
 import { getMandoContextForX } from "../utils/mandoContext";
 import { ALL_TOPICS } from "../constants/topics";
 import { setLastResearch } from "../store/lastResearchStore";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 const X_NEWS_SUMMARY_MAX_CHARS = process.env.X_NEWS_SUMMARY_MAX_CHARS
   ? parseInt(process.env.X_NEWS_SUMMARY_MAX_CHARS, 10)
@@ -161,7 +165,9 @@ export const xNewsAction: Action = {
       "news on x",
       "twitter news",
       "ct news",
+      "ct headlines",
       "headlines",
+      "headlines from crypto",
       "what's happening",
       "whats happening",
     ];
@@ -173,9 +179,9 @@ export const xNewsAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<ActionResult | void> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -190,12 +196,11 @@ export const xNewsAction: Action = {
           const liveLine = await getLivePriceLine();
           const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
           if (message.roomId) setLastResearch(message.roomId, text);
-          callback({ text, action: "X_NEWS" });
+          await sendActionResponse(callback, "X_NEWS", { text });
           return { success: true };
         }
-        callback({
+        await sendActionResponse(callback, "X_NEWS", {
           text: "📰 **X News**\n\nNo crypto news found. The News API might not have recent stories or is rate limited.",
-          action: "X_NEWS",
         });
         return { success: true };
       }
@@ -258,9 +263,8 @@ export const xNewsAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
-      callback({
+      await sendActionResponse(callback, "X_NEWS", {
         text: response,
-        action: "X_NEWS",
       });
 
       return { success: true };
@@ -278,19 +282,17 @@ export const xNewsAction: Action = {
       if (fallback) {
         const liveLine = await getLivePriceLine();
         const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
-        callback({ text, action: "X_NEWS" });
+        await sendActionResponse(callback, "X_NEWS", { text });
         return { success: true };
       }
 
       if (isNewsApiUnavailable) {
-        callback({
+        await sendActionResponse(callback, "X_NEWS", {
           text: "📰 **X News**\n\n⚠️ X News API is not available. This endpoint may require specific API access or isn't enabled for your account.",
-          action: "X_NEWS",
         });
       } else {
-        callback({
+        await sendActionResponse(callback, "X_NEWS", {
           text: `📰 **X News**\n\n❌ Error: ${errorMessage}`,
-          action: "X_NEWS",
         });
       }
 
@@ -356,34 +358,39 @@ function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+/** Single branding for news/headlines so "X News" and "headlines from CT" feel like one capability. */
+const FALLBACK_HEADER = "📰 **X News | Crypto**";
+
 /**
- * Fallback when X News API is unavailable: use Mando headlines or pulse-derived "headlines from CT".
+ * Fallback when X News API is unavailable: use Mando headlines or pulse-derived headlines from CT.
+ * Uses same "X News" branding as the main flow so there's no overlap with a separate "CT Headlines" product.
  */
 async function buildNewsFallback(
   runtime: IAgentRuntime,
 ): Promise<string | null> {
   const mando = await getMandoContextForX(runtime);
   if (mando?.headlines?.length) {
-    let out = "📰 **CT Headlines**\n\n";
+    let out = `${FALLBACK_HEADER}\n\n`;
     out += `**Today's news:** ${mando.vibeCheck}\n\n`;
     out += mando.headlines
       .slice(0, 7)
       .map((h) => `• ${h.length > 70 ? h.slice(0, 67) + "..." : h}`)
       .join("\n");
-    out += "\n\n_Headlines from MandoMinutes (X News API unavailable)_";
+    out += "\n\n_Crypto headlines from X (MandoMinutes; News API unavailable)_";
     return out;
   }
 
   try {
     initXClientFromEnv(runtime);
     const searchService = getXSearchService();
-    const topicIds = ALL_TOPICS.filter((t) => t.priority === "high")
-      .map((t) => t.id)
-      .slice(0, 2);
+    const topicIds = selectFairQuickTopics(
+      ALL_TOPICS.filter((t) => t.priority === "high").map((t) => t.id),
+      4,
+    );
     const results = await searchService.searchMultipleTopics({
       topicsIds: topicIds,
       maxResultsPerTopic: 10,
-      quick: true,
+      quick: false,
       cacheTtlMs: 60 * 60 * 1000,
     });
     const tweets = Array.from(results.values()).flat();
@@ -393,14 +400,14 @@ async function buildNewsFallback(
       (a, b) => (b.metrics?.likeCount ?? 0) - (a.metrics?.likeCount ?? 0),
     );
     const top = sorted.slice(0, 7);
-    let out = "📰 **Headlines from CT**\n\n";
+    let out = `${FALLBACK_HEADER}\n\n`;
     for (const t of top) {
       const author = t.author?.username ?? "unknown";
       const text = t.text.replace(/\n/g, " ").slice(0, 80);
       out += `• @${author}: ${text}${t.text.length > 80 ? "..." : ""}\n`;
     }
     out +=
-      "\n_Based on recent high-engagement tweets (X News API unavailable)_";
+      "\n_Crypto headlines from X (high-engagement CT; News API unavailable)_";
     return out;
   } catch {
     return null;

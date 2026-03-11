@@ -32,11 +32,16 @@ describe("ContentPerformanceService", () => {
 
   it("recordDraft creates a record and returns a contentId", () => {
     const svc = new ContentPerformanceService(tmpDir);
-    const id = svc.recordDraft("substack", "Bitcoin Thesis", ["tradingPerformance"]);
+    const id = svc.recordDraft("substack", "Bitcoin Thesis", [
+      "tradingPerformance",
+    ]);
     expect(typeof id).toBe("string");
     expect(id.length).toBeGreaterThan(0);
     const filePath = path.join(tmpDir, "content-performance.jsonl");
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     expect(lines).toHaveLength(1);
     const rec = JSON.parse(lines[0]);
     expect(rec.type).toBe("substack");
@@ -50,7 +55,10 @@ describe("ContentPerformanceService", () => {
     const id = svc.recordDraft("tweet", "SOL Alpha", ["xResearch"]);
     svc.markPublished(id);
     const filePath = path.join(tmpDir, "content-performance.jsonl");
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     expect(JSON.parse(lines[0]).published).toBe(true);
   });
 

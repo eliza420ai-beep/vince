@@ -64,16 +64,16 @@ export const contentAuditAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options?: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
       const text = message.content?.text ?? "";
       const usernameMatch = text.match(/@(\w+)/);
       if (!usernameMatch) {
-        callback({
+        await callback?.({
           text: 'I need an @username to run a content audit. Example: "Analyze my top posts @yourhandle"',
           action: "CONTENT_AUDIT",
         });
@@ -88,7 +88,7 @@ export const contentAuditAction: Action = {
       );
 
       if (tweets.length < MIN_TWEETS_FOR_AUDIT) {
-        callback({
+        await callback?.({
           text: `Need at least ${MIN_TWEETS_FOR_AUDIT} posts to run a useful audit. @${username} has only ${tweets.length} (excl. replies/RTs).`,
           action: "CONTENT_AUDIT",
         });
@@ -113,7 +113,7 @@ export const contentAuditAction: Action = {
       if (message.roomId) setLastResearch(message.roomId, responseText);
 
       const out = "Here's the content playbook—\n\n" + responseText;
-      callback({ text: out, action: "CONTENT_AUDIT" });
+      await callback?.({ text: out, action: "CONTENT_AUDIT" });
       return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
@@ -134,7 +134,7 @@ export const contentAuditAction: Action = {
       } else {
         text = `**Content audit** — Error: ${errMsg}`;
       }
-      callback({ text, action: "CONTENT_AUDIT" });
+      await callback?.({ text, action: "CONTENT_AUDIT" });
       return {
         success: false,
         error: error instanceof Error ? error : new Error(String(error)),

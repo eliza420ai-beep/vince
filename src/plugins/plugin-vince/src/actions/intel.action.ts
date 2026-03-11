@@ -18,6 +18,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -182,7 +183,7 @@ export const vinceIntelAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const text = message.content.text?.toLowerCase() || "";
 
@@ -363,7 +364,7 @@ export const vinceIntelAction: Action = {
         sources.length > 0 ? `*Source: ${sources.join(", ")}*` : "",
         "",
         "---",
-        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
       ]
         .filter((line) => line !== "")
         .join("\n");
@@ -389,7 +390,7 @@ export const vinceIntelAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**BTC Intel** _3:42 PM_\n\nWhales are crowded long at 62% which is fade territory. Usually when top traders get this tilted, you see a flush coming. But here's the thing - OI is still rising at +3.2% and order flow is buy-biased at 1.15 ratio. So there's conviction behind the longs, not just positioning.\n\nFunding is normal at 0.01% - longs aren't paying excessive premium which means no squeeze pressure building yet. When funding spikes to 0.05%+ and longs are crowded, that's when you fade hard.\n\nNo liquidation cascades happening. Clean market right now.\n\nCross-exchange arb is thin. Bybit slightly cheaper but spread is only 0.008% - not worth the execution risk.\n\nFear/Greed at 48 which is neutral. No extreme to fade here.\n\nThe read: Longs are crowded but funded normally with rising OI. This isn't a fade setup yet. I'd wait for funding to spike or OI to roll over before getting bearish. Right now the conviction looks real.\n\n*Source: Binance (top traders), Binance (order flow), Binance (OI), Binance (funding), Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**BTC Intel** _3:42 PM_\n\nWhales are crowded long at 62% which is fade territory. Usually when top traders get this tilted, you see a flush coming. But here's the thing - OI is still rising at +3.2% and order flow is buy-biased at 1.15 ratio. So there's conviction behind the longs, not just positioning.\n\nFunding is normal at 0.01% - longs aren't paying excessive premium which means no squeeze pressure building yet. When funding spikes to 0.05%+ and longs are crowded, that's when you fade hard.\n\nNo liquidation cascades happening. Clean market right now.\n\nCross-exchange arb is thin. Bybit slightly cheaper but spread is only 0.008% - not worth the execution risk.\n\nFear/Greed at 48 which is neutral. No extreme to fade here.\n\nThe read: Longs are crowded but funded normally with rising OI. This isn't a fade setup yet. I'd wait for funding to spike or OI to roll over before getting bearish. Right now the conviction looks real.\n\n*Source: Binance (top traders), Binance (order flow), Binance (OI), Binance (funding), Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_INTEL"],
         },
       },
@@ -399,7 +400,7 @@ export const vinceIntelAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**BTC Intel** _10:15 AM_\n\nWhales are actually balanced for once - 52% long / 48% short. That's neutral positioning which is rare. Usually you see them tilted one way or another.\n\nOrder flow is telling a clearer story. Buy/sell at 0.92 means sellers are in control right now. Not aggressive selling but consistent. OI is flat so nobody's adding to positions - classic chop environment.\n\nFunding is interesting though. Longs are paying 0.035% which is elevated. Not extreme but above average. Combined with neutral whale positioning and seller pressure, feels like longs might be trapped.\n\nNo liqs happening which confirms the chop. Everyone's in the comfort zone.\n\nFear at 38 - slight fear but not capitulation.\n\nHonest take: This looks like a short setup forming. Whales neutral, order flow bearish, funding elevated. I'd look for a bounce to sell rather than buying here. Wait for fear to spike into the 20s for a better long entry.\n\n*Source: Binance (top traders), Binance (order flow), Binance (OI), Binance (funding), Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**BTC Intel** _10:15 AM_\n\nWhales are actually balanced for once - 52% long / 48% short. That's neutral positioning which is rare. Usually you see them tilted one way or another.\n\nOrder flow is telling a clearer story. Buy/sell at 0.92 means sellers are in control right now. Not aggressive selling but consistent. OI is flat so nobody's adding to positions - classic chop environment.\n\nFunding is interesting though. Longs are paying 0.035% which is elevated. Not extreme but above average. Combined with neutral whale positioning and seller pressure, feels like longs might be trapped.\n\nNo liqs happening which confirms the chop. Everyone's in the comfort zone.\n\nFear at 38 - slight fear but not capitulation.\n\nHonest take: This looks like a short setup forming. Whales neutral, order flow bearish, funding elevated. I'd look for a bounce to sell rather than buying here. Wait for fear to spike into the 20s for a better long entry.\n\n*Source: Binance (top traders), Binance (order flow), Binance (OI), Binance (funding), Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_INTEL"],
         },
       },
@@ -409,7 +410,7 @@ export const vinceIntelAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**ETH Intel** _2:28 PM_\n\nETH is showing divergence from BTC right now which is worth watching.\n\nTop traders are 58% long on ETH vs 52% on BTC. More bullish positioning. But OI is falling at -2.1% which means the weak longs are exiting. That's actually healthy - clears out leverage before the next move.\n\nOrder flow is mildly buy-biased at 1.08. Not strong but consistent with the long positioning.\n\nHere's the interesting part - funding is negative at -0.003%. Shorts are paying longs. Combined with falling OI and long positioning, this smells like shorts trying to fade the recovery and getting slowly squeezed. Classic setup.\n\nBybit funding is also negative at -0.008% so this isn't Binance-specific. It's market-wide.\n\nNo cascade but 3 short liqs in the past 5 mins totaling $80k. Small but confirms the squeeze thesis.\n\nFear at 38 same as broader market.\n\nMy read: ETH looks better than BTC here. Negative funding + long positioning + falling OI clearing leverage = potential for upside. I'd lean long ETH over BTC if trading perps right now.\n\n*Source: Binance (top traders), Binance (order flow), Binance (OI), Binance (funding), Binance Liquidations, Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**ETH Intel** _2:28 PM_\n\nETH is showing divergence from BTC right now which is worth watching.\n\nTop traders are 58% long on ETH vs 52% on BTC. More bullish positioning. But OI is falling at -2.1% which means the weak longs are exiting. That's actually healthy - clears out leverage before the next move.\n\nOrder flow is mildly buy-biased at 1.08. Not strong but consistent with the long positioning.\n\nHere's the interesting part - funding is negative at -0.003%. Shorts are paying longs. Combined with falling OI and long positioning, this smells like shorts trying to fade the recovery and getting slowly squeezed. Classic setup.\n\nBybit funding is also negative at -0.008% so this isn't Binance-specific. It's market-wide.\n\nNo cascade but 3 short liqs in the past 5 mins totaling $80k. Small but confirms the squeeze thesis.\n\nFear at 38 same as broader market.\n\nMy read: ETH looks better than BTC here. Negative funding + long positioning + falling OI clearing leverage = potential for upside. I'd lean long ETH over BTC if trading perps right now.\n\n*Source: Binance (top traders), Binance (order flow), Binance (OI), Binance (funding), Binance Liquidations, Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_INTEL"],
         },
       },
@@ -419,7 +420,7 @@ export const vinceIntelAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**BTC Intel** _6:54 PM_\n\nCascade in progress. This is live.\n\n12 long liquidations in the past 5 minutes totaling $2.4M. That's not normal market noise - that's a flush. Direction is clear: long liquidations which usually marks a bottom when they exhaust.\n\nTop traders were 62% long going into this. The crowded longs I mentioned earlier are getting cleaned out now. OI dropped -1.8% in the past hour confirming the deleverage.\n\nFunding just normalized from 0.04% to 0.015%. The long premium is getting squeezed out.\n\nFear spiked to 32 - getting into accumulation territory.\n\nNo arb opportunities - everyone's selling everywhere.\n\nThe play: Don't catch knives mid-cascade but watch for the liqs to stop. When you see 2-3 quiet minutes after a cascade, that's usually the local bottom. I'd scale into longs once liqs dry up and funding is neutral. Could be a solid dip buy forming here.\n\nI'll ping you when the cascade ends if you want.\n\n*Source: Binance (top traders), Binance (OI), Binance (funding), Binance Liquidations, Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**BTC Intel** _6:54 PM_\n\nCascade in progress. This is live.\n\n12 long liquidations in the past 5 minutes totaling $2.4M. That's not normal market noise - that's a flush. Direction is clear: long liquidations which usually marks a bottom when they exhaust.\n\nTop traders were 62% long going into this. The crowded longs I mentioned earlier are getting cleaned out now. OI dropped -1.8% in the past hour confirming the deleverage.\n\nFunding just normalized from 0.04% to 0.015%. The long premium is getting squeezed out.\n\nFear spiked to 32 - getting into accumulation territory.\n\nNo arb opportunities - everyone's selling everywhere.\n\nThe play: Don't catch knives mid-cascade but watch for the liqs to stop. When you see 2-3 quiet minutes after a cascade, that's usually the local bottom. I'd scale into longs once liqs dry up and funding is neutral. Could be a solid dip buy forming here.\n\nI'll ping you when the cascade ends if you want.\n\n*Source: Binance (top traders), Binance (OI), Binance (funding), Binance Liquidations, Fear & Greed Index*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_INTEL"],
         },
       },

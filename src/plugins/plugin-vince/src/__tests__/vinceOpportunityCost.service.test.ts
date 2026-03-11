@@ -104,9 +104,27 @@ describe("VinceOpportunityCostService", () => {
   describe("assess - multiple positions, finds weakest", () => {
     it("identifies the position with lowest EV as weakest", () => {
       const openPositions = [
-        { tradeId: "t1", asset: "A", confidence: 90, strength: 90, unrealizedPnl: 100 }, // EV=81
-        { tradeId: "t2", asset: "B", confidence: 20, strength: 15, unrealizedPnl: -30 }, // EV=3
-        { tradeId: "t3", asset: "C", confidence: 60, strength: 50, unrealizedPnl: 0 }, // EV=30
+        {
+          tradeId: "t1",
+          asset: "A",
+          confidence: 90,
+          strength: 90,
+          unrealizedPnl: 100,
+        }, // EV=81
+        {
+          tradeId: "t2",
+          asset: "B",
+          confidence: 20,
+          strength: 15,
+          unrealizedPnl: -30,
+        }, // EV=3
+        {
+          tradeId: "t3",
+          asset: "C",
+          confidence: 60,
+          strength: 50,
+          unrealizedPnl: 0,
+        }, // EV=30
       ];
 
       const newTrade = { asset: "NEW", confidence: 85, strength: 85 }; // EV=72.25
@@ -122,7 +140,13 @@ describe("VinceOpportunityCostService", () => {
       const result = svc.assess(
         { asset: "SOL", confidence: 50, strength: 60 },
         [
-          { tradeId: "t1", asset: "ETH", confidence: 40, strength: 50, unrealizedPnl: 0 },
+          {
+            tradeId: "t1",
+            asset: "ETH",
+            confidence: 40,
+            strength: 50,
+            unrealizedPnl: 0,
+          },
         ],
       );
       expect(result.newTradeExpectedValue).toBeCloseTo(30); // 50*60/100

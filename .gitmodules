@@ -1,0 +1,3 @@
+[submodule "src/tools/forge/autoresearch-mlx"]
+	path = src/tools/forge/autoresearch-mlx
+	url = https://github.com/trevin-creator/autoresearch-mlx

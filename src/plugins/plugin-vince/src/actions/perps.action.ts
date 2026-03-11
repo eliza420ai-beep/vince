@@ -13,6 +13,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -351,7 +352,7 @@ export const vincePerpsAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.debug("[VINCE_PERPS] Building data context...");
 
@@ -406,12 +407,14 @@ export const vincePerpsAction: Action = {
       });
 
       logger.debug("[VINCE_PERPS] Briefing complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_PERPS] Error: ${error}`);
       await callback({
         text: "Having trouble pulling perps data right now. Services may be initializing. Try again in a moment.",
         actions: ["VINCE_PERPS"],
       });
+      return undefined;
     }
   },
 

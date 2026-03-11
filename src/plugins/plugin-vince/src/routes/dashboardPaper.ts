@@ -10,7 +10,13 @@ import type { VinceMLInferenceService } from "../services/mlInference.service";
 import type { VinceWeightBanditService } from "../services/weightBandit.service";
 import type { VinceGoalTrackerService } from "../services/goalTracker.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
+import type { VinceUpliftEvaluatorService } from "../services/vinceUpliftEvaluator.service";
+import type { VinceDataSufficiencyService } from "../services/vinceDataSufficiency.service";
+import type { VinceSourceQualityService } from "../services/vinceSourceQuality.service";
+import type { VinceProofCapitalAllocatorService } from "../services/vinceProofCapitalAllocator.service";
 import type { Position, Portfolio, KPIProgress } from "../types/paperTrading";
+import { getSolusProofSnapshot } from "../../../plugin-solus/src/utils/assignmentPredictionsStore";
+import { resolveCausalThresholds } from "../utils/causalThresholds";
 
 export interface NoTradeEvaluation {
   asset: string;
@@ -45,6 +51,32 @@ export interface MLStatus {
   banditTradesProcessed: number;
 }
 
+export interface SwarmSummary {
+  totalOutcomes: number;
+  averageConsensusRate: number;
+  activeAgents: number;
+  trackedSignals: number;
+  topAgents: {
+    agentId: string;
+    accuracyRate: number;
+    outcomesProvided: number;
+  }[];
+  agentPerformance: {
+    agentId: string;
+    accuracyRate: string;
+    outcomesProvided: number;
+    specialtyScore: string;
+    specialization: string;
+  }[];
+  regimes: Array<{
+    regime: string;
+    totalTrades: number;
+    winRate: number;
+    topSource: string | null;
+    worstSource: string | null;
+  }>;
+}
+
 export interface PaperResponse {
   openPositions: Position[];
   portfolio: Portfolio;
@@ -62,6 +94,25 @@ export interface PaperResponse {
     totalTrades: number;
     topSources: { source: string; winRate: number }[];
     bottomSources: { source: string; winRate: number }[];
+  } | null;
+  swarmSummary: SwarmSummary | null;
+  proofSummary: {
+    uplift7d: ReturnType<VinceUpliftEvaluatorService["getSnapshot"]> | null;
+    uplift30d: ReturnType<VinceUpliftEvaluatorService["getSnapshot"]> | null;
+    causal30d: ReturnType<
+      VinceUpliftEvaluatorService["getCausalSnapshot"]
+    > | null;
+    sufficiency: ReturnType<VinceDataSufficiencyService["getSnapshot"]> | null;
+    sufficiencyTasks: ReturnType<
+      VinceDataSufficiencyService["getBlockingTasks"]
+    >;
+    sourceQualityTop: ReturnType<
+      VinceSourceQualityService["getSnapshot"]
+    >["sources"];
+    allocator: ReturnType<
+      VinceProofCapitalAllocatorService["getLatestSummary"]
+    > | null;
+    solus30d: ReturnType<typeof getSolusProofSnapshot> | null;
   } | null;
   /** Last closed positions (contributingSources only) for "X contributed to N of K" */
   recentClosedTrades: Array<{ contributingSources?: string[] }>;
@@ -115,6 +166,8 @@ export async function buildPaperResponse(
       goalTargets: null,
       signalStatus: null,
       banditSummary: null,
+      swarmSummary: null,
+      proofSummary: null,
       recentClosedTrades: [],
       recentTrades: [],
       updatedAt: Date.now(),
@@ -138,6 +191,9 @@ export async function buildPaperResponse(
   ) as VinceWeightBanditService | null;
 
   let mlStatus: MLStatus | null = null;
+  if (mlInference?.ensureModelsLoaded) {
+    await mlInference.ensureModelsLoaded();
+  }
   if (mlInference?.getMLStatus) {
     const ml = mlInference.getMLStatus();
     const bandit = weightBandit?.getBanditStatus?.() ?? {
@@ -176,6 +232,95 @@ export async function buildPaperResponse(
           bottomSources: banditSummaryRaw.bottomSources,
         }
       : null;
+
+  const swarmService = runtime.getService("swarm-coordination") as {
+    getSwarmStats?: () => any;
+    getAgentPerformance?: () => any;
+  } | null;
+  let swarmSummary: SwarmSummary | null = null;
+  if (swarmService?.getSwarmStats) {
+    const stats = swarmService.getSwarmStats();
+    if (stats) {
+      const regimes = Array.isArray(stats.regimes) ? stats.regimes : [];
+      const perf =
+        typeof swarmService.getAgentPerformance === "function"
+          ? swarmService.getAgentPerformance()
+          : [];
+      swarmSummary = {
+        totalOutcomes: stats.totalOutcomes ?? 0,
+        averageConsensusRate: stats.averageConsensusRate ?? 0,
+        activeAgents: stats.activeAgents ?? 0,
+        trackedSignals: stats.trackedSignals ?? 0,
+        topAgents: Array.isArray(stats.topPerformingAgents)
+          ? stats.topPerformingAgents.map((a: any) => ({
+              agentId: a.agentId,
+              accuracyRate: a.accuracyRate,
+              outcomesProvided: a.outcomesProvided,
+            }))
+          : [],
+        agentPerformance: Array.isArray(perf)
+          ? perf.map((a: any) => ({
+              agentId: a.agentId,
+              accuracyRate: a.accuracyRate,
+              outcomesProvided: a.outcomesProvided,
+              specialtyScore: a.specialtyScore,
+              specialization: a.specialization,
+            }))
+          : [],
+        regimes: regimes.map((r: any) => ({
+          regime: r.regime,
+          totalTrades: r.totalTrades ?? 0,
+          winRate: r.winRate ?? 0,
+          topSource: r.topSource ?? null,
+          worstSource: r.worstSource ?? null,
+        })),
+      };
+    }
+  }
+
+  const upliftService = runtime.getService(
+    "VINCE_UPLIFT_EVALUATOR_SERVICE",
+  ) as VinceUpliftEvaluatorService | null;
+  const sufficiencyService = runtime.getService(
+    "VINCE_DATA_SUFFICIENCY_SERVICE",
+  ) as VinceDataSufficiencyService | null;
+  const sourceQualityService = runtime.getService(
+    "VINCE_SOURCE_QUALITY_SERVICE",
+  ) as VinceSourceQualityService | null;
+  const allocatorService = runtime.getService(
+    "VINCE_PROOF_CAPITAL_ALLOCATOR_SERVICE",
+  ) as VinceProofCapitalAllocatorService | null;
+  let allocatorSummary = allocatorService?.getLatestSummary?.() ?? null;
+  const causalThresholds = resolveCausalThresholds({
+    getSetting: runtime.getSetting?.bind(runtime),
+    fallbackMinimumEffect: 0.015,
+    fallbackMinimumSamplesPerArm: 10,
+  });
+  if (!allocatorSummary && allocatorService?.reconcile) {
+    try {
+      allocatorSummary = await allocatorService.reconcile();
+    } catch {
+      // Best-effort warm-up; leave summary null when reconciliation fails.
+    }
+  }
+  const proofSummary = upliftService
+    ? {
+        uplift7d: upliftService.getSnapshot?.(7) ?? null,
+        uplift30d: upliftService.getSnapshot?.(30) ?? null,
+        causal30d:
+          upliftService.getCausalSnapshot?.({
+            windowDays: 30,
+            minimumEffect: causalThresholds.minimumEffect,
+            minimumSamplesPerArm: causalThresholds.minimumSamplesPerArm,
+          }) ?? null,
+        sufficiency: sufficiencyService?.getSnapshot?.(30) ?? null,
+        sufficiencyTasks: sufficiencyService?.getBlockingTasks?.(30) ?? [],
+        sourceQualityTop:
+          sourceQualityService?.getSnapshot?.(30)?.sources?.slice(0, 5) ?? [],
+        allocator: allocatorSummary,
+        solus30d: getSolusProofSnapshot(30),
+      }
+    : null;
 
   const recentClosedTrades = paperTrading?.getRecentClosedTrades?.() ?? [];
 
@@ -286,6 +431,8 @@ export async function buildPaperResponse(
     goalTargets,
     signalStatus,
     banditSummary,
+    swarmSummary,
+    proofSummary,
     recentClosedTrades,
     recentTrades,
     updatedAt: Date.now(),

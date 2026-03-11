@@ -8,6 +8,7 @@ import type {
   Memory,
   Provider,
   ProviderResult,
+  ProviderValue,
   State,
 } from "@elizaos/core";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
@@ -271,7 +272,7 @@ export const kellyContextProvider: Provider = {
     const text = textParts.join("\n");
 
     return {
-      values,
+      values: values as Record<string, ProviderValue>,
       text,
     };
   },

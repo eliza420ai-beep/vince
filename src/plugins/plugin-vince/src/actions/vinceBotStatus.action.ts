@@ -10,6 +10,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -145,7 +146,7 @@ export const vinceBotStatusAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const paperTrading = runtime.getService(
         "VINCE_PAPER_TRADING_SERVICE",
@@ -213,6 +214,20 @@ export const vinceBotStatusAction: Action = {
         ).length;
         const total = signalStatus.dataSources.length;
         lines.push(`📡 Data: ${activeCount}/${total} sources`);
+      }
+      const treatmentTelemetry = status.treatmentQualityTelemetry;
+      if (treatmentTelemetry) {
+        const passRate =
+          treatmentTelemetry.swarmCandidates > 0
+            ? Math.round(
+                (treatmentTelemetry.accepted /
+                  treatmentTelemetry.swarmCandidates) *
+                  100,
+              )
+            : 0;
+        lines.push(
+          `🧪 Swarm gate: ${treatmentTelemetry.accepted}/${treatmentTelemetry.swarmCandidates} pass (${passRate}%) · avg edge ${treatmentTelemetry.avgExpectedEdge.toFixed(2)} · depth deficit ${treatmentTelemetry.coverageMinSamplesPerArmDeficit}`,
+        );
       }
       lines.push("");
 

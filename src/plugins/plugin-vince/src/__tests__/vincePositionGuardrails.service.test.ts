@@ -20,7 +20,9 @@ beforeEach(() => {
   svc = new VincePositionGuardrailsService();
 
   // Set up a fresh capital buckets service with known state
-  VinceCapitalBucketsService.setInstance(null as unknown as VinceCapitalBucketsService);
+  VinceCapitalBucketsService.setInstance(
+    null as unknown as VinceCapitalBucketsService,
+  );
   const buckets = new VinceCapitalBucketsService(tmpDir);
   VinceCapitalBucketsService.setInstance(buckets);
 });

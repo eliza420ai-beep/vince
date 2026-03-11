@@ -13,6 +13,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -143,7 +144,7 @@ export const vinceAlertsAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const alertService = runtime.getService(
         "VINCE_ALERT_SERVICE",
@@ -154,7 +155,7 @@ export const vinceAlertsAction: Action = {
           text: "Alert service not available. Make sure it's registered in the plugin.",
           actions: ["VINCE_ALERTS"],
         });
-        return;
+        return undefined;
       }
 
       const text = message.content.text || "";
@@ -231,7 +232,7 @@ export const vinceAlertsAction: Action = {
               text: `No ${filterLabel.toLowerCase()} alerts to show.`,
               actions: ["VINCE_ALERTS"],
             });
-            return;
+            return undefined;
           }
 
           const lines: string[] = [
@@ -265,7 +266,7 @@ export const vinceAlertsAction: Action = {
               text: "🔔 **No Alerts**\n\nAlerts will appear when:\n• Watchlist tokens pump or hit targets\n• Tracked wallets make moves\n• New AI tokens enter sweet spot range\n\nMake sure to set up your watchlist and wallet tracking.",
               actions: ["VINCE_ALERTS"],
             });
-            return;
+            return undefined;
           }
 
           const lines: string[] = [];
@@ -351,13 +352,16 @@ export const vinceAlertsAction: Action = {
           break;
         }
       }
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_ALERTS] Error: ${error}`);
       await callback({
         text: "Failed to fetch alerts. Try again.",
         actions: ["VINCE_ALERTS"],
       });
+      return undefined;
     }
+    return undefined;
   },
 
   examples: [

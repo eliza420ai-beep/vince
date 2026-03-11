@@ -8,6 +8,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -73,7 +74,7 @@ export const kellyRecommendHomeCookingAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_HOME_COOKING] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();
@@ -159,12 +160,14 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       });
 
       logger.info("[KELLY_RECOMMEND_HOME_COOKING] Recommendation sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_RECOMMEND_HOME_COOKING] Error: ${error}`);
       await callback({
         text: "Dinner idea failed. Try asking for BBQ, Thermomix, or something in the oven.",
         actions: ["KELLY_RECOMMEND_HOME_COOKING"],
       });
+      return undefined;
     }
   },
 

@@ -7,11 +7,13 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
   type HandlerCallback,
   ModelType,
+  logger,
 } from "@elizaos/core";
 import { getXAccountsService } from "../services/xAccounts.service";
 import { initXClientFromEnv } from "../services/xClient.service";
@@ -19,6 +21,16 @@ import { TOPIC_BY_ID } from "../constants/topics";
 import { formatCostFooterCombined } from "../constants/cost";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 import type { AccountAnalysis } from "../types/analysis.types";
+import { sendActionResponse } from "./helpers/actionResponse";
+import {
+  parseTopicFromPrompt,
+  parseUsernameFromMessage,
+} from "./helpers/inputParsers";
+import {
+  formatTradingSignalBlock,
+  inferTradingSignalFromTexts,
+  rankTweetsByTopicRelevance,
+} from "./helpers/signalScoring";
 
 function buildAccountDataContext(
   analysis: AccountAnalysis,
@@ -122,41 +134,36 @@ export const xAccountAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<void> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
       const messageText = message.content?.text ?? "";
 
       // Extract username
-      const usernameMatch = messageText.match(/@(\w+)/);
-
-      if (!usernameMatch) {
-        callback({
-          text: "I need a username to analyze. Example: `Who is @crediblecrypto?`",
-          action: "X_ACCOUNT",
+      const username = parseUsernameFromMessage(messageText);
+      if (!username) {
+        await sendActionResponse(callback, "X_ACCOUNT", {
+          text: "I need a username to analyze (reason: no_target). Example: `Who is @crediblecrypto?`",
         });
         return;
       }
-
-      const username = usernameMatch[1];
       const accountsService = getXAccountsService();
 
       // Analyze the account
       const analysis = await accountsService.analyzeAccount(username);
 
       if (!analysis) {
-        callback({
-          text: `Couldn't find or analyze @${username}. The account might not exist or be protected.`,
-          action: "X_ACCOUNT",
+        await sendActionResponse(callback, "X_ACCOUNT", {
+          text: `Couldn't find or analyze @${username} (reason: no_target). The account might not exist or be protected.`,
         });
         return;
       }
 
       // Get recent takes (fetch more if we'll filter by topic)
-      const aboutTopic = detectAboutTopic(messageText);
+      const aboutTopic = parseTopicFromPrompt(messageText);
       const recentTweets = await accountsService.getRecentTakes(
         username,
         aboutTopic ? 20 : 5,
@@ -167,11 +174,7 @@ export const xAccountAction: Action = {
       let aboutLabel = "";
       if (aboutTopic) {
         const keywords = getTopicKeywords(aboutTopic);
-        takesToShow = recentTweets.filter((t) =>
-          keywords.some((kw) =>
-            t.text.toLowerCase().includes(kw.toLowerCase()),
-          ),
-        );
+        takesToShow = rankTweetsByTopicRelevance(recentTweets, keywords);
         aboutLabel = ` (about ${aboutTopic.toUpperCase()})`;
       }
 
@@ -218,25 +221,27 @@ export const xAccountAction: Action = {
           : "";
 
       let text: string;
+      const signal = inferTradingSignalFromTexts(
+        takesToShow.slice(0, 10).map((t) => t.text),
+        7,
+      );
       try {
         const dataContext = buildAccountDataContext(analysis, takesToShow);
         const narrative = await generateAccountNarrative(runtime, dataContext);
-        text = `👤 **@${analysis.username}**${aboutLabel}\n\n${narrative}${costFooter}`;
+        text = `👤 **@${analysis.username}**${aboutLabel}\n\n${narrative}\n\n${formatTradingSignalBlock(signal)}${costFooter}`;
       } catch {
-        text = structuredResponse + costFooter;
+        text = `${structuredResponse}\n\n${formatTradingSignalBlock(signal)}${costFooter}`;
       }
 
-      callback({
+      await sendActionResponse(callback, "X_ACCOUNT", {
         text,
-        action: "X_ACCOUNT",
       });
     } catch (error) {
-      console.error("[X_ACCOUNT] Error:", error);
+      logger.warn({ err: error }, "[X_ACCOUNT] Error");
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      callback({
-        text: `👤 **Account Analysis**\n\n❌ Error: ${errorMessage}`,
-        action: "X_ACCOUNT",
+      await sendActionResponse(callback, "X_ACCOUNT", {
+        text: `👤 **Account Analysis**\n\n❌ Error (reason: api_limited): ${errorMessage}`,
       });
     }
   },
@@ -265,19 +270,6 @@ function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return String(num);
-}
-
-/** Detect "about BTC" / "about eth" etc. in message. Returns topic id or null. */
-function detectAboutTopic(text: string): string | null {
-  const m = text.match(/about\s+(\w+)/i);
-  if (!m) return null;
-  const word = m[1].toLowerCase();
-  const topic = TOPIC_BY_ID[word];
-  if (topic) return topic.id;
-  const bySearchTerm = Object.values(TOPIC_BY_ID).find(
-    (t) => t.searchTerms.some((s) => s.toLowerCase() === word) || t.id === word,
-  );
-  return bySearchTerm?.id ?? null;
 }
 
 /** Keywords to filter tweets by topic (search terms + cashtags). */

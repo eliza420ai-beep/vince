@@ -1,0 +1,26 @@
+{
+  "date": "2026-02-25",
+  "thesis": "Silver breaks out on industrial demand while gold stalls on Fed pause expectations, creating a SILVER/GOLD ratio trade opportunity.",
+  "primaryTicker": "SILVER",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 29.5,
+  "primaryRiskUsd": 200,
+  "invalidateCondition": "DXY > 106",
+  "killConditions": [
+    "Fed hawkish pivot",
+    "DXY > 106",
+    "industrial data print weakness",
+    "broad commodity selloff"
+  ],
+  "rubric": {
+    "alignment": "pure_play",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "GOLD",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 3
+}

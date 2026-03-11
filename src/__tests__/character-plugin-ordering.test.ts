@@ -241,7 +241,8 @@ describe("Project Starter Character Plugin Ordering", () => {
 
       plugins.forEach((plugin) => {
         expect(typeof plugin).toBe("string");
-        expect(plugin).toMatch(/^@elizaos\/plugin-/);
+        // Allow any scoped plugin package of the form @scope/plugin-*
+        expect(plugin).toMatch(/^@[^/]+\/plugin-/);
       });
     });
 

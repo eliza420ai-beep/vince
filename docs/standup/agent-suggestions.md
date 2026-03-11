@@ -122,3 +122,64 @@
 ## 2026-02-24
 
 - Clawterm → Sentinel: Cross-link '5 Essential Skills Starter Pack' build to Sentinel for sprint coordination.
+## 2026-02-26
+
+- Clawterm → Sentinel: Cross-link 'Build Your First Skill in 10 Minutes' template to phase-12 governance and paper bot docs for builders exploring agentic execution.
+- Eliza + VINCE: Coordinate on paper bot perps data integration into multi-chain scaling research brief.
+## 2026-02-26
+
+- Add pre-flight DNS validation check to OPENCLAW_SETUP_GUIDE before first deploy to prevent tailscale silent failures.
+- Explore whether early buyback triggers should be automated in Solus workflow based on momentum thresholds rather than manual Thursday check.
+## 2026-02-27
+
+- Cross-link OpenClaw Production Checklist skill build to Sentinel for Thompson Sampling signal weighting integration.
+- Feed post-mortem learning system output directly into VINCE signal weighting to close feedback loops faster.
+## 2026-02-28
+
+- Clawterm + Sentinel: Cross-link Skills Discovery Dashboard as sprint candidate for regime-conditional execution visibility
+- Eliza: Expand CONTEXT-ENGINEERING.md with RAG hygiene section for live trading systems to prevent hallucination on funding rates and order flow
+## 2026-02-28
+
+- Clawterm's 'First 30 Minutes' template should be a sprint candidate cross-linked to Sentinel for immediate post-install discovery.
+- Sentinel should prioritize unblocking Otaku's wallet PR to enable live trading execution scaling.
+- ECHO and Oracle should coordinate on supply shock narrative tracking and Fed speak impact to align signal interpretation.
+## 2026-03-01
+
+- Cross-link Clawterm '5 Essential Skills Starter Pack' build to Sentinel as sprint candidate for dual-surface integration.
+- Feed Solus weekly premium sizing ($3k/week across BTC/HYPE on Hypersurface) into options content pipeline for Eliza essay on orchestration.
+## 2026-03-01
+
+- Clawterm: Cross-link Skill Discovery CLI and Template Generator with Sentinel as sprint candidates
+- Eliza: Publish essay 'The AI Super-Cycle Has Begun' after closing risk loop connective tissue
+## 2026-03-01
+
+- Cross-link Clawterm Skills Starter Pack build to Sentinel sprint for visibility and prioritization.
+- Map perps funding spikes to options premium sizing as a bridge between capital mandate logic and live regime signals.
+- Monitor if institutional inflows sustain through macro headwinds; one bad jobs print is the flip trigger.
+## 2026-03-01
+
+- Clawterm → Sentinel: '5 Essential Skills Starter Pack' is a sprint candidate—prioritize cross-linking.
+- Eliza: Expand AI-SKILLS-2027 with emerging alt options mechanics to close corpus gap.
+- Solus: Formalize Wednesday EOD reassessment ritual to avoid Thursday expiry surprises.
+## 2026-03-02
+
+- Clawterm → Sentinel: Cross-link OpenClaw skill builder walkthrough to Sentinel's regime-conditional bandit and recursive improvement loop PRDs as sprint candidate.
+- Vince + Solus: Align VINCE signal long 56% + regime trending with Solus strike positioning for BTC $70.5K call and HYPE puts.
+- Sentinel + Eliza: Integrate Hypersurface capital mandate tension (premium optimization vs portfolio) into feature store and ML loop signal quality review.
+## 2026-03-04
+
+- Eliza: Map Camillo's social arbitrage timing edge into HYPE-WHEEL.md to surface low-liquidity strike entry mechanics.
+- Clawterm: Prioritize nix-openclaw one-liner installer to reduce user setup friction.
+- Oracle: Surface synthetics vs spot edge check results to Solus for next week's strike sizing decision.
+## 2026-03-04
+
+- Clawterm: Invest in nix-openclaw reproducible deploys and 'Pete's setup' content series to reduce Tailscale friction and boost adoption.
+- Eliza: Bake trading desk schema (agent roles, tool ownership, signal→order pipeline) directly into OPTIONS-PLAYBOOK for cross-agent signal flow clarity.
+## 2026-03-05
+
+- Clawterm → Sentinel: Cross-link content-factory skill template build to recursive-ml pipeline validation for sprint prioritization.
+- Eliza: Map polymarket funding-rate arbitrage into options sizing rules to complete capital allocation framework for desk cross-sell.
+- Vince: Consider pausing auto-trades until signal quality improves above 50% and regime chop clears.
+## 2026-03-05
+
+- Clawterm → Sentinel: Cross-link Blender skill template sprint to recursive north star acceleration for unified builder momentum.

@@ -8,7 +8,7 @@
   "monitorIntervalMinutes": 10,
   "security": {
     "sandboxMode": "approval",
-    "note": "Agents run in approval mode — they must ask before executing commands. Attach to the tmux session to approve actions. Set sandboxMode to 'bypass' only on a dedicated isolated machine.",
+    "note": "Agents run in approval mode \u2014 they must ask before executing commands. Attach to the tmux session to approve actions. Set sandboxMode to 'bypass' only on a dedicated isolated machine.",
     "denyReadPaths": [
       ".env",
       ".env.local",
@@ -51,8 +51,7 @@
     "screenshotsIncluded": "if UI changes"
   },
   "notifications": {
-    "telegram": false,
-    "telegramBotToken": "",
-    "telegramChatId": ""
+    "discord": true,
+    "discordChannelId": "1476526524403286088"
   }
 }

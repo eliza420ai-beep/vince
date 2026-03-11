@@ -154,7 +154,7 @@ export const dailyReportAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const agentName = runtime.character?.name || "Agent";
     const role = getAgentRole(agentName);
 

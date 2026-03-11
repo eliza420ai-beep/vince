@@ -168,7 +168,7 @@ describe("ADD_MICHELIN_RESTAURANT action", () => {
 describe("Plugin export", () => {
   it("should have 15 actions", () => {
     expect(elizaPlugin.actions).toBeDefined();
-    expect(elizaPlugin.actions.length).toBe(15);
+    expect(elizaPlugin.actions.length).toBe(17);
   });
 
   it("should include CONTENT_AUDIT action", () => {

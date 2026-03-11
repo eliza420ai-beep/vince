@@ -80,8 +80,8 @@ describe("CircuitBreakerService", () => {
 
   describe("resetAutoBreakers", () => {
     it("resets only autoReset=true breakers", () => {
-      svc.trip("daily-loss-limit", "auto");  // autoReset=true
-      svc.trip("max-drawdown", "manual");    // autoReset=false
+      svc.trip("daily-loss-limit", "auto"); // autoReset=true
+      svc.trip("max-drawdown", "manual"); // autoReset=false
       svc.resetAutoBreakers();
 
       const state = svc.getState();
@@ -112,7 +112,14 @@ describe("CircuitBreakerService", () => {
 
   describe("checkConsecutiveLosses", () => {
     it("trips consecutive-losses after 5 consecutive losses (default)", () => {
-      svc.checkConsecutiveLosses(["win", "loss", "loss", "loss", "loss", "loss"]);
+      svc.checkConsecutiveLosses([
+        "win",
+        "loss",
+        "loss",
+        "loss",
+        "loss",
+        "loss",
+      ]);
       expect(svc.isHalted()).toBe(true);
       const state = svc.getState();
       const b = state.find((s) => s.name === "consecutive-losses")!;
@@ -130,7 +137,15 @@ describe("CircuitBreakerService", () => {
     });
 
     it("trips on exactly N consecutive losses at end of array", () => {
-      svc.checkConsecutiveLosses(["win", "win", "loss", "loss", "loss", "loss", "loss"]);
+      svc.checkConsecutiveLosses([
+        "win",
+        "win",
+        "loss",
+        "loss",
+        "loss",
+        "loss",
+        "loss",
+      ]);
       expect(svc.isHalted()).toBe(true);
     });
   });

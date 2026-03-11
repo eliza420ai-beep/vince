@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { XSearchService, getXSearchService } from "../services/xSearch.service";
+import {
+  XSearchService,
+  getXSearchService,
+  selectFairQuickTopics,
+} from "../services/xSearch.service";
 import type { XTweet, XSearchResponse } from "../types/tweet.types";
 
 // Mock the xClient
@@ -29,6 +33,7 @@ describe("XSearchService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.X_SEARCH_STRICT_TOPICS = "false";
     service = new XSearchService(mockClient as any);
   });
 
@@ -82,6 +87,26 @@ describe("XSearchService", () => {
         expect.any(Object),
       );
     });
+
+    it("drops ambiguous topic matches when strict context is missing", async () => {
+      const oldStrict = process.env.X_SEARCH_STRICT_TOPICS;
+      process.env.X_SEARCH_STRICT_TOPICS = "true";
+      try {
+        mockClient.searchRecent.mockResolvedValue({
+          data: [
+            createMockTweet("Max pain after leg day.", "u1"),
+            createMockTweet("BTC options max pain into expiry.", "u2"),
+          ],
+          meta: { resultCount: 2 },
+        });
+        const out = await service.searchTopic("options", { maxResults: 20 });
+        expect(out).toHaveLength(1);
+        expect(out[0].text).toContain("BTC options");
+      } finally {
+        if (oldStrict == null) delete process.env.X_SEARCH_STRICT_TOPICS;
+        else process.env.X_SEARCH_STRICT_TOPICS = oldStrict;
+      }
+    });
   });
 
   describe("searchMultipleTopics", () => {
@@ -130,6 +155,47 @@ describe("XSearchService", () => {
 
       expect(results.get("btc")?.length).toBe(1);
       expect(results.get("eth")?.length).toBe(0);
+    });
+
+    it("should throw when all topic searches fail", async () => {
+      mockClient.searchRecent
+        .mockRejectedValueOnce(new Error("Rate limit"))
+        .mockRejectedValueOnce(new Error("Rate limit"));
+
+      await expect(
+        service.searchMultipleTopics({
+          topicsIds: ["btc", "eth"],
+        }),
+      ).rejects.toThrow("Rate limit");
+    });
+
+    it("uses fair quick topic selection when quick=true", async () => {
+      mockClient.searchRecent.mockResolvedValue({
+        data: [],
+        meta: { resultCount: 0 },
+      });
+      await service.searchMultipleTopics({
+        topicsIds: ["btc", "eth", "sol", "hype", "perps", "options", "macro"],
+        quick: true,
+      });
+      expect(mockClient.searchRecent).toHaveBeenCalledTimes(4);
+    });
+  });
+
+  describe("selectFairQuickTopics", () => {
+    it("keeps recurring coverage for key trading topics", () => {
+      const input = ["btc", "eth", "sol", "hype", "perps", "options", "macro"];
+      const selected = selectFairQuickTopics(
+        input,
+        4,
+        new Date("2026-03-04T12:00:00Z"),
+      );
+      expect(selected).toHaveLength(4);
+      expect(selected).toContain("sol");
+      expect(selected).toContain("hype");
+      expect(selected.some((id) => id === "perps" || id === "options")).toBe(
+        true,
+      );
     });
   });
 

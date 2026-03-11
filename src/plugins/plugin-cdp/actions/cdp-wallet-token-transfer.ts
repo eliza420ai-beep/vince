@@ -59,38 +59,43 @@ export const cdpWalletTokenTransfer: Action = {
     "Use this action when you need to transfer tokens (ERC20 or native tokens like ETH) from user's wallet. For NFTs, use USER_WALLET_NFT_TRANSFER instead. Native gas token: ETH on Base, Ethereum, and Arbitrum. IMPORTANT: Before executing, you MUST present a clear summary (recipient, amount, token, network, USD value) and get explicit user confirmation ('yes', 'confirm', 'go ahead'). Never execute transfers without confirmed intent - they are irreversible.",
 
   // Parameter schema for tool calling
-  parameters: {
-    to: {
-      type: "string",
+  parameters: [
+    {
+      name: "to",
       description:
         "Recipient wallet address (must be a valid 0x address, 42 characters)",
       required: true,
+      schema: { type: "string" },
     },
-    token: {
-      type: "string",
+    {
+      name: "token",
       description:
         "Token symbol or address to transfer (e.g., 'USDC', 'ETH', or '0x...').",
       required: true,
+      schema: { type: "string" },
     },
-    amount: {
-      type: "string",
+    {
+      name: "amount",
       description:
         "Specific token amount to transfer (e.g., '10.5' means 10.5 ETH tokens, NOT USD value). If user specifies USD value like '$5 worth of ETH', you must first get the current price and calculate the equivalent token amount. Use this OR percentage, not both.",
       required: false,
+      schema: { type: "string" },
     },
-    percentage: {
-      type: "number",
+    {
+      name: "percentage",
       description:
         "Percentage of balance to transfer (0-100). Use this OR amount, not both. For 'all'/'max' use 100, for 'half' use 50.",
       required: false,
+      schema: { type: "number" },
     },
-    network: {
-      type: "string",
+    {
+      name: "network",
       description:
         "Network to execute transfer on: 'base', 'ethereum', or 'arbitrum'",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpService(

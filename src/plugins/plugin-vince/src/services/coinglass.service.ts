@@ -26,6 +26,8 @@ import { isVinceAgent } from "../utils/dashboard";
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
 /** Timeout for each HTTP request so slow/hanging APIs don't block indefinitely */
 const FETCH_TIMEOUT_MS = 10_000;
+const RETRY_ATTEMPTS = 3;
+const RETRY_BASE_MS = 1000;
 
 interface CachedData {
   funding: Map<string, FundingData>;
@@ -553,6 +555,30 @@ export class VinceCoinGlassService extends Service {
     return "NEUTRAL - no extreme signals, wait for edge";
   }
 
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    opts: { attempts?: number; baseMs?: number } = {},
+  ): Promise<T> {
+    const attempts = opts.attempts ?? RETRY_ATTEMPTS;
+    const baseMs = opts.baseMs ?? RETRY_BASE_MS;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        return await fn();
+      } catch (e) {
+        lastError = e;
+        if (attempt < attempts - 1) {
+          const delayMs = baseMs * Math.pow(2, attempt);
+          logger.debug(
+            `[VinceCoinGlass] Retry ${attempt + 1}/${attempts} in ${delayMs}ms: ${e}`,
+          );
+          await new Promise((r) => setTimeout(r, delayMs));
+        }
+      }
+    }
+    throw lastError;
+  }
+
   private async testConnection(): Promise<boolean> {
     if (!this.apiKey) {
       logger.warn("[VinceCoinGlass] No COINGLASS_API_KEY found in settings");
@@ -560,58 +586,63 @@ export class VinceCoinGlassService extends Service {
     }
 
     try {
-      // Use OI endpoint for testing - this works with Hobbyist tier ($350/yr V2 API)
-      const response = await fetch(
-        "https://open-api.coinglass.com/public/v2/open_interest?symbol=BTC",
-        {
-          headers: {
-            Accept: "application/json",
-            coinglassSecret: this.apiKey!,
-          },
-          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      return await this.withRetry(
+        async () => {
+          // Use OI endpoint for testing - this works with Hobbyist tier ($350/yr V2 API)
+          const response = await fetch(
+            "https://open-api.coinglass.com/public/v2/open_interest?symbol=BTC",
+            {
+              headers: {
+                Accept: "application/json",
+                coinglassSecret: this.apiKey!,
+              },
+              signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            },
+          );
+
+          const responseText = await response.text();
+          logger.debug(
+            `[VinceCoinGlass] Raw API response: ${responseText.slice(0, 500)}`,
+          );
+
+          if (!response.ok) {
+            logger.error(
+              `[VinceCoinGlass] HTTP ${response.status} ${response.statusText}: ${responseText.slice(0, 200)}`,
+            );
+            return false;
+          }
+
+          const data = JSON.parse(responseText);
+
+          const isSuccess = data.code === "0" || data.code === 0;
+          if (!isSuccess) {
+            logger.error(
+              `[VinceCoinGlass] API error: code=${data.code}, msg=${data.msg || "Unknown"}`,
+            );
+            return false;
+          }
+
+          if (
+            !data.data ||
+            (Array.isArray(data.data) && data.data.length === 0)
+          ) {
+            logger.error("[VinceCoinGlass] API returned empty data array");
+            return false;
+          }
+
+          const sampleOI =
+            Array.isArray(data.data) && data.data[0]?.openInterest
+              ? `$${(data.data[0].openInterest / 1e9).toFixed(1)}B`
+              : "N/A";
+          logger.info(`[VinceCoinGlass] ✅ API verified - BTC OI: ${sampleOI}`);
+          return true;
         },
+        { attempts: RETRY_ATTEMPTS, baseMs: RETRY_BASE_MS },
       );
-
-      // Get response as text first for debugging
-      const responseText = await response.text();
-      logger.debug(
-        `[VinceCoinGlass] Raw API response: ${responseText.slice(0, 500)}`,
-      );
-
-      if (!response.ok) {
-        logger.error(
-          `[VinceCoinGlass] HTTP ${response.status} ${response.statusText}: ${responseText.slice(0, 200)}`,
-        );
-        return false;
-      }
-
-      // Parse the response
-      const data = JSON.parse(responseText);
-
-      // V2 API: code can be string "0" or number 0
-      const isSuccess = data.code === "0" || data.code === 0;
-      if (!isSuccess) {
-        logger.error(
-          `[VinceCoinGlass] API error: code=${data.code}, msg=${data.msg || "Unknown"}`,
-        );
-        return false;
-      }
-
-      // Verify we got actual data
-      if (!data.data || (Array.isArray(data.data) && data.data.length === 0)) {
-        logger.error("[VinceCoinGlass] API returned empty data array");
-        return false;
-      }
-
-      // Log success with sample data
-      const sampleOI =
-        Array.isArray(data.data) && data.data[0]?.openInterest
-          ? `$${(data.data[0].openInterest / 1e9).toFixed(1)}B`
-          : "N/A";
-      logger.info(`[VinceCoinGlass] ✅ API verified - BTC OI: ${sampleOI}`);
-      return true;
     } catch (error) {
-      logger.error(`[VinceCoinGlass] Connection test exception: ${error}`);
+      logger.error(
+        `[VinceCoinGlass] Connection test failed after retries: ${error}`,
+      );
       return false;
     }
   }

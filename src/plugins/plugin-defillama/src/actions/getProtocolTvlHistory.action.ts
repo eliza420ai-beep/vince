@@ -42,31 +42,35 @@ export const getProtocolTvlHistoryAction: Action = {
   ],
   description:
     "Fetch historical TVL data for a specific DeFi protocol, with optional per-chain breakdown and lookback window. Use compact mode by default to reduce context size.",
-  parameters: {
-    protocol: {
-      type: "string",
+  parameters: [
+    {
+      name: "protocol",
       description: "Protocol name or symbol (e.g., 'Aave', 'Curve').",
       required: true,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Optional chain name to return a focused breakdown (e.g., 'Ethereum').",
       required: false,
+      schema: { type: "string" },
     },
-    days: {
-      type: "number",
+    {
+      name: "days",
       description:
         "Optional number of most recent days to include (default 365).",
       required: false,
+      schema: { type: "number" },
     },
-    compact: {
-      type: "boolean",
+    {
+      name: "compact",
       description:
         "If true (default), returns downsampled data (~30 points) plus summary statistics. Set to false for full data.",
       required: false,
+      schema: { type: "boolean" },
     },
-  },
+  ],
   validate: async (
     runtime: IAgentRuntime,
     message: Memory,

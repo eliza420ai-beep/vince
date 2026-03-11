@@ -24,14 +24,15 @@ export const getCategoriesWithMarketDataAction: Action = {
     "Use this action to get all coin categories with market data including market cap, volume, 24h change, and top 3 coins in each category. Returns comprehensive category statistics that can be sorted by market cap or name. Useful when the user wants to analyze category performance or find top performing categories.",
 
   // Parameter schema for tool calling
-  parameters: {
-    order: {
-      type: "string",
+  parameters: [
+    {
+      name: "order",
       description:
         "Sort order for categories. Options: 'market_cap_desc' (default), 'market_cap_asc', 'name_desc', 'name_asc', 'market_cap_change_24h_desc', 'market_cap_change_24h_asc'",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

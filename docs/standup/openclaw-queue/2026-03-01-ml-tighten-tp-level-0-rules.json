@@ -1,0 +1,16 @@
+{
+  "id": "ml-20260301-001",
+  "title": "Tighten TP level 0 rules",
+  "description": "TP level 0 has win_rate 0% (34 trades). Review whether to reduce weight or tighten conditions. From improvement report.",
+  "scope": "In scope: TP optimizer rules and conditions for this level. Out of scope: other models.",
+  "acceptanceCriteria": [
+    "Task completed and verified."
+  ],
+  "expectedOutcome": "TP level 0 has win_rate 0% (34 trades).",
+  "source": "ml_training",
+  "branchName": "sentinel/2026-03-01-ml-tighten-tp-level-0-rules",
+  "createdAt": "2026-03-01T04:01:21.271211",
+  "plugin": "plugin-vince",
+  "priority": "P2",
+  "effort": "XS"
+}

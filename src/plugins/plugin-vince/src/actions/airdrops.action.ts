@@ -12,6 +12,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -181,7 +182,7 @@ export const vinceAirdropsAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.info("[VINCE_AIRDROPS] Building airdrop status...");
 
@@ -226,7 +227,7 @@ export const vinceAirdropsAction: Action = {
         briefing,
         "",
         "---",
-        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
       ].join("\n");
 
       await callback({
@@ -235,12 +236,14 @@ export const vinceAirdropsAction: Action = {
       });
 
       logger.info("[VINCE_AIRDROPS] Briefing complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_AIRDROPS] Error: ${error}`);
       await callback({
         text: "Airdrop status failed to load. Check the knowledge base directly for the current meta.",
         actions: ["VINCE_AIRDROPS"],
       });
+      return undefined;
     }
   },
 
@@ -250,7 +253,7 @@ export const vinceAirdropsAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**Airdrop Status**\n\nAirdrop season is heating up. Focus is still treadfi - running MM and DN strategies across 5 venues. The compounding effect across Hyperliquid, Paradex, Extended, Nado, and Pacifica is the meta right now. More venues = more points = bigger potential drop.\n\nHyperliquid already confirmed with HYPE live. Points program still running for season 2 so it's not too late to accumulate. The thesis is validated. Paradex is active with maker rebates - you're literally getting paid to provide liquidity while farming the potential drop. Double dipping.\n\nExtended, Nado, and Pacifica are all speculated. Early stage protocols where early usage could pay off but nothing confirmed. These are lotto tickets, not guaranteed plays. I'd allocate maybe 10-15% of airdrop farming time here, rest goes to the confirmed stuff.\n\nHonest strategy: Don't spread too thin. Quality over quantity. Better to be a whale on 3 protocols than a minnow on 10. Track everything in a spreadsheet - the compounding only works if you're consistent.\n\nThe play: treadfi strategies on Hyperliquid and Paradex are the priority. The rest is gravy.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**Airdrop Status**\n\nAirdrop season is heating up. Focus is still treadfi - running MM and DN strategies across 5 venues. The compounding effect across Hyperliquid, Paradex, Extended, Nado, and Pacifica is the meta right now. More venues = more points = bigger potential drop.\n\nHyperliquid already confirmed with HYPE live. Points program still running for season 2 so it's not too late to accumulate. The thesis is validated. Paradex is active with maker rebates - you're literally getting paid to provide liquidity while farming the potential drop. Double dipping.\n\nExtended, Nado, and Pacifica are all speculated. Early stage protocols where early usage could pay off but nothing confirmed. These are lotto tickets, not guaranteed plays. I'd allocate maybe 10-15% of airdrop farming time here, rest goes to the confirmed stuff.\n\nHonest strategy: Don't spread too thin. Quality over quantity. Better to be a whale on 3 protocols than a minnow on 10. Track everything in a spreadsheet - the compounding only works if you're consistent.\n\nThe play: treadfi strategies on Hyperliquid and Paradex are the priority. The rest is gravy.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_AIRDROPS"],
         },
       },
@@ -260,7 +263,7 @@ export const vinceAirdropsAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**Airdrop Status**\n\ntreadfi is the priority play right now. Here's why.\n\nThe strategy is running market making and delta-neutral positions across multiple perp DEXs. Hyperliquid is the primary venue since they've confirmed with HYPE and the points program is still live. But the real alpha is spreading across Paradex, Extended, Nado, and Pacifica simultaneously. Each protocol you're active on is another potential airdrop.\n\nParadex is particularly nice because maker rebates mean you're getting paid while farming. That's the sweet spot - positive carry while waiting for the drop. Extended and Nado are earlier but the playbook is the same.\n\nThe compounding math is simple: if each protocol drops 4 figures, being active on 5 is potentially 5x what you'd get grinding just one. But the catch is you need to actually be consistent. Set it up properly, track in a spreadsheet, don't just do it for a week and forget.\n\nMost people spread too thin or give up too early. The ones who make real money from airdrops treat it like a job. Consistent activity, multiple venues, proper tracking.\n\nPriority: Hyperliquid (confirmed) → Paradex (maker rebates) → Extended/Nado/Pacifica (speculation).\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "**Airdrop Status**\n\ntreadfi is the priority play right now. Here's why.\n\nThe strategy is running market making and delta-neutral positions across multiple perp DEXs. Hyperliquid is the primary venue since they've confirmed with HYPE and the points program is still live. But the real alpha is spreading across Paradex, Extended, Nado, and Pacifica simultaneously. Each protocol you're active on is another potential airdrop.\n\nParadex is particularly nice because maker rebates mean you're getting paid while farming. That's the sweet spot - positive carry while waiting for the drop. Extended and Nado are earlier but the playbook is the same.\n\nThe compounding math is simple: if each protocol drops 4 figures, being active on 5 is potentially 5x what you'd get grinding just one. But the catch is you need to actually be consistent. Set it up properly, track in a spreadsheet, don't just do it for a week and forget.\n\nMost people spread too thin or give up too early. The ones who make real money from airdrops treat it like a job. Consistent activity, multiple venues, proper tracking.\n\nPriority: Hyperliquid (confirmed) → Paradex (maker rebates) → Extended/Nado/Pacifica (speculation).\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
           actions: ["VINCE_AIRDROPS"],
         },
       },

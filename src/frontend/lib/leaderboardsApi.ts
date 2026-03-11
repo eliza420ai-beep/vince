@@ -241,6 +241,8 @@ export interface LeaderboardsResponse {
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
+  hip3Status?: "loading" | "ok" | "stale" | "error";
+  hlCryptoStatus?: "loading" | "ok" | "stale" | "error";
 }
 
 const STALE_MS = 2 * 60 * 1000; // 2 minutes
@@ -865,6 +867,260 @@ export interface RecentTradeItem {
   closedAt: number;
 }
 
+export type NorthStarStatus = "on_track" | "at_risk" | "blocked";
+
+export interface RecursiveNorthStarPillar {
+  score: number;
+  status: NorthStarStatus;
+  highlights: string[];
+  blockers: string[];
+}
+
+export interface RecursiveNorthStarResponse {
+  scorecard: {
+    overallScore: number;
+    status: NorthStarStatus;
+  };
+  pillars: {
+    recursion: RecursiveNorthStarPillar;
+    ml: RecursiveNorthStarPillar;
+    synergy: RecursiveNorthStarPillar;
+  };
+  metrics: {
+    recursion: {
+      sufficiencyGrade: "LOW" | "MEDIUM" | "HIGH";
+      sufficiencySampleCount: number;
+      blockingTaskCount: number;
+      allocatorStage: string;
+      allocatorMode: string;
+      allocatorSummaryAvailable?: boolean;
+      allocatorSummaryStale?: boolean;
+      allocatorSummaryAgeMs?: number | null;
+      allocatorSummarySource?: "live" | "history" | "none";
+      coverageVelocity?: {
+        missingClosedRowsTo20: number;
+        missingDistinctDaysTo7: number;
+        missingRegimeDepthTo5: number;
+        sprintWindowDays?: number;
+        daysCovered?: number;
+        daysRemaining?: number;
+        closesPerDayNeeded?: number;
+        distinctDaysPerDayNeeded?: number;
+        regimeDepthPerDayNeeded?: number;
+      };
+      sufficiencyBlockingReasons?: string[];
+      sufficiencyBlockersByDimension?: Record<string, string>;
+      sufficiencyActions?: string[];
+    };
+    ml: {
+      modelsLoaded: string[];
+      modelCount: number;
+      signalQualityThreshold: number;
+      completeTrades30d: number;
+      avoidedDecisions30d: number;
+      banditReady: boolean;
+      banditTradesProcessed: number;
+      readinessReasons: string[];
+      missingModelFiles: string[];
+      modelsDir: string;
+      onnxRuntimeAvailable: boolean;
+      lastLoadError: string | null;
+      lastLoadErrorCode?: string | null;
+      banditInitError: string | null;
+      runtimeProbe?: {
+        checkedAt: number;
+        importOk: boolean;
+        cpuBackendOk: boolean;
+        modelSessionOk: boolean;
+        modelPathChecked: string | null;
+        code: string | null;
+        message: string | null;
+        providerAttempts: Array<{
+          strategy: "cpu_explicit" | "default";
+          success: boolean;
+          error: string | null;
+          code: string | null;
+        }>;
+      } | null;
+      runtimeFingerprint?: {
+        capturedAt: number;
+        execPath: string;
+        releaseName: string;
+        nodeVersion: string;
+        napiVersion: string | null;
+        nodeOptions: string | null;
+        nativeAddonsDisabled: boolean;
+        recoveryCooldownUntil: number | null;
+        onnxModulePath?: string | null;
+        onnxLoaderStrategy?: "import" | "require" | "unresolved";
+      } | null;
+      providerAttemptsByModel?: Record<
+        string,
+        Array<{
+          strategy: "cpu_explicit" | "default";
+          success: boolean;
+          error: string | null;
+          code: string | null;
+        }>
+      >;
+    };
+    synergy: {
+      upliftDelta: number;
+      causalPromotionEligible: boolean;
+      causalConfidenceScore: number;
+      causalPairCount: number;
+      minSamplesPerArm: number;
+      nearPassDepthRatio?: number;
+      nearPassEffectRatio?: number;
+      nearPassBonus?: number;
+      coverageVelocity?: {
+        stageDeficitTotal: number;
+        pairDeficitTotal: number;
+        minSamplesPerArmDeficit: number;
+        sprintWindowDays?: number;
+        daysCovered?: number;
+        daysRemaining?: number;
+        stageDeficitPerDayNeeded?: number;
+        pairDeficitPerDayNeeded?: number;
+        minArmPerDayNeeded?: number;
+      };
+      promotionReasons: string[];
+      causalPairs: Array<{
+        label: string;
+        controlStage: string;
+        treatmentStage: string;
+        controlCount: number;
+        treatmentCount: number;
+        upliftDelta: number;
+        ciLower: number;
+        ciUpper: number;
+        confidenceScore: number;
+        smoothedUpliftDelta?: number;
+        smoothedCiLower?: number;
+        smoothedConfidenceScore?: number;
+        passed: boolean;
+        failureReason?: string;
+      }>;
+      stageDepth?: {
+        minimumSamplesPerArm: number;
+        allStagesReady: boolean;
+        perStage: Array<{
+          stage: string;
+          count: number;
+          deficitToMin: number;
+        }>;
+        pairDepth: Array<{
+          label: string;
+          controlStage: string;
+          treatmentStage: string;
+          controlCount: number;
+          treatmentCount: number;
+          minArmSamples: number;
+          deficitToMin: number;
+        }>;
+      };
+    };
+  };
+  northStar: {
+    fullRecursionReady: boolean;
+    onePlusOneEqThreeReady: boolean;
+    why: string[];
+  };
+  milestones: {
+    recursion3d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
+    ml3d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
+    synergy7d: {
+      pass: boolean;
+      observedPoints: number;
+      target: string;
+    };
+  };
+  trend?: {
+    windows: Array<{
+      windowDays: number;
+      overallScore: number;
+      recursionScore: number;
+      mlScore: number;
+      synergyScore: number;
+    }>;
+    deltaVs7d: number;
+    history: Array<{
+      at: number;
+      overallScore: number;
+      recursionScore: number;
+      mlScore: number;
+      synergyScore: number;
+    }>;
+  };
+  lastUpdated: number;
+}
+
+export interface RecursiveNorthStarOperatorStatus {
+  blockers: {
+    recursion: string[];
+    ml: string[];
+    synergy: string[];
+  };
+  triage: {
+    ml: {
+      readinessReasons: string[];
+      lastLoadError: string | null;
+      lastLoadErrorCode: string | null;
+      probe: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeProbe"];
+      runtimeFingerprint: RecursiveNorthStarResponse["metrics"]["ml"]["runtimeFingerprint"];
+      nextActions: string[];
+      prioritizedNextActions?: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
+    };
+    recursion: {
+      sufficiencyTasks: string[];
+      nextActions: string[];
+      prioritizedNextActions?: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
+    };
+    synergy: {
+      promotionReasons: string[];
+      stageDeficits: Array<{
+        stage: string;
+        deficitToMin: number;
+      }>;
+      pairDeficits: Array<{
+        label: string;
+        deficitToMin: number;
+      }>;
+      nextActions: string[];
+      prioritizedNextActions?: Array<{
+        priority: 1 | 2 | 3;
+        label: "P1" | "P2" | "P3";
+        reasonCode: string;
+        action: string;
+      }>;
+    };
+  };
+  weeklySnapshot: {
+    available: boolean;
+    path: string | null;
+    capturedAtMs: number | null;
+  };
+  generatedAt: number;
+}
+
 export async function fetchPaperWithError(agentId: string): Promise<{
   data: PaperResponse | null;
   error: string | null;
@@ -889,6 +1145,78 @@ export async function fetchPaperWithError(agentId: string): Promise<{
       return { data: null, error: msg, status: res.status };
     }
     return { data: body as PaperResponse, error: null, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchRecursiveNorthStarWithError(
+  agentId: string,
+): Promise<{
+  data: RecursiveNorthStarResponse | null;
+  error: string | null;
+  status: number | null;
+}> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/recursive-north-star?agentId=${encodeURIComponent(agentId)}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+      cache: "no-store",
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as RecursiveNorthStarResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchRecursiveNorthStarOperatorStatusWithError(
+  agentId: string,
+): Promise<{
+  data: RecursiveNorthStarOperatorStatus | null;
+  error: string | null;
+  status: number | null;
+}> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/recursive-north-star/operator-status?agentId=${encodeURIComponent(agentId)}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+      cache: "no-store",
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as RecursiveNorthStarOperatorStatus,
+      error: null,
+      status: res.status,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };

@@ -17,6 +17,7 @@ ECHO is the **CSO (Chief Sentiment Officer)** agent: the voice of Crypto Twitter
 ## What ECHO Can Do Today
 
 - **Pulse & vibe:** X_PULSE (quick or full briefing, last 24h); X_VIBE (single-topic, optional quality-account filter). Uses plugin-x-research; X_BEARER_TOKEN required.
+- **Prediction markets:** POLYMARKET_VIBE — what do Polymarket odds say about BTC, macro, stocks? Reads the same cache Vince uses (no X API); surfaces prediction-market sentiment for the user.
 - **Watchlist:** X_WATCHLIST — read-only “check my watchlist”; add/remove via CLI only.
 - **Account:** X_ACCOUNT — “what did @user say about BTC/ETH/…” with topic filter.
 - **Save research:** X_SAVE_RESEARCH — save last pulse/vibe/news to file (e.g. `--save --markdown` via CLI).

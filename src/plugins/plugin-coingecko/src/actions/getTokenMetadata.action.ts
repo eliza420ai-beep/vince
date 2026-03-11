@@ -119,14 +119,15 @@ export const getTokenMetadataAction: Action = {
     "Use this action when the user asks about a specific token/coin or wants core token details or high-level market info. Examples: 'what is <token>?', symbol/name/contract lookups, decimals, logo, networks/addresses, current price, market cap, volume, ATH/ATL, and basic performance. Not for portfolio balances, swaps/trades, or protocol-level TVL. Accepts CoinGecko id, symbol, name, or a contract address (EVM 0x..., Solana Base58).",
 
   // Parameter schema for tool calling
-  parameters: {
-    tokens: {
-      type: "string",
+  parameters: [
+    {
+      name: "tokens",
       description:
         "Comma-separated list of token identifiers (symbols, names, CoinGecko IDs, or contract addresses). Examples: 'bitcoin,ethereum' or 'BTC,ETH' or '0x2081...946ee'",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,
@@ -237,7 +238,7 @@ export const getTokenMetadataAction: Action = {
           content: {
             results: serviceResults,
             summary: summaryLines,
-          },
+          } as unknown as import("@elizaos/core").ContentValue,
           source: message.content.source,
         });
       }

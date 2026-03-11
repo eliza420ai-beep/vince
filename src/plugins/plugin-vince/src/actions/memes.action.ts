@@ -18,6 +18,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -453,7 +454,7 @@ export const vinceMemesAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const dexService = runtime.getService(
         "VINCE_DEXSCREENER_SERVICE",
@@ -765,7 +766,7 @@ export const vinceMemesAction: Action = {
       const title = isGmBriefing ? "GM Meme Brief" : "Trenches Report";
       const commands = isGmBriefing
         ? "*Say 'memes' for full analysis. DD [token] for deep dive.*"
-        : "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, DD [token]*";
+        : "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, DD [token]. Lifestyle: ask Kelly.*";
 
       const output = [
         title,

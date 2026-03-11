@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -47,7 +48,7 @@ export const kellyItineraryAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_ITINERARY] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -105,12 +106,14 @@ Output only the itinerary, no XML or preamble. Voice: avoid jargon and filler. $
       });
 
       logger.info("[KELLY_ITINERARY] Itinerary sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_ITINERARY] Error: ${error}`);
       await callback({
         text: "Itinerary failed. Try asking for a specific city and number of days, or check MICHELIN Guide / James Edition.",
         actions: ["KELLY_ITINERARY"],
       });
+      return undefined;
     }
   },
 

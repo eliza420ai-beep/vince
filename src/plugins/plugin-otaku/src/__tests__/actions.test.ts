@@ -44,12 +44,12 @@ describe("Otaku Plugin", () => {
     expect(otakuPlugin.name).toBe("otaku");
   });
 
-  it("should have 13 actions", () => {
-    expect(otakuPlugin.actions).toHaveLength(13);
+  it("should have 15 actions", () => {
+    expect(otakuPlugin.actions).toHaveLength(15);
   });
 
   it("should have 1 service", () => {
-    expect(otakuPlugin.services).toHaveLength(1);
+    expect(otakuPlugin.services).toHaveLength(2);
   });
 
   describe("Action names", () => {
@@ -67,6 +67,8 @@ describe("Otaku Plugin", () => {
       "OTAKU_YIELD_RECOMMEND",
       "OTAKU_SET_REBALANCE",
       "OTAKU_EXECUTE_VINCE_SIGNAL",
+      "OTAKU_READY_TO_EXECUTE",
+      "POLYMARKET_EXECUTE_PENDING_ORDER",
     ];
 
     for (const actionName of expectedActions) {

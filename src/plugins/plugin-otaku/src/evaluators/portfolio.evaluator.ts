@@ -3,7 +3,13 @@
  * Runs after Otaku responses; stores insights as memory facts for future context.
  */
 
-import type { Evaluator, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type {
+  Evaluator,
+  ActionResult,
+  IAgentRuntime,
+  Memory,
+  State,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import type { OtakuService } from "../services/otaku.service";
 import type { Position } from "../services/otaku.service";
@@ -102,7 +108,7 @@ export const portfolioEvaluator: Evaluator = {
     runtime: IAgentRuntime,
     message: Memory,
     state?: State,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const { agentId, roomId } = message;
     if (!agentId || !roomId) return;
 

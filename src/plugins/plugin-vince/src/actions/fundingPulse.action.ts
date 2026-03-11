@@ -8,6 +8,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -147,7 +148,7 @@ export const vinceFundingPulseAction: Action = {
     state: State,
     options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const date = now.toLocaleDateString("en-US", {
@@ -245,12 +246,14 @@ export const vinceFundingPulseAction: Action = {
       });
 
       logger.info("[VINCE_FUNDING_PULSE] Funding pulse complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_FUNDING_PULSE] Error: ${error}`);
       await callback({
         text: "Funding pulse failed — data unavailable. Try again later or use ALOHA for full market brief.",
         actions: ["VINCE_FUNDING_PULSE"],
       });
+      return undefined;
     }
   },
 

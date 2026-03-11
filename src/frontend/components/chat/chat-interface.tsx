@@ -223,15 +223,15 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "Are we on track for $100K?",
     },
     { label: "X Research Hub", message: "X research command center status" },
+    { label: "Trust Dashboard", message: "Show trust transparency dashboard" },
   ],
-  // Solus (CFO): on-chain options expert, Hypersurface mechanics, strike ritual, plan and call.
+  // Solus (CFO): on-chain options expert. Hypersurface capital = optimize for upfront premium; BTC/SOL/HYPE not core holds. Own Deribit data; answers independently.
   solus: [
-    { label: "What can the CFO do?", message: "What can you do?" },
+    { label: "What can you do?", message: "What can you do?" },
     { label: "How Hypersurface works", message: "How does Hypersurface work?" },
     {
       label: "Optimal strike this week",
-      message:
-        "What's the optimal strike for BTC this week? I'll paste VINCE's options view.",
+      message: "What's the optimal strike for BTC covered calls this week?",
     },
     {
       label: "Strike ritual",
@@ -239,32 +239,65 @@ const QUICK_ACTIONS_BY_AGENT: Record<
         "Walk me through strike ritual for Friday — covered calls vs secured puts",
     },
     {
-      label: "Secured puts vs calls",
-      message: "When do I sell secured puts vs covered calls on Hypersurface?",
+      label: "What about our SOL?",
+      message:
+        "What about our SOL? Assess the stack and should we swap to HYPE or BTC for better premium?",
     },
     {
       label: "Assess my position",
-      message:
-        "I have a Hypersurface position — here are the details: [paste strike, notional, premium, expiry]",
+      message: "Assess my Hypersurface position — hold, roll, or adjust?",
     },
     {
-      label: "Size or Skip?",
+      label: "Close early check",
       message:
-        "Give me size, skip, or watch and invalidation — I'll paste context",
+        "Run close early check on our current Hypersurface positions and tell me hold/close/roll with invalidation.",
+    },
+    {
+      label: "Close early + USDT0",
+      message:
+        "Should we buy back early now? Include USDT0 funding gap and bridge warning if we cannot close yet.",
+    },
+    {
+      label: "Settlement timing",
+      message:
+        "Explain Hypersurface settlement timing: Friday 08:00 UTC expiry, early exercise window, and why settlement can take up to 2 hours.",
+    },
+    {
+      label: "Settle All help",
+      message:
+        "I cannot find my collateral after expiry. What should I do on Hypersurface?",
+    },
+    {
+      label: "Sell probability caveat",
+      message:
+        "How should I interpret sell probability on Hypersurface? Is it guaranteed?",
+    },
+    {
+      label: "Size or skip?",
+      message: "Give me size, skip, or watch and invalidation for this week",
+    },
+    {
+      label: "Swap SOL for better premium?",
+      message:
+        "Are we better off swapping our SOL into HYPE or BTC for better upfront premium?",
     },
     { label: "$100K Plan", message: "full $100K plan" },
-    { label: "Weekly Premium P&L", message: "weekly premium P&L report" },
-    { label: "What's Your Call?", message: "what's your call?" },
+    {
+      label: "Weekly premium goal",
+      message: "How are we tracking toward the ~$3K/week premium goal?",
+    },
+    { label: "What's your call?", message: "what's your call?" },
+    {
+      label: "Secured puts vs calls",
+      message: "When do I sell secured puts vs covered calls on Hypersurface?",
+    },
     // Stock research (Finnhub + FMP)
     { label: "Analyze NVDA", message: "analyze NVDA" },
-    { label: "Analyze TSLA", message: "analyze TSLA" },
-    { label: "Analyze AMD", message: "analyze AMD" },
-    { label: "Analyze AAPL", message: "analyze AAPL" },
-    { label: "Earnings Calendar", message: "earnings calendar" },
     {
       label: "Sector: AI Infra",
       message: "What's the latest on AI infrastructure stocks?",
     },
+    { label: "Earnings Calendar", message: "earnings calendar" },
   ],
   // Sentinel (CTO): core dev, ops, cost, ONNX, clawdbot, project radar.
   sentinel: [
@@ -287,6 +320,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     },
     { label: "Alpha Memo", message: "Generate this week's alpha memo" },
     { label: "Operator Dashboard", message: "Show operator dashboard" },
+    { label: "Graduation Gate", message: "Run final graduation gate audit" },
   ],
   // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/bridge/DCA/orders).
   otaku: [
@@ -330,14 +364,19 @@ const QUICK_ACTIONS_BY_AGENT: Record<
       message: "Ready to execute? Should I execute Vince signal?",
     },
   ],
-  // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research). What's the trade = belief-router (thesis → one expression).
+  // ECHO (CSO): WTT first, then pulse/vibe, watchlist, threads, account, news, save. Every chip validates an x-research action.
   echo: [
     { label: "What can the CSO do?", message: "What can you do?" },
     { label: "What's the trade", message: "What's the trade today?" },
     { label: "X Pulse", message: "What's CT saying today?" },
     { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
+    {
+      label: "BTC LT Sentiment",
+      message: "Give me BTC long-term sentiment and price targets",
+    },
     { label: "Vibe: ETH", message: "Sentiment on ETH" },
     { label: "Vibe: SOL", message: "What's the sentiment on SOL?" },
+    { label: "Check watchlist", message: "Check my watchlist" },
     {
       label: "Summarize thread",
       message:
@@ -345,9 +384,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     },
     { label: "Who is @user?", message: "Who is @crediblecrypto?" },
     { label: "X News", message: "What's the crypto news on X?" },
-    { label: "CT Headlines", message: "Headlines from crypto Twitter" },
     { label: "Save that", message: "save that" },
-    { label: "Command Center", message: "X research command center" },
   ],
   // Oracle: Polymarket discovery + desk (edge check, risk snapshot, perf report). One agent for all.
   oracle: [
@@ -433,7 +470,8 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Knowledge and research only. For live data, bot status, or execution, ask VINCE.",
   kelly:
     "Hotels, dining, wine, surf, wellness, creative. No trading advice—Kelly asks the team for you.",
-  solus: "Plan and call only. Data from VINCE; no execution—ask Otaku.",
+  solus:
+    "Options expert. Hypersurface strike & position; own data; no execution—ask Otaku.",
   echo: "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
   sentinel: "Core dev and ops only. No trading—ask VINCE or Solus.",
   otaku:
@@ -544,7 +582,7 @@ const ELIZA_CATEGORIES: Record<
   },
 };
 
-// Solus: execution architect — plan, process, call only. Data (yield, options chains, bot, X) = VINCE.
+// Solus: on-chain options expert. Hypersurface capital = upfront premium; BTC/SOL/HYPE not core holds. Own Deribit data; answers independently.
 const SOLUS_CATEGORIES: Record<
   string,
   {
@@ -559,21 +597,42 @@ const SOLUS_CATEGORIES: Record<
     icon: Target,
     promptToAsk: "full $100K plan",
     description:
-      "Seven pillars: sats, yield, Echo DD, options, paper perps, HIP-3, airdrops",
+      "Seven pillars: options (~$3K/wk), yield, Echo DD, sats, paper perps, HIP-3, airdrops",
   },
   targets: {
-    title: "This Week's Targets",
+    title: "This Week's Strike",
     icon: TrendingUp,
-    promptToAsk: "this week's targets",
+    promptToAsk: "What's the optimal strike for BTC this week?",
     description:
-      "Strike ritual output — size, expiry, invalidation (get options data from VINCE first)",
+      "Strike call from sizing state + Deribit (spot, IV, best CC/CSP); no paste required",
+  },
+  positionAssess: {
+    title: "Assess Position",
+    icon: Wallet,
+    promptToAsk: "Assess my Hypersurface position — hold, roll, or adjust?",
+    description:
+      "Position assessment using sizing state + options context; one answer",
+  },
+  ourSol: {
+    title: "What About Our SOL?",
+    icon: TrendingUp,
+    promptToAsk:
+      "What about our SOL? Should we swap to HYPE or BTC for better premium?",
+    description:
+      "SOL stack + swap question; capital is for premium, not core hold",
   },
   sizeSkip: {
     title: "Size or Skip?",
     icon: Target,
-    promptToAsk:
-      "Give me size, skip, or watch and invalidation — I'll paste context",
-    description: "Paste VINCE's (or any) context; Solus gives the call",
+    promptToAsk: "Give me size, skip, or watch and invalidation for this week",
+    description: "One call from sizing state and options context",
+  },
+  strikeRitual: {
+    title: "Strike Ritual",
+    icon: Target,
+    promptToAsk: "Walk me through strike ritual for Friday",
+    description:
+      "Covered calls vs secured puts; asset pick; strike width; invalidation",
   },
   echo: {
     title: "Echo DD",
@@ -591,8 +650,7 @@ const SOLUS_CATEGORIES: Record<
     title: "What's Your Call?",
     icon: TrendingUp,
     promptToAsk: "what's your call?",
-    description:
-      "Clear buy/sell/watch with invalidation — architect's decision",
+    description: "One clear move with invalidation — architect's decision",
   },
 };
 

@@ -42,23 +42,28 @@ function generateStatusMessage(
     const formattedSettings = Object.entries(worldSettings)
       .map(([key, setting]) => {
         if (typeof setting !== "object" || !setting.name) return null;
+        const s = setting as Setting;
 
-        const description = setting.description || "";
-        const usageDescription = setting.usageDescription || "";
+        const description = s.description || "";
+        const usageDescription = s.usageDescription || "";
 
         // Skip settings that should be hidden based on visibility function
-        if (setting.visibleIf && !setting.visibleIf(worldSettings)) {
+        if (
+          s.visibleIf &&
+          typeof s.visibleIf === "function" &&
+          !s.visibleIf(worldSettings as Record<string, Setting>)
+        ) {
           return null;
         }
 
         return {
           key,
-          name: setting.name,
-          value: formatSettingValue(setting, isOnboarding),
+          name: s.name,
+          value: formatSettingValue(s, isOnboarding),
           description,
           usageDescription,
-          required: setting.required,
-          configured: setting.value !== null,
+          required: s.required,
+          configured: s.value !== null,
         };
       })
       .filter(Boolean);
@@ -208,7 +213,7 @@ export const settingsProvider: Provider = {
           throw new Error("No server ownership found for onboarding");
         }
 
-        serverId = world.serverId;
+        serverId = (world as World & { serverId?: string }).serverId;
 
         if (!serverId) {
           logger.error("World does not include a serverId during onboarding");
@@ -232,7 +237,7 @@ export const settingsProvider: Provider = {
             throw new Error(`No world found for room ${room.worldId}`);
           }
 
-          serverId = world.serverId;
+          serverId = (world as World & { serverId?: string }).serverId;
 
           // Once we have the serverId, get the settings
           if (serverId) {

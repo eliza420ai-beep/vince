@@ -76,7 +76,7 @@ export const navalOneTeamOneDreamAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_ONE_TEAM_ONE_DREAM] Action fired");
     try {
       const state = await runtime.composeState(message);

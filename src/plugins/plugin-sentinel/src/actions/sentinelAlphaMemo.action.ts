@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -150,7 +151,7 @@ export const sentinelAlphaMemoAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_ALPHA_MEMO] Building weekly alpha memo");
 
     const eliza = getElizaOS(runtime);
@@ -167,7 +168,10 @@ export const sentinelAlphaMemoAction: Action = {
       CACHE_KEY,
     );
     if (cached && cached.markdown && Date.now() - cached.ts < CACHE_TTL_MS) {
-      await callback({ text: cached.markdown, actions: ["SENTINEL_ALPHA_MEMO"] });
+      await callback({
+        text: cached.markdown,
+        actions: ["SENTINEL_ALPHA_MEMO"],
+      });
       return;
     }
 
@@ -222,8 +226,7 @@ export const sentinelAlphaMemoAction: Action = {
       })(),
     ]);
 
-    const vince =
-      vinceResult.status === "fulfilled" ? vinceResult.value : "";
+    const vince = vinceResult.status === "fulfilled" ? vinceResult.value : "";
     const echo = echoResult.status === "fulfilled" ? echoResult.value : "";
     const solus = solusResult.status === "fulfilled" ? solusResult.value : "";
 

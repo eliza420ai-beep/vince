@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -246,7 +247,7 @@ export const vinceMemeDeepDiveAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const dexService = runtime.getService(
         "VINCE_DEXSCREENER_SERVICE",

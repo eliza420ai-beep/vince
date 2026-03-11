@@ -228,6 +228,20 @@ export class XTrendsService {
       volumeSpikes,
     };
   }
+
+  /**
+   * Asset symbols (BTC, ETH, SOL, HYPE) that are trending or had a volume spike.
+   * For signal aggregator soft "X trending" factor.
+   */
+  async getTrendingAssets(): Promise<string[]> {
+    const { trending, volumeSpikes } = await this.getTrendingSummary();
+    const fromTrending = trending
+      .filter((t) => t.isTrending)
+      .map((t) => t.topic.toUpperCase());
+    const fromSpikes = volumeSpikes.map((v) => v.topic.toUpperCase());
+    const set = new Set<string>([...fromTrending, ...fromSpikes]);
+    return [...set].filter((s) => ["BTC", "ETH", "SOL", "HYPE"].includes(s));
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

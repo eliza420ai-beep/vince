@@ -60,7 +60,7 @@ export const navalRentingTimeAuditAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_RENTING_TIME_AUDIT] Action fired");
     try {
       const state = await runtime.composeState(message);

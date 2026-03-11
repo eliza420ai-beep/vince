@@ -89,8 +89,7 @@ COMPLETED
   503 and the card is hidden (no crash).
 
 ## Leaderboard page (dashboard hub) ✅
-- Single-page dashboard: Markets (HIP-3, HL Crypto), Memetics, News, Digital Art, More, Trading Bot,
-  Knowledge. Data from plugin-vince GET .../vince/leaderboards; no chat required. Per-section timeouts,
+- Single-page dashboard: Trading Bot, News, Markets, Knowledge, Charts, Polymarket, Usage (Memetics, Digital Art, More/Trading context removed). Data from plugin-vince GET .../vince/leaderboards; no chat required. Per-section timeouts,
   React Query, MarketLeaderboardSection, 503/404 hints. See README § "Leaderboard page (dashboard hub)".
 
 ## Docs ✅
@@ -165,7 +164,7 @@ KEY FILES
 - App.tsx                    — Main app, guest mode, channels, chat view, error fallbacks
 - components/chat/chat-interface.tsx — Messages, input, quick prompts, Market Pulse, quick actions (ALOHA, News, Memes, Perps, Options), error display
 - components/chat/market-pulse-card.tsx — Market Pulse card (LLM insight + expandable sections)
-- components/dashboard/leaderboard/page.tsx — Leaderboard page (seven tabs: Markets, Memetics, News, Digital Art, More, Trading Bot, Knowledge)
+- components/dashboard/leaderboard/page.tsx — Leaderboard page (tabs: Trading Bot, News, Markets, Knowledge, Charts, Polymarket, Usage)
 - components/dashboard/leaderboard/market-leaderboard-section.tsx — Reusable section (top movers, volume leaders, categories)
 - lib/elizaClient.ts         — API client (baseUrl: window.location.origin)
 - lib/pulseApi.ts            — Fetch dashboard pulse (GET /api/agents/:agentId/plugins/vince/pulse)

@@ -70,6 +70,17 @@ export const AGENT_ROLES = {
     ],
     isStandupFacilitator: true,
   },
+  Forge: {
+    title: "AutoResearch",
+    focus: "MLX Experiments (silent unless called)",
+    reportSections: [
+      "experiments_run",
+      "winners",
+      "delta_metric",
+      "safety_gate_status",
+    ],
+    isSilentByDefault: true,
+  },
   Sentinel: {
     title: "CTO",
     focus: "Ops & Infrastructure",
@@ -239,6 +250,8 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
   Kelly: `good morning team. standup. @VINCE, go.`,
 
   Sentinel: `shipped standup docs overhaul and contributing. next up: otaku wallet pr. agents green, apis green.`,
+
+  Forge: `ran 0 experiments — feature store below threshold or mlx not available. nothing to commit.`,
 
   Clawterm: `48 skills on openclaw, still low engagement. kimi claw's cloud agent is the interesting one, scheduled automations in browser. needs easier install.`,
 

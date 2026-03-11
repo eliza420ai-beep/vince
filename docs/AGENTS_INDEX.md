@@ -16,6 +16,7 @@ This folder contains **one briefing document per agent** in the VINCE multi-agen
 | **Otaku**    | [OTAKU.md](OTAKU.md)       | COO  | Only agent with a funded wallet; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution.              |
 | **Kelly**    | [KELLY.md](KELLY.md)       | CVO  | Lifestyle concierge; one team one dream (orchestrates others via ASK_AGENT); plugin-personality (self-modification).  |
 | **Sentinel** | [SENTINEL.md](SENTINEL.md) | CTO  | Core dev: PRDs, project radar, impact suggestions, OpenClaw expert, cost status, ART; weekly + optional daily tasks.  |
+| **Forge**    | [FORGE.md](FORGE.md)       | —    | MLX AutoResearch: overnight self-optimization experiments; mutate policy/prompts/ML weights → commit winners.         |
 
 ---
 
@@ -33,3 +34,5 @@ This folder contains **one briefing document per agent** in the VINCE multi-agen
 - [CLAUDE.md](CLAUDE.md) — VINCE project layout and agent map.
 - [docs/MULTI_AGENT.md](MULTI_AGENT.md) — ASK_AGENT, Discord, A2A, handoffs.
 - [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) — Left (Vince perps), mid (HIP-3), right (Solus options).
+- **Swarm learning:** [SWARM_LEARNING_ARCHITECTURE.md](SWARM_LEARNING_ARCHITECTURE.md) — multi-agent bandit, consensus, and rollout modes. Core contracts live in `src/plugins/plugin-vince/src/types/swarm.ts` and are consumed by `SwarmCoordinationService` and `vincePaperTrading.service.ts`. Run the [Swarm E2E checklist](SWARM_E2E_CHECKLIST.md) manually after config or swarm changes.
+- **PRDs (standup):** [Paper trading algo + ML](standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) — decision flow, gates, how ML improves the algo. [ML training pipeline](standup/prds/PRD_ML_TRAINING_PIPELINE.md) — feature store → train → ONNX → report → Sentinel.

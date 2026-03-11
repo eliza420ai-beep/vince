@@ -23,7 +23,11 @@ import { formatCostFooter } from "../constants/cost";
 import { setLastResearch } from "../store/lastResearchStore";
 import { getMandoContextForX } from "../utils/mandoContext";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
-import { getFriendlyXErrorMessage } from "../utils/xErrorMessages";
+import {
+  getFriendlyXErrorMessage,
+  stripPriceBlockFromEchoResponse,
+} from "../utils/xErrorMessages";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 export const xVibeAction: Action = {
   name: "X_VIBE",
@@ -85,9 +89,9 @@ export const xVibeAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options?: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -108,9 +112,8 @@ export const xVibeAction: Action = {
       }
 
       if (!detectedTopic) {
-        callback({
+        await sendActionResponse(callback, "X_VIBE", {
           text: "I couldn't identify the topic. Try asking about BTC, ETH, SOL, or other crypto topics.",
-          action: "X_VIBE",
         });
         return { success: true };
       }
@@ -130,9 +133,8 @@ export const xVibeAction: Action = {
       });
 
       if (tweets.length === 0) {
-        callback({
+        await sendActionResponse(callback, "X_VIBE", {
           text: `📊 **${detectedTopic.name} Vibe Check**\n\nNo recent tweets found. X API might be rate limited.`,
-          action: "X_VIBE",
         });
         return { success: true };
       }
@@ -144,9 +146,8 @@ export const xVibeAction: Action = {
       );
 
       if (!topicSentiment) {
-        callback({
+        await sendActionResponse(callback, "X_VIBE", {
           text: `📊 **${detectedTopic.name} Vibe Check**\n\nNot enough data to determine sentiment.`,
-          action: "X_VIBE",
         });
         return { success: true };
       }
@@ -224,18 +225,16 @@ export const xVibeAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, response);
-      callback({
-        text: response,
-        action: "X_VIBE",
+      await sendActionResponse(callback, "X_VIBE", {
+        text: stripPriceBlockFromEchoResponse(response),
       });
 
       return { success: true };
     } catch (error) {
       logger.warn({ err: error }, "[X_VIBE] X API error");
       const friendly = getFriendlyXErrorMessage(error);
-      callback({
+      await sendActionResponse(callback, "X_VIBE", {
         text: `📊 **Vibe Check**\n\n⚠️ ${friendly}`,
-        action: "X_VIBE",
       });
       return {
         success: false,

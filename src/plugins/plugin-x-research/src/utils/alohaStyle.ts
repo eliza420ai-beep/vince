@@ -4,22 +4,73 @@
  * friend-over-coffee, no bullets, take positions, no AI-slop.
  */
 
+export const ALOHA_STYLE_SENTENCE_TARGET = "Around 200-300 words.";
+
+/** Positive writing constraints we want in every generated narrative. */
+export const ALOHA_STYLE_DO: readonly string[] = [
+  "Write like you're explaining this to a smart friend over coffee, not presenting to a board.",
+  "Vary sentence length: mix short, punchy lines with longer lines only when needed.",
+  "Use concrete details and numbers when available, woven naturally into the flow.",
+  "Flow as prose only. No bullets, headers, or formal section wrappers.",
+  "State a view. If the tape is quiet, say it plainly; if something matters, say why.",
+  "Take positions without fake certainty. Be decisive and honest about uncertainty.",
+  "Use active voice and direct verbs. Prefer plain phrasing over abstract framing.",
+  `${ALOHA_STYLE_SENTENCE_TARGET} Keep it tight and avoid filler.`,
+] as const;
+
+/** Anti-patterns that create repetitive, generic, or artificial writing. */
+export const ALOHA_STYLE_AVOID: readonly string[] = [
+  "Starting every sentence with the same topic name.",
+  '"Interestingly", "notably", "it\'s worth noting".',
+  "Generic observations that could apply to any day.",
+  'Phrases like "the landscape is showing signs of..." (just say what happened).',
+  "Repeating the same sentence structure over and over.",
+  "Sycophantic or consultant-style tone.",
+] as const;
+
+/** Canonical banned AI-slop language, shared across prompts. */
+export const NO_AI_SLOP_TERMS: readonly string[] = [
+  "leverage",
+  "utilize",
+  "streamline",
+  "robust",
+  "cutting-edge",
+  "game-changer",
+  "synergy",
+  "paradigm",
+  "holistic",
+  "seamless",
+  "best-in-class",
+  "delve",
+  "landscape",
+  "certainly",
+  "great question",
+  "I'd be happy to",
+  "let me help",
+  "explore",
+  "dive into",
+  "unpack",
+  "nuanced",
+  "actionable",
+  "circle back",
+  "touch base",
+  "at the end of the day",
+  "it's worth noting",
+  "to be clear",
+  "in essence",
+  "let's dive in",
+] as const;
+
+function bulletize(lines: readonly string[]): string {
+  return lines.map((line) => `- ${line}`).join("\n");
+}
+
+/** Prompt-ready style block. Keep this for backward compatibility in existing actions/tasks. */
 export const ALOHA_STYLE_RULES = `STYLE RULES:
-- Write like you're explaining this to a smart friend over coffee, not presenting to a board.
-- Vary your sentence length. Mix short punchy takes with longer explanations when you need to unpack something.
-- Use specific details but weave them in naturally.
-- Don't bullet point anything. Flow naturally between thoughts.
-- Skip the formal structure. No headers, no "In conclusion", no "Overall".
-- Have a personality. If the news is quiet, say so. If something stands out, say why.
-- Don't be sycophantic or hedge everything. Take positions.
-- Around 200-300 words is good. Don't pad it.
+${bulletize(ALOHA_STYLE_DO)}
 
 AVOID:
-- Starting every sentence with the same topic name
-- "Interestingly", "notably", "it's worth noting"
-- Generic observations that could apply to any day
-- Phrases like "the landscape is showing signs of..." — just say what's happening
-- Repeating the same sentence structure over and over`;
+${bulletize(ALOHA_STYLE_AVOID)}`;
 
-export const NO_AI_SLOP =
-  "Also NEVER use these words or phrases: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day, it's worth noting, to be clear, in essence, let's dive in.";
+/** Prompt-ready banned terms block. Keep this for backward compatibility in existing actions/tasks. */
+export const NO_AI_SLOP = `Also NEVER use these words or phrases: ${NO_AI_SLOP_TERMS.join(", ")}.`;

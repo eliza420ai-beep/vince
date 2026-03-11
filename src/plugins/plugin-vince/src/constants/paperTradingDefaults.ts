@@ -11,15 +11,15 @@ import { CORE_ASSETS, HIP3_ASSETS, ALL_TRACKED_ASSETS } from "./targetAssets";
 
 // ==========================================
 // Trading Goal / KPI Configuration
-// Core KPI: $10,000/month = ~$420/day
+// Core KPI: ~$15,180/month = $690/day (assuming ~22 trading days)
 // ==========================================
 
 export const DEFAULT_TRADING_GOAL: TradingGoal = {
-  /** Target $420/day to hit $10K/month (assuming ~24 trading days) */
-  dailyTarget: 420,
+  /** Target $690/day (assuming ~22 trading days) */
+  dailyTarget: 690,
 
   /** Monthly profit target */
-  monthlyTarget: 10_000,
+  monthlyTarget: 15_180,
 
   /** Risk 1.5% of capital per trade (conservative) */
   riskPerTradePct: 1.5,
@@ -134,8 +134,8 @@ export const DEFAULT_RISK_LIMITS: RiskLimits = {
   /** Maximum 10% of portfolio per position */
   maxPositionSizePct: 10,
 
-  /** Maximum 30% total exposure */
-  maxTotalExposurePct: 30,
+  /** Maximum 50% of capital deployed (e.g. up to $50K of $100K) */
+  maxTotalExposurePct: 50,
 
   /** Maximum 5x leverage */
   maxLeverage: 5,
@@ -219,7 +219,8 @@ export const AGGRESSIVE_RISK_LIMITS: RiskLimits = {
   ...DEFAULT_RISK_LIMITS,
   maxLeverage: 40,
   maxPositionSizePct: 50,
-  maxTotalExposurePct: 60,
+  // Paper-data preset: allow full budget deployment in aggressive mode.
+  maxTotalExposurePct: 100,
   /** No cooldown in aggressive (learning) mode so we can generate more trades for ML. */
   cooldownAfterLossMs: 0,
 };
@@ -329,6 +330,48 @@ export const TIMING = {
 // ==========================================
 // Assets
 // ==========================================
+
+/** Asset class for guardrail caps (PTQG/post-mortem). */
+export type PtqgAssetClass = "crypto" | "equity" | "commodity" | "other";
+
+/**
+ * Max leverage cap by asset class (guardrail layer).
+ * Applied as minimum of per-asset cap and this class cap.
+ * Override via VINCE_PAPER_MAX_LEVERAGE_EQUITY, _CRYPTO, _COMMODITY (env or runtime).
+ */
+export const ASSET_CLASS_MAX_LEVERAGE: Record<PtqgAssetClass, number> = {
+  crypto: 10,
+  equity: 5,
+  commodity: 5,
+  other: 5,
+};
+
+/**
+ * Get max leverage cap for an asset class (env overrides, else ASSET_CLASS_MAX_LEVERAGE).
+ */
+export function getAssetClassMaxLeverage(
+  assetClass: PtqgAssetClass,
+  runtime?: IAgentRuntime,
+): number {
+  const envKey =
+    assetClass === "equity"
+      ? "VINCE_PAPER_MAX_LEVERAGE_EQUITY"
+      : assetClass === "crypto"
+        ? "VINCE_PAPER_MAX_LEVERAGE_CRYPTO"
+        : assetClass === "commodity"
+          ? "VINCE_PAPER_MAX_LEVERAGE_COMMODITY"
+          : null;
+  if (envKey) {
+    const fromRuntime = runtime?.getSetting?.(envKey);
+    const fromEnv = process.env[envKey];
+    const raw = fromRuntime ?? fromEnv;
+    if (raw !== undefined && raw !== null) {
+      const n = Number(raw);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+  }
+  return ASSET_CLASS_MAX_LEVERAGE[assetClass];
+}
 
 /**
  * Asset-specific max leverage.

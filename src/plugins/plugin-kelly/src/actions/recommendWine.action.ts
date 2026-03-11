@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -66,7 +67,7 @@ export const kellyRecommendWineAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[KELLY_RECOMMEND_WINE] Action fired");
     try {
       const userAsk = (message.content?.text ?? "").trim();
@@ -140,12 +141,14 @@ Output only the recommendation text, no XML or extra commentary. Voice: avoid ja
       }
 
       logger.info("[KELLY_RECOMMEND_WINE] Recommendation sent");
+      return undefined;
     } catch (error) {
       logger.error(`[KELLY_RECOMMEND_WINE] Error: ${error}`);
       await callback({
         text: "Wine recommendation failed. Try asking again with the dish or occasion.",
         actions: ["KELLY_RECOMMEND_WINE"],
       });
+      return undefined;
     }
   },
 

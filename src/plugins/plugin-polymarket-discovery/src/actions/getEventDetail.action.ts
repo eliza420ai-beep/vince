@@ -44,18 +44,20 @@ export const getEventDetailAction: Action = {
   description:
     "Get detailed information about a specific Polymarket event, including all associated markets. Provide either event_id or event_slug.",
 
-  parameters: {
-    event_id: {
-      type: "string",
+  parameters: [
+    {
+      name: "event_id",
       description: "Event ID to fetch details for",
       required: false,
+      schema: { type: "string" },
     },
-    event_slug: {
-      type: "string",
+    {
+      name: "event_slug",
       description: "Event slug (URL-friendly identifier) to fetch details for",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

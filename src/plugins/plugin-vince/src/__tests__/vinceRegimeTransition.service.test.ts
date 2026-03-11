@@ -35,7 +35,10 @@ describe("VinceRegimeTransitionService", () => {
     svc.recordTransition("trending", "volatile", 3600000);
     const filePath = path.join(tmpDir, "regime-history.jsonl");
     expect(fs.existsSync(filePath)).toBe(true);
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     expect(lines).toHaveLength(1);
     const rec = JSON.parse(lines[0]);
     expect(rec.from).toBe("trending");

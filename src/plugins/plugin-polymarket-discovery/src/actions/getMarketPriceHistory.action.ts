@@ -131,32 +131,36 @@ export const getMarketPriceHistoryAction: Action = {
   description:
     "Get historical price data for a Polymarket prediction market. Shows price movement over time for YES or NO outcomes. Use this when the user asks to see a price chart, trend, or historical data for a prediction market.",
 
-  parameters: {
-    conditionId: {
-      type: "string",
+  parameters: [
+    {
+      name: "conditionId",
       description:
         "Market condition ID (66-character hex string starting with 0x). Required to identify which market to fetch history for.",
       required: true,
+      schema: { type: "string" },
     },
-    outcome: {
-      type: "string",
+    {
+      name: "outcome",
       description:
         "Which outcome to show history for: 'YES' or 'NO'. Defaults to 'YES' if not specified.",
       required: false,
+      schema: { type: "string" },
     },
-    interval: {
-      type: "string",
+    {
+      name: "interval",
       description:
         "Time interval for the chart: '1m', '1h', '6h', '1d', '1w', 'max'. Defaults to 'max' (full history).",
       required: false,
+      schema: { type: "string" },
     },
-    days: {
-      type: "number",
+    {
+      name: "days",
       description:
         "Alternative to interval: number of days of history to fetch. Will be converted to appropriate interval.",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {
@@ -387,8 +391,11 @@ Range: ${(statistics.low_price * 100).toFixed(1)}%-${(statistics.high_price * 10
         text,
         success: true,
         // Return ONLY the summary (no data_points array) to avoid bloating DB/context
-        data: { ...summary } as Record<string, unknown>,
-        values: { ...summary } as Record<string, unknown>,
+        data: { ...summary } as import("@elizaos/core").ProviderDataRecord,
+        values: { ...summary } as Record<
+          string,
+          import("@elizaos/core").ProviderValue
+        >,
         input: inputParams,
       };
 

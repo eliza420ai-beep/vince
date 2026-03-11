@@ -32,14 +32,15 @@ export const cdpWalletInfo: Action = {
     "Retrieves the user's latest wallet data including balances, tokens, and NFTs. Use this action to get up-to-date wallet information or to confirm wallet status after a transaction. Optionally specify a chain to fetch data for a specific network.",
 
   // Optional chain parameter - if not provided, fetches all chains
-  parameters: {
-    chain: {
-      type: "string",
+  parameters: [
+    {
+      name: "chain",
       description:
         "Optional blockchain network to query (e.g., 'base', 'ethereum', 'arbitrum'). If not provided, fetches data from all supported chains.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpService(_runtime, "USER_WALLET_INFO", state, message);

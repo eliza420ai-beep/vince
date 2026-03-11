@@ -3,7 +3,14 @@
  * Injects context when the user talks about OpenClaw, gateway, setup, or AI (AI 2027, AGI, research agents).
  */
 
-import type { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type {
+  Provider,
+  ProviderResult,
+  ProviderValue,
+  IAgentRuntime,
+  Memory,
+  State,
+} from "@elizaos/core";
 import { isGatewayConfigured } from "../services/gatewayClient.service";
 
 const OPENCLAW_KEYWORDS = [
@@ -42,14 +49,14 @@ export const openclawContextProvider: Provider = {
   get: async (
     _runtime: IAgentRuntime,
     message: Memory,
-    state?: State,
-  ): Promise<{ text?: string; values?: Record<string, unknown> }> => {
+    state: State,
+  ): Promise<ProviderResult> => {
     const msgText = (message?.content?.text ?? "") as string;
     const stateText = (state?.text ?? "") as string;
     const combined = `${msgText} ${stateText}`;
     const hasOpenClaw = hasKeyword(combined, OPENCLAW_KEYWORDS);
     const hasAi = hasKeyword(combined, AI_KEYWORDS);
-    if (!hasOpenClaw && !hasAi) return {};
+    if (!hasOpenClaw && !hasAi) return { text: "", values: {} };
     const gatewaySet = isGatewayConfigured();
     let paragraph =
       "OpenClaw is a self-hosted gateway (default port 18789) that connects chat apps to AI agents. ";
@@ -82,7 +89,7 @@ export const openclawContextProvider: Provider = {
       values: {
         openclawContext: paragraph,
         openclawGatewayConfigured: gatewaySet,
-      },
+      } as Record<string, ProviderValue>,
     };
   },
 };

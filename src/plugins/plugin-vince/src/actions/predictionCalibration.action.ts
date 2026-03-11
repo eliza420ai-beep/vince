@@ -1,5 +1,6 @@
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -39,7 +40,7 @@ export const vincePredictionCalibrationAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ) => {
+  ): Promise<ActionResult | undefined> => {
     const tracker = runtime.getService<PredictionTrackerService>(
       "VINCE_PREDICTION_TRACKER_SERVICE",
     );
@@ -48,7 +49,7 @@ export const vincePredictionCalibrationAction: Action = {
         text: "Prediction tracker unavailable.",
         actions: ["REPLY"],
       });
-      return;
+      return undefined;
     }
     const text = message.content.text ?? "";
     const windowDays = parseWindowDays(text);
@@ -74,6 +75,7 @@ export const vincePredictionCalibrationAction: Action = {
       text: lines.join("\n"),
       actions: ["VINCE_PREDICTION_CALIBRATION"],
     });
+    return undefined;
   },
   examples: [
     [

@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -191,7 +192,7 @@ Target: ${X_URL}`,
     state?: State,
     options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text || "";
 
     try {

@@ -145,12 +145,17 @@ export const dcaOrderAction: Action = {
   ): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
-    // Must contain DCA intent
-    const hasDCAIntent =
+    // Must contain DCA intent (exclude generic questions like "what is dca?")
+    const hasDCAKeyword =
       text.includes("dca") ||
       (text.includes("dollar") && text.includes("cost")) ||
       (text.includes("recurring") && text.includes("buy")) ||
       (text.includes("auto") && text.includes("buy") && text.includes("over"));
+
+    const hasScheduleOrAmount =
+      /\$?\d/.test(text) || text.includes(" over ") || text.includes(" every ");
+
+    const hasDCAIntent = hasDCAKeyword && hasScheduleOrAmount;
 
     if (!hasDCAIntent) return false;
 
@@ -166,9 +171,9 @@ export const dcaOrderAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state?: State,
-    _options?: Record<string, unknown>,
+    _options?: unknown,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text ?? "";
     const lower = text.toLowerCase();
 

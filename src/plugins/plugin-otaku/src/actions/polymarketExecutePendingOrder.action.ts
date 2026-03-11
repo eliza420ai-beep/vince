@@ -6,6 +6,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type HandlerCallback,
@@ -77,7 +78,7 @@ export const polymarketExecutePendingOrderAction: Action = {
     _state?: unknown,
     options?: { sized_order_id?: string },
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const out = (text: string) => {
       if (callback) callback({ text });
     };
@@ -181,9 +182,14 @@ export const polymarketExecutePendingOrderAction: Action = {
       const clobHost =
         (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) ||
         "https://clob.polymarket.com";
+      const liveEnabled =
+        runtime.getSetting("POLYMARKET_DESK_LIVE_ENABLED") === "true" ||
+        runtime.getSetting("POLYMARKET_DESK_LIVE_ENABLED") === true;
+      const credsPresent =
+        !!privateKey && !!apiKey && !!apiSecret && !!apiPassphrase && !!funder;
 
-      // Paper-only: when CLOB credentials are missing, record a paper fill so "Recent trades" and execution P&L show strategy activity without real execution.
-      if (!privateKey || !apiKey || !apiSecret || !apiPassphrase || !funder) {
+      // Paper-only: when live is not enabled or CLOB credentials are missing, record a paper fill so "Recent trades" and execution P&L show strategy activity without real execution.
+      if (!liveEnabled || !credsPresent) {
         let fillPrice = arrivalPrice;
         const discoverySvc = runtime.getService(
           POLYMARKET_DISCOVERY_SERVICE,
@@ -237,7 +243,10 @@ export const polymarketExecutePendingOrderAction: Action = {
             "paper",
           ],
         );
-        const summary = `Paper fill recorded (no CLOB credentials). Order \`${order.id.slice(0, 8)}…\`: ${order.side} $${order.size_usd} @ ${(fillPrice * 100).toFixed(1)}%.`;
+        const paperReason = !credsPresent
+          ? "no CLOB credentials"
+          : "POLYMARKET_DESK_LIVE_ENABLED not set";
+        const summary = `Paper fill recorded (${paperReason}). Order \`${order.id.slice(0, 8)}…\`: ${order.side} $${order.size_usd} @ ${(fillPrice * 100).toFixed(1)}%.`;
         await out(summary);
         logger.info(
           `[POLYMARKET_EXECUTE] Paper fill order ${order.id} trade_log ${tradeId}`,
