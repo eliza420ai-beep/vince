@@ -11,16 +11,24 @@ import { xPulseAction } from "../actions/xPulse.action";
 import { xVibeAction } from "../actions/xVibe.action";
 import { xThreadAction } from "../actions/xThread.action";
 import { xAccountAction } from "../actions/xAccount.action";
+import { xBtcLongTermSentimentAction } from "../actions/xBtcLongTermSentiment.action";
 import { xNewsAction } from "../actions/xNews.action";
 import { xSaveResearchAction } from "../actions/xSaveResearch.action";
+import { xWatchlistAction } from "../actions/xWatchlist.action";
 
+// Synced with QUICK_ACTIONS_BY_AGENT.echo in chat-interface.tsx
 const ECHO_QUICK_ACTIONS = [
   { label: "What can the CSO do?", message: "What can you do?" },
   { label: "What's the trade", message: "What's the trade today?" },
   { label: "X Pulse", message: "What's CT saying today?" },
   { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
+  {
+    label: "BTC LT Sentiment",
+    message: "Give me BTC long-term sentiment and price targets",
+  },
   { label: "Vibe: ETH", message: "Sentiment on ETH" },
   { label: "Vibe: SOL", message: "What's the sentiment on SOL?" },
+  { label: "Check watchlist", message: "Check my watchlist" },
   {
     label: "Summarize thread",
     message:
@@ -28,7 +36,6 @@ const ECHO_QUICK_ACTIONS = [
   },
   { label: "Who is @user?", message: "Who is @crediblecrypto?" },
   { label: "X News", message: "What's the crypto news on X?" },
-  { label: "CT Headlines", message: "Headlines from crypto Twitter" },
   { label: "Save that", message: "save that" },
 ];
 
@@ -55,7 +62,9 @@ function createEchoRuntime(): IAgentRuntime {
 const ECHO_ACTIONS = [
   whatsTheTradeAction,
   xPulseAction,
+  xBtcLongTermSentimentAction,
   xVibeAction,
+  xWatchlistAction,
   xThreadAction,
   xAccountAction,
   xNewsAction,

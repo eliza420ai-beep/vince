@@ -4,8 +4,7 @@
  * Unified context injection for VINCE agent:
  * - Aggregates data from all services
  * - Provides current market context
- * - Injects lifestyle suggestions
- * - Supports RAG with knowledge base
+ * - Supports RAG with knowledge base (lifestyle: ask Kelly)
  */
 
 import type { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";
@@ -13,7 +12,6 @@ import { logger } from "@elizaos/core";
 import type { VinceCoinGlassService } from "../services/coinglass.service";
 import type { VinceMarketDataService } from "../services/marketData.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
-import type { VinceLifestyleService } from "../services/lifestyle.service";
 import type { VinceNFTFloorService } from "../services/nftFloor.service";
 import type { VincePaperTradingService } from "../services/vincePaperTrading.service";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
@@ -124,25 +122,6 @@ export const vinceContextProvider: Provider = {
         data.dexscreenerStatus = status;
       }
 
-      // Lifestyle context
-      const lifestyleService = runtime.getService(
-        "VINCE_LIFESTYLE_SERVICE",
-      ) as VinceLifestyleService | null;
-      if (lifestyleService) {
-        const briefing = lifestyleService.getDailyBriefing();
-        const topSuggestions = lifestyleService.getTopSuggestions(2);
-
-        if (topSuggestions.length > 0) {
-          contextParts.push(`**Today's Suggestions**`);
-          for (const s of topSuggestions) {
-            contextParts.push(`• ${s.suggestion}`);
-          }
-          contextParts.push("");
-        }
-
-        data.lifestyleBriefing = briefing;
-      }
-
       // NFT context
       const nftService = runtime.getService(
         "VINCE_NFT_FLOOR_SERVICE",
@@ -230,7 +209,6 @@ export const vinceContextProvider: Provider = {
       if (coinglassService) availableServices.push("CoinGlass");
       if (marketDataService) availableServices.push("MarketData");
       if (dexService) availableServices.push("DexScreener");
-      if (lifestyleService) availableServices.push("Lifestyle");
       if (nftService) availableServices.push("NFTFloor");
 
       values.availableServices = availableServices;

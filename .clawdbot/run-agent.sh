@@ -68,7 +68,21 @@ run_gemini() {
     -p "$PROMPT"
 }
 
-trap 'update_status "failed" "Agent process exited with error"' ERR
+notify_discord() {
+  local msg="$1"
+  local channel_id
+  channel_id=$(jq -r '.notifications.discordChannelId // empty' "$CONFIG")
+  local discord_enabled
+  discord_enabled=$(jq -r '.notifications.discord // false' "$CONFIG")
+  if [ "$discord_enabled" = "true" ] && [ -n "$channel_id" ]; then
+    /Users/vince/.npm-global/bin/openclaw message send \
+      --channel discord \
+      --target "channel:$channel_id" \
+      --message "$msg" 2>/dev/null || true
+  fi
+}
+
+trap 'update_status "failed" "Agent process exited with error"; notify_discord "⚠️ **clawdbot** | Task \`'"$TASK_ID"'\` failed (agent: '"$AGENT"')"' ERR
 
 case "$AGENT" in
   codex)
@@ -102,11 +116,15 @@ if [ $EXIT_CODE -eq 0 ]; then
       '(.[] | select(.id == $id)) |= (.status = "pr_created" | .pr = ($pr | tonumber) | .prUrl = $url | .completedAt = (now * 1000 | floor))' \
       "$TASKS" > "$temp"
     mv "$temp" "$TASKS"
+    notify_discord "✅ **clawdbot** | Task \`$TASK_ID\` done — PR #$PR_NUM ready for review
+$PR_URL"
   else
     update_status "completed" "Agent finished but no PR detected"
+    notify_discord "✅ **clawdbot** | Task \`$TASK_ID\` complete (no PR detected — check tmux: \`tmux attach -t agent-$TASK_ID\`)"
   fi
 else
   update_status "failed" "Agent exited with code $EXIT_CODE"
+  notify_discord "⚠️ **clawdbot** | Task \`$TASK_ID\` failed (exit $EXIT_CODE) — check tmux: \`tmux attach -t agent-$TASK_ID\`"
 fi
 
 echo ""

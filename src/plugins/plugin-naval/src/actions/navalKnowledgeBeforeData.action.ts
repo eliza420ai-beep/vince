@@ -76,7 +76,7 @@ export const navalKnowledgeBeforeDataAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_KNOWLEDGE_BEFORE_DATA] Action fired");
     try {
       const state = await runtime.composeState(message);

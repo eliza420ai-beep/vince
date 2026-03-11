@@ -86,6 +86,76 @@ interface QualityBreakdown {
   escalate: boolean;
 }
 
+interface RiskBudgetSummary {
+  plannedRiskUsd: number;
+  realizedRiskUsd: number;
+  riskSlippageUsd: number;
+  budgetBreach: boolean;
+}
+
+interface ConsistencyChecks {
+  passed: boolean;
+  issues: string[];
+  adverseMovePctFromPrices: number;
+  adverseMovePctDelta: number;
+  stopDistancePctFromPrices: number;
+  stopDistancePctDelta: number;
+  hasTruncatedFindings: boolean;
+}
+
+interface ProposedPolicyDelta {
+  confidence: number;
+  sampleSizeHint: number;
+  maxStepChangePct: number;
+  expiresAtUtc: string;
+  riskIntent: {
+    stopToAtrMin?: number;
+    maxLeverageByAssetClass?: Partial<Record<PtqgAssetClass, number>>;
+    maxSingleTradeUsd?: number;
+    enforcePreTradeRiskCheck: boolean;
+  };
+  validationPlan: {
+    windowTrades: number;
+    targetMetrics: {
+      maxBudgetBreachRate?: number;
+      minExpectancyUsd?: number;
+      maxDrawdownPct?: number;
+    };
+    rollbackTriggers: string[];
+  };
+}
+
+interface EchoContext {
+  entryTimestampUtc: string;
+  exitTimestampUtc?: string;
+  sentimentScore?: number;
+  regime?: string;
+}
+
+interface OracleContext {
+  entryTimestampUtc: string;
+  exitTimestampUtc?: string;
+  conditionId?: string;
+}
+
+interface SolusContext {
+  assetClass: PtqgAssetClass;
+  thesisClass: PtqgThesisClass;
+  leverage: number;
+  stopDistancePct: number;
+  maxLossUsd: number;
+  maxLossPct: number;
+  entryAtrPct?: number;
+}
+
+interface LaneContexts {
+  echo: EchoContext;
+  oracle: OracleContext;
+  solus: SolusContext;
+}
+
+type RegimeVsExecution = "regime_miss" | "execution_miss" | "unclear";
+
 interface StructuredPostMortem {
   ptqg: PtqgMeta;
   evidence: EvidencePack;
@@ -95,6 +165,15 @@ interface StructuredPostMortem {
   actions: CorrectiveAction[];
   quality: QualityBreakdown;
   nextTradePolicyDelta: string[];
+  laneContexts: LaneContexts;
+  agentContextMissing: Record<string, string[]>;
+  contextCompletenessPct: number;
+  regimeVsExecution: RegimeVsExecution;
+  riskBudget: RiskBudgetSummary;
+  consistencyChecks: ConsistencyChecks;
+  adaptationEligible: boolean;
+  policyVersionAtEntry?: string;
+  proposedPolicyDelta?: ProposedPolicyDelta;
 }
 
 /**
@@ -353,6 +432,89 @@ function buildEvidencePack(position: Position, ptqg: PtqgMeta): EvidencePack {
   };
 }
 
+function computeRiskBudgetSummary(
+  position: Position,
+  ptqg: PtqgMeta,
+): RiskBudgetSummary {
+  const plannedRiskUsd = Number(Math.max(0, ptqg.maxLossUsd).toFixed(2));
+  const realizedRiskUsd = Number(
+    Math.abs(position.realizedPnl ?? 0).toFixed(2),
+  );
+  const riskSlippageUsd = Number((realizedRiskUsd - plannedRiskUsd).toFixed(2));
+  const budgetBreach = realizedRiskUsd > plannedRiskUsd + 0.01;
+  return {
+    plannedRiskUsd,
+    realizedRiskUsd,
+    riskSlippageUsd,
+    budgetBreach,
+  };
+}
+
+function looksTruncatedFinding(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (trimmed.endsWith("...") || trimmed.endsWith(":")) return true;
+  const lower = trimmed.toLowerCase();
+  return (
+    lower.endsWith("next:") ||
+    lower.endsWith("next") ||
+    lower.endsWith("paste the") ||
+    lower.endsWith("ping")
+  );
+}
+
+function computeConsistencyChecks(
+  position: Position,
+  ptqg: PtqgMeta,
+  evidence: EvidencePack,
+  findings: AgentFinding[],
+): ConsistencyChecks {
+  const adverseMovePctFromPrices = Number(
+    (
+      (Math.abs(position.markPrice - position.entryPrice) /
+        position.entryPrice) *
+      100
+    ).toFixed(3),
+  );
+  const adverseMovePctDelta = Number(
+    Math.abs(evidence.adverseMovePct - adverseMovePctFromPrices).toFixed(3),
+  );
+  const stopDistancePctFromPrices = Number(
+    (
+      (Math.abs(position.stopLossPrice - position.entryPrice) /
+        position.entryPrice) *
+      100
+    ).toFixed(3),
+  );
+  const stopDistancePctDelta = Number(
+    Math.abs(ptqg.stopDistancePct - stopDistancePctFromPrices).toFixed(3),
+  );
+  const hasTruncatedFindings = findings.some((f) =>
+    looksTruncatedFinding(f.reply),
+  );
+
+  const issues: string[] = [];
+  if (adverseMovePctDelta > 0.1) {
+    issues.push("adverse_move_mismatch");
+  }
+  if (stopDistancePctDelta > 0.15) {
+    issues.push("stop_distance_mismatch");
+  }
+  if (hasTruncatedFindings) {
+    issues.push("truncated_agent_findings");
+  }
+
+  return {
+    passed: issues.length === 0,
+    issues,
+    adverseMovePctFromPrices,
+    adverseMovePctDelta,
+    stopDistancePctFromPrices,
+    stopDistancePctDelta,
+    hasTruncatedFindings,
+  };
+}
+
 function parseConfidence(text: string): number {
   const m = text.match(
     /confidence\s*[:=]\s*(0(?:\.\d+)?|1(?:\.0+)?|\d{1,2}(?:\.\d+)?)/i,
@@ -498,12 +660,98 @@ function generateCorrectiveActions(
   return [immediate, policy, experiment];
 }
 
+function buildProposedPolicyDelta(
+  position: Position,
+  primary: PostMortemCause,
+  evidence: EvidencePack,
+  ptqg: PtqgMeta,
+  findings: AgentFinding[],
+  quality: QualityBreakdown,
+  riskBudget: RiskBudgetSummary,
+  consistencyChecks: ConsistencyChecks,
+): { adaptationEligible: boolean; delta?: ProposedPolicyDelta } {
+  const avgConfidence =
+    findings.length > 0
+      ? findings.reduce((sum, f) => sum + f.confidence, 0) / findings.length
+      : 0;
+  const hasDataGaps = evidence.missingData.length > 0;
+  const adaptationEligible =
+    quality.total >= QUALITY_THRESHOLD &&
+    !quality.escalate &&
+    !hasDataGaps &&
+    consistencyChecks.passed &&
+    avgConfidence >= 0.55;
+
+  if (!adaptationEligible) {
+    return { adaptationEligible };
+  }
+
+  const riskIntent: ProposedPolicyDelta["riskIntent"] = {
+    enforcePreTradeRiskCheck: true,
+  };
+  if (
+    (primary === "stop_too_tight_for_vol" ||
+      primary === "execution_or_slippage") &&
+    typeof evidence.entryAtrPct === "number" &&
+    evidence.entryAtrPct > 0
+  ) {
+    const ratio = ptqg.stopDistancePct / evidence.entryAtrPct;
+    riskIntent.stopToAtrMin = Number(
+      Math.max(1.0, Math.min(1.8, ratio + 0.4)).toFixed(2),
+    );
+  }
+  if (primary === "sizing_too_aggressive" || riskBudget.budgetBreach) {
+    const maxLev = Math.max(2, Math.min(10, Math.floor(ptqg.leverage - 1)));
+    riskIntent.maxLeverageByAssetClass = { [ptqg.assetClass]: maxLev };
+    const tighterNotional = position.sizeUsd * 0.85;
+    riskIntent.maxSingleTradeUsd = Number(
+      Math.max(250, Math.round(tighterNotional)),
+    );
+  }
+
+  if (
+    !riskIntent.maxLeverageByAssetClass &&
+    riskIntent.stopToAtrMin === undefined &&
+    !riskBudget.budgetBreach
+  ) {
+    return { adaptationEligible };
+  }
+
+  const expiresAt = new Date(
+    Date.now() + 14 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  return {
+    adaptationEligible,
+    delta: {
+      confidence: Number(avgConfidence.toFixed(2)),
+      sampleSizeHint: 20,
+      maxStepChangePct: 20,
+      expiresAtUtc: expiresAt,
+      riskIntent,
+      validationPlan: {
+        windowTrades: 20,
+        targetMetrics: {
+          maxBudgetBreachRate: 0.2,
+          minExpectancyUsd: -5,
+          maxDrawdownPct: 15,
+        },
+        rollbackTriggers: [
+          "budget_breach_rate_worse_than_baseline",
+          "expectancy_usd_degrades",
+          "drawdown_pct_exceeds_cap",
+        ],
+      },
+    },
+  };
+}
+
 function scorePostMortem(
   evidence: EvidencePack,
   findings: AgentFinding[],
   actions: CorrectiveAction[],
   primary: PostMortemCause,
   secondary: PostMortemCause[],
+  consistencyChecks: ConsistencyChecks,
 ): QualityBreakdown {
   const baseCompleteness = evidence.ptqgComplete ? 30 : 18;
   const completenessPenalty = Math.min(12, evidence.missingData.length * 4);
@@ -538,6 +786,9 @@ function scorePostMortem(
     evidence.missingData.length * 8 + findingMissingFlags * 2,
   );
   const confidencePenalty = avgConfidence < 0.45 ? 10 : 0;
+  const consistencyPenalty = consistencyChecks.passed
+    ? 0
+    : Math.min(20, consistencyChecks.issues.length * 8);
   const total = Math.max(
     0,
     Math.min(
@@ -548,7 +799,8 @@ function scorePostMortem(
         actionability +
         ownershipClarity -
         dataGapPenalty -
-        confidencePenalty,
+        confidencePenalty -
+        consistencyPenalty,
     ),
   );
   return {
@@ -558,8 +810,126 @@ function scorePostMortem(
     actionability,
     ownershipClarity,
     total,
-    escalate: total < QUALITY_THRESHOLD || evidence.missingData.length >= 3,
+    escalate:
+      total < QUALITY_THRESHOLD ||
+      evidence.missingData.length >= 3 ||
+      !consistencyChecks.passed,
   };
+}
+
+function buildLaneContexts(
+  position: Position,
+  ptqg: PtqgMeta,
+  evidence: EvidencePack,
+): LaneContexts {
+  const meta = (position.metadata ?? {}) as Record<string, unknown>;
+  const sentimentScore = toNum(meta.sentimentScore);
+  const regime =
+    typeof meta.regime === "string"
+      ? meta.regime.trim() || undefined
+      : undefined;
+  const conditionId =
+    typeof meta.polymarketConditionId === "string"
+      ? meta.polymarketConditionId.trim() || undefined
+      : undefined;
+
+  const exitTimestampUtc =
+    typeof position.closedAt === "number"
+      ? new Date(position.closedAt).toISOString()
+      : undefined;
+
+  return {
+    echo: {
+      entryTimestampUtc: ptqg.entryTimestampUtc,
+      exitTimestampUtc,
+      sentimentScore: sentimentScore ?? undefined,
+      regime,
+    },
+    oracle: {
+      entryTimestampUtc: ptqg.entryTimestampUtc,
+      exitTimestampUtc,
+      conditionId,
+    },
+    solus: {
+      assetClass: ptqg.assetClass,
+      thesisClass: ptqg.thesisClass,
+      leverage: ptqg.leverage,
+      stopDistancePct: ptqg.stopDistancePct,
+      maxLossUsd: ptqg.maxLossUsd,
+      maxLossPct: ptqg.maxLossPct,
+      entryAtrPct: evidence.entryAtrPct,
+    },
+  };
+}
+
+function collectAgentContextMissing(
+  findings: AgentFinding[],
+): Record<string, string[]> {
+  const byAgent: Record<string, Set<string>> = {};
+  for (const f of findings) {
+    if (!f.missingData || f.missingData.length === 0) continue;
+    if (!byAgent[f.agent]) {
+      byAgent[f.agent] = new Set<string>();
+    }
+    for (const flag of f.missingData) {
+      if (flag && flag.trim()) {
+        byAgent[f.agent].add(flag.trim());
+      }
+    }
+  }
+
+  const out: Record<string, string[]> = {};
+  for (const [agent, flags] of Object.entries(byAgent)) {
+    out[agent] = Array.from(flags);
+  }
+  return out;
+}
+
+function computeContextCompleteness(laneContexts: LaneContexts): number {
+  const values: unknown[] = [];
+
+  const pushValues = (obj: Record<string, unknown>) => {
+    for (const value of Object.values(obj)) {
+      values.push(value);
+    }
+  };
+
+  pushValues(laneContexts.echo as unknown as Record<string, unknown>);
+  pushValues(laneContexts.oracle as unknown as Record<string, unknown>);
+  pushValues(laneContexts.solus as unknown as Record<string, unknown>);
+
+  const total = values.length;
+  if (total === 0) return 0;
+
+  let present = 0;
+  for (const v of values) {
+    if (
+      v !== undefined &&
+      v !== null &&
+      (typeof v !== "string" || v.trim().length > 0)
+    ) {
+      present += 1;
+    }
+  }
+
+  const pct = (present / total) * 100;
+  return Number(Math.max(0, Math.min(100, pct)).toFixed(1));
+}
+
+function classifyRegimeVsExecution(
+  primary: PostMortemCause,
+): RegimeVsExecution {
+  if (primary === "regime_conflict") {
+    return "regime_miss";
+  }
+  if (
+    primary === "sizing_too_aggressive" ||
+    primary === "stop_too_tight_for_vol" ||
+    primary === "execution_or_slippage"
+  ) {
+    return "execution_miss";
+  }
+  return "unclear";
 }
 
 export function buildStructuredPostMortem(
@@ -568,6 +938,13 @@ export function buildStructuredPostMortem(
 ): StructuredPostMortem {
   const ptqg = buildPtqgMeta(position);
   const evidence = buildEvidencePack(position, ptqg);
+  const riskBudget = computeRiskBudgetSummary(position, ptqg);
+  const consistencyChecks = computeConsistencyChecks(
+    position,
+    ptqg,
+    evidence,
+    findings,
+  );
   const primaryCause = inferPrimaryCause(position, evidence, findings);
   const secondaryCauses = inferSecondaryCauses(
     primaryCause,
@@ -582,6 +959,17 @@ export function buildStructuredPostMortem(
     actions,
     primaryCause,
     secondaryCauses,
+    consistencyChecks,
+  );
+  const { adaptationEligible, delta } = buildProposedPolicyDelta(
+    position,
+    primaryCause,
+    evidence,
+    ptqg,
+    findings,
+    quality,
+    riskBudget,
+    consistencyChecks,
   );
   const nextTradePolicyDelta = [
     evidence.ptqgComplete
@@ -593,7 +981,19 @@ export function buildStructuredPostMortem(
     primaryCause === "sizing_too_aggressive"
       ? "Apply temporary leverage cap for this asset class in next 7 days."
       : "No temporary leverage override required.",
+    adaptationEligible
+      ? "Promote bounded policy delta candidate and evaluate over a rolling window."
+      : "No automatic policy mutation due to data/quality gate.",
   ];
+
+  const laneContexts = buildLaneContexts(position, ptqg, evidence);
+  const agentContextMissing = collectAgentContextMissing(findings);
+  const contextCompletenessPct = computeContextCompleteness(laneContexts);
+  const regimeVsExecution = classifyRegimeVsExecution(primaryCause);
+  const policyVersionAtEntry =
+    typeof position.metadata?.policyVersionAtEntry === "string"
+      ? position.metadata.policyVersionAtEntry
+      : undefined;
 
   return {
     ptqg,
@@ -604,6 +1004,15 @@ export function buildStructuredPostMortem(
     actions,
     quality,
     nextTradePolicyDelta,
+    laneContexts,
+    agentContextMissing,
+    contextCompletenessPct,
+    regimeVsExecution,
+    riskBudget,
+    consistencyChecks,
+    adaptationEligible,
+    policyVersionAtEntry,
+    ...(delta ? { proposedPolicyDelta: delta } : {}),
   };
 }
 
@@ -626,6 +1035,17 @@ export function renderPostMortemMarkdown(
       missingData: structured.evidence.missingData,
       holdMinutes: structured.evidence.holdMinutes,
       adverseMovePct: structured.evidence.adverseMovePct,
+      riskBudget: structured.riskBudget,
+      consistencyChecks: structured.consistencyChecks,
+      adaptationEligible: structured.adaptationEligible,
+      policyVersionAtEntry: structured.policyVersionAtEntry ?? null,
+      proposedPolicyDelta: structured.proposedPolicyDelta ?? null,
+      echoContext: structured.laneContexts.echo,
+      oracleContext: structured.laneContexts.oracle,
+      solusContext: structured.laneContexts.solus,
+      agentContextMissing: structured.agentContextMissing,
+      contextCompletenessPct: structured.contextCompletenessPct,
+      regimeVsExecution: structured.regimeVsExecution,
     },
     null,
     2,
@@ -683,10 +1103,27 @@ export function renderPostMortemMarkdown(
     `- Quality score: ${structured.quality.total}/100`,
     `- Escalate to Sentinel: ${structured.quality.escalate}`,
     `- Score breakdown: completeness=${structured.quality.completeness}, evidence=${structured.quality.evidenceQuality}, diagnosis=${structured.quality.diagnosisDepth}, actionability=${structured.quality.actionability}, ownership=${structured.quality.ownershipClarity}`,
+    `- Context completeness: ${structured.contextCompletenessPct}%`,
+    `- Regime vs execution: ${structured.regimeVsExecution}`,
+    `- Risk budget: planned=$${structured.riskBudget.plannedRiskUsd.toFixed(2)}, realized=$${structured.riskBudget.realizedRiskUsd.toFixed(2)}, slippage=$${structured.riskBudget.riskSlippageUsd.toFixed(2)}, breach=${structured.riskBudget.budgetBreach}`,
+    `- Consistency checks: ${structured.consistencyChecks.passed ? "pass" : `fail (${structured.consistencyChecks.issues.join(",")})`}`,
     "",
     "## What changes on next trade?",
     "",
     ...structured.nextTradePolicyDelta.map((line) => `- ${line}`),
+    "",
+    "## Recursive Policy Delta",
+    "",
+    `- Adaptation eligible: ${structured.adaptationEligible}`,
+    `- Policy version at entry: ${structured.policyVersionAtEntry ?? "unknown"}`,
+    `- Proposed delta: ${structured.proposedPolicyDelta ? "present" : "none"}`,
+    ...(structured.proposedPolicyDelta
+      ? [
+          `- Delta confidence: ${structured.proposedPolicyDelta.confidence}`,
+          `- Delta window trades: ${structured.proposedPolicyDelta.validationPlan.windowTrades}`,
+          `- Delta expiry: ${structured.proposedPolicyDelta.expiresAtUtc}`,
+        ]
+      : []),
     "",
     "## Machine-Readable Summary",
     "",
@@ -697,6 +1134,12 @@ export function renderPostMortemMarkdown(
     `- PM_PTQG_COMPLETE: ${structured.evidence.ptqgComplete}`,
     `- PM_PMEP_COMPLETENESS_PCT: ${structured.evidence.pmevCompletenessPct}`,
     `- PM_MISSING_DATA_COUNT: ${structured.evidence.missingData.length}`,
+    `- PM_CONTEXT_COMPLETENESS_PCT: ${structured.contextCompletenessPct}`,
+    `- PM_BUDGET_BREACH: ${structured.riskBudget.budgetBreach}`,
+    `- PM_RISK_SLIPPAGE_USD: ${structured.riskBudget.riskSlippageUsd}`,
+    `- PM_ADAPTATION_ELIGIBLE: ${structured.adaptationEligible}`,
+    `- PM_POLICY_VERSION_AT_ENTRY: ${structured.policyVersionAtEntry ?? "unknown"}`,
+    `- PM_PROPOSED_DELTA_PRESENT: ${structured.proposedPolicyDelta ? "true" : "false"}`,
     "",
     "```json",
     machineJson,

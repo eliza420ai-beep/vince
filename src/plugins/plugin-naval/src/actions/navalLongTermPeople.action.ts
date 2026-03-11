@@ -68,7 +68,7 @@ export const navalLongTermPeopleAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_LONG_TERM_PEOPLE] Action fired");
     try {
       const state = await runtime.composeState(message);

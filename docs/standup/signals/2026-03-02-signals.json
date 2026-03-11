@@ -1,0 +1,12 @@
+{
+  "date": "2026-03-02",
+  "signals": [
+    {
+      "asset": "BTC",
+      "direction": "long",
+      "confidence_pct": 50,
+      "source": "solus",
+      "raw": "BTC $69.3K sitting $1.7K below our $70.5K covered call strike, HYPE $32.50 cushioned above $30 puts, holding both through Friday settlement."
+    }
+  ]
+}

@@ -108,7 +108,11 @@ export const trenchKnowledgeProvider: Provider = {
 
       if (!fs.existsSync(knowledgePath)) {
         logger.debug("[TrenchKnowledge] Knowledge directory not found");
-        return { text: "", values: {}, data: {} };
+        return {
+          text: "",
+          values: {} as Record<string, import("@elizaos/core").ProviderValue>,
+          data: {} as Record<string, import("@elizaos/core").ProviderValue>,
+        };
       }
 
       // Analyze message to determine relevant frameworks
@@ -191,8 +195,8 @@ export const trenchKnowledgeProvider: Provider = {
 
     return {
       text: contextParts.join("\n"),
-      values,
-      data,
+      values: values as Record<string, import("@elizaos/core").ProviderValue>,
+      data: data as Record<string, import("@elizaos/core").ProviderValue>,
     };
   },
 };

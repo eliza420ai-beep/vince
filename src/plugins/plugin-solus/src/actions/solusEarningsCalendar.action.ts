@@ -6,6 +6,7 @@
 import {
   type Action,
   type ActionExample,
+  type ActionResult,
   type HandlerCallback,
   type IAgentRuntime,
   type Memory,
@@ -162,15 +163,13 @@ export const solusEarningsCalendarAction: Action = {
     return text.includes("earnings") || text.includes("calendar");
   },
 
-  suppressInitialMessage: true,
-
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
     _options: any,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text || "";
     const tickerMatch = text.match(/\b([A-Z]{2,5})\b/);
     const specificTicker = tickerMatch ? tickerMatch[1] : null;

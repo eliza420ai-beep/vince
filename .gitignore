@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Python virtual environment (do not commit)
+.venv/
+venv/
+
 # Build output
 dist/
 *.tsbuildinfo
@@ -13,9 +17,13 @@ dist/
 # Eliza / DB
 .eliza/
 .elizadb/
+.elizadb-test/
 
 # OpenClaw research cache (ephemeral, runtime-generated)
 .openclaw-cache/
+
+# Plugin-vince scripts: generated openclaw-queue / standup output (train_models from scripts dir)
+src/plugins/plugin-vince/scripts/docs/
 
 
 
@@ -35,10 +43,13 @@ otaku-ref/
 # Local-only data (e.g. Solus current positions); never commit
 local/
 
-# Optional: uncomment if you don't want to track knowledge build artifacts
-# knowledge/**/*.pdf
+# Knowledge base — personal RAG corpus; not committed to public repo.
+# Agents load this at runtime from the local filesystem.
+# To share knowledge publicly, maintain a separate knowledge-public/ directory.
+knowledge/
 
-# Summarize slide extraction output (images); remove to commit slides
-knowledge/.slides/
+# Cursor plan files — internal task planning; not public
+.cursor/plans/
 
-.openclaw-cache/
+# tasks/todo.md — operational notes; not public
+tasks/todo.md

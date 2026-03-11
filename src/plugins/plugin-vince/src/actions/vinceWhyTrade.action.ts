@@ -12,6 +12,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -20,9 +21,11 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
+import type { SwarmConsensus } from "../types/swarm";
 import type { Position } from "../types/paperTrading";
 import { BOT_FOOTER } from "../constants/botFormat";
 import { getGrokMarketReadSection } from "../utils/grokPulseParser";
+import { resolveCausalThresholds } from "../utils/causalThresholds";
 
 // ==========================================
 // Data Context Types
@@ -67,6 +70,21 @@ interface WhyTradeDataContext {
     confidenceRequired: number;
     confirmingRequired: number;
   };
+  swarmSummary?: {
+    enabled: boolean;
+    direction: "long" | "short" | "neutral";
+    confidence: number;
+    dissent: number;
+    agentCount: number;
+  } | null;
+  proofSummary?: {
+    sufficiencyGrade: "LOW" | "MEDIUM" | "HIGH";
+    uplift30dWinRate: number;
+    causalConfidence: number;
+    promotionEligible: boolean;
+    topSource?: string;
+    allocatorReason?: string;
+  } | null;
 }
 
 // ==========================================
@@ -84,6 +102,35 @@ function buildWhyTradeDataContext(ctx: WhyTradeDataContext): string {
     `Required thresholds: Strength >${ctx.thresholds.strengthRequired}%, Confidence >${ctx.thresholds.confidenceRequired}%, ${ctx.thresholds.confirmingRequired}+ confirming signals`,
   );
   lines.push("");
+
+  if (ctx.swarmSummary && ctx.swarmSummary.enabled) {
+    const s = ctx.swarmSummary;
+    lines.push("=== SWARM SNAPSHOT ===");
+    lines.push(
+      `Direction: ${s.direction.toUpperCase()} | Swarm confidence: ${(
+        s.confidence * 100
+      ).toFixed(0)}% | Dissent: ${(s.dissent * 100).toFixed(0)}%`,
+    );
+    lines.push(`Participating agents: ${s.agentCount}`);
+    lines.push("");
+  }
+
+  if (ctx.proofSummary) {
+    lines.push("=== PROOF SNAPSHOT ===");
+    lines.push(
+      `Sufficiency: ${ctx.proofSummary.sufficiencyGrade} | 30d uplift win rate: ${(ctx.proofSummary.uplift30dWinRate * 100).toFixed(0)}%`,
+    );
+    lines.push(
+      `Causal confidence: ${ctx.proofSummary.causalConfidence.toFixed(0)}% | Promotion eligible: ${ctx.proofSummary.promotionEligible ? "yes" : "no"}`,
+    );
+    if (ctx.proofSummary.topSource) {
+      lines.push(`Top source quality: ${ctx.proofSummary.topSource}`);
+    }
+    if (ctx.proofSummary.allocatorReason) {
+      lines.push(`Allocator: ${ctx.proofSummary.allocatorReason}`);
+    }
+    lines.push("");
+  }
 
   if (ctx.hasPositions && ctx.positions.length > 0) {
     lines.push("=== OPEN POSITIONS ===");
@@ -273,7 +320,7 @@ export const vinceWhyTradeAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const positionManager = runtime.getService(
         "VINCE_POSITION_MANAGER_SERVICE",
@@ -335,6 +382,120 @@ export const vinceWhyTradeAction: Action = {
         }
       }
 
+      // Swarm snapshot: read latest consensus when swarm is enabled.
+      let swarmSummary: WhyTradeDataContext["swarmSummary"] = null;
+      let proofSummary: WhyTradeDataContext["proofSummary"] = null;
+      const swarmEnabled =
+        runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
+        runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
+        process.env.VINCE_SWARM_ENABLED === "true";
+      if (swarmEnabled) {
+        try {
+          const swarmService = runtime.getService("swarm-coordination") as {
+            getLatestConsensus?: () => SwarmConsensus | null;
+          } | null;
+          const latest = swarmService?.getLatestConsensus
+            ? swarmService.getLatestConsensus()
+            : null;
+          if (latest) {
+            swarmSummary = {
+              enabled: true,
+              direction: latest.weightedDirection,
+              confidence: latest.confidenceLevel,
+              dissent: latest.dissentScore ?? 0,
+              agentCount: Array.isArray(latest.participatingAgents)
+                ? latest.participatingAgents.length
+                : 1,
+            };
+          } else {
+            swarmSummary = {
+              enabled: true,
+              direction: "neutral",
+              confidence: 0,
+              dissent: 0,
+              agentCount: 0,
+            };
+          }
+        } catch (e) {
+          logger.debug(`[VINCE_WHY_TRADE] Swarm snapshot unavailable: ${e}`);
+        }
+      }
+
+      try {
+        const causalThresholds = resolveCausalThresholds({
+          getSetting: runtime.getSetting?.bind(runtime),
+          fallbackMinimumEffect: 0.015,
+          fallbackMinimumSamplesPerArm: 10,
+        });
+        const upliftService = runtime.getService(
+          "VINCE_UPLIFT_EVALUATOR_SERVICE",
+        ) as {
+          getSnapshot?: (windowDays?: number) => {
+            byStage?: Array<{ stage: string; winRate: number }>;
+          };
+        } | null;
+        const sufficiencyService = runtime.getService(
+          "VINCE_DATA_SUFFICIENCY_SERVICE",
+        ) as {
+          getSnapshot?: (windowDays?: number) => {
+            grade: "LOW" | "MEDIUM" | "HIGH";
+          };
+        } | null;
+        const sourceQualityService = runtime.getService(
+          "VINCE_SOURCE_QUALITY_SERVICE",
+        ) as {
+          getSnapshot?: (windowDays?: number) => {
+            sources?: Array<{ source: string }>;
+          };
+        } | null;
+        const allocatorService = runtime.getService(
+          "VINCE_PROOF_CAPITAL_ALLOCATOR_SERVICE",
+        ) as {
+          getLatestSummary?: () => { reason?: string } | null;
+        } | null;
+        const uplift30 = upliftService?.getSnapshot?.(30);
+        const causal = (
+          upliftService as {
+            getCausalSnapshot?: (params?: {
+              windowDays?: number;
+              minimumEffect?: number;
+              minimumSamplesPerArm?: number;
+            }) => {
+              promotionEligible: boolean;
+              pairs: Array<{ confidenceScore: number }>;
+            };
+          } | null
+        )?.getCausalSnapshot?.({
+          windowDays: 30,
+          minimumEffect: causalThresholds.minimumEffect,
+          minimumSamplesPerArm: causalThresholds.minimumSamplesPerArm,
+        });
+        const stage =
+          uplift30?.byStage?.find(
+            (s) => s.stage === "onnx_plus_swarm_plus_adversary",
+          ) ??
+          uplift30?.byStage?.find((s) => s.stage === "onnx_plus_swarm") ??
+          uplift30?.byStage?.find((s) => s.stage === "onnx_enabled");
+        const grade = sufficiencyService?.getSnapshot?.(30)?.grade;
+        if (stage && grade) {
+          proofSummary = {
+            sufficiencyGrade: grade,
+            uplift30dWinRate: stage.winRate ?? 0,
+            causalConfidence:
+              (causal?.pairs?.reduce(
+                (sum, p) => sum + (p.confidenceScore ?? 0),
+                0,
+              ) ?? 0) / Math.max(1, causal?.pairs?.length ?? 0),
+            promotionEligible: causal?.promotionEligible === true,
+            topSource:
+              sourceQualityService?.getSnapshot?.(30)?.sources?.[0]?.source,
+            allocatorReason: allocatorService?.getLatestSummary?.()?.reason,
+          };
+        }
+      } catch (e) {
+        logger.debug(`[VINCE_WHY_TRADE] Proof snapshot unavailable: ${e}`);
+      }
+
       // Build context
       const ctx: WhyTradeDataContext = {
         hasPositions: positions.length > 0,
@@ -348,6 +509,8 @@ export const vinceWhyTradeAction: Action = {
           confidenceRequired: 60,
           confirmingRequired: 2,
         },
+        swarmSummary,
+        proofSummary,
       };
 
       // Generate briefing

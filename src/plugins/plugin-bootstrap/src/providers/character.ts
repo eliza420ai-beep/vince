@@ -104,24 +104,38 @@ export const characterProvider: Provider = {
       : character.messageExamples
           .sort(() => 0.5 - Math.random())
           .slice(0, 5)
-          .map((example) => {
+          .map((group) => {
+            const raw = Array.isArray(group)
+              ? group
+              : ((group as { examples?: unknown[] } | undefined)?.examples ??
+                []);
+            const messages = Array.isArray(raw) ? raw : [];
             const exampleNames = Array.from({ length: 5 }, () =>
               Math.random().toString(36).substring(2, 8),
             );
 
-            return example
-              .map((message) => {
-                let messageString = `${message.name}: ${message.content.text}${
-                  message.content.action || message.content.actions
-                    ? ` (actions: ${message.content.action || message.content.actions?.join(", ")})`
-                    : ""
-                }`;
-                exampleNames.forEach((name, index) => {
-                  const placeholder = `{{name${index + 1}}}`;
-                  messageString = messageString.replaceAll(placeholder, name);
-                });
-                return messageString;
-              })
+            return messages
+              .map(
+                (message: {
+                  name: string;
+                  content: {
+                    text: string;
+                    action?: string;
+                    actions?: string[];
+                  };
+                }) => {
+                  let messageString = `${message.name}: ${message.content.text}${
+                    message.content.action || message.content.actions
+                      ? ` (actions: ${message.content.action || message.content.actions?.join(", ")})`
+                      : ""
+                  }`;
+                  exampleNames.forEach((name, index) => {
+                    const placeholder = `{{name${index + 1}}}`;
+                    messageString = messageString.replaceAll(placeholder, name);
+                  });
+                  return messageString;
+                },
+              )
               .join("\n");
           })
           .join("\n\n");

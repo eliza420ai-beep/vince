@@ -99,7 +99,7 @@ export const sentinelHowDidWeDoAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SENTINEL_HOW_DID_WE_DO] Action fired");
     try {
       const state = await runtime.composeState(message);

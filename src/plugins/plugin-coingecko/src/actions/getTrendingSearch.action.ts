@@ -25,7 +25,7 @@ export const getTrendingSearchAction: Action = {
     "Use this action when the user asks about overall trending coins, NFTs, and categories. Returns comprehensive trending data including coins with search scores, trending NFTs with floor prices, and trending categories. This is different from GET_TRENDING_TOKENS which shows trending pools on specific networks.",
 
   // No parameters needed for this action
-  parameters: {},
+  parameters: [],
 
   validate: async (
     runtime: IAgentRuntime,

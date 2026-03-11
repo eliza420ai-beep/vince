@@ -58,6 +58,15 @@ All items from the original TODO are complete. Full rationale in [FEEDBACK.md](.
 - [x] **Parallel training** – `--parallel` flag; `ProcessPoolExecutor` for concurrent model training.
 - [x] **DRY feature prep** – `_add_common_features()` + `_finalize_features()` shared helpers eliminate duplication.
 
+### Flags (train_models.py)
+
+- **`--model`** — Train only one model: `signal_quality`, `position_sizing`, `tp_optimizer`, or `sl_optimizer`; default `all`.
+- **`--bench-only`** — Train only on rows with VinceBench score >= median (same as `--bench-score-quantile 0.5`).
+- **Sample weights (smart defaults):** `--recency-decay 0.01` and `--balance-assets` are on by default; use `--recency-decay 0` and `--no-balance-assets` to disable.
+- **Pre-flight check:** Before training, the script logs how many real trades you have (need 90+) and the worst empty important columns; if below min-samples it exits with a clear message and suggested fixes.
+- **Auto-keep-last-good-model:** Before overwriting a model’s ONNX, the script compares the new model’s holdout metrics with the previous one; if the new model is worse, it keeps the old .onnx and logs a warning.
+- **Sentinel tasks:** When the improvement report is written, the script may create task briefs in `docs/standup/openclaw-queue/` (e.g. “Tighten TP level 2 rules”, “Add X to feature store”); the report footer shows “Created N new tasks for Sentinel” or “No action needed.”
+
 ### Backlog
 
 - [ ] Ensemble: signal quality prob → position sizing input.
@@ -67,6 +76,26 @@ All items from the original TODO are complete. Full rationale in [FEEDBACK.md](.
 - [ ] Distributed training for large datasets (Dask / XGBoost distributed).
 
 ## Running
+
+### Installing dependencies
+
+On macOS, `pip` may not be on PATH; use `python3 -m pip`. To avoid permission errors, use a virtual environment:
+
+```bash
+# From repo root
+python3 -m venv .venv
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip   # optional: avoid "consider upgrading" warning
+pip install -r src/plugins/plugin-vince/scripts/requirements.txt
+```
+
+**macOS:** XGBoost needs the OpenMP runtime. If you see `Library not loaded: libomp.dylib`, install it:
+
+```bash
+brew install libomp
+```
+
+Then run training (or tests) with the same `python3` that has the venv activated.
 
 From **repo root**, with a venv that has the training deps:
 
@@ -129,16 +158,24 @@ bun run train-models -- --real-only
 To prove that `train_models.py` learns and improves paper trading algo parameters/weights:
 
 ```bash
-# From repo root; requires deps from requirements.txt
-pip3 install -r src/plugins/plugin-vince/scripts/requirements.txt
-python3 src/plugins/plugin-vince/scripts/test_train_models.py
+# From repo root; use venv and install deps first (see Installing dependencies)
+source .venv/bin/activate
+python3 src/plugins/plugin-vince/scripts/test_train_models.py -v
 ```
 
-Or with pytest:
+Or with pytest (if installed): `pytest src/plugins/plugin-vince/scripts/test_train_models.py -v`
+
+**Takeaway:** All 13 tests should pass in ~30–40s. If ML deps are missing, tests are skipped (no failure). macOS needs `brew install libomp` for XGBoost.
+
+**Fast smoke:** For a quick check (~5–10s), run only two tests (from repo root):
 
 ```bash
-pytest src/plugins/plugin-vince/scripts/test_train_models.py -v
+cd src/plugins/plugin-vince/scripts && python3 -m unittest test_train_models.TestTrainModels.test_insufficient_data_exits_gracefully test_train_models.TestTrainModels.test_model_flag_trains_single_model -v
 ```
+
+**CI / running tests in a clean env:** From repo root: (1) `python3 -m venv .venv` and `source .venv/bin/activate`; (2) `pip install -r src/plugins/plugin-vince/scripts/requirements.txt`; (3) **macOS:** `brew install libomp`; (4) `python3 src/plugins/plugin-vince/scripts/test_train_models.py -v`. Expected: 13 tests, OK, ~30–40s.
+
+**Possible improvements:** A fast subset env var (e.g. `VINCE_ML_FAST_TESTS=1`) for a single entry point. With small data or certain environments, `--tune-hyperparams` may write metadata but fit 0 models; the tune test is intentionally smoke-only.
 
 The test suite:
 
@@ -147,7 +184,9 @@ The test suite:
 3. **test_learning_improves_over_baseline** - Asserts that the signal quality model has non-trivial feature importances, varying predictions, and AUC ≥ 0.5.
 4. **test_insufficient_data_exits_gracefully** - Ensures that with too few samples, no models are trained.
 5. **test_sl_optimizer_trains_when_label_present** - SL optimizer trains when `label_maxAdverseExcursion` is present.
-6. **test_multi_asset_uses_asset_dummies** - Multi-asset data gets asset\_\* dummy columns.
+6. **test_model_flag_trains_single_model** - `--model sl_optimizer` trains only the SL optimizer.
+7. **test_multi_asset_uses_asset_dummies** - Multi-asset data gets asset\_\* dummy columns.
+8. **test_tune_hyperparams_run_without_crash** - Smoke only: asserts process exits 0 and metadata is written; does not require any model to be fit.
 
 ## Reference
 

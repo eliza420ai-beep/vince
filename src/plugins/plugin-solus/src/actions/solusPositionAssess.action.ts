@@ -1,5 +1,6 @@
 /**
  * SOLUS_POSITION_ASSESS — Interpret position from message; state invalidation and hold/roll/adjust; ask for details if missing.
+ * Solus has his own options data (SOLUS_OPTIONS_CONTEXT from Deribit) so he answers without leaning on VINCE.
  */
 
 import type {
@@ -12,6 +13,10 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { isSolus } from "../utils/solus";
+import {
+  buildCloseEarlyRecommendationFromState,
+  formatCloseEarlyRecommendation,
+} from "../utils/closeEarlyRecommendation";
 
 const TRIGGERS = [
   "assess my position",
@@ -31,6 +36,33 @@ const TRIGGERS = [
   "our $70k puts",
   "our $70k secured puts",
   "premium reduces cost basis",
+  "cost basis",
+  "our btc cost",
+  "average entry",
+  "entry price",
+  "our btc position",
+  // Strike / buyback / ITM — so SOLUS_SIZING_STATE (knowledge/private/solus-options-sizing.md) is injected
+  "above our strike",
+  "above strike",
+  "above strike price",
+  "hype is above",
+  "above the strike",
+  "buy back",
+  "buy back early",
+  "itm",
+  "in the money",
+  "past our strike",
+  "past the strike",
+  "our strike",
+  "strike price",
+  "wheel",
+  "options position",
+  // SOL / stack / "what about" — so SOLUS_SIZING_STATE is injected and we answer (avoid no-answer hang)
+  "our sol",
+  "what about sol",
+  "sol stack",
+  "sol position",
+  "the sol",
 ];
 
 function wantsPositionAssess(text: string): boolean {
@@ -59,17 +91,47 @@ export const solusPositionAssessAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[SOLUS_POSITION_ASSESS] Action fired");
     try {
-      const state = await runtime.composeState(message);
+      const state = await runtime.composeState(message, [
+        "SOLUS_SIZING_STATE",
+        "SOLUS_MARKET_CONTEXT",
+        "SOLUS_HYPERSURFACE_SPOT_PRICES",
+        "SOLUS_OPTIONS_CONTEXT",
+        "SOLUS_CALIBRATION_CONTEXT",
+        "ECHO_WTT_SIGNAL",
+      ]);
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
+      const closeEarlyRec = buildCloseEarlyRecommendationFromState(
+        state,
+        userText,
+      );
+      const closeEarlyBlock = formatCloseEarlyRecommendation(closeEarlyRec);
 
-      const prompt = `You are Solus, the on-chain options expert. The user is asking you to assess their Hypersurface position. We have spot + mechanics; we don't have live sentiment. If they need direction (where price lands by Friday), they paste VINCE's view or bring their own. Use spot prices from context when present (e.g. "[Hypersurface spot USD]") for level reference. Frame hold/roll/adjust in terms of weekly outcome (expiry Friday). Using the context below and the user message, (1) Interpret what they have: notional, premium, collateral (e.g. USDT0), expiry, strike if mentioned. (2) State invalidation (what would change your mind). (3) Give one clear call: hold, roll, or adjust. If key details are missing (strike, notional, premium, expiry), ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust.
+      const prompt = `You are Solus, the on-chain options expert. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], (3) spot/regime in [Solus market context] and [Hypersurface spot USD], (4) when present [Solus options context — Deribit] with spot, DVOL, ATM IV, and best strikes for BTC/ETH/SOL; (5) [Solus calibration] with Brier and recent outcomes when present; (6) [ECHO WTT signal context] as a daily directional read with freshness metadata. Use this data to give one clear call.
+
+**RULE — you must follow:** Do NOT say you need VINCE, need to ask anyone for IV, or need "VINCE's current SOL IV". If [Solus options context] includes SOL, use that IV and best strikes. If it does not, give your assessment and strike guidance from [Solus sizing state] and spot only (e.g. "SOL spot from context; our stack at $141 cost basis; strikes around $90–95 could collect premium — exact amount depends on current IV"). Never deflect the user to another chat or agent.
+
+Use the deterministic [Close early recommendation] block as a hard prior for weekly re-evaluation:
+- If Action is CLOSE_EARLY_NOW, your one call must be close early now.
+- If Action is WATCH_CLOSE_WINDOW with USDT0 insufficient, your one call must include funding/bridge warning and what to do next.
+- If Action is ROLL_NEXT_WEEK, your one call must be roll.
+- If Action is HOLD_TO_EXPIRY, your one call should be hold unless user gives stronger contrary constraints.
+
+Using the context below and the user message, return this structure in prose:
+(1) One recommendation: hold, roll, close early, or redeploy.
+(2) Why now: strike distance, momentum, and time-to-expiry.
+(3) Invalidation: one clear condition that flips the call.
+(4) Ops caveat: mention USDT0 sufficiency for close debit when relevant; mention settlement window (up to ~2h after Friday 08:00 UTC) when expiry/withdrawals are relevant.
+Treat [ECHO WTT signal context] as lower-weight when stale or horizon-mismatched (daily thesis vs weekly options decision), and say that explicitly when applied.
+If key details are missing, ask for them in one short line. Be direct; benefit-led. Reply in flowing prose; no bullet lists unless listing hold/roll/adjust/close.
 
 Context:
 ${contextBlock}
+
+${closeEarlyBlock}
 
 User: ${userText}
 
@@ -88,19 +150,34 @@ Reply with assessment and one call only.`;
         month: "short",
         day: "numeric",
       });
+      const hasOptionsContext = contextBlock.includes("[Solus options context");
+      const sourceLine = hasOptionsContext
+        ? "*Source: Hypersurface mechanics, CoinGecko spot, Deribit IV/strikes*"
+        : "*Source: Hypersurface mechanics, CoinGecko spot*";
+      const closeEngineLine = closeEarlyRec
+        ? `*Close-early engine: ${closeEarlyRec.action} (${(
+            closeEarlyRec.confidence * 100
+          ).toFixed(0)}% confidence)*`
+        : "*Close-early engine: no active CC/CSP found in sizing state*";
+      const opsChecklistLine =
+        "*Operator check: Thu monitor ITM/early exercise; Fri 08:00 UTC expiry; allow up to ~2h settlement before withdrawal checks.*";
       const sections = [
         `**Position Assessment** _${dateStr}_`,
         "",
         text.trim(),
         "",
-        "*Source: Hypersurface mechanics, CoinGecko spot*",
+        closeEngineLine,
+        opsChecklistLine,
+        "",
+        sourceLine,
         "",
         "---",
-        "_Next steps_: `OPTIMAL STRIKE` (new strike) · `STRIKE RITUAL` (Friday process) · `OPTIONS` → VINCE (IV data)",
+        "_Next steps_: `OPTIMAL STRIKE` (new strike) · `STRIKE RITUAL` (Friday process)",
       ];
       await callback({
         text: sections.join("\n"),
         actions: ["SOLUS_POSITION_ASSESS"],
+        providers: ["SOLUS_SIZING_STATE", "SOLUS_OPTIONS_CONTEXT"],
       });
       return { success: true };
     } catch (error) {

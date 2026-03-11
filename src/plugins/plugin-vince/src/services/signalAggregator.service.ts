@@ -34,12 +34,15 @@ import type { VinceBinanceService } from "./binance.service";
 import type { VinceBinanceLiquidationService } from "./binanceLiquidation.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
 import type { VinceXSentimentService } from "./xSentiment.service";
+import type { VincePolymarketSentimentService } from "./polymarketSentiment.service";
 import type { VinceDeribitService } from "./deribit.service";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceSanbaseService } from "./sanbase.service";
 import type { VinceMarketRegimeService } from "./marketRegime.service";
 import type { VinceHIP3Service } from "./hip3.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
+import { getAverageQualityMultiplier } from "../utils/xSourceQualityReader";
+import { getNarrativeDecayMultiplier } from "../utils/narrativeDecayForAggregator";
 // External service factories (with fallbacks)
 import {
   getOrCreateHyperliquidService,
@@ -89,6 +92,8 @@ import { loadLatestGrokPulse } from "../utils/grokPulseParser";
 import {
   loadStandupSignals,
   getStandupSignalForAsset,
+  loadEchoXSignals,
+  getEchoXSignalForAsset,
 } from "../utils/standupSignalsReader";
 
 // WTT (What's The Trade) daily pick → signal aggregator boost
@@ -165,6 +170,51 @@ const ML_CONFIG = {
 let cachedBanditWeights: Map<string, number> | null = null;
 let banditWeightsCacheTime = 0;
 const BANDIT_CACHE_TTL_MS = 5000;
+const UPLIFT_GUARDRAIL_CACHE_MS = 10_000;
+let upliftGuardrailCache: { checkedAt: number; delta: number } = {
+  checkedAt: 0,
+  delta: 0,
+};
+const UPLIFT_SENSITIVE_SOURCES = new Set([
+  "XSentiment",
+  "PolymarketSentiment",
+  "NewsSentiment",
+  "WTT",
+  "GrokDailyRecommendation",
+  "GrokResearchIdea",
+]);
+
+const getUpliftGuardrailMultiplier = (
+  source: string,
+  runtime?: any,
+): number => {
+  if (!runtime || !UPLIFT_SENSITIVE_SOURCES.has(source)) return 1;
+  const now = Date.now();
+  if (now - upliftGuardrailCache.checkedAt > UPLIFT_GUARDRAIL_CACHE_MS) {
+    let delta = 0;
+    try {
+      const upliftService = runtime.getService(
+        "VINCE_UPLIFT_EVALUATOR_SERVICE",
+      ) as {
+        getSnapshot?: (windowDays?: number) => {
+          byStage?: Array<{ stage: string; avgPnl?: number }>;
+        } | null;
+      } | null;
+      const snap = upliftService?.getSnapshot?.(30);
+      const onnx = snap?.byStage?.find((s) => s.stage === "onnx_enabled");
+      const swarm = snap?.byStage?.find((s) => s.stage === "onnx_plus_swarm");
+      delta = (swarm?.avgPnl ?? 0) - (onnx?.avgPnl ?? 0);
+    } catch {
+      delta = 0;
+    }
+    upliftGuardrailCache = {
+      checkedAt: now,
+      delta,
+    };
+  }
+  if (upliftGuardrailCache.delta > 0) return 1;
+  return upliftGuardrailCache.delta < 0 ? 0.9 : 0.95;
+};
 
 // Get weight for a source - uses bandit sampling when available
 const getSourceWeight = (source: string, runtime?: any): number => {
@@ -177,7 +227,7 @@ const getSourceWeight = (source: string, runtime?: any): number => {
     ) {
       const banditWeight = cachedBanditWeights.get(source);
       if (banditWeight !== undefined) {
-        return banditWeight;
+        return banditWeight * getUpliftGuardrailMultiplier(source, runtime);
       }
     }
 
@@ -198,7 +248,10 @@ const getSourceWeight = (source: string, runtime?: any): number => {
   }
 
   // Fallback to dynamic config weights
-  return getDynamicSourceWeight(source);
+  return (
+    getDynamicSourceWeight(source) *
+    getUpliftGuardrailMultiplier(source, runtime)
+  );
 };
 
 // ==========================================
@@ -241,6 +294,161 @@ const getRecencyDecay = (signalTimestamp: number, source: string): number => {
   return 1.0; // Fresh signal
 };
 
+const BLEND_CONFIG = {
+  fullStrengthBonus: readBlendInt("VINCE_SIGNAL_BLEND_FULL_STRENGTH_BONUS", 8),
+  fullConfidenceBonus: readBlendInt(
+    "VINCE_SIGNAL_BLEND_FULL_CONFIDENCE_BONUS",
+    9,
+  ),
+  pairStrengthBonus: readBlendInt("VINCE_SIGNAL_BLEND_PAIR_STRENGTH_BONUS", 5),
+  pairConfidenceBonus: readBlendInt(
+    "VINCE_SIGNAL_BLEND_PAIR_CONFIDENCE_BONUS",
+    6,
+  ),
+  contradictionStrengthPenalty: readBlendInt(
+    "VINCE_SIGNAL_BLEND_CONTRADICTION_STRENGTH_PENALTY",
+    5,
+  ),
+  contradictionConfidencePenalty: readBlendInt(
+    "VINCE_SIGNAL_BLEND_CONTRADICTION_CONFIDENCE_PENALTY",
+    7,
+  ),
+  minSupportConfidence: readBlendInt(
+    "VINCE_SIGNAL_BLEND_MIN_SUPPORT_CONFIDENCE",
+    48,
+  ),
+  correlatedPairPenalty: readBlendInt(
+    "VINCE_SIGNAL_BLEND_CORRELATED_PAIR_PENALTY",
+    3,
+  ),
+};
+
+function readBlendInt(envKey: string, defaultValue: number): number {
+  const raw = process.env[envKey];
+  if (!raw) return defaultValue;
+  const parsed = parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return defaultValue;
+  return Math.max(0, Math.min(25, parsed));
+}
+
+function averageConfidence(signals: MarketSignal[]): number {
+  if (signals.length === 0) return 0;
+  return (
+    signals.reduce((sum, signal) => sum + Math.max(0, signal.confidence), 0) /
+    signals.length
+  );
+}
+
+function getDailySidecarDecay(dateValue?: string | null): number {
+  if (!dateValue) return 0.7;
+  const parsed = new Date(`${dateValue}T00:00:00.000Z`).getTime();
+  if (!Number.isFinite(parsed)) return 0.7;
+  const ageHours = (Date.now() - parsed) / (1000 * 60 * 60);
+  if (ageHours <= 8) return 1;
+  if (ageHours <= 16) return 0.9;
+  if (ageHours <= 24) return 0.75;
+  if (ageHours <= 36) return 0.55;
+  return 0.4;
+}
+
+/**
+ * Deterministic blend adjustment for cross-source signal agreement:
+ * WTT (curated thesis) + EchoXSignal (ECHO execution card) + live X services.
+ */
+function applyCrossSourceBlend(params: {
+  signals: MarketSignal[];
+  direction: "long" | "short" | "neutral";
+  avgStrength: number;
+  avgConfidence: number;
+  factors: string[];
+}): { strength: number; confidence: number; factors: string[] } {
+  let strength = params.avgStrength;
+  let confidence = params.avgConfidence;
+  const factors = [...params.factors];
+  if (params.direction === "neutral") {
+    return {
+      strength: Math.min(100, Math.max(0, strength)),
+      confidence: Math.min(100, Math.max(0, confidence)),
+      factors,
+    };
+  }
+
+  const wttSignals = params.signals.filter((s) => s.source === "WTT");
+  const echoSignals = params.signals.filter((s) => s.source === "EchoXSignal");
+  const liveXSignals = params.signals.filter((s) =>
+    ["XSentiment", "XListSentiment", "XNews", "XTrending"].includes(s.source),
+  );
+
+  const wttSupportSignals = wttSignals.filter(
+    (s) => s.direction === params.direction,
+  );
+  const echoSupportSignals = echoSignals.filter(
+    (s) => s.direction === params.direction,
+  );
+  const liveXSupportSignals = liveXSignals.filter(
+    (s) => s.direction === params.direction,
+  );
+
+  const hasWttSupport =
+    averageConfidence(wttSupportSignals) >= BLEND_CONFIG.minSupportConfidence;
+  const hasEchoSupport =
+    averageConfidence(echoSupportSignals) >= BLEND_CONFIG.minSupportConfidence;
+  const hasLiveXSupport =
+    averageConfidence(liveXSupportSignals) >= BLEND_CONFIG.minSupportConfidence;
+
+  const hasWttContradiction = wttSignals.some(
+    (s) => s.direction !== "neutral" && s.direction !== params.direction,
+  );
+  const hasEchoContradiction = echoSignals.some(
+    (s) => s.direction !== "neutral" && s.direction !== params.direction,
+  );
+  const hasLiveXContradiction = liveXSignals.some(
+    (s) => s.direction !== "neutral" && s.direction !== params.direction,
+  );
+
+  if (hasWttSupport && hasEchoSupport && hasLiveXSupport) {
+    strength += BLEND_CONFIG.fullStrengthBonus;
+    confidence += BLEND_CONFIG.fullConfidenceBonus;
+    factors.push(
+      "Cross-source blend: WTT, Echo sidecar, and live X all support this direction",
+    );
+  } else if (
+    (hasWttSupport && hasEchoSupport) ||
+    (hasWttSupport && hasLiveXSupport) ||
+    (hasEchoSupport && hasLiveXSupport)
+  ) {
+    strength += BLEND_CONFIG.pairStrengthBonus;
+    confidence += BLEND_CONFIG.pairConfidenceBonus;
+    factors.push("Cross-source blend: two independent X-derived sources align");
+  }
+
+  // WTT and Echo sidecar are partially dependent (shared ECHO pipeline), so
+  // reduce over-boost when they agree without strong independent confirmation.
+  if (hasWttSupport && hasEchoSupport && !hasLiveXSupport) {
+    strength -= BLEND_CONFIG.correlatedPairPenalty;
+    confidence -= BLEND_CONFIG.correlatedPairPenalty;
+    factors.push("Cross-source blend: WTT + Echo correlation penalty applied");
+  }
+
+  if (
+    (hasWttContradiction && hasLiveXSupport) ||
+    (hasLiveXContradiction && hasWttSupport) ||
+    (hasEchoContradiction && hasWttSupport)
+  ) {
+    strength -= BLEND_CONFIG.contradictionStrengthPenalty;
+    confidence -= BLEND_CONFIG.contradictionConfidencePenalty;
+    factors.push(
+      "Cross-source blend: contradiction detected between curated and live flows",
+    );
+  }
+
+  return {
+    strength: Math.min(100, Math.max(0, strength)),
+    confidence: Math.min(100, Math.max(0, confidence)),
+    factors,
+  };
+}
+
 export interface AggregatedSignal {
   asset: string;
   direction: "long" | "short" | "neutral";
@@ -268,6 +476,10 @@ export interface AggregatedSignal {
   mlSimilarityPrediction?: SimilarityPrediction; // From similar trade lookup
   mlAdjusted?: boolean; // True if ML adjusted the signal
   banditWeightsUsed?: boolean; // True if bandit weights were used
+  /** Optional: per-source swarm-enhanced weights from SwarmCoordinationService */
+  swarmWeights?: Record<string, number>;
+  /** True when swarm-enhanced weights were requested/applied */
+  swarmWeightsUsed?: boolean;
 }
 
 export class VinceSignalAggregatorService extends Service {
@@ -995,8 +1207,15 @@ export class VinceSignalAggregatorService extends Service {
         const xSoftTierEnabled = /^(1|true|yes)$/i.test(
           (process.env.X_SENTIMENT_SOFT_TIER_ENABLED ?? "").trim(),
         );
-        const { sentiment, confidence, hasHighRiskEvent } =
+        const { sentiment, confidence, hasHighRiskEvent, contributingHandles } =
           xSentimentService.getTradingSentiment(asset);
+        const qualityMult =
+          contributingHandles?.length &&
+          process.env.X_SENTIMENT_QUALITY_MULTIPLIER !== "false"
+            ? getAverageQualityMultiplier(contributingHandles)
+            : 1.0;
+        const decayMult = getNarrativeDecayMultiplier(asset);
+        const combinedMult = qualityMult * decayMult;
         const isPrimaryTier = confidence >= xConfidenceFloor;
         const isSoftTier =
           xSoftTierEnabled &&
@@ -1004,11 +1223,17 @@ export class VinceSignalAggregatorService extends Service {
           confidence < xConfidenceFloor &&
           sentiment !== "neutral";
         if (isPrimaryTier || isSoftTier) {
-          const discount = Math.round(confidence * (isSoftTier ? 0.5 : 0.8));
+          const discount = Math.min(
+            100,
+            Math.max(
+              1,
+              Math.round(confidence * (isSoftTier ? 0.5 : 0.8) * combinedMult),
+            ),
+          );
           const baseStrength = 52 + Math.min(15, confidence / 6);
-          const strength = isSoftTier
-            ? Math.round(baseStrength * 0.3)
-            : baseStrength;
+          const strength = Math.round(
+            (isSoftTier ? baseStrength * 0.3 : baseStrength) * combinedMult,
+          );
           const lowLabel = isSoftTier ? " (low confidence)" : "";
           if (sentiment === "bullish") {
             if (hasHighRiskEvent) {
@@ -1078,7 +1303,221 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
-    // 5c. Grok Expert Auto-Pulse (daily narrative from knowledge/internal-docs/grok-auto-*.md)
+    // 5b2. Polymarket Sentiment — prediction-market odds (BTC/ETH/SOL/macro/stocks) from Polymarket discovery
+    // =========================================
+    const polymarketSentimentService = this.runtime.getService(
+      "VINCE_POLYMARKET_SENTIMENT_SERVICE",
+    ) as VincePolymarketSentimentService | null;
+    if (polymarketSentimentService?.isConfigured()) {
+      try {
+        const pmConfidenceFloor = Math.min(
+          100,
+          Math.max(
+            1,
+            parseInt(
+              process.env.POLYMARKET_SENTIMENT_CONFIDENCE_FLOOR ?? "40",
+              10,
+            ) || 40,
+          ),
+        );
+        const { sentiment, confidence } =
+          polymarketSentimentService.getTradingSentiment(asset);
+        if (sentiment !== "neutral" && confidence >= pmConfidenceFloor) {
+          const strength = Math.round(50 + Math.min(14, confidence / 6));
+          const discount = Math.min(
+            100,
+            Math.max(1, Math.round(confidence * 0.8)),
+          );
+          const factorLabel = `Polymarket ${sentiment} (${confidence}%)`;
+          if (sentiment === "bullish") {
+            signals.push({
+              asset,
+              direction: "long",
+              strength,
+              confidence: discount,
+              source: "PolymarketSentiment",
+              factors: [factorLabel],
+              timestamp: Date.now(),
+            });
+            sources.push("PolymarketSentiment");
+            allFactors.push(factorLabel);
+          } else {
+            signals.push({
+              asset,
+              direction: "short",
+              strength,
+              confidence: discount,
+              source: "PolymarketSentiment",
+              factors: [factorLabel],
+              timestamp: Date.now(),
+            });
+            sources.push("PolymarketSentiment");
+            allFactors.push(factorLabel);
+          }
+        }
+        if (!sources.includes("PolymarketSentiment")) {
+          triedNoContribution.push("PolymarketSentiment");
+        }
+      } catch (e) {
+        logger.debug(
+          `[VinceSignalAggregator] Polymarket sentiment error: ${e}`,
+        );
+        triedNoContribution.push("PolymarketSentiment");
+      }
+    }
+
+    // =========================================
+    // 5c. X List (curated list) Sentiment — when X_LIST_ID set, list feed votes as XListSentiment
+    // =========================================
+    if (
+      xSentimentService?.isConfigured() &&
+      typeof xSentimentService.getListSentiment === "function"
+    ) {
+      try {
+        const listConfidenceFloor = Math.min(
+          100,
+          Math.max(
+            1,
+            parseInt(
+              process.env.X_LIST_SENTIMENT_CONFIDENCE_FLOOR ?? "35",
+              10,
+            ) || 35,
+          ),
+        );
+        const listSentiment = await xSentimentService.getListSentiment();
+        if (
+          listSentiment.sentiment !== "neutral" &&
+          listSentiment.confidence >= listConfidenceFloor &&
+          !listSentiment.hasHighRiskEvent
+        ) {
+          const strength = Math.round(
+            48 + Math.min(12, listSentiment.confidence / 6),
+          );
+          const confidence = Math.min(
+            100,
+            Math.round(listSentiment.confidence * 0.85),
+          );
+          const dir = listSentiment.sentiment === "bullish" ? "long" : "short";
+          const factorLabel = `List (curated): ${listSentiment.sentiment} (${listSentiment.confidence}%)`;
+          signals.push({
+            asset,
+            direction: dir,
+            strength,
+            confidence,
+            source: "XListSentiment",
+            factors: [factorLabel],
+            timestamp: Date.now(),
+          });
+          sources.push("XListSentiment");
+          allFactors.push(factorLabel);
+        }
+        if (!sources.includes("XListSentiment")) {
+          triedNoContribution.push("XListSentiment");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] X list sentiment error: ${e}`);
+        triedNoContribution.push("XListSentiment");
+      }
+    }
+
+    // =========================================
+    // 5c. X News (Grok summaries, when X_NEWS_AS_AGGREGATOR_SOURCE=true)
+    // =========================================
+    const xNewsAsSource = /^(1|true|yes)$/i.test(
+      (process.env.X_NEWS_AS_AGGREGATOR_SOURCE ?? "").trim(),
+    );
+    if (xNewsAsSource) {
+      try {
+        const xNewsService = this.runtime.getService(
+          "X_NEWS_AGGREGATOR_SERVICE",
+        ) as {
+          isConfigured?: () => boolean;
+          getTradingSentimentFromNews?: () => Promise<{
+            sentiment: "bullish" | "bearish" | "neutral";
+            confidence: number;
+          }>;
+        } | null;
+        if (
+          xNewsService?.isConfigured?.() &&
+          typeof xNewsService.getTradingSentimentFromNews === "function"
+        ) {
+          const newsSentiment =
+            await xNewsService.getTradingSentimentFromNews();
+          if (
+            newsSentiment.sentiment !== "neutral" &&
+            newsSentiment.confidence >= 25
+          ) {
+            const strength = Math.round(
+              44 + Math.min(12, newsSentiment.confidence / 5),
+            );
+            const confidence = Math.min(
+              100,
+              Math.round(newsSentiment.confidence * 0.85),
+            );
+            const dir =
+              newsSentiment.sentiment === "bullish" ? "long" : "short";
+            const factorLabel = `X News: ${newsSentiment.sentiment} (${newsSentiment.confidence}%)`;
+            signals.push({
+              asset,
+              direction: dir,
+              strength,
+              confidence,
+              source: "XNews",
+              factors: [factorLabel],
+              timestamp: Date.now(),
+            });
+            sources.push("XNews");
+            allFactors.push(factorLabel);
+          }
+        }
+        if (!sources.includes("XNews")) {
+          triedNoContribution.push("XNews");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] X News sentiment error: ${e}`);
+        triedNoContribution.push("XNews");
+      }
+    }
+
+    // =========================================
+    // 5c″. X trending (soft factor when asset is trending or volume spike on X)
+    // =========================================
+    try {
+      const trendsService = this.runtime.getService(
+        "X_TRENDS_SIGNAL_SERVICE",
+      ) as {
+        isConfigured?: () => boolean;
+        getTrendingAssets?: () => Promise<string[]>;
+      } | null;
+      if (
+        trendsService?.isConfigured?.() &&
+        typeof trendsService.getTrendingAssets === "function"
+      ) {
+        const trendingAssets = await trendsService.getTrendingAssets();
+        if (
+          Array.isArray(trendingAssets) &&
+          trendingAssets.includes(asset.toUpperCase())
+        ) {
+          const factorLabel = `${asset} trending on X`;
+          signals.push({
+            asset,
+            direction: "neutral",
+            strength: 32,
+            confidence: 28,
+            source: "XTrending",
+            factors: [factorLabel],
+            timestamp: Date.now(),
+          });
+          sources.push("XTrending");
+          allFactors.push(factorLabel);
+        }
+      }
+    } catch (e) {
+      logger.debug(`[VinceSignalAggregator] X trending signal error: ${e}`);
+    }
+
+    // =========================================
+    // 5d. Grok Expert Auto-Pulse (daily narrative from knowledge/internal-docs/grok-auto-*.md)
     // =========================================
     try {
       const grokExtractor = this.runtime.getService(
@@ -1154,12 +1593,13 @@ export class VinceSignalAggregatorService extends Service {
           ? getStandupSignalForAsset(standupData, asset)
           : undefined;
         if (entry && entry.direction !== "neutral") {
+          const staleness = getDailySidecarDecay(standupData?.date);
           const confidence = Math.min(
             100,
-            Math.max(0, entry.confidence_pct ?? 50),
+            Math.max(0, Math.round((entry.confidence_pct ?? 50) * staleness)),
           );
           if (confidence >= 25) {
-            const strength = 48 + Math.min(12, confidence / 8);
+            const strength = (48 + Math.min(12, confidence / 8)) * staleness;
             const label =
               entry.source === "solus"
                 ? `Solus standup ${entry.direction} (${confidence}%)`
@@ -1170,7 +1610,10 @@ export class VinceSignalAggregatorService extends Service {
               strength: Math.round(strength),
               confidence,
               source: "StandupSignal",
-              factors: [label],
+              factors: [
+                label,
+                `standup staleness decay x${staleness.toFixed(2)}`,
+              ],
               timestamp: Date.now(),
             });
             sources.push("StandupSignal");
@@ -1183,6 +1626,49 @@ export class VinceSignalAggregatorService extends Service {
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] StandupSignal error: ${e}`);
         triedNoContribution.push("StandupSignal");
+      }
+    }
+
+    // =========================================
+    // 5e. ECHO What's the Trade (docs/standup/signals/YYYY-MM-DD-echo-x.json, same-day)
+    // =========================================
+    const echoXSignalsEnabled = (
+      process.env.VINCE_PAPER_ECHO_X_SIGNALS_ENABLED ?? "true"
+    ).trim();
+    if (!/^(0|false|no)$/i.test(echoXSignalsEnabled)) {
+      try {
+        const echoXData = await loadEchoXSignals();
+        const echoEntry = echoXData
+          ? getEchoXSignalForAsset(echoXData, asset)
+          : undefined;
+        if (echoEntry && echoEntry.direction !== "neutral") {
+          const staleness = getDailySidecarDecay(echoXData?.date);
+          const confidence = Math.min(
+            100,
+            Math.max(0, Math.round((echoEntry.confidence ?? 50) * staleness)),
+          );
+          if (confidence >= 25) {
+            const strength = (46 + Math.min(10, confidence / 8)) * staleness;
+            const label = `ECHO WTT ${echoEntry.direction} (${confidence}%)`;
+            signals.push({
+              asset,
+              direction: echoEntry.direction,
+              strength: Math.round(strength),
+              confidence,
+              source: "EchoXSignal",
+              factors: [label, `echo staleness decay x${staleness.toFixed(2)}`],
+              timestamp: Date.now(),
+            });
+            sources.push("EchoXSignal");
+            allFactors.push(label);
+          }
+        }
+        if (!sources.includes("EchoXSignal")) {
+          triedNoContribution.push("EchoXSignal");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] EchoXSignal error: ${e}`);
+        triedNoContribution.push("EchoXSignal");
       }
     }
 
@@ -1942,9 +2428,18 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // Calculate weighted averages
-    const avgStrength = totalWeight > 0 ? weightedStrength / totalWeight : 50;
-    const avgConfidence =
-      totalWeight > 0 ? weightedConfidence / totalWeight : 0;
+    let avgStrength = totalWeight > 0 ? weightedStrength / totalWeight : 50;
+    let avgConfidence = totalWeight > 0 ? weightedConfidence / totalWeight : 0;
+    const blended = applyCrossSourceBlend({
+      signals,
+      direction,
+      avgStrength,
+      avgConfidence,
+      factors: allFactors,
+    });
+    avgStrength = blended.strength;
+    avgConfidence = blended.confidence;
+    allFactors.splice(0, allFactors.length, ...blended.factors);
 
     // =========================================
     // Volume Confirmation Adjustment
@@ -2261,6 +2756,51 @@ export class VinceSignalAggregatorService extends Service {
     // =========================================
     if (direction !== "neutral") {
       aggregated = await this.applyMLEnhancement(aggregated, currentSession);
+    }
+
+    // =========================================
+    // Swarm Learning: VINCE contributes signals to swarm coordinator
+    // and can optionally receive swarm-enhanced per-source weights.
+    // Gated by VINCE_SWARM_ENABLED so it can be rolled out safely.
+    // =========================================
+    const swarmEnabled =
+      this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === true ||
+      this.runtime.getSetting?.("VINCE_SWARM_ENABLED") === "true" ||
+      process.env.VINCE_SWARM_ENABLED === "true";
+
+    if (swarmEnabled && aggregated.direction !== "neutral") {
+      try {
+        const swarmService = this.runtime.getService("swarm-coordination") as {
+          contributeSignals?: (
+            agentId: string,
+            signals: string[],
+            confidence: number,
+          ) => Promise<Record<string, number>>;
+        } | null;
+
+        if (swarmService?.contributeSignals) {
+          const uniqueSources = aggregated.sources ?? [];
+          const confidenceNorm = aggregated.confidence / 100;
+
+          const swarmWeights = await swarmService.contributeSignals(
+            "vince",
+            uniqueSources,
+            confidenceNorm,
+          );
+
+          if (swarmWeights && Object.keys(swarmWeights).length > 0) {
+            aggregated = {
+              ...aggregated,
+              swarmWeights,
+              swarmWeightsUsed: true,
+            };
+          }
+        }
+      } catch (e) {
+        logger.debug(
+          `[VinceSignalAggregator] Swarm contribution skipped for ${asset}: ${e}`,
+        );
+      }
     }
 
     // =========================================

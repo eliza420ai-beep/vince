@@ -39,6 +39,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
@@ -48,9 +49,13 @@ import openaiPlugin from "@elizaos/plugin-openai";
 import { getAnthropicLargeModel } from "../model-config.ts";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
+import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 
 // Inter-agent communication: ASK_AGENT + A2A loop guard for Discord chat
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
+// Polymarket discovery (read-only) so Vince can derive prediction-market sentiment for perps + Solus
+import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discovery/src/index.ts";
+import { presenceBridgePlugin } from "../plugins/plugin-presence-bridge/src/index.ts";
 
 // Load Discord for VINCE when he has his own bot (VINCE_DISCORD_* set and different from Eliza's app).
 // No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to use Discord (see DISCORD.md).
@@ -60,6 +65,7 @@ const vinceHasOwnDiscord =
   (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() ||
     process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !==
       process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+const vinceEnablePresence = process.env.VINCE_ENABLE_PRESENCE === "true";
 
 // ==========================================
 // Character Definition
@@ -82,6 +88,7 @@ export const vinceCharacter: Character = {
     ...(process.env.TELEGRAM_BOT_TOKEN?.trim()
       ? ["@elizaos/plugin-telegram"]
       : []),
+    ...(vinceEnablePresence ? ["@elizaos/plugin-presence"] : []),
   ],
   settings: {
     secrets: {
@@ -115,36 +122,35 @@ export const vinceCharacter: Character = {
   },
   knowledge: [
     // VINCE = CDO: objective data — options, perps, prices, market intelligence
-    // Teammate (USER, SOUL, TOOLS, MEMORY) is provider-only — not in knowledge to avoid RAG duplication
-    { directory: "options", shared: true },
-    { directory: "perps-trading", shared: true },
-    { directory: "grinding-the-trenches", shared: true },
-    { directory: "defi-metrics", shared: true },
-    { directory: "the-good-life", shared: true },
-    { directory: "art-collections", shared: true },
-    { directory: "airdrops", shared: true },
-    { directory: "altcoins", shared: true },
-    { directory: "bitcoin-maxi", shared: true },
-    { directory: "commodities", shared: true },
-    { directory: "macro-economy", shared: true },
-    { directory: "privacy", shared: true },
-    { directory: "regulation", shared: true },
-    { directory: "rwa", shared: true },
-    { directory: "security", shared: true },
-    { directory: "solana", shared: true },
-    { directory: "stablecoins", shared: true },
-    { directory: "stocks", shared: true },
-    { directory: "venture-capital", shared: true },
-    { directory: "substack-essays", shared: true },
-    { directory: "prompt-templates", shared: true },
-    { directory: "setup-guides", shared: true },
-    { directory: "internal-docs", shared: true },
-    { directory: "ai-crypto", shared: true },
-    { directory: "bitcoin-l2", shared: true },
-    { directory: "trading", shared: true },
-    { directory: "research-daily", shared: true },
-    { path: "sentinel-docs/BRANDING.md", shared: true },
-    { directory: "brand", shared: true },
+    dir("options"),
+    dir("perps-trading"),
+    dir("grinding-the-trenches"),
+    dir("defi-metrics"),
+    dir("the-good-life"),
+    dir("art-collections"),
+    dir("airdrops"),
+    dir("altcoins"),
+    dir("bitcoin-maxi"),
+    dir("commodities"),
+    dir("macro-economy"),
+    dir("privacy"),
+    dir("regulation"),
+    dir("rwa"),
+    dir("security"),
+    dir("solana"),
+    dir("stablecoins"),
+    dir("stocks"),
+    dir("venture-capital"),
+    dir("substack-essays"),
+    dir("prompt-templates"),
+    dir("setup-guides"),
+    dir("internal-docs"),
+    dir("ai-crypto"),
+    dir("bitcoin-l2"),
+    dir("trading"),
+    dir("research-daily"),
+    knowledgePath("sentinel-docs/BRANDING.md"),
+    dir("brand"),
   ],
   system: `You are VINCE, a unified data intelligence agent focused on 7 key areas.
 
@@ -289,12 +295,13 @@ When data is missing or conflicting: say so plainly (e.g. "CoinGlass timeout", "
     "Direct, numbers-first. Always names data sources. Trade well, live well.",
   ],
   messageExamples: [
-    [
-      { name: "{{user1}}", content: { text: "aloha" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `**ALOHA**
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "aloha" } },
+        {
+          name: "VINCE",
+          content: {
+            text: `**ALOHA**
 
 **OPTIONS** (Friday prep)
 CoinGlass: BTC funding 0.008%, L/S ratio 1.2 (slightly long-biased)
@@ -314,16 +321,18 @@ Rest day. Pool session weather permitting.
 No hotel bookings mid-week — calendar clear.
 
 Need details on any area?`,
-          actions: ["VINCE_GM"],
+            actions: ["VINCE_GM"],
+          },
         },
-      },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "GM" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `GM! Here's your briefing:
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "GM" } },
+        {
+          name: "VINCE",
+          content: {
+            text: `GM! Here's your briefing:
 
 **OPTIONS** (Friday prep)
 CoinGlass: BTC funding 0.008%, L/S ratio 1.2 (slightly long-biased)
@@ -343,16 +352,18 @@ Rest day. Pool session weather permitting.
 No hotel bookings mid-week - calendar clear.
 
 Need details on any area?`,
-          actions: ["VINCE_GM"],
+            actions: ["VINCE_GM"],
+          },
         },
-      },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "What's hot in memes?" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `**MEMETICS SCAN** (DexScreener + Meteora)
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "What's hot in memes?" } },
+        {
+          name: "VINCE",
+          content: {
+            text: `**MEMETICS SCAN** (DexScreener + Meteora)
 
 🔥 **SOLANA**
 1. MOLT (AI/Claude) - APE signal
@@ -373,16 +384,18 @@ Need details on any area?`,
 
 **Meteora Strategy:**
 MOLT has LP pool - good for DCA entry if you believe the Claude narrative.`,
-          actions: ["VINCE_MEMES"],
+            actions: ["VINCE_MEMES"],
+          },
         },
-      },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "Friday strikes?" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `**FRIDAY STRIKE SELECTION**
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "Friday strikes?" } },
+        {
+          name: "VINCE",
+          content: {
+            text: `**FRIDAY STRIKE SELECTION**
 
 **BTC Covered Call**
 Current: $98,500 | CoinGlass funding: 0.012% (elevated)
@@ -404,75 +417,90 @@ Rationale: Higher vol = wider strikes
 **HYPE** - No options yet, monitoring perpetual only
 
 Your call on execution. Want me to log the selections?`,
-          actions: ["VINCE_OPTIONS"],
+            actions: ["VINCE_OPTIONS"],
+          },
         },
-      },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "Execute that trade" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `I don't execute — I suggest. You decide and place the trade. If you want the paper bot to take a simulated position, say "trade" or "go long" with size and I'll run it in sim only.`,
-          actions: ["REPLY"],
+      ],
+    },
+    {
+      examples: [
+        { name: "{{user1}}", content: { text: "Execute that trade" } },
+        {
+          name: "VINCE",
+          content: {
+            text: `I don't execute — I suggest. You decide and place the trade. If you want the paper bot to take a simulated position, say "trade" or "go long" with size and I'll run it in sim only.`,
+            actions: ["REPLY"],
+          },
         },
-      },
-    ],
-    [
-      { name: "{{user1}}", content: { text: "What's BTC funding right now?" } },
-      {
-        name: "VINCE",
-        content: {
-          text: `CoinGlass is timing out — can't get live funding. Fallback: check Binance futures or Deribit directly. I'll retry on your next message.`,
-          actions: ["REPLY"],
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "What's BTC funding right now?" },
         },
-      },
-    ],
-    [
-      {
-        name: "Kelly",
-        content: {
-          text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on btc?",
+        {
+          name: "VINCE",
+          content: {
+            text: `CoinGlass is timing out — can't get live funding. Fallback: check Binance futures or Deribit directly. I'll retry on your next message.`,
+            actions: ["REPLY"],
+          },
         },
-      },
-      {
-        name: "VINCE",
-        content: {
-          text: `BTC at $70.5k, extreme fear (14), funding negative at -4.54%. L/S ratio 1.67 — longs still crowded despite fear. Paper bot short from $70.5k.`,
-          actions: ["REPLY"],
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "Kelly",
+          content: {
+            text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on btc?",
+          },
         },
-      },
-    ],
-    [
-      {
-        name: "Kelly",
-        content: {
-          text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on eth?",
+        {
+          name: "VINCE",
+          content: {
+            text: `BTC at $70.5k, extreme fear (14), funding negative at -4.54%. L/S ratio 1.67 — longs still crowded despite fear. Paper bot short from $70.5k.`,
+            actions: ["REPLY"],
+          },
         },
-      },
-      {
-        name: "VINCE",
-        content: {
-          text: `ETH tracking BTC, $3.5k. Funding slightly negative. Perp flow mixed; spot ETF flows still supportive.`,
-          actions: ["REPLY"],
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "Kelly",
+          content: {
+            text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on eth?",
+          },
         },
-      },
-    ],
-    [
-      {
-        name: "{{user1}}",
-        content: { text: "Who does strike ritual and size/skip?" },
-      },
-      {
-        name: "VINCE",
-        content: {
-          text: "That's right curve—Solus. Say 'options' to me, paste here, then ask him for the call.",
-          actions: ["REPLY"],
+        {
+          name: "VINCE",
+          content: {
+            text: `ETH tracking BTC, $3.5k. Funding slightly negative. Perp flow mixed; spot ETF flows still supportive.`,
+            actions: ["REPLY"],
+          },
         },
-      },
-    ],
+      ],
+    },
+    {
+      examples: [
+        {
+          name: "{{user1}}",
+          content: { text: "Who does strike ritual and size/skip?" },
+        },
+        {
+          name: "VINCE",
+          content: {
+            text: "That's right curve—Solus. Say 'options' to me, paste here, then ask him for the call.",
+            actions: ["REPLY"],
+          },
+        },
+      ],
+    },
   ],
   style: {
+    $typeName: "eliza.v1.StyleGuides" as const,
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -536,8 +564,16 @@ const buildPlugins = (): Plugin[] =>
     ...(vinceHasOwnDiscord
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
       : []),
+    ...(vinceEnablePresence
+      ? (["@elizaos/plugin-presence"] as unknown as Plugin[])
+      : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
+    ...(process.env.VINCE_ENABLE_X_RESEARCH_PLUGIN === "true"
+      ? [xResearchPlugin]
+      : []), // Optional live bridge for X_RESEARCH_TRADING_SENTIMENT_SERVICE
+    polymarketDiscoveryPlugin, // Read-only: Polymarket sentiment for perps signal + Solus context
     interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
+    ...(vinceEnablePresence ? [presenceBridgePlugin] : []),
   ] as Plugin[];
 
 // ==========================================

@@ -7,6 +7,7 @@
 import {
   type Action,
   type ActionExample,
+  type ActionResult,
   type HandlerCallback,
   type IAgentRuntime,
   type Memory,
@@ -16,11 +17,18 @@ import {
 } from "@elizaos/core";
 import {
   getSectorForTicker,
+  getStockForTicker,
   SOLUS_OFFCHAIN_STOCKS,
 } from "../constants/solusStockWatchlist";
 import { FinnhubService } from "../services/finnhub.service";
 import { FMPService } from "../services/fmp.service";
 import { isSolus } from "../utils/solus";
+import {
+  computeStockScorecard,
+  defaultInvalidationForTheme,
+  type StockScorecard,
+} from "../utils/stockScoring";
+import { appendStockCallRecord } from "../utils/stockRecommendationsStore";
 
 function buildAnalysisDataContext(
   ticker: string,
@@ -30,6 +38,8 @@ function buildAnalysisDataContext(
   metrics: any | null,
   sector: string | null,
   sectorPeers: string[],
+  scorecard: StockScorecard,
+  themeBrief: string,
 ): string {
   const lines: string[] = [];
   lines.push(`=== ${ticker} ===`);
@@ -113,7 +123,30 @@ function buildAnalysisDataContext(
     if (sectorPeers.length > 0) lines.push(`Peers: ${sectorPeers.join(", ")}`);
   }
 
+  lines.push(`\nScorecard:`);
+  lines.push(`ThesisStrength: ${scorecard.thesisStrength}/100`);
+  lines.push(`CatalystDensity: ${scorecard.catalystDensity}/100`);
+  lines.push(`ValuationStretch: ${scorecard.valuationStretch}/100`);
+  lines.push(`ExecutionRisk: ${scorecard.executionRisk}/100`);
+  lines.push(`NetEdgeScore: ${scorecard.netEdgeScore}/100`);
+  lines.push(`RecommendationBand: ${scorecard.recommendation}`);
+
+  if (themeBrief) {
+    lines.push(`\nTheme brief context:`);
+    lines.push(themeBrief);
+  }
+
   return lines.join("\n");
+}
+
+function buildPairExpression(ticker: string): string | null {
+  const meta = getStockForTicker(ticker);
+  if (!meta || meta.thesisRole !== "at_risk_incumbent") return null;
+  const peer = SOLUS_OFFCHAIN_STOCKS.find(
+    (s) => s.theme === meta.theme && s.thesisRole !== "at_risk_incumbent",
+  );
+  if (!peer) return null;
+  return `Pair expression: long ${peer.ticker} against ${ticker} if AI capex and automation spend stay strong.`;
 }
 
 async function generateAnalysisNarrative(
@@ -121,6 +154,7 @@ async function generateAnalysisNarrative(
   ticker: string,
   dataContext: string,
   hasFMP: boolean,
+  scorecard: StockScorecard,
 ): Promise<string> {
   const prompt = `You are Solus, the stock specialist for the offchain watchlist. Give a concise analysis of ${ticker}.
 
@@ -133,6 +167,8 @@ Write a stock analysis that covers:
 3. Headlines — anything in the news that moves the thesis?
 4. Sector context — where this name sits relative to peers
 5. One clear call: watch, accumulate, or avoid — and your invalidation
+6. Include one explicit causal chain using this structure: event -> bottleneck -> revenue impact
+7. Include one competing hypothesis that could break the thesis
 
 STYLE RULES:
 - Write like a sharp analyst briefing a portfolio manager, not a data dump
@@ -140,6 +176,7 @@ STYLE RULES:
 - No bullet points or section headers. Flow between topics.
 - Have an opinion. If the stock is overvalued, say so. If the setup is clean, call it.
 - Around 150-250 words. Dense with insight, no padding.
+- Keep your conclusion aligned to this deterministic recommendation band from scorecard: ${scorecard.recommendation.toUpperCase()}.
 ${!hasFMP ? "\n- Note that fundamentals data isn't available (FMP not configured) — work with what you have." : ""}
 
 AVOID:
@@ -195,15 +232,13 @@ export const solusAnalyzeAction: Action = {
     );
   },
 
-  suppressInitialMessage: true,
-
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
     _options: any,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text || "";
     const ticker = extractTicker(text);
 
@@ -246,11 +281,34 @@ export const solusAnalyzeAction: Action = {
     }
 
     const sector = getSectorForTicker(ticker);
+    const stockMeta = getStockForTicker(ticker);
     const sectorPeers = sector
       ? SOLUS_OFFCHAIN_STOCKS.filter(
           (s) => s.sector === sector && s.ticker !== ticker,
         ).map((s) => s.ticker)
       : [];
+    const scorecard = computeStockScorecard({
+      stock: stockMeta,
+      quoteChangePct: quote?.dp ?? null,
+      newsCount: news?.length ?? 0,
+      peRatio: metrics?.peRatio ?? null,
+      revenueGrowth: metrics?.revenueGrowth ?? null,
+      profitMargin: metrics?.profitMargin ?? null,
+      debtToEquity: metrics?.debtToEquity ?? null,
+      returnOnEquity: metrics?.returnOnEquity ?? null,
+      beta: metrics?.beta ?? null,
+      hasUpcomingEarnings: Boolean(metrics?.nextEarnings),
+    });
+    const themeBrief =
+      (_state?.values?.solusThemeBrief as string | undefined) ||
+      (_state?.text?.includes("[Solus theme brief - AI bottlenecks]")
+        ? _state.text
+        : "");
+    const stockCalibration =
+      (_state?.values?.solusStockCalibration as string | undefined) ||
+      (_state?.text?.includes("[Solus stock calibration context]")
+        ? _state.text
+        : "");
 
     if (!quote && !metrics) {
       if (callback) {
@@ -270,13 +328,32 @@ export const solusAnalyzeAction: Action = {
       metrics,
       sector,
       sectorPeers,
+      scorecard,
+      [themeBrief, stockCalibration].filter(Boolean).join("\n"),
     );
     const narrative = await generateAnalysisNarrative(
       runtime,
       ticker,
       dataContext,
       hasFMP,
+      scorecard,
     );
+    const pairExpression = buildPairExpression(ticker);
+    const invalidation =
+      defaultInvalidationForTheme(stockMeta?.theme) ||
+      "If execution breaks and the thesis catalyst fails to show up.";
+    if (quote?.c && Number.isFinite(quote.c) && stockMeta) {
+      appendStockCallRecord({
+        ticker,
+        theme: stockMeta.theme,
+        thesisRole: stockMeta.thesisRole,
+        recommendation: scorecard.recommendation,
+        netEdgeScore: scorecard.netEdgeScore,
+        invalidation,
+        entryPrice: quote.c,
+        reviewAfterDays: 7,
+      });
+    }
 
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-US", {
@@ -289,6 +366,10 @@ export const solusAnalyzeAction: Action = {
       `**${ticker} Analysis** _${dateStr}_`,
       "",
       narrative,
+      "",
+      `**Scorecard** Thesis ${scorecard.thesisStrength} · Catalyst ${scorecard.catalystDensity} · Valuation ${scorecard.valuationStretch} · ExecutionRisk ${scorecard.executionRisk} · NetEdge ${scorecard.netEdgeScore}`,
+      `**Primary call** ${scorecard.recommendation.toUpperCase()} — Invalidation: ${invalidation}`,
+      pairExpression ? `**Pair** ${pairExpression}` : "",
       "",
       sources.length > 0 ? `*Source: ${sources.join(", ")}*` : "",
       "",

@@ -8,6 +8,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -137,7 +138,7 @@ export const vinceBotVerdictAction: Action = {
     state: State,
     options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const date = now.toLocaleDateString("en-US", {
@@ -205,12 +206,14 @@ export const vinceBotVerdictAction: Action = {
       });
 
       logger.info("[VINCE_BOT_VERDICT] Bot verdict complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_BOT_VERDICT] Error: ${error}`);
       await callback({
         text: "Bot verdict failed — position or signal services unavailable. Try WHY TRADE for full reasoning or ALOHA for market brief.",
         actions: ["VINCE_BOT_VERDICT"],
       });
+      return undefined;
     }
   },
 

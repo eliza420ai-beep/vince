@@ -1,0 +1,130 @@
+# VINCE trading policy — source of truth for Forge experiments
+# Forge mutates these values during overnight autoresearch runs.
+# All TypeScript services read these at startup via ForgeExperimentService.loadPolicy().
+# Do NOT edit by hand during a live experiment — let Forge commit winners.
+#
+# Sources extracted from:
+#   src/plugins/plugin-vince/src/services/vinceSentimentGate.ts
+#   src/plugins/plugin-vince/src/constants/paperTradingDefaults.ts
+
+version: "1.0"
+policyId: "trading-v1"
+effectiveDate: "2026-02-25"
+
+# ---------------------------------------------------------------------------
+# Sentiment gate
+# ---------------------------------------------------------------------------
+sentiment_gate:
+  # Score below this threshold → bearish → skip new longs
+  bearish_threshold: 4
+  # Score above this threshold → bullish → allow full size
+  bullish_threshold: 7
+  # Size multiplier when bearish (not risk-off)
+  bearish_size_multiplier: 0.8
+  # Size multiplier when regime is risk-off
+  risk_off_size_multiplier: 0.5
+  # Max age of cached Echo sentiment/Oracle regime before treating as neutral (minutes)
+  cache_staleness_minutes: 20
+
+# ---------------------------------------------------------------------------
+# Position limits
+# ---------------------------------------------------------------------------
+position_limits:
+  # Max single-trade notional in USD (aggressive mode: margin × leverage)
+  max_single_trade_usd: 10000
+  # Max concurrent open positions
+  max_open_positions: 5
+  # Fixed margin per trade in aggressive mode (USD)
+  aggressive_margin_usd: 1000
+  # Fallback base size as % of portfolio when margin would exceed portfolio
+  aggressive_base_size_pct: 12
+  # Max portfolio % per position
+  max_position_size_pct: 10
+  # Max total portfolio exposure %
+  max_total_exposure_pct: 30
+  # Default max leverage (aggressive mode: 40)
+  max_leverage: 5
+
+# ---------------------------------------------------------------------------
+# Risk / circuit breakers
+# ---------------------------------------------------------------------------
+risk:
+  # Stop trading session after this % daily loss
+  max_daily_loss_pct: 5
+  # Portfolio drawdown circuit breaker
+  max_drawdown_pct: 15
+  # Cooldown after a losing trade (minutes)
+  cooldown_after_loss_minutes: 30
+
+# ---------------------------------------------------------------------------
+# Signal thresholds
+# ---------------------------------------------------------------------------
+signal:
+  # Minimum signal strength to enter a trade (Learning Mode)
+  min_strength: 40
+  # Minimum signal confidence to enter a trade (Learning Mode)
+  min_confidence: 35
+  # Minimum confirming signal sources required
+  min_confirming_signals: 3
+  # Strong-signal override: if strength >= this AND confidence >= high_confidence, only need 2 confirming
+  strong_strength: 55
+  high_confidence: 55
+  min_confirming_when_strong: 2
+  # HIP-3 assets have fewer sources — lower minimums
+  hip3_min_strength: 45
+  hip3_min_confidence: 40
+
+# ---------------------------------------------------------------------------
+# ML gate
+# ---------------------------------------------------------------------------
+ml_gate:
+  # Minimum ONNX signal-quality score to proceed (0–1)
+  signal_quality_threshold: 0.60
+  # Minimum swarm consensus confidence for multi-agent signal (0–1)
+  swarm_min_confidence: 0.50
+
+# ---------------------------------------------------------------------------
+# Hard rules (live trading guardrails — not mutated by Forge)
+# ---------------------------------------------------------------------------
+rules:
+  - id: "max-single-trade-usd"
+    description: "Maximum single trade size regardless of signal strength (paper: from bucket or VINCE_PAPER_MAX_SINGLE_TRADE_USD; tighten for live)"
+    condition: "tradeSize > maxSingleTradeUsd"
+    action: "block"
+    level: "hard"
+
+  - id: "max-daily-trades"
+    description: "Cap number of trades opened per day (paper: VINCE_PAPER_MAX_DAILY_TRADES; unset = no cap)"
+    condition: "tradesToday >= maxDailyTrades"
+    action: "block"
+    level: "hard"
+
+  - id: "max-open-positions"
+    description: "Cap number of concurrent open positions (paper: VINCE_PAPER_MAX_OPEN_POSITIONS; unset = no cap)"
+    condition: "openPositionCount >= maxOpenPositions"
+    action: "block"
+    level: "hard"
+
+  - id: "min-confidence-live"
+    description: "Minimum signal confidence for any live trade"
+    condition: "executionType == live AND confidence < 65"
+    action: "block"
+    level: "hard"
+
+  - id: "circuit-breaker-check"
+    description: "Halt all live trades when circuit breaker is active"
+    condition: "circuitBreakerActive == true AND executionType == live"
+    action: "block"
+    level: "hard"
+
+  - id: "paper-sentiment-gate"
+    description: "Reduce size in paper mode when sentiment is bearish"
+    condition: "sentimentScore < 4 AND direction == long"
+    action: "reduce-size-50pct"
+    level: "soft"
+
+  - id: "max-drawdown-warning"
+    description: "Warn when portfolio drawdown exceeds 10%"
+    condition: "portfolioDrawdownPct > 10"
+    action: "warn"
+    level: "soft"

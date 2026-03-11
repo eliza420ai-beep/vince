@@ -22,21 +22,30 @@ import {
   ModelType,
   logger,
 } from "@elizaos/core";
-import { getXSearchService } from "../services/xSearch.service";
+import {
+  getXSearchService,
+  selectFairQuickTopics,
+} from "../services/xSearch.service";
 import { getXSentimentService } from "../services/xSentiment.service";
+import { getXThreadsService } from "../services/xThreads.service";
 import { initXClientFromEnv } from "../services/xClient.service";
 import type {
   XPulseResult,
   XThreadSummary,
   XBreakingContent,
 } from "../types/analysis.types";
-import type { XTweet } from "../types/tweet.types";
 import { ALL_TOPICS, FOCUS_TICKERS } from "../constants/topics";
 import { formatCostFooter } from "../constants/cost";
 import { setLastResearch } from "../store/lastResearchStore";
 import { getMandoContextForX } from "../utils/mandoContext";
+import type { MandoContextForX } from "../utils/mandoContext";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
-import { getFriendlyXErrorMessage } from "../utils/xErrorMessages";
+import {
+  getFriendlyXErrorMessage,
+  stripPriceBlockFromEchoResponse,
+} from "../utils/xErrorMessages";
+import { findBreakingContent } from "./helpers/xPulseSignal.helpers";
+import { sendActionResponse } from "./helpers/actionResponse";
 
 const BREAKING_VELOCITY_THRESHOLD = 100; // 100+ likes/hour = breaking
 
@@ -118,15 +127,16 @@ export const xPulseAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       // Initialize client
       initXClientFromEnv(runtime);
 
       const searchService = getXSearchService();
       const sentimentService = getXSentimentService();
+      const threadsService = getXThreadsService();
 
       const text = (message.content?.text ?? "").toLowerCase();
       const quick =
@@ -145,14 +155,14 @@ export const xPulseAction: Action = {
         (t) => t.priority === "high",
       ).map((t) => t.id);
       const requestedTopicIds = quick
-        ? highPriorityTopicIds.slice(0, 2)
+        ? selectFairQuickTopics(highPriorityTopicIds, 4)
         : highPriorityTopicIds;
 
       // Search high-priority topics (quick = fewer topics + results)
       const topicResults = await searchService.searchMultipleTopics({
         topicsIds: requestedTopicIds,
         maxResultsPerTopic: quick ? 10 : 50,
-        quick,
+        quick: false,
         cacheTtlMs: pulseCacheTtlMs,
       });
 
@@ -173,18 +183,21 @@ export const xPulseAction: Action = {
         const noDataMsg = qualityOnly
           ? "📊 **X Pulse**\n\nNo recent tweets from quality/whale accounts in this window. Try full pulse or a different time."
           : "📊 **X Pulse**\n\nNo recent data available. X API might be rate limited or no matching content found.";
-        callback({ text: noDataMsg, action: "X_PULSE" });
+        await sendActionResponse(callback, "X_PULSE", { text: noDataMsg });
         return { success: true };
       }
 
       // Analyze sentiment
       const sentiment = sentimentService.analyzeSentiment(allTweets);
 
-      // Find threads
-      const threads = findThreads(allTweets).slice(0, 3);
+      // Find threads through canonical thread service.
+      const threads = await threadsService.getTopThreads(allTweets, 3);
 
       // Find breaking content
-      const breaking = findBreakingContent(allTweets).slice(0, 3);
+      const breaking = findBreakingContent(
+        allTweets,
+        BREAKING_VELOCITY_THRESHOLD,
+      ).slice(0, 3);
 
       // Check for volume spikes
       const spikes = await searchService.detectVolumeSpikes();
@@ -222,18 +235,16 @@ export const xPulseAction: Action = {
       }
 
       if (message.roomId) setLastResearch(message.roomId, briefing);
-      callback({
-        text: briefing,
-        action: "X_PULSE",
+      await sendActionResponse(callback, "X_PULSE", {
+        text: stripPriceBlockFromEchoResponse(briefing),
       });
 
       return { success: true };
     } catch (error) {
       logger.warn({ err: error }, "[X_PULSE] X API error");
       const friendly = getFriendlyXErrorMessage(error);
-      callback({
+      await sendActionResponse(callback, "X_PULSE", {
         text: `📊 **X Pulse**\n\n⚠️ ${friendly}`,
-        action: "X_PULSE",
       });
       return {
         success: false,
@@ -242,51 +253,6 @@ export const xPulseAction: Action = {
     }
   },
 };
-
-// ─────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────
-
-function findThreads(tweets: XTweet[]): XThreadSummary[] {
-  return tweets
-    .filter((t) => t.computed?.isThread && t.metrics)
-    .map((t) => ({
-      id: t.id,
-      author: {
-        username: t.author?.username ?? "unknown",
-        name: t.author?.name ?? "Unknown",
-        tier: t.computed?.qualityTier ?? "standard",
-      },
-      topic: "crypto", // TODO: detect topic
-      hook: t.text.slice(0, 280),
-      tweetCount: 1, // TODO: fetch thread length
-      engagement: {
-        likes: t.metrics!.likeCount,
-        retweets: t.metrics!.retweetCount,
-        replies: t.metrics!.replyCount,
-      },
-      velocity: t.computed?.velocity ?? 0,
-      url: `https://x.com/${t.author?.username}/status/${t.id}`,
-    }))
-    .sort((a, b) => b.velocity - a.velocity);
-}
-
-function findBreakingContent(tweets: XTweet[]): XBreakingContent[] {
-  return tweets
-    .filter((t) => (t.computed?.velocity ?? 0) >= BREAKING_VELOCITY_THRESHOLD)
-    .map((t) => ({
-      tweet: t,
-      reason: `${Math.round(t.computed?.velocity ?? 0)} likes/hour`,
-      velocity: t.computed?.velocity ?? 0,
-      topic: "crypto",
-      urgency: ((t.computed?.velocity ?? 0) > 500
-        ? "high"
-        : (t.computed?.velocity ?? 0) > 200
-          ? "medium"
-          : "low") as "high" | "medium" | "low",
-    }))
-    .sort((a, b) => b.velocity - a.velocity);
-}
 
 async function generatePulseNarrative(
   runtime: IAgentRuntime,
@@ -331,7 +297,7 @@ async function generateBriefing(
     sampleSize: number;
     quick?: boolean;
     qualityOnly?: boolean;
-    mandoContext?: { vibeCheck: string; headlines: string[] } | null;
+    mandoContext?: MandoContextForX | null;
     emptyTopics?: string[];
   },
 ): Promise<string> {

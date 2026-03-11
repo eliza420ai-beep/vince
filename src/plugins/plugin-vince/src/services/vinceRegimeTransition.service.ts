@@ -102,8 +102,7 @@ export class VinceRegimeTransitionService {
   getTransitionProbability(current: string): Record<string, number> {
     const cutoff = Date.now() - NINETY_DAYS_MS;
     const recent = this.loadAll().filter(
-      (r) =>
-        r.from === current && new Date(r.timestamp).getTime() >= cutoff,
+      (r) => r.from === current && new Date(r.timestamp).getTime() >= cutoff,
     );
 
     if (recent.length === 0) return {};

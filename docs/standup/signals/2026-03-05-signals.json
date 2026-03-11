@@ -1,0 +1,12 @@
+{
+  "date": "2026-03-05",
+  "signals": [
+    {
+      "asset": "BTC",
+      "direction": "neutral",
+      "confidence_pct": 50,
+      "source": "solus",
+      "raw": "bound setup but IV holding."
+    }
+  ]
+}

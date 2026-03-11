@@ -43,7 +43,7 @@ export const mcRegisterSatoshiAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const mc = runtime.getService<MissionControlService>(
       "MISSION_CONTROL_SERVICE",
     );
@@ -115,7 +115,7 @@ export const mcAssignTaskAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const mc = runtime.getService<MissionControlService>(
       "MISSION_CONTROL_SERVICE",
     );
@@ -194,7 +194,7 @@ export const mcListTasksAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const mc = runtime.getService<MissionControlService>(
       "MISSION_CONTROL_SERVICE",
     );

@@ -51,13 +51,14 @@ export const getUserPositionsAction: Action = {
   description:
     "Get user's current positions in Polymarket prediction markets. Shows active positions with current values and PnL.",
 
-  parameters: {
-    walletAddress: {
-      type: "string",
+  parameters: [
+    {
+      name: "walletAddress",
       description: "Wallet address (EOA or proxy) to check positions for",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

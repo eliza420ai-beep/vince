@@ -105,9 +105,9 @@ async function recordSwapPoints(payload: ActionEventPayload): Promise<boolean> {
     const actionResultSingle = payload.content?.actionResult;
     const actionResult: ActionResultWithValues | undefined =
       Array.isArray(actionResults) && actionResults.length > 0
-        ? (actionResults[0] as ActionResultWithValues)
+        ? (actionResults[0] as unknown as ActionResultWithValues)
         : actionResultSingle
-          ? (actionResultSingle as ActionResultWithValues)
+          ? (actionResultSingle as unknown as ActionResultWithValues)
           : undefined;
 
     // Only award points for successful swaps
@@ -166,9 +166,9 @@ async function recordBridgePoints(
     const actionResultSingle = payload.content?.actionResult;
     const actionResult: ActionResultWithValues | undefined =
       Array.isArray(actionResults) && actionResults.length > 0
-        ? (actionResults[0] as ActionResultWithValues)
+        ? (actionResults[0] as unknown as ActionResultWithValues)
         : actionResultSingle
-          ? (actionResultSingle as ActionResultWithValues)
+          ? (actionResultSingle as unknown as ActionResultWithValues)
           : undefined;
 
     // Only award points for successful bridges
@@ -222,9 +222,9 @@ async function recordTransferPoints(
     const actionResultSingle = payload.content?.actionResult;
     const actionResult: ActionResultWithValues | undefined =
       Array.isArray(actionResults) && actionResults.length > 0
-        ? (actionResults[0] as ActionResultWithValues)
+        ? (actionResults[0] as unknown as ActionResultWithValues)
         : actionResultSingle
-          ? (actionResultSingle as ActionResultWithValues)
+          ? (actionResultSingle as unknown as ActionResultWithValues)
           : undefined;
 
     // Only award points for successful transfers
@@ -371,9 +371,9 @@ async function recordAgentActionPoints(
     const actionResultSingle = payload.content?.actionResult;
     const actionResult: ActionResultWithValues | undefined =
       Array.isArray(actionResults) && actionResults.length > 0
-        ? (actionResults[0] as ActionResultWithValues)
+        ? (actionResults[0] as unknown as ActionResultWithValues)
         : actionResultSingle
-          ? (actionResultSingle as ActionResultWithValues)
+          ? (actionResultSingle as unknown as ActionResultWithValues)
           : undefined;
 
     // Only award points for successful actions

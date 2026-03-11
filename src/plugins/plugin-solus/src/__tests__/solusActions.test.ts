@@ -53,6 +53,51 @@ function createNonSolusRuntime(): IAgentRuntime {
   } as unknown as IAgentRuntime;
 }
 
+function createCloseEarlyStateText(): {
+  text: string;
+  values: Record<string, unknown>;
+} {
+  const now = Date.now();
+  return {
+    text: "[Solus sizing state]\n- BTC · covered_calls @ hypersurface — strike ~$70500, expiry 2026-03-06T08:00:00Z",
+    values: {
+      solusSizingState: {
+        entries: {
+          BTC: {
+            asset: "BTC",
+            positionType: "covered_calls",
+            strikeUsd: 70500,
+            expiryUtc: new Date(now + 24 * 60 * 60 * 1000).toISOString(),
+            raw: {},
+            missing: [],
+          },
+        },
+      },
+      solusMarketContext: {
+        assets: {
+          BTC: {
+            asset: "BTC",
+            price: 70480,
+            change24h: 2.8,
+            marketRegime: "bull",
+            volume24h: null,
+            volumeRatio: null,
+            atrPct: null,
+            dvol: null,
+            fundingRate: 0.0003,
+            longShortRatio: null,
+          },
+        },
+        fearGreed: null,
+      },
+      optionsByAsset: {
+        BTC: { spot: 70480, atmIV: 52 },
+      },
+      hypersurfaceSpotPrices: { bitcoin: 70480 },
+    },
+  };
+}
+
 describe("solusStrikeRitualAction", () => {
   it("validate returns true for strike ritual phrases when Solus", async () => {
     const runtime = createSolusRuntime();
@@ -115,6 +160,9 @@ describe("solusHypersurfaceExplainAction", () => {
       "how does hypersurface work",
       "explain secured puts",
       "what's the wheel",
+      "what is settlement time",
+      "can i be exercised early",
+      "is sell probability guaranteed",
     ];
     for (const phrase of phrases) {
       const result = await solusHypersurfaceExplainAction.validate!(
@@ -193,6 +241,25 @@ describe("solusPositionAssessAction", () => {
     );
     expect(result).toBe(false);
   });
+
+  it("handler includes close-early engine line in response", async () => {
+    const runtime = createSolusRuntime({
+      composeState: async () => createCloseEarlyStateText(),
+      useModel: async () =>
+        "Close early now. Invalidation: BTC back below strike.",
+    });
+    const calls: Content[] = [];
+    const callback: HandlerCallback = async (content) => calls.push(content);
+    await solusPositionAssessAction.handler!(
+      runtime,
+      createMessage("assess my position"),
+      {} as any,
+      undefined,
+      callback,
+    );
+    expect(calls.length).toBe(1);
+    expect(calls[0]?.text ?? "").toContain("Close-early engine:");
+  });
 });
 
 describe("solusOptimalStrikeAction", () => {
@@ -244,5 +311,25 @@ describe("solusOptimalStrikeAction", () => {
     const text = (calls[0]?.text ?? "").toLowerCase();
     expect(text).toMatch(/paste/);
     expect(text).toMatch(/vince/);
+  });
+
+  it("handler includes close-early engine line in strike response", async () => {
+    const runtime = createSolusRuntime({
+      composeState: async () => createCloseEarlyStateText(),
+      useModel: async () =>
+        "Close and redeploy next leg at higher strike.\nRecord: BTC 71500 28%",
+    });
+    const msg = createMessage("optimal strike");
+    const calls: Content[] = [];
+    const callback: HandlerCallback = async (content) => calls.push(content);
+    await solusOptimalStrikeAction.handler!(
+      runtime,
+      msg,
+      {} as any,
+      undefined,
+      callback,
+    );
+    expect(calls.length).toBe(1);
+    expect(calls[0]?.text ?? "").toContain("Close-early engine:");
   });
 });

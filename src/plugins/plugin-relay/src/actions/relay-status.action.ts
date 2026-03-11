@@ -30,23 +30,26 @@ export const relayStatusAction: Action = {
   ],
 
   // Parameter schema for tool calling
-  parameters: {
-    requestId: {
-      type: "string",
+  parameters: [
+    {
+      name: "requestId",
       description: "The Relay request ID from a previous bridge transaction",
       required: false,
+      schema: { type: "string" },
     },
-    txHash: {
-      type: "string",
+    {
+      name: "txHash",
       description: "The blockchain transaction hash to check",
       required: false,
+      schema: { type: "string" },
     },
-    user: {
-      type: "string",
+    {
+      name: "user",
       description: "The user wallet address to check all transactions for",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateRelayService(runtime, "CHECK_RELAY_STATUS", state, message);
@@ -270,7 +273,7 @@ export const relayStatusAction: Action = {
         text: response.text,
         actions: ["CHECK_RELAY_STATUS"],
         source: message.content.source,
-        data: response.data,
+        data: response.data as import("@elizaos/core").JsonObject | undefined,
       });
 
       return response;

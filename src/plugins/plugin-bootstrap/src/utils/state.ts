@@ -1,4 +1,10 @@
-import type { IAgentRuntime, Memory, State, ActionResult } from "@elizaos/core";
+import type {
+  IAgentRuntime,
+  Memory,
+  State,
+  ActionResult,
+  WorkingMemory,
+} from "@elizaos/core";
 
 /**
  * Refreshes state after action execution to keep prompts and action results in sync
@@ -110,7 +116,7 @@ export function updateWorkingMemory(
           ...value,
           timestamp: Date.now(),
         },
-      },
+      } as WorkingMemory,
     },
   };
 }

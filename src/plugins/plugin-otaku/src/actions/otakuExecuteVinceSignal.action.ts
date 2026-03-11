@@ -106,7 +106,7 @@ export const otakuExecuteVinceSignalAction: Action = {
     _state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const text = message.content?.text ?? "";
     const pending = await getPending<SwapSignal | BridgeSignal>(
       runtime,

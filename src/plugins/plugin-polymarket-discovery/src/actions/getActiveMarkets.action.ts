@@ -89,13 +89,14 @@ export const getActiveMarketsAction: Action = {
   description:
     "Get trending and active prediction markets from Polymarket. Returns condition_id and token_ids (yes_token_id, no_token_id) for each market. Use condition_id with GET_POLYMARKET_DETAIL for full info, or use token_id directly with GET_POLYMARKET_ORDERBOOK for orderbook depth.",
 
-  parameters: {
-    limit: {
-      type: "number",
+  parameters: [
+    {
+      name: "limit",
       description: "Maximum number of markets to return (default: 10, max: 50)",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {

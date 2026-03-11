@@ -32,14 +32,15 @@ export const getProtocolSlugAction: Action = {
     "Use this action to search for DeFi protocol slugs and basic information by protocol name or symbol. Returns protocol slugs needed for TVL history lookups.",
 
   // Parameter schema for tool calling
-  parameters: {
-    protocols: {
-      type: "string",
+  parameters: [
+    {
+      name: "protocols",
       description:
         "Comma-separated list of DeFi protocol names or symbols to search for (e.g., 'Aave,Curve' or 'EIGEN,MORPHO')",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

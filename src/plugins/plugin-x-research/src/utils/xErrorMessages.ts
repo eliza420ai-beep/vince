@@ -1,6 +1,7 @@
 /**
  * User-friendly messages for X API failures.
  * Avoids surfacing raw errors like "Failed to get posts from X API:" in chat or reports.
+ * Never say "feeds acting up" or "last successful read" unless that is accurate — surface the real error or this friendly message.
  */
 
 /**
@@ -31,4 +32,29 @@ export function getFriendlyXErrorMessage(error: unknown): string {
     return "X API unavailable. Try again later or check X_BEARER_TOKEN.";
   }
   return "X API unavailable. Try again later or check X_BEARER_TOKEN.";
+}
+
+/**
+ * Strip any price-like block that ECHO must not output (prices are VINCE's lane).
+ * Removes lines that look like "Prices:", "Cryptocurrency Prices", or "BTC/ETH/SOL: $...".
+ */
+export function stripPriceBlockFromEchoResponse(text: string): string {
+  if (!text?.trim()) return text;
+  const lines = text.split("\n");
+  const filtered = lines.filter((line) => {
+    const t = line.trim();
+    const lower = t.toLowerCase();
+    if (
+      lower.startsWith("prices:") ||
+      lower.startsWith("cryptocurrency prices") ||
+      lower === "prices"
+    )
+      return false;
+    if (/^(BTC|ETH|SOL|HYPE)\s*[:=]\s*\$?[\d,]+\.?\d*/.test(t)) return false;
+    return true;
+  });
+  return filtered
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

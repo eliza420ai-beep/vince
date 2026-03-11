@@ -10,6 +10,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   getMandoContextForX,
+  normalizeHeadlineForCompare,
+  extractMandoHeadlineTags,
   isPriceLikeHeadline,
 } from "../utils/mandoContext";
 import type { IAgentRuntime } from "@elizaos/core";
@@ -357,6 +359,45 @@ describe("getMandoContextForX", () => {
       expect(result!.vibeCheck).not.toContain("66.8");
       expect(result!.vibeCheck).not.toContain("BTC: 66");
       expect(result!.vibeCheck).not.toContain("1957");
+    });
+  });
+
+  describe("normalization and tags", () => {
+    it("normalizes punctuation/cashtags for robust comparison", () => {
+      expect(normalizeHeadlineForCompare("SEC sues $ETH issuer!!!")).toBe(
+        "sec sues eth issuer",
+      );
+    });
+
+    it("extracts coarse topic tags from headline text", () => {
+      const tags = extractMandoHeadlineTags(
+        "Fed policy pressure meets AI capex rush as SEC signals enforcement",
+      );
+      expect(tags).toContain("macro");
+      expect(tags).toContain("policy");
+      expect(tags).toContain("ai");
+      expect(tags).toContain("regulatory");
+    });
+
+    it("dedupes near-duplicate headlines from cache payload", async () => {
+      const runtime = {
+        getService: vi.fn(() => null),
+        getCache: vi.fn(() =>
+          Promise.resolve({
+            articles: [
+              { title: "SEC approves spot ETF for Bitcoin" },
+              { title: "SEC approves spot ETF for BTC" },
+              { title: "Ethereum upgrade lowers fees" },
+            ],
+          }),
+        ),
+      } as unknown as IAgentRuntime;
+
+      const result = await getMandoContextForX(runtime);
+      expect(result).not.toBeNull();
+      expect(result!.headlines.length).toBe(2);
+      expect(result!.droppedCount).toBe(1);
+      expect(result!.source).toBe("cache");
     });
   });
 });

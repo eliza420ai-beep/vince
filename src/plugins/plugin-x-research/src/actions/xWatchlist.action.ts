@@ -12,49 +12,33 @@ import {
   type Memory,
   type State,
   type HandlerCallback,
+  logger,
 } from "@elizaos/core";
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import { initXClientFromEnv } from "../services/xClient.service";
 import { getXAccountsService } from "../services/xAccounts.service";
 import { formatCostFooterCombined } from "../constants/cost";
 import type { XTweet } from "../types/tweet.types";
+import { getWatchlistPath, loadWatchlist } from "../utils/watchlist";
+import { sendActionResponse } from "./helpers/actionResponse";
+import {
+  formatTradingSignalBlock,
+  inferTradingSignalFromTexts,
+  scoreTweetForQuality,
+} from "./helpers/signalScoring";
 
 const MAX_ACCOUNTS = 10;
 const TWEETS_PER_ACCOUNT = 3;
-
-interface WatchlistAccount {
-  username: string;
-  note?: string;
-  addedAt: string;
-}
-
-interface WatchlistFile {
-  accounts: WatchlistAccount[];
-}
-
-function getWatchlistPath(): string {
-  const envPath = process.env.X_WATCHLIST_PATH;
-  if (envPath) return envPath;
-  return join(process.cwd(), "skills", "x-research", "data", "watchlist.json");
-}
-
-function loadWatchlist(): WatchlistAccount[] {
-  const path = getWatchlistPath();
-  if (!existsSync(path)) return [];
-  try {
-    const raw = readFileSync(path, "utf-8");
-    const data = JSON.parse(raw) as WatchlistFile;
-    return Array.isArray(data.accounts) ? data.accounts : [];
-  } catch {
-    return [];
-  }
-}
 
 function formatTweet(t: XTweet): string {
   const text = t.text.slice(0, 200) + (t.text.length > 200 ? "…" : "");
   const likes = t.metrics?.likeCount ?? 0;
   return `  • ${text}\n    ${likes} likes`;
+}
+
+function rankWatchlistTweets(tweets: XTweet[]): XTweet[] {
+  return [...tweets].sort(
+    (a, b) => scoreTweetForQuality(b) - scoreTweetForQuality(a),
+  );
 }
 
 export const xWatchlistAction: Action = {
@@ -100,16 +84,15 @@ export const xWatchlistAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options?: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
       const accounts = loadWatchlist();
       if (accounts.length === 0) {
-        callback({
-          text: "📋 **X Watchlist**\n\nWatchlist is empty or not found. Add accounts via CLI:\n`cd skills/x-research && bun run x-search.ts watchlist add <username>`",
-          action: "X_WATCHLIST",
+        await sendActionResponse(callback, "X_WATCHLIST", {
+          text: "📋 **X Watchlist**\n\nWatchlist is empty or not found (reason: no_target). Add accounts via CLI:\n`cd skills/x-research && bun run x-search.ts watchlist add <username>`",
         });
         return { success: true };
       }
@@ -118,6 +101,7 @@ export const xWatchlistAction: Action = {
       const toCheck = accounts.slice(0, MAX_ACCOUNTS);
       const lines: string[] = ["📋 **X Watchlist**\n"];
       let totalPosts = 0;
+      const allScoredTexts: string[] = [];
 
       for (const acct of toCheck) {
         const label = acct.note
@@ -129,11 +113,13 @@ export const xWatchlistAction: Action = {
             acct.username,
             TWEETS_PER_ACCOUNT,
           );
-          totalPosts += tweets.length;
-          if (tweets.length === 0) {
+          const ranked = rankWatchlistTweets(tweets);
+          totalPosts += ranked.length;
+          allScoredTexts.push(...ranked.map((t) => t.text));
+          if (ranked.length === 0) {
             lines.push("  No recent tweets.");
           } else {
-            tweets.forEach((t) => lines.push(formatTweet(t)));
+            ranked.forEach((t) => lines.push(formatTweet(t)));
           }
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
@@ -149,26 +135,29 @@ export const xWatchlistAction: Action = {
       }
 
       let body = lines.join("\n").trimEnd();
+      const signal = inferTradingSignalFromTexts(
+        allScoredTexts.slice(0, 25),
+        3,
+      );
+      body += `\n\n${formatTradingSignalBlock(signal)}`;
       if (process.env.X_RESEARCH_SHOW_COST === "true") {
         body += `\n\n${formatCostFooterCombined({ userLookups: toCheck.length, postReads: totalPosts })}`;
       }
 
-      callback({
+      await sendActionResponse(callback, "X_WATCHLIST", {
         text: body,
-        action: "X_WATCHLIST",
       });
       return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       if (errMsg.includes("X_BEARER_TOKEN")) {
-        callback({
-          text: "📋 **X Watchlist**\n\n⚠️ X API not configured. Set `X_BEARER_TOKEN` to enable watchlist check.",
-          action: "X_WATCHLIST",
+        await sendActionResponse(callback, "X_WATCHLIST", {
+          text: "📋 **X Watchlist**\n\n⚠️ X API not configured (reason: api_limited). Set `X_BEARER_TOKEN` to enable watchlist check.",
         });
       } else {
-        callback({
-          text: `📋 **X Watchlist**\n\n❌ Error: ${errMsg}`,
-          action: "X_WATCHLIST",
+        logger.warn({ err: error }, "[X_WATCHLIST] Error");
+        await sendActionResponse(callback, "X_WATCHLIST", {
+          text: `📋 **X Watchlist**\n\n❌ Error (reason: api_limited): ${errMsg}`,
         });
       }
       return {

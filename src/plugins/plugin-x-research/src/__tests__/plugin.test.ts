@@ -23,11 +23,14 @@ describe("xResearchPlugin", () => {
     expect(actionNames).toContain("X_WATCHLIST");
     expect(actionNames).toContain("X_SAVE_RESEARCH");
     expect(actionNames).toContain("X_SEARCH");
+    expect(actionNames).toContain("X_BTC_LONG_TERM_SENTIMENT");
     expect(actionNames).toContain("CLAWTERM_DAY_REPORT");
+    expect(actionNames).toContain("ECHO_WHATS_THE_TRADE");
+    expect(actionNames).toContain("POLYMARKET_VIBE");
   });
 
-  it("should have 10 total actions (pulse, vibe, thread, account, mentions, news, watchlist, save, search, clawterm day report)", () => {
-    expect(xResearchPlugin.actions.length).toBe(10);
+  it("should have 13 total actions", () => {
+    expect(xResearchPlugin.actions.length).toBe(13);
   });
 
   describe("X_PULSE action", () => {

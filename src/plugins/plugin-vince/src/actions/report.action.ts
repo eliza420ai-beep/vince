@@ -9,6 +9,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -464,7 +465,7 @@ export const vinceReportAction: Action = {
     state: State,
     options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const date = now.toLocaleDateString("en-US", {
@@ -514,12 +515,14 @@ export const vinceReportAction: Action = {
       });
 
       logger.info("[VINCE_REPORT] Report complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_REPORT] Error: ${error}`);
       await callback({
         text: "Could not build the report right now. Try again in a moment, or use individual commands: ALOHA, OPTIONS, PERPS, HIP3, NEWS.",
         actions: ["VINCE_REPORT"],
       });
+      return undefined;
     }
   },
 

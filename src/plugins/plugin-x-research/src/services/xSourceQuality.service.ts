@@ -67,7 +67,8 @@ export class XSourceQualityService {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       this.filePath,
-      records.map((r) => JSON.stringify(r)).join("\n") + (records.length ? "\n" : ""),
+      records.map((r) => JSON.stringify(r)).join("\n") +
+        (records.length ? "\n" : ""),
       "utf-8",
     );
   }

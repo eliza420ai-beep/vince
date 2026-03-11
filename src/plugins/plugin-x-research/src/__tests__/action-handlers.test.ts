@@ -38,6 +38,8 @@ vi.mock("../services/xNews.service", () => ({
 
 vi.mock("../services/xSearch.service", () => ({
   getXSearchService: () => mockGetXSearchService(),
+  selectFairQuickTopics: (topicIds: string[], count = 4) =>
+    topicIds.slice(0, count),
 }));
 
 vi.mock("../services/xSentiment.service", () => ({
@@ -68,6 +70,11 @@ function createState(overrides?: Partial<State>): State {
 
 function createCallback(): HandlerCallback {
   return vi.fn();
+}
+
+function expectExactKeys(value: unknown, expected: string[]): void {
+  const obj = value as Record<string, unknown>;
+  expect(Object.keys(obj).sort()).toEqual([...expected].sort());
 }
 
 const mockRuntime = {} as IAgentRuntime;
@@ -152,6 +159,11 @@ describe("X_ACCOUNT handler", () => {
         action: "X_ACCOUNT",
       }),
     );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("Trading Signal"),
+      }),
+    );
     expect(analyzeAccount).toHaveBeenCalledWith("trader1");
   });
 });
@@ -233,6 +245,11 @@ describe("X_MENTIONS handler", () => {
       expect.objectContaining({
         text: expect.stringContaining("@trader"),
         action: "X_MENTIONS",
+      }),
+    );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("Trading Signal"),
       }),
     );
   });
@@ -436,6 +453,11 @@ describe("X_THREAD handler", () => {
         action: "X_THREAD",
       }),
     );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("Trading Signal"),
+      }),
+    );
   });
 });
 
@@ -500,6 +522,108 @@ describe("X_VIBE handler", () => {
         action: "X_VIBE",
       }),
     );
+  });
+});
+
+describe("X_BTC_LONG_TERM_SENTIMENT handler", () => {
+  it("calls callback with no-data response when searches are empty", async () => {
+    mockGetXSearchService.mockReturnValue({
+      searchTopic: vi.fn().mockResolvedValue([]),
+      searchQuery: vi.fn().mockResolvedValue([]),
+    });
+    const { xBtcLongTermSentimentAction } =
+      await import("../actions/xBtcLongTermSentiment.action");
+    const callback = createCallback();
+    await xBtcLongTermSentimentAction.handler!(
+      mockRuntime,
+      createMemory("Give me BTC long-term sentiment and price targets"),
+      createState(),
+      {},
+      callback as HandlerCallback,
+    );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          "No recent long-horizon BTC prediction posts",
+        ),
+        action: "X_BTC_LONG_TERM_SENTIMENT",
+      }),
+    );
+  });
+
+  it("calls callback with long-term sentiment output on success", async () => {
+    mockGetXSearchService.mockReturnValue({
+      searchTopic: vi.fn().mockResolvedValue([
+        {
+          id: "1",
+          text: "Bitcoin long term still bullish, 150k year end target",
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+      searchQuery: vi.fn().mockResolvedValue([
+        {
+          id: "2",
+          text: "BTC base case 120k, bear case 80k, bull case 200k",
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    });
+    (mockRuntime as { useModel?: unknown }).useModel = vi
+      .fn()
+      .mockResolvedValue("Long-term BTC narrative");
+    const { xBtcLongTermSentimentAction } =
+      await import("../actions/xBtcLongTermSentiment.action");
+    const callback = createCallback();
+    await xBtcLongTermSentimentAction.handler!(
+      mockRuntime,
+      createMemory("btc long term prediction sentiment"),
+      createState(),
+      {},
+      callback as HandlerCallback,
+    );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("BTC Long-Term Sentiment"),
+        action: "X_BTC_LONG_TERM_SENTIMENT",
+      }),
+    );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("Trading Signal"),
+      }),
+    );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "X_BTC_LONG_TERM_SENTIMENT",
+        btcLongTermSignal: expect.objectContaining({
+          schemaVersion: 1,
+          asset: "BTC",
+          targets: expect.objectContaining({
+            median: expect.any(Number),
+          }),
+        }),
+      }),
+    );
+    const payload = (callback as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expectExactKeys(payload.btcLongTermSignal, [
+      "schemaVersion",
+      "asset",
+      "lookbackHours",
+      "sampleSize",
+      "directionBias",
+      "confidence",
+      "targets",
+      "cueCounts",
+    ]);
+    expectExactKeys(payload.btcLongTermSignal.targets, [
+      "floor",
+      "median",
+      "tail",
+    ]);
+    expectExactKeys(payload.btcLongTermSignal.cueCounts, [
+      "bullish",
+      "bearish",
+    ]);
   });
 });
 
@@ -573,6 +697,11 @@ describe("X_WATCHLIST handler", () => {
         expect.objectContaining({
           text: expect.stringContaining("@trader1"),
           action: "X_WATCHLIST",
+        }),
+      );
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: expect.stringContaining("Trading Signal"),
         }),
       );
     } finally {

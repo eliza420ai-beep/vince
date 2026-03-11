@@ -21,14 +21,15 @@ export const meeSupertransactionStatusAction: Action = {
     "Check the status of a MEE supertransaction using its supertx hash.",
   similes: ["MEE_STATUS", "SUPERTX_STATUS", "TRACK_SUPERTRANSACTION"],
 
-  parameters: {
-    supertxHash: {
-      type: "string",
+  parameters: [
+    {
+      name: "supertxHash",
       description:
         "The Biconomy supertransaction hash to check (e.g., 'stx_0x...')",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateBiconomyService(

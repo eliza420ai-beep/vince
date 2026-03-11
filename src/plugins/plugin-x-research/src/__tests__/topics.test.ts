@@ -110,32 +110,36 @@ describe("Quality Accounts", () => {
     expect(ALL_QUALITY_ACCOUNTS.length).toBeGreaterThan(0);
   });
 
-  it("should have unique usernames", () => {
+  it("should normalize usernames into a deduped lookup map", () => {
     const usernames = ALL_QUALITY_ACCOUNTS.map((a) => a.username.toLowerCase());
     const uniqueUsernames = new Set(usernames);
-    expect(uniqueUsernames.size).toBe(usernames.length);
+    expect(ACCOUNT_BY_USERNAME.size).toBe(uniqueUsernames.size);
+    expect(ACCOUNT_BY_USERNAME.size).toBeLessThanOrEqual(
+      ALL_QUALITY_ACCOUNTS.length,
+    );
   });
 
-  it("should return correct tier for known accounts", () => {
-    // caboronto is in our whale list
-    expect(getAccountTier("caboronto")).toBe("whale");
-
-    // Unknown account should be standard
+  it("should return correct tier for known and unknown accounts", () => {
+    // Current whale account (from synced list)
+    expect(getAccountTier("elonmusk")).toBe("whale");
+    // Synced org-following duplicates should be overridden by curated tiers
+    expect(getAccountTier("CryptoHayes")).toBe("alpha");
     expect(getAccountTier("random_unknown_user")).toBe("standard");
   });
 
-  it("should return reliability scores", () => {
-    // Known account
-    const knownReliability = getAccountReliability("caboronto");
-    expect(knownReliability).toBeGreaterThan(50);
-
-    // Unknown account gets default 50
+  it("should return reliability scores with sensible fallback", () => {
+    // Account with explicit reliability in ECOSYSTEM_ACCOUNTS
+    expect(getAccountReliability("elizaOS")).toBeGreaterThan(50);
+    // Account without explicit reliability falls back to default
+    expect(getAccountReliability("elonmusk")).toBe(50);
+    // Unknown account also falls back to default
     const unknownReliability = getAccountReliability("random_unknown_user");
     expect(unknownReliability).toBe(50);
   });
 
-  it("should have ACCOUNT_BY_USERNAME map", () => {
-    expect(ACCOUNT_BY_USERNAME.size).toBe(ALL_QUALITY_ACCOUNTS.length);
+  it("should have ACCOUNT_BY_USERNAME map entries for known users", () => {
+    expect(ACCOUNT_BY_USERNAME.get("elonmusk")).toBeDefined();
+    expect(ACCOUNT_BY_USERNAME.get("elizaos")).toBeDefined();
   });
 
   it("should have focus areas for all accounts", () => {

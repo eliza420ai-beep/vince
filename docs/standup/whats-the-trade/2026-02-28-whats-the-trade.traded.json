@@ -1,0 +1,24 @@
+{
+  "date": "2026-02-28",
+  "thesis": "PLTR trades at discount to NVDA despite defense AI contracts accelerating faster than commercial AI revenue growth",
+  "primaryTicker": "PLTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 45,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "below $40",
+  "killConditions": [
+    "loses major government contract",
+    "commercial AI spending accelerates faster than defense contracts"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "MAG7",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 15
+}

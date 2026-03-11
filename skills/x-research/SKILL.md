@@ -184,3 +184,104 @@ skills/x-research/
 └── references/
     └── x-api.md       (X API endpoint reference)
 ```
+
+---
+
+## Decision Templates
+
+When you complete an X research query, classify the result into one of three output buckets:
+
+### Bullish Signal → "Trade Now"
+**Use when:** Multiple Tier 1/Tier 2 sources confirm bullish momentum, >100 likes on signal tweets, and verified accounts align.
+
+Required output:
+- **Asset:** [ticker]
+- **Confidence:** [0-100]
+- **Timeframe:** [e.g., 4h, 1d, 1w]
+- **Top signal account:** [@handle — exact quote]
+
+### Bearish/Mixed → "Monitor"
+**Use when:** Signals are contradictory, low confidence from Tier 1 sources, or only Tier 3 sentiment is bullish.
+
+Required output:
+- **Asset:** [ticker]
+- **Key risk:** [1-sentence description]
+- **Watchlist add?** yes/no
+
+### Noise/Low-Signal → "Ignore"
+**Criteria for ignoring:**
+- <100 likes on the signal tweet
+- No verified or Tier 1 account behind it
+- No `$ticker` mention (just vibes, no asset reference)
+- Obvious shill/spam pattern
+
+---
+
+## Benchmark Queries
+
+5 example high-signal queries to validate the skill is working correctly:
+
+| # | Query | Expected account types |
+|---|-------|----------------------|
+| 1 | `"$BTC" (bullish OR breakout OR accumulation) min_faves:500` | Verified analysts, macro traders >10k followers |
+| 2 | `"Hyperliquid" (perps OR TVL OR volume) min_faves:200` | Protocol insiders, DeFi researchers |
+| 3 | `from:cobie OR from:CryptoHayes OR from:inversebrah BTC` | Named Tier 1 analysts — direct signals |
+| 4 | `"SOL" (narrative OR ecosystem OR season) min_faves:300` | NFT/DeFi community leaders, ecosystem builders |
+| 5 | `"$ETH" OR "ethereum" (dencun OR pectra OR EIP) min_faves:100` | Core devs, protocol researchers, infra builders |
+
+---
+
+## Source Tiering
+
+Use tiers to weight signals appropriately. Never treat Tier 3 alone as actionable.
+
+### Tier 1 — High Signal
+- Verified analysts (checkmark or well-known handle)
+- >10k followers
+- >60% prediction accuracy (from xSourceQuality data if available)
+- Examples: @cobie, @CryptoHayes, @inversebrah, @AutismCapital, @0xMert_
+
+Use for: Individual signals, "Trade Now" decisions, direct quotes in reports.
+
+### Tier 2 — Medium Signal
+- Active traders with >1k followers
+- Consistent, non-spammy posting cadence
+- Identifiable track record
+
+Use for: Confirming Tier 1 signals, identifying trending narratives, watchlist adds.
+
+### Tier 3 — Low Signal (Aggregation Only)
+- Everyone else: anonymous accounts, <1k followers, no track record
+
+Use for: Sentiment aggregation only. Never cite a Tier 3 account as the basis for a trade decision.
+
+---
+
+## Output Format
+
+Every X research result must use this standardized structure:
+
+```
+## X Research Result
+
+**Query:** [query string]
+**Decision:** Trade Now | Monitor | Ignore
+**Asset:** [ticker]
+**Confidence:** [0-100]
+**Top Signal Account:** [@handle — "exact quote from tweet"]
+**Rationale:** [2-3 sentences explaining the decision, referencing signal sources and tier]
+**Watchlist Add:** yes/no
+```
+
+**Example:**
+```
+## X Research Result
+
+**Query:** "$BTC breakout accumulation" min_faves:500
+**Decision:** Monitor
+**Asset:** BTC
+**Confidence:** 58
+**Top Signal Account:** [@inversebrah — "range is coiling, watching $69k resistance. still not confirmed."]
+**Rationale:** Tier 1 accounts are cautious, not confirming a breakout. Volume data from Vince shows flat. Two Tier 2 accounts bullish but without conviction from top voices it's a monitor not a trade.
+**Watchlist Add:** yes
+```

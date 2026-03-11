@@ -11,11 +11,14 @@
 import { v4 } from "uuid";
 import {
   type IAgentRuntime,
+  type ActionResult,
   type Memory,
   type Content,
   type Entity,
   type UUID,
   type State,
+  type StateData,
+  type WorkingMemory,
   type HandlerCallback,
   type IMessageService,
   type MessageProcessingOptions,
@@ -543,7 +546,7 @@ export class OtakuMessageService implements IMessageService {
         agentUserState === "MUTED" &&
         !message.content.text
           ?.toLowerCase()
-          .includes(runtime.character.name.toLowerCase())
+          .includes((runtime.character.name ?? "").toLowerCase())
       ) {
         runtime.logger.debug(
           `[OtakuMessageService] Ignoring muted room ${message.roomId}`,
@@ -1002,7 +1005,7 @@ export class OtakuMessageService implements IMessageService {
       "PROVIDERS",
       "WALLET_STATE",
     ]);
-    accumulatedState.data.actionResults = traceActionResult;
+    accumulatedState.data.actionResults = traceActionResult as ActionResult[];
 
     // Standard multi-step loop
     while (iterationCount < maxIterations) {
@@ -1016,7 +1019,7 @@ export class OtakuMessageService implements IMessageService {
         "ACTION_STATE",
         "WALLET_STATE",
       ]);
-      accumulatedState.data.actionResults = traceActionResult;
+      accumulatedState.data.actionResults = traceActionResult as ActionResult[];
 
       // Add iteration context to state for template
       const stateWithIterationContext = {
@@ -1119,10 +1122,9 @@ export class OtakuMessageService implements IMessageService {
 
       try {
         // Ensure workingMemory exists on accumulatedState
-        if (!accumulatedState.data)
-          accumulatedState.data = {} as Record<string, unknown>;
+        if (!accumulatedState.data) accumulatedState.data = {} as StateData;
         if (!accumulatedState.data.workingMemory)
-          accumulatedState.data.workingMemory = {} as Record<string, unknown>;
+          accumulatedState.data.workingMemory = {} as WorkingMemory;
 
         // Parse and store parameters if provided
         let actionParams: Record<string, unknown> = {};

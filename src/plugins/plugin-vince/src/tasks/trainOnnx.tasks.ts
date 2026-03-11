@@ -13,12 +13,13 @@
  */
 
 import { type IAgentRuntime, type UUID, logger } from "@elizaos/core";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import * as path from "path";
 import * as fs from "fs";
 import type { VinceFeatureStoreService } from "../services/vinceFeatureStore.service";
 import type { VinceMLInferenceService } from "../services/mlInference.service";
 import { uploadModelsToSupabase } from "../utils/supabaseMlModels";
+import { logAndApplyImprovementReportWeights } from "../utils/improvementReportWeights";
 
 const MIN_COMPLETE_RECORDS = 90;
 const MIN_SAMPLES_ARG = "90";
@@ -28,6 +29,13 @@ const COOLDOWN_FILE = ".elizadb/vince-paper-bot/models/last_train_at.txt";
 const RETRAIN_RECENT_WIN_RATE_THRESHOLD = 0.45;
 const RETRAIN_RECENT_MIN_TRADES = 20;
 const RETRAIN_RECENT_LOOKBACK = 50;
+const REQUIRED_MODEL_FILES = [
+  "signal_quality.onnx",
+  "position_sizing.onnx",
+  "tp_optimizer.onnx",
+  "sl_optimizer.onnx",
+  "training_metadata.json",
+];
 
 function getDataDir(): string {
   return path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
@@ -76,6 +84,54 @@ function setLastTrainTime(): void {
   } catch (e) {
     logger.warn(`[TrainONNX] Could not write cooldown file: ${e}`);
   }
+}
+
+function runTrainingPreflight(): {
+  ok: boolean;
+  reasons: string[];
+  scriptPath: string;
+  dataDir: string;
+  modelsDir: string;
+} {
+  const reasons: string[] = [];
+  const scriptPath = getScriptPath();
+  const dataDir = getDataDir();
+  const modelsDir = getModelsDir();
+
+  if (!fs.existsSync(scriptPath)) reasons.push("train_script_missing");
+  if (!fs.existsSync(dataDir)) reasons.push("feature_data_dir_missing");
+  if (!fs.existsSync(modelsDir)) {
+    try {
+      fs.mkdirSync(modelsDir, { recursive: true });
+    } catch {
+      reasons.push("models_dir_unwritable");
+    }
+  }
+
+  const python = process.env.PYTHON || "python3";
+  const probe = spawnSync(python, ["--version"], {
+    cwd: process.cwd(),
+    encoding: "utf-8",
+  });
+  if (probe.error || probe.status !== 0) reasons.push("python_not_available");
+
+  return {
+    ok: reasons.length === 0,
+    reasons,
+    scriptPath,
+    dataDir,
+    modelsDir,
+  };
+}
+
+function verifyTrainingArtifacts(modelsDir: string): {
+  ok: boolean;
+  missing: string[];
+} {
+  const missing = REQUIRED_MODEL_FILES.filter(
+    (filename) => !fs.existsSync(path.join(modelsDir, filename)),
+  );
+  return { ok: missing.length === 0, missing };
 }
 
 /**
@@ -171,9 +227,10 @@ export const registerTrainOnnxTask = async (
         }
 
         const completeCount = await featureStore.getCompleteRecordCount(365);
+        const avoidedCount = await featureStore.getAvoidedRecordCount(365);
         if (completeCount < MIN_COMPLETE_RECORDS) {
           logger.info(
-            `[TrainONNX] Skipping: ${completeCount} complete trades (need ${MIN_COMPLETE_RECORDS}+). Keep paper trading to collect more.`,
+            `[TrainONNX] Feature store: ${completeCount} closed, ${avoidedCount} avoided (need ${MIN_COMPLETE_RECORDS}+ closed for training). Keep paper trading to collect more.`,
           );
           return;
         }
@@ -206,8 +263,15 @@ export const registerTrainOnnxTask = async (
         }
 
         logger.info(
-          `[TrainONNX] Starting training (${completeCount} complete records, min ${MIN_SAMPLES_ARG})...`,
+          `[TrainONNX] Feature store: ${completeCount} closed, ${avoidedCount} avoided. Starting training (min ${MIN_SAMPLES_ARG})...`,
         );
+        const preflight = runTrainingPreflight();
+        if (!preflight.ok) {
+          logger.warn(
+            `[TrainONNX] Preflight failed (${preflight.reasons.join(", ")}). script=${preflight.scriptPath} dataDir=${preflight.dataDir} modelsDir=${preflight.modelsDir}`,
+          );
+          return;
+        }
         const result = await runTrainingScript();
         if (!result.success && result.stderr) {
           logger.warn(
@@ -215,15 +279,37 @@ export const registerTrainOnnxTask = async (
           );
         } else if (result.success) {
           const modelsDir = getModelsDir();
-          const uploaded = await uploadModelsToSupabase(rt, modelsDir);
-          if (uploaded) {
-            const mlService = rt.getService(
-              "VINCE_ML_INFERENCE_SERVICE",
-            ) as VinceMLInferenceService | null;
-            if (mlService?.reloadModels) {
+          const artifacts = verifyTrainingArtifacts(modelsDir);
+          if (!artifacts.ok) {
+            logger.warn(
+              `[TrainONNX] Training completed but artifacts are incomplete (missing: ${artifacts.missing.join(", ")}). Keeping previous model set.`,
+            );
+            return;
+          }
+          await uploadModelsToSupabase(rt, modelsDir);
+          // Reload models after every successful training (local or Cloud) so dashboard shows ONNX loaded without restart.
+          const mlService = rt.getService(
+            "VINCE_ML_INFERENCE_SERVICE",
+          ) as VinceMLInferenceService | null;
+          if (mlService?.reloadModels) {
+            try {
               await mlService.reloadModels();
               logger.info(
-                "[TrainONNX] ML models reloaded; new thresholds active.",
+                "[TrainONNX] ML models reloaded; new thresholds active (no restart needed).",
+              );
+            } catch (reloadErr) {
+              logger.warn(`[TrainONNX] reloadModels failed: ${reloadErr}`);
+            }
+          }
+          if (process.env.VINCE_APPLY_IMPROVEMENT_WEIGHTS === "true") {
+            try {
+              await logAndApplyImprovementReportWeights(true);
+              logger.info(
+                "[TrainONNX] Improvement report weights applied (recursive loop).",
+              );
+            } catch (weightsErr) {
+              logger.warn(
+                `[TrainONNX] Apply improvement weights failed: ${weightsErr}`,
               );
             }
           }
@@ -237,7 +323,8 @@ export const registerTrainOnnxTask = async (
   // Create recurring task (every 12 hours)
   await runtime.createTask({
     name: "TRAIN_ONNX_WHEN_READY",
-    description: "Train ONNX models when feature store has 90+ complete trades",
+    description:
+      "Train ONNX when 90+ trades; optional VINCE_APPLY_IMPROVEMENT_WEIGHTS=true applies source weights (recursive improvement loop)",
     roomId: taskWorldId,
     worldId: taskWorldId,
     metadata: {
@@ -248,7 +335,7 @@ export const registerTrainOnnxTask = async (
   });
 
   logger.info(
-    "[TrainONNX] ONNX training task registered (runs when 90+ trades, max once per 24h)",
+    "[TrainONNX] ONNX training task registered (90+ trades, max 1/24h; set VINCE_APPLY_IMPROVEMENT_WEIGHTS=true for autopilot weight updates)",
   );
 };
 

@@ -37,7 +37,10 @@ describe("ExecutionQualityService", () => {
     });
     const filePath = path.join(tmpDir, "execution-quality.jsonl");
     expect(fs.existsSync(filePath)).toBe(true);
-    const lines = fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean);
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter(Boolean);
     expect(lines).toHaveLength(1);
     const rec = JSON.parse(lines[0]);
     expect(rec.tradeId).toBe("t1");

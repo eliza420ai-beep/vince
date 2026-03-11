@@ -76,20 +76,22 @@ export const vaultPositionsAction: Action = {
   description:
     "Use this action when you need your Morpho vault positions (balances and APYs).",
 
-  parameters: {
-    vault: {
-      type: "string",
+  parameters: [
+    {
+      name: "vault",
       description:
         "Morpho vault identifier - can be a vault name (e.g., 'Spark USDC Vault') or a vault address (0x...). If not provided, returns all vault positions.",
       required: false,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network to check (e.g., 'base', 'ethereum'). If not provided, uses the default chain configured for the Morpho service.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateMorphoService(

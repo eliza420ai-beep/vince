@@ -13,9 +13,22 @@ import {
   type State,
   type HandlerCallback,
   ModelType,
+  logger,
 } from "@elizaos/core";
 import { getXClient } from "../services/xClient.service";
 import { initXClientFromEnv } from "../services/xClient.service";
+import { TOPIC_BY_ID } from "../constants/topics";
+import { sendActionResponse } from "./helpers/actionResponse";
+import {
+  parseTopicFromPrompt,
+  parseUsernameFromMessage,
+} from "./helpers/inputParsers";
+import {
+  dedupeByText,
+  formatTradingSignalBlock,
+  inferTradingSignalFromTexts,
+  rankTweetsByTopicRelevance,
+} from "./helpers/signalScoring";
 
 const MENTIONS_MAX = 50;
 const START_TIME_DAYS_AGO = 7;
@@ -131,28 +144,25 @@ export const xMentionsAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     state: State,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+    _options: unknown,
+    callback?: HandlerCallback,
+  ): Promise<ActionResult | undefined> => {
     try {
       initXClientFromEnv(runtime);
       const text = message.content?.text ?? "";
-      const match = text.match(/@(\w+)/);
-      if (!match) {
-        callback({
-          text: 'I need a username to check mentions. Example: "What are people saying to @username?"',
-          action: "X_MENTIONS",
+      const username = parseUsernameFromMessage(text);
+      if (!username) {
+        await sendActionResponse(callback, "X_MENTIONS", {
+          text: 'I need a username to check mentions (reason: no_target). Example: "What are people saying to @username?"',
         });
         return { success: true };
       }
-      const username = match[1];
       const client = getXClient();
 
       const user = await client.getUserByUsername(username);
       if (!user) {
-        callback({
-          text: `Couldn't find @${username}. The account may not exist or be protected.`,
-          action: "X_MENTIONS",
+        await sendActionResponse(callback, "X_MENTIONS", {
+          text: `Couldn't find @${username} (reason: no_target). The account may not exist or be protected.`,
         });
         return { success: true };
       }
@@ -160,15 +170,24 @@ export const xMentionsAction: Action = {
       const startTime = new Date(
         Date.now() - START_TIME_DAYS_AGO * 24 * 60 * 60 * 1000,
       ).toISOString();
-      const mentions = await client.getUserMentions(user.id, {
+      const rawMentions = await client.getUserMentions(user.id, {
         maxResults: MENTIONS_MAX,
         startTime,
       });
+      const requestedTopic = parseTopicFromPrompt(text);
+      const keywords = requestedTopic ? getTopicKeywords(requestedTopic) : [];
+      const mentions = dedupeByText(
+        keywords.length > 0
+          ? rankTweetsByTopicRelevance(rawMentions, keywords)
+          : [...rawMentions].sort(
+              (a, b) =>
+                (b.metrics?.likeCount ?? 0) - (a.metrics?.likeCount ?? 0),
+            ),
+      );
 
       if (mentions.length === 0) {
-        callback({
-          text: `**@${username} Mentions Check**\n\nNo recent mentions in the last ${START_TIME_DAYS_AGO} days. They may have low visibility or the API window has no data.`,
-          action: "X_MENTIONS",
+        await sendActionResponse(callback, "X_MENTIONS", {
+          text: `**@${username} Mentions Check**\n\nNo recent mentions in the last ${START_TIME_DAYS_AGO} days (reason: no_recent_data). They may have low visibility or the API window has no data.`,
         });
         return { success: true };
       }
@@ -248,19 +267,22 @@ export const xMentionsAction: Action = {
       if (notable.length > 0) {
         response += `**Notable:** ${notable.join(" ")}\n`;
       }
-      response += `\nWant me to dive deeper into any specific thread or topic around their mentions?`;
+      const signal = inferTradingSignalFromTexts(
+        mentions.slice(0, 15).map((m) => m.text),
+        START_TIME_DAYS_AGO,
+      );
+      response += `\n\n${formatTradingSignalBlock(signal)}`;
+      response += `\n\nWant me to dive deeper into any specific thread or topic around their mentions?`;
 
-      callback({
+      await sendActionResponse(callback, "X_MENTIONS", {
         text: response,
-        action: "X_MENTIONS",
       });
       return { success: true };
     } catch (error) {
-      console.error("[X_MENTIONS] Error:", error);
+      logger.warn({ err: error }, "[X_MENTIONS] Error");
       const err = error instanceof Error ? error.message : String(error);
-      callback({
-        text: `**Mentions Check**\n\n❌ Error: ${err}`,
-        action: "X_MENTIONS",
+      await sendActionResponse(callback, "X_MENTIONS", {
+        text: `**Mentions Check**\n\n❌ Error (reason: api_limited): ${err}`,
       });
       return {
         success: false,
@@ -269,5 +291,13 @@ export const xMentionsAction: Action = {
     }
   },
 };
+
+function getTopicKeywords(topicId: string): string[] {
+  const topic = TOPIC_BY_ID[topicId];
+  if (!topic) return [topicId];
+  const terms = [...topic.searchTerms];
+  if (topic.cashtags?.length) terms.push(...topic.cashtags.map((c) => `$${c}`));
+  return [...new Set(terms)];
+}
 
 export default xMentionsAction;

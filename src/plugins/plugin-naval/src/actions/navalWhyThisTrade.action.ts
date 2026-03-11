@@ -77,7 +77,7 @@ export const navalWhyThisTradeAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     logger.debug("[NAVAL_WHY_THIS_TRADE] Action fired");
     try {
       const state = await runtime.composeState(message);

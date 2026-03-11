@@ -14,6 +14,8 @@ import type {
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { getElizaOS } from "../types";
+import { getSkillRoutingHint } from "../skillRouting";
+export { getSkillRoutingHint } from "../skillRouting";
 
 const DEFAULT_ALLOWED_AGENT_NAMES = [
   "Vince",
@@ -373,7 +375,7 @@ export const askAgentAction: Action = {
     state: State | undefined,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<ActionResult | void> => {
+  ): Promise<ActionResult | undefined> => {
     const fromName = runtime.character?.name ?? "I";
     const userText = (message.content?.text ?? "").trim();
 
@@ -478,7 +480,10 @@ export const askAgentAction: Action = {
 
       const targetAgentId =
         getAgentId(target as AgentListItem) || (target as { id: string }).id;
-      const content = `[To ${targetName} — you are being asked. Answer directly as yourself.][From ${fromName}, on behalf of the user]: ${question}`;
+      const skillHint = getSkillRoutingHint(question || userText);
+      const content = skillHint
+        ? `[Skill routing hint: ${skillHint}]\n[To ${targetName} — you are being asked. Answer directly as yourself.][From ${fromName}, on behalf of the user]: ${question}`
+        : `[To ${targetName} — you are being asked. Answer directly as yourself.][From ${fromName}, on behalf of the user]: ${question}`;
 
       // When elizaOS is available, try in-process: sync first, then async, then optional direct messageService.
       const eliza = getElizaOS(runtime);

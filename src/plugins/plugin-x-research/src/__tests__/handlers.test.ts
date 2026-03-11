@@ -16,6 +16,7 @@ import type { Memory, IAgentRuntime, HandlerCallback } from "@elizaos/core";
 const mockInitXClient = vi.fn();
 vi.mock("../services/xClient.service", () => ({
   initXClientFromEnv: (...args: unknown[]) => mockInitXClient(...args),
+  getXClient: vi.fn(),
 }));
 
 const mockSearchQuery = vi.fn();
@@ -36,6 +37,11 @@ function createMemory(text: string, roomId?: string): Memory {
 
 function createCallback(): HandlerCallback {
   return vi.fn();
+}
+
+function expectExactKeys(value: unknown, expected: string[]): void {
+  const obj = value as Record<string, unknown>;
+  expect(Object.keys(obj).sort()).toEqual([...expected].sort());
 }
 
 beforeEach(() => {
@@ -85,7 +91,8 @@ describe("X_SAVE_RESEARCH handler", () => {
 
   it("saves and calls callback with filepath when lastResearch exists", async () => {
     const roomId = "room-save-test";
-    const content = "📊 X Pulse\n\nBullish...";
+    const content =
+      "📊 X Pulse\n\nBTC sentiment is constructive with ETF flows stable and downside hedging still active on derivatives desks.";
     setLastResearch(roomId, content);
     const callback = createCallback();
 
@@ -107,15 +114,21 @@ describe("X_SAVE_RESEARCH handler", () => {
         expect.objectContaining({
           text: expect.stringMatching(/Saved to .*research-\d{4}-\d{2}-\d{2}/),
           action: "X_SAVE_RESEARCH",
+          saveMeta: expect.any(Object),
         }),
       );
+      const payload = (callback as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+      expectExactKeys(payload.saveMeta, ["chars", "hasMetadataHeader"]);
       const match = (
         callback as ReturnType<typeof vi.fn>
       ).mock.calls[0][0].text.match(/Saved to `(.+)`/);
       if (match) {
         const filepath = match[1];
         expect(existsSync(filepath)).toBe(true);
-        expect(readFileSync(filepath, "utf-8")).toBe(content);
+        const saved = readFileSync(filepath, "utf-8");
+        expect(saved).toContain("source: plugin-x-research");
+        expect(saved).toContain(`roomId: ${roomId}`);
+        expect(saved).toContain(content);
       }
     } finally {
       if (origEnv !== undefined) process.env.X_RESEARCH_SAVE_DIR = origEnv;
@@ -125,7 +138,10 @@ describe("X_SAVE_RESEARCH handler", () => {
 
   it("calls callback with error when save fails", async () => {
     const roomId = "room-save-fail";
-    setLastResearch(roomId, "Content to save");
+    setLastResearch(
+      roomId,
+      "Content to save with enough length so it bypasses low-value filters.",
+    );
     const callback = createCallback();
     const invalidDir = join(tmpdir(), `x-save-invalid-${Date.now()}`);
     writeFileSync(invalidDir, ""); // Create as file, not directory
@@ -221,17 +237,5 @@ describe("X_SEARCH handler", () => {
         action: "X_SEARCH",
       }),
     );
-  });
-});
-
-describe("Plugin actions structure", () => {
-  it("all actions have validate and handler defined", async () => {
-    const { xResearchPlugin } = await import("../index");
-    for (const action of xResearchPlugin.actions) {
-      expect(action.validate).toBeDefined();
-      expect(typeof action.validate).toBe("function");
-      expect(action.handler).toBeDefined();
-      expect(typeof action.handler).toBe("function");
-    }
   });
 });

@@ -63,6 +63,20 @@ interface BanditState {
   arms: Record<string, BetaParams>;
   totalTradesProcessed: number;
   explorationRate: number;
+  negativeStreaks?: Record<string, number>;
+}
+
+function isValidBanditState(state: unknown): state is BanditState {
+  if (!state || typeof state !== "object") return false;
+  const s = state as BanditState;
+  return (
+    typeof s.totalTradesProcessed === "number" &&
+    typeof s.explorationRate === "number" &&
+    typeof s.lastUpdated === "number" &&
+    typeof s.version === "string" &&
+    typeof s.arms === "object" &&
+    s.arms !== null
+  );
 }
 
 // ==========================================
@@ -76,6 +90,32 @@ const MAX_WEIGHT_MULTIPLIER = 2.0; // Never exceed 200% of base weight
 const DECAY_FACTOR = 0.995; // Slowly decay old observations
 const STATE_FILE_NAME = "weight-bandit-state.json";
 const BANDIT_VERSION = "1.0.0";
+
+// Optional bridge from swarm-wide reliability back into Vince's bandit.
+// Keeps adjustments modest so per-agent learning still dominates.
+const SWARM_BRIDGE_CONFIG = {
+  enabled: true,
+  maxAdjustment: 0.25, // ±25% around Vince bandit weight at extremes
+} as const;
+const NEGATIVE_STREAK_CONFIG = {
+  penaltyStartsAt: 2,
+  perStepPenalty: 0.12,
+  minPenaltyMultiplier: 0.45,
+} as const;
+const UPLIFT_GUARDRAIL_CONFIG = {
+  cacheMs: 10_000,
+  negativeOrFlatDelta: 0,
+  mildPenalty: 0.92,
+  strongPenalty: 0.85,
+} as const;
+const SWARM_DERIVED_SOURCES = new Set([
+  "XSentiment",
+  "PolymarketSentiment",
+  "NewsSentiment",
+  "WTT",
+  "GrokDailyRecommendation",
+  "GrokResearchIdea",
+]);
 
 // Known signal sources with their baseline weights from dynamicConfig
 // NOTE: TopTraders and SanbaseWhales are disabled (weight=0) because:
@@ -99,6 +139,7 @@ const KNOWN_SOURCES = [
   "MarketRegime",
   "NewsSentiment",
   "XSentiment",
+  "PolymarketSentiment",
   "HIP3Funding",
   "HIP3Momentum",
   "HIP3OIBuild",
@@ -186,9 +227,20 @@ export class VinceWeightBanditService extends Service {
   private explorationRate = 1.0; // Starts at full exploration
   private statePath: string | null = null;
   private initialized = false;
+  private initError: string | null = null;
   private cachedSampledWeights: Map<string, number> = new Map();
   private lastSampleTime = 0;
   private readonly SAMPLE_CACHE_MS = 5000; // Resample every 5 seconds
+  private negativeStreaks: Map<string, number> = new Map();
+  private upliftGuardrailCache: {
+    checkedAt: number;
+    delta: number;
+    active: boolean;
+  } = {
+    checkedAt: 0,
+    delta: 0,
+    active: false,
+  };
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -225,20 +277,43 @@ export class VinceWeightBanditService extends Service {
 
       // Try to load existing state
       if (fs.existsSync(this.statePath)) {
-        const data = JSON.parse(
-          fs.readFileSync(this.statePath, "utf-8"),
-        ) as BanditState;
-        this.loadState(data);
-        logger.info(
-          `[WeightBandit] Loaded state with ${this.totalTradesProcessed} trades processed`,
-        );
+        try {
+          const data = JSON.parse(
+            fs.readFileSync(this.statePath, "utf-8"),
+          ) as unknown;
+          if (isValidBanditState(data)) {
+            this.loadState(data);
+            logger.info(
+              `[WeightBandit] Loaded state with ${this.totalTradesProcessed} trades processed`,
+            );
+          } else {
+            throw new Error("state schema invalid");
+          }
+        } catch (stateErr) {
+          this.initError =
+            stateErr instanceof Error ? stateErr.message : String(stateErr);
+          logger.warn(
+            `[WeightBandit] State unreadable, resetting to priors: ${this.initError}`,
+          );
+          try {
+            const backupPath = `${this.statePath}.corrupt-${Date.now()}`;
+            fs.copyFileSync(this.statePath, backupPath);
+            logger.warn(
+              `[WeightBandit] Corrupt state backed up to ${backupPath}`,
+            );
+          } catch {
+            // non-fatal
+          }
+        }
       }
 
       this.initialized = true;
+      this.initError = null;
       logger.info(
         "[WeightBandit] ✅ Thompson Sampling initialized for source weight optimization",
       );
     } catch (error) {
+      this.initError = error instanceof Error ? error.message : String(error);
       logger.error(`[WeightBandit] Initialization error: ${error}`);
     }
   }
@@ -310,7 +385,85 @@ export class VinceWeightBanditService extends Service {
       MIN_WEIGHT_MULTIPLIER +
       sample * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
 
-    return baseWeight * multiplier;
+    let weight = baseWeight * multiplier;
+
+    // Swarm bridge: gently tilt weights toward globally reliable sources
+    if (SWARM_BRIDGE_CONFIG.enabled) {
+      try {
+        const swarmService = this.runtime.getService("swarm-coordination") as {
+          getSourceWinRate?: (signal: string) => number | null;
+        } | null;
+
+        const winRate = swarmService?.getSourceWinRate?.(source);
+        if (typeof winRate === "number" && winRate > 0 && winRate < 1) {
+          const centered = winRate - 0.5; // >0 = above-average, <0 = below-average
+          const clamped = Math.max(
+            -SWARM_BRIDGE_CONFIG.maxAdjustment,
+            Math.min(SWARM_BRIDGE_CONFIG.maxAdjustment, centered),
+          );
+          const swarmMultiplier = 1 + clamped;
+          weight = weight * swarmMultiplier;
+        }
+      } catch {
+        // Swarm bridge is strictly optional; ignore errors
+      }
+    }
+
+    const negativeStreak = this.negativeStreaks.get(source) ?? 0;
+    if (negativeStreak >= NEGATIVE_STREAK_CONFIG.penaltyStartsAt) {
+      const steps = negativeStreak - NEGATIVE_STREAK_CONFIG.penaltyStartsAt + 1;
+      const streakMultiplier = Math.max(
+        NEGATIVE_STREAK_CONFIG.minPenaltyMultiplier,
+        1 - steps * NEGATIVE_STREAK_CONFIG.perStepPenalty,
+      );
+      weight = weight * streakMultiplier;
+    }
+
+    const upliftGuardrailMult = this.getUpliftGuardrailMultiplier(source);
+    if (upliftGuardrailMult < 1) {
+      weight = weight * upliftGuardrailMult;
+    }
+
+    const minWeight = baseWeight * MIN_WEIGHT_MULTIPLIER;
+    const maxWeight = baseWeight * MAX_WEIGHT_MULTIPLIER;
+    weight = Math.max(minWeight, Math.min(maxWeight, weight));
+
+    return weight;
+  }
+
+  private getUpliftGuardrailMultiplier(source: string): number {
+    if (!SWARM_DERIVED_SOURCES.has(source)) return 1;
+    const now = Date.now();
+    if (
+      now - this.upliftGuardrailCache.checkedAt >
+      UPLIFT_GUARDRAIL_CONFIG.cacheMs
+    ) {
+      let delta = 0;
+      try {
+        const upliftService = this.runtime.getService(
+          "VINCE_UPLIFT_EVALUATOR_SERVICE",
+        ) as {
+          getSnapshot?: (windowDays?: number) => {
+            byStage?: Array<{ stage: string; avgPnl?: number }>;
+          } | null;
+        } | null;
+        const snap = upliftService?.getSnapshot?.(30);
+        const onnx = snap?.byStage?.find((s) => s.stage === "onnx_enabled");
+        const swarm = snap?.byStage?.find((s) => s.stage === "onnx_plus_swarm");
+        delta = (swarm?.avgPnl ?? 0) - (onnx?.avgPnl ?? 0);
+      } catch {
+        delta = 0;
+      }
+      this.upliftGuardrailCache = {
+        checkedAt: now,
+        delta,
+        active: delta <= UPLIFT_GUARDRAIL_CONFIG.negativeOrFlatDelta,
+      };
+    }
+    if (!this.upliftGuardrailCache.active) return 1;
+    return this.upliftGuardrailCache.delta < 0
+      ? UPLIFT_GUARDRAIL_CONFIG.strongPenalty
+      : UPLIFT_GUARDRAIL_CONFIG.mildPenalty;
   }
 
   /**
@@ -378,10 +531,13 @@ export class VinceWeightBanditService extends Service {
         // Weight the update by how profitable
         const winBonus = Math.min(1, Math.abs(pnlPct) / 5); // Max 1.0 for 5%+ profit
         arm.alpha += 1 + winBonus;
+        this.negativeStreaks.set(source, 0);
       } else {
         // Weight the update by how much was lost
         const lossWeight = Math.min(1, Math.abs(pnlPct) / 5);
         arm.beta += 1 + lossWeight;
+        const currentStreak = this.negativeStreaks.get(source) ?? 0;
+        this.negativeStreaks.set(source, currentStreak + 1);
       }
 
       arm.count++;
@@ -548,6 +704,7 @@ export class VinceWeightBanditService extends Service {
         arms: Object.fromEntries(this.arms),
         totalTradesProcessed: this.totalTradesProcessed,
         explorationRate: this.explorationRate,
+        negativeStreaks: Object.fromEntries(this.negativeStreaks),
       };
 
       fs.writeFileSync(this.statePath, JSON.stringify(state, null, 2));
@@ -566,6 +723,12 @@ export class VinceWeightBanditService extends Service {
         this.arms.set(source, params);
       }
     }
+    this.negativeStreaks = new Map(
+      Object.entries(state.negativeStreaks ?? {}).map(([source, streak]) => [
+        source,
+        Number(streak) || 0,
+      ]),
+    );
   }
 
   /**
@@ -583,6 +746,7 @@ export class VinceWeightBanditService extends Service {
     this.totalTradesProcessed = 0;
     this.explorationRate = 1.0;
     this.cachedSampledWeights.clear();
+    this.negativeStreaks.clear();
 
     await this.saveState();
     logger.warn("[WeightBandit] Reset to initial priors");
@@ -598,10 +762,15 @@ export class VinceWeightBanditService extends Service {
   /**
    * Status for dashboard: Thompson Sampling from recorded trade outcomes.
    */
-  getBanditStatus(): { isReady: boolean; totalTradesProcessed: number } {
+  getBanditStatus(): {
+    isReady: boolean;
+    totalTradesProcessed: number;
+    initError?: string;
+  } {
     return {
       isReady: this.initialized,
       totalTradesProcessed: this.totalTradesProcessed,
+      ...(this.initError ? { initError: this.initError } : {}),
     };
   }
 }

@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -97,7 +98,7 @@ export const kellyFlywheelScoreAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ) => {
+  ): Promise<ActionResult | undefined> => {
     const svc = runtime.getService<FlywheelScoreService>(
       "FLYWHEEL_SCORE_SERVICE",
     );
@@ -107,7 +108,7 @@ export const kellyFlywheelScoreAction: Action = {
         text: "Flywheel Score service isn't active yet. It needs the Kelly plugin with the FlywheelScoreService registered.",
         actions: ["REPLY"],
       });
-      return;
+      return undefined;
     }
 
     await callback({
@@ -201,12 +202,14 @@ export const kellyFlywheelScoreAction: Action = {
         text: report,
         actions: ["KELLY_FLYWHEEL_SCORE"],
       });
+      return undefined;
     } catch (e) {
       logger.error(`[FlywheelScore] Compute failed: ${e}`);
       await callback({
         text: "Had trouble computing the Flywheel Score. Some agents may not have responded.",
         actions: ["REPLY"],
       });
+      return undefined;
     }
   },
 

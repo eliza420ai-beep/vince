@@ -44,7 +44,7 @@ export const vincePostMortemAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const paper = runtime.getService(
       "VINCE_PAPER_TRADING_SERVICE",
     ) as VincePaperTradingService | null;

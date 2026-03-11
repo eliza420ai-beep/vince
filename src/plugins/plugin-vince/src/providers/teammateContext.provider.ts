@@ -103,7 +103,11 @@ export const teammateContextProvider: Provider = {
 
     if (!fs.existsSync(basePath)) {
       logger.debug("[TeammateContext] knowledge/teammate/ not found; skipping");
-      return { text: "", values: {}, data: {} };
+      return {
+        text: "",
+        values: {} as Record<string, import("@elizaos/core").ProviderValue>,
+        data: {} as Record<string, import("@elizaos/core").ProviderValue>,
+      };
     }
 
     // Preamble: frames context so the agent treats this as teammate mode, not generic chat
@@ -167,8 +171,8 @@ export const teammateContextProvider: Provider = {
 
     return {
       text,
-      values,
-      data,
+      values: values as Record<string, import("@elizaos/core").ProviderValue>,
+      data: data as Record<string, import("@elizaos/core").ProviderValue>,
     };
   },
 };

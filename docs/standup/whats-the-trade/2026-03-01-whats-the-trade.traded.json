@@ -1,0 +1,29 @@
+{
+  "date": "2026-03-01",
+  "thesis": "NVDA outperforms MAG7 this week as earnings beat drives AI infrastructure narrative while peers face margin compression fears.",
+  "primaryTicker": "NVDA",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 875,
+  "primaryRiskUsd": 2500,
+  "invalidateCondition": "guidance miss on data center capex or demand softening",
+  "killConditions": [
+    "NVDA guides down on data center capex",
+    "datacenter weakness mentioned",
+    "MAG7 margin compression narrative reverses"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "MAG7",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 3,
+  "catalystSources": [
+    "headlines",
+    "polymarket"
+  ]
+}

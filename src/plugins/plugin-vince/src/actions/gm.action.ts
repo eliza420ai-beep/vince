@@ -9,12 +9,12 @@
  * - PERPS signals
  * - MEMETICS hot tokens (DexScreener + Nansen)
  * - NEWS summary
- * - LIFESTYLE suggestions
- * - ART/NFT floors
+ * - ART/NFT floors (lifestyle: ask Kelly)
  */
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -24,7 +24,6 @@ import { logger, ModelType } from "@elizaos/core";
 import type { VinceCoinGlassService } from "../services/coinglass.service";
 import type { VinceMarketDataService } from "../services/marketData.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
-import type { VinceLifestyleService } from "../services/lifestyle.service";
 import type { VinceNFTFloorService } from "../services/nftFloor.service";
 import type { VinceDeribitService } from "../services/deribit.service";
 import type { VinceNansenService } from "../services/nansen.service";
@@ -96,11 +95,15 @@ function buildGmDataContext(ctx: GmDataContext): string {
     lines.push("");
   }
 
+  lines.push("=== LIFESTYLE ===");
   if (ctx.lifestyle.length > 0) {
-    lines.push("=== LIFESTYLE ===");
     lines.push(...ctx.lifestyle);
-    lines.push("");
+  } else {
+    lines.push(
+      "(Ask Kelly for day-of-week suggestions, dining, hotels, wellness.)",
+    );
   }
+  lines.push("");
 
   if (ctx.nft.length > 0) {
     lines.push("=== NFT FLOORS ===");
@@ -161,7 +164,7 @@ Write the briefing:`;
     return String(response).trim();
   } catch (error) {
     logger.error(`[VINCE_GM] Failed to generate briefing: ${error}`);
-    return "Morning. Having trouble pulling everything together right now. Try asking about specific areas: OPTIONS, PERPS, MEMES, or LIFESTYLE.";
+    return "Morning. Having trouble pulling everything together right now. Try asking about specific areas: OPTIONS, PERPS, MEMES. For lifestyle, ask Kelly.";
   }
 }
 
@@ -175,7 +178,7 @@ export const vinceGmAction: Action = {
     "DAILY_BRIEFING",
   ],
   description:
-    "Human-style morning briefing across all focus areas - OPTIONS, PERPS, MEMES, LIFESTYLE, and ART",
+    "Human-style morning briefing across all focus areas - OPTIONS, PERPS, MEMES, ART (lifestyle: ask Kelly)",
 
   validate: async (
     runtime: IAgentRuntime,
@@ -198,7 +201,7 @@ export const vinceGmAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const day = now.toLocaleDateString("en-US", { weekday: "long" });
@@ -367,21 +370,6 @@ export const vinceGmAction: Action = {
         }
       }
 
-      // LIFESTYLE
-      const lifestyleService = runtime.getService(
-        "VINCE_LIFESTYLE_SERVICE",
-      ) as VinceLifestyleService | null;
-      if (lifestyleService) {
-        const briefing = lifestyleService.getDailyBriefing();
-        const topSuggestions = lifestyleService.getTopSuggestions(2);
-        for (const s of topSuggestions) {
-          ctx.lifestyle.push(s.suggestion);
-        }
-        if (briefing.specialNotes.length > 0) {
-          ctx.lifestyle.push(...briefing.specialNotes);
-        }
-      }
-
       // NFT FLOORS
       const nftService = runtime.getService(
         "VINCE_NFT_FLOOR_SERVICE",
@@ -436,7 +424,7 @@ export const vinceGmAction: Action = {
         sources.length > 0 ? `*Source: ${sources.join(", ")}*` : "",
         "",
         "---",
-        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
       ]
         .filter((line) => line !== "")
         .join("\n");
@@ -447,12 +435,14 @@ export const vinceGmAction: Action = {
       });
 
       logger.info("[VINCE_GM] Briefing complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_GM] Error: ${error}`);
       await callback({
-        text: "Morning. Having trouble pulling everything together. Try asking about specific areas: OPTIONS, PERPS, MEMES, or LIFESTYLE.",
+        text: "Morning. Having trouble pulling everything together. Try asking about specific areas: OPTIONS, PERPS, MEMES. For lifestyle, ask Kelly.",
         actions: ["VINCE_GM"],
       });
+      return undefined;
     }
   },
 

@@ -44,14 +44,15 @@ export const getOrderbooksAction: Action = {
   description:
     "Get orderbooks for multiple Polymarket tokens in batch (max 100). IMPORTANT: Requires token_ids (NOT condition_ids). Get token_ids from SEARCH_POLYMARKETS or GET_POLYMARKET_DETAIL responses. Useful for comparing liquidity across YES/NO tokens of multiple markets.",
 
-  parameters: {
-    token_ids: {
-      type: "array",
+  parameters: [
+    {
+      name: "token_ids",
       description:
         "Array of ERC1155 token IDs (max 100). Token IDs are large numeric strings like '15974786252393396629980467963784550802583781222733347534844974829144359265969'. Get these from SEARCH_POLYMARKETS or GET_POLYMARKET_DETAIL.",
       required: true,
+      schema: { type: "array" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

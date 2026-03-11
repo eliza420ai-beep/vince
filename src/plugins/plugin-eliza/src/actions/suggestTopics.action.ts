@@ -10,6 +10,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -345,7 +346,7 @@ Analyzes the knowledge base and suggests:
     state?: State,
     options?: Record<string, unknown>,
     callback?: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       logger.info(
         "[SUGGEST_TOPICS] Analyzing knowledge base for suggestions...",
@@ -392,6 +393,7 @@ Analyzes the knowledge base and suggests:
           actions: ["SUGGEST_TOPICS"],
         });
       }
+      return undefined;
     } catch (error) {
       logger.error({ error }, "[SUGGEST_TOPICS] Error");
       if (callback) {
@@ -400,6 +402,7 @@ Analyzes the knowledge base and suggests:
           actions: ["SUGGEST_TOPICS"],
         });
       }
+      return undefined;
     }
   },
 

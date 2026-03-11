@@ -50,3 +50,17 @@
 | 2026-02-23 | Fear index hit 5 (extreme), BTC down 4.3% to $64.7K, but we're holding both stri | [View](day-reports/2026-02-23-day-report.md) |
 | 2026-02-24 | Fear index crashed to 8, BTC testing $63K support, but we're positioned right—ho | [View](day-reports/2026-02-24-day-report.md) |
 | 2026-02-24 | Fear index at 8 but BTC flat at 64.4K—classic setup day with ETF outflows maskin | [View](day-reports/2026-02-24-day-report.md) |
+| 2026-02-26 | BTC up 4% to $68K while fear index stays at 11—classic accumulation setup with i | [View](day-reports/2026-02-26-day-report.md) |
+| 2026-02-26 | Fear index hit 11 (extreme) but ETF inflows still green—classic reversal setup b | [View](day-reports/2026-02-26-day-report.md) |
+| 2026-02-27 | Fear index hit 13 (extreme) but ETF inflows still green—classic reversal setup b | [View](day-reports/2026-02-27-day-report.md) |
+| 2026-02-28 | Fear hit 13 but ETF inflows still strong ($507M BTC) — classic reversal setup br | [View](day-reports/2026-02-28-day-report.md) |
+| 2026-02-28 | Extreme fear (FGI 13) but whales buying dips—classic capitulation setup brewing  | [View](day-reports/2026-02-28-day-report.md) |
+| 2026-03-01 | BTC rallied 4.5% to $66.5k on massive ETF inflows but extreme fear (FGI 14) and  | [View](day-reports/2026-03-01-day-report.md) |
+| 2026-03-01 | BTC ripping +4.8% with ETF inflows but signal confidence collapsed from 60% to 2 | [View](day-reports/2026-03-01-day-report.md) |
+| 2026-03-01 | BTC up 4% but VINCE flipped short on extreme fear (14) while ETFs pulled $507m—c | [View](day-reports/2026-03-01-day-report.md) |
+| 2026-03-01 | Extreme fear (14) but ETF inflows strong ($507m BTC) — whales buying the dip whi | [View](day-reports/2026-03-01-day-report.md) |
+| 2026-03-02 | Extreme fear (10) but VINCE flipped long 66% on liquidation data—shorts getting  | [View](day-reports/2026-03-02-day-report.md) |
+| 2026-03-04 | Extreme fear (14) but VINCE caught the liquidation turn early—shorts getting squ | [View](day-reports/2026-03-04-day-report.md) |
+| 2026-03-04 | Fed cuts priced out, whales accumulating under retail caution, paper bot caught  | [View](day-reports/2026-03-04-day-report.md) |
+| 2026-03-05 | BTC long signal at 57% confidence but mixed tape (HYPE down 2.1%) and regulatory | [View](day-reports/2026-03-05-day-report.md) |
+| 2026-03-05 | BTC holding $71K while Fear Index hits 22, whales accumulating on $462M ETF infl | [View](day-reports/2026-03-05-day-report.md) |

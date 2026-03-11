@@ -6,6 +6,8 @@
 
 import {
   type IAgentRuntime,
+  type ActionResult,
+  type TargetInfo,
   type UUID,
   logger,
   ChannelType,
@@ -1382,7 +1384,7 @@ export async function pushStandupSummaryToChannels(
   const sendToTarget = async (
     target: PushTarget,
     content: { text: string },
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     if (
       target.source === "discord" &&
       discordSvc &&
@@ -1390,8 +1392,9 @@ export async function pushStandupSummaryToChannels(
     ) {
       await discordSvc.handleSendMessage(runtime, target, content);
     } else {
-      await runtime.sendMessageToTarget(target, content);
+      await runtime.sendMessageToTarget(target as TargetInfo, content);
     }
+    return undefined;
   };
 
   const chunks = chunkForDiscord(summary);

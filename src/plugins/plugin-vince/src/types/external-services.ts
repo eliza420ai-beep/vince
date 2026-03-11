@@ -149,6 +149,19 @@ export interface IHyperliquidService {
   getAllCryptoPulse?(): Promise<IHyperliquidCryptoPulse | null>;
 
   /**
+   * Return the most recently cached crypto pulse without making any network
+   * requests. Implemented by the fallback service so HTTP routes can remain
+   * responsive even when Hyperliquid is slow or temporarily unreachable.
+   */
+  getCachedCryptoPulse?(): IHyperliquidCryptoPulse | null;
+
+  /**
+   * Optional: start a background refresh loop for the crypto pulse so cache
+   * readers see fresh data without paying per-request latency.
+   */
+  startCryptoPulseBackgroundRefresh?(): void;
+
+  /**
    * Get cross-venue funding comparison (Hyperliquid vs CEX)
    */
   getCrossVenueFunding(): Promise<IHyperliquidCrossVenueFunding | null>;

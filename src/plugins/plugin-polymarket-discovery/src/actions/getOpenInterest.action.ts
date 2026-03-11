@@ -38,7 +38,7 @@ export const getOpenInterestAction: Action = {
   description:
     "Get market-wide open interest (total value locked across all Polymarket markets). Useful for understanding total market exposure and activity.",
 
-  parameters: {},
+  parameters: [],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

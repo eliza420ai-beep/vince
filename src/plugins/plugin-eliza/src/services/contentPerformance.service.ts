@@ -70,7 +70,8 @@ export class ContentPerformanceService {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       this.filePath,
-      records.map((r) => JSON.stringify(r)).join("\n") + (records.length ? "\n" : ""),
+      records.map((r) => JSON.stringify(r)).join("\n") +
+        (records.length ? "\n" : ""),
       "utf-8",
     );
   }
@@ -155,8 +156,20 @@ export class ContentPerformanceService {
     const substacks = recent.filter((r) => r.type === "substack").length;
     const tweets = recent.filter((r) => r.type === "tweet").length;
     const published = recent.filter((r) => r.published).length;
-    const publishRate =
-      recent.length > 0 ? published / recent.length : 0;
+    const publishRate = recent.length > 0 ? published / recent.length : 0;
     return { substacks, tweets, publishRate };
   }
+}
+
+/**
+ * Singleton-style accessor for ContentPerformanceService.
+ * Used by actions that want a simple, fire-and-forget interface.
+ */
+let sharedContentPerformance: ContentPerformanceService | null = null;
+
+export function getContentPerformance(): ContentPerformanceService {
+  if (!sharedContentPerformance) {
+    sharedContentPerformance = new ContentPerformanceService();
+  }
+  return sharedContentPerformance;
 }

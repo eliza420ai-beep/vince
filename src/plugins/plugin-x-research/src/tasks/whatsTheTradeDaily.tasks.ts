@@ -25,91 +25,48 @@ import type { IAgentRuntime, UUID } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 import { initXClientFromEnv } from "../services/xClient.service";
-import { getXSearchService } from "../services/xSearch.service";
+import {
+  getXSearchService,
+  selectFairQuickTopics,
+} from "../services/xSearch.service";
 import { ALL_TOPICS } from "../constants/topics";
-// HIP-3 + core perp universe (mirrored from plugin-vince/constants/targetAssets.ts).
-// Kept in sync manually; add new HIP-3 assets here when they go live on Hyperliquid.
-const WTT_UNIVERSE_TICKERS = [
-  // Core
-  "BTC",
-  "ETH",
-  "SOL",
-  "HYPE",
-  // HIP-3 Commodities
-  "GOLD",
-  "SILVER",
-  "COPPER",
-  "NATGAS",
-  "OIL",
-  "USOIL",
-  // HIP-3 Indices
-  "XYZ100",
-  "US500",
-  "SMALL2000",
-  "MAG7",
-  "SEMIS",
-  "INFOTECH",
-  "ROBOT",
-  // HIP-3 Stocks
-  "NVDA",
-  "TSLA",
-  "AAPL",
-  "AMZN",
-  "GOOGL",
-  "META",
-  "MSFT",
-  "PLTR",
-  "COIN",
-  "HOOD",
-  "NFLX",
-  "MSTR",
-  "AMD",
-  "INTC",
-  "ORCL",
-  "MU",
-  "SNDK",
-  "CRCL",
-  // HIP-3 AI/Tech
-  "OPENAI",
-  "ANTHROPIC",
-  "SPACEX",
-] as const;
-const WTT_UNIVERSE_LABEL = WTT_UNIVERSE_TICKERS.join(", ");
-const WTT_UNIVERSE_SET = new Set<string>(WTT_UNIVERSE_TICKERS);
-/** HIP-3 stock tickers for Robinhood adapter (offchain context); subset of WTT universe. */
-const ROBINHOOD_HIP3_TICKERS =
-  "NVDA,TSLA,AAPL,AMZN,GOOGL,META,MSFT,PLTR,COIN,HOOD,NFLX,MSTR,AMD,INTC,ORCL,MU,SNDK,CRCL";
+import { getMandoContextForX } from "../utils/mandoContext";
+import { getPolymarketContextForWtt } from "../utils/polymarketContext";
+import {
+  HIP3_STOCKS,
+  WTT_UNIVERSE_LABEL,
+  WTT_UNIVERSE_TICKERS,
+  normalizeWttTicker,
+} from "../constants/wttUniverse";
+import type {
+  WttPick,
+  WttCatalystSource,
+} from "../../../../shared/wttContract";
+import {
+  buildPolymarketContextBlock,
+  derivePolymarketQuery,
+} from "./wtt/query";
+import { computeWttPickConfidence, evaluateThesisQuality } from "./wtt/quality";
+import { ensureContractValidPick } from "./wtt/pick";
+export {
+  buildPolymarketContextBlock,
+  derivePolymarketQuery,
+} from "./wtt/query";
+export { computeWttPickConfidence } from "./wtt/quality";
+export { extractPickFromNarrativeFallback };
+
+/** Comma-separated HIP-3 stocks for Robinhood adapter (offchain context). */
+const ROBINHOOD_HIP3_TICKERS = (HIP3_STOCKS as readonly string[]).join(",");
 
 /** Check if a WTT ticker is in the onchain-tradeable universe (core + HIP-3). */
 function isWttUniverseTicker(ticker: string): boolean {
-  return WTT_UNIVERSE_SET.has(ticker.trim().toUpperCase());
+  return normalizeWttUniverseTicker(ticker) !== null;
 }
 
-/** Structured pick for paper bot and ML (saved as JSON sidecar). */
-export interface WttPick {
-  date: string;
-  thesis: string;
-  primaryTicker: string;
-  primaryDirection: "long" | "short";
-  primaryInstrument: string;
-  primaryEntryPrice: number;
-  primaryRiskUsd: number;
-  invalidateCondition: string;
-  altTicker?: string;
-  altDirection?: "long" | "short";
-  altInstrument?: string;
-  rubric: {
-    alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
-    edge: "undiscovered" | "emerging" | "consensus" | "crowded";
-    payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
-    timingForgiveness:
-      | "very_forgiving"
-      | "forgiving"
-      | "punishing"
-      | "very_punishing";
-  };
-  evThresholdPct?: number;
-  killConditions: string[];
+/** Normalize ticker (including aliases like GOOG -> GOOGL) and validate against WTT universe. */
+function normalizeWttUniverseTicker(ticker: string): string | null {
+  if (!ticker?.trim()) return null;
+  return normalizeWttTicker(ticker.trim().toUpperCase());
 }
 
 const DEFAULT_HOUR_UTC = 9;
@@ -138,6 +95,175 @@ function getOutputPath(date: Date): string {
 function getOutputPathJson(date: Date): string {
   const dateStr = date.toISOString().slice(0, 10);
   return path.join(getOutputDir(), `${dateStr}-whats-the-trade.json`);
+}
+
+/** Signals dir for EchoXSignal (paper bot): STANDUP_DELIVERABLES_DIR/signals or docs/standup/signals. */
+function getEchoXSignalsDir(): string {
+  const base = process.env.STANDUP_DELIVERABLES_DIR?.trim()
+    ? path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR)
+    : path.join(process.cwd(), "docs", "standup");
+  return path.join(base, "signals");
+}
+
+/** Path for EchoXSignal file read by plugin-vince aggregator. */
+function getEchoXSignalsPath(date: Date): string {
+  const dateStr = date.toISOString().slice(0, 10);
+  return path.join(getEchoXSignalsDir(), `${dateStr}-echo-x.json`);
+}
+
+/** EchoXSignal entry for paper bot aggregator (same-day file). */
+export interface EchoXSignalEntry {
+  asset: string;
+  direction: "long" | "short" | "neutral";
+  confidence?: number;
+}
+
+interface EchoXSignalsSidecar {
+  schemaVersion: number;
+  date: string;
+  signals: EchoXSignalEntry[];
+}
+
+const ECHO_X_SIGNAL_SCHEMA_VERSION = 2;
+const WTT_PICK_SCHEMA_VERSION = 2;
+const MIN_FALLBACK_EVIDENCE_SCORE = 2;
+const wttStats = {
+  fallbackAttempts: 0,
+  fallbackAccepted: 0,
+  fallbackRejectedLowEvidence: 0,
+  invalidPickReads: 0,
+};
+
+/** Write EchoXSignal file for aggregator (EchoXSignal source). */
+async function saveEchoXSignalsFile(
+  pick: WttPick | null,
+  date: Date,
+  repeatCount = 0,
+): Promise<void> {
+  if (!pick) return;
+  const primaryConfidence = computeWttPickConfidence(pick, repeatCount);
+  const signals: EchoXSignalEntry[] = [
+    {
+      asset: pick.primaryTicker,
+      direction: pick.primaryDirection,
+      confidence: primaryConfidence,
+    },
+  ];
+  if (pick.altTicker && pick.altDirection) {
+    signals.push({
+      asset: pick.altTicker,
+      direction: pick.altDirection,
+      confidence: Math.max(35, primaryConfidence - 10),
+    });
+  }
+  try {
+    const dir = getEchoXSignalsDir();
+    await fs.mkdir(dir, { recursive: true });
+    const filepath = getEchoXSignalsPath(date);
+    await fs.writeFile(
+      filepath,
+      JSON.stringify(
+        {
+          schemaVersion: ECHO_X_SIGNAL_SCHEMA_VERSION,
+          date: date.toISOString().slice(0, 10),
+          signals,
+        } satisfies EchoXSignalsSidecar,
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    logger.debug("[ECHO WhatstheTrade] Wrote EchoXSignal file " + filepath);
+  } catch (err) {
+    logger.warn(
+      { err },
+      "[ECHO WhatstheTrade] Failed to write EchoXSignal file",
+    );
+  }
+}
+
+/** Number of recent WTT days to consider for rotation hint. */
+const RECENT_WTT_DAYS = 7;
+/** If this ticker was primary in >= this many of the last RECENT_WTT_DAYS, we add a rotation nudge. */
+const ROTATION_NUDGE_THRESHOLD = 3;
+
+/**
+ * Read recent WTT JSON sidecars and return primary tickers (most recent first).
+ * Used to nudge the model away from repeating the same pick when it has dominated lately.
+ */
+async function getRecentWttPrimaryTickers(
+  excludeDateStr: string,
+  lastNDays: number,
+): Promise<string[]> {
+  const dir = getOutputDir();
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const jsonFiles = entries
+      .filter(
+        (e) =>
+          e.isFile() &&
+          e.name.endsWith("-whats-the-trade.json") &&
+          /^\d{4}-\d{2}-\d{2}-whats-the-trade\.json$/.test(e.name),
+      )
+      .map((e) => e.name.replace(/-whats-the-trade\.json$/, ""));
+    const sorted = jsonFiles
+      .filter((d) => d !== excludeDateStr)
+      .sort()
+      .reverse()
+      .slice(0, lastNDays);
+    const tickers: string[] = [];
+    for (const dateStr of sorted) {
+      const filepath = path.join(dir, `${dateStr}-whats-the-trade.json`);
+      try {
+        const raw = await fs.readFile(filepath, "utf-8");
+        const data = JSON.parse(raw) as unknown;
+        if (
+          typeof data === "object" &&
+          data &&
+          "schemaVersion" in (data as Record<string, unknown>)
+        ) {
+          const sidecar = data as Record<string, unknown>;
+          const schemaVersion = Number(sidecar.schemaVersion ?? 0);
+          if (schemaVersion > WTT_PICK_SCHEMA_VERSION) {
+            wttStats.invalidPickReads += 1;
+            continue;
+          }
+        }
+        const maybeValidated = ensureContractValidPick(data as WttPick);
+        if (maybeValidated?.primaryTicker) {
+          tickers.push(maybeValidated.primaryTicker.trim().toUpperCase());
+        }
+      } catch {
+        // skip unreadable or invalid JSON
+        wttStats.invalidPickReads += 1;
+      }
+    }
+    return tickers;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * If the same ticker dominated recent WTT picks, return a sentence to append to the thesis prompt.
+ */
+function buildRotationHint(recentTickers: string[]): string {
+  if (recentTickers.length < ROTATION_NUDGE_THRESHOLD) return "";
+  const counts = new Map<string, number>();
+  for (const t of recentTickers) {
+    counts.set(t, (counts.get(t) ?? 0) + 1);
+  }
+  const [topTicker, count] = [...counts.entries()].sort(
+    (a, b) => b[1] - a[1],
+  )[0] ?? [null, 0];
+  if (
+    topTicker &&
+    count >= ROTATION_NUDGE_THRESHOLD &&
+    count >= Math.ceil(recentTickers.length / 2)
+  ) {
+    return ` Recent WTT primary picks (last ${recentTickers.length} days): ${recentTickers.join(", ")}. Prefer a different asset today unless the thesis strongly warrants repeating ${topTicker}.`;
+  }
+  return "";
 }
 
 function runBunScript(
@@ -181,30 +307,148 @@ function runBunScript(
 }
 
 /**
+ * Build a short news-context block for the thesis prompt from MandoMinutes headlines.
+ * When a headline clearly implies a trade (e.g. "OpenAI wins US government AI deal"), the model can use it.
+ */
+function buildNewsContextBlock(newsContext: string | null): string {
+  if (!newsContext || !newsContext.trim()) return "";
+  return `\n\nToday's top headlines (use if one suggests a clear trade—e.g. company wins contract, regulatory deal, sector catalyst):\n${newsContext.trim()}\nIf one of these suggests a trade, prefer that thesis and name the asset.`;
+}
+
+/** Chris Camillo / social-arbitrage lens for thesis: information imbalance, meaningful behavioral shift, pure play. */
+const CAMILLO_LENS_THESIS =
+  "\n\nApply a social-arbitrage lens: the edge is seeing a meaningful behavioral or social signal (real-world, headlines, or CT) before the market has fully priced it. Prefer theses that name a concrete information imbalance (what you see that may not yet be in the price). Prefer the clearest expression (pure play) of that thesis.";
+
+/** Chris Camillo lens for narrative: thesis validity over price; invalidation = thesis broken or info priced in. */
+const CAMILLO_LENS_NARRATIVE = `
+Apply a social-arbitrage lens: the edge is being early on a behavioral/social signal before it's universal. Invalidation should reflect thesis failure or "info now priced in" (e.g. earnings confirmed the trend, headline is consensus), not only a price level. Prefer the pure-play expression of the thesis.`;
+
+function buildCamilloLens(
+  camilloStyle: boolean,
+  forNarrative: boolean,
+): string {
+  if (!camilloStyle) return "";
+  return forNarrative ? CAMILLO_LENS_NARRATIVE : CAMILLO_LENS_THESIS;
+}
+
+/** WTT universe tickers we can mention in extremity hint (core + common HIP-3). */
+const EXTREMITY_HINT_TICKERS = [
+  "BTC",
+  "ETH",
+  "SOL",
+  "HYPE",
+  "NVDA",
+  "TSLA",
+  "MAG7",
+  "PLTR",
+  "COIN",
+  "HOOD",
+];
+
+/**
+ * If the CT narrative suggests very bullish or very bearish sentiment on an asset,
+ * return a one-line nudge to consider fading the crowd. Otherwise return "".
+ */
+function buildSentimentExtremityHint(xNarrative: string): string {
+  if (!xNarrative?.trim()) return "";
+  const lower = xNarrative.toLowerCase();
+  const extremeBull =
+    /\b(extremely|very|overwhelmingly|max|everyone)\s*(bullish|long|greed|euphor|optimistic)|crowded\s+long|everyone\s+is\s+long|max\s+greed/i.test(
+      lower,
+    );
+  const extremeBear =
+    /\b(extremely|very|overwhelmingly|max|everyone)\s*(bearish|short|fear|capitul|pessimistic)|crowded\s+short|everyone\s+is\s+short|max\s+fear/i.test(
+      lower,
+    );
+  if (!extremeBull && !extremeBear) return "";
+  const assetMatch = EXTREMITY_HINT_TICKERS.find(
+    (t) =>
+      lower.includes(t.toLowerCase()) ||
+      lower.includes(t.toLowerCase() + " ") ||
+      lower.includes(" " + t.toLowerCase()),
+  );
+  const asset = assetMatch ?? "one asset";
+  return ` Sentiment is extreme on ${asset}; consider whether the edge is to fade the crowd.`;
+}
+
+async function generateQualityCheckedThesis(
+  runtime: IAgentRuntime,
+  prompt: string,
+  fallbackLabel: string,
+): Promise<string> {
+  const raw = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt,
+    maxTokens: 80,
+  });
+  const candidate = String(raw)
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  const quality = evaluateThesisQuality(
+    candidate,
+    WTT_UNIVERSE_TICKERS as readonly string[],
+  );
+  if (quality.ok) return candidate;
+
+  const tightenedPrompt =
+    prompt +
+    `\n\nYour prior draft failed quality checks (${quality.reasons.join(", ")}). Retry once with a single sentence that names a tradable ticker and explicit asymmetry (relative mispricing, spread, discount/premium, or outperformance/underperformance).`;
+  const retry = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt: tightenedPrompt,
+    maxTokens: 80,
+  });
+  const retryCandidate = String(retry)
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  const retryQuality = evaluateThesisQuality(
+    retryCandidate,
+    WTT_UNIVERSE_TICKERS as readonly string[],
+  );
+  if (retryQuality.ok) return retryCandidate;
+
+  logger.warn(
+    `[ECHO WhatstheTrade] ${fallbackLabel} thesis quality gate fallback: ${retryQuality.reasons.join(", ")}`,
+  );
+  return "SOL outperforms ETH this week on relative strength divergence the market has not fully priced.";
+}
+
+/**
  * Thesis is derived from a generic LLM suggestion (no X data injected yet).
  * When X-driven thesis is enabled, suggestThesisFromX() can use X_PULSE or a dedicated X scan.
+ * Uses recent WTT primary tickers to nudge away from repeating the same pick when it dominated lately.
+ * Optional newsContext (MandoMinutes headlines) lets the model catch headline-driven catalysts (e.g. OpenAI government deal).
+ * Optional camilloStyle injects a social-arbitrage lens (information imbalance, pure play, meaningful behavioral signal).
  */
 async function suggestThesis(
   runtime: IAgentRuntime,
   dateStr: string,
   hip3Only: boolean,
+  newsContext: string | null = null,
+  camilloStyle = false,
+  polymarketContext: string | null = null,
 ): Promise<string> {
-  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or relative strength the market hasn't fully priced. Rotate across asset classes: crypto, stocks, commodities, indices. Do not default to crypto. Examples: "Defense AI spending will accelerate faster than commercial AI (PLTR vs NVDA)", "Silver breaks out on industrial demand while gold stalls", "GOOGL trades at a discount to MAG7 on AI capex fears", "SOL outperforms ETH on relative strength this week", "Commodities outperform indices on supply disruption". Do not give generic sentiment ("CT is bullish"); name the specific asymmetry.`;
+  const rotationTickers = await getRecentWttPrimaryTickers(
+    dateStr,
+    RECENT_WTT_DAYS,
+  );
+  const rotationHint = buildRotationHint(rotationTickers);
+  const newsBlock = buildNewsContextBlock(newsContext);
+  const polymarketBlock = buildPolymarketContextBlock(polymarketContext);
+  const camilloBlock = buildCamilloLens(camilloStyle, false);
+
+  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or relative strength the market hasn't fully priced. Rotate across asset classes: crypto, stocks, commodities, indices. Do not default to the same ticker every day. Examples: "SOL outperforms ETH on relative strength this week", "Silver breaks out on industrial demand while gold stalls", "GOOGL trades at a discount to MAG7 on AI capex fears", "Commodities outperform indices on supply disruption", "One sector is mispriced vs another (name the segment)". Do not give generic sentiment ("CT is bullish"); name the specific asymmetry.`;
   const constraint = hip3Only
     ? ` The trade MUST be expressible onchain via a Hyperliquid perp. Available tickers: ${WTT_UNIVERSE_LABEL}. Pick a thesis that maps to one of these assets.`
     : "";
   const prompt =
     base +
     constraint +
+    newsBlock +
+    polymarketBlock +
+    camilloBlock +
+    rotationHint +
     " Reply with only that one sentence, no quotes or preamble.";
   try {
-    const out = await runtime.useModel(ModelType.TEXT_LARGE, {
-      prompt,
-      maxTokens: 80,
-    });
-    return String(out)
-      .trim()
-      .replace(/^["']|["']$/g, "");
+    return await generateQualityCheckedThesis(runtime, prompt, "generic");
   } catch (e) {
     logger.warn(
       "[ECHO WhatstheTrade] Thesis suggestion failed, using fallback",
@@ -224,14 +468,15 @@ async function fetchCtNarrativeForWtt(
   try {
     initXClientFromEnv(runtime);
     const searchService = getXSearchService();
-    const highPriorityIds = ALL_TOPICS.filter((t) => t.priority === "high")
-      .map((t) => t.id)
-      .slice(0, 2);
+    const highPriorityIds = ALL_TOPICS.filter((t) => t.priority === "high").map(
+      (t) => t.id,
+    );
+    const quickTopicIds = selectFairQuickTopics(highPriorityIds, 4);
     const topicResults = await searchService.searchMultipleTopics({
-      topicsIds: highPriorityIds,
+      topicsIds: quickTopicIds,
       maxResultsPerTopic: 15,
       cacheTtlMs: 5 * 60 * 1000,
-      quick: true,
+      quick: false,
     });
     const allTweets = Array.from(topicResults.values()).flat();
     if (allTweets.length === 0) return null;
@@ -262,13 +507,29 @@ Summary:`,
 /**
  * Turn a CT narrative (from X) into one tradeable thesis with a clear asymmetry.
  * Use when ECHO_WTT_X_DRIVEN=true; thesis is then X-derived instead of generic.
+ * Uses recent WTT primary tickers to nudge away from repeating the same pick when it dominated lately.
+ * Optional newsContext (MandoMinutes headlines) lets the model catch headline-driven catalysts (e.g. OpenAI government deal).
+ * Optional camilloStyle injects a social-arbitrage lens (information imbalance, pure play).
  */
 async function suggestThesisFromX(
   runtime: IAgentRuntime,
   dateStr: string,
   xNarrative: string,
   hip3Only: boolean,
+  newsContext: string | null = null,
+  camilloStyle = false,
+  polymarketContext: string | null = null,
 ): Promise<string> {
+  const rotationTickers = await getRecentWttPrimaryTickers(
+    dateStr,
+    RECENT_WTT_DAYS,
+  );
+  const rotationHint = buildRotationHint(rotationTickers);
+  const newsBlock = buildNewsContextBlock(newsContext);
+  const polymarketBlock = buildPolymarketContextBlock(polymarketContext);
+  const camilloBlock = buildCamilloLens(camilloStyle, false);
+  const extremityHint = buildSentimentExtremityHint(xNarrative);
+
   const constraint = hip3Only
     ? ` The trade MUST be expressible as a Hyperliquid perp. Tickers: ${WTT_UNIVERSE_LABEL}.`
     : "";
@@ -276,18 +537,15 @@ async function suggestThesisFromX(
 
 CT summary:
 ${xNarrative}
+${newsBlock}
+${polymarketBlock}
+${camilloBlock}
 
-Turn this into exactly one tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or a narrative the market hasn't fully priced. Do not give generic sentiment; name the specific asymmetry.${constraint}
+Turn this into exactly one tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or a narrative the market hasn't fully priced. Do not give generic sentiment; name the specific asymmetry. Do not default to the same ticker every day. If today's headlines suggest a clear trade (e.g. company wins contract), prefer that. If CT is overwhelmingly one-sided (everyone bullish or everyone bearish on one thing), consider whether the edge is to fade the crowd rather than follow it.${extremityHint}${constraint}${rotationHint}
 
 Reply with only that one sentence, no quotes or preamble.`;
   try {
-    const out = await runtime.useModel(ModelType.TEXT_LARGE, {
-      prompt,
-      maxTokens: 80,
-    });
-    return String(out)
-      .trim()
-      .replace(/^["']|["']$/g, "");
+    return await generateQualityCheckedThesis(runtime, prompt, "x-driven");
   } catch (e) {
     logger.warn(
       "[ECHO WhatstheTrade] X-driven thesis suggestion failed, using fallback",
@@ -410,6 +668,7 @@ async function generateNarrative(
   dataContext: string,
   dateLabel: string,
   hip3Only: boolean,
+  camilloStyle = false,
 ): Promise<string> {
   const marketScope = hip3Only
     ? `you pick the single best onchain expression using Hyperliquid perps (HIP-3 assets and crypto: stocks, indices, commodities all trade as perps on Hyperliquid). Your PRIMARY pick ticker must be from the Hyperliquid universe. You may reference offchain context (Robinhood stocks, Kalshi odds) to support your reasoning, but the trade card ticker must be a Hyperliquid perp from: ${WTT_UNIVERSE_LABEL}.`
@@ -420,6 +679,7 @@ async function generateNarrative(
     : "one instrument: stock, option, Kalshi contract, or perp";
 
   const instrumentLabel = hip3Only ? "perp" : "[INSTRUMENT]";
+  const camilloBlock = buildCamilloLens(camilloStyle, true);
 
   const prompt = `You are ECHO, writing your daily "What's the trade" for ${dateLabel}. Vibe and sentiment lead; ${marketScope}
 
@@ -428,6 +688,7 @@ Today's thesis: ${thesis}
 Live data from prediction markets, stocks, and perps:
 
 ${dataContext}
+${camilloBlock}
 
 Write a short narrative (150–250 words) that:
 1. Names the asymmetry clearly (what is mispriced vs what, or which relative move) and states the single best way to express this thesis (${instrumentOptions}). Say why this expression beats the obvious play.
@@ -605,6 +866,14 @@ Output only the JSON object, no markdown or explanation.`;
     )
       pick.evThresholdPct = parsed.evThresholdPct;
 
+    const normalizedPrimary = normalizeWttUniverseTicker(pick.primaryTicker);
+    if (normalizedPrimary) pick.primaryTicker = normalizedPrimary;
+
+    if (pick.altTicker) {
+      const normalizedAlt = normalizeWttUniverseTicker(pick.altTicker);
+      pick.altTicker = normalizedAlt ?? undefined;
+    }
+
     if (hip3Only && !isWttUniverseTicker(pick.primaryTicker)) {
       logger.warn(
         "[ECHO WhatstheTrade] primaryTicker not in WTT universe: " +
@@ -639,8 +908,10 @@ function extractPickFromNarrativeFallback(
   thesis: string,
   dateStr: string,
 ): WttPick | null {
+  wttStats.fallbackAttempts += 1;
   const text = (narrative + "\n" + thesis).toLowerCase();
-  let direction: "long" | "short" = "long";
+  let direction: "long" | "short" | null = null;
+  let evidenceScore = 0;
   const shortMatch = text.match(
     /\bshort\s+(\w+)\b|(\w+)[-\s]perp\s+perp\s+short/i,
   );
@@ -649,6 +920,15 @@ function extractPickFromNarrativeFallback(
   );
   if (shortMatch) {
     direction = "short";
+    evidenceScore += 1;
+  }
+  if (longMatch) {
+    if (direction === "short") {
+      wttStats.fallbackRejectedLowEvidence += 1;
+      return null;
+    }
+    direction = "long";
+    evidenceScore += 1;
   }
   const tickerCandidates: string[] = [];
   for (const t of WTT_UNIVERSE_TICKERS) {
@@ -666,25 +946,43 @@ function extractPickFromNarrativeFallback(
   );
   if (perpLine) {
     const ticker = perpLine[1].toUpperCase().replace(/-/g, "");
-    if (isWttUniverseTicker(ticker)) {
+    if (ticker && isWttUniverseTicker(ticker)) {
       tickerCandidates.unshift(ticker);
     }
     if (perpLine[2].toUpperCase() === "SHORT") {
       direction = "short";
+    } else {
+      direction = "long";
     }
+    evidenceScore += 2;
   }
   const priceMatch = narrative.match(/\$\s*([\d,.]+)/);
+  if (priceMatch) evidenceScore += 1;
+  if (
+    /\b(outperform|underperform|mispricing|relative strength|discount|premium)\b/i.test(
+      thesis,
+    )
+  ) {
+    evidenceScore += 1;
+  }
   const entryPrice = priceMatch
     ? parseFloat(priceMatch[1].replace(/,/g, ""))
     : 0;
-  const ticker = tickerCandidates[0];
-  if (!ticker || !isWttUniverseTicker(ticker)) {
+  const ticker = tickerCandidates
+    .map((t) => normalizeWttUniverseTicker(t))
+    .find((t): t is string => Boolean(t));
+  if (!ticker || !isWttUniverseTicker(ticker) || !direction) {
+    wttStats.fallbackRejectedLowEvidence += 1;
+    return null;
+  }
+  if (evidenceScore < MIN_FALLBACK_EVIDENCE_SCORE) {
+    wttStats.fallbackRejectedLowEvidence += 1;
     return null;
   }
   logger.info(
     `[ECHO WhatstheTrade] Fallback pick: ${ticker} ${direction} (from narrative)`,
   );
-  return {
+  const fallback: WttPick = {
     date: dateStr,
     thesis,
     primaryTicker: ticker,
@@ -692,10 +990,64 @@ function extractPickFromNarrativeFallback(
     primaryInstrument: "perp",
     primaryEntryPrice: entryPrice,
     primaryRiskUsd: 0,
-    invalidateCondition: "",
-    killConditions: [],
+    invalidateCondition:
+      "invalidate if price action rejects thesis with sustained reversal",
+    killConditions: ["exit on thesis invalidation or crowding unwind"],
     rubric: FALLBACK_RUBRIC,
   };
+  wttStats.fallbackAccepted += 1;
+  return fallback;
+}
+
+/**
+ * Parse the saved WTT markdown to produce a minimal WttPick when LLM and narrative
+ * fallback both failed. Tries (1) "TICKER · perp · LONG|SHORT" in Structured Pick
+ * section, (2) narrative + thesis extraction and narrative fallback.
+ */
+function parseStructuredPickFromMarkdown(
+  mdContent: string,
+  dateStr: string,
+): WttPick | null {
+  // 1) Structured Pick line: "TICKER · perp · LONG" or "TICKER · perp · SHORT"
+  const pickLine = mdContent.match(
+    /^\s*([A-Z0-9]+)\s*·\s*perp\s*·\s*(LONG|SHORT)\s*$/im,
+  );
+  if (pickLine) {
+    const ticker = normalizeWttUniverseTicker(
+      pickLine[1].toUpperCase().replace(/-/g, ""),
+    );
+    if (ticker && isWttUniverseTicker(ticker)) {
+      const direction =
+        pickLine[2].toUpperCase() === "SHORT" ? "short" : "long";
+      logger.info(
+        `[ECHO WhatstheTrade] Parsed pick from markdown Structured Pick line: ${ticker} ${direction}`,
+      );
+      return {
+        date: dateStr,
+        thesis: "",
+        primaryTicker: ticker!,
+        primaryDirection: direction,
+        primaryInstrument: "perp",
+        primaryEntryPrice: 0,
+        primaryRiskUsd: 0,
+        invalidateCondition:
+          "invalidate if follow-through fails after catalyst window",
+        killConditions: ["exit on thesis invalidation or crowding unwind"],
+        rubric: FALLBACK_RUBRIC,
+      };
+    }
+  }
+  // 2) Extract thesis and narrative from report and run narrative fallback
+  const parts = mdContent.split(/\n---\n/);
+  const beforeFirstRule = parts[0] ?? "";
+  const afterFirstRule = parts[1] ?? "";
+  const thesis = beforeFirstRule
+    .replace(/^\s*\*\*What's the trade\*\*[^\n]*\n+/i, "")
+    .trim();
+  const narrative =
+    afterFirstRule.split(/\n### Structured Pick\n/i)[0]?.trim() ?? "";
+  if (!thesis && !narrative) return null;
+  return extractPickFromNarrativeFallback(narrative, thesis, dateStr);
 }
 
 async function saveReport(content: string, date: Date): Promise<string | null> {
@@ -724,7 +1076,15 @@ async function savePickJson(pick: WttPick, date: Date): Promise<string | null> {
     const dir = getOutputDir();
     await fs.mkdir(dir, { recursive: true });
     const filepath = getOutputPathJson(date);
-    await fs.writeFile(filepath, JSON.stringify(pick, null, 2), "utf-8");
+    await fs.writeFile(
+      filepath,
+      JSON.stringify(
+        { schemaVersion: WTT_PICK_SCHEMA_VERSION, ...pick },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
     logger.info("[ECHO WhatstheTrade] Saved pick to " + filepath);
     return filepath;
   } catch (err) {
@@ -831,18 +1191,85 @@ export async function runWhatsTheTradeReport(
     (runtime.getSetting("ECHO_WTT_X_DRIVEN") ??
       process.env.ECHO_WTT_X_DRIVEN ??
       "false") === "true";
-  let thesis: string;
-  if (xDriven) {
-    const xNarrative = await fetchCtNarrativeForWtt(runtime);
-    if (xNarrative) {
-      logger.info("[ECHO WhatstheTrade] Using X-driven thesis");
-      thesis = await suggestThesisFromX(runtime, dateStr, xNarrative, hip3Only);
-    } else {
-      thesis = await suggestThesis(runtime, dateLabel, hip3Only);
-    }
-  } else {
-    thesis = await suggestThesis(runtime, dateLabel, hip3Only);
+  const camilloStyle =
+    (runtime.getSetting("ECHO_WTT_CAMILLO_STYLE") ??
+      process.env.ECHO_WTT_CAMILLO_STYLE ??
+      "false") === "true";
+  if (camilloStyle) {
+    logger.info(
+      "[ECHO WhatstheTrade] Camillo / social-arbitrage lens enabled (ECHO_WTT_CAMILLO_STYLE)",
+    );
   }
+
+  // News context (MandoMinutes) so headline-driven catalysts (e.g. OpenAI government deal) can become the thesis
+  let newsContext: string | null = null;
+  try {
+    const mando = await getMandoContextForX(runtime);
+    if (mando?.headlines?.length) {
+      newsContext = mando.headlines.slice(0, 10).join("\n");
+      logger.info(
+        `[ECHO WhatstheTrade] Injecting ${mando.headlines.length} headlines into thesis suggestion`,
+      );
+    }
+  } catch (e) {
+    logger.debug(
+      "[ECHO WhatstheTrade] No news context for thesis: " +
+        (e as Error).message,
+    );
+  }
+
+  const xNarrative = xDriven ? await fetchCtNarrativeForWtt(runtime) : null;
+  // Polymarket odds (Gamma public-search) so thesis can reinforce or contrast with prediction markets
+  let polymarketContext: string | null = null;
+  try {
+    const searchQuery = derivePolymarketQuery({
+      newsContext,
+      xNarrative,
+      thesis: null, // thesis is generated after this stage
+    });
+    polymarketContext = await getPolymarketContextForWtt(searchQuery);
+    if (polymarketContext) {
+      logger.info(
+        `[ECHO WhatstheTrade] Injecting Polymarket context into thesis suggestion (query="${searchQuery}")`,
+      );
+    }
+  } catch (e) {
+    logger.debug(
+      "[ECHO WhatstheTrade] No Polymarket context: " + (e as Error).message,
+    );
+  }
+
+  let thesis: string;
+  if (xNarrative) {
+    logger.info("[ECHO WhatstheTrade] Using X-driven thesis");
+    thesis = await suggestThesisFromX(
+      runtime,
+      dateStr,
+      xNarrative,
+      hip3Only,
+      newsContext,
+      camilloStyle,
+      polymarketContext,
+    );
+  } else {
+    thesis = await suggestThesis(
+      runtime,
+      dateStr,
+      hip3Only,
+      newsContext,
+      camilloStyle,
+      polymarketContext,
+    );
+  }
+
+  /** Catalyst tags for feedback: which inputs drove this thesis (used in JSON sidecar and improvement reports). */
+  const catalystSources: WttCatalystSource[] = [
+    ...(newsContext ? (["headlines"] as const) : []),
+    ...(xNarrative ? (["ct"] as const) : []),
+    ...(polymarketContext ? (["polymarket"] as const) : []),
+  ];
+  if (catalystSources.length === 0) catalystSources.push("generic");
+
   const dataContext = await fetchAdapterData(
     skillDir,
     thesis,
@@ -855,6 +1282,7 @@ export async function runWhatsTheTradeReport(
     dataContext,
     dateLabel,
     hip3Only,
+    camilloStyle,
   );
 
   let pick = await extractStructuredPick(
@@ -894,16 +1322,39 @@ export async function runWhatsTheTradeReport(
     }
   }
 
+  const recentTickersForRisk = pick
+    ? await getRecentWttPrimaryTickers(dateStr, RECENT_WTT_DAYS)
+    : [];
+  const primaryTickerForRisk = pick?.primaryTicker;
+  const repeatCount = primaryTickerForRisk
+    ? recentTickersForRisk.filter((t) => t === primaryTickerForRisk).length
+    : 0;
+
   if (pick) {
+    pick = ensureContractValidPick(pick);
+  }
+  if (pick) {
+    if (repeatCount >= ROTATION_NUDGE_THRESHOLD) {
+      const crowdingNote = `crowding risk: ${pick.primaryTicker} appeared ${repeatCount}/${recentTickersForRisk.length} recent WTT primary picks`;
+      if (
+        !pick.killConditions.some((k) =>
+          k.toLowerCase().includes("crowding risk"),
+        )
+      ) {
+        pick.killConditions.push(crowdingNote);
+      }
+    }
+    pick.catalystSources = catalystSources;
     await savePickJson(pick, now);
+    await saveEchoXSignalsFile(pick, now, repeatCount);
   } else {
-    const fallbackPick = extractPickFromNarrativeFallback(
-      narrative,
-      thesis,
-      dateStr,
+    const fallbackPick = ensureContractValidPick(
+      extractPickFromNarrativeFallback(narrative, thesis, dateStr),
     );
     if (fallbackPick) {
+      fallbackPick.catalystSources = catalystSources;
       await savePickJson(fallbackPick, now);
+      await saveEchoXSignalsFile(fallbackPick, now);
       pick = fallbackPick;
       logger.info(
         "[ECHO WhatstheTrade] Saved pick from fallback (paper bot will use it)",
@@ -921,6 +1372,23 @@ export async function runWhatsTheTradeReport(
     pick,
   });
   const filepath = await saveReport(fullReport, now);
+  if (!pick && filepath) {
+    const mdFallback = ensureContractValidPick(
+      parseStructuredPickFromMarkdown(fullReport, dateStr),
+    );
+    if (mdFallback) {
+      mdFallback.catalystSources = catalystSources;
+      await savePickJson(mdFallback, now);
+      await saveEchoXSignalsFile(mdFallback, now);
+      pick = mdFallback;
+      logger.info(
+        "[ECHO WhatstheTrade] Saved pick from markdown fallback (paper bot will use it)",
+      );
+    }
+  }
+  logger.debug(
+    `[ECHO WhatstheTrade] stats fallback_attempts=${wttStats.fallbackAttempts} fallback_accepted=${wttStats.fallbackAccepted} fallback_rejected_low_evidence=${wttStats.fallbackRejectedLowEvidence} invalid_pick_reads=${wttStats.invalidPickReads}`,
+  );
   return { filepath, report: fullReport, pick };
 }
 

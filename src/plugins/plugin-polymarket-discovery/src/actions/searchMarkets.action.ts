@@ -45,23 +45,26 @@ export const searchMarketsAction: Action = {
   description:
     "Search for prediction markets on Polymarket by keyword or category. Returns condition_id for each market. To get orderbook data, first use GET_POLYMARKET_DETAIL with the condition_id to get the token_ids, then use GET_POLYMARKET_ORDERBOOK with those token_ids.",
 
-  parameters: {
-    query: {
-      type: "string",
+  parameters: [
+    {
+      name: "query",
       description: "Search keywords (e.g., 'bitcoin', 'election', 'AI')",
       required: false,
+      schema: { type: "string" },
     },
-    category: {
-      type: "string",
+    {
+      name: "category",
       description: "Market category (e.g., 'crypto', 'politics', 'sports')",
       required: false,
+      schema: { type: "string" },
     },
-    limit: {
-      type: "number",
+    {
+      name: "limit",
       description: "Maximum number of results to return (default: 10, max: 50)",
       required: false,
+      schema: { type: "number" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     try {

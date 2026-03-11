@@ -60,6 +60,9 @@ import { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityCheck
 import { sentinelShipAction } from "./actions/sentinelShip.action";
 import { sentinelFeedbackDeliverableAction } from "./actions/sentinelFeedbackDeliverable.action";
 import { sentinelAlphaMemoAction } from "./actions/sentinelAlphaMemo.action";
+import { sentinelOperatorDashboardAction } from "./actions/sentinelOperatorDashboard.action";
+import { sentinelMemoryQueryAction } from "./actions/sentinelMemoryQuery.action";
+import { sentinelGraduationGateAction } from "./actions/sentinelGraduationGate.action";
 
 // Tasks
 import { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
@@ -73,6 +76,8 @@ import * as prdGeneratorService from "./services/prdGenerator.service";
 import * as openclawKnowledgeService from "./services/openclawKnowledge.service";
 import * as multiAgentVisionService from "./services/multiAgentVision.service";
 import * as tradingIntelligenceService from "./services/tradingIntelligence.service";
+import * as rollbackOrchestratorService from "./services/rollbackOrchestrator.service";
+import * as memoryGraphService from "./services/memoryGraph.service";
 
 export const sentinelPlugin: Plugin = {
   name: "plugin-sentinel",
@@ -97,6 +102,9 @@ export const sentinelPlugin: Plugin = {
     sentinelSecurityChecklistAction,
     sentinelFeedbackDeliverableAction,
     sentinelAlphaMemoAction,
+    sentinelOperatorDashboardAction,
+    sentinelMemoryQueryAction,
+    sentinelGraduationGateAction,
   ],
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
@@ -142,6 +150,9 @@ export { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityCheck
 export { sentinelShipAction } from "./actions/sentinelShip.action";
 export { sentinelFeedbackDeliverableAction } from "./actions/sentinelFeedbackDeliverable.action";
 export { sentinelAlphaMemoAction } from "./actions/sentinelAlphaMemo.action";
+export { sentinelOperatorDashboardAction } from "./actions/sentinelOperatorDashboard.action";
+export { sentinelMemoryQueryAction } from "./actions/sentinelMemoryQuery.action";
+export { sentinelGraduationGateAction } from "./actions/sentinelGraduationGate.action";
 
 // Task exports
 export { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
@@ -155,3 +166,5 @@ export * as prdGenerator from "./services/prdGenerator.service";
 export * as openclawKnowledge from "./services/openclawKnowledge.service";
 export * as multiAgentVision from "./services/multiAgentVision.service";
 export * as tradingIntelligence from "./services/tradingIntelligence.service";
+export * as rollbackOrchestrator from "./services/rollbackOrchestrator.service";
+export * as memoryGraph from "./services/memoryGraph.service";

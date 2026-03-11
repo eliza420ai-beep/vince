@@ -215,8 +215,11 @@ export class TaskService extends Service {
           typeof task.metadata.updatedAt === "number"
         ) {
           taskStartTime = task.metadata.updatedAt;
-        } else if (task.updatedAt) {
-          taskStartTime = new Date(task.updatedAt).getTime();
+        } else if (task.updatedAt !== undefined && task.updatedAt !== null) {
+          const t = task.updatedAt;
+          taskStartTime = new Date(
+            typeof t === "bigint" ? Number(t) : t,
+          ).getTime();
         } else {
           taskStartTime = 0; // Default to immediate execution if no timestamp found
         }
@@ -284,7 +287,14 @@ export class TaskService extends Service {
       }
 
       logger.debug(`[Bootstrap] Executing task ${task.name} (${task.id})`);
-      await worker.execute(this.runtime, task.metadata || {}, task);
+      await worker.execute(
+        this.runtime,
+        (task.metadata || {}) as Record<
+          string,
+          object | import("@elizaos/core").JsonValue
+        >,
+        task,
+      );
       //logger.debug('task.tags are', task.tags);
 
       // Handle repeating vs non-repeating tasks

@@ -11,7 +11,7 @@
 
 **Unified Data Intelligence for the VINCE Agent**
 
-> A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE also operates as a quantitative trading assistant with a lifestyle overlay: market analysis plus day-of-week aware suggestions for dining, hotels, and activities.
+> A comprehensive ElizaOS plugin that consolidates trading, memetics, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE operates as a quantitative trading assistant for market analysis. For lifestyle (dining, hotels, day-of-week suggestions), ask Kelly.
 
 **V4.30:** Paper bot records **avoided decisions** (evaluated but no trade) in the feature store so ML keeps learning on days when no trades are taken. See [FEATURE-STORE.md](../../../FEATURE-STORE.md) — "Avoided decisions" and "Collecting more training data".
 
@@ -81,18 +81,17 @@ Other bots (Passivbot, Gunbot, 3Commas, Coinrule, Pionex, etc.) are mostly manua
 
 ## WHAT - The Plugin's Purpose
 
-VINCE consolidates 6 distinct focus areas into a unified trading and lifestyle assistant:
+VINCE consolidates 5 distinct focus areas (lifestyle is handled by Kelly):
 
 ### Focus Areas
 
-| Domain        | Description                                                 | Primary Data Sources               |
-| ------------- | ----------------------------------------------------------- | ---------------------------------- |
-| **OPTIONS**   | Covered calls and secured puts via HYPERSURFACE             | Deribit (IV surface, Greeks, DVOL) |
-| **PERPS**     | Perpetual trading signals with paper bot                    | Hyperliquid, Binance, CoinGlass    |
-| **HIP-3**     | TradFi assets on Hyperliquid (commodities, indices, stocks) | Hyperliquid HIP-3 API              |
-| **MEMETICS**  | AI meme token scanner ($1M-$20M mcap sweet spot)            | DexScreener, Meteora, Nansen       |
-| **LIFESTYLE** | Day-of-week aware suggestions                               | Internal rules engine              |
-| **ART**       | NFT floor tracking for curated collections                  | OpenSea (via plugin or fallback)   |
+| Domain       | Description                                                 | Primary Data Sources               |
+| ------------ | ----------------------------------------------------------- | ---------------------------------- |
+| **OPTIONS**  | Covered calls and secured puts via HYPERSURFACE             | Deribit (IV surface, Greeks, DVOL) |
+| **PERPS**    | Perpetual trading signals with paper bot                    | Hyperliquid, Binance, CoinGlass    |
+| **HIP-3**    | TradFi assets on Hyperliquid (commodities, indices, stocks) | Hyperliquid HIP-3 API              |
+| **MEMETICS** | AI meme token scanner ($1M-$20M mcap sweet spot)            | DexScreener, Meteora, Nansen       |
+| **ART**      | NFT floor tracking for curated collections                  | OpenSea (via plugin or fallback)   |
 
 ### Core Assets
 
@@ -242,7 +241,7 @@ flowchart TB
 | `VincePositionManagerService` | Position tracking, P&L updates                       |
 | `VinceRiskManagerService`     | Circuit breakers, session filters                    |
 | `VinceTradeJournalService`    | Trade history, signal performance                    |
-| `VinceGoalTrackerService`     | KPI tracking ($420/day, $10K/month)                  |
+| `VinceGoalTrackerService`     | KPI tracking ($690/day, ~$15K/month)                 |
 | `VinceAlertService`           | Multi-source alert detection                         |
 
 #### ML Enhancement Services (4) - V4
@@ -399,8 +398,8 @@ From `services/goalTracker.service.ts`:
 
 ```typescript
 const TRADING_GOALS = {
-  dailyTarget: 420, // $420/day
-  monthlyTarget: 10000, // $10K/month
+  dailyTarget: 690, // $690/day
+  monthlyTarget: 15180, // ~$15K/month
   maxDailyLoss: 200, // Stop trading after $200 loss
   maxDrawdown: 0.15, // 15% portfolio drawdown circuit breaker
 };
@@ -447,7 +446,7 @@ Four ONNX models (plus the improvement report) drive sizing, entries, and exits.
 - **suggested_tuning.min_strength / min_confidence** → when the training script writes these (from profitable-trade percentiles), the bot rejects signals below them.
 - **holdout_metrics** (AUC/MAE/quantile loss) → written by training; logged by `run-improvement-weights.ts` when applying a new report.
 
-**Train → ONNX → deploy:** [scripts/train_models.py](scripts/train_models.py) trains on `.elizadb/vince-paper-bot/features/*.jsonl`, exports ONNX to `.elizadb/vince-paper-bot/models/`, and writes `training_metadata.json` + `improvement_report.md` (including **holdout_metrics**). Optional flags: `--recency-decay`, `--balance-assets`, `--tune-hyperparams`. From repo root: `bun run train-models`. Validation: [scripts/validate_ml_improvement.py](scripts/validate_ml_improvement.py); applying report: `run-improvement-weights.ts`. Eight tests in [scripts/test_train_models.py](scripts/test_train_models.py). After 90+ closed trades, re-run training; on next bot restart, new models and thresholds apply. See [ALGO_ML_IMPROVEMENTS.md](ALGO_ML_IMPROVEMENTS.md) and [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md). **What's the Trade:** The WTT standup rubric (alignment, edge, payoff, timing, invalidate) can feed into the feature store and training—see [docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](../../docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md).
+**Train → ONNX → deploy:** [scripts/train_models.py](scripts/train_models.py) trains on `.elizadb/vince-paper-bot/features/*.jsonl`, exports ONNX to `.elizadb/vince-paper-bot/models/`, and writes `training_metadata.json` + `improvement_report.md` (including **holdout_metrics**). Optional flags: `--recency-decay`, `--balance-assets`, `--tune-hyperparams`. From repo root: `bun run train-models`. Validation: [scripts/validate_ml_improvement.py](scripts/validate_ml_improvement.py); applying report: `run-improvement-weights.ts` (from repo root: `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run improvement-weights`). Eight tests in [scripts/test_train_models.py](scripts/test_train_models.py). After 90+ closed trades, re-run training; **restart the agent** to load the new threshold and suggested_tuning; optionally run improvement-weights to update aggregator source weights. See [ALGO_ML_IMPROVEMENTS.md](ALGO_ML_IMPROVEMENTS.md) and [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md). **What's the Trade:** The WTT standup rubric (alignment, edge, payoff, timing, invalidate) can feed into the feature store and training—see [docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](../../docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md).
 
 ---
 
@@ -834,6 +833,7 @@ This separation enables:
 # Hobbyist: $29/mo - No Hyperliquid whale data
 # Startup: $79/mo - Adds Hyperliquid whale alerts/positions (RECOMMENDED)
 # Standard: $299/mo - Full Hyperliquid data including wallet distributions
+# If the key is missing or the connection test times out after retries, the bot falls back to Binance free APIs; no code change required.
 COINGLASS_API_KEY=your_key_here
 
 # Optional - Nansen (100 free credits/month)

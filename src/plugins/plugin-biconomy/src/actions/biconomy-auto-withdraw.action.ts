@@ -447,20 +447,22 @@ No parameters needed - fully automatic!`,
     "CLEANUP_NEXUS_WALLETS",
   ],
 
-  parameters: {
-    fundingAmount: {
-      type: "string",
+  parameters: [
+    {
+      name: "fundingAmount",
       description:
         "Amount of funding token to use per chain for orchestration fees (e.g., '2'). System will auto-find USDC/USDT/DAI. Default: 2",
       required: false,
+      schema: { type: "string" },
     },
-    withdrawAddress: {
-      type: "string",
+    {
+      name: "withdrawAddress",
       description:
         "Address to withdraw all tokens to. Default: user's EOA address",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateBiconomyService(

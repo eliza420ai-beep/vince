@@ -253,7 +253,7 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<void | ActionResult> => {
+  ): Promise<ActionResult | undefined> => {
     const userText = (message.content?.text ?? "").trim();
 
     logger.info("[SENTINEL_SHIP] Analyzing project for ship priorities");

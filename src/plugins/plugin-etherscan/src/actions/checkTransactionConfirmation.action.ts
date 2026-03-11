@@ -35,20 +35,22 @@ export const checkTransactionConfirmationAction: Action = {
     "Check the confirmation status of an EVM chain transaction including number of confirmations, success/failure status, gas used, and other transaction details. Automatically extracts transaction hash from the message.",
 
   // Parameter schema for tool calling
-  parameters: {
-    transactionHash: {
-      type: "string",
+  parameters: [
+    {
+      name: "transactionHash",
       description:
         "Ethereum transaction hash starting with 0x followed by 64 hexadecimal characters (e.g., 0x1234567890abcdef...). This will be automatically extracted from the user's message.",
       required: true,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network to check (ethereum, arbitrum, base). Defaults to ethereum if not specified.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateEtherscanService(
@@ -190,7 +192,7 @@ export const checkTransactionConfirmationAction: Action = {
         await callback({
           text: result.text,
           actions: ["CHECK_TRANSACTION_CONFIRMATION"],
-          data: result.data,
+          data: result.data as import("@elizaos/core").JsonObject | undefined,
           source: message.content.source,
         });
       }

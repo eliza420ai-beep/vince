@@ -64,6 +64,28 @@ function getStaggerIntervalMs(): number {
   return Math.max(10 * 60_000, Math.min(ONE_DAY_MS, ms)); // 10 min to 24h
 }
 
+/** Priority assets (e.g. BTC,ETH) refresh at X_SENTIMENT_PRIORITY_STAGGER_MS. Empty = no priority. */
+function getPriorityAssets(): string[] {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_PRIORITY_ASSETS?.trim();
+  if (!v) return [];
+  return v
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+/** Stagger interval for priority assets (e.g. 30 min). Default 30 min; clamped between 10 min and main stagger. */
+function getPriorityStaggerMs(): number {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_PRIORITY_STAGGER_MS?.trim();
+  const mainStagger = getStaggerIntervalMs();
+  if (!v) return Math.min(30 * 60 * 1000, mainStagger);
+  const ms = parseInt(v, 10);
+  if (Number.isNaN(ms)) return Math.min(30 * 60 * 1000, mainStagger);
+  return Math.max(10 * 60_000, Math.min(mainStagger, ms));
+}
+
 function isSentimentEnabled(): boolean {
   loadEnvOnce();
   const v = process.env.X_SENTIMENT_ENABLED;
@@ -124,7 +146,7 @@ function getSentimentAssets(): string[] {
     .filter(Boolean);
 }
 
-/** Build search query for an asset: expanded for known tickers ($BTC OR Bitcoin etc). */
+/** Build search query for an asset: expanded for known tickers ($BTC OR Bitcoin etc). HIP-3 and unknown use $SYMBOL OR expanded terms. */
 export function buildSentimentQuery(asset: string): string {
   if (asset === "HYPE") return "HYPE crypto";
   const expanded: Record<string, string> = {
@@ -133,8 +155,25 @@ export function buildSentimentQuery(asset: string): string {
     SOL: "$SOL OR Solana",
     DOGE: "$DOGE OR Dogecoin",
     PEPE: "$PEPE OR Pepe",
+    // HIP-3 / TradFi tickers for X_SENTIMENT_ASSETS
+    NVDA: "$NVDA OR NVIDIA",
+    AAPL: "$AAPL OR Apple stock",
+    TSLA: "$TSLA OR Tesla",
+    MSFT: "$MSFT OR Microsoft",
+    GOOGL: "$GOOGL OR Google",
+    AMZN: "$AMZN OR Amazon",
+    META: "$META OR Meta",
+    GOLD: "$GOLD OR gold",
+    SILVER: "$SILVER OR silver",
+    OIL: "$OIL OR oil",
+    SPX: "$SPX OR S&P 500",
+    NDX: "$NDX OR Nasdaq",
+    RIVN: "$RIVN OR Rivian",
+    NFLX: "$NFLX OR Netflix",
+    MU: "$MU OR Micron",
+    SNDK: "$SNDK OR SanDisk",
   };
-  return expanded[asset] ?? `$${asset}`;
+  return expanded[asset] ?? `$${asset} OR ${asset}`;
 }
 
 /** Append quality filters to a sentiment search query (lang:en, -is:reply, -is:retweet). */
@@ -222,6 +261,8 @@ interface CachedSentiment {
   updatedAt: number;
   isContrarian?: boolean;
   contrarianNote?: string;
+  /** Handles that contributed to this sentiment (for X source quality weighting in aggregator). */
+  contributingHandles?: string[];
 }
 
 /** Cache file shape for persistence. Exported for cron script. */
@@ -242,6 +283,9 @@ export class VinceXSentimentService extends Service {
   private staggerIndex = 0;
   /** When set, skip refresh until this time (ms) to respect X API rate limit. */
   private rateLimitedUntilMs = 0;
+  /** Last refresh timestamp per asset (for priority stagger). */
+  private lastRefreshByAsset = new Map<string, number>();
+  private hasLoggedMissingXResearchService = false;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -310,21 +354,38 @@ export class VinceXSentimentService extends Service {
           (e as Error).message,
       );
     }
-    service.staggerIndex = 1; // next tick will do SOL, then ETH, HYPE, then back to BTC
+    service.staggerIndex = 1;
+    const priorityAssets = getPriorityAssets();
+    const priorityStaggerMs = getPriorityStaggerMs();
+    const timerIntervalMs =
+      priorityAssets.length > 0
+        ? Math.min(staggerMs, priorityStaggerMs)
+        : staggerMs;
     service.refreshTimer = setInterval(() => {
       const sentimentAssets = getSentimentAssets();
-      const idx = service.staggerIndex % sentimentAssets.length;
+      const { index: idx } =
+        priorityAssets.length > 0
+          ? service.pickNextAssetToRefresh(
+              sentimentAssets,
+              priorityAssets,
+              staggerMs,
+              priorityStaggerMs,
+            )
+          : {
+              index: service.staggerIndex % sentimentAssets.length,
+            };
+      if (priorityAssets.length === 0) {
+        service.staggerIndex += 1;
+      }
       service
         .refreshOneAsset(idx)
-        .then(() => {
-          service.staggerIndex += 1;
-        })
+        .then(() => {})
         .catch((e) =>
           logger.warn(
             "[VinceXSentimentService] Refresh failed: " + (e as Error).message,
           ),
         );
-    }, staggerMs);
+    }, timerIntervalMs);
     return service;
   }
 
@@ -361,14 +422,63 @@ export class VinceXSentimentService extends Service {
     updatedAt?: number;
     isContrarian?: boolean;
     contrarianNote?: string;
+    /** Handles that contributed (for X source quality multiplier in aggregator). */
+    contributingHandles?: string[];
   } {
+    const useXResearchPlugin = /^(1|true|yes)$/i.test(
+      (process.env.X_SENTIMENT_USE_X_RESEARCH_PLUGIN ?? "").trim(),
+    );
+    if (useXResearchPlugin) {
+      const xResearchService = this.runtime.getService(
+        "X_RESEARCH_TRADING_SENTIMENT_SERVICE",
+      ) as {
+        isConfigured?: () => boolean;
+        getTradingSentiment(asset: string): {
+          sentiment: "bullish" | "bearish" | "neutral";
+          confidence: number;
+          hasHighRiskEvent: boolean;
+        };
+      } | null;
+      if (xResearchService?.isConfigured?.()) {
+        this.hasLoggedMissingXResearchService = false;
+        const result = xResearchService.getTradingSentiment(asset);
+        return {
+          ...result,
+          updatedAt: Date.now(),
+        };
+      }
+      if (!this.hasLoggedMissingXResearchService) {
+        logger.debug(
+          "[VinceXSentimentService] X_SENTIMENT_USE_X_RESEARCH_PLUGIN=true but X_RESEARCH_TRADING_SENTIMENT_SERVICE is unavailable or unconfigured. Falling back to VINCE_X_SENTIMENT cache.",
+        );
+        this.hasLoggedMissingXResearchService = true;
+      }
+    }
+    const floor = Math.min(
+      100,
+      Math.max(
+        1,
+        parseInt(process.env.X_SENTIMENT_CONFIDENCE_FLOOR ?? "40", 10) || 40,
+      ),
+    );
     const cached = this.cache.get(asset);
     if (!cached) {
+      logger.debug(
+        `[VinceXSentiment] ${asset}: no cache (not refreshed yet or no data)`,
+      );
       return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
     }
     const age = Date.now() - cached.updatedAt;
     if (age > CACHE_TTL_MS) {
+      logger.debug(
+        `[VinceXSentiment] ${asset}: cache stale (age ${(age / 3600000).toFixed(1)}h > TTL)`,
+      );
       return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
+    }
+    if (cached.sentiment === "neutral" || cached.confidence < floor) {
+      logger.debug(
+        `[VinceXSentiment] ${asset}: ${cached.sentiment === "neutral" ? "neutral" : `conf ${cached.confidence}% < floor ${floor}%`}`,
+      );
     }
     return {
       sentiment: cached.sentiment,
@@ -379,6 +489,9 @@ export class VinceXSentimentService extends Service {
         isContrarian: cached.isContrarian,
       }),
       ...(cached.contrarianNote && { contrarianNote: cached.contrarianNote }),
+      ...(cached.contributingHandles?.length && {
+        contributingHandles: cached.contributingHandles,
+      }),
     };
   }
 
@@ -481,6 +594,12 @@ export class VinceXSentimentService extends Service {
               ...(entry.contrarianNote && {
                 contrarianNote: entry.contrarianNote,
               }),
+              ...(Array.isArray(
+                (entry as CachedSentiment).contributingHandles,
+              ) && {
+                contributingHandles: (entry as CachedSentiment)
+                  .contributingHandles,
+              }),
             });
           }
         }
@@ -545,6 +664,7 @@ export class VinceXSentimentService extends Service {
     const asset = sentimentAssets[index % sentimentAssets.length];
     try {
       await this.refreshForAsset(asset, xResearch, index);
+      this.lastRefreshByAsset.set(asset, Date.now());
       this.saveAssetToCacheFile(asset);
     } catch (e) {
       const msg = (e as Error).message;
@@ -566,6 +686,43 @@ export class VinceXSentimentService extends Service {
       }
       throw e;
     }
+  }
+
+  /**
+   * Pick next asset to refresh when using priority stagger: prefer due assets (priority by priorityStaggerMs, others by staggerMs), then most stale.
+   */
+  private pickNextAssetToRefresh(
+    sentimentAssets: string[],
+    priorityAssets: string[],
+    staggerMs: number,
+    priorityStaggerMs: number,
+  ): { asset: string; index: number } {
+    const now = Date.now();
+    let bestAsset = sentimentAssets[0];
+    let bestIndex = 0;
+    let bestLast = this.lastRefreshByAsset.get(bestAsset) ?? 0;
+    let bestDue = false;
+    for (let i = 0; i < sentimentAssets.length; i++) {
+      const asset = sentimentAssets[i];
+      const last = this.lastRefreshByAsset.get(asset) ?? 0;
+      const requiredMs = priorityAssets.includes(asset.toUpperCase())
+        ? priorityStaggerMs
+        : staggerMs;
+      const due = now - last >= requiredMs;
+      const prefer =
+        due && !bestDue
+          ? true
+          : due === bestDue && last < bestLast
+            ? true
+            : !bestDue && !due && last < bestLast;
+      if (prefer) {
+        bestAsset = asset;
+        bestIndex = i;
+        bestLast = last;
+        bestDue = due;
+      }
+    }
+    return { asset: bestAsset, index: bestIndex };
   }
 
   private async refreshForAsset(
@@ -622,7 +779,13 @@ export class VinceXSentimentService extends Service {
       riskMinTweets: getRiskMinTweets(),
       useWeightedKeywords: true,
     });
-    this.cache.set(asset, entry);
+    const contributingHandles = tweets
+      .map((t) => t.username)
+      .filter((u): u is string => typeof u === "string" && u.trim().length > 0);
+    this.cache.set(asset, {
+      ...entry,
+      ...(contributingHandles.length > 0 && { contributingHandles }),
+    });
     const showCost =
       process.env.X_SENTIMENT_SHOW_COST === "true" ||
       process.env.LOG_LEVEL === "debug";

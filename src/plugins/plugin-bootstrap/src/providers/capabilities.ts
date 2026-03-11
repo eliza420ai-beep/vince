@@ -42,7 +42,7 @@ export const capabilitiesProvider: Provider = {
           const service = serviceArray[0];
           if (service.capabilityDescription) {
             capabilities.push(
-              `${serviceType} - ${service.capabilityDescription.replace("{{agentName}}", runtime.character.name)}`,
+              `${serviceType} - ${service.capabilityDescription.replace("{{agentName}}", runtime.character.name ?? "")}`,
             );
           }
         }

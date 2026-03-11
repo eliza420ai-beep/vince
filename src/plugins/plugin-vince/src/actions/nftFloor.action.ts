@@ -11,6 +11,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -153,7 +154,7 @@ Write the paragraph:`;
 }
 
 const NFT_FLOOR_FOOTER =
-  "\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*";
+  "\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*";
 
 export const vinceNftFloorAction: Action = {
   name: "VINCE_NFT_FLOOR",
@@ -200,7 +201,7 @@ export const vinceNftFloorAction: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const sections: string[] = [];
 
@@ -256,7 +257,7 @@ export const vinceNftFloorAction: Action = {
         sections.push("");
         sections.push("---");
         sections.push(
-          "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
         );
       } else {
         sections.push("**NFT FLOOR - Thin Floor Opportunities**\n");
@@ -293,7 +294,7 @@ export const vinceNftFloorAction: Action = {
         }
         sections.push("");
         sections.push(
-          "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, UPLOAD. Lifestyle: ask Kelly.*",
         );
       }
 

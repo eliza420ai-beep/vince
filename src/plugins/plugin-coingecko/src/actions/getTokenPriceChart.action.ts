@@ -25,25 +25,28 @@ export const getTokenPriceChartAction: Action = {
   ],
   description: `Use this action when the user asks to see a price chart, graph, or price history for a token. When called successfully, this action automatically provides the token chart visualization in the chat with historical price data points, current price, and price change statistics.`,
 
-  parameters: {
-    token: {
-      type: "string",
+  parameters: [
+    {
+      name: "token",
       description: `Token symbol or contract address. Native tokens that can be used by symbol: ${Object.keys(nativeTokenIds).join(", ").toUpperCase()}. For all other tokens, provide the contract address (e.g., '0x1bc0c42215582d5a085795f4badbac3ff36d1bcb'). Use GET_TOKEN_METADATA first to get the contract address for non-native tokens.`,
       required: true,
+      schema: { type: "string" },
     },
-    timeframe: {
-      type: "string",
+    {
+      name: "timeframe",
       description:
         "Time period for the chart. Options: '1h', '24h', '7d', '30d', '90d', '1y'. Defaults to '24h'.",
       required: false,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.",
       required: true,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (
     runtime: IAgentRuntime,

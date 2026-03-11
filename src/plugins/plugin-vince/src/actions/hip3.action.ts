@@ -17,6 +17,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -337,7 +338,7 @@ export const vinceHIP3Action: Action = {
     state: State,
     options: any,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       // Get VinceHIP3Service (local service, no external dependency)
       const hip3Service = runtime.getService(
@@ -395,7 +396,7 @@ export const vinceHIP3Action: Action = {
         `*Source: Hyperliquid (${totalAssets} assets across xyz, flx, vntl, km)*`,
         "",
         "---",
-        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, HIP3. Lifestyle: ask Kelly.*",
       ].join("\n");
 
       await callback({
@@ -419,7 +420,7 @@ export const vinceHIP3Action: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**HIP-3 Pulse**\n\nTradFi is looking strong today - commodities leading the charge while crypto catches its breath.\n\nGOLD at 2680 and climbing, up 1.2% on the session while BTC sits flat around 84k. That's the tell - risk-off flows are real. When GOLD outpaces BTC on a day like this, institutional money is rotating defensive. SILVER following the same playbook at +0.8%.\n\nMAG7 index quietly putting in work at +0.6%. NVDA the standout at +2.3% - AI trade never really dies, it just takes breaks. TSLA flat, META barely moving. The momentum is concentrated, not broad.\n\nThe AI plays are interesting today. ANTHROPIC up 1.8% while OPENAI sits at +0.5%. After last week's model announcements, seeing Anthropic outperform OpenAI on HIP-3 is notable. SPACEX doing its own thing at +1.1%.\n\nOil and natgas both red, small moves. Energy weakness while metals shine usually means growth fears, not demand problems.\n\nMy take: HIP-3 is the place to watch today. If you're looking for exposure, commodities over tech. GOLD's been outperforming BTC for months and today's no different. The 24/7 trading on Hyperliquid means you can play these moves while TradFi sleeps.\n\n*Source: Hyperliquid (34 assets across xyz, flx, vntl, km)*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+          text: "**HIP-3 Pulse**\n\nTradFi is looking strong today - commodities leading the charge while crypto catches its breath.\n\nGOLD at 2680 and climbing, up 1.2% on the session while BTC sits flat around 84k. That's the tell - risk-off flows are real. When GOLD outpaces BTC on a day like this, institutional money is rotating defensive. SILVER following the same playbook at +0.8%.\n\nMAG7 index quietly putting in work at +0.6%. NVDA the standout at +2.3% - AI trade never really dies, it just takes breaks. TSLA flat, META barely moving. The momentum is concentrated, not broad.\n\nThe AI plays are interesting today. ANTHROPIC up 1.8% while OPENAI sits at +0.5%. After last week's model announcements, seeing Anthropic outperform OpenAI on HIP-3 is notable. SPACEX doing its own thing at +1.1%.\n\nOil and natgas both red, small moves. Energy weakness while metals shine usually means growth fears, not demand problems.\n\nMy take: HIP-3 is the place to watch today. If you're looking for exposure, commodities over tech. GOLD's been outperforming BTC for months and today's no different. The 24/7 trading on Hyperliquid means you can play these moves while TradFi sleeps.\n\n*Source: Hyperliquid (34 assets across xyz, flx, vntl, km)*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, HIP3. Lifestyle: ask Kelly.*",
           actions: ["VINCE_HIP3"],
         },
       },
@@ -429,7 +430,7 @@ export const vinceHIP3Action: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**HIP-3 Pulse**\n\nMixed bag on stocks today. No clear direction but some individual names moving.\n\nNVDA the clear winner at +3.1% - earnings run-up energy. When NVDA moves and nothing else does, it's GPU thesis, not broad risk-on. COIN and HOOD both up around 2% which makes sense given crypto's little bounce overnight. PLTR doing its usual 1% nothing move.\n\nTSLA red at -0.8%, META down half a percent. The mega caps are heavy while the story stocks run. That's not a great sign for market breadth.\n\nIndices tell the story better - MAG7 flat at +0.1% while US500 is barely green. When your index of the biggest tech names can't outperform the broader market, momentum is fading.\n\nGOLD winning again at +0.9% vs BTC's +0.3%. Seventh day in a row GOLD outperforms. That's not noise, that's a regime.\n\nThe AI pre-IPO plays are quiet. ANTHROPIC and OPENAI both sub-0.5% moves. SPACEX unchanged. Nothing happening there.\n\nHonest take: If you're trading HIP-3 stocks today, it's NVDA or nothing. The rest is chop. Commodities are the cleaner trade if you need to be in something.\n\n*Source: Hyperliquid (34 assets across xyz, flx, vntl, km)*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+          text: "**HIP-3 Pulse**\n\nMixed bag on stocks today. No clear direction but some individual names moving.\n\nNVDA the clear winner at +3.1% - earnings run-up energy. When NVDA moves and nothing else does, it's GPU thesis, not broad risk-on. COIN and HOOD both up around 2% which makes sense given crypto's little bounce overnight. PLTR doing its usual 1% nothing move.\n\nTSLA red at -0.8%, META down half a percent. The mega caps are heavy while the story stocks run. That's not a great sign for market breadth.\n\nIndices tell the story better - MAG7 flat at +0.1% while US500 is barely green. When your index of the biggest tech names can't outperform the broader market, momentum is fading.\n\nGOLD winning again at +0.9% vs BTC's +0.3%. Seventh day in a row GOLD outperforms. That's not noise, that's a regime.\n\nThe AI pre-IPO plays are quiet. ANTHROPIC and OPENAI both sub-0.5% moves. SPACEX unchanged. Nothing happening there.\n\nHonest take: If you're trading HIP-3 stocks today, it's NVDA or nothing. The rest is chop. Commodities are the cleaner trade if you need to be in something.\n\n*Source: Hyperliquid (34 assets across xyz, flx, vntl, km)*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, HIP3. Lifestyle: ask Kelly.*",
           actions: ["VINCE_HIP3"],
         },
       },
@@ -439,7 +440,7 @@ export const vinceHIP3Action: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**HIP-3 Pulse**\n\nGOLD is the story right now. Sitting at 2695, up 1.5% on the day and looking like it wants 2700.\n\nThis isn't just a daily move - GOLD has been methodically outperforming BTC for months. Today BTC is up 0.4% while GOLD runs. That spread compounds over time. If you've been long GOLD on HIP-3 instead of BTC, you're significantly outperforming.\n\nSILVER following at +1.1%, which is the usual correlation. When GOLD moves, SILVER moves slightly less. COPPER flat, so this isn't a broad commodities bid - it's precious metals specifically.\n\nThe macro read: Tariff uncertainty, inflation stickier than expected, Fed not cutting as fast as hoped. That's the GOLD thesis. Real rates staying high means nothing when the alternative is currency debasement fears.\n\nMeanwhile the indices are dead. MAG7 at +0.2%, US500 similar. Tech stocks not participating in the risk rotation.\n\nMy take: GOLD is the trade on HIP-3 right now. The 24/7 access means you can play the overnight moves when TradFi is closed. If you believe the macro setup, this has more room to run. 2700 is psychological but 2750 is the real target.\n\n*Source: Hyperliquid (34 assets across xyz, flx, vntl, km)*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+          text: "**HIP-3 Pulse**\n\nGOLD is the story right now. Sitting at 2695, up 1.5% on the day and looking like it wants 2700.\n\nThis isn't just a daily move - GOLD has been methodically outperforming BTC for months. Today BTC is up 0.4% while GOLD runs. That spread compounds over time. If you've been long GOLD on HIP-3 instead of BTC, you're significantly outperforming.\n\nSILVER following at +1.1%, which is the usual correlation. When GOLD moves, SILVER moves slightly less. COPPER flat, so this isn't a broad commodities bid - it's precious metals specifically.\n\nThe macro read: Tariff uncertainty, inflation stickier than expected, Fed not cutting as fast as hoped. That's the GOLD thesis. Real rates staying high means nothing when the alternative is currency debasement fears.\n\nMeanwhile the indices are dead. MAG7 at +0.2%, US500 similar. Tech stocks not participating in the risk rotation.\n\nMy take: GOLD is the trade on HIP-3 right now. The 24/7 access means you can play the overnight moves when TradFi is closed. If you believe the macro setup, this has more room to run. 2700 is psychological but 2750 is the real target.\n\n*Source: Hyperliquid (34 assets across xyz, flx, vntl, km)*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, NFT, INTEL, BOT, HIP3. Lifestyle: ask Kelly.*",
           actions: ["VINCE_HIP3"],
         },
       },

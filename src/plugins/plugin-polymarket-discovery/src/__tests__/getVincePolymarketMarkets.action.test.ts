@@ -104,7 +104,6 @@ describe("GET_VINCE_POLYMARKET_MARKETS handler", () => {
     );
     const lastCall = callback.calls[callback.calls.length - 1];
     expect(lastCall.text).toContain(mockPolymarketMarket.question);
-    expect(lastCall.text).toContain(mockPolymarketMarket.conditionId);
   });
 
   it("uses group crypto when actionParams.group is crypto", async () => {

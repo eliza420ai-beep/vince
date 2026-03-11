@@ -43,20 +43,22 @@ export const vaultInfoAction: Action = {
   description:
     "Use this action when you need current Morpho vault data (totals and APYs).",
 
-  parameters: {
-    vault: {
-      type: "string",
+  parameters: [
+    {
+      name: "vault",
       description:
         "Morpho vault identifier - can be a vault name (e.g., 'Spark USDC Vault') or a vault address (0x...). If not provided, returns all available vaults.",
       required: false,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network to check (e.g., 'base', 'ethereum'). If not provided, uses the default chain configured for the Morpho service.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateMorphoService(
@@ -224,14 +226,14 @@ export const vaultInfoAction: Action = {
           text,
           actions: ["GET_MORPHO_VAULT_INFO"],
           source: message.content.source,
-          data,
+          data: data as unknown as import("@elizaos/core").JsonObject,
         });
       }
 
       const successResult: VaultInfoActionResult = {
         text,
         success: true,
-        data,
+        data: data as unknown as import("@elizaos/core").JsonObject,
         input: inputParams,
         values: {
           vaultsFetched: true,

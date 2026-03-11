@@ -25,11 +25,7 @@ export function registerOtakuRebalanceTaskWorker(runtime: IAgentRuntime): void {
   runtime.registerTaskWorker({
     name: OTAKU_REBALANCE_TASK_NAME,
     validate: async () => true,
-    execute: async (
-      rt: IAgentRuntime,
-      _options: Record<string, unknown>,
-      task: Task,
-    ) => {
+    execute: async (rt: IAgentRuntime, _options: unknown, task: Task) => {
       const roomId = task.roomId;
       if (!roomId) return;
 

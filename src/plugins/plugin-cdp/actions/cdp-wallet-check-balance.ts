@@ -53,26 +53,29 @@ export const cdpWalletCheckBalance: Action = {
   description:
     "Quickly check if user has sufficient balance of a specific token on a specific chain. Optimized for transaction validation - only fetches data for the specified token and chain instead of all assets. Use this before executing swaps, transfers, or other transactions to verify funds availability.",
 
-  parameters: {
-    token: {
-      type: "string",
+  parameters: [
+    {
+      name: "token",
       description:
         "Token symbol (e.g., 'ETH', 'USDC') or contract address (0x...)",
       required: true,
+      schema: { type: "string" },
     },
-    chain: {
-      type: "string",
+    {
+      name: "chain",
       description:
         "Blockchain network to check (e.g., 'base', 'ethereum', 'arbitrum'). If not provided, searches across all chains.",
       required: false,
+      schema: { type: "string" },
     },
-    minAmount: {
-      type: "string",
+    {
+      name: "minAmount",
       description:
         "Minimum amount needed in human-readable format (e.g., '1.5' for 1.5 tokens). If provided, validates if user has at least this amount.",
       required: false,
+      schema: { type: "string" },
     },
-  },
+  ],
 
   validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validateCdpService(

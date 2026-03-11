@@ -6,6 +6,7 @@ import RebelsRanking from "@/frontend/components/dashboard/rebels-ranking";
 import DashboardCard from "@/frontend/components/dashboard/card";
 import { MarketLeaderboardSection } from "@/frontend/components/dashboard/leaderboard/market-leaderboard-section";
 import { ChartsTab } from "@/frontend/components/dashboard/leaderboard/charts-tab";
+import { RecursiveNorthStarTab } from "@/frontend/components/dashboard/leaderboard/recursive-northstar-tab";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
 import {
@@ -43,11 +44,15 @@ import {
   fetchPolymarketDeskTrades,
   fetchPolymarketDeskPositions,
   fetchSubstackPostsWithError,
+  fetchRecursiveNorthStarWithError,
+  fetchRecursiveNorthStarOperatorStatusWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type {
   PaperResponse,
   KnowledgeResponse,
+  RecursiveNorthStarResponse,
+  RecursiveNorthStarOperatorStatus,
   PolymarketPaperPositionsFetchResult,
   PolymarketPaperPosition,
 } from "@/frontend/lib/leaderboardsApi";
@@ -382,13 +387,47 @@ type MainTab =
   | "knowledge"
   | "markets"
   | "charts"
-  | "memetics"
   | "news"
-  | "more"
+  | "recursive"
   | "trading_bot"
-  | "digital_art"
   | "usage"
   | "polymarket";
+
+/** Tabs that are actually shown in the UI. Trading context / more was removed and must not reappear. */
+const VISIBLE_MAIN_TABS: MainTab[] = [
+  "trading_bot",
+  "recursive",
+  "news",
+  "markets",
+  "knowledge",
+  "charts",
+  "polymarket",
+  "usage",
+];
+
+/** Display labels for each tab. Only VISIBLE_MAIN_TABS are rendered. */
+const MAIN_TAB_LABELS: Record<MainTab, string> = {
+  trading_bot: "Trading Bot",
+  recursive: "Recursive",
+  news: "News",
+  markets: "Markets",
+  knowledge: "Knowledge",
+  charts: "Charts",
+  polymarket: "Polymarket",
+  usage: "Usage",
+};
+
+function toValidMainTab(value: string): MainTab {
+  if (
+    value === "trading_context" ||
+    value === "more" ||
+    value === "memetics" ||
+    value === "digital_art"
+  )
+    return "markets";
+  if ((VISIBLE_MAIN_TABS as string[]).includes(value)) return value as MainTab;
+  return "markets";
+}
 
 // Type assertion for gamification service (will be available after API client rebuild)
 const gamificationClient = (elizaClient as any).gamification;
@@ -442,10 +481,10 @@ export default function LeaderboardPage({
   const [testQualityCopied, setTestQualityCopied] = useState(false);
   const [cursorActualCost, setCursorActualCost] = useState<string>("");
 
+  // Redirect away from removed tabs (memetics, digital_art, Trading context / more — all coerced in toValidMainTab).
   useEffect(() => {
-    if (mainTab === "memetics" || mainTab === "digital_art") {
-      setMainTab("more");
-    }
+    const valid = toValidMainTab(mainTab as string);
+    if (valid !== mainTab) setMainTab(valid);
   }, [mainTab]);
 
   const KNOWLEDGE_QUALITY_COMMAND =
@@ -463,8 +502,7 @@ export default function LeaderboardPage({
         refreshNews: mainTab === "news",
       }),
     enabled:
-      (mainTab === "markets" || mainTab === "news" || mainTab === "more") &&
-      !!leaderboardsAgentId,
+      (mainTab === "markets" || mainTab === "news") && !!leaderboardsAgentId,
     staleTime: LEADERBOARDS_STALE_MS,
   });
 
@@ -493,6 +531,38 @@ export default function LeaderboardPage({
     queryKey: ["usage", leaderboardsAgentId],
     queryFn: () => fetchUsageWithError(leaderboardsAgentId),
     enabled: mainTab === "usage" && !!leaderboardsAgentId,
+    staleTime: 60 * 1000,
+  });
+
+  const {
+    data: recursiveResult,
+    isLoading: recursiveLoading,
+    isFetching: recursiveFetching,
+    refetch: refetchRecursive,
+  } = useQuery<{
+    data: RecursiveNorthStarResponse | null;
+    error: string | null;
+    status: number | null;
+  }>({
+    queryKey: ["recursive-north-star", leaderboardsAgentId],
+    queryFn: () => fetchRecursiveNorthStarWithError(leaderboardsAgentId),
+    enabled: mainTab === "recursive" && !!leaderboardsAgentId,
+    staleTime: 60 * 1000,
+  });
+  const {
+    data: recursiveOperatorResult,
+    isLoading: recursiveOperatorLoading,
+    isFetching: recursiveOperatorFetching,
+    refetch: refetchRecursiveOperator,
+  } = useQuery<{
+    data: RecursiveNorthStarOperatorStatus | null;
+    error: string | null;
+    status: number | null;
+  }>({
+    queryKey: ["recursive-north-star-operator", leaderboardsAgentId],
+    queryFn: () =>
+      fetchRecursiveNorthStarOperatorStatusWithError(leaderboardsAgentId),
+    enabled: mainTab === "recursive" && !!leaderboardsAgentId,
     staleTime: 60 * 1000,
   });
 
@@ -798,21 +868,17 @@ export default function LeaderboardPage({
         : "All-Time Rankings · Newly added knowledge"
       : mainTab === "markets"
         ? "HIP-3 and HL Crypto (perps) — no need to ask VINCE"
-        : mainTab === "memetics"
-          ? "Memes (Solana) and Meteora LP"
-          : mainTab === "news"
-            ? "MandoMinutes headlines with TLDR and deep dive"
-            : mainTab === "more"
-              ? "Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts"
-              : mainTab === "digital_art"
-                ? "Curated NFT collections — floor prices and thin-floor opportunities"
-                : mainTab === "usage"
-                  ? "Session token usage and estimated cost (TREASURY)"
-                  : mainTab === "polymarket"
-                    ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
-                    : mainTab === "charts"
-                      ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
-                      : "No tilt. Every decision explained. Every outcome learned.";
+        : mainTab === "news"
+          ? "MandoMinutes headlines with TLDR and deep dive"
+          : mainTab === "recursive"
+            ? "Recursive North Star: self-improvement + 1+1=3 proof"
+            : mainTab === "usage"
+              ? "Session token usage and estimated cost (TREASURY)"
+              : mainTab === "polymarket"
+                ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
+                : mainTab === "charts"
+                  ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
+                  : "No tilt. Every decision explained. Every outcome learned.";
 
   return (
     <DashboardPageLayout
@@ -824,25 +890,18 @@ export default function LeaderboardPage({
       <div className="flex flex-col min-h-0">
         <Tabs
           value={mainTab}
-          onValueChange={(v) => setMainTab(v as MainTab)}
+          onValueChange={(v) => setMainTab(toValidMainTab(v))}
           className="flex flex-col flex-1 min-h-0"
         >
           <div className="flex items-center justify-between flex-shrink-0 gap-2">
             <TabsList>
-              <TabsTrigger value="trading_bot">Trading Bot</TabsTrigger>
-              <TabsTrigger value="news">News</TabsTrigger>
-              <TabsTrigger value="markets">Markets</TabsTrigger>
-              <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
-              <TabsTrigger value="charts">Charts</TabsTrigger>
-              {/* <TabsTrigger value="memetics">Memetics</TabsTrigger> */}
-              {/* <TabsTrigger value="digital_art">Digital Art</TabsTrigger> */}
-              <TabsTrigger value="more">Trading context</TabsTrigger>
-              <TabsTrigger value="polymarket">Polymarket</TabsTrigger>
-              <TabsTrigger value="usage">Usage</TabsTrigger>
+              {VISIBLE_MAIN_TABS.map((tab) => (
+                <TabsTrigger key={tab} value={tab}>
+                  {MAIN_TAB_LABELS[tab]}
+                </TabsTrigger>
+              ))}
             </TabsList>
-            {(mainTab === "markets" ||
-              mainTab === "news" ||
-              mainTab === "more") && (
+            {(mainTab === "markets" || mainTab === "news") && (
               <Button
                 variant="outline"
                 size="sm"
@@ -870,6 +929,26 @@ export default function LeaderboardPage({
                   className={cn(
                     "w-4 h-4 mr-2",
                     paperFetching && "animate-spin",
+                  )}
+                />
+                Refresh
+              </Button>
+            )}
+            {mainTab === "recursive" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  refetchRecursive();
+                  refetchRecursiveOperator();
+                }}
+                disabled={recursiveFetching || recursiveOperatorFetching}
+              >
+                <RefreshCw
+                  className={cn(
+                    "w-4 h-4 mr-2",
+                    (recursiveFetching || recursiveOperatorFetching) &&
+                      "animate-spin",
                   )}
                 />
                 Refresh
@@ -950,8 +1029,13 @@ export default function LeaderboardPage({
                 {/* Hero line: always-available data */}
                 <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
                   <p className="text-sm font-medium text-foreground/90">
-                    HIP-3 and HL Crypto (perps) — always here. Open this page
-                    anytime; no need to ask VINCE.
+                    {leaderboardsData.hip3 && leaderboardsData.hlCrypto
+                      ? "HIP-3 and HL Crypto (perps) — always here. Open this page anytime; no need to ask VINCE."
+                      : leaderboardsData.hip3
+                        ? "HIP-3 TradFi — always here. Open this page anytime; no need to ask VINCE."
+                        : leaderboardsData.hlCrypto
+                          ? "HL Crypto (perps) — always here. Open this page anytime; no need to ask VINCE."
+                          : "Markets data will appear here when available."}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {leaderboardsData.updatedAt != null
@@ -1071,10 +1155,12 @@ export default function LeaderboardPage({
                 </p>
                 {leaderboardsError != null && (
                   <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    {typeof leaderboardsError === "string"
-                      ? leaderboardsError
-                      : ((leaderboardsError as any)?.message ??
-                        String(leaderboardsError))}
+                    {leaderboardsError === "Network or timeout error"
+                      ? "Request to Markets endpoint timed out. VINCE may still be starting or Hyperliquid may be slow – try again in a moment."
+                      : typeof leaderboardsError === "string"
+                        ? leaderboardsError
+                        : ((leaderboardsError as any)?.message ??
+                          String(leaderboardsError))}
                   </p>
                 )}
                 {leaderboardsStatus === 503 && (
@@ -1131,640 +1217,6 @@ export default function LeaderboardPage({
           >
             <ChartsTab />
           </TabsContent>
-
-          {false && (
-            <>
-              {/* Memetics tab: Memes (Solana) + Meteora LP — commented out */}
-              <TabsContent
-                value="memetics"
-                className="mt-6 flex-1 min-h-0 overflow-auto"
-              >
-                {leaderboardsLoading || leaderboardsFetching ? (
-                  <div className="space-y-4">
-                    {[1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="h-48 bg-muted/50 rounded-xl animate-pulse"
-                      />
-                    ))}
-                  </div>
-                ) : leaderboardsData ? (
-                  <div className="space-y-8">
-                    <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
-                      <p className="text-sm font-medium text-foreground/90">
-                        Memes (Solana), Memes (BASE), Meteora LP, and Watchlist
-                        — memetics-focused views.
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {leaderboardsData.updatedAt != null
-                          ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
-                          : "Live data"}
-                      </p>
-                    </div>
-
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      {/* Memes: full hot + ape + watch + avoid — clean layout, no duplicates */}
-                      {leaderboardsData.memes &&
-                        (() => {
-                          const hot = leaderboardsData.memes.hot ?? [];
-                          const ape = leaderboardsData.memes.ape ?? [];
-                          const apeSymbols = new Set(ape.map((r) => r.symbol));
-                          const hotOnly = hot.filter(
-                            (r) => !apeSymbols.has(r.symbol),
-                          );
-                          const formatMcap = (v: number) =>
-                            v >= 1e6
-                              ? `$${(v / 1e6).toFixed(1)}M`
-                              : v >= 1e3
-                                ? `$${(v / 1e3).toFixed(0)}K`
-                                : `$${v.toFixed(0)}`;
-                          const formatChange = (n: number) =>
-                            n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`;
-
-                          return (
-                            <DashboardCard
-                              title={leaderboardsData.memes.title}
-                              className="lg:col-span-2"
-                            >
-                              <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
-                                <p className="text-sm font-medium text-foreground/95">
-                                  {leaderboardsData.memes.moodSummary ?? ""}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  Mood: {leaderboardsData.memes.mood ?? "—"}
-                                </p>
-                              </div>
-                              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                                    <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
-                                  </div>
-                                  <div className="rounded-md border border-border/60 overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <tbody>
-                                        {hotOnly.slice(0, 6).map((r) => (
-                                          <tr
-                                            key={r.symbol}
-                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                          >
-                                            <td className="py-2 px-3 font-medium">
-                                              {r.symbol}
-                                            </td>
-                                            <td className="py-2 px-3 text-right">
-                                              <span
-                                                className={cn(
-                                                  "tabular-nums font-medium",
-                                                  (r.change24h ?? 0) >= 0
-                                                    ? "text-green-600 dark:text-green-400"
-                                                    : "text-red-600 dark:text-red-400",
-                                                )}
-                                              >
-                                                {formatChange(r.change24h ?? 0)}
-                                              </span>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                        {hotOnly.length === 0 && (
-                                          <tr>
-                                            <td
-                                              colSpan={2}
-                                              className="py-3 px-3 text-muted-foreground text-sm"
-                                            >
-                                              —
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    Ape
-                                  </div>
-                                  <div className="rounded-md border border-border/60 overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <tbody>
-                                        {ape.slice(0, 6).map((r) => (
-                                          <tr
-                                            key={r.symbol}
-                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                          >
-                                            <td className="py-2 px-3 font-medium">
-                                              {r.symbol}
-                                            </td>
-                                            <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                              {r.marketCap != null &&
-                                                formatMcap(r.marketCap)}
-                                              {r.volumeLiquidityRatio != null &&
-                                                ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
-                                            </td>
-                                          </tr>
-                                        ))}
-                                        {ape.length === 0 && (
-                                          <tr>
-                                            <td
-                                              colSpan={2}
-                                              className="py-3 px-3 text-muted-foreground text-sm"
-                                            >
-                                              —
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                    Watch
-                                  </div>
-                                  <div className="rounded-md border border-border/60 overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <tbody>
-                                        {(leaderboardsData.memes.watch ?? [])
-                                          .slice(0, 6)
-                                          .map((r) => (
-                                            <tr
-                                              key={r.symbol}
-                                              className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                            >
-                                              <td className="py-2 px-3 font-medium">
-                                                {r.symbol}
-                                              </td>
-                                              <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                                {r.volumeLiquidityRatio != null
-                                                  ? `${r.volumeLiquidityRatio.toFixed(1)}x`
-                                                  : "—"}
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        {(leaderboardsData.memes.watch
-                                          ?.length ?? 0) === 0 && (
-                                          <tr>
-                                            <td
-                                              colSpan={2}
-                                              className="py-3 px-3 text-muted-foreground text-sm"
-                                            >
-                                              —
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              </div>
-                            </DashboardCard>
-                          );
-                        })()}
-
-                      {/* Memes (BASE): same layout as Solana */}
-                      {leaderboardsData.memesBase &&
-                        (() => {
-                          const section = leaderboardsData.memesBase!;
-                          const hot = section.hot ?? [];
-                          const ape = section.ape ?? [];
-                          const apeSymbols = new Set(ape.map((r) => r.symbol));
-                          const hotOnly = hot.filter(
-                            (r) => !apeSymbols.has(r.symbol),
-                          );
-                          const formatMcap = (v: number) =>
-                            v >= 1e6
-                              ? `$${(v / 1e6).toFixed(1)}M`
-                              : v >= 1e3
-                                ? `$${(v / 1e3).toFixed(0)}K`
-                                : `$${v.toFixed(0)}`;
-                          const formatChange = (n: number) =>
-                            n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`;
-
-                          return (
-                            <DashboardCard
-                              title={section.title}
-                              className="lg:col-span-2"
-                            >
-                              <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
-                                <p className="text-sm font-medium text-foreground/95">
-                                  {section.moodSummary ?? ""}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  Mood: {section.mood ?? "—"}
-                                </p>
-                              </div>
-                              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                                    <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
-                                  </div>
-                                  <div className="rounded-md border border-border/60 overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <tbody>
-                                        {hotOnly.slice(0, 6).map((r) => (
-                                          <tr
-                                            key={r.symbol}
-                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                          >
-                                            <td className="py-2 px-3 font-medium">
-                                              {r.symbol}
-                                            </td>
-                                            <td className="py-2 px-3 text-right">
-                                              <span
-                                                className={cn(
-                                                  "tabular-nums font-medium",
-                                                  (r.change24h ?? 0) >= 0
-                                                    ? "text-green-600 dark:text-green-400"
-                                                    : "text-red-600 dark:text-red-400",
-                                                )}
-                                              >
-                                                {formatChange(r.change24h ?? 0)}
-                                              </span>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                        {hotOnly.length === 0 && (
-                                          <tr>
-                                            <td
-                                              colSpan={2}
-                                              className="py-3 px-3 text-muted-foreground text-sm"
-                                            >
-                                              —
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    Ape
-                                  </div>
-                                  <div className="rounded-md border border-border/60 overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <tbody>
-                                        {ape.slice(0, 6).map((r) => (
-                                          <tr
-                                            key={r.symbol}
-                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                          >
-                                            <td className="py-2 px-3 font-medium">
-                                              {r.symbol}
-                                            </td>
-                                            <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                              {r.marketCap != null &&
-                                                formatMcap(r.marketCap)}
-                                              {r.volumeLiquidityRatio != null &&
-                                                ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
-                                            </td>
-                                          </tr>
-                                        ))}
-                                        {ape.length === 0 && (
-                                          <tr>
-                                            <td
-                                              colSpan={2}
-                                              className="py-3 px-3 text-muted-foreground text-sm"
-                                            >
-                                              —
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                    Watch
-                                  </div>
-                                  <div className="rounded-md border border-border/60 overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <tbody>
-                                        {(section.watch ?? [])
-                                          .slice(0, 6)
-                                          .map((r) => (
-                                            <tr
-                                              key={r.symbol}
-                                              className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                            >
-                                              <td className="py-2 px-3 font-medium">
-                                                {r.symbol}
-                                              </td>
-                                              <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                                {r.volumeLiquidityRatio != null
-                                                  ? `${r.volumeLiquidityRatio.toFixed(1)}x`
-                                                  : "—"}
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        {(section.watch?.length ?? 0) === 0 && (
-                                          <tr>
-                                            <td
-                                              colSpan={2}
-                                              className="py-3 px-3 text-muted-foreground text-sm"
-                                            >
-                                              —
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              </div>
-                            </DashboardCard>
-                          );
-                        })()}
-
-                      {/* Meteora: APY-ranked table + top TVL + meme LP opportunities */}
-                      {leaderboardsData.meteora &&
-                        (leaderboardsData.meteora.topPools?.length ?? 0) > 0 &&
-                        (() => {
-                          const topPools =
-                            leaderboardsData.meteora!.topPools ?? [];
-                          const memePools =
-                            leaderboardsData.meteora!.memePools ?? [];
-                          const allPoolsByApy =
-                            leaderboardsData.meteora!.allPoolsByApy ?? [];
-                          const topNames = new Set(topPools.map((p) => p.name));
-                          const memeOnly = memePools
-                            .filter((p) => !topNames.has(p.name))
-                            .slice(0, 8);
-
-                          const poolKey = (p: { id?: string; name: string }) =>
-                            p.id ?? p.name;
-
-                          const PoolTable = ({
-                            pools,
-                            emptyMsg,
-                          }: {
-                            pools: typeof topPools;
-                            emptyMsg: string;
-                          }) => (
-                            <div className="rounded-md border border-border/60 overflow-hidden">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="bg-muted/50">
-                                    <th className="text-left py-2 px-3 font-medium">
-                                      Pair
-                                    </th>
-                                    <th className="text-right py-2 px-3 font-medium">
-                                      TVL
-                                    </th>
-                                    <th className="text-right py-2 px-3 font-medium w-12">
-                                      bp
-                                    </th>
-                                    <th className="text-right py-2 px-3 font-medium">
-                                      APY
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {pools.map((p) => (
-                                    <tr
-                                      key={poolKey(p)}
-                                      className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                    >
-                                      <td className="py-2 px-3 font-medium">
-                                        {p.name}
-                                      </td>
-                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                        {p.tvlFormatted}
-                                      </td>
-                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums text-xs">
-                                        {p.binWidth != null
-                                          ? (p.binWidth * 100).toFixed(0)
-                                          : "—"}
-                                      </td>
-                                      <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
-                                        {p.apy != null
-                                          ? `${(p.apy * 100).toFixed(1)}%`
-                                          : "—"}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                  {pools.length === 0 && (
-                                    <tr>
-                                      <td
-                                        colSpan={4}
-                                        className="py-4 px-3 text-muted-foreground text-center text-sm"
-                                      >
-                                        {emptyMsg}
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          );
-
-                          return (
-                            <DashboardCard
-                              title={leaderboardsData.meteora!.title}
-                              className="lg:col-span-2"
-                            >
-                              <div className="rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 px-4 py-2.5 mb-5">
-                                <p className="text-sm font-medium text-foreground/95">
-                                  {leaderboardsData.meteora!.oneLiner ?? ""}
-                                </p>
-                              </div>
-                              {allPoolsByApy.length > 0 && (
-                                <div className="space-y-2 mb-6">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    All pools ranked by APY (highest first)
-                                  </div>
-                                  <div className="rounded-md border border-border/60 overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <thead className="sticky top-0 bg-muted/95 backdrop-blur">
-                                        <tr className="bg-muted/50">
-                                          <th className="text-left py-2 px-3 font-medium w-12">
-                                            Rank
-                                          </th>
-                                          <th className="text-left py-2 px-3 font-medium">
-                                            Pair
-                                          </th>
-                                          <th className="text-right py-2 px-3 font-medium">
-                                            APY
-                                          </th>
-                                          <th className="text-right py-2 px-3 font-medium">
-                                            TVL
-                                          </th>
-                                          <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">
-                                            Table / note
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {allPoolsByApy.map((p, i) => (
-                                          <tr
-                                            key={poolKey(p)}
-                                            className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                          >
-                                            <td className="py-2 px-3 font-medium tabular-nums">
-                                              {i + 1}
-                                            </td>
-                                            <td className="py-2 px-3 font-medium">
-                                              {p.name}
-                                            </td>
-                                            <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
-                                              {p.apy != null
-                                                ? `${(p.apy * 100).toFixed(1)}%`
-                                                : "—"}
-                                            </td>
-                                            <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
-                                              {p.tvlFormatted}
-                                            </td>
-                                            <td className="py-2 px-3 text-muted-foreground text-xs">
-                                              {p.category ?? "—"}
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="grid gap-6 lg:grid-cols-2">
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                    <BarChart3 className="w-3.5 h-3.5" /> Top
-                                    pools by TVL
-                                  </div>
-                                  <PoolTable
-                                    pools={topPools.slice(0, 10)}
-                                    emptyMsg="—"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    Meme LP opportunities (high vol/TVL)
-                                  </div>
-                                  <PoolTable
-                                    pools={memeOnly}
-                                    emptyMsg="No extra meme pools beyond top TVL — all high-activity pools are above."
-                                  />
-                                </div>
-                              </div>
-                            </DashboardCard>
-                          );
-                        })()}
-
-                      {/* Left Curve (MandoMinutes) */}
-                      {leaderboardsData.memes?.leftcurve &&
-                        (leaderboardsData.memes.leftcurve.headlines?.length ??
-                          0) > 0 && (
-                          <DashboardCard
-                            title={leaderboardsData.memes.leftcurve.title}
-                            className="lg:col-span-2"
-                          >
-                            <ul className="space-y-2 text-sm max-h-[40vh] overflow-y-auto pr-1">
-                              {leaderboardsData.memes.leftcurve.headlines.map(
-                                (h, i) => (
-                                  <li
-                                    key={i}
-                                    className="flex gap-2 items-start"
-                                  >
-                                    <span className="flex-1 line-clamp-2">
-                                      {h.text}
-                                    </span>
-                                    {h.url && (
-                                      <a
-                                        href={h.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs"
-                                      >
-                                        <ExternalLink className="w-3.5 h-3.5" />
-                                        Deep dive
-                                      </a>
-                                    )}
-                                  </li>
-                                ),
-                              )}
-                            </ul>
-                          </DashboardCard>
-                        )}
-                      {/* Watchlist */}
-                      {leaderboardsData.more?.watchlist &&
-                        (leaderboardsData.more.watchlist.tokens?.length ?? 0) >
-                          0 && (
-                          <DashboardCard
-                            title="Watchlist"
-                            className="lg:col-span-2"
-                          >
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-border">
-                                    <th className="text-left py-2 font-medium">
-                                      Symbol
-                                    </th>
-                                    <th className="text-left py-2 font-medium">
-                                      Chain
-                                    </th>
-                                    <th className="text-left py-2 font-medium">
-                                      Priority
-                                    </th>
-                                    <th className="text-right py-2 font-medium">
-                                      Target Mcap
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {(
-                                    leaderboardsData.more.watchlist.tokens ?? []
-                                  ).map((t) => (
-                                    <tr
-                                      key={t.symbol}
-                                      className="border-b border-border/50"
-                                    >
-                                      <td className="py-1.5 font-medium">
-                                        {t.symbol}
-                                      </td>
-                                      <td className="py-1.5 text-muted-foreground">
-                                        {t.chain ?? "—"}
-                                      </td>
-                                      <td className="py-1.5 text-muted-foreground">
-                                        {t.priority ?? "—"}
-                                      </td>
-                                      <td className="py-1.5 text-right font-mono">
-                                        {t.targetMcap != null
-                                          ? `$${(t.targetMcap / 1e6).toFixed(1)}M`
-                                          : "—"}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </DashboardCard>
-                        )}
-                    </div>
-
-                    {!leaderboardsData.memes &&
-                      !leaderboardsData.meteora &&
-                      !(
-                        leaderboardsData.more?.watchlist &&
-                        (leaderboardsData.more.watchlist.tokens?.length ?? 0) >
-                          0
-                      ) && (
-                        <p className="text-center text-muted-foreground py-8">
-                          No memetics data available. Try again in a moment.
-                        </p>
-                      )}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
-                    <p className="font-medium text-foreground">
-                      Could not load memetics data
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Make sure VINCE is running, then click Refresh above.
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-            </>
-          )}
 
           {/* News tab: X vibe check (top) + MandoMinutes TLDR + headlines */}
           <TabsContent
@@ -2220,1250 +1672,6 @@ export default function LeaderboardPage({
                     </p>
                   )}
                 </DashboardCard>
-              </div>
-            )}
-          </TabsContent>
-
-          {false && (
-            <>
-              {/* Digital Art tab: curated NFT collections — commented out */}
-              <TabsContent
-                value="digital_art"
-                className="mt-6 flex-1 min-h-0 overflow-auto"
-              >
-                {(leaderboardsLoading || leaderboardsFetching) &&
-                !leaderboardsData?.digitalArt ? (
-                  <div className="space-y-4">
-                    <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
-                    <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
-                  </div>
-                ) : leaderboardsData?.digitalArt ? (
-                  <div className="space-y-6">
-                    <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
-                      <p className="text-sm font-medium text-foreground/90">
-                        {leaderboardsData.digitalArt.oneLiner}
-                      </p>
-                      {leaderboardsData.digitalArt.criteriaNote && (
-                        <p className="text-xs text-muted-foreground mt-2 font-medium">
-                          {leaderboardsData.digitalArt.criteriaNote}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {leaderboardsData.updatedAt != null
-                          ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
-                          : "Live data"}
-                      </p>
-                    </div>
-                    <DashboardCard title={leaderboardsData.digitalArt.title}>
-                      {(leaderboardsData.digitalArt.collections ?? []).length >
-                      0 ? (
-                        <div className="rounded-md border border-border/60 overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border/60 bg-muted/30">
-                                <th className="py-2.5 px-3 text-left font-semibold">
-                                  Collection
-                                </th>
-                                <th className="py-2.5 px-3 text-right font-semibold">
-                                  Floor
-                                </th>
-                                <th
-                                  className="py-2.5 px-2 text-right font-semibold"
-                                  title="Recent sale prices. All below floor = excluded from gem-on-floor candidates."
-                                >
-                                  Sales
-                                </th>
-                                <th className="py-2.5 px-3 text-right font-semibold">
-                                  Thickness
-                                </th>
-                                <th
-                                  className="py-2.5 px-2 text-right font-semibold"
-                                  title="Volume 7d (ETH)"
-                                >
-                                  Vol 7d
-                                </th>
-                                <th
-                                  className="py-2.5 px-2 text-right font-semibold"
-                                  title="Items within 5% of floor"
-                                >
-                                  Near
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  2nd
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  3rd
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  4th
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  5th
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {leaderboardsData.digitalArt.collections.map(
-                                (c) => {
-                                  const g = c.gaps ?? {
-                                    to2nd: 0,
-                                    to3rd: 0,
-                                    to4th: 0,
-                                    to5th: 0,
-                                    to6th: 0,
-                                  };
-                                  const fmt = (v: number) =>
-                                    v > 0 ? `${v.toFixed(3)} ETH` : "—";
-                                  const salesLabel = c.allSalesBelowFloor
-                                    ? "⚠️ All below floor"
-                                    : c.maxRecentSaleEth != null &&
-                                        c.maxRecentSaleEth > 0
-                                      ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
-                                      : "—";
-                                  const categoryLabel =
-                                    c.category === "blue_chip"
-                                      ? "Blue Chip"
-                                      : c.category === "generative"
-                                        ? "Generative"
-                                        : c.category === "photography"
-                                          ? "Photo"
-                                          : null;
-                                  const vol7d =
-                                    c.volume7d != null && c.volume7d > 0
-                                      ? c.volume7d >= 1000
-                                        ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
-                                        : `${c.volume7d.toFixed(1)} ETH`
-                                      : "—";
-                                  return (
-                                    <tr
-                                      key={c.slug}
-                                      className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                    >
-                                      <td className="py-2 px-3">
-                                        <div className="flex flex-col gap-0.5">
-                                          <span className="font-medium">
-                                            {c.name}
-                                          </span>
-                                          {categoryLabel && (
-                                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                              {categoryLabel}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-2 px-3 text-right">
-                                        <div className="tabular-nums">
-                                          {c.floorPrice.toFixed(2)} ETH
-                                          {c.floorPriceUsd != null &&
-                                            c.floorPriceUsd > 0 && (
-                                              <div className="text-[10px] text-muted-foreground">
-                                                $
-                                                {(
-                                                  c.floorPriceUsd / 1000
-                                                ).toFixed(1)}
-                                                K
-                                              </div>
-                                            )}
-                                        </div>
-                                      </td>
-                                      <td
-                                        className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
-                                        title={
-                                          (c.recentSalesPrices ?? []).length > 0
-                                            ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
-                                            : undefined
-                                        }
-                                      >
-                                        {salesLabel}
-                                      </td>
-                                      <td className="py-2 px-3 text-right capitalize">
-                                        {c.floorThickness}
-                                      </td>
-                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                        {vol7d}
-                                      </td>
-                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                        {c.nftsNearFloor != null &&
-                                        c.nftsNearFloor > 0
-                                          ? c.nftsNearFloor
-                                          : "—"}
-                                      </td>
-                                      <td
-                                        className="py-2 px-2 text-right tabular-nums text-muted-foreground"
-                                        title={
-                                          c.gapPctTo2nd != null
-                                            ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor`
-                                            : undefined
-                                        }
-                                      >
-                                        {fmt(g.to2nd)}
-                                      </td>
-                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                        {fmt(g.to3rd)}
-                                      </td>
-                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                        {fmt(g.to4th)}
-                                      </td>
-                                      <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                        {fmt(g.to5th)}
-                                      </td>
-                                    </tr>
-                                  );
-                                },
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground py-6">
-                          No NFT data yet. Set OPENSEA_API_KEY for curated
-                          collection floor prices.
-                        </p>
-                      )}
-                    </DashboardCard>
-
-                    {/* All curated collections by volume (no strict gem criteria; filter: volume 7d > 0) */}
-                    {(leaderboardsData.digitalArt.volumeLeaders ?? []).length >
-                      0 && (
-                      <DashboardCard
-                        title="All collections by volume"
-                        subtitle="Filter: 7d volume &gt; 0 · Sorted by most volume"
-                      >
-                        <div className="rounded-md border border-border/60 overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border/60 bg-muted/30">
-                                <th className="py-2.5 px-3 text-left font-semibold">
-                                  Collection
-                                </th>
-                                <th className="py-2.5 px-3 text-right font-semibold">
-                                  Floor
-                                </th>
-                                <th
-                                  className="py-2.5 px-2 text-right font-semibold"
-                                  title="Recent sale prices"
-                                >
-                                  Sales
-                                </th>
-                                <th className="py-2.5 px-3 text-right font-semibold">
-                                  Thickness
-                                </th>
-                                <th
-                                  className="py-2.5 px-2 text-right font-semibold"
-                                  title="Volume 7d (ETH)"
-                                >
-                                  Vol 7d
-                                </th>
-                                <th
-                                  className="py-2.5 px-2 text-right font-semibold"
-                                  title="Items within 5% of floor"
-                                >
-                                  Near
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  2nd
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  3rd
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  4th
-                                </th>
-                                <th className="py-2.5 px-2 text-right font-semibold">
-                                  5th
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(
-                                leaderboardsData.digitalArt.volumeLeaders ?? []
-                              ).map((c) => {
-                                const g = c.gaps ?? {
-                                  to2nd: 0,
-                                  to3rd: 0,
-                                  to4th: 0,
-                                  to5th: 0,
-                                  to6th: 0,
-                                };
-                                const fmt = (v: number) =>
-                                  v > 0 ? `${v.toFixed(3)} ETH` : "—";
-                                const salesLabel = c.allSalesBelowFloor
-                                  ? "⚠️ All below floor"
-                                  : c.maxRecentSaleEth != null &&
-                                      c.maxRecentSaleEth > 0
-                                    ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
-                                    : "—";
-                                const categoryLabel =
-                                  c.category === "blue_chip"
-                                    ? "Blue Chip"
-                                    : c.category === "generative"
-                                      ? "Generative"
-                                      : c.category === "photography"
-                                        ? "Photo"
-                                        : null;
-                                const vol7d =
-                                  c.volume7d != null && c.volume7d > 0
-                                    ? c.volume7d >= 1000
-                                      ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
-                                      : `${c.volume7d.toFixed(1)} ETH`
-                                    : "—";
-                                return (
-                                  <tr
-                                    key={c.slug}
-                                    className="border-b border-border/40 last:border-0 hover:bg-muted/30"
-                                  >
-                                    <td className="py-2 px-3">
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="font-medium">
-                                          {c.name}
-                                        </span>
-                                        {categoryLabel && (
-                                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                            {categoryLabel}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="py-2 px-3 text-right">
-                                      <div className="tabular-nums">
-                                        {c.floorPrice.toFixed(2)} ETH
-                                        {c.floorPriceUsd != null &&
-                                          c.floorPriceUsd > 0 && (
-                                            <div className="text-[10px] text-muted-foreground">
-                                              $
-                                              {(c.floorPriceUsd / 1000).toFixed(
-                                                1,
-                                              )}
-                                              K
-                                            </div>
-                                          )}
-                                      </div>
-                                    </td>
-                                    <td
-                                      className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
-                                      title={
-                                        (c.recentSalesPrices ?? []).length > 0
-                                          ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
-                                          : undefined
-                                      }
-                                    >
-                                      {salesLabel}
-                                    </td>
-                                    <td className="py-2 px-3 text-right capitalize">
-                                      {c.floorThickness}
-                                    </td>
-                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                      {vol7d}
-                                    </td>
-                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                      {c.nftsNearFloor != null &&
-                                      c.nftsNearFloor > 0
-                                        ? c.nftsNearFloor
-                                        : "—"}
-                                    </td>
-                                    <td
-                                      className="py-2 px-2 text-right tabular-nums text-muted-foreground"
-                                      title={
-                                        c.gapPctTo2nd != null
-                                          ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor`
-                                          : undefined
-                                      }
-                                    >
-                                      {fmt(g.to2nd)}
-                                    </td>
-                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                      {fmt(g.to3rd)}
-                                    </td>
-                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                      {fmt(g.to4th)}
-                                    </td>
-                                    <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
-                                      {fmt(g.to5th)}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </DashboardCard>
-                    )}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
-                    <Palette className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                    <p className="font-medium text-foreground">
-                      No Digital Art data
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Switch to Markets to load data, or set OPENSEA_API_KEY for
-                      NFT floor prices.
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-            </>
-          )}
-
-          {/* More tab: Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts */}
-          <TabsContent
-            value="more"
-            className="mt-6 flex-1 min-h-0 overflow-auto"
-          >
-            {(leaderboardsLoading || leaderboardsFetching) &&
-            !leaderboardsData?.more ? (
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div
-                    key={i}
-                    className="h-32 bg-muted/50 rounded-xl animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : leaderboardsData?.more ? (
-              <div className="space-y-6">
-                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
-                  <p className="text-sm font-medium text-foreground/90">
-                    Fear & Greed, Options, Binance Intel, CoinGlass, Deribit
-                    skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {leaderboardsData.updatedAt != null
-                      ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
-                      : "Live data"}
-                  </p>
-                </div>
-
-                {/* Trading takeaways: what this means for our trading */}
-                <DashboardCard
-                  title="Trading takeaways"
-                  className="lg:col-span-2"
-                >
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    {leaderboardsData.more.fearGreed && (
-                      <p>
-                        <span className="font-medium text-foreground">
-                          Sentiment:{" "}
-                        </span>
-                        {leaderboardsData.more.fearGreed.label} (
-                        {leaderboardsData.more.fearGreed.value}) —{" "}
-                        {leaderboardsData.more.fearGreed.classification}.
-                        Extreme fear often precedes bounces; extreme greed can
-                        precede pullbacks. We use this as context, not a single
-                        trigger.
-                      </p>
-                    )}
-                    {leaderboardsData.more.volumeInsights?.assets &&
-                      leaderboardsData.more.volumeInsights.assets.length >
-                        0 && (
-                        <p>
-                          <span className="font-medium text-foreground">
-                            Volume:{" "}
-                          </span>
-                          {leaderboardsData.more.volumeInsights.assets.length}{" "}
-                          assets —{" "}
-                          {[
-                            ...new Set(
-                              leaderboardsData.more.volumeInsights.assets.map(
-                                (a) => a.interpretation,
-                              ),
-                            ),
-                          ]
-                            .filter(
-                              (i) =>
-                                i === "spike" ||
-                                i === "elevated" ||
-                                i === "low" ||
-                                i === "dead_session",
-                            )
-                            .slice(0, 3)
-                            .join(", ") || "normal"}{" "}
-                          on key assets. Bot uses volume ratio to size: spike
-                          +20%, low −20%, dead −50%.
-                        </p>
-                      )}
-                    {(leaderboardsData.more.regime?.btc ||
-                      leaderboardsData.more.regime?.eth) && (
-                      <p>
-                        <span className="font-medium text-foreground">
-                          Regime:{" "}
-                        </span>
-                        BTC {leaderboardsData.more.regime.btc ?? "—"}, ETH{" "}
-                        {leaderboardsData.more.regime.eth ?? "—"}. Informs
-                        whether we lean momentum or mean reversion.
-                      </p>
-                    )}
-                    {(leaderboardsData.more.binanceIntel?.fundingExtreme ||
-                      leaderboardsData.more.deribitSkew?.btc ||
-                      leaderboardsData.more.deribitSkew?.eth) && (
-                      <p>
-                        {leaderboardsData.more.binanceIntel?.fundingExtreme && (
-                          <>
-                            <span className="font-medium text-foreground">
-                              Funding:{" "}
-                            </span>
-                            {
-                              leaderboardsData.more.binanceIntel
-                                .fundingDirection
-                            }{" "}
-                            — crowded side may mean reversion.{" "}
-                          </>
-                        )}
-                        {(leaderboardsData.more.deribitSkew?.btc ||
-                          leaderboardsData.more.deribitSkew?.eth) && (
-                          <>
-                            <span className="font-medium text-foreground">
-                              Deribit skew:{" "}
-                            </span>
-                            BTC{" "}
-                            {leaderboardsData.more.deribitSkew?.btc
-                              ?.skewInterpretation ?? "—"}
-                            , ETH{" "}
-                            {leaderboardsData.more.deribitSkew?.eth
-                              ?.skewInterpretation ?? "—"}
-                            — reflects put vs call demand.
-                          </>
-                        )}
-                      </p>
-                    )}
-                    {leaderboardsData.more.crossVenue?.arbOpportunities
-                      ?.length > 0 && (
-                      <p>
-                        <span className="font-medium text-foreground">
-                          Cross-venue arb:{" "}
-                        </span>
-                        {leaderboardsData.more.crossVenue.arbOpportunities.join(
-                          ", ",
-                        )}
-                      </p>
-                    )}
-                    {!leaderboardsData.more.fearGreed &&
-                      !(
-                        leaderboardsData.more.volumeInsights?.assets &&
-                        leaderboardsData.more.volumeInsights.assets.length > 0
-                      ) &&
-                      !leaderboardsData.more.regime?.btc &&
-                      !leaderboardsData.more.regime?.eth &&
-                      !leaderboardsData.more.binanceIntel?.fundingExtreme &&
-                      !leaderboardsData.more.deribitSkew?.btc &&
-                      !leaderboardsData.more.deribitSkew?.eth &&
-                      !(
-                        leaderboardsData.more.crossVenue?.arbOpportunities
-                          ?.length > 0
-                      ) && (
-                        <p className="text-muted-foreground">
-                          No summary data yet. Refresh or check back after data
-                          loads.
-                        </p>
-                      )}
-                  </div>
-                </DashboardCard>
-
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {/* Fear & Greed */}
-                  {leaderboardsData.more.fearGreed && (
-                    <DashboardCard title="Fear & Greed">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full border-4 border-primary/30 flex items-center justify-center text-xl font-bold">
-                          {leaderboardsData.more.fearGreed.value}
-                        </div>
-                        <div>
-                          <p className="font-medium capitalize">
-                            {leaderboardsData.more.fearGreed.label}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {leaderboardsData.more.fearGreed.classification}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                        Extreme fear often precedes bounces; extreme greed can
-                        precede pullbacks. We use this as context, not a single
-                        trigger.
-                      </p>
-                    </DashboardCard>
-                  )}
-
-                  {/* Options DVOL + TLDR */}
-                  {leaderboardsData.more.options && (
-                    <DashboardCard title="Options (Deribit)">
-                      <div className="space-y-3">
-                        <div className="flex gap-4 text-sm">
-                          {leaderboardsData.more.options.btcDvol != null && (
-                            <span className="font-mono">
-                              BTC DVOL:{" "}
-                              {leaderboardsData.more.options.btcDvol.toFixed(1)}
-                              %
-                            </span>
-                          )}
-                          {leaderboardsData.more.options.ethDvol != null && (
-                            <span className="font-mono">
-                              ETH DVOL:{" "}
-                              {leaderboardsData.more.options.ethDvol.toFixed(1)}
-                              %
-                            </span>
-                          )}
-                        </div>
-                        {leaderboardsData.more.options.btcTldr && (
-                          <p className="text-xs text-muted-foreground">
-                            {leaderboardsData.more.options.btcTldr}
-                          </p>
-                        )}
-                        {leaderboardsData.more.options.ethTldr && (
-                          <p className="text-xs text-muted-foreground">
-                            {leaderboardsData.more.options.ethTldr}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          DVOL = implied volatility. High DVOL = expensive
-                          options (consider selling premium); low DVOL = cheap
-                          options (consider longs). TLDR summarizes term
-                          structure.
-                        </p>
-                      </div>
-                    </DashboardCard>
-                  )}
-
-                  {/* Volume insights (24h vs 7d avg — same signal paper bot uses for sizing) */}
-                  {leaderboardsData.more.volumeInsights &&
-                    (leaderboardsData.more.volumeInsights.assets?.length ?? 0) >
-                      0 && (
-                      <DashboardCard
-                        title="Volume (24h vs 7d avg)"
-                        className="lg:col-span-2"
-                      >
-                        <div className="space-y-4">
-                          <div className="rounded-lg bg-muted/40 border border-border/50 p-4 text-sm text-muted-foreground space-y-2">
-                            <p className="font-medium text-foreground">
-                              Why volume matters
-                            </p>
-                            <p>
-                              Volume confirms whether price moves are backed by
-                              real flow or just thin, noisy action. High volume
-                              vs the 7-day average suggests conviction and
-                              momentum; low or &quot;dead&quot; volume often
-                              means fakeouts and whipsaws. The paper bot uses
-                              this ratio to size positions: it increases size
-                              when volume confirms the move and reduces size
-                              when volume is weak so we don’t trade full size in
-                              unreliable conditions.
-                            </p>
-                            <p className="pt-1 text-xs">
-                              <strong>Bot sizing:</strong> Spike (≥2×) +20% ·
-                              Elevated (≥1.5×) +10% · Normal (0.8–1.5×) no
-                              change · Low (&lt;0.8×) −20% · Dead (&lt;0.5×)
-                              −50%
-                            </p>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b border-border">
-                                  <th className="text-left py-2 font-medium">
-                                    Asset
-                                  </th>
-                                  <th className="text-right py-2 font-medium">
-                                    24h vol
-                                  </th>
-                                  <th className="text-right py-2 font-medium">
-                                    Ratio
-                                  </th>
-                                  <th className="text-right py-2 font-medium">
-                                    Interpretation
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {leaderboardsData.more.volumeInsights.assets.map(
-                                  (a) => {
-                                    const interp = a.interpretation;
-                                    const badgeClass =
-                                      interp === "spike"
-                                        ? "text-green-600 dark:text-green-400 font-medium"
-                                        : interp === "elevated"
-                                          ? "text-green-600/80 dark:text-green-400/80"
-                                          : interp === "dead_session"
-                                            ? "text-amber-600 dark:text-amber-400 font-medium"
-                                            : interp === "low"
-                                              ? "text-amber-600/80 dark:text-amber-400/80"
-                                              : "text-muted-foreground";
-                                    return (
-                                      <tr
-                                        key={a.asset}
-                                        className="border-b border-border/50"
-                                      >
-                                        <td className="py-1.5 font-medium">
-                                          {a.asset}
-                                        </td>
-                                        <td className="py-1.5 text-right font-mono tabular-nums">
-                                          {a.volume24hFormatted ?? "—"}
-                                        </td>
-                                        <td className="py-1.5 text-right font-mono tabular-nums">
-                                          {a.volumeRatio != null
-                                            ? `${a.volumeRatio.toFixed(2)}×`
-                                            : "—"}
-                                        </td>
-                                        <td
-                                          className={`py-1.5 text-right capitalize ${badgeClass}`}
-                                        >
-                                          {interp.replace("_", " ")}
-                                        </td>
-                                      </tr>
-                                    );
-                                  },
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </DashboardCard>
-                    )}
-
-                  {/* Cross-venue funding */}
-                  {leaderboardsData.more.crossVenue &&
-                    (leaderboardsData.more.crossVenue.assets?.length ?? 0) >
-                      0 && (
-                      <DashboardCard
-                        title="Cross-venue funding"
-                        className="lg:col-span-2"
-                      >
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border">
-                                <th className="text-left py-2 font-medium">
-                                  Coin
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  HL
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  CEX
-                                </th>
-                                <th className="text-left py-2 font-medium">
-                                  Arb
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {leaderboardsData.more.crossVenue.assets.map(
-                                (a) => (
-                                  <tr
-                                    key={a.coin}
-                                    className="border-b border-border/50"
-                                  >
-                                    <td className="py-1.5 font-medium">
-                                      {a.coin}
-                                    </td>
-                                    <td className="py-1.5 text-right font-mono">
-                                      {a.hlFunding != null
-                                        ? (a.hlFunding * 100).toFixed(4) + "%"
-                                        : "—"}
-                                    </td>
-                                    <td className="py-1.5 text-right font-mono">
-                                      {a.cexFunding != null
-                                        ? (a.cexFunding * 100).toFixed(4) + "%"
-                                        : "—"}
-                                    </td>
-                                    <td className="py-1.5 text-muted-foreground">
-                                      {a.arb ?? "—"}
-                                    </td>
-                                  </tr>
-                                ),
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                        {leaderboardsData.more.crossVenue.arbOpportunities
-                          ?.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Arb:{" "}
-                            {leaderboardsData.more.crossVenue.arbOpportunities.join(
-                              ", ",
-                            )}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          Funding differences between Hyperliquid and CEX can
-                          signal arb or where leverage is concentrated.
-                        </p>
-                      </DashboardCard>
-                    )}
-
-                  {/* OI cap */}
-                  {leaderboardsData.more.oiCap &&
-                    leaderboardsData.more.oiCap.length > 0 && (
-                      <DashboardCard title="Perps at OI cap">
-                        <ul className="flex flex-wrap gap-2">
-                          {leaderboardsData.more.oiCap.map((s) => (
-                            <li
-                              key={s}
-                              className="px-2 py-1 rounded bg-muted/50 text-sm font-mono"
-                            >
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          Markets at open-interest cap can be squeeze-prone or
-                          illiquid on exits.
-                        </p>
-                      </DashboardCard>
-                    )}
-
-                  {/* Regime */}
-                  {leaderboardsData.more.regime &&
-                    (leaderboardsData.more.regime.btc ||
-                      leaderboardsData.more.regime.eth) && (
-                      <DashboardCard title="Market regime">
-                        <div className="flex gap-4 text-sm">
-                          {leaderboardsData.more.regime.btc && (
-                            <span>BTC: {leaderboardsData.more.regime.btc}</span>
-                          )}
-                          {leaderboardsData.more.regime.eth && (
-                            <span>ETH: {leaderboardsData.more.regime.eth}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          Current regime (trend/range) from options/flow —
-                          informs whether we lean momentum or mean reversion.
-                        </p>
-                      </DashboardCard>
-                    )}
-
-                  {/* Binance Intelligence */}
-                  {leaderboardsData.more.binanceIntel && (
-                    <DashboardCard title="Binance Intelligence">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex gap-4">
-                          {leaderboardsData.more.binanceIntel.topTraderRatio !=
-                            null && (
-                            <span className="font-mono">
-                              Top L/S:{" "}
-                              {leaderboardsData.more.binanceIntel.topTraderRatio.toFixed(
-                                2,
-                              )}
-                            </span>
-                          )}
-                          {leaderboardsData.more.binanceIntel
-                            .takerBuySellRatio != null && (
-                            <span className="font-mono">
-                              Taker B/S:{" "}
-                              {leaderboardsData.more.binanceIntel.takerBuySellRatio.toFixed(
-                                2,
-                              )}
-                            </span>
-                          )}
-                        </div>
-                        {leaderboardsData.more.binanceIntel.fundingExtreme && (
-                          <p className="text-amber-600 dark:text-amber-400 text-xs">
-                            Funding extreme:{" "}
-                            {leaderboardsData.more.binanceIntel
-                              .fundingDirection ?? "—"}
-                          </p>
-                        )}
-                        {(leaderboardsData.more.binanceIntel.bestLong ||
-                          leaderboardsData.more.binanceIntel.bestShort) && (
-                          <p className="text-xs text-muted-foreground">
-                            Cross-ex: spread{" "}
-                            {leaderboardsData.more.binanceIntel
-                              .crossExchangeSpread != null
-                              ? (
-                                  leaderboardsData.more.binanceIntel
-                                    .crossExchangeSpread * 100
-                                ).toFixed(4) + "%"
-                              : "—"}
-                            {leaderboardsData.more.binanceIntel.bestLong &&
-                              ` · Long ${leaderboardsData.more.binanceIntel.bestLong}`}
-                            {leaderboardsData.more.binanceIntel.bestShort &&
-                              ` · Short ${leaderboardsData.more.binanceIntel.bestShort}`}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          Top trader L/S and taker B/S show positioning;
-                          extremes can be contrarian. Funding extreme = crowded
-                          side may mean reversion.
-                        </p>
-                      </div>
-                    </DashboardCard>
-                  )}
-
-                  {/* CoinGlass Extended */}
-                  {leaderboardsData.more.coinglassExtended &&
-                    (leaderboardsData.more.coinglassExtended.funding?.length >
-                      0 ||
-                      leaderboardsData.more.coinglassExtended.longShort
-                        ?.length > 0 ||
-                      leaderboardsData.more.coinglassExtended.openInterest
-                        ?.length > 0) && (
-                      <DashboardCard
-                        title="CoinGlass Extended"
-                        className="lg:col-span-2"
-                      >
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border">
-                                <th className="text-left py-2 font-medium">
-                                  Asset
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  Funding
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  L/S
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  OI
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  OI Δ24h
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(() => {
-                                const fundingMap = new Map(
-                                  (
-                                    leaderboardsData.more.coinglassExtended
-                                      ?.funding ?? []
-                                  ).map((f) => [f.asset, f.rate]),
-                                );
-                                const lsMap = new Map(
-                                  (
-                                    leaderboardsData.more.coinglassExtended
-                                      ?.longShort ?? []
-                                  ).map((ls) => [ls.asset, ls.ratio]),
-                                );
-                                const oiMap = new Map(
-                                  (
-                                    leaderboardsData.more.coinglassExtended
-                                      ?.openInterest ?? []
-                                  ).map((oi) => [oi.asset, oi]),
-                                );
-                                const assets = [
-                                  ...new Set([
-                                    ...fundingMap.keys(),
-                                    ...lsMap.keys(),
-                                    ...oiMap.keys(),
-                                  ]),
-                                ].slice(0, 10);
-                                return assets.map((asset) => {
-                                  const rate = fundingMap.get(asset);
-                                  const ratio = lsMap.get(asset);
-                                  const oi = oiMap.get(asset);
-                                  return (
-                                    <tr
-                                      key={asset}
-                                      className="border-b border-border/50"
-                                    >
-                                      <td className="py-1.5 font-medium">
-                                        {asset}
-                                      </td>
-                                      <td className="py-1.5 text-right font-mono">
-                                        {rate != null
-                                          ? (rate * 100).toFixed(4) + "%"
-                                          : "—"}
-                                      </td>
-                                      <td className="py-1.5 text-right font-mono">
-                                        {ratio != null ? ratio.toFixed(2) : "—"}
-                                      </td>
-                                      <td className="py-1.5 text-right font-mono">
-                                        {oi != null
-                                          ? `$${(oi.value / 1e9).toFixed(2)}B`
-                                          : "—"}
-                                      </td>
-                                      <td className="py-1.5 text-right font-mono">
-                                        {oi?.change24h != null
-                                          ? (oi.change24h >= 0 ? "+" : "") +
-                                            oi.change24h.toFixed(1) +
-                                            "%"
-                                          : "—"}
-                                      </td>
-                                    </tr>
-                                  );
-                                });
-                              })()}
-                            </tbody>
-                          </table>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          Funding rates, long/short ratio, and OI change across
-                          venues — confirm trend or spot crowded positioning.
-                        </p>
-                      </DashboardCard>
-                    )}
-
-                  {/* Deribit IV Skew */}
-                  {leaderboardsData.more.deribitSkew &&
-                    (leaderboardsData.more.deribitSkew.btc ||
-                      leaderboardsData.more.deribitSkew.eth) && (
-                      <DashboardCard title="Deribit IV Skew">
-                        <div className="flex gap-4 text-sm">
-                          {leaderboardsData.more.deribitSkew.btc && (
-                            <span>
-                              BTC:{" "}
-                              <span
-                                className={cn(
-                                  "font-medium",
-                                  leaderboardsData.more.deribitSkew.btc
-                                    .skewInterpretation === "fearful" &&
-                                    "text-amber-600 dark:text-amber-400",
-                                  leaderboardsData.more.deribitSkew.btc
-                                    .skewInterpretation === "bullish" &&
-                                    "text-green-600 dark:text-green-400",
-                                )}
-                              >
-                                {
-                                  leaderboardsData.more.deribitSkew.btc
-                                    .skewInterpretation
-                                }
-                              </span>
-                            </span>
-                          )}
-                          {leaderboardsData.more.deribitSkew.eth && (
-                            <span>
-                              ETH:{" "}
-                              <span
-                                className={cn(
-                                  "font-medium",
-                                  leaderboardsData.more.deribitSkew.eth
-                                    .skewInterpretation === "fearful" &&
-                                    "text-amber-600 dark:text-amber-400",
-                                  leaderboardsData.more.deribitSkew.eth
-                                    .skewInterpretation === "bullish" &&
-                                    "text-green-600 dark:text-green-400",
-                                )}
-                              >
-                                {
-                                  leaderboardsData.more.deribitSkew.eth
-                                    .skewInterpretation
-                                }
-                              </span>
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          Skew reflects demand for puts vs calls; fearful = put
-                          premium, bullish = call premium.
-                        </p>
-                      </DashboardCard>
-                    )}
-
-                  {/* Sanbase On-Chain */}
-                  {leaderboardsData.more.sanbaseOnChain &&
-                    (leaderboardsData.more.sanbaseOnChain.btc ||
-                      leaderboardsData.more.sanbaseOnChain.eth) && (
-                      <DashboardCard title="Sanbase On-Chain">
-                        <div className="space-y-3 text-sm">
-                          {leaderboardsData.more.sanbaseOnChain.btc && (
-                            <div>
-                              <p className="font-medium mb-1">BTC</p>
-                              <p className="text-xs text-muted-foreground">
-                                Flows:{" "}
-                                {leaderboardsData.more.sanbaseOnChain.btc.flows}{" "}
-                                · Whales:{" "}
-                                {
-                                  leaderboardsData.more.sanbaseOnChain.btc
-                                    .whales
-                                }
-                              </p>
-                              <p className="text-xs mt-0.5">
-                                {leaderboardsData.more.sanbaseOnChain.btc.tldr}
-                              </p>
-                            </div>
-                          )}
-                          {leaderboardsData.more.sanbaseOnChain.eth && (
-                            <div>
-                              <p className="font-medium mb-1">ETH</p>
-                              <p className="text-xs text-muted-foreground">
-                                Flows:{" "}
-                                {leaderboardsData.more.sanbaseOnChain.eth.flows}{" "}
-                                · Whales:{" "}
-                                {
-                                  leaderboardsData.more.sanbaseOnChain.eth
-                                    .whales
-                                }
-                              </p>
-                              <p className="text-xs mt-0.5">
-                                {leaderboardsData.more.sanbaseOnChain.eth.tldr}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          On-chain flows and whale activity — context for spot
-                          vs derivatives.
-                        </p>
-                      </DashboardCard>
-                    )}
-
-                  {/* Nansen Smart Money — commented out (no value for now) */}
-                  {false &&
-                    leaderboardsData.more.nansenSmartMoney &&
-                    (leaderboardsData.more.nansenSmartMoney.tokens?.length >
-                      0 ||
-                      leaderboardsData.more.nansenSmartMoney.creditRemaining !=
-                        null) && (
-                      <DashboardCard
-                        title="Nansen Smart Money"
-                        className="lg:col-span-2"
-                      >
-                        {leaderboardsData.more.nansenSmartMoney
-                          .creditRemaining != null && (
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Credits:{" "}
-                            {
-                              leaderboardsData.more.nansenSmartMoney
-                                .creditRemaining
-                            }
-                            /100
-                          </p>
-                        )}
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border">
-                                <th className="text-left py-2 font-medium">
-                                  Symbol
-                                </th>
-                                <th className="text-left py-2 font-medium">
-                                  Chain
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  Net Flow
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  Buy Vol
-                                </th>
-                                <th className="text-right py-2 font-medium">
-                                  24h %
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(
-                                leaderboardsData.more.nansenSmartMoney.tokens ??
-                                []
-                              ).map((t) => (
-                                <tr
-                                  key={`${t.symbol}-${t.chain}`}
-                                  className="border-b border-border/50"
-                                >
-                                  <td className="py-1.5 font-medium">
-                                    {t.symbol}
-                                  </td>
-                                  <td className="py-1.5 text-muted-foreground">
-                                    {t.chain}
-                                  </td>
-                                  <td className="py-1.5 text-right font-mono">
-                                    ${(t.netFlow / 1000).toFixed(1)}K
-                                  </td>
-                                  <td className="py-1.5 text-right font-mono">
-                                    ${(t.buyVolume / 1000).toFixed(1)}K
-                                  </td>
-                                  <td
-                                    className={cn(
-                                      "py-1.5 text-right font-mono",
-                                      t.priceChange24h >= 0
-                                        ? "text-green-600 dark:text-green-400"
-                                        : "text-red-600 dark:text-red-400",
-                                    )}
-                                  >
-                                    {(t.priceChange24h >= 0 ? "+" : "") +
-                                      t.priceChange24h.toFixed(1)}
-                                    %
-                                  </td>
-                                </tr>
-                              ))}
-                              {(
-                                leaderboardsData.more.nansenSmartMoney.tokens ??
-                                []
-                              ).length === 0 && (
-                                <tr>
-                                  <td
-                                    colSpan={5}
-                                    className="py-4 text-center text-muted-foreground text-xs"
-                                  >
-                                    No smart money tokens
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                          Smart money flows — follow or fade depending on
-                          strategy.
-                        </p>
-                      </DashboardCard>
-                    )}
-
-                  {/* Alerts — commented out (no value for now) */}
-                  {false && leaderboardsData.more.alerts && (
-                    <DashboardCard title="Alerts" className="lg:col-span-2">
-                      <div className="flex gap-4 text-sm mb-3">
-                        <span>Total: {leaderboardsData.more.alerts.total}</span>
-                        <span>
-                          Unread: {leaderboardsData.more.alerts.unread}
-                        </span>
-                        <span className="text-amber-600 dark:text-amber-400">
-                          High: {leaderboardsData.more.alerts.highPriority}
-                        </span>
-                      </div>
-                      <ul className="space-y-2 max-h-48 overflow-y-auto">
-                        {(leaderboardsData.more.alerts.items ?? []).map(
-                          (a, i) => (
-                            <li
-                              key={i}
-                              className="rounded border border-border/50 px-3 py-2 text-xs"
-                            >
-                              <span className="font-medium">{a.type}</span> ·{" "}
-                              {a.title} — {a.message}
-                              <span className="block text-muted-foreground mt-0.5">
-                                {new Date(a.timestamp).toLocaleString()}
-                              </span>
-                            </li>
-                          ),
-                        )}
-                        {(leaderboardsData.more.alerts.items ?? []).length ===
-                          0 && (
-                          <li className="text-muted-foreground">No alerts</li>
-                        )}
-                      </ul>
-                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                        High-priority alerts may require immediate attention for
-                        risk or opportunity.
-                      </p>
-                    </DashboardCard>
-                  )}
-                </div>
-
-                {!leaderboardsData.more.fearGreed &&
-                  !leaderboardsData.more.options &&
-                  !leaderboardsData.more.volumeInsights &&
-                  !leaderboardsData.more.crossVenue &&
-                  !leaderboardsData.more.oiCap &&
-                  !leaderboardsData.more.alerts &&
-                  !leaderboardsData.more.regime &&
-                  !leaderboardsData.more.binanceIntel &&
-                  !leaderboardsData.more.coinglassExtended &&
-                  !leaderboardsData.more.deribitSkew &&
-                  !leaderboardsData.more.sanbaseOnChain &&
-                  !leaderboardsData.more.nansenSmartMoney && (
-                    <p className="text-center text-muted-foreground py-8">
-                      No MORE data available. Try again in a moment.
-                    </p>
-                  )}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
-                <p className="font-medium text-foreground">
-                  Could not load MORE data
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Make sure VINCE is running, then click Refresh above.
-                </p>
               </div>
             )}
           </TabsContent>
@@ -3936,6 +2144,13 @@ export default function LeaderboardPage({
                         <li>
                           Pending sized orders (Risk) are executed by Otaku
                           every 2 min.
+                        </li>
+                        <li>
+                          Real execution only when{" "}
+                          <code className="rounded bg-muted px-0.5">
+                            POLYMARKET_DESK_LIVE_ENABLED=true
+                          </code>{" "}
+                          (keep unset until paper win rate is proven).
                         </li>
                       </ul>
                       {(deskPositionsBody?.positions?.length ?? 0) > 0 && (
@@ -4823,6 +3038,24 @@ export default function LeaderboardPage({
                 </div>
               ) : null}
             </div>
+          </TabsContent>
+
+          <TabsContent
+            value="recursive"
+            className="mt-6 flex-1 min-h-0 overflow-auto"
+          >
+            <RecursiveNorthStarTab
+              loading={
+                recursiveLoading ||
+                recursiveFetching ||
+                recursiveOperatorLoading ||
+                recursiveOperatorFetching
+              }
+              error={recursiveResult?.error ?? null}
+              data={recursiveResult?.data ?? null}
+              operatorError={recursiveOperatorResult?.error ?? null}
+              operatorData={recursiveOperatorResult?.data ?? null}
+            />
           </TabsContent>
 
           {/* Usage / TREASURY tab: session token usage and estimated cost */}
@@ -6227,8 +4460,8 @@ export default function LeaderboardPage({
                           <p className="text-xs text-muted-foreground pt-1">
                             <strong>Volume (24h vs 7d avg):</strong> Used for
                             position sizing only (not direction). Spike/elevated
-                            → size up; low/dead → size down. See More tab for
-                            live ratios.
+                            → size up; low/dead → size down. Ask VINCE for live
+                            volume ratios if needed.
                           </p>
                           {(paperData.recentClosedTrades?.length ?? 0) > 0 &&
                             (() => {
@@ -6340,6 +4573,15 @@ export default function LeaderboardPage({
                         data as the terminal &quot;SIGNAL EVALUATED - NO
                         TRADE&quot; boxes. Hit Refresh to sync with the running
                         bot.
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        <strong className="text-foreground">dir=neutral</strong>{" "}
+                        means no direction had ≥60% of the swarm vote (agents
+                        vote long/short/neutral; one side must reach that
+                        share). When X (Twitter) sentiment doesn’t contribute
+                        (e.g. below 40% confidence), that’s one fewer strong
+                        vote, so the swarm often stays neutral and the trade is
+                        skipped even when strength/confidence look good.
                       </p>
                       {(paperData.recentNoTrades?.length ?? 0) === 0 ? (
                         <p className="text-muted-foreground py-4 text-sm rounded-lg bg-muted/30 border border-dashed border-border px-3">
@@ -6474,7 +4716,17 @@ export default function LeaderboardPage({
                                 <span className="font-mono">
                                   .elizadb/vince-paper-bot/models/
                                 </span>
-                                .
+                                . Restart the agent to load models (or wait for
+                                the next automatic training run—models then
+                                reload without restart).
+                                <span className="block mt-1">
+                                  Lower the bar: set{" "}
+                                  <span className="font-mono">
+                                    VINCE_ML_SIGNAL_QUALITY_THRESHOLD=0.5
+                                  </span>{" "}
+                                  in .env for more trades with rule-based
+                                  fallback.
+                                </span>
                               </p>
                             ) : (
                               <p className="text-xs text-muted-foreground mt-1">

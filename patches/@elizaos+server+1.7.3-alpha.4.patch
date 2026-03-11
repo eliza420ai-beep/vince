@@ -1,0 +1,12 @@
+diff --git a/node_modules/@elizaos/server/dist/index.js b/node_modules/@elizaos/server/dist/index.js
+index 0000000..1111111 100644
+--- a/node_modules/@elizaos/server/dist/index.js
++++ b/node_modules/@elizaos/server/dist/index.js
+@@ -2072,7 +2072,8 @@
+ // ../../node_modules/bcrypt/bcrypt.js
+ var require_bcrypt = __commonJS((exports, module) => {
+-  var __dirname = "/home/runner/work/eliza/eliza/node_modules/bcrypt";
+   var path7 = __require("path");
++  var __dirname = path7.join(path7.dirname(__require("url").fileURLToPath(import.meta.url)), "../../bcrypt");
+   var bindings = require_node_gyp_build2()(path7.resolve(__dirname));
+   var crypto2 = __require("crypto");

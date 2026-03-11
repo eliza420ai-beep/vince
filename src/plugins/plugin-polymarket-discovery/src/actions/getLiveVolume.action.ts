@@ -38,7 +38,7 @@ export const getLiveVolumeAction: Action = {
   description:
     "Get real-time trading volume (24h rolling) across all Polymarket markets. Useful for tracking market activity and identifying actively traded markets.",
 
-  parameters: {},
+  parameters: [],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     return validatePolymarketService(

@@ -13,7 +13,7 @@ Restore a **Charts** experience on the Leaderboard (similar to the [satoshis Pri
 
 ## 2. Problem
 
-- Leaderboard has Trading Bot, News, Markets, Knowledge, Trading context, Polymarket, Usage — but **no quick way to glance at BTC vs major pairs**.
+- Leaderboard had Trading Bot, News, Markets, Knowledge, Polymarket, Usage (Trading context / More tab was removed) — but **no quick way to glance at BTC vs major pairs**.
 - Context switching to TradingView (or another tab) breaks flow when checking perps/paper bot and macro at the same time.
 - A simple embedded chart tab keeps “one place” for dashboards without new backend or APIs.
 
@@ -53,7 +53,7 @@ Restore a **Charts** experience on the Leaderboard (similar to the [satoshis Pri
 
 ## 5. Acceptance
 
-- [x] "Charts" tab appears on Leaderboard between Knowledge and Trading context.
+- [x] "Charts" tab appears on Leaderboard between Knowledge and Polymarket (Trading context tab was removed and must not be re-added).
 - [x] Selecting Charts shows TradingView embed with pair sub-tabs and timeframe controls.
 - [x] Switching pair or timeframe updates the chart without full page reload.
 - [x] No new env vars or backend changes required.

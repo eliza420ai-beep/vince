@@ -8,6 +8,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -143,7 +144,7 @@ export const vinceRegimeAction: Action = {
     state: State,
     options: unknown,
     callback: HandlerCallback,
-  ): Promise<void> => {
+  ): Promise<ActionResult | undefined> => {
     try {
       const now = new Date();
       const date = now.toLocaleDateString("en-US", {
@@ -221,12 +222,14 @@ export const vinceRegimeAction: Action = {
       });
 
       logger.info("[VINCE_REGIME] Regime brief complete");
+      return undefined;
     } catch (error) {
       logger.error(`[VINCE_REGIME] Error: ${error}`);
       await callback({
         text: "Regime brief failed — data unavailable. Try again later or use ALOHA for full market brief.",
         actions: ["VINCE_REGIME"],
       });
+      return undefined;
     }
   },
 

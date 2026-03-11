@@ -8,10 +8,9 @@
 
 import type { IAgentRuntime } from "@elizaos/core";
 import { logger } from "@elizaos/core";
-import type { VinceHIP3Service } from "../services/hip3.service";
 import type { HIP3Pulse } from "../services/hip3.service";
-import type { VinceDexScreenerService } from "../services/dexscreener.service";
-import type { VinceMeteoraService } from "../services/meteora.service";
+import { VinceHIP3Service } from "../services/hip3.service";
+import type { VinceHLCryptoSnapshotService } from "../services/hlCryptoSnapshot.service";
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
 import type { VinceXSentimentService } from "../services/xSentiment.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
@@ -19,7 +18,10 @@ import { getOrCreateHyperliquidService } from "../services/fallbacks";
 import { HyperliquidFallbackService } from "../services/fallbacks/hyperliquid.fallback";
 import type { IHyperliquidCryptoPulse } from "../types/external-services";
 
-const SECTION_TIMEOUT_MS = 6000;
+// Section-level timeouts for leaderboards. HIP-3 and HL Crypto can take
+// longer when upstream APIs are slow, so we keep this reasonably high to
+// avoid dropping sections that are otherwise healthy.
+const SECTION_TIMEOUT_MS = 20000;
 
 async function safe<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
   try {
@@ -190,8 +192,6 @@ export interface DigitalArtCollectionRow {
   };
 }
 
-const CURATED_COLLECTIONS_COUNT = 12;
-
 export interface DigitalArtLeaderboardSection {
   title: string;
   collections: DigitalArtCollectionRow[];
@@ -283,6 +283,8 @@ export interface MoreLeaderboardSection {
   } | null;
 }
 
+export type SectionStatus = "loading" | "ok" | "stale" | "error";
+
 export interface LeaderboardsResponse {
   updatedAt: number;
   hip3: HIP3LeaderboardSection | null;
@@ -293,6 +295,8 @@ export interface LeaderboardsResponse {
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
+  hip3Status?: SectionStatus;
+  hlCryptoStatus?: SectionStatus;
 }
 
 // ---------------------------------------------------------------------------
@@ -302,16 +306,59 @@ export interface LeaderboardsResponse {
 async function buildHIP3Section(
   runtime: IAgentRuntime,
 ): Promise<HIP3LeaderboardSection | null> {
-  const hip3 = runtime.getService(
+  logger.info("[Leaderboards] HIP3: building section");
+  let hip3 = runtime.getService(
     "VINCE_HIP3_SERVICE",
   ) as VinceHIP3Service | null;
-  if (!hip3) return null;
+  // In some runtime paths the HIP-3 service may not have been registered on
+  // the agent yet (e.g. dashboard-only process). In that case, create a
+  // lightweight instance here so the Markets tab can still render HIP-3 data.
+  if (!hip3) {
+    logger.info(
+      "[Leaderboards] HIP3: VINCE_HIP3_SERVICE not registered on runtime, creating ad-hoc instance",
+    );
+    hip3 = new VinceHIP3Service(runtime);
+  }
 
-  const pulse = await safe(
-    "HIP3",
-    (): Promise<HIP3Pulse | null> =>
-      (hip3 as VinceHIP3Service).getHIP3Pulse?.() ?? Promise.resolve(null),
-  );
+  const hip3Service = hip3 as VinceHIP3Service;
+
+  // Log current cached status so we can understand why the Markets tab might
+  // be empty even when the startup dashboard printed successfully.
+  const status =
+    typeof hip3Service.getStatus === "function"
+      ? hip3Service.getStatus()
+      : null;
+  if (status) {
+    logger.info(
+      `[Leaderboards] HIP3: service status available=${status.available} assetCount=${status.assetCount} lastUpdate=${status.lastUpdate}`,
+    );
+  }
+
+  // Markets endpoint must be fast and non-blocking, even when Hyperliquid is
+  // slow. Read strictly from the cached HIP-3 pulse; background refresh and
+  // startup verification keep this cache warm.
+  const pulse: HIP3Pulse | null =
+    typeof hip3Service.getCachedPulse === "function"
+      ? hip3Service.getCachedPulse()
+      : null;
+  if (!pulse) {
+    logger.warn(
+      "[Leaderboards] HIP3: no pulse available for Markets tab (both live + cache empty)",
+    );
+    if (status?.available && status.assetCount > 0) {
+      logger.warn(
+        "[Leaderboards] HIP3: service reports available data but getHIP3Pulse/getCachedPulse returned null – investigate HIP-3 cache wiring",
+      );
+    }
+  } else {
+    logger.info(
+      "[Leaderboards] HIP3: pulse ready " +
+        `commodities=${pulse.commodities.length} ` +
+        `indices=${pulse.indices.length} ` +
+        `stocks=${pulse.stocks.length} ` +
+        `aiPlays=${pulse.aiPlays.length}`,
+    );
+  }
   if (!pulse) return null;
 
   const allAssets = [
@@ -399,10 +446,14 @@ async function buildHIP3Section(
 async function buildHLCryptoSection(
   runtime: IAgentRuntime,
 ): Promise<HLCryptoLeaderboardSection | null> {
-  // Always use our fallback for leaderboards so we get the full asset list (allTickers, OI leaders, crowded).
-  // The primary service (external plugin or fallback) may not return assets; using fallback here guarantees full data.
-  const fallback = new HyperliquidFallbackService();
-  const pulse = await safe("HL Crypto", () => fallback.getAllCryptoPulse());
+  const snapshot = runtime.getService(
+    "VINCE_HLCRYPTO_SNAPSHOT_SERVICE",
+  ) as VinceHLCryptoSnapshotService | null;
+  if (!snapshot) return null;
+
+  // Markets endpoint must not block on live Hyperliquid calls. Read strictly
+  // from the cached crypto pulse; background refresh keeps it reasonably fresh.
+  const pulse = snapshot.getCachedPulse();
   if (!pulse || !pulse.topMovers?.length) return null;
 
   const p = pulse;
@@ -496,217 +547,6 @@ async function buildHLCryptoSection(
     crowdedLongs,
     crowdedShorts,
   };
-}
-
-async function buildMemesSection(
-  runtime: IAgentRuntime,
-): Promise<MemesLeaderboardSection | null> {
-  const dexscreener = runtime.getService(
-    "VINCE_DEXSCREENER_SERVICE",
-  ) as VinceDexScreenerService | null;
-  if (!dexscreener) return null;
-
-  const solanaSection = await safe("Memes Solana", async () => {
-    const solanaTokens = dexscreener.getTokensByChain("solana");
-    if (solanaTokens.length === 0) return null;
-
-    const hot = solanaTokens.filter((t) => t.priceChange24h >= 21).slice(0, 10);
-    const ape = solanaTokens.filter((t) => t.verdict === "APE").slice(0, 5);
-    const watch = solanaTokens.filter((t) => t.verdict === "WATCH").slice(0, 5);
-    const avoid = solanaTokens.filter((t) => t.verdict === "AVOID").slice(0, 5);
-    const { mood, summary } = dexscreener.getMarketMoodForTokens(solanaTokens);
-
-    const toRow = (
-      t: {
-        symbol: string;
-        price?: number;
-        priceUsd?: number;
-        priceChange24h?: number;
-        volume24h?: number;
-        volumeLiquidityRatio?: number;
-        verdict?: string;
-        marketCap?: number;
-      },
-      i: number,
-    ): LeaderboardRow => ({
-      rank: i + 1,
-      symbol: t.symbol ?? "—",
-      price: t.price ?? t.priceUsd,
-      change24h: t.priceChange24h,
-      volume: t.volume24h,
-      volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
-      extra:
-        t.volumeLiquidityRatio != null
-          ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x`
-          : undefined,
-      verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
-      volumeLiquidityRatio: t.volumeLiquidityRatio,
-      marketCap: t.marketCap,
-    });
-
-    const result: MemesLeaderboardSection = {
-      title: "Memes (Solana)",
-      hot: hot.map((t, i) => toRow(t, i)),
-      ape: ape.map((t, i) => toRow(t, i)),
-      mood: mood ?? "unknown",
-      moodSummary: summary ?? "Meme scanner active.",
-    };
-    if (watch.length > 0) result.watch = watch.map((t, i) => toRow(t, i));
-    if (avoid.length > 0) result.avoid = avoid.map((t, i) => toRow(t, i));
-    return result;
-  });
-
-  if (!solanaSection) return null;
-
-  const news = runtime.getService(
-    "VINCE_NEWS_SENTIMENT_SERVICE",
-  ) as VinceNewsSentimentService | null;
-  const leftcurve =
-    news != null
-      ? await safe("Memes leftcurve", async () => {
-          const items = (news as any).getNewsByCategory?.("leftcurve") ?? [];
-          return items
-            .slice(0, 10)
-            .map((n: { title: string; url?: string }) => ({
-              text: n.title,
-              ...(n.url && { url: n.url }),
-            }));
-        })
-      : null;
-
-  if (leftcurve && Array.isArray(leftcurve) && leftcurve.length > 0) {
-    solanaSection.leftcurve = {
-      title: "Left Curve (MandoMinutes)",
-      headlines: leftcurve,
-    };
-  }
-  return solanaSection;
-}
-
-async function buildMemesBaseSection(
-  runtime: IAgentRuntime,
-): Promise<MemesLeaderboardSection | null> {
-  const dexscreener = runtime.getService(
-    "VINCE_DEXSCREENER_SERVICE",
-  ) as VinceDexScreenerService | null;
-  if (!dexscreener) return null;
-
-  const baseSection = await safe("Memes BASE", async () => {
-    const baseTokens = dexscreener.getTokensByChain("base");
-    if (baseTokens.length === 0) return null;
-
-    const hot = baseTokens.filter((t) => t.priceChange24h >= 21).slice(0, 10);
-    const ape = baseTokens.filter((t) => t.verdict === "APE").slice(0, 5);
-    const watch = baseTokens.filter((t) => t.verdict === "WATCH").slice(0, 5);
-    const avoid = baseTokens.filter((t) => t.verdict === "AVOID").slice(0, 5);
-    const { mood, summary } = dexscreener.getMarketMoodForTokens(baseTokens);
-
-    const toRow = (
-      t: {
-        symbol: string;
-        price?: number;
-        priceUsd?: number;
-        priceChange24h?: number;
-        volume24h?: number;
-        volumeLiquidityRatio?: number;
-        verdict?: string;
-        marketCap?: number;
-      },
-      i: number,
-    ): LeaderboardRow => ({
-      rank: i + 1,
-      symbol: t.symbol ?? "—",
-      price: t.price ?? t.priceUsd,
-      change24h: t.priceChange24h,
-      volume: t.volume24h,
-      volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
-      extra:
-        t.volumeLiquidityRatio != null
-          ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x`
-          : undefined,
-      verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
-      volumeLiquidityRatio: t.volumeLiquidityRatio,
-      marketCap: t.marketCap,
-    });
-
-    const result: MemesLeaderboardSection = {
-      title: "Memes (BASE)",
-      hot: hot.map((t, i) => toRow(t, i)),
-      ape: ape.map((t, i) => toRow(t, i)),
-      mood: mood ?? "unknown",
-      moodSummary: summary ?? "BASE meme scanner active.",
-    };
-    if (watch.length > 0) result.watch = watch.map((t, i) => toRow(t, i));
-    if (avoid.length > 0) result.avoid = avoid.map((t, i) => toRow(t, i));
-    return result;
-  });
-
-  return baseSection ?? null;
-}
-
-function toMeteoraPoolRow(
-  p: {
-    address?: string;
-    name?: string;
-    tokenA?: string;
-    tokenB?: string;
-    tvl: number;
-    apy?: number;
-    binWidth?: number;
-    volume24h?: number;
-  },
-  id?: string,
-): MeteoraPoolRow {
-  return {
-    id: id ?? p.address,
-    name: p.name ?? (p.tokenA && p.tokenB ? `${p.tokenA}/${p.tokenB}` : "—"),
-    tvl: p.tvl,
-    tvlFormatted: formatVol(p.tvl),
-    apy: p.apy,
-    binWidth: p.binWidth,
-    ...(p.volume24h != null && { volume24h: p.volume24h }),
-  };
-}
-
-async function buildMeteoraSection(
-  runtime: IAgentRuntime,
-): Promise<MeteoraLeaderboardSection | null> {
-  const meteora = runtime.getService(
-    "VINCE_METEORA_SERVICE",
-  ) as VinceMeteoraService | null;
-  if (!meteora) return null;
-
-  const pools = await safe("Meteora", () =>
-    Promise.resolve(meteora.getTopPools(10)),
-  );
-  const memePoolsRaw = await safe("Meteora memePools", () =>
-    Promise.resolve(meteora.getMemePoolOpportunities?.() ?? []),
-  );
-  const allByApy = await safe("Meteora allByApy", () =>
-    Promise.resolve(meteora.getAllPoolsRankedByApy?.(25) ?? []),
-  );
-  const tldr = await safe("Meteora TLDR", () =>
-    Promise.resolve(meteora.getTLDR()),
-  );
-
-  if (!pools || pools.length === 0) return null;
-
-  const result: MeteoraLeaderboardSection = {
-    title: "Meteora LP",
-    topPools: pools.map((p: any) => toMeteoraPoolRow(p)),
-    oneLiner: tldr ?? "Top pools by TVL.",
-  };
-  if (memePoolsRaw && memePoolsRaw.length > 0) {
-    result.memePools = memePoolsRaw.map((p: any) => toMeteoraPoolRow(p));
-  }
-  if (allByApy && allByApy.length > 0) {
-    result.allPoolsByApy = allByApy.map((p) => ({
-      ...toMeteoraPoolRow(p, p.address),
-      category:
-        p.category === "meme" ? "Meme LP opportunities" : "Top pools by TVL",
-    }));
-  }
-  return result;
 }
 
 /** Same key as news service – raw Mando cache so we return the full list the terminal shows */
@@ -936,166 +776,6 @@ export async function buildDebugXSentimentResponse(
   return {
     assets,
     rateLimitedUntil: rateLimitedUntilMs > now ? rateLimitedUntilMs : null,
-  };
-}
-
-async function buildDigitalArtSection(
-  runtime: IAgentRuntime,
-): Promise<DigitalArtLeaderboardSection | null> {
-  const nftFloor = runtime.getService("VINCE_NFT_FLOOR_SERVICE") as {
-    refreshData?: () => Promise<void>;
-    getAllFloors?: () => Array<{
-      name: string;
-      slug: string;
-      floorPrice: number;
-      floorPriceUsd?: number;
-      floorThickness: string;
-      category?: string;
-      totalVolume?: number;
-      volume24h?: number;
-      nftsNearFloor?: number;
-      recentSalesPrices?: number[];
-      allSalesBelowFloor?: boolean;
-      maxRecentSaleEth?: number;
-      gaps?: {
-        to2nd?: number;
-        to3rd?: number;
-        to4th?: number;
-        to5th?: number;
-        to6th?: number;
-      };
-    }>;
-    getTLDR?: () => string;
-  } | null;
-  if (!nftFloor?.getAllFloors) return null;
-
-  await safe("Digital Art refresh", () =>
-    Promise.resolve(nftFloor.refreshData?.() ?? Promise.resolve()),
-  );
-  const floors = await safe("Digital Art floors", () =>
-    Promise.resolve(nftFloor.getAllFloors?.() ?? []),
-  );
-  const tldr = await safe("Digital Art TLDR", () =>
-    Promise.resolve(nftFloor.getTLDR?.() ?? "NFT floor data"),
-  );
-
-  if (!floors || floors.length === 0) {
-    return {
-      title: "Digital Art",
-      collections: [],
-      oneLiner:
-        tldr ?? "NFT: No data yet — set OPENSEA_API_KEY for floor prices.",
-    };
-  }
-
-  // Gem-on-floor criteria: thin floor + recent sales + at least one sale at/above floor
-  const MIN_VOLUME_7D_ETH = 0.001;
-  const MIN_GAP_TO_2ND_ETH = 0.21;
-  const liquidFloors = floors.filter((c) => {
-    const volume7d = c.totalVolume ?? c.volume24h ?? 0;
-    const gapTo2nd = c.gaps?.to2nd ?? 0;
-    const hasRecentSales = volume7d >= MIN_VOLUME_7D_ETH;
-    const hasThinFloor = gapTo2nd >= MIN_GAP_TO_2ND_ETH;
-    const salesSupportFloor = c.allSalesBelowFloor !== true; // exclude if all recent sales below floor
-    return hasRecentSales && hasThinFloor && salesSupportFloor;
-  });
-
-  const collections: DigitalArtCollectionRow[] = liquidFloors
-    .map((c) => {
-      const to2nd = c.gaps?.to2nd ?? 0;
-      const gapPctTo2nd =
-        c.floorPrice > 0 && to2nd > 0
-          ? (to2nd / c.floorPrice) * 100
-          : undefined;
-      return {
-        name: c.name,
-        slug: c.slug,
-        floorPrice: c.floorPrice,
-        floorPriceUsd: c.floorPriceUsd,
-        floorThickness: c.floorThickness,
-        category: c.category,
-        volume7d: c.totalVolume,
-        nftsNearFloor: c.nftsNearFloor,
-        gapPctTo2nd,
-        recentSalesPrices: c.recentSalesPrices,
-        allSalesBelowFloor: c.allSalesBelowFloor,
-        maxRecentSaleEth: c.maxRecentSaleEth,
-        gaps: {
-          to2nd,
-          to3rd: c.gaps?.to3rd ?? 0,
-          to4th: c.gaps?.to4th ?? 0,
-          to5th: c.gaps?.to5th ?? 0,
-          to6th: c.gaps?.to6th ?? 0,
-        },
-      };
-    })
-    .sort((a, b) => {
-      // Sort by Thickness: Thin → Medium → Thick
-      const order = (t: string) => {
-        const x = (t || "").toLowerCase();
-        if (x === "thin") return 0;
-        if (x === "medium") return 1;
-        if (x === "thick") return 2;
-        return 1;
-      };
-      return order(a.floorThickness) - order(b.floorThickness);
-    });
-
-  const meetCount = liquidFloors.length;
-  const criteriaExplanation = [
-    `1) Gap to 2nd listing ≥ 0.21 ETH (thin floor)`,
-    `2) Recent 7d volume (liquidity)`,
-    `3) At least one recent sale at or above floor (price support)`,
-  ].join("; ");
-  const criteriaNote =
-    meetCount > 0
-      ? `${meetCount} of ${CURATED_COLLECTIONS_COUNT} curated collections meet gem-on-floor criteria: ${criteriaExplanation}`
-      : `0 of ${CURATED_COLLECTIONS_COUNT} curated collections meet criteria. Requirements: ${criteriaExplanation}`;
-
-  // All curated collections with non-zero 7d volume, sorted by volume desc (no strict gem criteria)
-  const volumeLeaders: DigitalArtCollectionRow[] = floors
-    .filter((c) => {
-      const vol = c.totalVolume ?? c.volume24h ?? 0;
-      return vol > 0;
-    })
-    .map((c) => {
-      const to2nd = c.gaps?.to2nd ?? 0;
-      const gapPctTo2nd =
-        c.floorPrice > 0 && to2nd > 0
-          ? (to2nd / c.floorPrice) * 100
-          : undefined;
-      return {
-        name: c.name,
-        slug: c.slug,
-        floorPrice: c.floorPrice,
-        floorPriceUsd: c.floorPriceUsd,
-        floorThickness: c.floorThickness,
-        category: c.category,
-        volume7d: c.totalVolume,
-        nftsNearFloor: c.nftsNearFloor,
-        gapPctTo2nd,
-        recentSalesPrices: c.recentSalesPrices,
-        allSalesBelowFloor: c.allSalesBelowFloor,
-        maxRecentSaleEth: c.maxRecentSaleEth,
-        gaps: {
-          to2nd,
-          to3rd: c.gaps?.to3rd ?? 0,
-          to4th: c.gaps?.to4th ?? 0,
-          to5th: c.gaps?.to5th ?? 0,
-          to6th: c.gaps?.to6th ?? 0,
-        },
-      };
-    })
-    .sort((a, b) => (b.volume7d ?? 0) - (a.volume7d ?? 0));
-
-  return {
-    title: "Digital Art",
-    collections,
-    volumeLeaders,
-    oneLiner:
-      tldr ??
-      "Curated NFT collections — floor prices and thin-floor opportunities.",
-    criteriaNote,
   };
 }
 
@@ -1545,17 +1225,48 @@ export async function buildLeaderboardsResponse(
 ): Promise<LeaderboardsResponse> {
   const now = Date.now();
 
-  const [hip3, hlCrypto, memes, memesBase, meteora, news, digitalArt, more] =
-    await Promise.all([
-      buildHIP3Section(runtime),
-      buildHLCryptoSection(runtime),
-      buildMemesSection(runtime),
-      buildMemesBaseSection(runtime),
-      buildMeteoraSection(runtime),
-      buildNewsSection(runtime),
-      buildDigitalArtSection(runtime),
-      buildMoreSection(runtime),
-    ]);
+  // Markets first (hip3 + hlCrypto) — keep this isolated so Markets tab is reliable.
+  const [hip3, hlCrypto] = await Promise.all([
+    buildHIP3Section(runtime),
+    buildHLCryptoSection(runtime),
+  ]);
+
+  // News (MandoMinutes) built separately so a failure here never breaks Markets.
+  const news = await safe("News", () => buildNewsSection(runtime));
+
+  // Other sections left null so Markets stays stable (can be re-enabled per-section later).
+  const memes = null as MemesLeaderboardSection | null;
+  const memesBase = null as MemesLeaderboardSection | null;
+  const meteora = null as MeteoraLeaderboardSection | null;
+  const digitalArt = null as DigitalArtLeaderboardSection | null;
+  const more = null as MoreLeaderboardSection | null;
+
+  // Derive simple status flags for UI hints.
+  let hip3Status: SectionStatus = "loading";
+  const hip3Service = runtime.getService(
+    "VINCE_HIP3_SERVICE",
+  ) as VinceHIP3Service | null;
+  if (hip3Service?.getStatus) {
+    const s = hip3Service.getStatus();
+    if (!s.available) hip3Status = "loading";
+    else if (now - s.lastUpdate > 5 * 60_000) hip3Status = "stale";
+    else hip3Status = "ok";
+  } else if (hip3) {
+    hip3Status = "ok";
+  }
+
+  let hlCryptoStatus: SectionStatus = "loading";
+  const hlSnapshot = runtime.getService(
+    "VINCE_HLCRYPTO_SNAPSHOT_SERVICE",
+  ) as VinceHLCryptoSnapshotService | null;
+  if (hlSnapshot?.getStatus) {
+    const s = hlSnapshot.getStatus();
+    if (!s.available) hlCryptoStatus = "loading";
+    else if (now - s.lastUpdate > 5 * 60_000) hlCryptoStatus = "stale";
+    else hlCryptoStatus = "ok";
+  } else if (hlCrypto) {
+    hlCryptoStatus = "ok";
+  }
 
   return {
     updatedAt: now,
@@ -1567,5 +1278,7 @@ export async function buildLeaderboardsResponse(
     news,
     digitalArt,
     more,
+    hip3Status,
+    hlCryptoStatus,
   };
 }
