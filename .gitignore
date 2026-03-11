@@ -43,13 +43,13 @@ otaku-ref/
 # Local-only data (e.g. Solus current positions); never commit
 local/
 
-# Private Hypersurface sizing file for Solus (gitignored but loaded at runtime)
-knowledge/private/solus-options-sizing.md
+# Knowledge base — personal RAG corpus; not committed to public repo.
+# Agents load this at runtime from the local filesystem.
+# To share knowledge publicly, maintain a separate knowledge-public/ directory.
+knowledge/
 
-# Optional: uncomment if you don't want to track knowledge build artifacts
-# knowledge/**/*.pdf
+# Cursor plan files — internal task planning; not public
+.cursor/plans/
 
-# Summarize slide extraction output (images); remove to commit slides
-knowledge/.slides/
-
-.openclaw-cache/
+# tasks/todo.md — operational notes; not public
+tasks/todo.md
