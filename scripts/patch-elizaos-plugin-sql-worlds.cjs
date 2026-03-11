@@ -176,6 +176,12 @@ const ensureSchemaPatched = `
     }
   }`;
 
+// generateCreateIndexSQL must emit IF NOT EXISTS so a re-run after a partial
+// migration (index created but snapshot not recorded) doesn't crash on
+// "already exists".
+const createIndexUnpatched = `  return \`CREATE \${unique2}INDEX "\${indexName}" ON \${tableRef} USING \${method} (\${columns2});\`;`;
+const createIndexPatched   = `  return \`CREATE \${unique2}INDEX IF NOT EXISTS "\${indexName}" ON \${tableRef} USING \${method} (\${columns2});\`;`;
+
 // On schema-less engines, references like "migrations._migrations" fail even if
 // CREATE SCHEMA is skipped. Normalize runtime migrator metadata tables to the
 // default namespace so table creation and queries are consistent.
@@ -230,6 +236,19 @@ for (const file of files) {
   } else {
     console.warn(
       "patch-elizaos-plugin-sql-worlds: ensureSchema pattern not found, skipping",
+    );
+  }
+
+  if (s.includes(createIndexPatched)) {
+    // Already patched
+  } else if (s.includes(createIndexUnpatched)) {
+    s = s.replace(createIndexUnpatched, createIndexPatched);
+    console.log(
+      "patch-elizaos-plugin-sql-worlds: generateCreateIndexSQL IF NOT EXISTS applied",
+    );
+  } else {
+    console.warn(
+      "patch-elizaos-plugin-sql-worlds: generateCreateIndexSQL pattern not found, skipping",
     );
   }
 
