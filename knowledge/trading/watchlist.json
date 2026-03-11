@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-02-01",
+  "tokens": [
+    {
+      "symbol": "MOLT",
+      "chain": "solana",
+      "address": "",
+      "entryTarget": 2000000,
+      "stopLoss": 1500000,
+      "takeProfit": 15000000,
+      "notes": "AI agent narrative, watch for volume spike. Original MOLT-tier play template.",
+      "addedDate": "2026-01-15",
+      "priority": "high",
+      "source": "frank_degods"
+    },
+    {
+      "symbol": "AGENT",
+      "chain": "solana",
+      "address": "",
+      "entryTarget": 1500000,
+      "stopLoss": 1000000,
+      "takeProfit": 10000000,
+      "notes": "ElizaOS narrative token. Watch for ecosystem announcements.",
+      "addedDate": "2026-02-01",
+      "priority": "medium",
+      "source": "dexscreener_trending"
+    }
+  ],
+  "reminders": [
+    "Update this file weekly with new tickers from fomo.family trending",
+    "Remove tokens that have already pumped past TP",
+    "Add tokens Frank DeGods mentions early",
+    "Check grinding-the-trenches/ knowledge for methodology updates",
+    "Sweet spot entry: $1.5M-$5M mcap with 3x+ vol/liq ratio"
+  ],
+  "notes": {
+    "entryTarget": "Market cap in USD where you want to enter",
+    "stopLoss": "Market cap in USD - exit if drops below",
+    "takeProfit": "Market cap in USD - take profits at or above",
+    "priority": "high = check daily, medium = check when scanning, low = on radar",
+    "source": "Where you found this token (fomo.family, frank_degods, dexscreener_trending, etc.)"
+  }
+}

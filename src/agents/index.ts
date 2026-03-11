@@ -13,6 +13,7 @@
  * | Sentinel | CTO  | Ops, code, infra |
  * | ECHO     | CSO  | CT sentiment, X research, social alpha |
  * | Oracle   | —    | Prediction markets (Polymarket discovery, odds, portfolio) |
+ * | Forge    | —    | MLX AutoResearch: mutate, measure, commit (overnight optimizer) |
  */
 
 export { character as elizaCharacter } from "./eliza";
@@ -25,6 +26,7 @@ export { echoCharacter } from "./echo";
 export { oracleCharacter } from "./oracle";
 export { navalCharacter } from "./naval";
 export { clawtermCharacter, clawtermAgent } from "./clawterm";
+export { forgeCharacter, forgeAgent } from "./forge";
 
 // Type exports
 export type { Character } from "@elizaos/core";
