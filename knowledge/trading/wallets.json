@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-02-01",
+  "wallets": [
+    {
+      "address": "",
+      "name": "FrankDeGods",
+      "chain": "solana",
+      "type": "influencer",
+      "copyMode": "signal",
+      "priority": "high",
+      "notes": "Early meme plays, follow direction not size. Known for calling MOLT early."
+    },
+    {
+      "address": "",
+      "name": "SmartMoney1",
+      "chain": "solana",
+      "type": "smart_money",
+      "copyMode": "signal",
+      "priority": "medium",
+      "notes": "Placeholder - add smart money wallet addresses from Nansen or Arkham"
+    }
+  ],
+  "hyperliquid": [
+    {
+      "address": "",
+      "name": "WhaleTrader1",
+      "type": "whale",
+      "copyMode": "signal",
+      "priority": "medium",
+      "notes": "Placeholder - add Hyperliquid whale addresses to track"
+    }
+  ],
+  "reminders": [
+    "Find Frank DeGods Solana wallet address and add here",
+    "Check Arkham Intelligence for smart money wallets on SOL",
+    "Add wallets that consistently buy AI memes early",
+    "Monitor Hyperliquid top traders for perps positions"
+  ],
+  "notes": {
+    "copyMode": "signal = get alerts on trades, mirror = copy positions (not implemented), ignore = track but no alerts",
+    "type": "influencer = public figure, smart_money = Nansen-identified, whale = large holder, degen = consistent early entries",
+    "priority": "high = real-time alerts, medium = batch alerts, low = log only"
+  }
+}

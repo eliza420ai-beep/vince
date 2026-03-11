@@ -1,0 +1,9 @@
+{
+  "id": "crowded-long-liquidity-sweep",
+  "name": "Crowded Long Liquidity Sweep",
+  "longShortRatioMin": 1.7,
+  "fundingRateMin": 0.02,
+  "openInterestChangePctMin": 8,
+  "fearGreedMin": 75,
+  "expectedLossRate": 0.62
+}

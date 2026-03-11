@@ -21,6 +21,7 @@ This repository is the **VINCE** project: a unified data-intelligence **multi-ag
 | **Kelly**    | CVO  | `src/agents/kelly.ts`    | Lifestyle concierge; one team one dream; plugin-discovery, plugin-todo, **plugin-personality** (self-modification). |
 | **Sentinel** | CTO  | `src/agents/sentinel.ts` | Core dev: PRDs, project radar, OpenClaw guide, cost status, ART; weekly + optional daily tasks.                     |
 | **Clawterm** | —    | `src/agents/clawterm.ts` | OpenClaw research terminal: research, gateway, HIP-3 AI assets.                                                     |
+| **Forge**    | —    | `src/agents/forge.ts`    | MLX AutoResearch: overnight self-optimization; mutate → replay → commit winners. Silent by default.                 |
 
 ### Key concepts
 
