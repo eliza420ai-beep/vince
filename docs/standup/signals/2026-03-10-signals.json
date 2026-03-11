@@ -1,0 +1,12 @@
+{
+  "date": "2026-03-10",
+  "signals": [
+    {
+      "asset": "BTC",
+      "direction": "long",
+      "confidence_pct": 50,
+      "source": "solus",
+      "raw": "BTC covered calls ITM by 74 bps, buying back early to unlock collateral and roll higher rather than get assigned at $70,500."
+    }
+  ]
+}

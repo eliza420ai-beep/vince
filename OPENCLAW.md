@@ -11,6 +11,24 @@ When you (OpenClaw) work on this repo — including the fork [eliza420ai-beep/vi
 | **skills/**          | Cursor/Claude skills: **x-research** (X/Twitter search, thread, watchlist; same X token as VINCE in-chat), **whats-the-trade** (belief router — turn opinions into trade expressions), **trading-agent** (EVClaw reference — OpenClaw live trading agent for Hyperliquid perps/HIP3). See [skills/x-research/README.md](skills/x-research/README.md), [skills/trading-agent/README.md](skills/trading-agent/README.md). |
 | **tasks/**           | Working notes, lessons, frontend quickstarts, todo. Task backlogs and team notes. See [tasks/README.md](tasks/README.md). |
 
+## Bob: Local AI Cluster
+
+OpenClaw runs on **Bob**, a private local cluster. Current state (March 2026):
+
+| Component | Detail |
+|-----------|--------|
+| **Mac Studio ×2** | M3 Ultra · 512 GB unified memory each |
+| **DGX Spark** | Recent addition — prefills, faster inference (in progress) |
+| **LAN** | 10 GbE connecting all nodes |
+| **Bob OG** | Qwen3.5-397B — main brain, reasoning, daily tasks (~40–60 tok/s) |
+| **Bob Researcher** | Qwen3.5-27B-Claude-4.6-Opus-Distilled-MLX-4bit — long research |
+| **Bob App Developer** | MiniMax M2.5 — coding / debugging |
+| **Serving** | LM Studio + Exo Labs (multi-machine cluster) |
+
+**Key tuning applied:** Semantic search and temporal decay are **off by default** in OpenClaw — both have been manually enabled. This is the most impactful session-hygiene step. See [`knowledge/sentinel-docs/BOB_CLUSTER_STATE.md`](knowledge/sentinel-docs/BOB_CLUSTER_STATE.md) for the full field report and implications.
+
+**Overall verdict (March 2026):** Local is the default; cloud is the exception.
+
 ## Clawterm: OpenClaw Expert
 
 **Clawterm** is the OpenClaw specialist agent. Key knowledge:

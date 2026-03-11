@@ -4114,6 +4114,22 @@ Reply format: APPROVE reason or VETO reason`;
     }
 
     // ==========================================
+    // Forge Signal Cache — link this trade to its aggregation record
+    // ==========================================
+    if (position) {
+      setImmediate(() => {
+        try {
+          const {
+            linkForgeRecordToTrade,
+          } = require("../forge/forgeSignalCache");
+          linkForgeRecordToTrade(asset, position.id, Date.now());
+        } catch (_e) {
+          // non-fatal
+        }
+      });
+    }
+
+    // ==========================================
     // DETAILED TRADE OPENED LOG (reuse vars from above; only add log-only ones)
     // ==========================================
     const pnlPer1Pct = sizeUsd / 100;
@@ -4367,6 +4383,26 @@ Reply format: APPROVE reason or VETO reason`;
     } catch (e) {
       logger.debug(`[VincePaperTrading] Attribution recordClose failed: ${e}`);
     }
+
+    // Forge Signal Cache — back-fill outcome so the replay engine has labeled data
+    setImmediate(() => {
+      try {
+        const {
+          updateForgeSignalOutcome,
+        } = require("../forge/forgeSignalCache");
+        const holdMinutes = closedPosition.openedAt
+          ? Math.round((Date.now() - closedPosition.openedAt) / 60_000)
+          : 0;
+        const forgeOutcome: "win" | "loss" | "neutral" = isWin
+          ? "win"
+          : pnlPct < 0
+            ? "loss"
+            : "neutral";
+        updateForgeSignalOutcome(positionId, forgeOutcome, pnlPct, holdMinutes);
+      } catch (_e) {
+        // non-fatal
+      }
+    });
 
     return closedPosition;
   }

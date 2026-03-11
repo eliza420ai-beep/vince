@@ -19,6 +19,30 @@
 
 ---
 
+## The Stack: Three Repos, One Recursive Loop
+
+VINCE is the runtime — continuous agents, paper bot, ML feature store, multi-agent swarm. But the full system is a three-repo stack, and the core focus right now is building the bridges between them.
+
+| Repo | Role | Doc |
+|---|---|---|
+| **VINCE** (this repo) | Agent runtime, paper bot, Forge autoresearch, signal aggregator | — |
+| **[Dexter](https://github.com/eliza420ai-beep/dexter)** | Thesis-driven research terminal, real broker execution, portfolio attribution | [docs/DEXTER.md](docs/DEXTER.md) |
+| **[AIHF](https://github.com/eliza420ai-beep/ai-hedge-fund)** | 18-agent adversarial challenge layer, Risk Manager, autoresearch | [docs/AIHF.md](docs/AIHF.md) |
+
+### [DEXTER.md](docs/DEXTER.md) — The execution and thesis layer
+
+Dexter is what VINCE currently lacks: real broker execution (tastytrade + Hyperliquid), Financial Datasets fundamentals for HIP-3 equities, SOUL.md as a formal investment thesis, and quarterly attribution vs BTC/SPY/GLD. VINCE is the continuous signal engine; Dexter closes the loop on real capital. Eight integration surfaces connect them — SOUL.md sync, fundamentals as a signal source, paper-to-live execution gate, and Forge pulling Dexter regime data as replay context. The Forge PRD already calls for this explicitly: Echo moves to Dexter as a skill; the frontend becomes the terminal for the three-repo stack.
+
+### [AIHF.md](docs/AIHF.md) — The adversarial conviction check
+
+The AI Hedge Fund runs 18 analyst agents (Buffett, Munger, Burry, Druckenmiller, Damodaran + 12 more) plus a Risk Manager and Portfolio Manager against any ticker via FastAPI. It's the external validation layer VINCE's closed self-improvement loop can't provide on its own. For HIP-3 equities (AMZN, MSTR, CRCL, NVDA, TSLA), AIHF becomes a signal source in the aggregator (`AIHFEquity`, weight 1.8, 4h cache) — and a pre-trade veto gate when the committee strongly disagrees with a VINCE long. Today's evidence is direct: all four stop-losses this session were in `regime:uncertain` with 30-40% Echo confidence. AIHF's committee — particularly Druckenmiller (macro) and the Technical Analyst — would have flagged all four before entry. AIHF's autoresearch also acts as a hypothesis generator for Forge: its session-one finding ("disable trading in unfavorable regimes" = Sharpe -0.79 → +2.22) maps directly to the regime_conflict pattern in today's post-mortems.
+
+### [RECURSIVE.md](docs/RECURSIVE.md) — The autoresearch architecture
+
+The autoresearch-mlx framework (Karpathy's loop, Apple Silicon port) changes what Forge can do: not dozens of nightly experiments, but thousands. The enabling technology is the **signal cache** — a ~100-line addition to `signalAggregator.service.ts` that records every source's pre-aggregation output for each trade evaluation. Once cached, the replay function is pure arithmetic (no API calls, ~100ms per experiment) and Forge runs 5,000+ experiments per night across five distinct recursive layers: signal weights, thresholds, risk parameters, feature selection, and prompt autoresearch. Each layer has its own mutable file, one metric, and a `program.md` protocol the AI agent follows autonomously. The deepest unlock is **regime-specific autoresearch**: run the signal weights loop separately on `regime:uncertain` trades and `regime:bull` trades — the optimal weight configurations diverge significantly, just as Mac Mini and M4 Max found different winners in autoresearch-mlx. The signal cache is the one thing that needs to be built. Everything else follows.
+
+---
+
 ## What We Built: A Recursive Trading Intelligence Engine
 
 Markets are now an AI-vs-AI game.  

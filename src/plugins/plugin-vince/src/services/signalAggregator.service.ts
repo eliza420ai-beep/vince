@@ -49,6 +49,13 @@ import {
   getOrCreateDeribitService,
 } from "./fallbacks";
 
+// Forge Signal Cache — records every evaluation for overnight autoresearch replay
+import {
+  writeForgeSignalRecord,
+  extractRegimeFromFactors,
+  type ForgeSourceVote,
+} from "../forge/forgeSignalCache";
+
 // V2: Session Filters and Open Window Trend Spotting
 import {
   applySessionFilter,
@@ -268,9 +275,13 @@ const DECAY_CONFIG = {
 };
 
 /**
- * Calculate decay multiplier based on signal age
+ * Calculate decay multiplier based on signal age.
+ * Exported so forgeSignalCache.ts replay engine can reconstruct exact values.
  */
-const getRecencyDecay = (signalTimestamp: number, source: string): number => {
+export const getRecencyDecay = (
+  signalTimestamp: number,
+  source: string,
+): number => {
   const age = Date.now() - signalTimestamp;
 
   // Cascade signals decay exponentially with short half-life
@@ -2868,6 +2879,66 @@ export class VinceSignalAggregatorService extends Service {
           (shouldTrade ? "" : " [BLOCKED]"),
       );
     }
+
+    // =========================================
+    // Forge Signal Cache — record this evaluation for overnight autoresearch
+    // Fire-and-forget: does NOT block the aggregation return path.
+    // =========================================
+    setImmediate(() => {
+      try {
+        const forgeEnabled = process.env.FORGE_SIGNAL_CACHE_ENABLED !== "false"; // default on
+        if (!forgeEnabled) return;
+
+        const sourceVotes: ForgeSourceVote[] = signals.map((s) => ({
+          source: s.source,
+          direction: s.direction,
+          confidence: s.confidence,
+          strength: s.strength,
+          signalTimestamp: s.timestamp,
+        }));
+
+        const weightsSnapshot = Object.fromEntries(
+          signals.map((s) => [s.source, getDynamicSourceWeight(s.source)]),
+        );
+
+        const regime = extractRegimeFromFactors(aggregated.factors);
+
+        // postAggMultiplier captures volume × combo × history × rsi in a single number
+        // so the replay engine can apply it without re-running those sub-calculations
+        const postAggMultiplier =
+          volumeMultiplier *
+          comboMultiplier *
+          historyMultiplier *
+          rsiMultiplier;
+
+        writeForgeSignalRecord({
+          id: `${asset}-${aggregated.timestamp}`,
+          evaluatedAt: aggregated.timestamp,
+          asset,
+          regime,
+          sourceVotes,
+          weightsSnapshot,
+          postAggMultiplier: isFinite(postAggMultiplier)
+            ? postAggMultiplier
+            : 1.0,
+          sessionMultiplier: isFinite(sessionMultiplier)
+            ? sessionMultiplier
+            : 1.0,
+          openWindowBoost,
+          direction: aggregated.direction,
+          strength: aggregated.strength,
+          confidence: aggregated.confidence,
+          confirmingCount: aggregated.confirmingCount,
+          // meetsThreshold: was this directional AND session-unblocked?
+          // Replay reapplies threshold gates independently.
+          meetsThreshold:
+            aggregated.direction !== "neutral" &&
+            aggregated.shouldTrade !== false,
+        });
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] Forge cache write skipped: ${e}`);
+      }
+    });
 
     this.signalCache.set(asset, aggregated);
     return aggregated;

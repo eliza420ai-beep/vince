@@ -1,0 +1,16 @@
+{
+  "id": "ml-20260311-004",
+  "title": "Add Funding 8h delta to feature store",
+  "description": "Change in funding rate over last 8h; predicts reversals.. present but 8% non-null \u2014 consider populating",
+  "scope": "In scope: feature store and signal aggregator. Out of scope: model architecture.",
+  "acceptanceCriteria": [
+    "Task completed and verified."
+  ],
+  "expectedOutcome": "Change in funding rate over last 8h; predicts reversals.",
+  "source": "ml_training",
+  "branchName": "sentinel/2026-03-11-ml-add-funding-8h-delta-to-f",
+  "createdAt": "2026-03-11T23:34:22.748251",
+  "plugin": "plugin-vince",
+  "priority": "P2",
+  "effort": "XS"
+}

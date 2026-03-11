@@ -183,3 +183,7 @@
 ## 2026-03-05
 
 - Clawterm → Sentinel: Cross-link Blender skill template sprint to recursive north star acceleration for unified builder momentum.
+## 2026-03-11
+
+- Eliza: Map OpenClaw deployments into agentic-systems knowledge to close production patterns gap.
+- Clawterm: Ship Quick Start video to reduce --bind tailnet friction and improve clawhub adoption.

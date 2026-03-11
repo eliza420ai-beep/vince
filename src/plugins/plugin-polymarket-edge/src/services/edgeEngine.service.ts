@@ -282,8 +282,8 @@ export class EdgeEngineService extends Service {
       query: (text: string, values?: unknown[]) => Promise<unknown>;
     };
     try {
+      await client.query(`CREATE SCHEMA IF NOT EXISTS plugin_polymarket_edge;`);
       await client.query(`
-        CREATE SCHEMA IF NOT EXISTS plugin_polymarket_edge;
         CREATE TABLE IF NOT EXISTS plugin_polymarket_edge.edge_signals (
           id TEXT PRIMARY KEY,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

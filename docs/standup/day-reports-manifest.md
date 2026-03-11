@@ -64,3 +64,4 @@
 | 2026-03-04 | Fed cuts priced out, whales accumulating under retail caution, paper bot caught  | [View](day-reports/2026-03-04-day-report.md) |
 | 2026-03-05 | BTC long signal at 57% confidence but mixed tape (HYPE down 2.1%) and regulatory | [View](day-reports/2026-03-05-day-report.md) |
 | 2026-03-05 | BTC holding $71K while Fear Index hits 22, whales accumulating on $462M ETF infl | [View](day-reports/2026-03-05-day-report.md) |
+| 2026-03-11 | Signal flipped long on extreme fear (index 15) but paper bot's down 83%, so we'r | [View](day-reports/2026-03-11-day-report.md) |
