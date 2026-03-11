@@ -35,11 +35,34 @@ Dexter is what VINCE currently lacks: real broker execution (tastytrade + Hyperl
 
 ### [AIHF.md](docs/AIHF.md) — The adversarial conviction check
 
-The AI Hedge Fund runs 18 analyst agents (Buffett, Munger, Burry, Druckenmiller, Damodaran + 12 more) plus a Risk Manager and Portfolio Manager against any ticker via FastAPI. It's the external validation layer VINCE's closed self-improvement loop can't provide on its own. For HIP-3 equities (AMZN, MSTR, CRCL, NVDA, TSLA), AIHF becomes a signal source in the aggregator (`AIHFEquity`, weight 1.8, 4h cache) — and a pre-trade veto gate when the committee strongly disagrees with a VINCE long. Today's evidence is direct: all four stop-losses this session were in `regime:uncertain` with 30-40% Echo confidence. AIHF's committee — particularly Druckenmiller (macro) and the Technical Analyst — would have flagged all four before entry. AIHF's autoresearch also acts as a hypothesis generator for Forge: its session-one finding ("disable trading in unfavorable regimes" = Sharpe -0.79 → +2.22) maps directly to the regime_conflict pattern in today's post-mortems.
+The AI Hedge Fund runs 18 analyst agents (Buffett, Munger, Burry, Druckenmiller, Damodaran + 12 more) plus a Risk Manager and Portfolio Manager against any ticker via FastAPI. It's the external validation layer VINCE's closed self-improvement loop can't provide on its own. For HIP-3 equities (AMZN, MSTR, CRCL, NVDA, TSLA), AIHF becomes a signal source in the aggregator (`AIHFEquity`, weight 1.8, 4h cache) — and a pre-trade veto gate when the committee strongly disagrees with a VINCE long. AIHF's autoresearch acts as a hypothesis generator for Forge: its session-one finding ("disable trading in unfavorable regimes" = Sharpe -0.79 → +2.22) maps directly to the `regime_conflict` pattern in post-mortems.
 
 ### [RECURSIVE.md](docs/RECURSIVE.md) — The autoresearch architecture
 
-The autoresearch-mlx framework (Karpathy's loop, Apple Silicon port) changes what Forge can do: not dozens of nightly experiments, but thousands. The enabling technology is the **signal cache** — a ~100-line addition to `signalAggregator.service.ts` that records every source's pre-aggregation output for each trade evaluation. Once cached, the replay function is pure arithmetic (no API calls, ~100ms per experiment) and Forge runs 5,000+ experiments per night across five distinct recursive layers: signal weights, thresholds, risk parameters, feature selection, and prompt autoresearch. Each layer has its own mutable file, one metric, and a `program.md` protocol the AI agent follows autonomously. The deepest unlock is **regime-specific autoresearch**: run the signal weights loop separately on `regime:uncertain` trades and `regime:bull` trades — the optimal weight configurations diverge significantly, just as Mac Mini and M4 Max found different winners in autoresearch-mlx. The signal cache is the one thing that needs to be built. Everything else follows.
+The autoresearch-mlx framework (Karpathy's loop, Apple Silicon port) changes what Forge can do: not dozens of nightly experiments, but thousands. The enabling technology is the **signal cache** — `ForgeSignalCache` in `src/plugins/plugin-vince/src/forge/forgeSignalCache.ts` — which records every source's pre-aggregation vote for each trade evaluation. The replay function is pure arithmetic (no API calls, ~100ms per experiment). Forge runs 5,000+ experiments per night across five recursive layers: signal weights, thresholds, risk parameters, feature selection, prompt autoresearch. The deepest unlock is **regime-specific autoresearch**: the optimal weight configurations for `regime:uncertain` and `regime:bull` diverge significantly — the same split that autoresearch-mlx found between Mac Mini and M4 Max. Full protocol: [`docs/forge/signal-weights-program.md`](docs/forge/signal-weights-program.md).
+
+---
+
+## Shipped: Forge Autoresearch Foundation (2026-03-11)
+
+The signal cache is live. Every `aggregateSignals()` call writes a `ForgeSignalRecord` to `.elizadb/forge/signal-cache.jsonl`. Every closed paper trade back-fills the outcome. The first autoresearch run is ~30 closed trades away.
+
+| What | Where | Status |
+|---|---|---|
+| `ForgeSignalCache` — schema, writer, replay engine | `src/plugins/plugin-vince/src/forge/forgeSignalCache.ts` | ✅ live |
+| Per-source vote capture in signal aggregator | `signalAggregator.service.ts` → `writeForgeSignalRecord` | ✅ live |
+| Outcome back-fill on trade close | `vincePaperTrading.service.ts` → `updateForgeSignalOutcome` | ✅ live |
+| Signal weights runner — 5,000+ experiments, hill-climb, regime filter | `scripts/forge-signal-weights.ts` | ✅ ready |
+| Formal autoresearch protocol for AI agent | `docs/forge/signal-weights-program.md` | ✅ written |
+| `bun run forge` / `forge:dry` / `forge:apply` / `forge:uncertain` | `package.json` | ✅ wired |
+| All embeddings routed through OpenRouter (no more 429s) | `.env` `OPENAI_EMBEDDING_URL` | ✅ fixed |
+
+**To run the first autoresearch experiment:**
+```bash
+bun run forge:dry        # dry run — shows what would change, commits nothing
+bun run forge:apply      # promote best weights to dynamicConfig if criteria pass
+bun run forge:uncertain  # regime-filtered: optimize for uncertain-regime trades only
+```
 
 ---
 
