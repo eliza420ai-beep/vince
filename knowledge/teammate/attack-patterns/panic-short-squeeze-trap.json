@@ -1,9 +1,0 @@
-{
-  "id": "panic-short-squeeze-trap",
-  "name": "Panic Short Squeeze Trap",
-  "longShortRatioMax": 0.65,
-  "fundingRateMax": -0.02,
-  "openInterestChangePctMin": 6,
-  "fearGreedMax": 25,
-  "expectedLossRate": 0.59
-}

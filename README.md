@@ -215,6 +215,7 @@ Clear lanes, no overlap: data, plan, call, lifestyle, infra.
 | **Otaku** | **Only agent with a wallet.** Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Execution graduation (L0→L3). |
 | **Kelly** | Touch grass: hotels, fine dining, wine, health, fitness. Standup facilitator. Flywheel score. No trading. |
 | **Sentinel** | Ops, cost steward, ONNX, ART, PRDs, OpenClaw guide, collective memory, repo improvements. |
+| **Forge** | MLX AutoResearch: overnight self-optimization. Mutates policy thresholds, prompts, and ML hyperparameters → evaluates against paper-bot replay → commits winners, reverts losers. Silent by default; reports to Telegram. |
 | **Naval** | Philosophy, mental models, standup conclusions. One thesis, one signal, one team one dream. |
 | **Clawterm** | AI agents terminal: OpenClaw skills, Milaidy, ElizaOS, setup tips, trending. |
 
@@ -243,6 +244,57 @@ Solus is the **CFO agent** for weekly options on Hypersurface (BTC, ETH, SOL, HY
 Solus **measures itself**. Every strike call can auto-record a prediction; at expiry you resolve ("we got assigned" / "we didn’t"). Brier score over resolved predictions measures calibration. That score and the last 10 outcomes are injected into every optimal-strike and position-assess prompt—so Solus sees its own track record and tempers confidence when it’s been wrong. A Friday reminder nags you to resolve open predictions; a daily task writes calibration notes (e.g. Brier by asset, by IV bucket) into context. When you have 50+ resolved rows, a recurring task trains an ONNX assignment calibrator and the options context switches to ML-calibrated P(assign) for best CC/CSP strikes.
 
 **Tail risk** (e.g. P(spot down 15% in 7d) per asset) and **portfolio assignment risk** (when you have 2+ positions: joint P(at least one assigned), P(all), P(none) via Gaussian copula) are in the same context. No Python subprocess, no new APIs—TypeScript-only on top of existing Deribit data. The quant skill in `skills/quant/` is the reference narrative and math; Solus ships the same ideas in plugin-solus. [docs/SOLUS.md](docs/SOLUS.md) · [plugin-solus/FEATURE-STORE.md](src/plugins/plugin-solus/FEATURE-STORE.md) · [IMPROVEMENT_PROOF.md](src/plugins/plugin-solus/IMPROVEMENT_PROOF.md)
+
+---
+
+### Forge: overnight self-optimization that writes its own improvements
+
+Every loop described above still had one manual step: a human decides when to run training, adjusts thresholds, and promotes the result. **Forge removes that step.**
+
+Forge is a new agent — an MLX-powered AutoResearch layer that runs overnight on Apple Silicon while the rest of the system sleeps. It proposes mutations to the system's mutable surfaces, measures each one against a paper-bot replay, and acts on the result: winning mutations become git branches ready for review; losing ones are reverted automatically.
+
+**What Forge can mutate:**
+
+- `policies/trading-policy.yaml` — sentiment-gate thresholds, position limits, risk parameters, signal minimums, ML gate confidence
+- `prompts/vince-entry-gate.md` — the LLM pre-trade gate prompt (fewer false positives/negatives)
+- `prompts/solus-strike-ritual.md` — Solus's strike-selection heuristics (better Brier calibration)
+- ML hyperparameters passed to `train_models.py`
+
+**What it optimizes for:**
+
+```
+composite = causal_uplift × Sharpe × brier_calibration
+```
+
+All three must improve together. A threshold change that boosts Sharpe but hurts causal uplift or Solus calibration does not pass. This is the same proof bar the rest of the system uses — Forge does not get a looser gate just because it runs overnight.
+
+**How it works:**
+
+1. Nightly trigger (configurable UTC hour, default 2 AM)
+2. Load current policy + feature store; read `SOUL.md` for investment thesis context
+3. Generate up to N mutations of the mutable surfaces
+4. Run each mutation through paper-bot replay and score on the composite metric
+5. Apply safety gate: composite must be at least +0.5% above baseline, max drawdown ≤ 15%, win rate ≥ 45%
+6. Winners → `git commit` on `forge/experiment-YYYYMMDD-NNN` branch; losers → `git checkout --` revert
+7. Push nightly Telegram summary: experiments run, winners, ΔMetric, committed branches
+
+**Why this matters:**
+
+The strategy genome already mutates 15+ parameters weekly on history. The ML loop retrains from outcomes every 12 hours. Forge adds a third layer that is faster and more targeted: it searches the parameter space nightly and surfaces the best candidates as diff-ready branches. A human can review the diff in 60 seconds and merge — or let `FORGE_AUTO_MERGE=true` handle it.
+
+Three improvement loops, all running without manual steps:
+
+| Loop | Runs | Optimizes |
+| :--- | :--- | :--- |
+| ML loop | Every 12h (90+ closed trades) | Model weights, signal thresholds, TP/SL |
+| Strategy genome | Weekly | 15+ algo parameters (Sharpe + drawdown) |
+| **Forge** | **Nightly** | **Policy thresholds + prompts + hyperparams (composite metric)** |
+
+**Runtime:** MLX on Apple Silicon (fast); falls back to `train_models.py` on CPU when MLX is unavailable.
+
+**Phase 1 ships now** with stub replay (random metrics). Real paper-bot replay wires in next PRD once `VincePaperTradingService.replayFeatureStore()` is implemented.
+
+[Research charter: docs/FORGE_PROGRAM.md](docs/FORGE_PROGRAM.md) · [Agent brief: docs/FORGE.md](docs/FORGE.md)
 
 ---
 
@@ -289,6 +341,7 @@ bun start              # production (Postgres when POSTGRES_URL set)
 - **Kelly** — Lifestyle concierge only. Daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
 - **Knowledge ingestion** — `VINCE_UPLOAD` and ingest-urls pipeline new information into `knowledge/`.
 - **X research (plugin-x-research)** — ALOHA-style X pulse and vibe, day reports, and machine-readable signals for downstream agents. **BTC long-term sentiment** delivers a structured payload (direction, confidence, targets, cue counts) so other agents can act on it without parsing prose. **Clawterm day report** ranks and dedupes X + web sources, exposes source stats (candidates, selected, dropped, reason), and returns clear no-data reasons. **Save research** writes to file with metadata and reason codes (no_room, low_value_filtered, etc.). Contract tests lock sourceStats and saveMeta shapes so integrations stay stable. [X-RESEARCH.md](docs/X-RESEARCH.md) · [plugin-x-research](src/plugins/plugin-x-research/)
+- **Forge (overnight self-optimization)** — MLX AutoResearch agent that runs nightly experiments: mutates `policies/trading-policy.yaml`, prompts, and ML hyperparameters → evaluates each against paper-bot replay → commits winners to git branches, reverts losers. Composite metric: `causal_uplift × Sharpe × brier_calibration`. Three improvement loops now run without manual steps: ML (12h), genome (weekly), Forge (nightly). [FORGE_PROGRAM.md](docs/FORGE_PROGRAM.md)
 - **Proof & next** — Prove recursive improvement for paper bot (HL perps) and Solus (Hypersurface options), improve X and Polymarket insight quality, and sharpen Eliza for Substack + X output. See **What's next**.
 
 ---
@@ -345,6 +398,16 @@ The paper bot can **run on autopilot** so it keeps getting better from its own t
 
 So: **trades → features → train → new models + weights → better decisions → more trades** is a **recursive loop** that runs without manual steps once the agent is up and the env flag is set. See [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) for how we **prove** the loop improves the bot.
 
+**Forge adds a third loop on top of this.** After the ML loop updates model weights, Forge runs overnight and searches for better policy thresholds, prompt heuristics, and hyperparameters — then commits the winners as git branches. The combined picture:
+
+```
+trades → feature store → [ML loop: train → ONNX → deploy]
+                       ↓
+                  [Forge nightly: mutate policy + prompts → replay → commit winners]
+                       ↓
+         composite metric improves → both loops compound on each other
+```
+
 ### ML loop vs post-mortem loop (simple)
 
 Both loops are recursive, but they do different jobs:
@@ -369,8 +432,10 @@ This avoids double-counting risk while still allowing ML to improve decisions. I
 flowchart TD
   pmLoss[LossPostMortem] --> guardrails[BoundedGuardrails]
   mlTrain[MLTrainingLoop] --> optimize[MLOptimization]
+  forgeNightly[ForgeNightly] --> policyUpdate[PolicyUpdate]
   guardrails --> tradeDecision[FinalTradeDecision]
   optimize --> tradeDecision
+  policyUpdate --> tradeDecision
 ```
 
 ### Improving the paper algo after training (manual)
@@ -436,6 +501,7 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | `bun run validate-ml` | Validate ML thresholds on feature-store data |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |
+| `FORGE_ENABLED=true bun start` | Start with Forge nightly self-optimization enabled |
 
 ---
 
@@ -446,6 +512,8 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | **[PRD: One Dream — Agent Synergy](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md)** | **Core focus:** $100K trading system, 6 phases (37 tasks), self-evolving genome, adversarial intelligence |
 | [PRD: Paper Trading Algo and ML](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) | Decision flow, gates, how ML improves the algo |
 | [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md) | Feature store → train → ONNX → report → Sentinel, end-to-end |
+| [FORGE_PROGRAM.md](docs/FORGE_PROGRAM.md) | Forge research charter — composite metric, mutable surfaces, safety gates, budget |
+| [FORGE.md](docs/FORGE.md) | Forge agent brief — can/cannot, key files, next PRDs |
 | [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, priorities, what we merge |
 | [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML, paper bot, feature store |
