@@ -11,7 +11,6 @@ import type {
   State,
   Provider,
   ProviderResult,
-  ProviderValue,
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
@@ -93,7 +92,7 @@ export const polymarketDiscoveryProvider: Provider = {
       }
     }
 
-    return { text, values: values as Record<string, ProviderValue> };
+    return { text, values: values as Record<string, unknown> };
   },
 };
 

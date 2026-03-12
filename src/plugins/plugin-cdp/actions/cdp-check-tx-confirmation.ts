@@ -299,13 +299,13 @@ export const cdpCheckTxConfirmation: Action = {
 
         callback?.({
           text,
-          content: data as unknown as import("@elizaos/core").ContentValue,
+          content: data as unknown as Record<string, unknown>,
         });
 
         return {
           text,
           success: true,
-          data: data as import("@elizaos/core").ProviderDataRecord,
+          data: data as Record<string, unknown>,
           values: {
             confirmed: true,
             status: receipt.status,
@@ -347,13 +347,13 @@ export const cdpCheckTxConfirmation: Action = {
 
           callback?.({
             text,
-            content: data as unknown as import("@elizaos/core").ContentValue,
+            content: data as unknown as Record<string, unknown>,
           });
 
           return {
             text,
             success: true,
-            data: data as import("@elizaos/core").ProviderDataRecord,
+            data: data as Record<string, unknown>,
             values: {
               confirmed: false,
               status: "pending",

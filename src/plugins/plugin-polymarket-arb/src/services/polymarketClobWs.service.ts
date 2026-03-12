@@ -85,6 +85,20 @@ export class PolymarketClobWsService extends Service {
     return this.bookState.get(tokenId) ?? null;
   }
 
+  /** Get orderbook levels for price impact simulation. For BUY use "asks", for SELL use "bids". */
+  getOrderbookLevels(
+    tokenId: string,
+    side: "bids" | "asks",
+  ): Array<{ price: number; size: number }> {
+    const state = this.bookState.get(tokenId);
+    const raw = state?.[side];
+    if (!raw?.length) return [];
+    return raw.map((e) => ({
+      price: parsePrice(e.price),
+      size: parseFloat(e.size) || 0,
+    }));
+  }
+
   getAllBookStates(): Map<string, ContractBookState> {
     return new Map(this.bookState);
   }
@@ -181,6 +195,8 @@ export class PolymarketClobWsService extends Service {
               lastUpdateMs: t,
               bidSizeUsd: bidSize,
               askSizeUsd: askSize,
+              bids: data.bids ?? [],
+              asks: data.asks ?? [],
             });
             return;
           }

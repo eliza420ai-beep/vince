@@ -336,7 +336,7 @@ export const tradePerformanceEvaluator: Evaluator = {
             agentId: runtime.agentId,
             content: {
               text: learning.description,
-              data: learning as unknown as import("@elizaos/core").JsonObject,
+              data: learning as unknown as Record<string, unknown>,
             },
             roomId: message.roomId,
           },

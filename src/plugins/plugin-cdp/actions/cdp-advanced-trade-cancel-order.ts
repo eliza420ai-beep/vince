@@ -82,7 +82,7 @@ export const cdpAdvancedTradeCancelOrder: Action = {
       return {
         success: failed.length === 0,
         text,
-        data: data as import("@elizaos/core").ProviderDataRecord,
+        data: data as Record<string, unknown>,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

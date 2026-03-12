@@ -5,7 +5,6 @@ import type {
   State,
   HandlerCallback,
   ActionResult,
-  JsonObject,
 } from "@elizaos/core";
 import { ReferralService } from "../services/ReferralService";
 
@@ -61,7 +60,10 @@ ${link}
 
 Signups: ${stats.totalReferrals} · Activated: ${stats.activatedReferrals} · Points earned: ${stats.totalPointsEarned.toLocaleString()}`;
 
-      const data = { code, stats, referralLink: link } as unknown as JsonObject;
+      const data = { code, stats, referralLink: link } as Record<
+        string,
+        unknown
+      >;
 
       await callback?.({
         text,

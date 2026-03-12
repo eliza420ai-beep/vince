@@ -267,6 +267,16 @@ export interface PriceHistoryStatistics {
 }
 
 /**
+ * Consensus by topic (aggregate implied YES probability per tag)
+ */
+export interface ConsensusByTopic {
+  topic: string;
+  label: string;
+  avgYesProb: number;
+  marketCount: number;
+}
+
+/**
  * API error response
  */
 export interface PolymarketError {

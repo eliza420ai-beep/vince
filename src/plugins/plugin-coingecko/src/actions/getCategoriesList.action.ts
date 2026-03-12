@@ -63,7 +63,7 @@ export const getCategoriesListAction: Action = {
         await callback({
           text,
           actions: ["GET_CATEGORIES_LIST"],
-          content: categoriesList as import("@elizaos/core").ContentValue,
+          content: categoriesList as unknown as Record<string, unknown>,
           source: message.content.source,
         });
       }

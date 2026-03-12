@@ -585,17 +585,27 @@ export async function buildRecursiveNorthStarResponse(
   const sufficiency = window30.sufficiency;
   const uplift = window30.uplift;
   const causal = window30.causal;
-  const stageDepth =
-    upliftService?.getCausalStageDepthSummary?.(
-      30,
-      synergyMinimumSamplesPerArm,
-    ) ??
-    ({
-      minimumSamplesPerArm: synergyMinimumSamplesPerArm,
-      allStagesReady: false,
-      perStage: [],
-      pairDepth: [],
-    } as const);
+  const stageDepth = upliftService?.getCausalStageDepthSummary?.(
+    30,
+    synergyMinimumSamplesPerArm,
+  ) ?? {
+    minimumSamplesPerArm: synergyMinimumSamplesPerArm,
+    allStagesReady: false,
+    perStage: [] as Array<{
+      stage: string;
+      count: number;
+      deficitToMin: number;
+    }>,
+    pairDepth: [] as Array<{
+      label: string;
+      controlStage: string;
+      treatmentStage: string;
+      controlCount: number;
+      treatmentCount: number;
+      minArmSamples: number;
+      deficitToMin: number;
+    }>,
+  };
   const completeTrades30d = window30.completeTrades;
   const upliftDelta = window30.upliftDelta;
   const minSamplesPerArm = window30.minSamplesPerArm;
@@ -752,14 +762,14 @@ export async function buildRecursiveNorthStarResponse(
     0,
     5 - Number((sufficiency as any).minRegimeSampleCount ?? 0),
   );
-  const stageDeficitTotal = stageDepth.perStage.reduce(
-    (sum, row) => sum + Math.max(0, row.deficitToMin),
-    0,
-  );
-  const pairDeficitTotal = stageDepth.pairDepth.reduce(
-    (sum, row) => sum + Math.max(0, row.deficitToMin),
-    0,
-  );
+  let stageDeficitTotal = 0;
+  for (const row of stageDepth.perStage) {
+    stageDeficitTotal += Math.max(0, row.deficitToMin);
+  }
+  let pairDeficitTotal = 0;
+  for (const row of stageDepth.pairDepth) {
+    pairDeficitTotal += Math.max(0, row.deficitToMin);
+  }
   const minSamplesPerArmDeficit = Math.max(
     0,
     synergyMinimumSamplesPerArm - minSamplesPerArm,
@@ -949,6 +959,13 @@ export async function buildRecursiveNorthStarOperatorStatus(
   runtime: IAgentRuntime,
 ): Promise<RecursiveNorthStarOperatorStatus> {
   const snapshot = await buildRecursiveNorthStarResponse(runtime);
+  const causalThresholds = resolveCausalThresholds({
+    getSetting: runtime.getSetting?.bind(runtime),
+    fallbackMinimumEffect: 0.015,
+    fallbackMinimumSamplesPerArm: 10,
+  });
+  const synergyMinimumEffect = causalThresholds.minimumEffect;
+  const synergyMinimumSamplesPerArm = causalThresholds.minimumSamplesPerArm;
   const weeklySnapshot = getLatestWeeklySnapshotMeta();
   const hasMlBlocker = snapshot.pillars.ml.blockers.length > 0;
   const hasRecursionBlocker = snapshot.pillars.recursion.blockers.length > 0;

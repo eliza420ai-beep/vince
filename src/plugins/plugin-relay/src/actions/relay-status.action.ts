@@ -273,7 +273,7 @@ export const relayStatusAction: Action = {
         text: response.text,
         actions: ["CHECK_RELAY_STATUS"],
         source: message.content.source,
-        data: response.data as import("@elizaos/core").JsonObject | undefined,
+        data: response.data as Record<string, unknown> | undefined,
       });
 
       return response;

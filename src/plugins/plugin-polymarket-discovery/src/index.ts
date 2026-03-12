@@ -45,6 +45,11 @@ import { getOrderbooksAction } from "./actions/getOrderbooks.action";
 import { getOpenInterestAction } from "./actions/getOpenInterest.action";
 import { getLiveVolumeAction } from "./actions/getLiveVolume.action";
 import { getSpreadsAction } from "./actions/getSpreads.action";
+import { analyzeMarketEvAction } from "./actions/analyzeMarketEv.action";
+
+// Phase 3C: Market Insights Actions
+import { getPolymarketTrendingAction } from "./actions/getPolymarketTrending.action";
+import { getPolymarketMarketInsightsAction } from "./actions/getPolymarketMarketInsights.action";
 
 // Phase 4: Events API Actions
 import { getEventsAction } from "./actions/getEvents.action";
@@ -149,6 +154,10 @@ export const polymarketDiscoveryPlugin: Plugin = {
     getOpenInterestAction,
     getLiveVolumeAction,
     getSpreadsAction,
+    analyzeMarketEvAction,
+    // Phase 3C: Market Insights
+    getPolymarketTrendingAction,
+    getPolymarketMarketInsightsAction,
     // Phase 4: Events API
     getEventsAction,
     getEventDetailAction,

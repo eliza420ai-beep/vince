@@ -15,6 +15,18 @@ import {
 
 const GAMMA_MARKETS_PATH = "/markets";
 const REQUEST_TIMEOUT_MS = 15_000;
+const DISCOVERY_CACHE_TTL_MS = 4 * 60 * 1000; // 4 min, just under 5 min discovery interval
+const TAG_FETCH_DELAY_MS = 200; // avoid burst rate limits
+
+interface CacheEntry {
+  rows: GammaMarketRow[];
+  expiresAt: number;
+}
+const tagCache = new Map<string, CacheEntry>();
+
+function cacheKey(base: string, tagSlug: string, limit: number): string {
+  return `${base}|${tagSlug}|${limit}`;
+}
 
 interface GammaMarketRow {
   conditionId?: string;
@@ -148,20 +160,34 @@ export async function discoverContracts(
   const results: ContractMeta[] = [];
   const seen = new Set<string>();
 
-  for (const tagSlug of tagSlugs) {
+  for (let i = 0; i < tagSlugs.length; i++) {
+    const tagSlug = tagSlugs[i];
+    if (i > 0) await new Promise((r) => setTimeout(r, TAG_FETCH_DELAY_MS));
     try {
-      const url = `${base}${GAMMA_MARKETS_PATH}?active=true&closed=false&limit=200&tag_slug=${encodeURIComponent(tagSlug)}`;
-      const controller = new AbortController();
-      const to = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(to);
-      if (!res.ok) continue;
-      const data = (await res.json()) as
-        | GammaMarketRow[]
-        | { data?: GammaMarketRow[] };
-      const rows = Array.isArray(data)
-        ? data
-        : ((data as { data?: GammaMarketRow[] }).data ?? []);
+      const limit = 200;
+      const key = cacheKey(base, tagSlug, limit);
+      const cached = tagCache.get(key);
+      let rows: GammaMarketRow[];
+      if (cached && cached.expiresAt > Date.now()) {
+        rows = cached.rows;
+      } else {
+        const url = `${base}${GAMMA_MARKETS_PATH}?active=true&closed=false&limit=${limit}&tag_slug=${encodeURIComponent(tagSlug)}`;
+        const controller = new AbortController();
+        const to = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(to);
+        if (!res.ok) continue;
+        const data = (await res.json()) as
+          | GammaMarketRow[]
+          | { data?: GammaMarketRow[] };
+        rows = Array.isArray(data)
+          ? data
+          : ((data as { data?: GammaMarketRow[] }).data ?? []);
+        tagCache.set(key, {
+          rows,
+          expiresAt: Date.now() + DISCOVERY_CACHE_TTL_MS,
+        });
+      }
       for (const row of rows) {
         const conditionId = row.conditionId ?? row.id;
         if (!conditionId || seen.has(conditionId)) continue;

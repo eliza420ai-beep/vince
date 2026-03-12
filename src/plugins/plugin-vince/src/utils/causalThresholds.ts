@@ -5,7 +5,9 @@ const MAX_EFFECT = 0.03;
 const MIN_SAMPLES = 6;
 const MAX_SAMPLES = 24;
 
-type GetSettingFn = ((key: string) => string | number | undefined) | undefined;
+type GetSettingFn =
+  | ((key: string) => string | number | boolean | null | undefined)
+  | undefined;
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) return value;

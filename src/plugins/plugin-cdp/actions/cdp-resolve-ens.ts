@@ -271,7 +271,7 @@ export const cdpResolveEns: Action = {
 
       callback?.({
         text: summary,
-        content: resultData as unknown as import("@elizaos/core").ContentValue,
+        content: resultData as unknown as Record<string, unknown>,
       });
 
       const successResult: ResolveEnsActionResult = {

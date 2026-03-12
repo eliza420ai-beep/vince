@@ -16,6 +16,12 @@ export const polymarketKeywordPatterns: PluginKeywordPatterns = {
     "bet",
     "odds",
     "forecast",
+    // Market insights
+    "trending",
+    "hot",
+    "insights",
+    "pulse",
+    "consensus",
     // Outcomes and events
     "outcome",
     "event",
@@ -28,6 +34,12 @@ export const polymarketKeywordPatterns: PluginKeywordPatterns = {
     "balance",
     "trading",
     "trade history",
+    // EV / math
+    "ev",
+    "edge",
+    "kelly",
+    "expected value",
+    "position size",
   ],
   regexPatterns: [
     /bet\s+on/i,
@@ -36,6 +48,11 @@ export const polymarketKeywordPatterns: PluginKeywordPatterns = {
     /odds\s+on/i,
     /prediction\s+market/i,
     /polymarket/i,
+    /what'?s\s+happening/i,
+    /analyze\s+ev/i,
+    /expected\s+value/i,
+    /how\s+much\s+should\s+i\s+(?:bet|buy)/i,
+    /should\s+i\s+bet/i,
   ],
 };
 

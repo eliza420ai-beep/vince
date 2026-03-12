@@ -12,7 +12,6 @@ import type {
   Memory,
   Provider,
   ProviderResult,
-  ProviderValue,
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import {
@@ -161,10 +160,10 @@ export const substackContextProvider: Provider = {
       }
 
       const text = textParts.length > 0 ? textParts.join("\n\n") : "";
-      return { text, values: values as Record<string, ProviderValue> };
+      return { text, values: values as Record<string, unknown> };
     } catch (err) {
       logger.debug(`[SubstackContext] Provider error: ${err}`);
-      return { text: "", values: {} as Record<string, ProviderValue> };
+      return { text: "", values: {} as Record<string, unknown> };
     }
   },
 };

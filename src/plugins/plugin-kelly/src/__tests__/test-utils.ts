@@ -11,7 +11,6 @@ import type {
   IAgentRuntime,
   Memory,
   State,
-  StateValues,
   Content,
   UUID,
 } from "@elizaos/core";
@@ -174,7 +173,7 @@ export function createMockRuntimeWithComposeState(stateOverrides?: {
     ...stateOverrides?.values,
   };
   const state: State = {
-    values: values as StateValues,
+    values: values as Record<string, unknown>,
     data: stateOverrides?.data ?? {},
     text:
       stateOverrides?.text ??

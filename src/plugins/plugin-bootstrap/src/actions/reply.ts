@@ -8,7 +8,6 @@ import {
   ModelType,
   type State,
   type ActionResult,
-  type ProviderValue,
   logger,
   parseKeyValueXml,
 } from "@elizaos/core";
@@ -93,13 +92,13 @@ export const replyAction = {
           lastReply: responseContent.text,
           lastReplyTime: Date.now(),
           thoughtProcess: parsedXml?.thought,
-        } as Record<string, ProviderValue>,
+        } as Record<string, unknown>,
         data: {
           actionName: "REPLY",
           response: responseContent,
           thought: parsedXml?.thought,
           messageGenerated: true,
-        } as Record<string, ProviderValue>,
+        } as Record<string, unknown>,
         success: true,
       };
     } catch (error) {
@@ -111,11 +110,11 @@ export const replyAction = {
           success: false,
           responded: false,
           error: true,
-        } as Record<string, ProviderValue>,
+        } as Record<string, unknown>,
         data: {
           actionName: "REPLY",
           error: error instanceof Error ? error.message : String(error),
-        } as Record<string, ProviderValue>,
+        } as Record<string, unknown>,
         success: false,
         error: error instanceof Error ? error : new Error(String(error)),
       };

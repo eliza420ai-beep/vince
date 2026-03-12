@@ -49,6 +49,7 @@ import type {
   GammaSearchMarket,
   PolymarketActivityType,
   PolymarketActivityEntry,
+  ConsensusByTopic,
 } from "../types";
 import {
   DEFAULT_GAMMA_API_URL,
@@ -62,6 +63,8 @@ import {
   MAX_PAGE_LIMIT,
   ACTIVITY_HISTORY_MAX_ITEMS,
   VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
+  POLYMARKET_TAG_SECTION_SLUGS,
+  VINCE_POLYMARKET_PREFERRED_LABELS,
 } from "../constants";
 
 /**
@@ -177,6 +180,13 @@ export class PolymarketService extends Service {
   private liveVolumeCache: { data: any; timestamp: number } | null = null;
   private spreadsCache: { data: any[]; timestamp: number } | null = null;
   private analyticsCacheTtl: number = 30000; // 30 seconds
+
+  // Phase 3C: Consensus by topic cache (60s TTL)
+  private consensusCache: {
+    data: ConsensusByTopic[];
+    timestamp: number;
+  } | null = null;
+  private consensusCacheTtl: number = 60000; // 60 seconds
 
   // Phase 5A: Extended portfolio caches
   private closedPositionsCache: Map<
@@ -1226,6 +1236,74 @@ export class PolymarketService extends Service {
       spread,
       last_updated: Date.now(),
     };
+  }
+
+  /**
+   * Get consensus by topic: aggregate implied YES probability per tag.
+   * For each priority tag, fetches events, extracts prices, and computes average YES prob.
+   * Cached for 60s to avoid hammering APIs.
+   */
+  async getConsensusByTopic(): Promise<ConsensusByTopic[]> {
+    const now = Date.now();
+    if (
+      this.consensusCache &&
+      now - this.consensusCache.timestamp < this.consensusCacheTtl
+    ) {
+      logger.debug("[PolymarketService] Returning cached consensus by topic");
+      return this.consensusCache.data;
+    }
+
+    const slugToLabel = new Map(
+      VINCE_POLYMARKET_PREFERRED_LABELS.map((e) => [e.slug, e.label]),
+    );
+    const results: ConsensusByTopic[] = [];
+
+    for (const slug of POLYMARKET_TAG_SECTION_SLUGS) {
+      try {
+        const markets = await this.getEventsByTag(slug, 10);
+        const yesProbs: number[] = [];
+
+        for (const market of markets) {
+          let prices = this.getPricesFromMarketPayload(market);
+          if (!prices) {
+            const cid =
+              market.conditionId ?? (market as any).condition_id ?? "";
+            if (cid) {
+              try {
+                prices = await this.getMarketPrices(cid);
+              } catch {
+                // skip market if price fetch fails
+              }
+            }
+          }
+          if (prices) {
+            const yesNum = parseFloat(prices.yes_price);
+            if (!Number.isNaN(yesNum)) yesProbs.push(yesNum);
+          }
+        }
+
+        if (yesProbs.length > 0) {
+          const avgYesProb =
+            yesProbs.reduce((a, b) => a + b, 0) / yesProbs.length;
+          results.push({
+            topic: slug,
+            label: slugToLabel.get(slug) ?? slug,
+            avgYesProb,
+            marketCount: yesProbs.length,
+          });
+        }
+      } catch (err) {
+        logger.warn(
+          `[PolymarketService] getConsensusByTopic(${slug}) failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    this.consensusCache = { data: results, timestamp: now };
+    logger.info(
+      `[PolymarketService] getConsensusByTopic returned ${results.length} topics`,
+    );
+    return results;
   }
 
   /**

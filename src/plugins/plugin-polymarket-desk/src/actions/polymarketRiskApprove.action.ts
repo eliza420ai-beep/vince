@@ -3,6 +3,7 @@
  *
  * Risk agent: consume a pending signal, check bankroll/exposure/limits,
  * apply Kelly (or config) sizing, write sized order for Executor. No wallet.
+ * Includes orderbook impact check: if price impact eats >50% of edge, halve size.
  */
 
 import {
@@ -14,6 +15,11 @@ import {
   type ActionResult,
   logger,
 } from "@elizaos/core";
+import {
+  simulateOrderbookImpact,
+  parseOrderbookLevels,
+  checkImpactEatsEdge,
+} from "../../../plugin-polymarket-discovery/src/utils/lmsr";
 
 const POLYMARKET_SERVICE_TYPE = "POLYMARKET_DISCOVERY_SERVICE";
 const SIGNALS_TABLE = "plugin_polymarket_desk.signals";
@@ -233,6 +239,61 @@ export const polymarketRiskApproveAction: Action = {
       }
       sizeUsd = Math.max(minSizeUsd, Math.min(maxSizeUsd, sizeUsd));
 
+      // Orderbook impact check: if price impact eats >50% of edge, halve size
+      let impactWarning: string | null = null;
+      const polyService = runtime.getService?.(POLYMARKET_SERVICE_TYPE) as {
+        getMarketDetail: (
+          id: string,
+        ) => Promise<{ tokens?: { token_id: string; outcome?: string }[] }>;
+        getOrderbook: (
+          tokenId: string,
+        ) => Promise<{ asks: { price: string; size: string }[] }>;
+      } | null;
+      const marketPrice = signal.market_price ?? 0.5;
+      const edgeFraction = Math.abs(edgeBps) / 10000;
+
+      if (
+        polyService &&
+        edgeFraction > 0.001 &&
+        marketPrice > 0 &&
+        marketPrice < 1
+      ) {
+        try {
+          const marketDetail = await polyService.getMarketDetail(
+            signal.market_id,
+          );
+          const token =
+            signal.side === "YES"
+              ? marketDetail.tokens?.find(
+                  (t) => t.outcome?.toLowerCase() === "yes",
+                )
+              : marketDetail.tokens?.find(
+                  (t) => t.outcome?.toLowerCase() === "no",
+                );
+          if (token?.token_id) {
+            const orderbook = await polyService.getOrderbook(token.token_id);
+            const levels = parseOrderbookLevels(orderbook.asks);
+            const shares = sizeUsd / marketPrice;
+            if (levels.length > 0 && shares > 0) {
+              const impact = simulateOrderbookImpact(levels, shares);
+              if (
+                checkImpactEatsEdge(edgeFraction, impact.avgFill, marketPrice)
+              ) {
+                sizeUsd = sizeUsd / 2;
+                impactWarning = `Price impact eats >50% of edge at full size. Halved to $${sizeUsd.toFixed(2)}.`;
+                logger.info(
+                  `[POLYMARKET_RISK_APPROVE] Impact check: ${impactWarning}`,
+                );
+              }
+            }
+          }
+        } catch (e) {
+          logger.debug(
+            `[POLYMARKET_RISK_APPROVE] Impact check skipped: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+      }
+
       const sizedOrderId = crypto.randomUUID();
       const now = new Date().toISOString();
 
@@ -263,6 +324,7 @@ export const polymarketRiskApproveAction: Action = {
       const summary =
         ` **Risk approved** signal ${signal.id.slice(0, 8)}… → sized order ${sizedOrderId.slice(0, 8)}…\n` +
         ` Market: ${signal.market_id.slice(0, 14)}… | Side: ${signal.side} | Size: $${sizeUsd.toFixed(2)}\n` +
+        (impactWarning ? ` ⚠️ ${impactWarning}\n` : "") +
         ` Bankroll: $${bankrollUsd} | Executor can pick up this order.`;
 
       const result: RiskApproveActionResult = {

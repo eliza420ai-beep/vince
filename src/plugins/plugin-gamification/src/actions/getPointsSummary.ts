@@ -5,7 +5,6 @@ import type {
   State,
   HandlerCallback,
   ActionResult,
-  JsonObject,
 } from "@elizaos/core";
 import { GamificationService } from "../services/GamificationService";
 
@@ -64,13 +63,13 @@ export const getPointsSummaryAction: Action = {
 
       await callback?.({
         text,
-        data: summary as unknown as JsonObject,
+        data: summary as unknown as Record<string, unknown>,
       });
 
       return {
         text,
         success: true,
-        data: summary as unknown as JsonObject,
+        data: summary as unknown as Record<string, unknown>,
       };
     } catch (error) {
       const errorText = "Could not load your points.";

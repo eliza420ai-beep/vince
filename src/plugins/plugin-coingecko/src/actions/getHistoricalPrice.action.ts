@@ -192,7 +192,7 @@ This historical price data shows the token's value on the specified date. You ca
           actions: ["GET_HISTORICAL_PRICE"],
           content: {
             ...historicalData,
-          } as import("@elizaos/core").ContentValue,
+          } as Record<string, unknown>,
           source: message.content.source,
         });
       }

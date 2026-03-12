@@ -4,6 +4,7 @@
  */
 
 import type { EdgeStrategy, EdgeSignal, TickContext } from "./types";
+import { computeSuggestedSizeUsd } from "../utils/sizing";
 import { getSynthForecast } from "../services/synthClient";
 import {
   DEFAULT_SYNTH_POLL_INTERVAL_MS,
@@ -25,19 +26,18 @@ function getConfig(): Record<string, unknown> {
   return { pollIntervalMs, edgeBps };
 }
 
-const cfg = getConfig();
-
 export const synthForecastStrategy: EdgeStrategy = {
   name: "synth",
   description:
     "Compare Synth forecast probability to CLOB price; signal when edge >= threshold (e.g. 200 bps).",
-  tickIntervalMs: Number(cfg.pollIntervalMs),
+  tickIntervalMs: DEFAULT_SYNTH_POLL_INTERVAL_MS,
 
   getConfig,
 
   tick: async (ctx: TickContext): Promise<EdgeSignal | null> => {
     if (!process.env.SYNTH_API_KEY?.trim()) return null;
 
+    const cfg = getConfig() as Record<string, unknown>;
     const edgeBps = Number(cfg.edgeBps);
     const forecast = await getSynthForecast(ASSET);
     const synthProb = forecast.probability;
@@ -64,15 +64,24 @@ export const synthForecastStrategy: EdgeStrategy = {
           `Synth forecast for ${ASSET}: model says ${side} at ${synthPct}, market at ${mktPct}. ` +
           `${Math.abs(bps).toFixed(0)} bps ${edgeDir}. Source: ${forecast.source}.`;
 
+        const confidence = Math.min(1, Math.abs(bps) / 500);
+        const suggested_size_usd = computeSuggestedSizeUsd({
+          edgeFraction: Math.abs(bps) / 10000,
+          marketPrice: marketPriceSide,
+          confidence,
+          bankrollUsd: ctx.bankrollUsd,
+        });
+
         return {
           strategy: "synth",
           source: "synth",
           market_id: c.conditionId,
           side: side as "YES" | "NO",
-          confidence: Math.min(1, Math.abs(bps) / 500),
+          confidence,
           edge_bps: bps,
           forecast_prob: forecastProb,
           market_price: marketPriceSide,
+          suggested_size_usd,
           metadata: { rationale, asset: ASSET, synthSource: forecast.source },
         };
       }

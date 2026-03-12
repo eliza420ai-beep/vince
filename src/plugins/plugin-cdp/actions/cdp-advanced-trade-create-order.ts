@@ -126,7 +126,7 @@ export const cdpAdvancedTradeCreateOrder: Action = {
         return {
           success: true,
           text,
-          data: data as import("@elizaos/core").ProviderDataRecord,
+          data: data as Record<string, unknown>,
         };
       }
       const errMsg =

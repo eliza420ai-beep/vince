@@ -439,7 +439,7 @@ export const cdpWalletFetchWithPayment: Action = {
 
       callback?.({
         text,
-        content: data as import("@elizaos/core").ContentValue,
+        content: data as Record<string, unknown>,
       });
 
       return {

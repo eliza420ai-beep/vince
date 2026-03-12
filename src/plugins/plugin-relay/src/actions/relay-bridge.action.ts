@@ -687,7 +687,7 @@ export const relayBridgeAction: Action = {
         text: response.text,
         actions: ["EXECUTE_RELAY_BRIDGE"],
         source: message.content.source,
-        data: response.data as import("@elizaos/core").JsonObject | undefined,
+        data: response.data as Record<string, unknown> | undefined,
       });
 
       return response;

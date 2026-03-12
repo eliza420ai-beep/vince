@@ -233,6 +233,10 @@ export class EdgeEngineService extends Service {
     const volatility = binance.getVolatility?.() ?? 0.5;
     const now = Date.now();
 
+    const bankrollUsd =
+      Number(this.runtime.getSetting?.("POLYMARKET_DESK_BANKROLL_USD") ?? 0) ||
+      10_000;
+
     return {
       spot,
       volatility,
@@ -248,6 +252,7 @@ export class EdgeEngineService extends Service {
         );
       },
       now,
+      bankrollUsd,
     };
   }
 

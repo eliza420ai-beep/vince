@@ -4,6 +4,7 @@
  */
 
 import type { EdgeStrategy, EdgeSignal, TickContext } from "./types";
+import { computeSuggestedSizeUsd } from "../utils/sizing";
 import {
   DEFAULT_OVERREACTION_VELOCITY_PCT,
   DEFAULT_OVERREACTION_WINDOW_MS,
@@ -35,7 +36,6 @@ function getConfig(): Record<string, unknown> {
   return { velocityPct, windowMs, maxUnderdogPrice, cooldownMs };
 }
 
-const cfg = getConfig();
 const lastSignalByCondition = new Map<string, number>();
 
 export const overreactionStrategy: EdgeStrategy = {
@@ -47,10 +47,12 @@ export const overreactionStrategy: EdgeStrategy = {
   getConfig,
 
   tick: async (ctx: TickContext): Promise<EdgeSignal | null> => {
+    const cfg = getConfig() as Record<string, unknown>;
     const velocityPct = Number(cfg.velocityPct);
     const maxUnderdog = Number(cfg.maxUnderdogPrice);
     const cooldownMs = Number(cfg.cooldownMs);
     const now = ctx.now;
+    const candidates: EdgeSignal[] = [];
 
     for (const c of ctx.contracts) {
       const cooldownKey = c.conditionId;
@@ -98,26 +100,38 @@ export const overreactionStrategy: EdgeStrategy = {
         `Price velocity ${velPct > 0 ? "+" : ""}${velPct.toFixed(1)}%. ` +
         `Buying ${side} (underdog) at ${underPct} — expecting revert toward ${(revertTarget * 100).toFixed(0)}% (${edgeBps.toFixed(0)} bps edge).`;
 
-      return {
+      const confidence = Math.min(
+        1,
+        (Math.abs(vel?.velocityPct ?? 0) / 10) * 0.5 + 0.5,
+      );
+      const edgeFraction = Math.abs(edgeBps) / 10000;
+      const suggested_size_usd = computeSuggestedSizeUsd({
+        edgeFraction,
+        marketPrice: underdogPrice,
+        confidence,
+        bankrollUsd: ctx.bankrollUsd,
+      });
+
+      candidates.push({
         strategy: "overreaction",
         source: "overreaction",
         market_id: c.conditionId,
         side: side as "YES" | "NO",
-        confidence: Math.min(
-          1,
-          (Math.abs(vel?.velocityPct ?? 0) / 10) * 0.5 + 0.5,
-        ),
+        confidence,
         edge_bps: edgeBps,
         forecast_prob: underdogPrice + 0.1, // slight mean reversion
         market_price: underdogPrice,
+        suggested_size_usd,
         metadata: {
           rationale,
           favoritePrice,
           underdogPrice,
           velocityPct: velPct,
         },
-      };
+      });
     }
-    return null;
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => Math.abs(b.edge_bps) - Math.abs(a.edge_bps));
+    return candidates[0];
   },
 };

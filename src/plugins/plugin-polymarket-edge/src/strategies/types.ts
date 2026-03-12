@@ -23,6 +23,8 @@ export interface TickContext {
   /** Returns velocity for token (current price is taken from book state inside the engine). */
   getPriceVelocity: (tokenId: string) => PriceVelocity | null;
   now: number;
+  /** Bankroll in USD for suggested_size_usd (from POLYMARKET_DESK_BANKROLL_USD or default). */
+  bankrollUsd?: number;
 }
 
 /** Signal emitted when a strategy detects edge (written to desk.signals) */

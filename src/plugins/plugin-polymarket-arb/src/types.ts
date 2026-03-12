@@ -23,6 +23,9 @@ export interface ContractBookState {
   /** Top-of-book size (USD) for liquidity check */
   bidSizeUsd?: number;
   askSizeUsd?: number;
+  /** Full depth from "book" event (for price impact simulation) */
+  bids?: Array<{ price: string; size: string }>;
+  asks?: Array<{ price: string; size: string }>;
 }
 
 /** Discovered BTC threshold contract metadata */

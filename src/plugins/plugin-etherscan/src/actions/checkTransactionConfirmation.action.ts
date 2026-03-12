@@ -192,7 +192,7 @@ export const checkTransactionConfirmationAction: Action = {
         await callback({
           text: result.text,
           actions: ["CHECK_TRANSACTION_CONFIRMATION"],
-          data: result.data as import("@elizaos/core").JsonObject | undefined,
+          data: result.data as Record<string, unknown> | undefined,
           source: message.content.source,
         });
       }

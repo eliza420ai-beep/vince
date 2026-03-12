@@ -5,6 +5,7 @@
  */
 
 import type { EdgeStrategy, EdgeSignal, TickContext } from "./types";
+import { computeSuggestedSizeUsd } from "../utils/sizing";
 import {
   impliedProbabilityAbove,
   clampVol,
@@ -15,11 +16,13 @@ import {
   DEFAULT_MODEL_MIN_FORECAST_PROB,
   DEFAULT_MODEL_MAX_FORECAST_PROB,
   DEFAULT_MODEL_COOLDOWN_MS,
+  DEFAULT_MODEL_VOL_FLOOR,
   ENV_MODEL_MIN_EDGE_PCT,
   ENV_MODEL_TICK_INTERVAL_MS,
   ENV_MODEL_MIN_FORECAST_PROB,
   ENV_MODEL_MAX_FORECAST_PROB,
   ENV_MODEL_COOLDOWN_MS,
+  ENV_MODEL_VOL_FLOOR,
 } from "../constants";
 
 const modelFairValueCooldown = new Map<string, number>();
@@ -45,31 +48,37 @@ function getConfig(): Record<string, unknown> {
     typeof process.env[ENV_MODEL_COOLDOWN_MS] !== "undefined"
       ? parseInt(process.env[ENV_MODEL_COOLDOWN_MS] as string, 10)
       : DEFAULT_MODEL_COOLDOWN_MS;
+  const volFloor =
+    typeof process.env[ENV_MODEL_VOL_FLOOR] !== "undefined"
+      ? parseFloat(process.env[ENV_MODEL_VOL_FLOOR] as string)
+      : DEFAULT_MODEL_VOL_FLOOR;
   return {
     minEdgePct,
     tickIntervalMs,
     minForecastProb: minForecast,
     maxForecastProb: maxForecast,
     cooldownMs,
+    volFloor,
   };
 }
-
-const cfg = getConfig();
 
 export const modelFairValueStrategy: EdgeStrategy = {
   name: "model_fair_value",
   description:
     "Compare Black-Scholes implied probability to CLOB price; signal when edge >= threshold and forecast in 5–95% range.",
-  tickIntervalMs: Number(cfg.tickIntervalMs),
+  tickIntervalMs: DEFAULT_MODEL_TICK_INTERVAL_MS,
 
   getConfig,
 
   tick: async (ctx: TickContext): Promise<EdgeSignal | null> => {
+    const cfg = getConfig() as Record<string, unknown>;
     const minEdgePct = Number(cfg.minEdgePct);
     const minForecastProb = Number(cfg.minForecastProb);
     const maxForecastProb = Number(cfg.maxForecastProb);
     const cooldownMs = Number(cfg.cooldownMs);
-    const vol = clampVol(ctx.volatility > 0 ? ctx.volatility : 0.5);
+    const volFloor = Number(cfg.volFloor ?? DEFAULT_MODEL_VOL_FLOOR);
+    const rawVol = ctx.volatility > 0.01 ? ctx.volatility : volFloor;
+    const vol = clampVol(rawVol);
     const now = ctx.now;
 
     for (const c of ctx.contracts) {
@@ -117,15 +126,24 @@ export const modelFairValueStrategy: EdgeStrategy = {
           `${Math.abs(edgeBps).toFixed(0)} bps ${edgeDir}. ` +
           `Vol assumption ${(vol * 100).toFixed(0)}%.`;
 
+        const confidence = Math.min(1, Math.abs(edgePct) / 20);
+        const suggested_size_usd = computeSuggestedSizeUsd({
+          edgeFraction: Math.abs(edgePct) / 100,
+          marketPrice: marketPriceSide,
+          confidence,
+          bankrollUsd: ctx.bankrollUsd,
+        });
+
         return {
           strategy: "model_fair_value",
           source: "model_fair_value",
           market_id: c.conditionId,
           side: side as "YES" | "NO",
-          confidence: Math.min(1, Math.abs(edgePct) / 20),
+          confidence,
           edge_bps: edgeBps,
           forecast_prob: forecastProb,
           market_price: marketPriceSide,
+          suggested_size_usd,
           metadata: {
             rationale,
             spot: ctx.spot,

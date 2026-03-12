@@ -289,10 +289,7 @@ export class TaskService extends Service {
       logger.debug(`[Bootstrap] Executing task ${task.name} (${task.id})`);
       await worker.execute(
         this.runtime,
-        (task.metadata || {}) as Record<
-          string,
-          object | import("@elizaos/core").JsonValue
-        >,
+        (task.metadata || {}) as Record<string, unknown>,
         task,
       );
       //logger.debug('task.tags are', task.tags);

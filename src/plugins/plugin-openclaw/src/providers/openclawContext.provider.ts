@@ -6,7 +6,6 @@
 import type {
   Provider,
   ProviderResult,
-  ProviderValue,
   IAgentRuntime,
   Memory,
   State,
@@ -89,7 +88,7 @@ export const openclawContextProvider: Provider = {
       values: {
         openclawContext: paragraph,
         openclawGatewayConfigured: gatewaySet,
-      } as Record<string, ProviderValue>,
+      } as Record<string, unknown>,
     };
   },
 };

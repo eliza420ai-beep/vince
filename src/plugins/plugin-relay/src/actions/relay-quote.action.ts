@@ -508,7 +508,7 @@ export const relayQuoteAction: Action = {
         text: response.text,
         actions: ["GET_RELAY_QUOTE"],
         source: message.content.source,
-        data: response.data as import("@elizaos/core").JsonObject | undefined,
+        data: response.data as Record<string, unknown> | undefined,
       });
 
       return response;

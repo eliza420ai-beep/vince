@@ -18,7 +18,6 @@ import {
   type UUID,
   type State,
   type StateData,
-  type WorkingMemory,
   type HandlerCallback,
   type IMessageService,
   type MessageProcessingOptions,
@@ -1124,7 +1123,7 @@ export class OtakuMessageService implements IMessageService {
         // Ensure workingMemory exists on accumulatedState
         if (!accumulatedState.data) accumulatedState.data = {} as StateData;
         if (!accumulatedState.data.workingMemory)
-          accumulatedState.data.workingMemory = {} as WorkingMemory;
+          accumulatedState.data.workingMemory = {} as Record<string, unknown>;
 
         // Parse and store parameters if provided
         let actionParams: Record<string, unknown> = {};

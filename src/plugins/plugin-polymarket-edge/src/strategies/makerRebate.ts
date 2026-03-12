@@ -6,6 +6,7 @@
 
 import type { EdgeStrategy, EdgeSignal, TickContext } from "./types";
 import type { ContractMeta } from "../types";
+import { computeSuggestedSizeUsd } from "../utils/sizing";
 import {
   BTC_5MIN_QUESTION_PATTERNS,
   DEFAULT_MAKER_REBATE_TICK_MS,
@@ -13,16 +14,18 @@ import {
   DEFAULT_MAKER_REBATE_MIN_CONFIDENCE,
   DEFAULT_MAKER_REBATE_MIN_ENTRY_PRICE,
   DEFAULT_MAKER_REBATE_COOLDOWN_MS,
+  DEFAULT_MAKER_REBATE_PER_SHARE_USD,
+  DEFAULT_MAKER_FEE_CURVE_C,
+  DEFAULT_MAKER_ENTRY_WINDOW_MS,
   ENV_MAKER_REBATE_TICK_MS,
   ENV_MAKER_REBATE_ENTRY_WINDOW_SEC,
   ENV_MAKER_REBATE_MIN_CONFIDENCE,
   ENV_MAKER_REBATE_MIN_ENTRY_PRICE,
   ENV_MAKER_REBATE_COOLDOWN_MS,
+  ENV_MAKER_REBATE_PER_SHARE,
+  ENV_MAKER_FEE_CURVE_C,
+  ENV_MAKER_ENTRY_WINDOW_MS,
 } from "../constants";
-
-const ENTRY_WINDOW_MS_MAX = 60 * 1000; // only consider markets expiring within 60s (5-min window)
-const FEE_CURVE_C = 1; // normalized constant; max taker fee ~1.56% at p=0.5
-const REBATE_PER_SHARE_USD = 0.001; // placeholder rebate estimate per share
 
 function getConfig(): Record<string, unknown> {
   const tickIntervalMs =
@@ -45,16 +48,30 @@ function getConfig(): Record<string, unknown> {
     typeof process.env[ENV_MAKER_REBATE_COOLDOWN_MS] !== "undefined"
       ? parseInt(process.env[ENV_MAKER_REBATE_COOLDOWN_MS] as string, 10)
       : DEFAULT_MAKER_REBATE_COOLDOWN_MS;
+  const rebatePerShareUsd =
+    typeof process.env[ENV_MAKER_REBATE_PER_SHARE] !== "undefined"
+      ? parseFloat(process.env[ENV_MAKER_REBATE_PER_SHARE] as string)
+      : DEFAULT_MAKER_REBATE_PER_SHARE_USD;
+  const feeCurveC =
+    typeof process.env[ENV_MAKER_FEE_CURVE_C] !== "undefined"
+      ? parseFloat(process.env[ENV_MAKER_FEE_CURVE_C] as string)
+      : DEFAULT_MAKER_FEE_CURVE_C;
+  const entryWindowMsMax =
+    typeof process.env[ENV_MAKER_ENTRY_WINDOW_MS] !== "undefined"
+      ? parseInt(process.env[ENV_MAKER_ENTRY_WINDOW_MS] as string, 10)
+      : DEFAULT_MAKER_ENTRY_WINDOW_MS;
   return {
     tickIntervalMs,
     entryWindowSec,
     minConfidence,
     minEntryPrice,
     cooldownMs,
+    rebatePerShareUsd,
+    feeCurveC,
+    entryWindowMsMax,
   };
 }
 
-const cfg = getConfig();
 const lastSignalByCondition = new Map<string, number>();
 
 /** Exported for edge engine status (why maker_rebate may not fire). */
@@ -66,9 +83,9 @@ export function is5MinBtcMarket(question: string): boolean {
 }
 
 /** Taker fee (bps) from dynamic fee curve: fee = C * 0.25 * (p * (1-p))^2. Max ~156 bps at p=0.5. */
-function takerFeeBps(p: number): number {
+function takerFeeBps(p: number, feeCurveC: number): number {
   const term = p * (1 - p);
-  const feePct = FEE_CURVE_C * 0.25 * term * term;
+  const feePct = feeCurveC * 0.25 * term * term;
   return Math.round(feePct * 10000);
 }
 
@@ -92,6 +109,7 @@ function filter5MinEntryWindow(
   contracts: ContractMeta[],
   now: number,
   entryWindowSec: number,
+  entryWindowMsMax: number,
 ): ContractMeta[] {
   const entryWindowMs = entryWindowSec * 1000;
   return contracts.filter((c) => {
@@ -100,7 +118,7 @@ function filter5MinEntryWindow(
     return (
       secsToExpiry > 0 &&
       secsToExpiry <= entryWindowSec &&
-      c.expiryMs - now <= ENTRY_WINDOW_MS_MAX
+      c.expiryMs - now <= entryWindowMsMax
     );
   });
 }
@@ -109,25 +127,33 @@ export const makerRebateStrategy: EdgeStrategy = {
   name: "maker_rebate",
   description:
     "Paper-traded maker signals for 5-min BTC up/down: post on winning side at 90–95c in last 10s, zero fees + rebates.",
-  tickIntervalMs:
-    Number((cfg as { tickIntervalMs?: number }).tickIntervalMs) ||
-    DEFAULT_MAKER_REBATE_TICK_MS,
+  tickIntervalMs: DEFAULT_MAKER_REBATE_TICK_MS,
 
   getConfig,
 
   tick: async (ctx: TickContext): Promise<EdgeSignal | null> => {
+    const cfg = getConfig() as Record<string, unknown>;
     const entryWindowSec = Number(cfg.entryWindowSec);
     const minConfidence = Number(cfg.minConfidence);
     const minEntryPrice = Number(cfg.minEntryPrice);
     const cooldownMs = Number(cfg.cooldownMs);
+    const entryWindowMsMax = Number(
+      cfg.entryWindowMsMax ?? DEFAULT_MAKER_ENTRY_WINDOW_MS,
+    );
+    const feeCurveC = Number(cfg.feeCurveC ?? DEFAULT_MAKER_FEE_CURVE_C);
+    const rebatePerShareUsd = Number(
+      cfg.rebatePerShareUsd ?? DEFAULT_MAKER_REBATE_PER_SHARE_USD,
+    );
     const now = ctx.now;
 
-    const candidates = filter5MinEntryWindow(
+    const windowContracts = filter5MinEntryWindow(
       ctx.contracts,
       now,
       entryWindowSec,
+      entryWindowMsMax,
     );
-    for (const c of candidates) {
+    const signals: EdgeSignal[] = [];
+    for (const c of windowContracts) {
       const cooldownKey = c.conditionId;
       if ((lastSignalByCondition.get(cooldownKey) ?? 0) + cooldownMs > now)
         continue;
@@ -170,7 +196,7 @@ export const makerRebateStrategy: EdgeStrategy = {
       if (makerEntryPrice < minEntryPrice) continue;
 
       const windowSecsRemaining = (c.expiryMs - now) / 1000;
-      const takerFeeAvoidedBps = takerFeeBps(marketPrice);
+      const takerFeeAvoidedBps = takerFeeBps(marketPrice, feeCurveC);
       const estimatedFillProb = estimateFillProbability(
         makerEntryPrice,
         bestBid,
@@ -178,7 +204,7 @@ export const makerRebateStrategy: EdgeStrategy = {
         windowSecsRemaining,
       );
       const edgeBps = (1.0 - makerEntryPrice) * 10000;
-      const estimatedRebateUsd = REBATE_PER_SHARE_USD;
+      const estimatedRebateUsd = rebatePerShareUsd;
       const btcMomentumPct = side === "YES" ? yesMomentum : noMomentum;
 
       lastSignalByCondition.set(cooldownKey, now);
@@ -193,7 +219,14 @@ export const makerRebateStrategy: EdgeStrategy = {
         `BTC momentum ${btcMomentumPct > 0 ? "+" : ""}${btcMomentumPct.toFixed(1)}%. ` +
         `Taker fee avoided ${takerFeeAvoidedBps} bps; est. fill ${(estimatedFillProb * 100).toFixed(0)}%.`;
 
-      return {
+      const suggested_size_usd = computeSuggestedSizeUsd({
+        edgeFraction: Math.abs(edgeBps) / 10000,
+        marketPrice: makerEntryPrice,
+        confidence: confidence * estimatedFillProb,
+        bankrollUsd: ctx.bankrollUsd,
+      });
+
+      signals.push({
         strategy: "maker_rebate",
         source: "maker_rebate",
         market_id: c.conditionId,
@@ -202,6 +235,7 @@ export const makerRebateStrategy: EdgeStrategy = {
         edge_bps: edgeBps,
         forecast_prob: confidence,
         market_price: marketPrice,
+        suggested_size_usd,
         metadata: {
           rationale,
           makerEntryPrice,
@@ -214,8 +248,10 @@ export const makerRebateStrategy: EdgeStrategy = {
           strikeUsd: c.strikeUsd,
           isMakerOrder: true,
         },
-      };
+      });
     }
-    return null;
+    if (signals.length === 0) return null;
+    signals.sort((a, b) => Math.abs(b.edge_bps) - Math.abs(a.edge_bps));
+    return signals[0];
   },
 };
