@@ -37,6 +37,7 @@ import { logger } from "@elizaos/core";
 import { forgeRunAction } from "./actions/forgeRun.action.ts";
 import { forgeReportAction } from "./actions/forgeReport.action.ts";
 import { forgeRevertAction } from "./actions/forgeRevert.action.ts";
+import { forgePushDailyReportAction } from "./actions/forgePushDailyReport.action.ts";
 
 import { ForgeExperimentService } from "./services/forgeExperiment.service.ts";
 import { ForgeMlxService } from "./services/forgeMlx.service.ts";
@@ -44,13 +45,19 @@ import { ForgePythonService } from "./services/forgePython.service.ts";
 import { ForgeGitService } from "./services/forgeGit.service.ts";
 
 import { registerForgeNightlyTask } from "./tasks/forgeNightly.tasks.ts";
+import { registerForgeDailyReportTask } from "./tasks/forgeDailyReport.tasks.ts";
 
 export const forgePlugin: Plugin = {
   name: "forge",
   description:
     "MLX AutoResearch layer for VINCE v2. Overnight self-optimization experiments: mutate → replay → commit winners.",
 
-  actions: [forgeRunAction, forgeReportAction, forgeRevertAction],
+  actions: [
+    forgeRunAction,
+    forgeReportAction,
+    forgeRevertAction,
+    forgePushDailyReportAction,
+  ],
 
   // Services are registered individually; not listed in plugin.services
   // because they are used directly by actions and tasks rather than via getService().
@@ -71,6 +78,11 @@ export const forgePlugin: Plugin = {
       await registerForgeNightlyTask(runtime);
     } catch (err) {
       logger.warn("[ForgePlugin] Failed to register nightly task:", err);
+    }
+    try {
+      await registerForgeDailyReportTask(runtime);
+    } catch (err) {
+      logger.warn("[ForgePlugin] Failed to register daily report task:", err);
     }
 
     // Log runtime availability
@@ -104,5 +116,10 @@ export {
   ForgePythonService,
   ForgeGitService,
 };
-export { forgeRunAction, forgeReportAction, forgeRevertAction };
+export {
+  forgeRunAction,
+  forgeReportAction,
+  forgeRevertAction,
+  forgePushDailyReportAction,
+};
 export * from "./types/index.ts";

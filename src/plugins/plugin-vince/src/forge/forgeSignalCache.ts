@@ -241,6 +241,8 @@ export interface ReplayMetrics {
   winRate: number; // 0-1
   avgPnlPct: number;
   sharpe: number; // annualised approximation
+  /** Brier score using replay confidence as probability (lower is better) */
+  brierScore: number;
   maxDrawdown: number; // 0-1 fraction
   regimeBreakdown: Record<
     string,
@@ -262,6 +264,8 @@ export function replayWithWeights(
 ): ReplayMetrics {
   const { sourceWeights, defaultWeight = 1.0 } = weightsConfig;
   const triggeredPnls: number[] = [];
+  let brierNumerator = 0;
+  let brierCount = 0;
   const regimeBreakdown: Record<
     string,
     { triggered: number; wins: number; losses: number }
@@ -345,6 +349,10 @@ export function replayWithWeights(
 
     if (record.outcome !== undefined && record.pnlPct !== undefined) {
       triggeredPnls.push(record.pnlPct);
+      const p = Math.max(0, Math.min(1, avgConfidence / 100));
+      const y = record.outcome === "win" ? 1 : 0;
+      brierNumerator += Math.pow(p - y, 2);
+      brierCount++;
       if (record.outcome === "win") regimeBreakdown[regime].wins++;
       else if (record.outcome === "loss") regimeBreakdown[regime].losses++;
     }
@@ -359,6 +367,7 @@ export function replayWithWeights(
     withOutcome > 0
       ? triggeredPnls.reduce((a, b) => a + b, 0) / withOutcome
       : 0;
+  const brierScore = brierCount > 0 ? brierNumerator / brierCount : 1;
 
   // Sharpe (annualised — assume 24 trade opportunities per day for intraday)
   let sharpe = 0;
@@ -396,6 +405,7 @@ export function replayWithWeights(
     winRate,
     avgPnlPct,
     sharpe,
+    brierScore,
     maxDrawdown,
     regimeBreakdown,
   };

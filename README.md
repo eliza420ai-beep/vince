@@ -54,6 +54,7 @@ Ask **"drift"** or **"dexter drift"** for a paper-vs-Dexter-universe report. Gua
 **Financial Datasets insights + cache (tastytrade/watchlist):**
 - Configure Cursor MCP connector for Financial Datasets (OAuth) so chat can pull live fundamentals/news for those sleeves.
 - Prewarm historical prices once with `bun run fd:cache:portfolio` (reads `portfolio_tastytrade.json` + `portfolio_watchlist.json`).
+- Optional autoprewarm task: set `VINCE_FD_CACHE_PREWARM_ENABLED=true` (with interval/age envs) to keep cache fresh in runtime.
 - Cache files live in `.elizadb/financialdatasets-cache/`; reruns are cache hits unless you use `--force`.
 - Ask **`cached history <TICKER>`** or **`fd cache <TICKER>`** for cache-first historical stats from local files.
 - Setup + details: [docs/FINANCIAL_DATASETS_MCP_CACHE.md](docs/FINANCIAL_DATASETS_MCP_CACHE.md).
@@ -331,6 +332,9 @@ Stay in the game without 12+ hours on screens. The terminal monitors so you don'
 | `bun run improvement-weights` | Apply improvement report source weights |
 | `bun run validate-ml` | Validate ML thresholds on feature-store data |
 | `bun run fd:cache:portfolio` | Prewarm Financial Datasets historical cache for tastytrade + watchlist sleeves |
+| `bun run forge:daily-report` | Write daily Forge markdown report + print Discord-ready summary |
+| `bun run forge:push-now` | Ask Forge agent to push daily summary to forge/ops channels immediately |
+| `bun run forge:job-status -- <jobId>` | Query async messaging job status/result for Forge command jobs |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |
 
@@ -339,6 +343,23 @@ Stay in the game without 12+ hours on screens. The terminal monitors so you don'
 ELIZA_ENABLED=false KELLY_ENABLED=false ECHO_ENABLED=false \
 SENTINEL_ENABLED=false CLAWTERM_ENABLED=false \
 ORACLE_ENABLED=false NAVAL_ENABLED=false bun start
+```
+
+Forge daily push can run automatically in runtime with:
+
+```bash
+FORGE_DAILY_REPORT_ENABLED=true
+FORGE_DAILY_REPORT_HOUR_UTC=7
+```
+
+Forge async terminal flow (when using jobs fallback):
+
+```bash
+# 1) ask Forge to push now
+bun run forge:push-now
+
+# 2) copy jobId from output, then inspect status/result
+bun run forge:job-status -- <jobId>
 ```
 
 ---

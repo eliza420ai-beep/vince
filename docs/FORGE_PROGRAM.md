@@ -107,6 +107,7 @@ Claude Cowork (three-machine stack) reads these summaries and can:
 
 | File | Role |
 |------|------|
+| `docs/forge/autoresearch-program.md` | AIHF-style keep/revert loop runbook for VINCE |
 | `policies/trading-policy.yaml` | Canonical policy thresholds |
 | `prompts/vince-entry-gate.md` | LLM gate rules (mutable) |
 | `prompts/solus-strike-ritual.md` | Strike ritual rules (mutable) |

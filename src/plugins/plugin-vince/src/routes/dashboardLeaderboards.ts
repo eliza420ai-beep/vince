@@ -8,6 +8,8 @@
 
 import type { IAgentRuntime } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type { HIP3Pulse } from "../services/hip3.service";
 import { VinceHIP3Service } from "../services/hip3.service";
 import type { VinceHLCryptoSnapshotService } from "../services/hlCryptoSnapshot.service";
@@ -300,8 +302,50 @@ export interface LeaderboardsResponse {
     watchlist: string[];
     tastytrade: string[];
   };
+  fdCache?: {
+    generatedAt?: number | null;
+    fileCount?: number;
+    status?: "ready" | "missing" | "stale";
+  };
   hip3Status?: SectionStatus;
   hlCryptoStatus?: SectionStatus;
+}
+
+function getFdCacheFreshness(): {
+  generatedAt?: number | null;
+  fileCount?: number;
+  status?: "ready" | "missing" | "stale";
+} {
+  try {
+    const manifestPath = path.join(
+      process.cwd(),
+      ".elizadb",
+      "financialdatasets-cache",
+      "manifest.json",
+    );
+    if (!fs.existsSync(manifestPath)) {
+      return { generatedAt: null, fileCount: 0, status: "missing" };
+    }
+    const raw = fs.readFileSync(manifestPath, "utf-8");
+    const parsed = JSON.parse(raw) as {
+      generatedAt?: string;
+      files?: Array<{ ticker?: string }>;
+    };
+    const generatedAt =
+      parsed.generatedAt != null
+        ? new Date(parsed.generatedAt).getTime()
+        : null;
+    const fileCount = Array.isArray(parsed.files) ? parsed.files.length : 0;
+    const stale =
+      generatedAt != null && Date.now() - generatedAt > 7 * 24 * 60 * 60 * 1000;
+    return {
+      generatedAt,
+      fileCount,
+      status: stale ? "stale" : "ready",
+    };
+  } catch {
+    return { generatedAt: null, fileCount: 0, status: "missing" };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1250,6 +1294,7 @@ export async function buildLeaderboardsResponse(
     watchlist: [...new Set(dexter.watchlist.map((s) => s.toUpperCase()))],
     tastytrade: [...new Set(dexter.tastytrade.map((s) => s.toUpperCase()))],
   };
+  const fdCache = getFdCacheFreshness();
 
   // Derive simple status flags for UI hints.
   let hip3Status: SectionStatus = "loading";
@@ -1289,6 +1334,7 @@ export async function buildLeaderboardsResponse(
     digitalArt,
     more,
     chartTickers,
+    fdCache,
     hip3Status,
     hlCryptoStatus,
   };

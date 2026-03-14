@@ -180,6 +180,7 @@ import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
 import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
+import { registerFdCachePrewarmTask } from "./tasks/fdCachePrewarm.tasks";
 
 // Tasks - Phase 5: The Genome (V4.2.0)
 import { registerCounterfactualWeeklyTask } from "./tasks/counterfactualWeekly.tasks";
@@ -1324,6 +1325,11 @@ export const vincePlugin: Plugin = {
           await registerHIP3DiscoveryTask(runtime);
         } catch (e) {
           logger.warn("[VINCE] Failed to register HIP-3 discovery task:", e);
+        }
+        try {
+          await registerFdCachePrewarmTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register FD cache prewarm task:", e);
         }
       });
     }

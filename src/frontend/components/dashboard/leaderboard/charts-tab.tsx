@@ -15,6 +15,11 @@ interface ChartsTabProps {
     watchlist: string[];
     tastytrade: string[];
   };
+  fdCache?: {
+    generatedAt?: number | null;
+    fileCount?: number;
+    status?: "ready" | "missing" | "stale";
+  };
 }
 
 const CRYPTO_TICKERS: ChartTicker[] = [
@@ -189,7 +194,7 @@ function ChartBlock({
   );
 }
 
-export function ChartsTab({ chartTickers }: ChartsTabProps) {
+export function ChartsTab({ chartTickers, fdCache }: ChartsTabProps) {
   const [selectedCrypto, setSelectedCrypto] = useState<ChartTicker>(
     CRYPTO_TICKERS[0],
   );
@@ -208,9 +213,46 @@ export function ChartsTab({ chartTickers }: ChartsTabProps) {
     tastytradeTickers[0] ?? STOCK_TICKERS[0],
   );
   const [intervalTastytrade, setIntervalTastytrade] = useState<string>("240");
+  const cacheStatus = fdCache?.status ?? "missing";
+  const cacheStatusClass =
+    cacheStatus === "ready"
+      ? "text-emerald-400"
+      : cacheStatus === "stale"
+        ? "text-amber-400"
+        : "text-red-400";
+  const cacheDotClass =
+    cacheStatus === "ready"
+      ? "bg-emerald-400"
+      : cacheStatus === "stale"
+        ? "bg-amber-400"
+        : "bg-red-400";
+  const freshnessText =
+    fdCache?.generatedAt != null
+      ? `${Math.floor((Date.now() - fdCache.generatedAt) / 60000)}m ago`
+      : "not generated";
+  const isChartTickerPayloadMissing = chartTickers == null;
 
   return (
     <div className="flex flex-col gap-6 w-full min-h-0">
+      <div className="flex items-center justify-between rounded-lg border border-border/50 bg-black/20 px-3 py-2">
+        <div className="text-xs text-muted-foreground">
+          FD cache:{" "}
+          <span className={`font-medium ${cacheStatusClass}`}>
+            <span
+              className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${cacheDotClass}`}
+            />
+            {cacheStatus}
+          </span>{" "}
+          · {fdCache?.fileCount ?? 0} files · refreshed {freshnessText}
+        </div>
+      </div>
+
+      {isChartTickerPayloadMissing && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+          chartTickers missing from API response. Showing default 2 charts only.
+        </div>
+      )}
+
       {/* BTC & core pairs */}
       <div className="flex flex-col min-h-0 flex-1">
         <p className="text-sm font-medium text-muted-foreground mb-2">

@@ -64,6 +64,24 @@ bun run fd:cache:portfolio --start=2020-01-01 --end=2026-12-31
 bun run fd:cache:portfolio --force
 ```
 
+### Optional: scheduled prewarm inside VINCE
+
+VINCE can refresh this cache automatically on a schedule:
+
+```bash
+VINCE_FD_CACHE_PREWARM_ENABLED=true
+VINCE_FD_CACHE_PREWARM_INTERVAL_HOURS=6
+VINCE_FD_CACHE_MAX_AGE_HOURS=24
+VINCE_FD_CACHE_PREWARM_YEARS=5
+```
+
+Behavior:
+
+- Task name: `VINCE_FD_CACHE_PREWARM`
+- Runs every `VINCE_FD_CACHE_PREWARM_INTERVAL_HOURS`
+- Only refreshes when manifest age exceeds `VINCE_FD_CACHE_MAX_AGE_HOURS` (or force=true)
+- Writes the same manifest/paths as manual prewarm
+
 ## Notes
 
 - Interactive MCP calls (Cursor chat) use OAuth and do not require an API key.

@@ -205,7 +205,8 @@ async function main(): Promise<void> {
   }
 
   // 2. Split holdout
-  const { holdout } = splitHoldout(allRecords, HOLDOUT_FRACTION);
+  // Use only labeled records for holdout so replay metrics are meaningful.
+  const { holdout } = splitHoldout(labeled, HOLDOUT_FRACTION);
   const holdoutLabeled = holdout.filter((r) => r.outcome !== undefined);
   console.log(
     `  Holdout: ${holdout.length} records (${holdoutLabeled.length} labeled)`,

@@ -245,6 +245,11 @@ export interface LeaderboardsResponse {
     watchlist: string[];
     tastytrade: string[];
   };
+  fdCache?: {
+    generatedAt?: number | null;
+    fileCount?: number;
+    status?: "ready" | "missing" | "stale";
+  };
   hip3Status?: "loading" | "ok" | "stale" | "error";
   hlCryptoStatus?: "loading" | "ok" | "stale" | "error";
 }

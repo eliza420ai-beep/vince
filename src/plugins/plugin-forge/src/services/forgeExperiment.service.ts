@@ -30,25 +30,40 @@ import type {
 import { ForgeGitService } from "./forgeGit.service.ts";
 import { ForgeMlxService } from "./forgeMlx.service.ts";
 import { ForgePythonService } from "./forgePython.service.ts";
+import {
+  loadForgeSignalCache,
+  replayForRegime,
+  replayWithWeights,
+  splitHoldout,
+  type ForgeSignalRecord,
+  type ReplayMetrics,
+} from "../../../plugin-vince/src/forge/forgeSignalCache.ts";
 
 const REPO_ROOT = process.cwd();
 const POLICY_PATH = path.join(REPO_ROOT, "policies", "trading-policy.yaml");
-const PROMPTS_DIR = path.join(REPO_ROOT, "prompts");
-const FEATURE_STORE_DIR = path.join(
-  REPO_ROOT,
-  ".elizadb",
-  "vince-paper-bot",
-  "features",
-);
 const SOUL_PATH = path.join(REPO_ROOT, "knowledge", "teammate", "SOUL.md");
 
 /** Minimum composite delta (fraction) to commit a winner */
 const MIN_COMPOSITE_DELTA = 0.005; // +0.5%
-/** Minimum replay trades required */
-const MIN_REPLAY_TRADES = 50;
+/** Minimum holdout records with outcomes required */
+const MIN_HOLDOUT_OUTCOMES = 30;
 /** Hard safety limits */
 const HARD_MAX_LEVERAGE = 40;
 const HARD_MAX_SINGLE_TRADE_USD = 50_000;
+/** Replay defaults */
+const DEFAULT_HOLDOUT_FRACTION = 0.2;
+const MIN_TRIGGERED_FOR_GATE = 5;
+
+interface ReplayContext {
+  holdout: ForgeSignalRecord[];
+  baselineResult: ForgeReplayResult;
+  baselineWeights: Record<string, number>;
+  baselineThresholds: {
+    minStrength: number;
+    minConfidence: number;
+    minConfirming: number;
+  };
+}
 
 export class ForgeExperimentService {
   static serviceType = "forge-experiment";
@@ -133,6 +148,180 @@ export class ForgeExperimentService {
   /** Count rows in the feature store. */
   async getFeatureStoreRowCount(): Promise<number> {
     return this.pythonService?.getFeatureStoreRowCount() ?? 0;
+  }
+
+  private getHoldoutFraction(): number {
+    const raw = Number(process.env.FORGE_HOLDOUT_FRACTION ?? "0.2");
+    if (!Number.isFinite(raw) || raw <= 0.05 || raw >= 0.5) {
+      return DEFAULT_HOLDOUT_FRACTION;
+    }
+    return raw;
+  }
+
+  private getConfirmWindows(): number {
+    const raw = Number(process.env.FORGE_CONFIRM_WINDOWS ?? "3");
+    if (!Number.isFinite(raw) || raw < 1) return 3;
+    return Math.floor(raw);
+  }
+
+  private requireRegimeOosImprovement(): boolean {
+    return process.env.FORGE_REQUIRE_REGIME_OOS_IMPROVEMENT !== "false";
+  }
+
+  private requireWindowConfirmation(): boolean {
+    return process.env.FORGE_REQUIRE_WINDOW_CONFIRMATION !== "false";
+  }
+
+  private buildReplayThresholds(policy: ForgePolicyThresholds): {
+    minStrength: number;
+    minConfidence: number;
+    minConfirming: number;
+  } {
+    return {
+      minStrength: policy.signal.min_strength,
+      minConfidence: policy.signal.min_confidence,
+      minConfirming: policy.signal.min_confirming_signals,
+    };
+  }
+
+  private getBaselineWeights(
+    records: ForgeSignalRecord[],
+  ): Record<string, number> {
+    const latest = [...records]
+      .reverse()
+      .find(
+        (r) => r.weightsSnapshot && Object.keys(r.weightsSnapshot).length > 0,
+      );
+    return latest?.weightsSnapshot ?? {};
+  }
+
+  private toForgeReplayResult(metrics: ReplayMetrics): ForgeReplayResult {
+    const causalUplift = metrics.winRate;
+    const brierScore = metrics.brierScore;
+    return {
+      tradeCount: metrics.withOutcome,
+      winRate: metrics.winRate,
+      sharpe: metrics.sharpe,
+      causalUplift,
+      brierScore,
+      composite: causalUplift * metrics.sharpe * (1 - brierScore),
+      maxDrawdownPct: metrics.maxDrawdown * 100,
+      safetyGatePassed: false,
+    };
+  }
+
+  private checkRegimeOosGate(
+    holdout: ForgeSignalRecord[],
+    baselineWeights: Record<string, number>,
+    baselineThresholds: {
+      minStrength: number;
+      minConfidence: number;
+      minConfirming: number;
+    },
+    candidateThresholds: {
+      minStrength: number;
+      minConfidence: number;
+      minConfirming: number;
+    },
+  ): { passed: boolean; reason?: string } {
+    if (!this.requireRegimeOosImprovement()) return { passed: true };
+
+    const baseline = replayForRegime(
+      holdout,
+      "uncertain",
+      { sourceWeights: baselineWeights, defaultWeight: 1.0 },
+      baselineThresholds,
+    );
+    const candidate = replayForRegime(
+      holdout,
+      "uncertain",
+      { sourceWeights: baselineWeights, defaultWeight: 1.0 },
+      candidateThresholds,
+    );
+
+    if (
+      baseline.withOutcome < MIN_TRIGGERED_FOR_GATE ||
+      candidate.withOutcome < MIN_TRIGGERED_FOR_GATE
+    ) {
+      return { passed: true };
+    }
+
+    const sharpeDelta = candidate.sharpe - baseline.sharpe;
+    const winRateDelta = candidate.winRate - baseline.winRate;
+
+    if (sharpeDelta < -0.1 || winRateDelta < -0.03) {
+      return {
+        passed: false,
+        reason:
+          "Regime OOS gate failed (uncertain regime degraded beyond tolerance)",
+      };
+    }
+
+    return { passed: true };
+  }
+
+  private checkWindowConfirmationGate(
+    holdout: ForgeSignalRecord[],
+    baselineWeights: Record<string, number>,
+    baselineThresholds: {
+      minStrength: number;
+      minConfidence: number;
+      minConfirming: number;
+    },
+    candidateThresholds: {
+      minStrength: number;
+      minConfidence: number;
+      minConfirming: number;
+    },
+  ): { passed: boolean; reason?: string } {
+    if (!this.requireWindowConfirmation()) return { passed: true };
+
+    const windows = this.getConfirmWindows();
+    if (windows <= 1 || holdout.length < windows * 5) return { passed: true };
+
+    const ordered = [...holdout].sort((a, b) => a.evaluatedAt - b.evaluatedAt);
+    const windowSize = Math.max(1, Math.floor(ordered.length / windows));
+    let improvedWindows = 0;
+    let evaluatedWindows = 0;
+
+    for (let i = 0; i < windows; i++) {
+      const start = i * windowSize;
+      const end = i === windows - 1 ? ordered.length : (i + 1) * windowSize;
+      const slice = ordered.slice(start, end);
+      if (slice.length === 0) continue;
+
+      const base = replayWithWeights(
+        slice,
+        { sourceWeights: baselineWeights, defaultWeight: 1.0 },
+        baselineThresholds,
+      );
+      const cand = replayWithWeights(
+        slice,
+        { sourceWeights: baselineWeights, defaultWeight: 1.0 },
+        candidateThresholds,
+      );
+
+      if (
+        base.withOutcome < MIN_TRIGGERED_FOR_GATE ||
+        cand.withOutcome < MIN_TRIGGERED_FOR_GATE
+      ) {
+        continue;
+      }
+
+      evaluatedWindows++;
+      if (cand.sharpe >= base.sharpe && cand.winRate >= base.winRate - 0.01) {
+        improvedWindows++;
+      }
+    }
+
+    if (evaluatedWindows === 0) return { passed: true };
+    if (improvedWindows < Math.ceil(evaluatedWindows / 2)) {
+      return {
+        passed: false,
+        reason: `Window confirmation failed (${improvedWindows}/${evaluatedWindows} windows improved)`,
+      };
+    }
+    return { passed: true };
   }
 
   /**
@@ -224,11 +413,10 @@ export class ForgeExperimentService {
     try {
       const content = fs.readFileSync(POLICY_PATH, "utf-8");
       const keyLeaf = mutation.keyPath.split(".").at(-1) ?? mutation.keyPath;
-      const pattern = new RegExp(
-        `(\\s+${keyLeaf}:\\s+)${String(mutation.before).replace(".", "\\.")}`,
-        "m",
-      );
-      const updated = content.replace(pattern, `$1${mutation.after}`);
+      const pattern = new RegExp(`(\\s+${keyLeaf}:\\s+)([^\\n#]+)`, "m");
+      const updated = content.replace(pattern, (_m, prefix) => {
+        return `${prefix}${mutation.after}`;
+      });
       if (updated === content) {
         logger.warn(
           `[ForgeExperiment] Mutation pattern not found: ${mutation.keyPath}`,
@@ -247,61 +435,80 @@ export class ForgeExperimentService {
   }
 
   /**
-   * Simulate a paper-bot replay with current policy (stub implementation).
-   * In full implementation this calls VincePaperTradingService.replayFeatureStore().
-   * For now returns a synthetic result based on the mutation direction.
+   * Deterministic replay backed by Forge signal cache.
+   * No randomization, no external API calls.
    */
   async runPaperBotReplay(
     mutation: ForgeMutation,
-    baseline: ForgeReplayResult,
+    ctx: ReplayContext,
   ): Promise<ForgeReplayResult> {
-    const rowCount = await this.getFeatureStoreRowCount();
-    if (rowCount < MIN_REPLAY_TRADES) {
+    logger.debug(
+      `[ForgeExperiment] Replaying mutation deterministically: ${mutation.description}`,
+    );
+    const policy = this.loadPolicy();
+    if (!policy) {
       return {
-        tradeCount: rowCount,
-        winRate: baseline.winRate,
-        sharpe: baseline.sharpe,
-        causalUplift: 0,
-        brierScore: baseline.brierScore,
-        composite: baseline.composite,
-        maxDrawdownPct: baseline.maxDrawdownPct,
+        ...ctx.baselineResult,
         safetyGatePassed: false,
-        safetyGateReason: `Insufficient feature-store rows: ${rowCount} < ${MIN_REPLAY_TRADES}`,
+        safetyGateReason: "Policy missing during replay",
       };
     }
 
-    // Stub: small random delta simulating the replay result.
-    // Replace with real replay call when VincePaperTradingService.replayFeatureStore() is implemented.
-    const delta = (Math.random() - 0.4) * 0.02; // slight upward bias for testing
-    const winRate = Math.max(
-      0.3,
-      Math.min(0.8, baseline.winRate + delta * 0.5),
+    const candidateThresholds = this.buildReplayThresholds(policy);
+
+    const candidateMetrics = replayWithWeights(
+      ctx.holdout,
+      { sourceWeights: ctx.baselineWeights, defaultWeight: 1.0 },
+      candidateThresholds,
     );
-    const sharpe = Math.max(0.1, baseline.sharpe + delta * 0.3);
-    const causalUplift = winRate - baseline.winRate;
-    const brierScore = Math.max(0.1, baseline.brierScore - delta * 0.1);
-    const composite = causalUplift * sharpe * (1 - brierScore);
 
-    const maxDrawdownPct =
-      baseline.maxDrawdownPct * (1 + (Math.random() - 0.5) * 0.1);
+    if (candidateMetrics.withOutcome < MIN_TRIGGERED_FOR_GATE) {
+      return {
+        ...this.toForgeReplayResult(candidateMetrics),
+        safetyGatePassed: false,
+        safetyGateReason: `Insufficient holdout outcomes after mutation: ${candidateMetrics.withOutcome} < ${MIN_TRIGGERED_FOR_GATE}`,
+      };
+    }
 
-    const policy = this.loadPolicy();
+    const regimeGate = this.checkRegimeOosGate(
+      ctx.holdout,
+      ctx.baselineWeights,
+      ctx.baselineThresholds,
+      candidateThresholds,
+    );
+    if (!regimeGate.passed) {
+      return {
+        ...this.toForgeReplayResult(candidateMetrics),
+        safetyGatePassed: false,
+        safetyGateReason: regimeGate.reason,
+      };
+    }
+
+    const windowGate = this.checkWindowConfirmationGate(
+      ctx.holdout,
+      ctx.baselineWeights,
+      ctx.baselineThresholds,
+      candidateThresholds,
+    );
+    if (!windowGate.passed) {
+      return {
+        ...this.toForgeReplayResult(candidateMetrics),
+        safetyGatePassed: false,
+        safetyGateReason: windowGate.reason,
+      };
+    }
+
+    const candidateResult = this.toForgeReplayResult(candidateMetrics);
     const safetyCheck = this.checkSafetyGate(
-      composite,
-      baseline.composite,
-      winRate,
-      maxDrawdownPct,
+      candidateResult.composite,
+      ctx.baselineResult.composite,
+      candidateResult.winRate,
+      candidateResult.maxDrawdownPct,
       policy,
     );
 
     return {
-      tradeCount: rowCount,
-      winRate,
-      sharpe,
-      causalUplift,
-      brierScore,
-      composite,
-      maxDrawdownPct,
+      ...candidateResult,
       safetyGatePassed: safetyCheck.passed,
       safetyGateReason: safetyCheck.reason,
     };
@@ -352,18 +559,28 @@ export class ForgeExperimentService {
     return { passed: true };
   }
 
-  /** Get baseline replay result (current main branch). */
-  async getBaselineResult(): Promise<ForgeReplayResult> {
-    // Stub baseline — will be replaced with actual replay
+  /** Get deterministic baseline replay result (current main branch policy + weights). */
+  async getBaselineContext(
+    policy: ForgePolicyThresholds,
+  ): Promise<ReplayContext> {
+    const allRecords = loadForgeSignalCache()
+      .filter((r) => r.outcome !== undefined && typeof r.pnlPct === "number")
+      .sort((a, b) => a.evaluatedAt - b.evaluatedAt);
+
+    const { holdout } = splitHoldout(allRecords, this.getHoldoutFraction());
+    const baselineWeights = this.getBaselineWeights(allRecords);
+    const baselineThresholds = this.buildReplayThresholds(policy);
+    const baselineMetrics = replayWithWeights(
+      holdout,
+      { sourceWeights: baselineWeights, defaultWeight: 1.0 },
+      baselineThresholds,
+    );
+    const baselineResult = this.toForgeReplayResult(baselineMetrics);
     return {
-      tradeCount: await this.getFeatureStoreRowCount(),
-      winRate: 0.52,
-      sharpe: 1.2,
-      causalUplift: 0.0,
-      brierScore: 0.3,
-      composite: 0.52 * 1.2 * (1 - 0.3),
-      maxDrawdownPct: 8.0,
-      safetyGatePassed: true,
+      holdout,
+      baselineResult,
+      baselineWeights,
+      baselineThresholds,
     };
   }
 
@@ -392,10 +609,12 @@ export class ForgeExperimentService {
       committedBranches: [],
     };
 
-    const rowCount = await this.getFeatureStoreRowCount();
-    if (rowCount < MIN_REPLAY_TRADES) {
+    const cacheLabeledCount = loadForgeSignalCache().filter(
+      (r) => r.outcome !== undefined && typeof r.pnlPct === "number",
+    ).length;
+    if (cacheLabeledCount < MIN_HOLDOUT_OUTCOMES) {
       logger.info(
-        `[ForgeExperiment] Skipping run: only ${rowCount} feature rows (need ${MIN_REPLAY_TRADES})`,
+        `[ForgeExperiment] Skipping run: only ${cacheLabeledCount} labeled forge-cache rows (need ${MIN_HOLDOUT_OUTCOMES})`,
       );
       summary.safetyGateStatus = "not_reached";
       return summary;
@@ -409,12 +628,19 @@ export class ForgeExperimentService {
       return summary;
     }
 
-    const baseline = await this.getBaselineResult();
-    summary.baselineComposite = baseline.composite;
+    const replayCtx = await this.getBaselineContext(policy);
+    if (replayCtx.holdout.length < MIN_HOLDOUT_OUTCOMES) {
+      logger.info(
+        `[ForgeExperiment] Skipping run: holdout too small (${replayCtx.holdout.length} < ${MIN_HOLDOUT_OUTCOMES})`,
+      );
+      summary.safetyGateStatus = "not_reached";
+      return summary;
+    }
+    summary.baselineComposite = replayCtx.baselineResult.composite;
 
     const mutations = this.generatePolicyMutations(policy, opts.maxExperiments);
     logger.info(
-      `[ForgeExperiment] Starting ${mutations.length} experiments. Baseline composite: ${baseline.composite.toFixed(4)}`,
+      `[ForgeExperiment] Starting ${mutations.length} experiments. Baseline composite: ${replayCtx.baselineResult.composite.toFixed(4)} (holdout=${replayCtx.holdout.length})`,
     );
 
     const initialBranch = await this.gitService!.getCurrentBranch();
@@ -450,8 +676,9 @@ export class ForgeExperimentService {
       }
 
       // Run replay
-      const result = await this.runPaperBotReplay(mutation, baseline);
-      const compositeDelta = result.composite - baseline.composite;
+      const result = await this.runPaperBotReplay(mutation, replayCtx);
+      const compositeDelta =
+        result.composite - replayCtx.baselineResult.composite;
       const expResult: ForgeExperimentResult = {
         config,
         result,
