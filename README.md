@@ -73,6 +73,17 @@ Ask **"drift"** or **"dexter drift"** for a paper-vs-Dexter-universe report. Gua
 **Leaderboard → Charts tab:** now includes 4 TradingView blocks:
 1) BTC/core pairs, 2) Fav stocks, 3) Watchlist sleeve (`portfolio_watchlist.json`), 4) Tastytrade sleeve (`portfolio_tastytrade.json`).
 
+**Gem Ticker Discovery (V2) — outcome harness** — find and rank equity candidates worth adding to the sleeves, with a **falsifiable loop**: one search surface (ranked candidates), fixed evaluation (1m/3m returns from cached FD daily bars), and explicit keep/reject via bucket hit rates and promotion policy.
+
+- **Expanded universe:** Three sources feed the ranker: **current sleeve** (tastytrade + watchlist), **peer universe** (`knowledge/trading/fd_peer_universe.json`), and **expansion universe** (`knowledge/trading/fd_expansion_universe.json`). Set `VINCE_FD_DISCOVERY_FULL_UNIVERSE=true` so the weekly task refreshes FD cache and snapshots for the full candidate set.
+- **Gem scoring:** Structured subscores (sleeve-fit, momentum/trend, catalyst/event, valuation/quality, diversification, regime). Snapshots include filing intensity, insider skew, earnings surprise, sector-relative momentum. Reasons are explainable.
+- **Resolvable runs:** Each weekly run writes **outcomes-ready** history: immutable pick-time fields (`discoveryRunId`, `entryBarDate`, `entryClose`, `horizon1mDueAt`, `horizon3mDueAt`) in `discovery-candidates-history.jsonl`, plus a companion **`discovery-resolved-outcomes.jsonl`** keyed by run + ticker + horizon. Resolution uses FD cached daily bars and **nearest-trading-day** logic (no live market dependency).
+- **FD-specific predictions:** Kind `fd_discovery` in the prediction tracker: 1m and 3m horizons, resolver from cached closes, metadata (bucket, candidateSource, discoveryScore, discoveryRunId). Weekly task registers **only** from the same ranked run — no sleeve-default divergence.
+- **Leaderboard diagnostics:** The **FD Discovery** card shows PromoteNow / ResearchNext / Avoid, **resolved outcomes** table, **false positives** (wrong direction), **bucket metrics** (promoteNowHitRate, researchNextHitRate, avoidSaveRate, avgReturnByBucket), FD status/freshness, **open** fd_discovery predictions, and **promotion policy** summary (promotable vs need-review vs blocked). Charts tab fetches leaderboards so fdCache loads even when Markets has not.
+- **Ranking vs promotion:** Ranker answers "is this interesting?"; **promotion policy** (separate layer) answers "should this move toward live sleeve consideration now?" using bucket hit-rate history, sleeve overlap, and policy gates. Outputs: `eligibleForPromotion`, `requiresHumanReview`, `blockedByPolicy`. Human promotion only: output goes to `portfolio_watchlist_candidates.json`; live portfolio files are never auto-edited.
+
+**Why it matters:** Discovery is no longer a sophisticated screener — it is a **bounded improvement harness**. You can answer: did PromoteNow outperform ResearchNext, which sources worked, which reasons failed, and what to change next. Same design as Forge and [autoresearch-mlx](https://github.com/eliza420ai-beep/autoresearch-mlx) (our pinned Apple Silicon port of Karpathy's loop): one search surface, fixed evaluation rules, cheap failure modes, and explicit keep/reject. The impressive part is not that an agent can rank tickers; it is that the environment makes those picks **measurable, discardable, and repeatable** so the system can improve over time without babysitting.
+
 ---
 
 ## Agent Roster
@@ -133,6 +144,14 @@ All three must improve together. A threshold change that boosts Sharpe but hurts
 5. Safety gate: ΔComposite ≥ +0.5%, drawdown ≤ 15%, win rate ≥ 45%, max leverage ≤ 40, max single trade ≤ $50K
 6. Winners → `git commit` on `forge/experiment-YYYYMMDD-NNN`; losers → `git checkout --` revert
 7. Push Telegram summary to `#forge` / `#ops` channels
+
+**Forge Ops card (Leaderboard):** In the dashboard **Leaderboard → Markets** tab, a **Forge Ops** card shows deterministic replay gate status (holdout, trigger count, win-rate) and metrics (Sharpe, Brier, cache size) from the signal cache. Branch and policy hash are shown for context. Use it to see at a glance whether promotion gates would pass.
+
+**Harness, not open-ended freedom:** Forge and Gem Ticker Discovery both follow the same principle as [autoresearch-mlx](https://github.com/eliza420ai-beep/autoresearch-mlx) (our Apple Silicon port of Karpathy’s autoresearch): the agent is useful when the *harness* is tight. One mutable surface (policy + prompts vs `train.py`), one metric (composite vs val_bpb), fixed evaluation (replay vs 5‑min run), keep/revert on the score, and explicit failure handling. The impressive part is not that an agent can edit code or rank tickers; it is that the environment makes those edits measurable, discardable, and repeatable without babysitting.
+
+**Promotion gate enforcement:** A shared **hard promotion validator** runs before every winner commit. No experiment is committed unless all gates pass (ΔComposite, win rate, drawdown, leverage, holdout/trigger data). Explicit **reject reasons** are recorded per loser and surfaced in the nightly summary, on-demand run output, and the Forge job ledger (`bun run forge:jobs-tail` shows a `rejectReasons` column when present).
+
+**Low-data remediation:** When holdout or trigger gates fail (e.g. too few labeled outcomes), Forge runs **auto-remediation**: (1) FD cache health check and optional prewarm (`financialdatasets-cache`), (2) paper-bot activity diagnostics from ops summary or runtime, (3) a structured **insufficient-data alert** pushed to rooms named `ops` or `forge`, with fallback to `sentinel`. This runs from the daily report task and from the nightly/on-demand experiment path when the run is skipped for low data.
 
 **Runtime:** MLX on Apple Silicon (300–600 experiments/hour). Falls back to `train_models.py` on CPU when MLX unavailable.
 
@@ -335,6 +354,7 @@ Stay in the game without 12+ hours on screens. The terminal monitors so you don'
 | `bun run forge:daily-report` | Write daily Forge markdown report + print Discord-ready summary |
 | `bun run forge:push-now` | Ask Forge agent to push daily summary to forge/ops channels immediately |
 | `bun run forge:job-status -- <jobId>` | Query async messaging job status/result for Forge command jobs |
+| `bun run forge:jobs-tail -- --limit 20` | Tail Forge job ledger from `.elizadb/forge/jobs.jsonl` in table format |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |
 
@@ -362,6 +382,9 @@ bun run forge:push-now
 bun run forge:job-status -- <jobId>
 ```
 
+Async command jobs are also appended to `.elizadb/forge/jobs.jsonl` with:
+`command`, `jobId`, `acceptedAt`, `finalStatus`, `resultHash` (when available), and `rejectReasons` (promotion gate failures when the run completed and wrote `last-run.json`).
+
 ---
 
 ## Docs
@@ -380,6 +403,7 @@ bun run forge:job-status -- <jobId>
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | Push schedule, Discord, env vars |
 | [GUARDRAILS.md](docs/GUARDRAILS.md) | Leverage caps, PTQG/max-loss process, weekly guardrail runbook |
 | [FINANCIAL_DATASETS_MCP_CACHE.md](docs/FINANCIAL_DATASETS_MCP_CACHE.md) | Cursor MCP setup + historical cache prewarm workflow |
+| [FD-WAREHOUSE.md](docs/FD-WAREHOUSE.md) | Financial Datasets warehouse + Gem Ticker Discovery (V2) |
 | [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [DEXTER.md](docs/DEXTER.md) | Dexter integration — SOUL.md, fundamentals, execution gate |
 | [AIHF.md](docs/AIHF.md) | AIHF adversarial challenge layer |
