@@ -16,3 +16,21 @@ I'd need to pull the Polymarket odds around your entry time to give you a precis
 ### Solus
 
 This was pure directional miss, not a mechanics problem—your entry was solid, but BTC moved 1.3% against you fast enough to hit stops before mean reversion. From options lens: if you'd sold a $63.5K put instead of shorting, you'd have collected premium as a cushion and had Friday expiry to work with; the 3x leverage on perps gave you zero time buffer. Sizing was reasonable for the move, but perps' instant liquidation risk vs. options' theta decay are different games—options would've let you breathe. Next time BTC's near resistance like that, consider: can you express this as a short call (sell $64K strike, collect premium, cap loss) instead of naked short? That's the options edge—premium offsets the directional bet.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

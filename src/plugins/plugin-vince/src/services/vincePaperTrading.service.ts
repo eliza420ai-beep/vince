@@ -109,6 +109,10 @@ import {
   getWttSizeMultiplierForBand,
   scoreWttPickQuality,
 } from "../utils/wttQualityScore";
+import {
+  loadDexterPortfolios,
+  getDexterUniverseSet,
+} from "../utils/dexterPortfolio";
 import { VinceXSourceAttributionService } from "./vinceXSourceAttribution.service";
 import type {
   CausalStageDepthSummary,
@@ -1614,6 +1618,21 @@ Reply format: APPROVE reason or VETO reason`;
       await this.appendWttPickJsonl(pick, "skipped", "ticker not in universe");
       return false;
     }
+    // Only trade WTT picks that are in the Dexter monitoring universe (HL + tastytrade + watchlist + core crypto)
+    const dexter = loadDexterPortfolios();
+    const dexterSet = getDexterUniverseSet(dexter);
+    const hasSleeves =
+      dexter.hyperliquid.length > 0 ||
+      dexter.tastytrade.length > 0 ||
+      dexter.watchlist.length > 0;
+    if (hasSleeves && !dexterSet.has(asset.toUpperCase())) {
+      await this.appendWttPickJsonl(
+        pick,
+        "skipped",
+        "ticker not in Dexter universe",
+      );
+      return false;
+    }
 
     const today = new Date().toISOString().slice(0, 10);
     const reportId = `${today}-${pick.primaryTicker}-${pick.primaryDirection}`;
@@ -1790,7 +1809,25 @@ Reply format: APPROVE reason or VETO reason`;
     // WTT: if enabled, try to open today's pick first (perp/HIP-3 eligible only)
     if (isWttEnabled(this.runtime)) await this.evaluateWttPick();
 
-    const assets = getPaperTradeAssetsWithWatchlist(this.runtime);
+    let assets = getPaperTradeAssetsWithWatchlist(this.runtime);
+    // Prefer Dexter-universe assets when choosing which signal to evaluate first
+    try {
+      const dexter = loadDexterPortfolios();
+      const dexterSet = getDexterUniverseSet(dexter);
+      const hasSleeves =
+        dexter.hyperliquid.length > 0 ||
+        dexter.tastytrade.length > 0 ||
+        dexter.watchlist.length > 0;
+      if (hasSleeves) {
+        assets = [...assets].sort((a, b) => {
+          const aIn = dexterSet.has(a.toUpperCase()) ? 1 : 0;
+          const bIn = dexterSet.has(b.toUpperCase()) ? 1 : 0;
+          return bIn - aIn;
+        });
+      }
+    } catch {
+      // non-fatal: keep original order
+    }
     const regimeQuotaEnabled =
       this.runtime.getSetting?.("VINCE_PROOF_REGIME_QUOTA_ENABLED") === true ||
       this.runtime.getSetting?.("VINCE_PROOF_REGIME_QUOTA_ENABLED") ===

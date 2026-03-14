@@ -16,3 +16,21 @@ I'd need to pull the ETH prediction markets around your entry time to give you a
 ### Solus
 
 This was **pure directional miss**—spot moved 1.6% against you in a 3x short, which is exactly what leverage does. From options mechanics: if you'd sold ETH calls instead (covered or cash-secured), same directional bet but you'd have collected premium upfront to cushion the move, plus theta working for you daily instead of against you. The sizing (3x) amplified the spot risk; options would've let you express the same bearish view with defined risk and premium decay working your favor. **Call:** Next time ETH looks overextended, consider selling $1,850 calls instead of shorting spot—same thesis, better risk/reward structure.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

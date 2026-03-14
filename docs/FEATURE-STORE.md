@@ -21,6 +21,16 @@ Feature records from vince-paper-bot trades are used for ML training (e.g. 90+ f
 - **Prod (Eliza Cloud):** Repo is deployed to production with Eliza Cloud and everything works. The app is still using **PGLite** (no `POSTGRES_URL`), so runtime data and feature-store DB writes use the local PGLite instance in the container.
 - **Supabase Postgres:** Not yet in use. When you set `POSTGRES_URL` to your Supabase direct connection (port 5432), ElizaOS will use that for all framework tables (agents, cache, memories, entities, rooms, etc.). Plugin-vince’s runtime migrations will then create **`plugin_vince.paper_bot_features`** in that **same** database, so your jsonl training data lives alongside ElizaOS tables in one Postgres instance.
 
+### Supabase migration checklist (optional)
+
+To move from PGLite to Supabase so paper bot features and ElizaOS tables persist across redeploys and support 500+ row ML training:
+
+1. Create a Supabase project and get **direct** connection string (port 5432; not pooler).
+2. Set `POSTGRES_URL` in `.env` (and in deploy env). Leave PGLite as fallback when unset.
+3. Run `scripts/supabase-feature-store-bootstrap.sql` in Supabase SQL Editor if using dual-write to `vince_paper_bot_features`.
+4. Set `SUPABASE_SERVICE_ROLE_KEY` and optionally `SUPABASE_URL` for feature-store dual-write (see “Enable Supabase dual-write” below).
+5. Restart (or redeploy); verify `plugin_vince.paper_bot_features` and framework tables exist. See [DEPLOY.md](DEPLOY.md) for env vars and deploy commands.
+
 ## ElizaOS tables vs feature store (where to put jsonl training data)
 
 ElizaOS auto-creates tables in the main schema (e.g. `public`): `agents`, `cache`, `memories`, `entities`, `rooms`, `participants`, `relationships`, `tasks`, `worlds`, `embeddings`, `logs`, etc. Those are for **runtime** (conversations, agent memory, embeddings). They are not designed for bulk ML feature rows.

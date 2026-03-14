@@ -16,3 +16,21 @@ SNDK isn't in our VINCE-priority Polymarket universe, so I don't have a live odd
 ### Solus
 
 **Direction miss, not mechanics.** SNDK moved 1.9% against you—that's a spot move, not an options decay or IV crush issue. At 5x leverage on a semiconductor name in this regime, you're betting directional conviction; the sizing was reasonable for a paper trade, but the invalidation (where would you have exited?) should've been tighter given semis' volatility. Next time: pre-define your stop % before entry so you're not surprised by normal intraday swings. The trade itself was clean—just wrong read on direction.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

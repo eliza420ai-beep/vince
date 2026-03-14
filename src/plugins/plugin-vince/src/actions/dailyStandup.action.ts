@@ -23,6 +23,10 @@ import type { VinceTradeJournalService } from "../services/vinceTradeJournal.ser
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
 import type { Position } from "../types/paperTrading";
+import {
+  loadDexterPortfolios,
+  getDexterDriftSummary,
+} from "../utils/dexterPortfolio";
 
 interface StandupDataContext {
   timestamp: string;
@@ -217,6 +221,29 @@ async function buildStandupDataContext(
     logger.warn(`[DAILY_STANDUP] Open positions snapshot failed: ${e}`);
     lines.push("=== OPEN POSITIONS ===");
     lines.push("Error loading open positions");
+    lines.push("");
+  }
+
+  // --- 3c. DEXTER DRIFT (one-line summary) ---
+  try {
+    const dexter = loadDexterPortfolios();
+    const positionManager = runtime.getService(
+      "VINCE_POSITION_MANAGER_SERVICE",
+    ) as VincePositionManagerService | null;
+    const openAssets = positionManager
+      ? positionManager
+          .getOpenPositions()
+          .map((p) => p.asset)
+          .filter(Boolean)
+      : [];
+    const driftSummary = getDexterDriftSummary(dexter, openAssets);
+    lines.push("=== DEXTER DRIFT ===");
+    lines.push(driftSummary);
+    lines.push("");
+  } catch (e) {
+    logger.warn(`[DAILY_STANDUP] Dexter drift summary failed: ${e}`);
+    lines.push("=== DEXTER DRIFT ===");
+    lines.push("Drift summary unavailable");
     lines.push("");
   }
 

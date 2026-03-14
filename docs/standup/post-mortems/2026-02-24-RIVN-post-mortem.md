@@ -16,3 +16,21 @@ I'd need to pull the RIVN prediction market snapshot from around your entry time
 ### Solus
 
 This was **pure directional miss**, not a mechanics problem—RIVN moved 1.5% against you on a 10x short, which is tight risk management but brutal on leverage. Options wouldn't have saved this; the issue was spot conviction, not entry structure. If you're paper-testing directional bets at 10x, you need either (1) higher conviction + wider stops, or (2) smaller size to survive chop. For real capital: wheel strategy (selling premium on defined assets) beats directional leverage every time—you'd have collected $300+ in premium that week instead of risking $5.3K on a 1.5% move.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

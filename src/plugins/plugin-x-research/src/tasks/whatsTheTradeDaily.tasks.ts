@@ -900,6 +900,25 @@ const FALLBACK_RUBRIC: WttPick["rubric"] = {
 };
 
 /**
+ * Minimal valid WttPick meaning "no tradeable pick today". Written so the JSON
+ * sidecar always exists when the .md exists; paper bot skips (ticker not in universe).
+ */
+function buildNoPickPlaceholder(dateStr: string): WttPick {
+  return {
+    date: dateStr,
+    thesis: "No valid structured pick extracted today.",
+    primaryTicker: "NONE",
+    primaryDirection: "long",
+    primaryInstrument: "perp",
+    primaryEntryPrice: 0,
+    primaryRiskUsd: 0,
+    invalidateCondition: "n/a",
+    killConditions: ["no pick"],
+    rubric: FALLBACK_RUBRIC,
+  };
+}
+
+/**
  * When LLM extraction fails, try to infer a minimal pick from the narrative
  * so the paper bot still gets a JSON (e.g. "xyz: GOOGL-PERP perp LONG" or "long GOOGL").
  */
@@ -1383,6 +1402,14 @@ export async function runWhatsTheTradeReport(
       pick = mdFallback;
       logger.info(
         "[ECHO WhatstheTrade] Saved pick from markdown fallback (paper bot will use it)",
+      );
+    } else {
+      // Always write a JSON sidecar when we wrote .md so paper bot has a file to read.
+      // NONE ticker is not in universe → paper bot skips WTT evaluation without "missing JSON" gap.
+      const noPick = buildNoPickPlaceholder(dateStr);
+      await savePickJson(noPick, now);
+      logger.info(
+        "[ECHO WhatstheTrade] Saved no-pick placeholder JSON (paper bot will skip WTT for today)",
       );
     }
   }

@@ -337,12 +337,13 @@ export type PtqgAssetClass = "crypto" | "equity" | "commodity" | "other";
 /**
  * Max leverage cap by asset class (guardrail layer).
  * Applied as minimum of per-asset cap and this class cap.
+ * Set from post-mortem corrective actions: sizing_too_aggressive → equity 10, crypto 4, commodity 4.
  * Override via VINCE_PAPER_MAX_LEVERAGE_EQUITY, _CRYPTO, _COMMODITY (env or runtime).
  */
 export const ASSET_CLASS_MAX_LEVERAGE: Record<PtqgAssetClass, number> = {
-  crypto: 10,
-  equity: 5,
-  commodity: 5,
+  crypto: 4,
+  equity: 10,
+  commodity: 4,
   other: 5,
 };
 

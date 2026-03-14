@@ -158,6 +158,19 @@ Each post-mortem ends with a fenced JSON block under **Machine-Readable Summary*
 
 This JSON block is the canonical payload for ingestion into the Vince feature store and Sentinel guardrail stats.
 
+## Ingest script (`bun run postmortems:ingest`)
+
+The script reads all `*.md` files here and expects each to contain a **fenced JSON block** (a section that starts with ` ```json ` and ends with ` ``` `). It uses that block to build:
+
+- `postmortems.jsonl` and `root_cause_stats.json` (for feature store and Sentinel)
+- The corrective-actions section in `tasks/todo.md`
+- The lessons block in `tasks/lessons.md`
+- `knowledge/sentinel-docs/POST_MORTEM_LESSONS.md`
+
+**"Missing JSON block in … skipping structured summary"** means that file has no ` ```json ... ``` ` block. Those files are **skipped** for the structured summary only; the rest of the run still succeeds. Typically these are older post-mortems (e.g. from before the Machine-Readable Summary was added). To include them in ingest: add the full **Machine-Readable Summary** section (including the JSON block) to each file, using a file that parses successfully (e.g. `2026-02-27-ETH-post-mortem.md`) as a template.
+
+---
+
 ## Learning system docs
 
 To turn post-mortems into measurable process improvements, use:

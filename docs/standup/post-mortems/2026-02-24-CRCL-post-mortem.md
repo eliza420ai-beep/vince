@@ -16,3 +16,21 @@ I don't have CRCL on Polymarket—it's not a tracked prediction market there, so
 ### Solus
 
 This is a **spot direction miss**, not a mechanics issue. You sized 10x leverage on a directional bet—that's perps aggression, not options craft. If you'd run this as a $60 cash-secured put (weekly) instead, you'd have collected premium upfront to offset the move, plus kept capital for next week's wheel. The $130 loss here is leverage + spot; options would've turned it into a smaller realized loss + premium collected. **Call:** For CRCL shorts, either size smaller on perps (5x max for micro-caps) or switch to selling puts at support—let premium do the work instead of fighting spot moves alone.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

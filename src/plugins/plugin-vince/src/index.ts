@@ -161,6 +161,8 @@ import { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
 // Actions - Early Detection System
 import { vinceWatchlistAction } from "./actions/watchlist.action";
 import { vinceAlertsAction } from "./actions/alerts.action";
+import { vinceDexterDriftAction } from "./actions/dexterDrift.action";
+import { vinceFdCacheInsightsAction } from "./actions/fdCacheInsights.action";
 
 // Providers
 import { vinceContextProvider } from "./providers/vinceContext.provider";
@@ -312,6 +314,8 @@ export const vincePlugin: Plugin = {
     // Early Detection System
     vinceWatchlistAction,
     vinceAlertsAction,
+    vinceDexterDriftAction,
+    vinceFdCacheInsightsAction,
   ],
 
   // API route: dashboard pulse (snapshot + LLM insight) for frontend
@@ -1465,6 +1469,8 @@ export { closeRecommendationAction } from "./actions/closeRecommendation.action"
 export { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
 export { vinceWatchlistAction } from "./actions/watchlist.action";
 export { vinceAlertsAction } from "./actions/alerts.action";
+export { vinceDexterDriftAction } from "./actions/dexterDrift.action";
+export { vinceFdCacheInsightsAction } from "./actions/fdCacheInsights.action";
 
 // ==========================================
 // Provider Exports

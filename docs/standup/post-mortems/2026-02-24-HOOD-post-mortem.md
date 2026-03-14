@@ -16,3 +16,21 @@ Pull the HOOD prediction market if one exists—I'll check live odds and volume 
 ### Solus
 
 This was a **direction miss, not a mechanics problem.** You sized correctly for a 10x perp (that's VINCE's lane—leverage and spot timing), but options would've cushioned this: a short $72 call (weekly) at that entry would've capped your loss and collected premium; you'd own the downside if HOOD reversed. The $1.18 move (1.66%) killed you because perps are naked directional—no premium buffer, no time decay working for you. **Call:** Next time HOOD sets up like this, consider a **short call spread** (sell $72, buy $73) instead of naked short—same directional bet, defined risk, premium collection. That's the edge options brings to directional trades.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

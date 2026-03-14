@@ -15,6 +15,11 @@ import type { VinceDexScreenerService } from "../services/dexscreener.service";
 import type { VinceNFTFloorService } from "../services/nftFloor.service";
 import type { VincePaperTradingService } from "../services/vincePaperTrading.service";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
+import {
+  loadDexterPortfolios,
+  formatDexterUniverseForContext,
+  type DexterPortfolios,
+} from "../utils/dexterPortfolio";
 import { formatPnL, formatPct, formatUsd } from "../utils/tradeExplainer";
 
 export const vinceContextProvider: Provider = {
@@ -202,6 +207,16 @@ export const vinceContextProvider: Provider = {
           contextParts.push(lines.join("\n"));
           values.paperBotStatus = lines.join("\n");
         }
+      }
+
+      // Dexter universe — three portfolio JSONs + core crypto (BTC, SOL, HYPE)
+      try {
+        const dexter = loadDexterPortfolios();
+        contextParts.push("");
+        contextParts.push(formatDexterUniverseForContext(dexter));
+        data.dexterPortfolios = dexter as DexterPortfolios;
+      } catch {
+        // non-fatal: omit Dexter block if loader fails
       }
 
       // Service availability summary

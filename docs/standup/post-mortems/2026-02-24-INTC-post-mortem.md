@@ -16,3 +16,21 @@ I don't have a record of running WTT or X_PULSE on INTC before your entry — th
 ### Solus
 
 This was a **spot direction miss, not a mechanics problem**—10x leverage on a single-name semiconductor play without hedging is pure directional bet, and INTC broke support. From an options lens: you could've collared this (long stock + long put + short call) to cap loss at ~2-3% instead of eating the full 1.8% move into a stop, or sized the leverage position smaller (5x max) and held through noise. The real lesson: leverage + no hedge + tight stop = you're fighting the market's intraday chop. For future: either reduce leverage, add a protective put, or skip single-name plays when IV is low and conviction isn't extreme.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

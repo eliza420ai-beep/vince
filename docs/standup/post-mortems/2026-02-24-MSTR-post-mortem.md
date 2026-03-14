@@ -18,3 +18,21 @@ MSTR had no active Polymarket prediction market during that window, so I had no 
 ### Solus
 
 This was pure directional miss—spot moved 2.2% against you in what sounds like a short-term perp trade, not an options mechanics problem. If you'd structured this as a **short call spread** (sell $124 call, buy $126 call) instead of naked short, you'd have capped the loss and kept theta working for you; the 10x leverage + no hedge = binary outcome. For paper trades: test **defined-risk structures** (spreads, collars) before going live—they teach risk management better than naked shorts and let you size bigger without blowing up. Direction was wrong, but mechanics could've saved the PNL.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

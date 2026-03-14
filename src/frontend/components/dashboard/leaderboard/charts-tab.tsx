@@ -10,6 +10,13 @@ interface ChartTicker {
   exchange?: string;
 }
 
+interface ChartsTabProps {
+  chartTickers?: {
+    watchlist: string[];
+    tastytrade: string[];
+  };
+}
+
 const CRYPTO_TICKERS: ChartTicker[] = [
   { label: "BTC", tradingViewSymbol: "COINBASE:BTCUSD", exchange: "COINBASE" },
   {
@@ -33,6 +40,43 @@ const STOCK_TICKERS: ChartTicker[] = [
   { label: "TSLA", tradingViewSymbol: "NASDAQ:TSLA", exchange: "NASDAQ" },
   { label: "MSTR", tradingViewSymbol: "NASDAQ:MSTR", exchange: "NASDAQ" },
 ];
+
+const EXCHANGE_OVERRIDES: Record<string, string> = {
+  NEE: "NYSE",
+  CCJ: "NYSE",
+  PWR: "NYSE",
+  ETN: "NYSE",
+  EME: "NYSE",
+  VST: "NYSE",
+  VRT: "NYSE",
+  CEG: "NASDAQ",
+  ANET: "NYSE",
+  AMAT: "NASDAQ",
+  ASML: "NASDAQ",
+  LRCX: "NASDAQ",
+  KLAC: "NASDAQ",
+  SNPS: "NASDAQ",
+  CDNS: "NASDAQ",
+};
+
+function toTradingViewStockTicker(symbol: string): ChartTicker {
+  const upper = symbol.toUpperCase().trim();
+  const exchange = EXCHANGE_OVERRIDES[upper] ?? "NASDAQ";
+  return {
+    label: upper,
+    tradingViewSymbol: `${exchange}:${upper}`,
+    exchange,
+  };
+}
+
+function toChartTickers(symbols: string[] | undefined): ChartTicker[] {
+  if (!symbols || symbols.length === 0) return [];
+  return symbols
+    .map((s) => s.toUpperCase().trim())
+    .filter(Boolean)
+    .filter((s, i, arr) => arr.indexOf(s) === i)
+    .map(toTradingViewStockTicker);
+}
 
 const INTERVALS = [
   { value: "1", label: "1m" },
@@ -145,7 +189,7 @@ function ChartBlock({
   );
 }
 
-export function ChartsTab() {
+export function ChartsTab({ chartTickers }: ChartsTabProps) {
   const [selectedCrypto, setSelectedCrypto] = useState<ChartTicker>(
     CRYPTO_TICKERS[0],
   );
@@ -154,6 +198,16 @@ export function ChartsTab() {
     STOCK_TICKERS[0],
   );
   const [intervalStock, setIntervalStock] = useState<string>("240");
+  const watchlistTickers = toChartTickers(chartTickers?.watchlist);
+  const tastytradeTickers = toChartTickers(chartTickers?.tastytrade);
+  const [selectedWatchlist, setSelectedWatchlist] = useState<ChartTicker>(
+    watchlistTickers[0] ?? STOCK_TICKERS[0],
+  );
+  const [intervalWatchlist, setIntervalWatchlist] = useState<string>("240");
+  const [selectedTastytrade, setSelectedTastytrade] = useState<ChartTicker>(
+    tastytradeTickers[0] ?? STOCK_TICKERS[0],
+  );
+  const [intervalTastytrade, setIntervalTastytrade] = useState<string>("240");
 
   return (
     <div className="flex flex-col gap-6 w-full min-h-0">
@@ -186,6 +240,40 @@ export function ChartsTab() {
           layoutId="chartsStocks"
         />
       </div>
+
+      {/* Watchlist sleeve from portfolio_watchlist.json */}
+      {watchlistTickers.length > 0 && (
+        <div className="flex flex-col min-h-0 flex-1">
+          <p className="text-sm font-medium text-muted-foreground mb-2">
+            Watchlist sleeve
+          </p>
+          <ChartBlock
+            tickers={watchlistTickers}
+            selectedTicker={selectedWatchlist}
+            onSelectTicker={setSelectedWatchlist}
+            interval={intervalWatchlist}
+            onIntervalChange={setIntervalWatchlist}
+            layoutId="chartsWatchlist"
+          />
+        </div>
+      )}
+
+      {/* Tastytrade sleeve from portfolio_tastytrade.json */}
+      {tastytradeTickers.length > 0 && (
+        <div className="flex flex-col min-h-0 flex-1">
+          <p className="text-sm font-medium text-muted-foreground mb-2">
+            Tastytrade sleeve
+          </p>
+          <ChartBlock
+            tickers={tastytradeTickers}
+            selectedTicker={selectedTastytrade}
+            onSelectTicker={setSelectedTastytrade}
+            interval={intervalTastytrade}
+            onIntervalChange={setIntervalTastytrade}
+            layoutId="chartsTastytrade"
+          />
+        </div>
+      )}
     </div>
   );
 }

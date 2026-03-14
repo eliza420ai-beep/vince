@@ -1215,7 +1215,7 @@ export default function LeaderboardPage({
             value="charts"
             className="mt-6 flex-1 min-h-0 flex flex-col"
           >
-            <ChartsTab />
+            <ChartsTab chartTickers={leaderboardsData?.chartTickers} />
           </TabsContent>
 
           {/* News tab: X vibe check (top) + MandoMinutes TLDR + headlines */}

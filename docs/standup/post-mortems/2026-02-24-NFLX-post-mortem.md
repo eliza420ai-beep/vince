@@ -20,3 +20,21 @@ I didn't run a sentiment read on NFLX before your trade, so I can't tell you if 
 ### Solus
 
 **This was direction, not mechanics.** You shorted spot at $76.12 with 10x leverage on a $5,376 notional—that's a $53.76 risk per contract, which is tight for NFLX's typical daily vol (~2-3%). The $1.17 move (1.5%) hit your stop; with that leverage, you needed either tighter vol or a stronger directional thesis. From an options lens: if you'd sold a $76 put instead (collecting premium, capping loss), you'd have had a cushion. Spot leverage is binary; options let you get paid for being wrong. **The lesson: this size + leverage on spot needs either higher conviction or a hedge (sell a call/put collar).**
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

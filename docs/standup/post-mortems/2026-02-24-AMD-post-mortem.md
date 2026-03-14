@@ -16,3 +16,21 @@ Pull the AMD prediction markets from the last 48 hours—I'll check if there was
 ### Solus
 
 **This was pure directional miss, not mechanics.** A 5x leveraged spot trade on AMD has no optionality — you're betting direction naked. If you'd instead sold AMD puts at $210 strike (or calls at $220) with weekly expiry, you'd have collected premium upfront to offset the directional loss; the wheel gives you a second chance via premium. The $124 loss here came from spot moving against you with zero theta decay working in your favor. **For paper bot:** Consider running AMD through a covered call or CSP structure instead — same directional view, but premium cushions the downside and gives you optionality on roll/buyback if thesis shifts mid-week.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

@@ -59,6 +59,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | `ELIZA_SUBSTACK_LINKEDIN_HANDLE`                           | Optional. LinkedIn handle linked to Substack (for profile stats via [Substack Developer API](https://support.substack.com/hc/en-us/articles/45099095296916)); requires API ToS.     |
 | `FINNHUB_API_KEY`                                          | Optional. Solus offchain stock quotes and news (watchlist: Quantum, AI Infra, Nuclear, etc.). Free tier: 60 calls/min. Prefer over Alpha Vantage when both set.                     |
 | `ALPHA_VANTAGE_API_KEY`                                    | Optional. Solus stock pulse fallback (quotes + NEWS_SENTIMENT). Free tier: 25 req/day. In Cursor/IDE use the [Alpha Vantage MCP](https://mcp.alphavantage.co/) for ad-hoc research. |
+| `FINANCIAL_DATASETS_API_KEY`                               | Optional but recommended for cached historical ticker insights on `portfolio_tastytrade.json` + `portfolio_watchlist.json`. See [FINANCIAL_DATASETS_MCP_CACHE.md](FINANCIAL_DATASETS_MCP_CACHE.md). |
 | `SOLUS_DISCORD_APPLICATION_ID` / `SOLUS_DISCORD_API_TOKEN` | Solus Discord bot (CFO, strike ritual, options + stock specialist).                                                                                                                 |
 
 See `.env.example` for the full list.

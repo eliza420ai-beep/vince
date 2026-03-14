@@ -16,3 +16,21 @@ Pull up the SILVER prediction market for me—I'll check live odds and volume to
 ### Solus
 
 This was a **spot directional miss, not a mechanics problem.** You sized correctly for 20x leverage ($10.75K notional on a $537.5K position), but SILVER moved 1.7% against you fast—that's a spot call, not an options/strike issue. If you'd structured this as a weekly put spread on Hypersurface instead (selling OTM puts, buying further OTM for defined risk), you'd have collected premium upfront and had theta working for you; the 1.7% move still hurts, but premium offsets it. **Lesson:** Perps = pure directional bet with no premium cushion; options = premium first, then directional. Different tools for different conviction levels.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

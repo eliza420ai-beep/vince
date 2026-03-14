@@ -18,19 +18,25 @@ Capture patterns and corrections here. Review at session start.
 _Summarized from docs/standup/post-mortems/*.md. Edit source post-mortems, then re-run `bun run scripts/ingest-postmortems.ts`._
 
 - **crypto**:
-  - **sizing_too_aggressive (4 losses)**: avg quality=90.8, avg adverse move=0.62%, avg hold=55.0m. Treat this combo as a guardrail review target.
-  - **regime_conflict (3 losses)**: avg quality=88.3, avg adverse move=3.34%, avg hold=199.0m. Treat this combo as a guardrail review target.
+  - **unknown_insufficient_evidence (2 losses)**: avg quality=70.0, avg adverse move=0.00%, avg hold=0.0m. Treat this combo as a guardrail review target.
+  - **sizing_too_aggressive (18 losses)**: avg quality=91.5, avg adverse move=0.83%, avg hold=74.2m. Treat this combo as a guardrail review target.
+  - **regime_conflict (16 losses)**: avg quality=87.2, avg adverse move=2.55%, avg hold=589.1m. Treat this combo as a guardrail review target.
+  - **stop_too_tight_for_vol (2 losses)**: avg quality=91.0, avg adverse move=0.41%, avg hold=781.5m. Treat this combo as a guardrail review target.
 
 - **equity**:
-  - **sizing_too_aggressive (10 losses)**: avg quality=86.6, avg adverse move=1.65%, avg hold=140.5m. Treat this combo as a guardrail review target.
-  - **agent_lane_mismatch (3 losses)**: avg quality=87.7, avg adverse move=2.03%, avg hold=348.0m. Treat this combo as a guardrail review target.
-  - **regime_conflict (2 losses)**: avg quality=81.0, avg adverse move=2.17%, avg hold=121.5m. Treat this combo as a guardrail review target.
+  - **unknown_insufficient_evidence (12 losses)**: avg quality=70.0, avg adverse move=0.00%, avg hold=0.0m. Treat this combo as a guardrail review target.
+  - **sizing_too_aggressive (12 losses)**: avg quality=86.7, avg adverse move=1.52%, avg hold=177.9m. Treat this combo as a guardrail review target.
+  - **agent_lane_mismatch (7 losses)**: avg quality=86.4, avg adverse move=1.77%, avg hold=220.4m. Treat this combo as a guardrail review target.
+  - **regime_conflict (82 losses)**: avg quality=86.0, avg adverse move=1.21%, avg hold=428.3m. Treat this combo as a guardrail review target.
+  - **thesis_invalid (2 losses)**: avg quality=88.0, avg adverse move=0.92%, avg hold=587.5m. Treat this combo as a guardrail review target.
 
 - **commodity**:
+  - **unknown_insufficient_evidence (2 losses)**: avg quality=75.5, avg adverse move=0.60%, avg hold=432.0m. Treat this combo as a guardrail review target.
   - **sizing_too_aggressive (4 losses)**: avg quality=87.5, avg adverse move=1.70%, avg hold=374.8m. Treat this combo as a guardrail review target.
+  - **regime_conflict (13 losses)**: avg quality=83.8, avg adverse move=1.17%, avg hold=414.5m. Treat this combo as a guardrail review target.
 
 - **other**:
-  - **regime_conflict (2 losses)**: avg quality=82.0, avg adverse move=1.75%, avg hold=422.0m. Treat this combo as a guardrail review target.
+  - **regime_conflict (25 losses)**: avg quality=82.8, avg adverse move=0.89%, avg hold=590.5m. Treat this combo as a guardrail review target.
 
 <!-- POST_MORTEM_LESSONS_END -->
 

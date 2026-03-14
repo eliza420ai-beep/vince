@@ -1,0 +1,29 @@
+{
+  "sleeve": "watchlist",
+  "params_profile": "watchlist_factors_on",
+  "assets": [
+    { "symbol": "LLY", "target_weight_pct": 5.88 },
+    { "symbol": "NEE", "target_weight_pct": 5.88 },
+    { "symbol": "CCJ", "target_weight_pct": 5.88 },
+    { "symbol": "ISRG", "target_weight_pct": 5.88 },
+    { "symbol": "CLS", "target_weight_pct": 5.88 },
+    { "symbol": "PANW", "target_weight_pct": 5.88 },
+    { "symbol": "NVO", "target_weight_pct": 5.88 },
+    { "symbol": "CRWD", "target_weight_pct": 5.88 },
+    { "symbol": "NOW", "target_weight_pct": 5.88 },
+    { "symbol": "GEV", "target_weight_pct": 5.88 },
+    { "symbol": "BWXT", "target_weight_pct": 5.88 },
+    { "symbol": "NET", "target_weight_pct": 5.88 },
+    { "symbol": "VST", "target_weight_pct": 5.88 },
+    { "symbol": "PWR", "target_weight_pct": 5.88 },
+    { "symbol": "ETN", "target_weight_pct": 5.88 },
+    { "symbol": "REGN", "target_weight_pct": 5.88 },
+    { "symbol": "EME", "target_weight_pct": 5.92 }
+  ],
+  "graph_nodes": [],
+  "graph_edges": [],
+  "margin_requirement": 0.5,
+  "portfolio_positions": [],
+  "model_name": "gpt-4.1",
+  "model_provider": "openai"
+}

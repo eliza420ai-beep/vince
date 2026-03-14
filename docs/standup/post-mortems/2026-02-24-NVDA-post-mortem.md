@@ -16,3 +16,21 @@ Pull the NVDA prediction market from Polymarket and I'll give you the regime cal
 ### Solus
 
 This was a **spot direction miss**, not a mechanics problem. A $3.09 move (1.6%) on 10x leverage = $112 loss—that's the math working as designed. From options perspective: if you'd sold a $195 call instead of shorting spot, you'd have collected premium upfront and had a cushion; the directional bet was sound (NVDA oversold narrative), but leverage amplified the whipsaw. **Call:** For future NVDA shorts, consider sizing down on lower-IV days (less edge) or use a call spread to cap risk instead of naked leverage—gives you the directional view without the liquidation cliff.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

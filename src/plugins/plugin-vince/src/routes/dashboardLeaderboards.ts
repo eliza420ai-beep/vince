@@ -14,6 +14,7 @@ import type { VinceHLCryptoSnapshotService } from "../services/hlCryptoSnapshot.
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
 import type { VinceXSentimentService } from "../services/xSentiment.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
+import { loadDexterPortfolios } from "../utils/dexterPortfolio";
 import { getOrCreateHyperliquidService } from "../services/fallbacks";
 import { HyperliquidFallbackService } from "../services/fallbacks/hyperliquid.fallback";
 import type { IHyperliquidCryptoPulse } from "../types/external-services";
@@ -295,6 +296,10 @@ export interface LeaderboardsResponse {
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
+  chartTickers?: {
+    watchlist: string[];
+    tastytrade: string[];
+  };
   hip3Status?: SectionStatus;
   hlCryptoStatus?: SectionStatus;
 }
@@ -1240,6 +1245,11 @@ export async function buildLeaderboardsResponse(
   const meteora = null as MeteoraLeaderboardSection | null;
   const digitalArt = null as DigitalArtLeaderboardSection | null;
   const more = null as MoreLeaderboardSection | null;
+  const dexter = loadDexterPortfolios();
+  const chartTickers = {
+    watchlist: [...new Set(dexter.watchlist.map((s) => s.toUpperCase()))],
+    tastytrade: [...new Set(dexter.tastytrade.map((s) => s.toUpperCase()))],
+  };
 
   // Derive simple status flags for UI hints.
   let hip3Status: SectionStatus = "loading";
@@ -1278,6 +1288,7 @@ export async function buildLeaderboardsResponse(
     news,
     digitalArt,
     more,
+    chartTickers,
     hip3Status,
     hlCryptoStatus,
   };

@@ -16,3 +16,21 @@ I didn't have an active OPENAI sentiment read before your entry, so I can't say 
 ### Solus
 
 This was pure **direction**—spot moved against you 2.3% in a short window, which at 3x leverage = ~6.9% account hit. From options mechanics: if you'd sold a put at $670 strike instead (collecting premium upfront), that same move would've hurt less because theta decay works for you daily; here, leverage works against you intraday with zero premium buffer. **Sizing was fine at 3x for a paper bot test**—the real lesson is **perps = directional bet with no premium cushion**, whereas options = directional bet + theta income. For OPENAI specifically: high beta, low IV usually = thin premium, so options wouldn't have been better here anyway. **Call: stick with perps for directional conviction plays; use options when IV is fat and you want income, not direction.**
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

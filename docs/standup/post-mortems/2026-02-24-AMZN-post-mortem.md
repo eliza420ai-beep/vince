@@ -16,3 +16,21 @@ I don't have real-time access to your paper bot's entry timestamp or the market 
 ### Solus
 
 This was **pure directional miss**—spot moved 1.6% against you fast enough that leverage (10x) turned it into a hard stop. From options mechanics: if you'd sold a $208 call instead (weekly, collected premium upfront), that same 1.6% move would've been profitable theta + directional bet, with defined risk. The leverage killed you here; options would've given you premium cushion + capped loss. **Call:** For AMZN shorts on paper, either (1) reduce leverage to 3-5x and size bigger, or (2) switch to selling calls/puts on Hypersurface where premium works for you instead of against you. Direction matters; mechanics matter more.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

@@ -44,10 +44,19 @@ The three layers are designed to catch each other's failure modes.
 
 This is VINCE's primary job. Before any trade, before any options ritual, before any Forge run — the terminal reads the situation.
 
-**Portfolio state** — three JSON files are the ground truth:
+**Portfolio state** — three JSON files are the ground truth (see [docs/DEXTER-PORTFOLIO-SYNC.md](docs/DEXTER-PORTFOLIO-SYNC.md)):
 - `portfolio_hyperliquid.json` — on-chain positions: weights, drift vs target, margin risk.
 - `portfolio_tastytrade.json` — current tastytrade sleeve. VINCE surfaces which regime we're in.
 - `portfolio_watchlist.json` — staging pipeline. VINCE flags when a watchlist name crosses a threshold.
+
+Ask **"drift"** or **"dexter drift"** for a paper-vs-Dexter-universe report. Guardrails (leverage caps, PTQG): [docs/GUARDRAILS.md](docs/GUARDRAILS.md).
+
+**Financial Datasets insights + cache (tastytrade/watchlist):**
+- Configure Cursor MCP connector for Financial Datasets (OAuth) so chat can pull live fundamentals/news for those sleeves.
+- Prewarm historical prices once with `bun run fd:cache:portfolio` (reads `portfolio_tastytrade.json` + `portfolio_watchlist.json`).
+- Cache files live in `.elizadb/financialdatasets-cache/`; reruns are cache hits unless you use `--force`.
+- Ask **`cached history <TICKER>`** or **`fd cache <TICKER>`** for cache-first historical stats from local files.
+- Setup + details: [docs/FINANCIAL_DATASETS_MCP_CACHE.md](docs/FINANCIAL_DATASETS_MCP_CACHE.md).
 
 **Perps data feed (free-tier APIs)** — VINCE data agent pulls continuously:
 - Open interest by asset — rising OI in the direction of the trade is confirmation
@@ -59,6 +68,9 @@ This is VINCE's primary job. Before any trade, before any options ritual, before
 **Mando Minutes** — morning news feed. VINCE ingests and flags items that touch the SOUL.md thesis: BTC regime signals, equipment capex, power policy, semiconductor revisions.
 
 **Hyperliquid tickers** — unusual moves in any portfolio ticker get surfaced immediately. Correlation breaks and sector rotations are the first signal a re-underwriting may be needed.
+
+**Leaderboard → Charts tab:** now includes 4 TradingView blocks:
+1) BTC/core pairs, 2) Fav stocks, 3) Watchlist sleeve (`portfolio_watchlist.json`), 4) Tastytrade sleeve (`portfolio_tastytrade.json`).
 
 ---
 
@@ -318,6 +330,7 @@ Stay in the game without 12+ hours on screens. The terminal monitors so you don'
 | `bun run train-models:recency` | Train with recency decay (upweight recent trades) |
 | `bun run improvement-weights` | Apply improvement report source weights |
 | `bun run validate-ml` | Validate ML thresholds on feature-store data |
+| `bun run fd:cache:portfolio` | Prewarm Financial Datasets historical cache for tastytrade + watchlist sleeves |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |
 
@@ -344,6 +357,8 @@ ORACLE_ENABLED=false NAVAL_ENABLED=false bun start
 | [OTAKU.md](docs/OTAKU.md) | Executor agent, DeFi, ERC-8004 identity |
 | [DEPLOY.md](docs/DEPLOY.md) | Eliza Cloud, env, troubleshooting |
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | Push schedule, Discord, env vars |
+| [GUARDRAILS.md](docs/GUARDRAILS.md) | Leverage caps, PTQG/max-loss process, weekly guardrail runbook |
+| [FINANCIAL_DATASETS_MCP_CACHE.md](docs/FINANCIAL_DATASETS_MCP_CACHE.md) | Cursor MCP setup + historical cache prewarm workflow |
 | [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [DEXTER.md](docs/DEXTER.md) | Dexter integration — SOUL.md, fundamentals, execution gate |
 | [AIHF.md](docs/AIHF.md) | AIHF adversarial challenge layer |

@@ -16,3 +16,21 @@ Pull up the MU prediction market on Polymarket—if it was pricing >55% prob of 
 ### Solus
 
 **This was pure directional miss, not a mechanics problem.** You shorted MU at $423.42 with 10x leverage on a $71.84 loss per contract—that's a ~1.7% move against you, which on 10x is a full liquidation zone. Options wouldn't have saved this; the issue is leverage sizing on a semiconductor play during a rally. If you'd sized 2–3x instead of 10x, the same move is a scratch or small loss you can hold through. **For paper trades: test 5x max on directional bets until you prove edge; once you prove it, scale to 10x.** The mechanics (entry, exit, stop) were clean—just the bet size didn't match the conviction or the volatility you were facing.
+
+## Machine-Readable Summary
+
+(Backfilled for ingest; no structured data in original.)
+
+```json
+{
+  "qualityScore": 70,
+  "qualityEscalate": false,
+  "primaryCause": "unknown_insufficient_evidence",
+  "secondaryCauses": [],
+  "ptqgComplete": false,
+  "pmevCompletenessPct": 0,
+  "missingData": ["structured_summary"],
+  "holdMinutes": 0,
+  "adverseMovePct": 0
+}
+```

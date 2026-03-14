@@ -241,6 +241,10 @@ export interface LeaderboardsResponse {
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
+  chartTickers?: {
+    watchlist: string[];
+    tastytrade: string[];
+  };
   hip3Status?: "loading" | "ok" | "stale" | "error";
   hlCryptoStatus?: "loading" | "ok" | "stale" | "error";
 }
