@@ -20,6 +20,24 @@ import { loadDexterPortfolios } from "../utils/dexterPortfolio";
 import { getOrCreateHyperliquidService } from "../services/fallbacks";
 import { HyperliquidFallbackService } from "../services/fallbacks/hyperliquid.fallback";
 import type { IHyperliquidCryptoPulse } from "../types/external-services";
+import { createHash } from "node:crypto";
+import {
+  loadForgeSignalCache,
+  replayWithWeights,
+  splitHoldout,
+  type ForgeSignalRecord,
+  type ReplayThresholdsConfig,
+} from "../forge/forgeSignalCache";
+import { getCurrentSleeveTickers } from "../utils/fdCandidateUniverse";
+import {
+  readDiscoveryRunHistory,
+  readResolvedOutcomes,
+  type DiscoveryResolvedOutcome,
+} from "../utils/fdDiscoveryOutcomes";
+import { getFdReplayRows } from "../utils/fdReplayImporter";
+import { rankDiscoveryCandidates } from "../utils/fdDiscoveryRanker";
+import type { PredictionTrackerService } from "../services/predictionTracker.service";
+import type { VinceTickerDiscoveryService } from "../services/vinceTickerDiscovery.service";
 
 // Section-level timeouts for leaderboards. HIP-3 and HL Crypto can take
 // longer when upstream APIs are slow, so we keep this reasonably high to
@@ -288,6 +306,136 @@ export interface MoreLeaderboardSection {
 
 export type SectionStatus = "loading" | "ok" | "stale" | "error";
 
+/** Forge Ops: deterministic replay gates and metrics for the Leaderboard card. */
+export interface ForgeOpsSection {
+  title: string;
+  oneLiner: string;
+  /** Gate pass/fail for promotion checks */
+  gates: {
+    holdout: { pass: boolean; current: number; required: number };
+    trigger: { pass: boolean; current: number; required: number };
+    winRate: { pass: boolean; current: number; required: number };
+  };
+  metrics: {
+    holdoutLabeled: number;
+    totalCacheRecords: number;
+    withOutcome: number;
+    winRate: number;
+    sharpe: number;
+    brierScore: number;
+    avgPnlPct: number;
+    maxDrawdown: number;
+  };
+  runtime: {
+    branch: string;
+    latestForgeBranch: string;
+    policyHash: string;
+  };
+  lastUpdatedAt: number;
+}
+
+/** Resolved outcome row for FD discovery diagnostics. */
+export interface FdDiscoveryResolvedRow {
+  runId: string;
+  ticker: string;
+  horizon: "1m" | "3m";
+  entryBarDate: string;
+  entryClose: number;
+  targetBarDate: string;
+  targetClose: number;
+  returnPct: number;
+  outcome: 0 | 1;
+  resolvedAt: number;
+  bucket?: string;
+  candidateSource?: string;
+}
+
+/** Open FD discovery prediction row. */
+export interface FdDiscoveryOpenRow {
+  id: string;
+  ticker: string;
+  horizonLabel?: string;
+  dueAt: number;
+  bucket?: string;
+  discoveryRunId?: string;
+}
+
+/** Bucket-level hit rate and return metrics. */
+export interface FdDiscoveryBucketMetrics {
+  promoteNowHitRate: number | null;
+  researchNextHitRate: number | null;
+  avoidSaveRate: number | null;
+  avgReturnByBucket: Record<string, number>;
+  resolvedCountByBucket: Record<string, number>;
+}
+
+/** FD sleeve discovery: ranked candidates for watchlist/tastytrade. */
+export interface FdDiscoverySection {
+  title: string;
+  oneLiner: string;
+  promoteNow: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  researchNext: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  avoid: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  generatedAt: string;
+  /** From last full-universe run when available (net-new candidates). */
+  newCandidates?: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  /** From last full-universe run when available (re-ranks of current sleeve). */
+  existingSleeve?: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  /** Prediction calibration (Brier) for discovery/FD projections. */
+  calibration?: {
+    windowDays: number;
+    overallMeanBrier: number | null;
+    overallCount: number;
+    byAgent: Array<{ agent: string; count: number; meanBrier: number }>;
+  };
+  /** Resolved outcomes from discovery-resolved-outcomes.jsonl (and tracker). */
+  resolved?: FdDiscoveryResolvedRow[];
+  /** Open fd_discovery predictions. */
+  open?: FdDiscoveryOpenRow[];
+  /** Resolved with outcome 0 (wrong direction). */
+  falsePositives?: FdDiscoveryResolvedRow[];
+  /** Bucket hit rates and avg return by bucket. */
+  bucketMetrics?: FdDiscoveryBucketMetrics;
+  /** FD cache/run status for discovery. */
+  fdStatus?: "ready" | "stale" | "missing";
+  /** Human-readable freshness (e.g. last run time). */
+  fdFreshness?: string;
+  /** Promotion policy verdicts: eligibleForPromotion, requiresHumanReview, blockedByPolicy (separate from ranking). */
+  promotionVerdicts?: Array<{
+    ticker: string;
+    bucket: string;
+    score: number;
+    eligibleForPromotion: boolean;
+    requiresHumanReview: boolean;
+    blockedByPolicy: string | null;
+  }>;
+}
+
 export interface LeaderboardsResponse {
   updatedAt: number;
   hip3: HIP3LeaderboardSection | null;
@@ -307,8 +455,174 @@ export interface LeaderboardsResponse {
     fileCount?: number;
     status?: "ready" | "missing" | "stale";
   };
+  fdDiscovery?: FdDiscoverySection | null;
   hip3Status?: SectionStatus;
   hlCryptoStatus?: SectionStatus;
+  forgeOps?: ForgeOpsSection | null;
+  forgeOpsStatus?: SectionStatus;
+}
+
+function buildFdDiscoverySection(
+  projectRoot: string = process.cwd(),
+): FdDiscoverySection {
+  const rows = getFdReplayRows(projectRoot);
+  const sleeveTickers = new Set(getCurrentSleeveTickers(projectRoot));
+  const ranked = rankDiscoveryCandidates(rows, { sleeveTickers });
+  const promoteNow = ranked
+    .filter((r) => r.bucket === "PromoteNow")
+    .map((c) => ({
+      ticker: c.ticker,
+      sleeve: c.sleeve,
+      score: c.score,
+      reason: c.reason,
+    }));
+  const researchNext = ranked
+    .filter((r) => r.bucket === "ResearchNext")
+    .map((c) => ({
+      ticker: c.ticker,
+      sleeve: c.sleeve,
+      score: c.score,
+      reason: c.reason,
+    }));
+  const avoid = ranked
+    .filter((r) => r.bucket === "Avoid")
+    .map((c) => ({
+      ticker: c.ticker,
+      sleeve: c.sleeve,
+      score: c.score,
+      reason: c.reason,
+    }));
+  const generatedAt =
+    ranked.length > 0 && ranked[0]?.snapshotAt
+      ? ranked[0].snapshotAt
+      : new Date().toISOString();
+  const lastRun = readDiscoveryRunHistory(projectRoot, 1)[0];
+  const section: FdDiscoverySection = {
+    title: "Sleeve discovery",
+    oneLiner:
+      promoteNow.length > 0
+        ? `${promoteNow.length} PromoteNow, ${researchNext.length} ResearchNext, ${avoid.length} Avoid`
+        : "Run FD snapshot build to see ranked candidates.",
+    promoteNow,
+    researchNext,
+    avoid,
+    generatedAt,
+  };
+  if (lastRun?.newCandidates?.length || lastRun?.existingSleeve?.length) {
+    section.newCandidates = lastRun.newCandidates?.map((c) => ({
+      ticker: c.ticker,
+      sleeve: c.sleeve,
+      score: c.score,
+      reason: c.reason,
+    }));
+    section.existingSleeve = lastRun.existingSleeve?.map((c) => ({
+      ticker: c.ticker,
+      sleeve: c.sleeve,
+      score: c.score,
+      reason: c.reason,
+    }));
+  }
+  return section;
+}
+
+function buildFdDiscoveryDiagnostics(
+  projectRoot: string,
+  tracker: PredictionTrackerService | null,
+): Pick<
+  FdDiscoverySection,
+  | "resolved"
+  | "open"
+  | "falsePositives"
+  | "bucketMetrics"
+  | "fdStatus"
+  | "fdFreshness"
+> {
+  const resolved = readResolvedOutcomes(projectRoot, { limit: 200 });
+  const resolvedRows: FdDiscoveryResolvedRow[] = resolved.map(
+    (r: DiscoveryResolvedOutcome) => ({
+      runId: r.runId,
+      ticker: r.ticker,
+      horizon: r.horizon,
+      entryBarDate: r.entryBarDate,
+      entryClose: r.entryClose,
+      targetBarDate: r.targetBarDate,
+      targetClose: r.targetClose,
+      returnPct: r.returnPct,
+      outcome: r.outcome,
+      resolvedAt: r.resolvedAt,
+      bucket: r.bucket,
+      candidateSource: r.candidateSource,
+    }),
+  );
+  const falsePositives = resolvedRows.filter((r) => r.outcome === 0);
+
+  let openRows: FdDiscoveryOpenRow[] = [];
+  if (tracker?.getOpenPredictions) {
+    const open = tracker
+      .getOpenPredictions()
+      .filter((p) => p.kind === "fd_discovery");
+    openRows = open.map((p) => ({
+      id: p.id,
+      ticker: (p.asset ?? "").toString(),
+      horizonLabel: (p.metadata?.horizonLabel as string) ?? undefined,
+      dueAt: p.dueAt,
+      bucket: (p.metadata?.bucket as string) ?? undefined,
+      discoveryRunId: (p.metadata?.discoveryRunId as string) ?? undefined,
+    }));
+  }
+
+  const byBucket = new Map<
+    string,
+    { hits: number; total: number; returnSum: number }
+  >();
+  for (const r of resolved) {
+    const b = r.bucket ?? "unknown";
+    const cur = byBucket.get(b) ?? { hits: 0, total: 0, returnSum: 0 };
+    cur.total += 1;
+    if (r.outcome === 1) cur.hits += 1;
+    cur.returnSum += r.returnPct;
+    byBucket.set(b, cur);
+  }
+  const avgReturnByBucket: Record<string, number> = {};
+  const resolvedCountByBucket: Record<string, number> = {};
+  for (const [b, v] of byBucket) {
+    resolvedCountByBucket[b] = v.total;
+    avgReturnByBucket[b] = v.total > 0 ? v.returnSum / v.total : 0;
+  }
+  const promoteNow = byBucket.get("PromoteNow");
+  const researchNext = byBucket.get("ResearchNext");
+  const avoid = byBucket.get("Avoid");
+  const bucketMetrics: FdDiscoveryBucketMetrics = {
+    promoteNowHitRate:
+      promoteNow && promoteNow.total > 0
+        ? promoteNow.hits / promoteNow.total
+        : null,
+    researchNextHitRate:
+      researchNext && researchNext.total > 0
+        ? researchNext.hits / researchNext.total
+        : null,
+    avoidSaveRate: avoid && avoid.total > 0 ? avoid.hits / avoid.total : null,
+    avgReturnByBucket,
+    resolvedCountByBucket,
+  };
+
+  const fdCache = getFdCacheFreshness();
+  const fdStatus = fdCache.status ?? "missing";
+  const lastRun = readDiscoveryRunHistory(projectRoot, 1)[0];
+  const fdFreshness = lastRun?.generatedAt
+    ? `Last run: ${lastRun.generatedAt.slice(0, 10)}`
+    : fdCache.generatedAt != null
+      ? `Cache: ${new Date(fdCache.generatedAt).toISOString().slice(0, 10)}`
+      : undefined;
+
+  return {
+    resolved: resolvedRows.length > 0 ? resolvedRows : undefined,
+    open: openRows.length > 0 ? openRows : undefined,
+    falsePositives: falsePositives.length > 0 ? falsePositives : undefined,
+    bucketMetrics,
+    fdStatus,
+    fdFreshness,
+  };
 }
 
 function getFdCacheFreshness(): {
@@ -346,6 +660,153 @@ function getFdCacheFreshness(): {
   } catch {
     return { generatedAt: null, fileCount: 0, status: "missing" };
   }
+}
+
+const FORGE_OPS_MIN_HOLDOUT = 30;
+const FORGE_OPS_MIN_TRIGGERED = 5;
+const FORGE_OPS_WIN_RATE_GATE = 0.45;
+
+function buildForgeOpsSection(): ForgeOpsSection {
+  const repoRoot = process.cwd();
+  const policyPath = path.join(repoRoot, "policies", "trading-policy.yaml");
+
+  function readPolicyRaw(): string {
+    if (!fs.existsSync(policyPath)) return "";
+    return fs.readFileSync(policyPath, "utf-8");
+  }
+  function policyHash(raw: string): string {
+    if (!raw) return "missing";
+    return createHash("sha256").update(raw, "utf-8").digest("hex").slice(0, 12);
+  }
+  function parseThresholdNumber(
+    raw: string,
+    key: string,
+    fallback: number,
+  ): number {
+    const m = raw.match(new RegExp(`\\b${key}:\\s*([0-9.]+)`, "m"));
+    const n = m ? Number(m[1]) : NaN;
+    return Number.isFinite(n) ? n : fallback;
+  }
+  function buildThresholds(raw: string): ReplayThresholdsConfig {
+    return {
+      minStrength: parseThresholdNumber(raw, "min_strength", 55),
+      minConfidence: parseThresholdNumber(raw, "min_confidence", 55),
+      minConfirming: parseThresholdNumber(raw, "min_confirming_signals", 2),
+    };
+  }
+  function getBaselineWeights(
+    records: ForgeSignalRecord[],
+  ): Record<string, number> {
+    const latest = [...records]
+      .reverse()
+      .find(
+        (r) => r.weightsSnapshot && Object.keys(r.weightsSnapshot).length > 0,
+      );
+    return latest?.weightsSnapshot ?? {};
+  }
+  function currentBranch(): string {
+    try {
+      const proc = Bun.spawnSync(["git", "branch", "--show-current"], {
+        cwd: repoRoot,
+        stdout: "pipe",
+        stderr: "ignore",
+      });
+      if (proc.exitCode !== 0) return "unknown";
+      return new TextDecoder().decode(proc.stdout).trim() || "unknown";
+    } catch {
+      return "unknown";
+    }
+  }
+  function latestForgeBranch(): string {
+    try {
+      const proc = Bun.spawnSync(
+        ["git", "branch", "--list", "forge/experiment-*"],
+        { cwd: repoRoot, stdout: "pipe", stderr: "ignore" },
+      );
+      if (proc.exitCode !== 0) return "none";
+      const list = new TextDecoder().decode(proc.stdout).trim();
+      if (!list) return "none";
+      const branches = list
+        .split("\n")
+        .map((l) => l.trim().replace(/^\*\s*/, ""))
+        .filter(Boolean)
+        .sort();
+      return branches.at(-1) ?? "none";
+    } catch {
+      return "none";
+    }
+  }
+
+  const rawPolicy = readPolicyRaw();
+  const thresholds = buildThresholds(rawPolicy);
+  const hash = policyHash(rawPolicy);
+  const holdoutFraction = ((): number => {
+    const raw = Number(process.env.FORGE_HOLDOUT_FRACTION ?? "0.2");
+    return Number.isFinite(raw) && raw > 0.05 && raw < 0.5 ? raw : 0.2;
+  })();
+
+  const all = loadForgeSignalCache().sort(
+    (a, b) => a.evaluatedAt - b.evaluatedAt,
+  );
+  const labeled = all.filter(
+    (r) => r.outcome !== undefined && typeof r.pnlPct === "number",
+  );
+  const { holdout } = splitHoldout(labeled, holdoutFraction);
+  const baselineWeights = getBaselineWeights(all);
+  const metrics = replayWithWeights(
+    holdout,
+    { sourceWeights: baselineWeights, defaultWeight: 1.0 },
+    thresholds,
+  );
+
+  const holdoutPass = holdout.length >= FORGE_OPS_MIN_HOLDOUT;
+  const triggerPass = metrics.withOutcome >= FORGE_OPS_MIN_TRIGGERED;
+  const winRatePass = metrics.winRate >= FORGE_OPS_WIN_RATE_GATE;
+
+  const oneLiner = [
+    `Holdout ${holdout.length}/${FORGE_OPS_MIN_HOLDOUT} ${holdoutPass ? "PASS" : "FAIL"}`,
+    `Trig ${metrics.withOutcome}/${FORGE_OPS_MIN_TRIGGERED} ${triggerPass ? "PASS" : "FAIL"}`,
+    `WR ${(metrics.winRate * 100).toFixed(1)}% ${winRatePass ? "PASS" : "FAIL"}`,
+    `Sharpe ${metrics.sharpe.toFixed(2)}`,
+  ].join(" · ");
+
+  return {
+    title: "Forge Ops",
+    oneLiner,
+    gates: {
+      holdout: {
+        pass: holdoutPass,
+        current: holdout.length,
+        required: FORGE_OPS_MIN_HOLDOUT,
+      },
+      trigger: {
+        pass: triggerPass,
+        current: metrics.withOutcome,
+        required: FORGE_OPS_MIN_TRIGGERED,
+      },
+      winRate: {
+        pass: winRatePass,
+        current: Math.round(metrics.winRate * 10000) / 100,
+        required: FORGE_OPS_WIN_RATE_GATE * 100,
+      },
+    },
+    metrics: {
+      holdoutLabeled: holdout.length,
+      totalCacheRecords: all.length,
+      withOutcome: metrics.withOutcome,
+      winRate: metrics.winRate,
+      sharpe: metrics.sharpe,
+      brierScore: metrics.brierScore,
+      avgPnlPct: metrics.avgPnlPct,
+      maxDrawdown: metrics.maxDrawdown,
+    },
+    runtime: {
+      branch: currentBranch(),
+      latestForgeBranch: latestForgeBranch(),
+      policyHash: hash,
+    },
+    lastUpdatedAt: Date.now(),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1283,6 +1744,11 @@ export async function buildLeaderboardsResponse(
   // News (MandoMinutes) built separately so a failure here never breaks Markets.
   const news = await safe("News", () => buildNewsSection(runtime));
 
+  // Forge Ops: deterministic replay gates/metrics from signal cache (no API calls).
+  const forgeOps = await safe("ForgeOps", () =>
+    Promise.resolve(buildForgeOpsSection()),
+  );
+
   // Other sections left null so Markets stays stable (can be re-enabled per-section later).
   const memes = null as MemesLeaderboardSection | null;
   const memesBase = null as MemesLeaderboardSection | null;
@@ -1295,6 +1761,55 @@ export async function buildLeaderboardsResponse(
     tastytrade: [...new Set(dexter.tastytrade.map((s) => s.toUpperCase()))],
   };
   const fdCache = getFdCacheFreshness();
+  const projectRoot = process.cwd();
+  let fdDiscovery = await safe("FdDiscovery", () =>
+    Promise.resolve(buildFdDiscoverySection(projectRoot)),
+  );
+  const tracker = runtime.getService(
+    "VINCE_PREDICTION_TRACKER_SERVICE",
+  ) as PredictionTrackerService | null;
+  if (fdDiscovery) {
+    try {
+      if (tracker?.getCalibrationSnapshot) {
+        fdDiscovery = {
+          ...fdDiscovery,
+          calibration: tracker.getCalibrationSnapshot(30),
+        };
+      }
+      const diagnostics = buildFdDiscoveryDiagnostics(projectRoot, tracker);
+      fdDiscovery = { ...fdDiscovery, ...diagnostics };
+      const discoverySvc = runtime.getService(
+        "VINCE_TICKER_DISCOVERY_SERVICE",
+      ) as VinceTickerDiscoveryService | null;
+      if (discoverySvc?.getPromotionVerdicts && fdDiscovery.bucketMetrics) {
+        try {
+          const result = discoverySvc.getRankedCandidates(projectRoot);
+          const verdicts = discoverySvc.getPromotionVerdicts(
+            result,
+            projectRoot,
+            {
+              bucketMetrics: fdDiscovery.bucketMetrics,
+            },
+          );
+          fdDiscovery = {
+            ...fdDiscovery,
+            promotionVerdicts: verdicts.map((v) => ({
+              ticker: v.ticker,
+              bucket: v.bucket,
+              score: v.score,
+              eligibleForPromotion: v.eligibleForPromotion,
+              requiresHumanReview: v.requiresHumanReview,
+              blockedByPolicy: v.blockedByPolicy,
+            })),
+          };
+        } catch {
+          // leave promotionVerdicts undefined on error
+        }
+      }
+    } catch {
+      // leave calibration/diagnostics undefined on error
+    }
+  }
 
   // Derive simple status flags for UI hints.
   let hip3Status: SectionStatus = "loading";
@@ -1323,6 +1838,10 @@ export async function buildLeaderboardsResponse(
     hlCryptoStatus = "ok";
   }
 
+  let forgeOpsStatus: SectionStatus = "loading";
+  if (forgeOps) forgeOpsStatus = "ok";
+  else if (news ?? hip3 ?? hlCrypto) forgeOpsStatus = "stale";
+
   return {
     updatedAt: now,
     hip3,
@@ -1335,7 +1854,10 @@ export async function buildLeaderboardsResponse(
     more,
     chartTickers,
     fdCache,
+    fdDiscovery: fdDiscovery ?? null,
     hip3Status,
     hlCryptoStatus,
+    forgeOps: forgeOps ?? null,
+    forgeOpsStatus,
   };
 }

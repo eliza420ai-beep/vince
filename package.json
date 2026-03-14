@@ -145,6 +145,7 @@
     "forge:daily-report": "bun scripts/forge-daily-report.ts",
     "forge:push-now": "bun scripts/forge-agent-command.ts push-now",
     "forge:job-status": "bun scripts/forge-agent-command.ts job-status",
+    "forge:jobs-tail": "bun scripts/forge-jobs-tail.ts",
     "forge:revert": "bun scripts/forge-agent-command.ts revert",
     "forge:dry": "FORGE_DRY_RUN=true bun scripts/forge-signal-weights.ts",
     "forge:apply": "FORGE_APPLY=true bun scripts/forge-signal-weights.ts",

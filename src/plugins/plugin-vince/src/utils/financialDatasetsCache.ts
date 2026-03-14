@@ -24,9 +24,9 @@ export interface FdCacheEnvelope {
   rows: FdPriceRow[];
 }
 
-function getPricesCacheDir(): string {
+function getPricesCacheDir(projectRoot: string = process.cwd()): string {
   return path.join(
-    process.cwd(),
+    projectRoot,
     ".elizadb",
     "financialdatasets-cache",
     "prices",
@@ -37,13 +37,30 @@ function isFiniteNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
 }
 
+/** Parse date string (YYYY-MM-DD or ISO) to time; return null if invalid. */
+function parseDateToTime(s: string | undefined): number | null {
+  if (!s || typeof s !== "string") return null;
+  const t = new Date(s).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+/** Get close from row; prefer date then time for ordering. */
+function rowDate(row: FdPriceRow): string | undefined {
+  return (row.date as string) ?? (row.time as string);
+}
+
 /**
  * Return latest cache file for ticker (by fetchedAt desc, fallback mtime desc).
+ * @param projectRoot - Root for .elizadb/financialdatasets-cache (default process.cwd()).
  */
 export function getLatestFdCacheForTicker(
-  ticker: string,
+  projectRootOrTicker: string,
+  tickerArg?: string,
 ): FdCacheEnvelope | null {
-  const dir = getPricesCacheDir();
+  const projectRoot =
+    tickerArg !== undefined ? projectRootOrTicker : process.cwd();
+  const ticker = tickerArg !== undefined ? tickerArg : projectRootOrTicker;
+  const dir = getPricesCacheDir(projectRoot);
   if (!fs.existsSync(dir)) return null;
 
   const upper = ticker.toUpperCase().trim();
@@ -71,6 +88,75 @@ export function getLatestFdCacheForTicker(
   return best?.payload ?? null;
 }
 
+/**
+ * Get close price on or after the given ISO date using nearest-trading-day logic.
+ * Uses cached FD daily bars; returns the close of the first bar with date >= isoDate.
+ */
+export function getCloseOnOrAfterDate(
+  projectRoot: string,
+  ticker: string,
+  isoDate: string,
+): { date: string; close: number } | null {
+  const payload = getLatestFdCacheForTicker(projectRoot, ticker);
+  if (!payload?.rows?.length) return null;
+  const targetTime = parseDateToTime(isoDate);
+  if (targetTime == null) return null;
+
+  const sorted = [...payload.rows].sort((a, b) => {
+    const ta = parseDateToTime(rowDate(a)) ?? 0;
+    const tb = parseDateToTime(rowDate(b)) ?? 0;
+    return ta - tb;
+  });
+
+  for (const row of sorted) {
+    const rowT = parseDateToTime(rowDate(row));
+    if (rowT == null) continue;
+    if (rowT >= targetTime) {
+      const c = row.close;
+      if (isFiniteNumber(c)) return { date: rowDate(row) ?? isoDate, close: c };
+      break;
+    }
+  }
+  const last = sorted[sorted.length - 1];
+  if (last) {
+    const c = last.close;
+    if (isFiniteNumber(c)) return { date: rowDate(last) ?? isoDate, close: c };
+  }
+  return null;
+}
+
+/**
+ * Return (pct) between entry and target dates using nearest-trading-day logic.
+ * entryDate and targetDate are ISO date strings. Uses FD cached daily bars.
+ */
+export function getReturnBetweenDates(
+  projectRoot: string,
+  ticker: string,
+  entryDate: string,
+  targetDate: string,
+): {
+  entryClose: number;
+  targetClose: number;
+  targetBarDate: string;
+  returnPct: number;
+} | null {
+  const entry = getCloseOnOrAfterDate(projectRoot, ticker, entryDate);
+  const target = getCloseOnOrAfterDate(projectRoot, ticker, targetDate);
+  if (!entry || !target) return null;
+  const entryTime = parseDateToTime(entry.date);
+  const targetTime = parseDateToTime(target.date);
+  if (entryTime == null || targetTime == null || targetTime < entryTime)
+    return null;
+  if (entry.close === 0) return null;
+  const returnPct = ((target.close - entry.close) / entry.close) * 100;
+  return {
+    entryClose: entry.close,
+    targetClose: target.close,
+    targetBarDate: target.date,
+    returnPct,
+  };
+}
+
 export interface FdCachedHistorySummary {
   ticker: string;
   rowCount: number;
@@ -85,8 +171,9 @@ export interface FdCachedHistorySummary {
 
 export function summarizeFdCachedHistory(
   ticker: string,
+  projectRoot: string = process.cwd(),
 ): FdCachedHistorySummary | null {
-  const payload = getLatestFdCacheForTicker(ticker);
+  const payload = getLatestFdCacheForTicker(projectRoot, ticker);
   if (!payload || !Array.isArray(payload.rows) || payload.rows.length === 0) {
     return null;
   }

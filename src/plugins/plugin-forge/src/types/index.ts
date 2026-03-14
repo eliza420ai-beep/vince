@@ -55,8 +55,10 @@ export interface ForgeReplayResult {
   maxDrawdownPct: number;
   /** Whether safety gate passed */
   safetyGatePassed: boolean;
-  /** Safety gate failure reason (if any) */
+  /** Safety gate failure reason (if any) — first failure for backward compat */
   safetyGateReason?: string;
+  /** All promotion gate failures (explicit reject reasons) */
+  gateFailures?: string[];
 }
 
 export interface ForgeExperimentResult {
@@ -68,6 +70,8 @@ export interface ForgeExperimentResult {
   winner: boolean;
   /** Duration in seconds */
   durationSeconds: number;
+  /** Reject reasons when winner is false (same as result.gateFailures) */
+  gateFailures?: string[];
 }
 
 export interface ForgeRunSummary {
@@ -84,6 +88,8 @@ export interface ForgeRunSummary {
   safetyGateStatus: "passed" | "failed" | "not_reached";
   /** Branch names committed (winners) */
   committedBranches: string[];
+  /** Counts of reject reasons across losers (e.g. "ΔComposite": 3) */
+  rejectReasonCounts?: Record<string, number>;
 }
 
 export interface ForgePolicyThresholds {

@@ -16,6 +16,7 @@ import {
   splitHoldout,
   type ForgeSignalRecord,
 } from "../../../plugin-vince/src/forge/forgeSignalCache.ts";
+import { runLowDataRemediation } from "../utils/lowDataRemediation.ts";
 
 const REPO_ROOT = process.cwd();
 const POLICY_PATH = path.join(REPO_ROOT, "policies", "trading-policy.yaml");
@@ -133,6 +134,12 @@ export function buildForgeDailyReport(): {
   markdown: string;
   summary: string;
   reportPath: string;
+  lowDataGates: {
+    holdoutReady: boolean;
+    triggerReady: boolean;
+    holdoutCount: number;
+    withOutcome: number;
+  };
 } {
   const date = getDateStamp();
   const rawPolicy = readPolicyRaw();
@@ -194,7 +201,17 @@ export function buildForgeDailyReport(): {
     `policy ${hash} branch ${currentBranch()}`,
   ].join(" | ");
 
-  return { markdown, summary, reportPath };
+  return {
+    markdown,
+    summary,
+    reportPath,
+    lowDataGates: {
+      holdoutReady,
+      triggerReady,
+      holdoutCount: holdout.length,
+      withOutcome: metrics.withOutcome,
+    },
+  };
 }
 
 function shouldTargetRoom(name: string): boolean {
@@ -269,6 +286,17 @@ export async function registerForgeDailyReportTask(
 
       const report = buildForgeDailyReport();
       writeForgeDailyReportFile(report);
+
+      if (
+        report.lowDataGates &&
+        (!report.lowDataGates.holdoutReady || !report.lowDataGates.triggerReady)
+      ) {
+        await runLowDataRemediation(rt, {
+          holdoutCount: report.lowDataGates.holdoutCount,
+          withOutcome: report.lowDataGates.withOutcome,
+          reason: "daily gate fail",
+        });
+      }
 
       const sent = await pushForgeDailySummaryToRooms(rt, report.summary);
       await rt.setCache(cacheKey, dedupeKey);

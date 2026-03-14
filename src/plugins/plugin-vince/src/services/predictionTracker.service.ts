@@ -2,6 +2,7 @@
  * VINCE Internal Prediction Tracker (Phase 6 #32)
  *
  * Registers, resolves, and scores predictions with Brier calibration.
+ * fd_discovery: resolved from FD cached daily bars (nearest-trading-day), not live market.
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
@@ -10,9 +11,24 @@ import * as path from "path";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceGenomeService } from "./vinceGenome.service";
+import { getReturnBetweenDates } from "../utils/financialDatasetsCache";
+import {
+  appendResolvedOutcome,
+  type DiscoveryResolvedOutcome,
+} from "../utils/fdDiscoveryOutcomes";
 
-export type PredictionKind = "trade" | "genome_promotion";
+export type PredictionKind = "trade" | "genome_promotion" | "fd_discovery";
 export type PredictionDirection = "long" | "short" | "up" | "down";
+
+/** Returned by resolveViaContext for fd_discovery so we can append to discovery-resolved-outcomes.jsonl. */
+export interface FdDiscoveryResolveResult {
+  outcome: 0 | 1;
+  entryBarDate: string;
+  entryClose: number;
+  targetBarDate: string;
+  targetClose: number;
+  returnPct: number;
+}
 
 export interface PredictionRecord {
   id: string;
@@ -79,16 +95,24 @@ export class PredictionTrackerService extends Service {
     await this.save();
   }
 
-  async registerPrediction(input: {
-    agent: string;
-    kind: PredictionKind;
-    direction: PredictionDirection;
-    confidenceProb: number;
-    horizonHours: number;
-    asset?: string;
-    metadata?: Record<string, unknown>;
-  }): Promise<string> {
+  /** Optional projectRoot: used for fd_discovery resolution (FD cache path). */
+  async registerPrediction(
+    input: {
+      agent: string;
+      kind: PredictionKind;
+      direction: PredictionDirection;
+      confidenceProb: number;
+      horizonHours: number;
+      asset?: string;
+      metadata?: Record<string, unknown>;
+    },
+    projectRoot?: string,
+  ): Promise<string> {
     const now = Date.now();
+    const meta = { ...input.metadata };
+    if (projectRoot && input.kind === "fd_discovery") {
+      meta.projectRoot = projectRoot;
+    }
     const record: PredictionRecord = {
       id: `pred-${now}-${Math.random().toString(36).slice(2, 10)}`,
       agent: input.agent,
@@ -100,7 +124,7 @@ export class PredictionTrackerService extends Service {
       createdAt: now,
       dueAt: now + Math.max(1, Math.floor(input.horizonHours)) * 60 * 60 * 1000,
       status: "open",
-      metadata: input.metadata,
+      metadata: Object.keys(meta).length ? meta : undefined,
     };
     this.predictions.push(record);
     await this.save();
@@ -123,15 +147,19 @@ export class PredictionTrackerService extends Service {
     return true;
   }
 
-  async resolveDuePredictions(): Promise<PredictionSummary> {
+  /** projectRoot: optional override for fd_discovery resolution (default from prediction metadata). */
+  async resolveDuePredictions(
+    projectRoot?: string,
+  ): Promise<PredictionSummary> {
     const now = Date.now();
     let resolved = 0;
     let correct = 0;
     let incorrect = 0;
     for (const p of this.predictions) {
       if (p.status !== "open" || p.dueAt > now) continue;
-      const outcome = await this.resolveViaContext(p);
-      if (outcome == null) continue;
+      const raw = await this.resolveViaContext(p, projectRoot);
+      if (raw == null) continue;
+      const outcome = typeof raw === "object" ? raw.outcome : raw;
       p.outcome = outcome;
       p.resolvedAt = now;
       p.status = "resolved";
@@ -140,6 +168,51 @@ export class PredictionTrackerService extends Service {
       resolved++;
       if (outcome === 1) correct++;
       else incorrect++;
+
+      if (
+        p.kind === "fd_discovery" &&
+        typeof raw === "object" &&
+        "returnPct" in raw
+      ) {
+        const root =
+          projectRoot ??
+          (typeof p.metadata?.projectRoot === "string"
+            ? p.metadata.projectRoot
+            : process.cwd());
+        const runId = String(p.metadata?.discoveryRunId ?? "");
+        const ticker = String(p.asset ?? "")
+          .toUpperCase()
+          .trim();
+        const horizon = (p.metadata?.horizonLabel === "3m" ? "3m" : "1m") as
+          | "1m"
+          | "3m";
+        if (runId && ticker) {
+          const resolvedRow: DiscoveryResolvedOutcome = {
+            runId,
+            ticker,
+            horizon,
+            entryBarDate: raw.entryBarDate,
+            entryClose: raw.entryClose,
+            targetBarDate: raw.targetBarDate,
+            targetClose: raw.targetClose,
+            returnPct: raw.returnPct,
+            outcome,
+            resolvedAt: now,
+            bucket:
+              typeof p.metadata?.bucket === "string"
+                ? p.metadata.bucket
+                : undefined,
+            candidateSource:
+              p.metadata?.candidateSource === "peer" ||
+              p.metadata?.candidateSource === "expansion"
+                ? p.metadata.candidateSource
+                : p.metadata?.candidateSource === "sleeve"
+                  ? "sleeve"
+                  : undefined,
+          };
+          appendResolvedOutcome(resolvedRow, root);
+        }
+      }
     }
     if (resolved > 0) {
       await this.save();
@@ -204,9 +277,11 @@ export class PredictionTrackerService extends Service {
     return this.predictions.filter((p) => p.status === "open");
   }
 
+  /** For fd_discovery returns { outcome, returnPct, ... } so we can append to discovery-resolved-outcomes.jsonl. */
   private async resolveViaContext(
     prediction: PredictionRecord,
-  ): Promise<0 | 1 | null> {
+    projectRootOverride?: string,
+  ): Promise<0 | 1 | FdDiscoveryResolveResult | null> {
     if (prediction.kind === "trade") {
       const asset = prediction.asset;
       const entryPrice = Number(prediction.metadata?.entryPrice);
@@ -222,6 +297,46 @@ export class PredictionTrackerService extends Service {
       if (prediction.direction === "long") return move > 0 ? 1 : 0;
       if (prediction.direction === "short") return move < 0 ? 1 : 0;
       return null;
+    }
+
+    if (prediction.kind === "fd_discovery") {
+      const asset = prediction.asset;
+      const entryBarDate = String(
+        prediction.metadata?.entryBarDate ?? "",
+      ).slice(0, 10);
+      const projectRoot =
+        projectRootOverride ??
+        (typeof prediction.metadata?.projectRoot === "string"
+          ? prediction.metadata.projectRoot
+          : process.cwd());
+      if (!asset || !entryBarDate) return null;
+      const targetBarDate = new Date(prediction.dueAt)
+        .toISOString()
+        .slice(0, 10);
+      const result = getReturnBetweenDates(
+        projectRoot,
+        asset,
+        entryBarDate,
+        targetBarDate,
+      );
+      if (result == null) return null;
+      const isLong =
+        prediction.direction === "long" || prediction.direction === "up";
+      const outcome: 0 | 1 = isLong
+        ? result.returnPct > 0
+          ? 1
+          : 0
+        : result.returnPct < 0
+          ? 1
+          : 0;
+      return {
+        outcome,
+        entryBarDate,
+        entryClose: result.entryClose,
+        targetBarDate: result.targetBarDate,
+        targetClose: result.targetClose,
+        returnPct: result.returnPct,
+      };
     }
 
     if (prediction.kind === "genome_promotion") {

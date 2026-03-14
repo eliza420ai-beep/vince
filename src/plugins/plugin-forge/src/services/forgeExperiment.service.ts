@@ -31,6 +31,11 @@ import { ForgeGitService } from "./forgeGit.service.ts";
 import { ForgeMlxService } from "./forgeMlx.service.ts";
 import { ForgePythonService } from "./forgePython.service.ts";
 import {
+  validatePromotion,
+  countRejectReasons,
+} from "./forgePromotionValidator.ts";
+import { runLowDataRemediation } from "../utils/lowDataRemediation.ts";
+import {
   loadForgeSignalCache,
   replayForRegime,
   replayWithWeights,
@@ -499,18 +504,22 @@ export class ForgeExperimentService {
     }
 
     const candidateResult = this.toForgeReplayResult(candidateMetrics);
-    const safetyCheck = this.checkSafetyGate(
-      candidateResult.composite,
-      ctx.baselineResult.composite,
-      candidateResult.winRate,
-      candidateResult.maxDrawdownPct,
+    const promotion = validatePromotion({
+      composite: candidateResult.composite,
+      baselineComposite: ctx.baselineResult.composite,
+      winRate: candidateResult.winRate,
+      maxDrawdownPct: candidateResult.maxDrawdownPct,
       policy,
-    );
+      holdoutCount: ctx.holdout.length,
+      withOutcome: candidateMetrics.withOutcome,
+    });
 
     return {
       ...candidateResult,
-      safetyGatePassed: safetyCheck.passed,
-      safetyGateReason: safetyCheck.reason,
+      safetyGatePassed: promotion.passed,
+      safetyGateReason: promotion.failures[0],
+      gateFailures:
+        promotion.failures.length > 0 ? promotion.failures : undefined,
     };
   }
 
@@ -616,6 +625,10 @@ export class ForgeExperimentService {
       logger.info(
         `[ForgeExperiment] Skipping run: only ${cacheLabeledCount} labeled forge-cache rows (need ${MIN_HOLDOUT_OUTCOMES})`,
       );
+      await runLowDataRemediation(this.runtime, {
+        holdoutCount: cacheLabeledCount,
+        reason: "nightly low labeled count",
+      });
       summary.safetyGateStatus = "not_reached";
       return summary;
     }
@@ -633,6 +646,11 @@ export class ForgeExperimentService {
       logger.info(
         `[ForgeExperiment] Skipping run: holdout too small (${replayCtx.holdout.length} < ${MIN_HOLDOUT_OUTCOMES})`,
       );
+      await runLowDataRemediation(this.runtime, {
+        holdoutCount: replayCtx.holdout.length,
+        withOutcome: replayCtx.baselineResult.tradeCount,
+        reason: "nightly holdout too small",
+      });
       summary.safetyGateStatus = "not_reached";
       return summary;
     }
@@ -685,13 +703,37 @@ export class ForgeExperimentService {
         compositeDelta,
         winner: result.safetyGatePassed,
         durationSeconds: (Date.now() - startTime) / 1000,
+        gateFailures: result.gateFailures,
       };
 
       summary.experimentsRun++;
 
       if (result.safetyGatePassed) {
+        // Hard guard: validate again immediately before commit
+        const policy = this.loadPolicy();
+        const hardCheck = validatePromotion({
+          composite: result.composite,
+          baselineComposite: replayCtx.baselineResult.composite,
+          winRate: result.winRate,
+          maxDrawdownPct: result.maxDrawdownPct,
+          policy,
+          holdoutCount: replayCtx.holdout.length,
+          withOutcome: result.tradeCount,
+        });
+        if (!hardCheck.passed) {
+          logger.warn(
+            `[ForgeExperiment] Hard promotion guard blocked commit: ${hardCheck.failures.join("; ")}`,
+          );
+          await this.gitService!.revertLoser(mutation.filePath);
+          summary.losers.push({
+            ...expResult,
+            winner: false,
+            gateFailures: hardCheck.failures,
+          });
+          summary.safetyGateStatus = "failed";
+          continue;
+        }
         summary.safetyGateStatus = "passed";
-        // Commit winner on new branch
         try {
           await this.gitService!.createExperimentBranch(experimentId);
           await this.gitService!.commitWinner(config, expResult);
@@ -710,7 +752,6 @@ export class ForgeExperimentService {
         }
       } else {
         summary.safetyGateStatus = "failed";
-        // Revert loser
         await this.gitService!.revertLoser(mutation.filePath);
         summary.losers.push(expResult);
         logger.debug(
@@ -725,6 +766,9 @@ export class ForgeExperimentService {
     }
 
     summary.budgetConsumedMinutes = (Date.now() - startTime) / 60_000;
+    summary.rejectReasonCounts = countRejectReasons(
+      summary.losers.map((l) => l.gateFailures ?? []),
+    );
     logger.info(
       `[ForgeExperiment] Run complete. ${summary.winners.length} winners, ${summary.losers.length} losers. Best ΔComposite: +${(summary.bestCompositeDelta * 100).toFixed(2)}%`,
     );

@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { loadDexterPortfolios } from "./dexterPortfolio";
+import { getFdSleeveTickers } from "./dexterPortfolio";
 
 export type FdPriceRow = {
   time?: string;
@@ -38,6 +38,8 @@ export type FdPrewarmOptions = {
   endDate?: string;
   force?: boolean;
   apiKey?: string;
+  /** When set, use these tickers instead of sleeve tickers from portfolio files. */
+  tickers?: string[];
 };
 
 export type FdPrewarmResult = {
@@ -138,11 +140,7 @@ async function fetchHistorical(
 }
 
 function getTickersFromPortfolios(projectRoot: string): string[] {
-  const p = loadDexterPortfolios(projectRoot);
-  const all = [...p.tastytrade, ...p.watchlist]
-    .map((s) => s.toUpperCase().trim())
-    .filter(Boolean);
-  return [...new Set(all)];
+  return getFdSleeveTickers(projectRoot);
 }
 
 function getCacheDir(projectRoot: string): string {
@@ -213,7 +211,10 @@ export async function prewarmFdPortfolioHistoryCache(
     opts.startDate,
     opts.endDate,
   );
-  const tickers = getTickersFromPortfolios(projectRoot);
+  const tickers =
+    opts.tickers && opts.tickers.length > 0
+      ? [...new Set(opts.tickers.map((t) => t.toUpperCase().trim()))]
+      : getTickersFromPortfolios(projectRoot);
   if (tickers.length === 0) {
     return {
       startDate,

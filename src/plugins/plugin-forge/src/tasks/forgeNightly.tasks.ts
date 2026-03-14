@@ -97,8 +97,16 @@ function formatSummary(summary: ForgeRunSummary, soulThesis: string): string {
     ? `${bestWinner.config.mutation.description} (+${(bestWinner.compositeDelta * 100).toFixed(2)}%)`
     : "none";
   const worstExp = worstLoser
-    ? `${worstLoser.config.mutation.description} — ${worstLoser.result.safetyGateReason ?? "below threshold"}`
+    ? `${worstLoser.config.mutation.description} — ${(worstLoser.gateFailures ?? [worstLoser.result.safetyGateReason ?? "below threshold"]).join("; ")}`
     : "none";
+
+  const rejectReasonsLine =
+    summary.rejectReasonCounts &&
+    Object.keys(summary.rejectReasonCounts).length > 0
+      ? `Reject reasons: ${Object.entries(summary.rejectReasonCounts)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", ")}`
+      : "";
 
   const winnerLines = summary.winners
     .map(
@@ -129,6 +137,7 @@ function formatSummary(summary: ForgeRunSummary, soulThesis: string): string {
     .replace("{{best_experiment}}", bestExp)
     .replace("{{worst_experiment}}", worstExp)
     .replace("{{safety_gate_status}}", safetyStatus)
+    .replace("{{reject_reasons}}", rejectReasonsLine)
     .replace("{{branch}}", summary.committedBranches.join(", ") || "none")
     .replace("{{soul_thesis}}", soulThesis.slice(0, 200));
 
@@ -143,6 +152,7 @@ function formatSummary(summary: ForgeRunSummary, soulThesis: string): string {
       : "No metric improvement.",
     winnerLines ? `Winners:\n${winnerLines}` : "",
     safetyStatus,
+    rejectReasonsLine,
     summary.committedBranches.length
       ? `Branches: ${summary.committedBranches.join(", ")}`
       : "",

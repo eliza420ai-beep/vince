@@ -502,7 +502,8 @@ export default function LeaderboardPage({
         refreshNews: mainTab === "news",
       }),
     enabled:
-      (mainTab === "markets" || mainTab === "news") && !!leaderboardsAgentId,
+      (mainTab === "markets" || mainTab === "news" || mainTab === "charts") &&
+      !!leaderboardsAgentId,
     staleTime: LEADERBOARDS_STALE_MS,
   });
 
@@ -1141,6 +1142,337 @@ export default function LeaderboardPage({
                       );
                     })()}
                 </div>
+
+                {/* Forge Ops: replay gates and metrics */}
+                {leaderboardsData.forgeOps && (
+                  <DashboardCard
+                    title={leaderboardsData.forgeOps.title}
+                    subtitle={
+                      leaderboardsData.forgeOpsStatus === "ok"
+                        ? "Gates and metrics from signal cache"
+                        : leaderboardsData.forgeOpsStatus === "stale"
+                          ? "Section may be stale"
+                          : "Updated with leaderboard"
+                    }
+                  >
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        {leaderboardsData.forgeOps.oneLiner}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge
+                          variant={
+                            leaderboardsData.forgeOps.gates.holdout.pass
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          Holdout{" "}
+                          {leaderboardsData.forgeOps.gates.holdout.current}/
+                          {leaderboardsData.forgeOps.gates.holdout.required}
+                        </Badge>
+                        <Badge
+                          variant={
+                            leaderboardsData.forgeOps.gates.trigger.pass
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          Trigger{" "}
+                          {leaderboardsData.forgeOps.gates.trigger.current}/
+                          {leaderboardsData.forgeOps.gates.trigger.required}
+                        </Badge>
+                        <Badge
+                          variant={
+                            leaderboardsData.forgeOps.gates.winRate.pass
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          WR {leaderboardsData.forgeOps.gates.winRate.current}%
+                          (≥
+                          {leaderboardsData.forgeOps.gates.winRate.required}%)
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        Branch: {leaderboardsData.forgeOps.runtime.branch} ·
+                        Forge:{" "}
+                        {leaderboardsData.forgeOps.runtime.latestForgeBranch} ·
+                        policy {leaderboardsData.forgeOps.runtime.policyHash}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Cache:{" "}
+                        {leaderboardsData.forgeOps.metrics.totalCacheRecords}{" "}
+                        records · Sharpe{" "}
+                        {leaderboardsData.forgeOps.metrics.sharpe.toFixed(2)} ·
+                        Brier{" "}
+                        {leaderboardsData.forgeOps.metrics.brierScore.toFixed(
+                          3,
+                        )}
+                      </p>
+                    </div>
+                  </DashboardCard>
+                )}
+
+                {leaderboardsData?.fdDiscovery && (
+                  <DashboardCard title={leaderboardsData.fdDiscovery.title}>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {leaderboardsData.fdDiscovery.oneLiner}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-green-600 dark:text-green-400">
+                          PromoteNow (
+                          {leaderboardsData.fdDiscovery.promoteNow?.length ?? 0}
+                          )
+                        </span>
+                        <ul className="mt-1 space-y-0.5">
+                          {(leaderboardsData.fdDiscovery.promoteNow ?? [])
+                            .slice(0, 5)
+                            .map((c) => (
+                              <li key={c.ticker}>
+                                <span className="font-mono">{c.ticker}</span>{" "}
+                                {c.reason
+                                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
+                                  : ""}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <span className="font-medium text-amber-600 dark:text-amber-400">
+                          ResearchNext (
+                          {leaderboardsData.fdDiscovery.researchNext?.length ??
+                            0}
+                          )
+                        </span>
+                        <ul className="mt-1 space-y-0.5">
+                          {(leaderboardsData.fdDiscovery.researchNext ?? [])
+                            .slice(0, 5)
+                            .map((c) => (
+                              <li key={c.ticker}>
+                                <span className="font-mono">{c.ticker}</span>{" "}
+                                {c.reason
+                                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
+                                  : ""}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground">
+                          Avoid (
+                          {leaderboardsData.fdDiscovery.avoid?.length ?? 0})
+                        </span>
+                        <ul className="mt-1 space-y-0.5">
+                          {(leaderboardsData.fdDiscovery.avoid ?? [])
+                            .slice(0, 5)
+                            .map((c) => (
+                              <li key={c.ticker}>
+                                <span className="font-mono">{c.ticker}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    </div>
+                    {(leaderboardsData.fdDiscovery.newCandidates?.length ?? 0) >
+                      0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Net-new candidates (last full run):{" "}
+                          {leaderboardsData.fdDiscovery
+                            .newCandidates!.slice(0, 8)
+                            .map((c) => c.ticker)
+                            .join(", ")}
+                          {leaderboardsData.fdDiscovery.newCandidates!.length >
+                          8
+                            ? "…"
+                            : ""}
+                        </span>
+                      </div>
+                    )}
+                    {leaderboardsData.fdDiscovery.calibration &&
+                      leaderboardsData.fdDiscovery.calibration.overallCount >
+                        0 && (
+                        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+                          Calibration (30d):{" "}
+                          {
+                            leaderboardsData.fdDiscovery.calibration
+                              .overallCount
+                          }{" "}
+                          resolved · Brier{" "}
+                          {leaderboardsData.fdDiscovery.calibration
+                            .overallMeanBrier != null
+                            ? leaderboardsData.fdDiscovery.calibration.overallMeanBrier.toFixed(
+                                3,
+                              )
+                            : "—"}
+                          {leaderboardsData.fdDiscovery.calibration.byAgent
+                            ?.length
+                            ? ` · by agent: ${leaderboardsData.fdDiscovery.calibration.byAgent.map((a) => `${a.agent}=${a.meanBrier.toFixed(2)}`).join(", ")}`
+                            : ""}
+                        </div>
+                      )}
+                    {(leaderboardsData.fdDiscovery.fdStatus != null ||
+                      leaderboardsData.fdDiscovery.fdFreshness != null ||
+                      leaderboardsData.fdDiscovery.bucketMetrics) && (
+                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                        {leaderboardsData.fdDiscovery.fdStatus != null && (
+                          <span>
+                            FD: {leaderboardsData.fdDiscovery.fdStatus}
+                          </span>
+                        )}
+                        {leaderboardsData.fdDiscovery.fdFreshness != null && (
+                          <span>
+                            {leaderboardsData.fdDiscovery.fdFreshness}
+                          </span>
+                        )}
+                        {leaderboardsData.fdDiscovery.bucketMetrics && (
+                          <>
+                            {leaderboardsData.fdDiscovery.bucketMetrics
+                              .promoteNowHitRate != null && (
+                              <span>
+                                PromoteNow hit{" "}
+                                {(
+                                  (leaderboardsData.fdDiscovery.bucketMetrics
+                                    .promoteNowHitRate ?? 0) * 100
+                                ).toFixed(0)}
+                                %
+                              </span>
+                            )}
+                            {leaderboardsData.fdDiscovery.bucketMetrics
+                              .researchNextHitRate != null && (
+                              <span>
+                                ResearchNext hit{" "}
+                                {(
+                                  (leaderboardsData.fdDiscovery.bucketMetrics
+                                    .researchNextHitRate ?? 0) * 100
+                                ).toFixed(0)}
+                                %
+                              </span>
+                            )}
+                            {leaderboardsData.fdDiscovery.bucketMetrics
+                              .avoidSaveRate != null && (
+                              <span>
+                                Avoid save{" "}
+                                {(
+                                  (leaderboardsData.fdDiscovery.bucketMetrics
+                                    .avoidSaveRate ?? 0) * 100
+                                ).toFixed(0)}
+                                %
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {(leaderboardsData.fdDiscovery.resolved?.length ?? 0) >
+                      0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                          Resolved outcomes (sample)
+                        </p>
+                        <div className="overflow-x-auto text-xs">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="text-left py-1 pr-2">Ticker</th>
+                                <th className="text-left py-1 pr-2">Horizon</th>
+                                <th className="text-left py-1 pr-2">
+                                  Return %
+                                </th>
+                                <th className="text-left py-1 pr-2">Outcome</th>
+                                <th className="text-left py-1">Bucket</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {leaderboardsData.fdDiscovery
+                                .resolved!.slice(0, 10)
+                                .map((r, i) => (
+                                  <tr
+                                    key={`${r.runId}-${r.ticker}-${r.horizon}-${i}`}
+                                    className="border-b border-border/50"
+                                  >
+                                    <td className="py-1 pr-2 font-mono">
+                                      {r.ticker}
+                                    </td>
+                                    <td className="py-1 pr-2">{r.horizon}</td>
+                                    <td className="py-1 pr-2">
+                                      {r.returnPct.toFixed(2)}%
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                      {r.outcome === 1 ? "✓" : "✗"}
+                                    </td>
+                                    <td className="py-1">{r.bucket ?? "—"}</td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    {(leaderboardsData.fdDiscovery.falsePositives?.length ??
+                      0) > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
+                          False positives (wrong direction)
+                        </p>
+                        <ul className="text-xs text-muted-foreground space-y-0.5">
+                          {leaderboardsData.fdDiscovery
+                            .falsePositives!.slice(0, 8)
+                            .map((r, i) => (
+                              <li
+                                key={`fp-${r.runId}-${r.ticker}-${r.horizon}-${i}`}
+                              >
+                                <span className="font-mono">{r.ticker}</span>{" "}
+                                {r.horizon} · {r.returnPct.toFixed(2)}% ·{" "}
+                                {r.bucket ?? "—"}
+                              </li>
+                            ))}
+                          {leaderboardsData.fdDiscovery.falsePositives!.length >
+                            8 && (
+                            <li>
+                              +
+                              {leaderboardsData.fdDiscovery.falsePositives!
+                                .length - 8}{" "}
+                              more
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    {(leaderboardsData.fdDiscovery.open?.length ?? 0) > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+                        <span className="font-medium">Open predictions:</span>{" "}
+                        {leaderboardsData.fdDiscovery.open!.length} (1m/3m)
+                      </div>
+                    )}
+                    {(leaderboardsData.fdDiscovery.promotionVerdicts?.length ??
+                      0) > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+                        <span className="font-medium">Promotion policy:</span>{" "}
+                        {
+                          leaderboardsData.fdDiscovery.promotionVerdicts!.filter(
+                            (v) => v.eligibleForPromotion,
+                          ).length
+                        }{" "}
+                        promotable ·{" "}
+                        {
+                          leaderboardsData.fdDiscovery.promotionVerdicts!.filter(
+                            (v) => v.requiresHumanReview,
+                          ).length
+                        }{" "}
+                        need review ·{" "}
+                        {
+                          leaderboardsData.fdDiscovery.promotionVerdicts!.filter(
+                            (v) => v.blockedByPolicy,
+                          ).length
+                        }{" "}
+                        blocked
+                      </div>
+                    )}
+                  </DashboardCard>
+                )}
 
                 {!leaderboardsData.hip3 && !leaderboardsData.hlCrypto && (
                   <p className="text-center text-muted-foreground py-8">

@@ -5,6 +5,8 @@
  * Runs a single experiment cycle (respects budget).
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type {
   Action,
   IAgentRuntime,
@@ -94,12 +96,31 @@ export const forgeRunAction: Action = {
             ? `+${(summary.bestCompositeDelta * 100).toFixed(2)}%`
             : `${(summary.bestCompositeDelta * 100).toFixed(2)}%`;
 
+        const rejectLine =
+          summary.rejectReasonCounts &&
+          Object.keys(summary.rejectReasonCounts).length > 0
+            ? `Reject reasons: ${Object.entries(summary.rejectReasonCounts)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(", ")}`
+            : "";
+        const loserReasons =
+          summary.losers.length > 0
+            ? summary.losers
+                .slice(0, 3)
+                .map(
+                  (l) =>
+                    `• ${l.config.mutation.description}: ${(l.gateFailures ?? [l.result.safetyGateReason ?? "below threshold"]).join("; ")}`,
+                )
+                .join("\n")
+            : "";
         const resultText = [
           `**Forge run complete — ${summary.date}**`,
           `${summary.experimentsRun} experiments: ${summary.winners.length} winners, ${summary.losers.length} losers`,
           summary.winners.length > 0
             ? `Best ΔComposite: ${deltaStr}\nWinners:\n${summary.winners.map((w) => `• ${w.config.mutation.description} → ${(w.compositeDelta * 100).toFixed(2)}%`).join("\n")}`
             : "No winners (all below +0.5% threshold or safety gate failed).",
+          rejectLine,
+          loserReasons ? `Loser reasons (sample):\n${loserReasons}` : "",
           summary.committedBranches.length
             ? `Committed to: ${summary.committedBranches.join(", ")}`
             : "",
@@ -108,6 +129,27 @@ export const forgeRunAction: Action = {
           .join("\n");
 
         logger.info("[ForgeRun] On-demand run complete:\n" + resultText);
+        const lastRunPath = path.join(
+          process.cwd(),
+          ".elizadb",
+          "forge",
+          "last-run.json",
+        );
+        try {
+          fs.mkdirSync(path.dirname(lastRunPath), { recursive: true });
+          fs.writeFileSync(
+            lastRunPath,
+            JSON.stringify({
+              date: summary.date,
+              rejectReasonCounts: summary.rejectReasonCounts,
+              rejectReasonsSummary: rejectLine || undefined,
+              writtenAt: new Date().toISOString(),
+            }),
+            "utf-8",
+          );
+        } catch {
+          // non-fatal
+        }
       } catch (err) {
         logger.error("[ForgeRun] On-demand run failed:", err);
       } finally {

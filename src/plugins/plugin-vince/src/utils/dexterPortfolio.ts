@@ -14,9 +14,19 @@ export interface DexterPortfolioAsset {
   target_weight_pct: number;
 }
 
+/** Rich sleeve asset for FD ingestion and analytics: preserves provenance and target weight. */
+export interface SleeveAssetRow {
+  ticker: string;
+  sleeve: string;
+  targetWeightPct: number;
+  paramsProfile?: string;
+  snapshotAt: number;
+}
+
 export interface DexterPortfolioFile {
   sleeve: string;
   assets: DexterPortfolioAsset[];
+  params_profile?: string;
   [key: string]: unknown;
 }
 
@@ -63,6 +73,71 @@ function loadSleeveSymbols(rootDir: string, filename: string): string[] {
     // missing or invalid — return []
   }
   return [];
+}
+
+/**
+ * Load one portfolio file as rich sleeve assets (ticker, sleeve, target weight, params profile).
+ * Returns [] on missing/invalid file. snapshotAt is set to current time for reproducibility.
+ */
+function loadSleeveAssets(
+  rootDir: string,
+  filename: string,
+  snapshotAt: number = Date.now(),
+): SleeveAssetRow[] {
+  const filepath = path.join(rootDir, filename);
+  try {
+    const raw = fs.readFileSync(filepath, "utf-8");
+    const data = JSON.parse(raw) as DexterPortfolioFile;
+    const sleeve =
+      data?.sleeve ??
+      path.basename(filename, ".json").replace("portfolio_", "");
+    const paramsProfile =
+      typeof data?.params_profile === "string"
+        ? data.params_profile
+        : undefined;
+    if (!Array.isArray(data?.assets)) return [];
+    return data.assets
+      .filter(
+        (a) => a && typeof a.symbol === "string" && a.symbol.trim() !== "",
+      )
+      .map((a) => ({
+        ticker: (a.symbol as string).trim().toUpperCase(),
+        sleeve,
+        targetWeightPct:
+          typeof a.target_weight_pct === "number" &&
+          Number.isFinite(a.target_weight_pct)
+            ? a.target_weight_pct
+            : 0,
+        paramsProfile,
+        snapshotAt,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Load all sleeve assets from the three portfolio JSONs with full metadata.
+ * Use this for FD ingestion and any analytics that must keep ticker, sleeve, and target weight together.
+ * Core crypto (BTC, SOL, HYPE) are not included; they are fixed in code.
+ */
+export function loadDexterPortfolioAssets(rootDir?: string): SleeveAssetRow[] {
+  const root = rootDir ?? resolveRootDir();
+  const snapshotAt = Date.now();
+  const hl = loadSleeveAssets(root, "portfolio_hyperliquid.json", snapshotAt);
+  const tt = loadSleeveAssets(root, "portfolio_tastytrade.json", snapshotAt);
+  const wl = loadSleeveAssets(root, "portfolio_watchlist.json", snapshotAt);
+  return [...hl, ...tt, ...wl];
+}
+
+/** Tickers from tastytrade + watchlist only (for FD cache prewarm). Deduplicated, uppercase. */
+export function getFdSleeveTickers(rootDir?: string): string[] {
+  const assets = loadDexterPortfolioAssets(rootDir);
+  const fdSleeves = new Set(["tastytrade", "watchlist"]);
+  const tickers = assets
+    .filter((a) => fdSleeves.has(a.sleeve))
+    .map((a) => a.ticker);
+  return [...new Set(tickers)];
 }
 
 /**

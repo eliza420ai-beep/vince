@@ -13,6 +13,8 @@ import * as path from "node:path";
 import * as os from "node:os";
 import {
   loadDexterPortfolios,
+  loadDexterPortfolioAssets,
+  getFdSleeveTickers,
   getDexterUniverseSet,
   isInDexterUniverse,
   getDexterDriftSummary,
@@ -87,6 +89,52 @@ describe("dexterPortfolio", () => {
       expect(p.tastytrade).toEqual(["AMAT"]);
       expect(p.watchlist).toEqual(["PANW"]);
       expect(p.coreCrypto).toEqual(["BTC", "SOL", "HYPE"]);
+    });
+  });
+
+  describe("loadDexterPortfolioAssets / getFdSleeveTickers", () => {
+    it("returns rich assets with ticker, sleeve, targetWeightPct", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "portfolio_tastytrade.json"),
+        JSON.stringify({
+          sleeve: "tastytrade",
+          params_profile: "default",
+          assets: [
+            { symbol: "NVDA", target_weight_pct: 10 },
+            { symbol: " amat ", target_weight_pct: 5 },
+          ],
+        }),
+      );
+      fs.writeFileSync(
+        path.join(tmpDir, "portfolio_watchlist.json"),
+        JSON.stringify({
+          sleeve: "watchlist",
+          assets: [{ symbol: "PANW", target_weight_pct: 5 }],
+        }),
+      );
+      const assets = loadDexterPortfolioAssets(tmpDir);
+      expect(assets.length).toBeGreaterThanOrEqual(3);
+      const tt = assets.filter((a) => a.sleeve === "tastytrade");
+      expect(tt.map((a) => a.ticker)).toContain("NVDA");
+      expect(tt.map((a) => a.ticker)).toContain("AMAT");
+      expect(tt.some((a) => a.paramsProfile === "default")).toBe(true);
+      const fdTickers = getFdSleeveTickers(tmpDir);
+      expect(fdTickers).toContain("NVDA");
+      expect(fdTickers).toContain("AMAT");
+      expect(fdTickers).toContain("PANW");
+      expect(fdTickers).not.toContain("BTC");
+    });
+
+    it("getFdSleeveTickers returns only tastytrade and watchlist tickers", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "portfolio_hyperliquid.json"),
+        JSON.stringify({
+          sleeve: "hyperliquid",
+          assets: [{ symbol: "NVDA", target_weight_pct: 10 }],
+        }),
+      );
+      const fdTickers = getFdSleeveTickers(tmpDir);
+      expect(fdTickers).toEqual([]);
     });
   });
 

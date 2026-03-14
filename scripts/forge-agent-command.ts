@@ -15,7 +15,9 @@
  *   --room-id <uuid>
  */
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 type ForgeIntent =
   | "run"
@@ -53,6 +55,66 @@ const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const DEFAULT_TIMEOUT_MS = 15000;
 const JOB_POLL_INTERVAL_MS = 1800;
 const JOB_MAX_WAIT_MS = 95000;
+const JOB_LEDGER_PATH = path.join(
+  process.cwd(),
+  ".elizadb",
+  "forge",
+  "jobs.jsonl",
+);
+const LAST_RUN_PATH = path.join(process.cwd(), ".elizadb", "forge", "last-run.json");
+
+type ForgeJobLedgerRecord = {
+  command: string;
+  jobId: string;
+  acceptedAt: string;
+  finalStatus: "pending" | "processing" | "completed" | "failed" | "timeout" | "not_found";
+  resultHash?: string;
+  baseUrl: string;
+  agentName: string;
+  agentId: string;
+  updatedAt: string;
+  error?: string;
+  /** Explicit reject reasons from promotion validator (e.g. from last-run.json) */
+  rejectReasons?: string;
+};
+
+function ensureLedgerDir(): void {
+  fs.mkdirSync(path.dirname(JOB_LEDGER_PATH), { recursive: true });
+}
+
+function appendLedger(rec: ForgeJobLedgerRecord): void {
+  try {
+    ensureLedgerDir();
+    fs.appendFileSync(JOB_LEDGER_PATH, JSON.stringify(rec) + "\n", "utf-8");
+  } catch {
+    // Never fail command flow due to ledger write problems.
+  }
+}
+
+function hashResult(text?: string): string | undefined {
+  if (!text || !text.trim()) return undefined;
+  return createHash("sha256").update(text, "utf-8").digest("hex").slice(0, 16);
+}
+
+function getLastAcceptedAt(jobId: string): string | null {
+  if (!fs.existsSync(JOB_LEDGER_PATH)) return null;
+  try {
+    const lines = fs
+      .readFileSync(JOB_LEDGER_PATH, "utf-8")
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const parsed = JSON.parse(lines[i]) as Partial<ForgeJobLedgerRecord>;
+      if (parsed.jobId === jobId && parsed.acceptedAt) {
+        return parsed.acceptedAt;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 function parseArgs(argv: string[]) {
   const args = [...argv];
@@ -328,6 +390,19 @@ async function main() {
       if (status.error) {
         console.log(`[forge-cli] error: ${status.error}`);
       }
+      const acceptedAt = getLastAcceptedAt(jobId) ?? new Date().toISOString();
+      appendLedger({
+        command: "forge:job-status",
+        jobId,
+        acceptedAt,
+        finalStatus: (status.status ?? "processing") as ForgeJobLedgerRecord["finalStatus"],
+        resultHash: hashResult(replyText),
+        baseUrl,
+        agentName,
+        agentId: "unknown",
+        updatedAt: new Date().toISOString(),
+        error: status.error,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("HTTP 404")) {
@@ -335,6 +410,16 @@ async function main() {
         console.log(
           "[forge-cli] status=not_found (job may have expired or was never created on this server)",
         );
+        appendLedger({
+          command: "forge:job-status",
+          jobId,
+          acceptedAt: getLastAcceptedAt(jobId) ?? new Date().toISOString(),
+          finalStatus: "not_found",
+          baseUrl,
+          agentName,
+          agentId: "unknown",
+          updatedAt: new Date().toISOString(),
+        });
         return;
       }
       throw err;
@@ -385,15 +470,68 @@ async function main() {
     pollTimeoutMs: isPushNow ? 30000 : 20000,
     createRetries: isPushNow ? 3 : 2,
   });
+  const acceptedAt = new Date().toISOString();
+  appendLedger({
+    command: text,
+    jobId: job.jobId,
+    acceptedAt,
+    finalStatus: "pending",
+    baseUrl,
+    agentName,
+    agentId,
+    updatedAt: acceptedAt,
+  });
   if (job.reply) {
     console.log(`[forge-cli] jobId=${job.jobId}`);
     console.log(`[forge-cli] reply: ${job.reply}`);
+    let rejectReasons: string | undefined;
+    const isRun = intent === "run" || /forge\s+run|run\s+forge/i.test(text);
+    if (isRun && fs.existsSync(LAST_RUN_PATH)) {
+      try {
+        const raw = fs.readFileSync(LAST_RUN_PATH, "utf-8");
+        const data = JSON.parse(raw) as {
+          rejectReasonsSummary?: string;
+          writtenAt?: string;
+        };
+        if (data.rejectReasonsSummary && data.writtenAt) {
+          const written = new Date(data.writtenAt).getTime();
+          if (Date.now() - written < 10 * 60 * 1000) rejectReasons = data.rejectReasonsSummary;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    appendLedger({
+      command: text,
+      jobId: job.jobId,
+      acceptedAt,
+      finalStatus: "completed",
+      resultHash: hashResult(job.reply),
+      baseUrl,
+      agentName,
+      agentId,
+      updatedAt: new Date().toISOString(),
+      rejectReasons,
+    });
     return;
   }
   console.log(`[forge-cli] jobId=${job.jobId}`);
   console.log(
     `[forge-cli] no immediate reply (status=${job.status}). Command accepted; check Forge status with: bun run forge:status`,
   );
+  appendLedger({
+    command: text,
+    jobId: job.jobId,
+    acceptedAt,
+    finalStatus:
+      (job.status as ForgeJobLedgerRecord["finalStatus"]) === "timeout"
+        ? "timeout"
+        : "processing",
+    baseUrl,
+    agentName,
+    agentId,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 main().catch((err) => {

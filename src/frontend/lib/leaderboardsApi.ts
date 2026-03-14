@@ -250,8 +250,131 @@ export interface LeaderboardsResponse {
     fileCount?: number;
     status?: "ready" | "missing" | "stale";
   };
+  /** FD sleeve discovery: PromoteNow / ResearchNext / Avoid; optional newCandidates, existingSleeve, calibration */
+  fdDiscovery?: FdDiscoverySection | null;
   hip3Status?: "loading" | "ok" | "stale" | "error";
   hlCryptoStatus?: "loading" | "ok" | "stale" | "error";
+  /** Forge Ops: replay gates and metrics for the Leaderboard card */
+  forgeOps?: ForgeOpsSection | null;
+  forgeOpsStatus?: "loading" | "ok" | "stale" | "error";
+}
+
+/** Resolved outcome row for FD discovery diagnostics */
+export interface FdDiscoveryResolvedRow {
+  runId: string;
+  ticker: string;
+  horizon: "1m" | "3m";
+  entryBarDate: string;
+  entryClose: number;
+  targetBarDate: string;
+  targetClose: number;
+  returnPct: number;
+  outcome: 0 | 1;
+  resolvedAt: number;
+  bucket?: string;
+  candidateSource?: string;
+}
+
+/** Open FD discovery prediction row */
+export interface FdDiscoveryOpenRow {
+  id: string;
+  ticker: string;
+  horizonLabel?: string;
+  dueAt: number;
+  bucket?: string;
+  discoveryRunId?: string;
+}
+
+/** Bucket-level hit rate and return metrics */
+export interface FdDiscoveryBucketMetrics {
+  promoteNowHitRate: number | null;
+  researchNextHitRate: number | null;
+  avoidSaveRate: number | null;
+  avgReturnByBucket: Record<string, number>;
+  resolvedCountByBucket: Record<string, number>;
+}
+
+/** FD discovery: ranked sleeve candidates; optional net-new, calibration, and diagnostics */
+export interface FdDiscoverySection {
+  title: string;
+  oneLiner: string;
+  promoteNow: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  researchNext: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  avoid: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  generatedAt: string;
+  newCandidates?: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  existingSleeve?: Array<{
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+  }>;
+  calibration?: {
+    windowDays: number;
+    overallMeanBrier: number | null;
+    overallCount: number;
+    byAgent: Array<{ agent: string; count: number; meanBrier: number }>;
+  };
+  resolved?: FdDiscoveryResolvedRow[];
+  open?: FdDiscoveryOpenRow[];
+  falsePositives?: FdDiscoveryResolvedRow[];
+  bucketMetrics?: FdDiscoveryBucketMetrics;
+  fdStatus?: "ready" | "stale" | "missing";
+  fdFreshness?: string;
+  promotionVerdicts?: Array<{
+    ticker: string;
+    bucket: string;
+    score: number;
+    eligibleForPromotion: boolean;
+    requiresHumanReview: boolean;
+    blockedByPolicy: string | null;
+  }>;
+}
+
+export interface ForgeOpsSection {
+  title: string;
+  oneLiner: string;
+  gates: {
+    holdout: { pass: boolean; current: number; required: number };
+    trigger: { pass: boolean; current: number; required: number };
+    winRate: { pass: boolean; current: number; required: number };
+  };
+  metrics: {
+    holdoutLabeled: number;
+    totalCacheRecords: number;
+    withOutcome: number;
+    winRate: number;
+    sharpe: number;
+    brierScore: number;
+    avgPnlPct: number;
+    maxDrawdown: number;
+  };
+  runtime: {
+    branch: string;
+    latestForgeBranch: string;
+    policyHash: string;
+  };
+  lastUpdatedAt: number;
 }
 
 const STALE_MS = 2 * 60 * 1000; // 2 minutes

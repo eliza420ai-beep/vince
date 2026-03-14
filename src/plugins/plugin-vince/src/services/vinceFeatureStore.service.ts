@@ -47,6 +47,7 @@ import {
 } from "../utils/sessionFilters";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import { loadLatestGrokPulse } from "../utils/grokPulseParser";
+import { readFdSnapshot } from "../utils/fdFactorBuilder";
 
 // ==========================================
 // WTT Invalidate Condition Parser (exported for tests)
@@ -112,6 +113,29 @@ export function parseWttInvalidateCondition(
 // ==========================================
 // Feature Record Types
 // ==========================================
+
+/**
+ * FD-derived equity factors when asset is a sleeve ticker (tastytrade/watchlist).
+ * Populated from .elizadb/financialdatasets-cache/snapshots when recording a decision.
+ */
+export interface EquityFundamentalsBlock {
+  ticker: string;
+  snapshotAt: string;
+  momentum_1m_pct: number | null;
+  momentum_3m_pct: number | null;
+  momentum_6m_pct: number | null;
+  momentum_12m_pct: number | null;
+  vol_realized_20d: number | null;
+  dollar_volume_avg: number | null;
+  gross_margin_pct: number | null;
+  revenue_growth_yoy_pct: number | null;
+  operating_margin_pct: number | null;
+  days_since_earnings: number | null;
+  recent_8k: boolean;
+  recent_10q: boolean;
+  recent_10k: boolean;
+  insider_buy_sell_skew: number | null;
+}
 
 /**
  * Market features at decision time
@@ -429,6 +453,11 @@ export interface FeatureRecord {
    */
   postMortemPrimaryCause?: string;
   postMortemAssetClass?: string;
+  /**
+   * FD-derived equity factors when asset is a sleeve ticker (tastytrade/watchlist).
+   * Set when recording a decision if an FD snapshot exists (sleeve or discovery candidate).
+   */
+  equityFundamentals?: EquityFundamentalsBlock;
 }
 
 // ==========================================
@@ -721,6 +750,29 @@ export class VinceFeatureStoreService extends Service {
         ...(params.wtt && { wtt: params.wtt }),
       };
 
+      // Attach FD snapshot when present (sleeve or discovery candidate with built snapshot)
+      const snapshot = readFdSnapshot(params.asset, process.cwd());
+      if (snapshot) {
+        record.equityFundamentals = {
+          ticker: snapshot.ticker,
+          snapshotAt: snapshot.snapshotAt,
+          momentum_1m_pct: snapshot.momentum_1m_pct,
+          momentum_3m_pct: snapshot.momentum_3m_pct,
+          momentum_6m_pct: snapshot.momentum_6m_pct,
+          momentum_12m_pct: snapshot.momentum_12m_pct,
+          vol_realized_20d: snapshot.vol_realized_20d,
+          dollar_volume_avg: snapshot.dollar_volume_avg,
+          gross_margin_pct: snapshot.gross_margin_pct,
+          revenue_growth_yoy_pct: snapshot.revenue_growth_yoy_pct,
+          operating_margin_pct: snapshot.operating_margin_pct,
+          days_since_earnings: snapshot.days_since_earnings,
+          recent_8k: snapshot.recent_8k,
+          recent_10q: snapshot.recent_10q,
+          recent_10k: snapshot.recent_10k,
+          insider_buy_sell_skew: snapshot.insider_buy_sell_skew,
+        };
+      }
+
       this.records.push(record);
 
       // Auto-flush if buffer is full
@@ -814,6 +866,28 @@ export class VinceFeatureStoreService extends Service {
             },
           }),
       };
+
+      const snapshotAvoided = readFdSnapshot(params.asset, process.cwd());
+      if (snapshotAvoided) {
+        record.equityFundamentals = {
+          ticker: snapshotAvoided.ticker,
+          snapshotAt: snapshotAvoided.snapshotAt,
+          momentum_1m_pct: snapshotAvoided.momentum_1m_pct,
+          momentum_3m_pct: snapshotAvoided.momentum_3m_pct,
+          momentum_6m_pct: snapshotAvoided.momentum_6m_pct,
+          momentum_12m_pct: snapshotAvoided.momentum_12m_pct,
+          vol_realized_20d: snapshotAvoided.vol_realized_20d,
+          dollar_volume_avg: snapshotAvoided.dollar_volume_avg,
+          gross_margin_pct: snapshotAvoided.gross_margin_pct,
+          revenue_growth_yoy_pct: snapshotAvoided.revenue_growth_yoy_pct,
+          operating_margin_pct: snapshotAvoided.operating_margin_pct,
+          days_since_earnings: snapshotAvoided.days_since_earnings,
+          recent_8k: snapshotAvoided.recent_8k,
+          recent_10q: snapshotAvoided.recent_10q,
+          recent_10k: snapshotAvoided.recent_10k,
+          insider_buy_sell_skew: snapshotAvoided.insider_buy_sell_skew,
+        };
+      }
 
       this.records.push(record);
 

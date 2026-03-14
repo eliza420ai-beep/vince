@@ -57,6 +57,8 @@ import { VinceAlliumService } from "./services/allium.service";
 import { VinceHIP3Service } from "./services/hip3.service";
 import { VinceHLCryptoSnapshotService } from "./services/hlCryptoSnapshot.service";
 import { VinceWatchlistService } from "./services/watchlist.service";
+import { VinceFinancialDatasetsService } from "./services/vinceFinancialDatasets.service";
+import { VinceTickerDiscoveryService } from "./services/vinceTickerDiscovery.service";
 import { VinceNotificationService } from "./services/notification.service";
 import { VinceAlertService } from "./services/alert.service";
 import { VinceXResearchService } from "./services/xResearch.service";
@@ -181,6 +183,7 @@ import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
 import { registerFdCachePrewarmTask } from "./tasks/fdCachePrewarm.tasks";
+import { registerFdDiscoveryWeeklyTask } from "./tasks/fdDiscoveryWeekly.tasks";
 
 // Tasks - Phase 5: The Genome (V4.2.0)
 import { registerCounterfactualWeeklyTask } from "./tasks/counterfactualWeekly.tasks";
@@ -239,6 +242,8 @@ export const vincePlugin: Plugin = {
     VincePolymarketSentimentService, // Prediction-market sentiment from Polymarket (BTC/ETH/SOL/macro/stocks); cache 15–30 min
     // Early Detection System
     VinceWatchlistService,
+    VinceFinancialDatasetsService,
+    VinceTickerDiscoveryService,
     VinceNotificationService,
     VinceAlertService,
     // Paper Trading Bot (order matters - dependencies first)
@@ -1331,6 +1336,14 @@ export const vincePlugin: Plugin = {
         } catch (e) {
           logger.warn("[VINCE] Failed to register FD cache prewarm task:", e);
         }
+        try {
+          await registerFdDiscoveryWeeklyTask(runtime);
+        } catch (e) {
+          logger.warn(
+            "[VINCE] Failed to register FD discovery weekly task:",
+            e,
+          );
+        }
       });
     }
 
@@ -1436,6 +1449,8 @@ export { VinceTradeJournalService } from "./services/vinceTradeJournal.service";
 export { VinceGoalTrackerService } from "./services/goalTracker.service";
 export { VinceHIP3Service } from "./services/hip3.service";
 export { VinceWatchlistService } from "./services/watchlist.service";
+export { VinceFinancialDatasetsService } from "./services/vinceFinancialDatasets.service";
+export { VinceTickerDiscoveryService } from "./services/vinceTickerDiscovery.service";
 export { VinceNotificationService } from "./services/notification.service";
 export { VinceAlertService } from "./services/alert.service";
 export { VinceParameterTunerService } from "./services/parameterTuner.service";
