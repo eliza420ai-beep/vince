@@ -196,7 +196,8 @@
     "skills:check-drift": "bunx tsx scripts/skills/check-skill-drift.ts",
     "skills:eval-routing": "bunx tsx scripts/skills/eval-skill-routing.ts",
     "postmortems:ingest": "bun run scripts/ingest-postmortems.ts",
-    "fd:cache:portfolio": "bun run scripts/cache-fd-portfolio-history.ts"
+    "fd:cache:portfolio": "bun run scripts/cache-fd-portfolio-history.ts",
+    "supabase:check": "bun scripts/supabase-migration-check.ts"
   },
   "overrides": {
     "wrap-ansi-cjs": "8.0.0"

@@ -20,6 +20,10 @@ import { runLowDataRemediation } from "../utils/lowDataRemediation.ts";
 
 const REPO_ROOT = process.cwd();
 const POLICY_PATH = path.join(REPO_ROOT, "policies", "trading-policy.yaml");
+const CANDIDATES_PATH = path.join(
+  REPO_ROOT,
+  "portfolio_watchlist_candidates.json",
+);
 const OUT_DIR = path.join(REPO_ROOT, "docs", "standup", "forge-daily");
 const TASK_NAME = "FORGE_DAILY_REPORT_PUSH";
 const TASK_INTERVAL_MS = 60 * 60 * 1000; // hourly check
@@ -130,6 +134,31 @@ function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+/** Read FD discovery PromoteNow / ResearchNext from portfolio_watchlist_candidates.json (written by weekly discovery). */
+function readFdPromotableTickers(): {
+  promoteNow: string[];
+  researchNext: string[];
+} {
+  if (!fs.existsSync(CANDIDATES_PATH))
+    return { promoteNow: [], researchNext: [] };
+  try {
+    const raw = fs.readFileSync(CANDIDATES_PATH, "utf-8");
+    const data = JSON.parse(raw) as {
+      promoteNow?: { ticker?: string }[];
+      researchNext?: { ticker?: string }[];
+    };
+    const promoteNow = (data.promoteNow ?? [])
+      .map((e) => e.ticker)
+      .filter((t): t is string => typeof t === "string");
+    const researchNext = (data.researchNext ?? [])
+      .map((e) => e.ticker)
+      .filter((t): t is string => typeof t === "string");
+    return { promoteNow, researchNext };
+  } catch {
+    return { promoteNow: [], researchNext: [] };
+  }
+}
+
 export function buildForgeDailyReport(): {
   markdown: string;
   summary: string;
@@ -165,6 +194,12 @@ export function buildForgeDailyReport(): {
   const triggerReady = metrics.withOutcome >= MIN_TRIGGERED_FOR_GATE;
   const winRateReady = metrics.winRate >= 0.45;
 
+  const fd = readFdPromotableTickers();
+  const promoteNowLine =
+    fd.promoteNow.length > 0 ? fd.promoteNow.join(", ") : "(none)";
+  const researchNextLine =
+    fd.researchNext.length > 0 ? fd.researchNext.join(", ") : "(none)";
+
   const reportPath = path.join(OUT_DIR, `${date}.md`);
   const markdown = [
     `# Forge Daily Report — ${date}`,
@@ -174,6 +209,10 @@ export function buildForgeDailyReport(): {
     `- Latest forge branch: \`${latestForgeBranch()}\``,
     `- Policy hash: \`${hash}\``,
     `- Holdout fraction: ${holdoutFraction}`,
+    "",
+    "## FD Discovery (PromoteNow / ResearchNext)",
+    `- PromoteNow: ${promoteNowLine}`,
+    `- ResearchNext: ${researchNextLine}`,
     "",
     "## Replay Baseline",
     `- Cache records: ${all.length} total, ${labeled.length} labeled`,
@@ -198,8 +237,11 @@ export function buildForgeDailyReport(): {
     `trig ${metrics.withOutcome}/${MIN_TRIGGERED_FOR_GATE} ${triggerReady ? "PASS" : "FAIL"}`,
     `WR ${fmtPct(metrics.winRate)} ${winRateReady ? "PASS" : "FAIL"}`,
     `Sharpe ${metrics.sharpe.toFixed(2)} Brier ${metrics.brierScore.toFixed(3)}`,
+    fd.promoteNow.length > 0 ? `PN ${fd.promoteNow.join(",")}` : "",
     `policy ${hash} branch ${currentBranch()}`,
-  ].join(" | ");
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   return {
     markdown,

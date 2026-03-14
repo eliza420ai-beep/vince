@@ -25,6 +25,8 @@ Feature records from vince-paper-bot trades are used for ML training (e.g. 90+ f
 
 To move from PGLite to Supabase so paper bot features and ElizaOS tables persist across redeploys and support 500+ row ML training:
 
+**Check readiness:** `bun run supabase:check` — prints env status and next steps.
+
 1. Create a Supabase project and get **direct** connection string (port 5432; not pooler).
 2. Set `POSTGRES_URL` in `.env` (and in deploy env). Leave PGLite as fallback when unset.
 3. Run `scripts/supabase-feature-store-bootstrap.sql` in Supabase SQL Editor if using dual-write to `vince_paper_bot_features`.
