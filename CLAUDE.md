@@ -8,20 +8,30 @@
 
 This repository is the **VINCE** project: a unified data-intelligence **multi-agent system** (options, perps, memes, lifestyle, art) with a **self-improving paper trading bot** at the core. One team, one dream: users can chat with **Kelly** (or any agent); she orchestrates Vince, Solus, Eliza, Otaku, Sentinel, Oracle, ECHO via **ASK_AGENT**.
 
-### Agent map (Dream Team)
+### Agent map (v2 — 4 core always-on + skills)
 
-| Agent        | Role | Where                    | One-line                                                                                                            |
-| ------------ | ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **Eliza**    | CEO  | `src/agents/eliza.ts`    | Knowledge, research, content production; handoffs for live data to VINCE.                                           |
-| **VINCE**    | CDO  | `src/agents/vince.ts`    | Data and paper trading bot; ALOHA, options, perps, memes; no execution.                                             |
-| **ECHO**     | CSO  | `src/agents/echo.ts`     | Crypto Twitter sentiment, X pulse/vibe, watchlist; handoffs for price/TA to VINCE.                                  |
-| **Oracle**   | CPO  | `src/agents/oracle.ts`   | Polymarket read-only: discovery, odds, portfolio; handoffs to VINCE, Solus, Otaku.                                  |
-| **Solus**    | CFO  | `src/agents/solus.ts`    | Hypersurface options: strike ritual, mechanics, optimal strike; spot + pasted context; no execution.                |
-| **Otaku**    | COO  | `src/agents/otaku.ts`    | **Only agent with a funded wallet**; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution.        |
-| **Kelly**    | CVO  | `src/agents/kelly.ts`    | Lifestyle concierge; one team one dream; plugin-discovery, plugin-todo, **plugin-personality** (self-modification). |
-| **Sentinel** | CTO  | `src/agents/sentinel.ts` | Core dev: PRDs, project radar, OpenClaw guide, cost status, ART; weekly + optional daily tasks.                     |
-| **Clawterm** | —    | `src/agents/clawterm.ts` | OpenClaw research terminal: research, gateway, HIP-3 AI assets.                                                     |
-| **Forge**    | —    | `src/agents/forge.ts`    | MLX AutoResearch: overnight self-optimization; mutate → replay → commit winners. Silent by default.                 |
+**v2 Core — always running in ElizaOS:**
+
+| Agent        | Role | Where                    | One-line                                                                                                     |
+| ------------ | ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **VINCE**    | CDO  | `src/agents/vince.ts`    | Data and paper trading bot; ALOHA, options, perps, memes; no execution.                                      |
+| **Solus**    | CFO  | `src/agents/solus.ts`    | Hypersurface options: strike ritual, mechanics, optimal strike; spot + pasted context; no execution.         |
+| **Otaku**    | COO  | `src/agents/otaku.ts`    | **Only agent with a funded wallet**; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution. |
+| **Forge**    | —    | `src/agents/forge.ts`    | MLX AutoResearch: overnight self-optimization; mutate → replay → commit winners. Silent by default.          |
+
+**v1 agents — migrated to portable skills (disabled by default):**
+
+| Agent        | Skill                         | Target runtime                                   | Status |
+| ------------ | ----------------------------- | ------------------------------------------------ | ------ |
+| **Sentinel** | `skills/sentinel/SKILL.md`   | `CLAUDE.md` / `AGENTS.md` in dev env            | ✅ Migrated |
+| **Naval**    | `skills/naval/SKILL.md`      | Dexter repo — SOUL.md philosophical review       | ✅ Migrated |
+| **Clawterm** | `skills/clawterm/SKILL.md`   | OpenClaw workspace — `openclaw-agents/clawterm/` | ✅ Migrated |
+| **Eliza**    | `skills/eliza/SKILL.md`      | Mac Mini — Claude Desktop App + filesystem MCP   | ✅ Migrated |
+| **ECHO**     | `skills/echo/SKILL.md`       | Dexter repo — conviction formation layer         | ✅ Migrated |
+| **Kelly**    | `skills/kelly/SKILL.md`      | Mac Mini — OpenClaw + Perplexity Computer        | ✅ Migrated (see PRD) |
+| **Oracle**   | —                             | **RETIRED** — no edge from Polymarket            | 🪦 Retired |
+
+Set `ELIZA_ENABLED=true`, `KELLY_ENABLED=true`, etc. in `.env` to re-enable any v1 agent temporarily.
 
 ### Key concepts
 

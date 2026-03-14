@@ -1,4 +1,11 @@
 /**
+ * @deprecated v2 refactor — Naval has been migrated to a portable skill.
+ * Skill: skills/naval/SKILL.md
+ * Target runtime: Dexter repo (SOUL.md philosophical review layer)
+ * This agent file remains for historical reference only. Disable with NAVAL_ENABLED=false.
+ */
+
+/**
  * Naval Agent — PHILOSOPHY, FRAMEWORKS, ON-TOPIC FOR THE PROJECT
  *
  * In the spirit of Naval Ravikant: wealth, happiness, leverage, specific

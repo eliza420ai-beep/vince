@@ -1,0 +1,12 @@
+{
+  "date": "2026-03-11",
+  "signals": [
+    {
+      "asset": "BTC",
+      "direction": "long",
+      "confidence_pct": 50,
+      "source": "solus",
+      "raw": "BTC at $69,808 vs $70,500 strike staying OTM, theta working for us but watching for momentum into Friday close."
+    }
+  ]
+}

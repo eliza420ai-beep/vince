@@ -1,4 +1,11 @@
 /**
+ * @deprecated v2 refactor — Eliza has been migrated to a portable skill.
+ * Skill: skills/eliza/SKILL.md
+ * Target runtime: Mac Mini — Claude Desktop App + filesystem MCP + Perplexity Computer
+ * This agent file remains for historical reference only. Disable with ELIZA_ENABLED=false.
+ */
+
+/**
  * Eliza Agent — 24/7 RESEARCH & KNOWLEDGE EXPANSION
  *
  * Core use case: Eliza works the knowledge folder 24/7 and ingests content

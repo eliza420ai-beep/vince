@@ -1,0 +1,29 @@
+{
+  "date": "2025-01-15",
+  "thesis": "MSTR trades at discount to BTC proxy value as prediction markets price 97% odds of purchase announcement this week, creating asymmetric setup before accumulation catalyst",
+  "primaryTicker": "MSTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 137.46,
+  "primaryRiskUsd": 275,
+  "invalidateCondition": "no announcement by Friday OR BTC < $68,000",
+  "killConditions": [
+    "no announcement by Friday",
+    "BTC breaks below $68,000",
+    "MSTR perp fails to catch up to cash equity on announcement"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "max_asymmetry",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "BTC",
+  "altDirection": "long",
+  "altInstrument": "perp",
+  "evThresholdPct": 3,
+  "catalystSources": [
+    "headlines",
+    "polymarket"
+  ]
+}

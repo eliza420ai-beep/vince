@@ -1,4 +1,11 @@
 /**
+ * @deprecated v2 refactor — Oracle has been RETIRED. No migration to portable skill.
+ * Reason: Polymarket read-only integration never produced real trading edge in paper tests.
+ * Plugin tombstones: src/plugins/plugin-polymarket-{arb,desk,discovery,edge}/DEPRECATED.md
+ * Set ORACLE_ENABLED=false in .env to disable (already the default).
+ */
+
+/**
  * Oracle Agent — PREDICTION MARKETS SPECIALIST (Polymarket-first)
  *
  * Read-only specialist for discovery, odds, and portfolio on Polymarket.

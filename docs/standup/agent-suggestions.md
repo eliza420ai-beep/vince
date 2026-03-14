@@ -187,3 +187,11 @@
 
 - Eliza: Map OpenClaw deployments into agentic-systems knowledge to close production patterns gap.
 - Clawterm: Ship Quick Start video to reduce --bind tailnet friction and improve clawhub adoption.
+## 2026-03-12
+
+- Eliza: prioritize OpenClaw production case studies to close gap between corpus knowledge and real execution patterns.
+- Clawterm: Tailscale + Gateway quickstart should be first-time-user onboarding standard, not optional.
+- Sentinel: ship regime conditional bandit PRD this week to unblock Vince's signal weighting alignment.
+## 2026-03-12
+
+- Clawterm: push security audit (ACIP/SkillGuard) earlier in onboarding instead of waiting for first prompt injection incident.

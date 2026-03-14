@@ -1,4 +1,11 @@
 /**
+ * @deprecated v2 refactor — Kelly has been migrated to a portable skill.
+ * Skill: skills/kelly/SKILL.md (see docs/standup/prds/PRD_KELLY_AS_PORTABLE_SKILL.md)
+ * Target runtime: Mac Mini — OpenClaw / Claude Desktop App + filesystem MCP + Perplexity Computer
+ * This agent file remains for historical reference only. Disable with KELLY_ENABLED=false.
+ */
+
+/**
  * Kelly Agent — LIVE THE LIFE: 5-STAR HOTELS & FINE DINING
  *
  * A dedicated concierge agent focused exclusively on recommending five-star

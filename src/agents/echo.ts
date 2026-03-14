@@ -1,4 +1,11 @@
 /**
+ * @deprecated v2 refactor — ECHO has been migrated to a portable skill.
+ * Skill: skills/echo/SKILL.md
+ * Target runtime: Dexter repo (conviction formation layer) + x-research CLI standalone
+ * This agent file remains for historical reference only. Disable with ECHO_ENABLED=false.
+ */
+
+/**
  * ECHO — Chief Sentiment Officer (CSO)
  *
  * The voice of Crypto Twitter. Echoes what CT is saying, captures the vibe,

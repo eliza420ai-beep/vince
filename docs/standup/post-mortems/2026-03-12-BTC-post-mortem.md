@@ -4,17 +4,17 @@
 
 ## Trade Snapshot
 
-- BTC long closed stop_loss: entry $70432.08 -> exit $69973.00, P&L $-48.35 (6888.959999999999 USD, 10x).
-- Entry time (UTC): 2026-03-11T23:12:31.555Z
+- BTC long closed stop_loss: entry $70423.08 -> exit $69893.00, P&L $-70.40 (8770.792727272728 USD, 10x).
+- Entry time (UTC): 2026-03-12T15:46:08.017Z
 - Hold window target: intraday
-- Max loss budget: $44.78 (6.50%)
+- Max loss budget: $57.01 (6.50%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 112 minutes
-- Adverse move: 0.652%
+- Hold duration: 23 minutes
+- Adverse move: 0.753%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -26,37 +26,39 @@
 - Lane: CT sentiment + macro risk pulse
 - Confidence: 30%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: entry_datetime
+- Missing data flags: timestamp, entry_datetime
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment at entry vs. exit? Was there a macro event (Fed speak, inflation data, geopolitical) that shifted the vibe between entry and stop?
+**Missing context:** When did you enter/exit (date/time)? What was CT sentiment at entry vs. exit — were whales/alphas positioned long, or was there early bearish divergence you could've caught? Was there a macro event (Fed speak, jobs data, whale dump) that shifted the vibe between entry and stop?
 
-Without the sentiment backdrop and timeline, I can't tell if this was a crowded long (everyone bullish = rug risk) or a solo contrarian bet that got shaken out by a real macro shift. The 10x leverage + tight stop ($460 range) suggests you were playing intraday momentum — if CT was euphoric at entry and that flipped to fear at exit, that's a *timing* lesson, not a thesis break.
+**On the loss itself:** A $70 stop on a $70k entry is tight (0.1% risk) — that's execution-heavy and sentiment-blind. If CT was cautiously bullish at entry but turned fearful intraday, that's a flag you could've used to tighten or exit early rather than let the stop catch you.
 
-**Confidence: 0.3** (need the date, entry sentiment, and macro context to give you real feedback).
+**What I need to give you real feedback:** Timestamps, CT sentiment snapshot at entry/exit, and whether any alpha accounts flagged weakness before your stop triggered.
+
+Confidence: 0.3 (too much missing to
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 35%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
 - Missing data flags: none
 
-**Missing context:** Polymarket BTC price at entry/exit, the specific weekly/monthly strike you were hedging against, and whether this was a directional bet or volatility play tied to an onchain options position.
+**Missing context:** What timeframe (4h, 1h, 15m)? What was the thesis—mean reversion, breakout, macro catalyst? Did BTC prediction markets show weakness into your entry, or were they pricing strength?
 
-That said: A $48 stop on a $70K entry (68 bips) is tight for 10x leverage in a regime where BTC is range-bound—you likely got shaken out by noise rather than a structural breakdown. If Polymarket odds on "BTC >$71K by [date]" were still >60% at your exit, the paper trade was fighting the consensus and deserved to stop. If they'd already collapsed below 40%, you exited early and left edge on the table.
+**On the loss itself:** A $70 stop on a $70k entry (10 bps) is tight for spot/perps vol; if you were caught in a wick or funding spike, that's regime noise, not thesis failure. Pull the Polymarket BTC weekly/monthly odds at your entry time—if they showed >60% for higher prices, your directional call was sound and the loss was execution/sizing, not edge. If odds were <50%, the market was already pricing caution and your entry was fighting consensus.
 
-**Confidence: 0.35** (need Polymarket snapshot + strike context to calibrate the actual regime call).
+**Key question:** Was this a scalp (minutes) or swing (hours)? Tight stops work on liquid micro-moves but bleed
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 60%
+- Confidence: 65%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing critical context:** leverage ratio (10x noted, but what's your account size?), stop placement logic (why $70,432 entry + $459 buffer?), and position duration (how long held?). **On mechanics:** $459 stop on a $70K entry is 0.65% — tight for BTC spot noise; 10x leverage means a 10% move wipes you. If this is paper perps, the structure is sound (defined risk), but the sizing (10x on what % of stack?) and stop placement (technical level vs. fixed %) need clarity. **Next:** Post your account size and whether that stop was support-based or arbitrary — that determines if the loss was bad execution or expected variance.
+**Missing context:** leverage sizing relative to account (what % of paper capital?), stop placement rationale (why $530 below entry?), and whether this was a scheduled trade or reactive. **Mechanics read:** 10x on ~$70K notional is aggressive for a $100K stack if real; stop at 0.75% loss is tight—typical BTC intraday noise. **Call:** If this was paper bot testing, tighten your win/loss ratio target (aim 1.5:1 or better) and widen stops to 1-2% to avoid whipsaw. If leverage was >5x on live capital, size down—your edge is *weekly options income*, not intraday directional bets.
 
-Confidence: 0.6
+**Confidence: 0.65** (missing position sizing context relative to total account).
 
 ## Root-Cause Tags
 
@@ -80,12 +82,12 @@ Confidence: 0.6
 
 ## Confidence and Data Gaps
 
-- Quality score: 88/100
+- Quality score: 96/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=20, actionability=15, ownership=10
 - Context completeness: 92.9%
 - Regime vs execution: execution_miss
-- Risk budget: planned=$44.78, realized=$48.35, slippage=$3.57, breach=true
+- Risk budget: planned=$57.01, realized=$70.40, slippage=$13.39, breach=true
 - Consistency checks: pass
 
 ## What changes on next trade?
@@ -103,7 +105,7 @@ Confidence: 0.6
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 88
+- PM_QUALITY_SCORE: 96
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: stop_too_tight_for_vol
@@ -112,14 +114,14 @@ Confidence: 0.6
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
 - PM_BUDGET_BREACH: true
-- PM_RISK_SLIPPAGE_USD: 3.57
+- PM_RISK_SLIPPAGE_USD: 13.39
 - PM_ADAPTATION_ELIGIBLE: false
 - PM_POLICY_VERSION_AT_ENTRY: baseline
 - PM_PROPOSED_DELTA_PRESENT: false
 
 ```json
 {
-  "qualityScore": 88,
+  "qualityScore": 96,
   "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [
@@ -128,18 +130,18 @@ Confidence: 0.6
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 112,
-  "adverseMovePct": 0.652,
+  "holdMinutes": 23,
+  "adverseMovePct": 0.753,
   "riskBudget": {
-    "plannedRiskUsd": 44.78,
-    "realizedRiskUsd": 48.35,
-    "riskSlippageUsd": 3.57,
+    "plannedRiskUsd": 57.01,
+    "realizedRiskUsd": 70.4,
+    "riskSlippageUsd": 13.39,
     "budgetBreach": true
   },
   "consistencyChecks": {
     "passed": true,
     "issues": [],
-    "adverseMovePctFromPrices": 0.652,
+    "adverseMovePctFromPrices": 0.753,
     "adverseMovePctDelta": 0,
     "stopDistancePctFromPrices": 0.65,
     "stopDistancePctDelta": 0,
@@ -149,26 +151,27 @@ Confidence: 0.6
   "policyVersionAtEntry": "baseline",
   "proposedPolicyDelta": null,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-11T23:12:31.555Z",
-    "exitTimestampUtc": "2026-03-12T01:04:56.196Z",
+    "entryTimestampUtc": "2026-03-12T15:46:08.017Z",
+    "exitTimestampUtc": "2026-03-12T16:09:32.687Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-11T23:12:31.555Z",
-    "exitTimestampUtc": "2026-03-12T01:04:56.196Z"
+    "entryTimestampUtc": "2026-03-12T15:46:08.017Z",
+    "exitTimestampUtc": "2026-03-12T16:09:32.687Z"
   },
   "solusContext": {
     "assetClass": "crypto",
     "thesisClass": "momentum",
     "leverage": 10,
     "stopDistancePct": 0.65,
-    "maxLossUsd": 44.78,
+    "maxLossUsd": 57.01,
     "maxLossPct": 6.5,
-    "entryAtrPct": 1.126282722513089
+    "entryAtrPct": 1.1346596858638742
   },
   "agentContextMissing": {
     "Echo": [
+      "timestamp",
       "entry_datetime"
     ]
   },

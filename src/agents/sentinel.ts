@@ -1,4 +1,11 @@
 /**
+ * @deprecated v2 refactor — Sentinel has been migrated to a portable skill.
+ * Skill: skills/sentinel/SKILL.md
+ * Target runtime: CLAUDE.md / AGENTS.md in the dev environment (she IS Claude Code)
+ * This agent file remains for historical reference only. Disable with SENTINEL_ENABLED=false.
+ */
+
+/**
  * Sentinel Agent — WORLD-CLASS CORE DEV + TRADING INTELLIGENCE + MULTI-AGENT ARCHITECT
  *
  * The 10x upgrade: Sentinel is now the core dev that spits out world-class PRDs,

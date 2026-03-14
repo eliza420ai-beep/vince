@@ -3,7 +3,8 @@ import "./load-env.ts";
 
 import "./log-suppress";
 
-import { type Project, logger } from "@elizaos/core";
+import { type Project, type ProjectAgent, logger } from "@elizaos/core";
+import type { Plugin } from "@elizaos/core";
 
 // Suppress noisy warnings at the process level — intercept stdout/stderr writes
 (function suppressNoisyLogs() {
@@ -33,22 +34,73 @@ import { type Project, logger } from "@elizaos/core";
   }
 })();
 
+// =============================================================================
+// v2 CORE — always running
+// =============================================================================
+// VINCE (data agent): OI, funding, L/S ratios, liquidations, portfolio drift,
+//   Mando Minutes news feed. The eyes of the system.
+// Solus: weekly Hypersurface options — strike ritual, assignment probability
+//   (GBM + ML Brier calibration), tail risk, portfolio copula.
+// Otaku: on-chain identity (ERC-8004), reputation from Solus Brier scores,
+//   x402 skill endpoints. Only agent with a funded wallet.
+// Forge: MLX autoresearcher — runs overnight, mutates policy thresholds /
+//   prompts / ML weights, commits winners (ΔComposite ≥ +0.5%), reverts losers.
+//   Optimization target: causal_uplift × Sharpe × brier_calibration.
+//   Silent by default — reports via Telegram push.
+// =============================================================================
 import { vinceAgent } from "./agents/vince.ts";
-import { elizaAgent } from "./agents/eliza.ts";
 import { solusAgent } from "./agents/solus.ts";
 import { otakuAgent } from "./agents/otaku.ts";
+import { forgeAgent } from "./agents/forge.ts";
+
+// =============================================================================
+// v1 AGENTS — moving to other machines in v2.
+// Each is gated behind <NAME>_ENABLED=false to drop without code changes.
+// Default: true (all load unless explicitly disabled).
+//
+//   Eliza    → Perplexity Computer research skill + AIHF Substack writing
+//   Kelly    → OpenClaw / Nemoclaw portable lifestyle skill
+//   Echo     → Dexter thesis-layer skill (X alpha feeds conviction, not perps)
+//   Sentinel → Claude Code agent skill
+//   Clawterm → Claude Code agent skill
+//   Oracle   → stub only; Polymarket never produced real edge
+//   Naval    → evaluate → possible Dexter SOUL.md review layer
+// =============================================================================
+import { elizaAgent } from "./agents/eliza.ts";
 import { kellyAgent } from "./agents/kelly.ts";
-import { sentinelAgent } from "./agents/sentinel.ts";
 import { echoAgent } from "./agents/echo.ts";
+import { sentinelAgent } from "./agents/sentinel.ts";
+import { clawtermAgent } from "./agents/clawterm.ts";
 import { oracleAgent } from "./agents/oracle.ts";
 import { navalAgent } from "./agents/naval.ts";
-import { clawtermAgent } from "./agents/clawterm.ts";
+
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
 import { interAgentPlugin } from "./plugins/plugin-inter-agent/src/index.ts";
 
-// --- Multi-agent Discord (Option C): one app per agent — no shared Application IDs ---
-// Each agent uses its own DISCORD_APPLICATION_ID / DISCORD_API_TOKEN from character.settings.secrets.
-// If two agents share the same Application ID, one will not get a send handler → "Send handler not found".
+// =============================================================================
+// Agent gating — returns false when <NAME>_ENABLED=false in env.
+// All agents default to enabled for backward compatibility.
+// Set e.g. KELLY_ENABLED=false to drop Kelly without touching code.
+// =============================================================================
+function isEnabled(name: string): boolean {
+  const val = process.env[`${name}_ENABLED`];
+  return val === undefined || val.toLowerCase() !== "false";
+}
+
+// Helper: inject shared plugins into every agent.
+function wrap(
+  agent: ProjectAgent & { plugins?: Plugin[] },
+): ProjectAgent & { plugins: Plugin[] } {
+  return {
+    ...agent,
+    plugins: [logFilterPlugin, interAgentPlugin, ...(agent.plugins ?? [])],
+  };
+}
+
+// =============================================================================
+// Discord application-ID collision check (one app per agent required).
+// Only checks agents that have Discord configured.
+// =============================================================================
 const discordAppIds: { agent: string; appId: string }[] = [];
 function addIfDiscordEnabled(
   agent: string,
@@ -58,6 +110,7 @@ function addIfDiscordEnabled(
   if (hasToken && appId?.trim())
     discordAppIds.push({ agent, appId: appId.trim() });
 }
+
 addIfDiscordEnabled(
   "Eliza",
   !!(
@@ -165,95 +218,56 @@ if (discordAppIds.length >= 2 && byAppId.size === discordAppIds.length) {
   );
 }
 
+// =============================================================================
+// Project — v2 core always runs; v1 agents load unless disabled.
+// To run v2 core only: set ELIZA_ENABLED=false KELLY_ENABLED=false
+//   ECHO_ENABLED=false SENTINEL_ENABLED=false CLAWTERM_ENABLED=false
+//   ORACLE_ENABLED=false NAVAL_ENABLED=false
+// =============================================================================
+
+const coreAgents = [
+  wrap(vinceAgent),
+  wrap(solusAgent),
+  wrap(otakuAgent),
+  wrap(forgeAgent),
+];
+
+const v1Agents: (ProjectAgent & { plugins: Plugin[] })[] = [
+  ...(isEnabled("ELIZA") ? [wrap(elizaAgent)] : []),
+  ...(isEnabled("KELLY") ? [wrap(kellyAgent)] : []),
+  ...(isEnabled("ECHO") ? [wrap(echoAgent)] : []),
+  ...(isEnabled("SENTINEL") ? [wrap(sentinelAgent)] : []),
+  ...(isEnabled("CLAWTERM") ? [wrap(clawtermAgent)] : []),
+  ...(isEnabled("ORACLE") ? [wrap(oracleAgent)] : []),
+  ...(isEnabled("NAVAL") ? [wrap(navalAgent)] : []),
+];
+
+const v1Names = [
+  "eliza",
+  "kelly",
+  "echo",
+  "sentinel",
+  "clawterm",
+  "oracle",
+  "naval",
+];
+const disabled = v1Names.filter((n) => !isEnabled(n.toUpperCase()));
+if (disabled.length > 0) {
+  logger.info(`[VINCE] v2 mode — disabled: ${disabled.join(", ")}`);
+}
+if (v1Agents.length === 0) {
+  logger.info("[VINCE] v2 core only — VINCE data, Solus, Otaku, Forge.");
+}
+
 const project: Project = {
-  agents: [
-    {
-      ...vinceAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(vinceAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...elizaAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(elizaAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...solusAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(solusAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...otakuAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(otakuAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...kellyAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(kellyAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...sentinelAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(sentinelAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...echoAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(echoAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...oracleAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(oracleAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...navalAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(navalAgent.plugins ?? []),
-      ],
-    },
-    {
-      ...clawtermAgent,
-      plugins: [
-        logFilterPlugin,
-        interAgentPlugin,
-        ...(clawtermAgent.plugins ?? []),
-      ],
-    },
-  ],
+  agents: [...coreAgents, ...v1Agents],
 };
 
 export { vinceAgent } from "./agents/vince.ts";
-export { elizaAgent } from "./agents/eliza.ts";
 export { solusAgent } from "./agents/solus.ts";
 export { otakuAgent } from "./agents/otaku.ts";
+export { forgeAgent } from "./agents/forge.ts";
+export { elizaAgent } from "./agents/eliza.ts";
 export { kellyAgent } from "./agents/kelly.ts";
 export { sentinelAgent } from "./agents/sentinel.ts";
 export { echoAgent } from "./agents/echo.ts";

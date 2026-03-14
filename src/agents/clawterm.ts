@@ -1,4 +1,11 @@
 /**
+ * @deprecated v2 refactor — Clawterm has been migrated to a portable skill.
+ * Skill: skills/clawterm/SKILL.md
+ * Target runtime: OpenClaw workspace — openclaw-agents/clawterm/SKILL.md
+ * This agent file remains for historical reference only. Disable with CLAWTERM_ENABLED=false.
+ */
+
+/**
  * Clawterm Agent — AI-OBSESSED, OPENCLAW EXPERT
  *
  * AI futures, AGI, alignment, research agents—with OpenClaw as the practical bridge.

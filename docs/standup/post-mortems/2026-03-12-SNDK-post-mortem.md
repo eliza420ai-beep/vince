@@ -4,17 +4,17 @@
 
 ## Trade Snapshot
 
-- SNDK long closed stop_loss: entry $653.00 -> exit $643.17, P&L $-81.88 (5264.256292906178 USD, 5x).
-- Entry time (UTC): 2026-03-11T19:48:20.962Z
+- SNDK long closed stop_loss: entry $632.86 -> exit $622.83, P&L $-30.98 (1895.712 USD, 5x).
+- Entry time (UTC): 2026-03-12T13:47:54.453Z
 - Hold window target: intraday
-- Max loss budget: $78.96 (7.50%)
+- Max loss budget: $28.44 (7.50%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 274 minutes
-- Adverse move: 1.505%
+- Hold duration: 55 minutes
+- Adverse move: 1.584%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,37 +24,41 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 20%
+- Confidence: 30%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: entry_datetime
+- Missing data flags: none
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment on SNDK at entry vs. exit? Was there a macro catalyst or earnings surprise that shifted the vibe? Without the timeline and what X was saying about the trade, I can't tell if you got caught in a sentiment reversal or if CT missed a signal entirely.
+**Missing key context:** When did you enter vs. exit (dates/times)? Did CT sentiment on SNDK shift during your hold, or was bearish sentiment already priced in at entry? Without the timeline and pre-trade CT vibe, I can't tell if this was a sentiment-timing miss or a macro headwind you didn't catch. 
 
-**What I'd need to give you real feedback:** A 24h X_PULSE on SNDK around your entry, and whether whale/alpha accounts were long or short. Then I can flag if sentiment diverged from price action.
+**What I'd need to give you real feedback:** A quick X_PULSE on SNDK sentiment 24h before entry + during your hold — then I can tell you if whale/alpha accounts were already rotating out, or if this was a surprise dump.
 
-Confidence: 0.2 (not my lane without sentiment data; defer to Solus for execution feedback).
+Confidence: 0.3 (incomplete data)
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 35%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: timestamp
+- Missing data flags: none
 
-**Missing context blocks the full read:** I'd need the entry/exit timestamps, what regime shift (vol spike, macro catalyst, earnings?) triggered the stop, and whether any Polymarket prediction markets on semiconductors or SNDK specifically showed deteriorating odds into your exit. A $81.88 loss on 5x leverage is modest—the real question is whether the market repriced risk *before* your stop hit (suggesting slow signal) or *after* (suggesting the stop was well-placed). Without the market-pricing context from my lane, I can't tell if this was a regime miss or just bad luck on timing. **What I'd pull:** Grab any semiconductor or SNDK sentiment from trending Polymarket markets around your entry/exit window—if prediction odds were already shifting bearish, your entry was fighting consensus. If odds held firm, the stop was probably noise, not signal.
+**Missing context:** I need the entry/exit *dates* and what Polymarket was pricing for SNDK (or the broader semiconductor thesis) during that window—was the market repricing risk, or did you get caught in intraday chop? The 1.5% stop-loss on a 5x leveraged perp is tight for regime volatility; if Poly showed >60% conviction on a bearish semiconductor outcome, the stop was rational, but if it was sub-50%, that's a regime mismatch (you were short-term directional, market was uncertain). 
 
-**Confidence: 0.35**
+**Direct take:** Without the Polymarket overlay and timing, I can't isolate whether this was bad risk management or bad luck in a choppy market. Pull the date range and I'll cross it against any SNDK-related markets we have live, or the broader chip/earnings sentiment at the time.
+
+**Confidence:
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 40%
+- Confidence: 60%
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing key context:** entry date, hold duration, invalidation thesis, and what triggered the stop (market move vs. thesis break). On mechanics alone: $5.2K loss on a $653 entry with 5x leverage is tight risk management (0.8% stop), but at that leverage you're fighting slippage and whipsaw—SNDK semis are volatile intraday. If this was a thesis trade (e.g., "SNDK breaks $655 on earnings"), the stop placement matters; if it was directional scalp, the 5x sizing is reasonable for a $5K loss bucket. **Call:** Post the entry thesis and hold duration—without that, I can't tell if the stop was well-placed or if you got shaken out of a valid setup.
+**Missing context:** What was your invalidation? Why 5x on a semiconductor name in this regime? And what % of your paper stack was this?
 
-**Confidence: 0.4** (structure is sound, but thesis unknown).
+**On structure:** $632→$623 is a tight stop (1.6%)—reasonable for a scalp, brutal for a swing. If SNDK was a thesis trade (not a scalp), 5x leverage + 1.6% stop = you got shaken out by noise; you sized the leverage to the volatility, not the conviction. If it was a scalp, the mechanics are fine but the entry timing matters—did you enter on a setup or just on "SNDK is undervalued"?
+
+**The call:** Tighten your position sizing on paper until you can articulate the exact price level that invalidates the thesis *before* entry. Right now it looks like you're using the stop as a guess, not a boundary.
 
 ## Root-Cause Tags
 
@@ -78,13 +82,13 @@ Confidence: 0.2 (not my lane without sentiment data; defer to Solus for executio
 
 ## Confidence and Data Gaps
 
-- Quality score: 81/100
-- Escalate to Sentinel: false
+- Quality score: 87/100
+- Escalate to Sentinel: true
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 - Context completeness: 92.9%
 - Regime vs execution: regime_miss
-- Risk budget: planned=$78.96, realized=$81.88, slippage=$2.92, breach=true
-- Consistency checks: pass
+- Risk budget: planned=$28.44, realized=$30.98, slippage=$2.54, breach=true
+- Consistency checks: fail (truncated_agent_findings)
 
 ## What changes on next trade?
 
@@ -101,8 +105,8 @@ Confidence: 0.2 (not my lane without sentiment data; defer to Solus for executio
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 81
-- PM_QUALITY_ESCALATE: false
+- PM_QUALITY_SCORE: 87
+- PM_QUALITY_ESCALATE: true
 - PM_PRIMARY_CAUSE: regime_conflict
 - PM_SECONDARY_CAUSES: none
 - PM_PTQG_COMPLETE: true
@@ -110,67 +114,62 @@ Confidence: 0.2 (not my lane without sentiment data; defer to Solus for executio
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
 - PM_BUDGET_BREACH: true
-- PM_RISK_SLIPPAGE_USD: 2.92
+- PM_RISK_SLIPPAGE_USD: 2.54
 - PM_ADAPTATION_ELIGIBLE: false
 - PM_POLICY_VERSION_AT_ENTRY: baseline
 - PM_PROPOSED_DELTA_PRESENT: false
 
 ```json
 {
-  "qualityScore": 81,
-  "qualityEscalate": false,
+  "qualityScore": 87,
+  "qualityEscalate": true,
   "primaryCause": "regime_conflict",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 274,
-  "adverseMovePct": 1.505,
+  "holdMinutes": 55,
+  "adverseMovePct": 1.584,
   "riskBudget": {
-    "plannedRiskUsd": 78.96,
-    "realizedRiskUsd": 81.88,
-    "riskSlippageUsd": 2.92,
+    "plannedRiskUsd": 28.44,
+    "realizedRiskUsd": 30.98,
+    "riskSlippageUsd": 2.54,
     "budgetBreach": true
   },
   "consistencyChecks": {
-    "passed": true,
-    "issues": [],
-    "adverseMovePctFromPrices": 1.505,
+    "passed": false,
+    "issues": [
+      "truncated_agent_findings"
+    ],
+    "adverseMovePctFromPrices": 1.584,
     "adverseMovePctDelta": 0,
     "stopDistancePctFromPrices": 1.5,
     "stopDistancePctDelta": 0,
-    "hasTruncatedFindings": false
+    "hasTruncatedFindings": true
   },
   "adaptationEligible": false,
   "policyVersionAtEntry": "baseline",
   "proposedPolicyDelta": null,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-11T19:48:20.962Z",
-    "exitTimestampUtc": "2026-03-12T00:22:50.930Z",
+    "entryTimestampUtc": "2026-03-12T13:47:54.453Z",
+    "exitTimestampUtc": "2026-03-12T14:42:52.151Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-11T19:48:20.962Z",
-    "exitTimestampUtc": "2026-03-12T00:22:50.930Z"
+    "entryTimestampUtc": "2026-03-12T13:47:54.453Z",
+    "exitTimestampUtc": "2026-03-12T14:42:52.151Z"
   },
   "solusContext": {
     "assetClass": "equity",
     "thesisClass": "momentum",
     "leverage": 5,
     "stopDistancePct": 1.5,
-    "maxLossUsd": 78.96,
+    "maxLossUsd": 28.44,
     "maxLossPct": 7.5,
     "entryAtrPct": 3
   },
-  "agentContextMissing": {
-    "Echo": [
-      "entry_datetime"
-    ],
-    "Oracle": [
-      "timestamp"
-    ]
-  },
+  "agentContextMissing": {},
   "contextCompletenessPct": 92.9,
   "regimeVsExecution": "regime_miss"
 }

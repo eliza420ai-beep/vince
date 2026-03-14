@@ -11,349 +11,176 @@
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
 
-### _Push, not pull._
+### _The machine should always be running._
 
-**Unified data intelligence** for options, perps, memes, DeFi, lifestyle, and NFT floors, with a **self-improving paper trading bot** at the core. Ten agents, one team, one dream. No hype, no shilling, no timing the market.
+**Short-term monitoring terminal** — OI, funding rates, L/S ratios, portfolio drift, Mando Minutes news, Hyperliquid tickers. Solus runs the weekly Hypersurface options ritual. Forge self-optimizes overnight on Apple Silicon. Part of a three-layer stack: **VINCE** (hours→weeks), [Dexter](https://github.com/eliza420ai-beep/dexter) (months→years, thesis engine), [AIHF](https://github.com/eliza420ai-beep/ai-hedge-fund) (cycle-scale, 18-analyst second opinion).
+
+> **v2 refactor in progress.** v2 core = four agents: VINCE data, Solus, Otaku, Forge. Six agents are moving to other machines. Run the v2 slim roster today with env flags — no code changes required. See [Agent Roster](#agent-roster).
 
 </div>
 
 ---
 
-## The Stack: Three Repos, One Recursive Loop
+## The Three-Layer System
 
-VINCE is the runtime — continuous agents, paper bot, ML feature store, multi-agent swarm. But the full system is a three-repo stack, and the core focus right now is building the bridges between them.
+Each layer has a distinct time horizon and job. Understanding which layer answers which question is the most important thing about working with this system.
 
-| Repo | Role | Doc |
-|---|---|---|
-| **VINCE** (this repo) | Agent runtime, paper bot, Forge autoresearch, signal aggregator | — |
-| **[Dexter](https://github.com/eliza420ai-beep/dexter)** | Thesis-driven research terminal, real broker execution, portfolio attribution | [docs/DEXTER.md](docs/DEXTER.md) |
-| **[AIHF](https://github.com/eliza420ai-beep/ai-hedge-fund)** | 18-agent adversarial challenge layer, Risk Manager, autoresearch | [docs/AIHF.md](docs/AIHF.md) |
+| Layer | Repo | Time horizon | Primary job |
+|-------|------|-------------|-------------|
+| **Short-term** | **VINCE** (this repo) | Hours → weeks | Monitor the situation. Watch OI, funding, L/S ratios, portfolio drift, Mando Minutes, Hyperliquid tickers. Execute Solus options ritual. Surface signals that require immediate action. Run Forge overnight. |
+| **Mid-term** | **[Dexter](https://github.com/eliza420ai-beep/dexter)** | Months → 2–3 years | Investment thesis (SOUL.md). Build the two active sleeves (tastytrade + Hyperliquid). Re-underwrite the thesis when VINCE monitoring surfaces a regime shift. |
+| **Long-term** | **[AIHF](https://github.com/eliza420ai-beep/ai-hedge-fund)** | Cycle-scale | 18-analyst second opinion. Challenges the thesis against a long-term structural view. Runs `/double-check` and conviction scoring. |
 
-### [DEXTER.md](docs/DEXTER.md) — The execution and thesis layer
+**Why the split matters:** each layer has a different failure mode.
+- **VINCE failure** = missed executions. The thesis is right, the machine is running, but no one is at the terminal when the window opens. Twelve weeks of uncollected Solus premiums. An airdrop T&C window that expired.
+- **Dexter failure** = wrong thesis. Monitoring is active but the conviction map is stale.
+- **AIHF failure** = blind spots. The thesis and monitoring are both internally consistent but unchallenged.
 
-Dexter is what VINCE currently lacks: real broker execution (tastytrade + Hyperliquid), Financial Datasets fundamentals for HIP-3 equities, SOUL.md as a formal investment thesis, and quarterly attribution vs BTC/SPY/GLD. VINCE is the continuous signal engine; Dexter closes the loop on real capital. Eight integration surfaces connect them — SOUL.md sync, fundamentals as a signal source, paper-to-live execution gate, and Forge pulling Dexter regime data as replay context. The Forge PRD already calls for this explicitly: Echo moves to Dexter as a skill; the frontend becomes the terminal for the three-repo stack.
-
-### [AIHF.md](docs/AIHF.md) — The adversarial conviction check
-
-The AI Hedge Fund runs 18 analyst agents (Buffett, Munger, Burry, Druckenmiller, Damodaran + 12 more) plus a Risk Manager and Portfolio Manager against any ticker via FastAPI. It's the external validation layer VINCE's closed self-improvement loop can't provide on its own. For HIP-3 equities (AMZN, MSTR, CRCL, NVDA, TSLA), AIHF becomes a signal source in the aggregator (`AIHFEquity`, weight 1.8, 4h cache) — and a pre-trade veto gate when the committee strongly disagrees with a VINCE long. AIHF's autoresearch acts as a hypothesis generator for Forge: its session-one finding ("disable trading in unfavorable regimes" = Sharpe -0.79 → +2.22) maps directly to the `regime_conflict` pattern in post-mortems.
-
-### [RECURSIVE.md](docs/RECURSIVE.md) — The autoresearch architecture
-
-The autoresearch-mlx framework (Karpathy's loop, Apple Silicon port) changes what Forge can do: not dozens of nightly experiments, but thousands. The enabling technology is the **signal cache** — `ForgeSignalCache` in `src/plugins/plugin-vince/src/forge/forgeSignalCache.ts` — which records every source's pre-aggregation vote for each trade evaluation. The replay function is pure arithmetic (no API calls, ~100ms per experiment). Forge runs 5,000+ experiments per night across five recursive layers: signal weights, thresholds, risk parameters, feature selection, prompt autoresearch. The deepest unlock is **regime-specific autoresearch**: the optimal weight configurations for `regime:uncertain` and `regime:bull` diverge significantly — the same split that autoresearch-mlx found between Mac Mini and M4 Max. Full protocol: [`docs/forge/signal-weights-program.md`](docs/forge/signal-weights-program.md).
+The three layers are designed to catch each other's failure modes.
 
 ---
 
-## Shipped: Forge Autoresearch Foundation (2026-03-11)
+## Monitor The Situation
 
-The signal cache is live. Every `aggregateSignals()` call writes a `ForgeSignalRecord` to `.elizadb/forge/signal-cache.jsonl`. Every closed paper trade back-fills the outcome. The first autoresearch run is ~30 closed trades away.
+This is VINCE's primary job. Before any trade, before any options ritual, before any Forge run — the terminal reads the situation.
 
-| What | Where | Status |
-|---|---|---|
-| `ForgeSignalCache` — schema, writer, replay engine | `src/plugins/plugin-vince/src/forge/forgeSignalCache.ts` | ✅ live |
-| Per-source vote capture in signal aggregator | `signalAggregator.service.ts` → `writeForgeSignalRecord` | ✅ live |
-| Outcome back-fill on trade close | `vincePaperTrading.service.ts` → `updateForgeSignalOutcome` | ✅ live |
-| Signal weights runner — 5,000+ experiments, hill-climb, regime filter | `scripts/forge-signal-weights.ts` | ✅ ready |
-| Formal autoresearch protocol for AI agent | `docs/forge/signal-weights-program.md` | ✅ written |
-| `bun run forge` / `forge:dry` / `forge:apply` / `forge:uncertain` | `package.json` | ✅ wired |
-| All embeddings routed through OpenRouter (no more 429s) | `.env` `OPENAI_EMBEDDING_URL` | ✅ fixed |
+**Portfolio state** — three JSON files are the ground truth:
+- `portfolio_hyperliquid.json` — on-chain positions: weights, drift vs target, margin risk.
+- `portfolio_tastytrade.json` — current tastytrade sleeve. VINCE surfaces which regime we're in.
+- `portfolio_watchlist.json` — staging pipeline. VINCE flags when a watchlist name crosses a threshold.
 
-**To run the first autoresearch experiment:**
+**Perps data feed (free-tier APIs)** — VINCE data agent pulls continuously:
+- Open interest by asset — rising OI in the direction of the trade is confirmation
+- Funding rates — extreme positive = crowded longs, extreme negative = crowded shorts
+- Long/short ratios — retail vs institutional divergence
+- Liquidation heat maps — where forced exits are clustered
+- 24h volume and volatility — unusual activity before Solus writes a strike
+
+**Mando Minutes** — morning news feed. VINCE ingests and flags items that touch the SOUL.md thesis: BTC regime signals, equipment capex, power policy, semiconductor revisions.
+
+**Hyperliquid tickers** — unusual moves in any portfolio ticker get surfaced immediately. Correlation breaks and sector rotations are the first signal a re-underwriting may be needed.
+
+---
+
+## Agent Roster
+
+Four core agents run always. Six v1 agents are moving to other machines — gate them out with env flags, no code changes required.
+
+### v2 Core — always running
+
+| Agent | Role | What it does |
+|-------|------|-------------|
+| **VINCE** | CDO | Perps data feed: OI, funding, L/S ratios, liquidations. Portfolio drift across the three JSON files. Mando Minutes ingestion. The eyes of the system. |
+| **Solus** | CFO | Weekly Hypersurface options — strike ritual, optimal strike, assignment probability (GBM + ML Brier calibration), tail risk, portfolio copula. Core use case. |
+| **Otaku** | COO | On-chain identity (ERC-8004), reputation from Solus Brier scores, x402 skill endpoints. Only agent with a funded wallet. |
+| **Forge** | — | MLX AutoResearch. Overnight experiments on Apple Silicon: mutate `policies/trading-policy.yaml` + prompts + ML hyperparameters → evaluate against paper-bot replay → commit winners (ΔComposite ≥ +0.5%), revert losers. Push Telegram summary at 2 AM UTC. Silent by default. |
+
+**v2 slim mode** — run just these four agents:
+
 ```bash
-bun run forge:dry        # dry run — shows what would change, commits nothing
-bun run forge:apply      # promote best weights to dynamicConfig if criteria pass
-bun run forge:uncertain  # regime-filtered: optimize for uncertain-regime trades only
+ELIZA_ENABLED=false KELLY_ENABLED=false ECHO_ENABLED=false \
+SENTINEL_ENABLED=false CLAWTERM_ENABLED=false \
+ORACLE_ENABLED=false NAVAL_ENABLED=false bun start
 ```
 
----
+### v1 Agents — moving to other machines
 
-## What We Built: A Recursive Trading Intelligence Engine
+Gate each out with `<NAME>_ENABLED=false`. All default to `true` for backward compatibility.
 
-Markets are now an AI-vs-AI game.  
-The edge is not a one-off model. The edge is a loop that compounds.
-
-VINCE runs that loop end to end:
-
-**research → decision → trade → attribution → retraining → policy update**
-
-Every decision is explained before risk is taken.  
-Every outcome is written back into the system.  
-Every cycle updates how the next decision is made.
-
-This is the core product: a machine that learns from its own behavior and only scales when proof is strong.
-
-### Current build focus: Recursive + ML proof loop
-
-Right now, we are focused on one job: push `Recursive North Star` to stable on-track by improving proof quality, not by loosening gates.
-
-- **Recursion pillar**: raise closed-outcome sufficiency, spread closes across distinct days, and improve regime balance so the allocator can move beyond observe-only with clean evidence.
-- **ML pillar**: keep model/runtime health strong and preserve signal quality discipline while we collect better training data.
-- **1+1=3 Synergy pillar**: prove multi-agent treatment beats ONNX-only baseline with positive uplift, promotion-eligible causal confidence, and minimum per-arm depth.
-- **Operator rhythm**: use Coverage Velocity deltas (`closes`, `days`, `regime`, `stage`, `pair`, `min-arm`) to run a daily proof-coverage sprint until blockers clear.
-
-This phase is about repeatable, auditable improvement. Scores should rise because the system gets better under strict criteria.
-
-### Why we push ML + recursion this hard (VINCE-specific)
-
-In VINCE, **ML** and **recursion** are not two buzzwords. They are two different jobs in one proof system.
-
-- **ML is the optimizer**: ONNX models score signal quality, adjust size, and shape exits from real closed outcomes.
-- **Recursion is the governor**: each cycle writes outcomes back, checks sufficiency/causal gates, then decides whether policy and capital can move.
-- **Together they prevent two failure modes**:
-  - ML-only drift: model gets "better" on paper but ignores risk discipline.
-  - Rules-only stagnation: process is stable but stops adapting when market microstructure changes.
-
-For our Hyperliquid perps paper bot, the loop is concrete:
-
-`signal -> gate -> paper trade -> close outcome -> attribution -> feature store -> train -> ONNX deploy -> next gate`
-
-If any link breaks, the loop does not compound.
-
-### Why proving `1+1=3` is hard (and why it should be hard)
-
-`1+1=3` means: **multi-agent treatment beats ONNX-only baseline with causal evidence**, not just a lucky week.
-
-In our stack, that proof must pass all of this at once:
-
-1. **Positive treatment uplift**: `onnx_plus_swarm` must outperform `onnx_enabled` on avg PnL.
-2. **Causal promotion gate**: pair-level lower-bound effect must clear threshold (ciLower gate), not just point estimate.
-3. **Per-arm depth**: each causal pair needs minimum sample depth per arm (no shallow wins).
-4. **Safety integrity**: fewer execution mistakes (sizing blowups, regime mismatch, budget breaches) while uplift improves.
-
-Why this is difficult for VINCE specifically:
-
-- **Stage coupling problem**: improving one stage can starve another stage of depth, which delays causal eligibility.
-- **Market regime churn**: perps behavior shifts quickly; edge seen in one regime can vanish in the next.
-- **Small-N in the right buckets**: total trades can look fine while the exact pair/regime buckets needed for proof are still thin.
-- **Guardrail drag is intentional**: when treatment edge weakens, we block or downsize. That slows data collection but protects quality.
-- **No threshold games allowed**: we do bounded threshold alignment, but score gains must come from better outcomes, not easier gates.
-
-This is why the Synergy pillar can stay blocked even with visible activity: the bar is designed to reject weak or noisy "wins."  
-We only promote when uplift, confidence, depth, and safety all agree.
-
-### Operator playbook: move Synergy from blocked to on-track
-
-Run this daily, in order. Do not skip steps.
-
-1. **Check treatment gate telemetry first**
-   - Target: rising pass rate, positive `avg edge`, shrinking `depth deficit`.
-   - If pass rate is low and edge is flat/negative, do not loosen risk; fix treatment quality first.
-2. **Close depth deficits where they are largest**
-   - Fill the biggest stage/pair deficits until minimum per-arm depth is met.
-   - Goal: remove `causal_sample_depth_below_target`.
-3. **Protect uplift while collecting samples**
-   - Keep swarm edge positive with execution discipline (avoid repeated sizing/stop mistakes).
-   - Goal: remove `swarm_not_beating_single_agent`.
-4. **Re-check causal eligibility**
-   - Confirm promotion reasons are shrinking and ci-lower quality is improving.
-   - Goal: remove `causal_promotion_not_eligible`.
-5. **Promote only on sustained proof**
-   - Milestones: `upliftDelta > 0`, `promotionEligible=true`, `minSamplesPerArm>=target`, `synergyScore>=50` then `>=75` over the 7d window.
-   - If budget breaches or uplift quality worsen, roll back threshold tweaks and prioritize safety.
-
-**Daily standup prompt (copy/paste)**
-
-`Synergy daily check:`
-`1) Treatment gate telemetry: pass rate, avg edge, depth deficit.`
-`2) Top stage/pair deficits to close today (exact counts).`
-`3) Uplift status vs ONNX baseline and main blockers.`
-`4) Causal promotion status + failing pair reasons.`
-`5) Execution-risk check: budget breaches, sizing/stop errors, regime mismatches.`
-`6) Today’s actions (max 3), owner, and expected metric impact by tomorrow.`
-
-### Structural thesis: crypto, AI, and what to own
-
-In fast markets, signal half-life is short and distribution is crowded.  
-What holds value is owning the full learning stack:
-
-1. **Own the data exhaust** - your fills, misses, timing, regime context, and source lineage.
-2. **Own the decision policy** - explicit gates, capital rules, and rollback paths that survive stress.
-3. **Own the recursive ML loop** - retraining from live outcomes, not static backtests.
-
-If you own all three, your system compounds intelligence while others re-run prompts.
-
-### 15 phases were delivery milestones, not the story
-
-The phase map shows how we shipped the machine:
-
-- **Phases 1–4** - Shared scorecards and regime-aware gates.
-- **Phases 5–9** - Trade attribution and self-improvement from outcomes.
-- **Phases 10–12** - Guardrails, policy-as-code, and rollback drills.
-- **Phase 13** - Multi-agent consensus and reliability weighting.
-- **Phases 14–15** - Sufficiency + causal confidence gates for risk promotion.
-
-### What you get today
-
-- **Proof-gated allocator** - risk scales only when causal and sufficiency checks pass.
-- **Full attribution surface** - each decision is traceable to sources, confidence, and realized outcome.
-- **Continuous retraining loop** - trades feed features, models update, policies adapt.
-- **Operator control under stress** - staged rollout (observe -> recommend -> guarded auto) with rollback ready.
-
-### Read more (detailed docs)
-
-- Detailed phase-by-phase overview: [PHASES_1_15_DETAILED.md](docs/PHASES_1_15_DETAILED.md)
-- Phase 14 PRD: [PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md](docs/standup/prds/PRD_PHASE_14_PROOF_TO_CAPITAL_ENGINE.md)
-- Phase 15 operational runbook: [PHASE_15_7DAY_RUNBOOK.md](docs/standup/prds/PHASE_15_7DAY_RUNBOOK.md)
-
-### Prior releases
-
-Earlier versions shipped the paper bot ML loop (feature store, ONNX, VinceBench), HIP-3 spot tokens alongside Hyperliquid perps, the Polymarket edge engine (three strategies, Kelly-sized), zero AI slop across all ten agents, the leaderboard with cost transparency, and the content flywheel (Eliza publishing real results to Substack).
-
-
+| Agent | v2 destination | To disable |
+|-------|---------------|------------|
+| **Eliza** | (1) Perplexity Computer research skill + (2) AIHF Substack writing assistant | `ELIZA_ENABLED=false` |
+| **Kelly** | OpenClaw / Nemoclaw portable lifestyle skill (runs 24/7 on a daemon) | `KELLY_ENABLED=false` |
+| **Echo** | Dexter thesis-layer skill — X alpha feeds conviction, not perps | `ECHO_ENABLED=false` |
+| **Sentinel** | Claude Code agent skill | `SENTINEL_ENABLED=false` |
+| **Clawterm** | Claude Code agent skill | `CLAWTERM_ENABLED=false` |
+| **Oracle** | Stub only — Polymarket never produced real edge | `ORACLE_ENABLED=false` |
+| **Naval** | Evaluate → Dexter SOUL.md review layer | `NAVAL_ENABLED=false` |
 
 ---
 
-## Why
+## Forge — Primary Overnight Focus
 
-Modern markets are machine-speed. Human-only workflows are not enough.
+Forge is VINCE's MLX-powered AutoResearch layer. It runs on Apple Silicon while the rest of the system sleeps and gets smarter without manual steps.
 
-For decades, investors could win with access, judgment, and patience. That edge shrank as information latency collapsed.
+**Composite metric:** `causal_uplift × Sharpe × brier_calibration`
 
-Now, information is repriced in milliseconds. If your process depends on manual interpretation and manual execution, you are late by default.
+All three must improve together. A threshold change that boosts Sharpe but hurts Solus calibration or causal uplift does not ship. Same proof bar as the rest of the system.
 
-The durable edge today is code: repeatable process, broad coverage, and zero emotional drift.
+**Mutable surfaces:**
+- Phase 1 (live): `policies/trading-policy.yaml`, `prompts/vince-entry-gate.md`, `prompts/solus-strike-ritual.md`
+- Phase 2 (≥90 feature-store rows): `train_models.py` hyperparameters, Thompson Sampling priors
+- Phase 3 (with human approval): agent `style.all` — Otaku mutations require explicit confirmation
 
-Renaissance's Medallion is the clearest proof point: roughly 39% annualized since the late 1980s, about 2x the S&P 500 over the same era. It closed to outside capital in 1993 because extra size would dilute edge. Berkshire's audited long-run record is roughly 19.9% annualized in the same period.
+**The nightly loop:**
+1. Trigger at `FORGE_NIGHTLY_HOUR_UTC` (default 2 AM UTC)
+2. Read `SOUL.md` for investment thesis context — experiments that contradict the thesis get a 0.8× alignment penalty
+3. Generate up to `FORGE_MAX_EXPERIMENTS` mutations (default: 10)
+4. Run each against paper-bot replay; score on composite metric
+5. Safety gate: ΔComposite ≥ +0.5%, drawdown ≤ 15%, win rate ≥ 45%, max leverage ≤ 40, max single trade ≤ $50K
+6. Winners → `git commit` on `forge/experiment-YYYYMMDD-NNN`; losers → `git checkout --` revert
+7. Push Telegram summary to `#forge` / `#ops` channels
 
-Medallion won by repeating small statistical edges across many instruments with discipline. Humans can track a handful of positions. Code can monitor thousands, react in milliseconds, and execute the same playbook without fatigue.
+**Runtime:** MLX on Apple Silicon (300–600 experiments/hour). Falls back to `train_models.py` on CPU when MLX unavailable.
 
-### The foundations
+Three improvement loops now run without manual steps:
 
-Three breakthroughs between 1952 and 1973 made automation inevitable:
-
-1. **1952** — Harry Markowitz proved portfolio construction could be mathematical.
-2. **1964** — William Sharpe introduced CAPM: a way to measure risk, compare returns to a benchmark, and quantify performance.
-3. **1973** — Fischer Black and Myron Scholes published the Black-Scholes equation for pricing options, replacing human estimation with formulas.
-
-To automate investing, you need clear inputs, measurable outputs, rules that do not depend on judgment calls, and formulas that adapt with data. Black-Scholes delivered that framework.
-
-Edward Thorp proved these ideas in live markets at Princeton/Newport. Jim Simons scaled them at Renaissance.
-
-### Five levels of autonomous investing
-
-| Level | Name | Edge |
-| :--- | :--- | :--- |
-| **1** | Manual | Information scarcity. Who you knew, what you believed, whether you had the conviction to act. |
-| **2** | Algorithmic | Pre-defined rules execute automatically. Speed and discipline, no learning. |
-| **3** | Automated | Integrated workflows: data feeds, portfolio models, execution. Reduced friction, no intelligence added. |
-| **4** | Autonomous | ML models that update on new data without explicit reprogramming. |
-| **5** | Agentic AI | Plans, chooses actions, uses tools, monitors outcomes, and self-corrects across multi-step workflows. |
-
-### Where VINCE sits
-
-VINCE is built at **Level 5**. Ten agents research, analyze, paper-trade, evaluate outcomes, and improve their own models. No human in the loop for signal generation, position sizing, or risk management. The paper bot trains in production, writes to the feature store, and deploys ONNX models back into the decision loop.
-
-The move from Level 1 to Level 5 is not anti-human. It is pro-process. Advantage moved from information access to integrated research, risk, and execution that runs 24/7.
-
-Goal: stay in the game without living on screens. Push, not pull.
-
----
-
-## The Team
-
-Clear lanes, no overlap: data, plan, call, lifestyle, infra.
-
-| Agent | Lane |
-| :--- | :--- |
-| **Eliza** | Knowledge, research, brainstorm, Substack content. WRITE_ESSAY, DRAFT_TWEETS, CONTENT_AUDIT. The base everything builds on; next: Substack gold + banger tweets for X. |
-| **VINCE** | Objective data: options, perps, memes, news, paper bot, 15+ signal sources. Push, not pull. |
-| **ECHO** | CT sentiment, X research, social alpha, contrarian flags. Your ears on X. Plugin-x-research ships BTC long-term sentiment (machine-readable signal), clawterm day report with source stats and ranking, and save-with-metadata; contract tests keep payloads stable for other agents. |
-| **Oracle** | Prediction markets: Polymarket discovery, odds, portfolio (read-only). Polymarket insight depth is a focus for improvement. |
-| **Solus** | Hypersurface options: strike ritual, optimal strike, assignment prob (GBM + ML when ONNX loaded). Brier calibration, auto-record, Friday resolve reminder; tail risk & portfolio copula. **RecursiveLoop + ML:** calibration context and TRAIN_SOLUS_CALIBRATION_WHEN_READY so Solus gets better over time for onchain options. [SOLUS.md](docs/SOLUS.md) |
-| **Otaku** | **Only agent with a wallet.** Morpho, CDP, Bankr, Biconomy, Clanker, DefiLlama. Execution graduation (L0→L3). |
-| **Kelly** | Touch grass: hotels, fine dining, wine, health, fitness. Standup facilitator. Flywheel score. No trading. |
-| **Sentinel** | Ops, cost steward, ONNX, ART, PRDs, OpenClaw guide, collective memory, repo improvements. |
-| **Forge** | MLX AutoResearch: overnight self-optimization. Mutates policy thresholds, prompts, and ML hyperparameters → evaluates against paper-bot replay → commits winners, reverts losers. Silent by default; reports to Telegram. |
-| **Naval** | Philosophy, mental models, standup conclusions. One thesis, one signal, one team one dream. |
-| **Clawterm** | AI agents terminal: OpenClaw skills, Milaidy, ElizaOS, setup tips, trending. |
-
-One conversation, ask any teammate by name; standups 2x/day. [MULTI_AGENT.md](docs/MULTI_AGENT.md)
-
----
-
-### Trading Bot: No Tilt. Every decision explained. Every outcome learned.
-
-The paper bot runs 24/7 on the **Leaderboard** (Trading Bot tab): 15+ signal sources, 38 onchain assets (crypto, stocks, commodities, indices) as Hyperliquid perps. Zero tilt. Every open position shows strength, confidence, sources, and R:R; every close feeds the feature store and ML loop. Goal progress ($420/day, $10K/mo), open positions, recent trades, and signal source status—all in one place. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
-
-**HIP-3 assets** (stocks, commodities, indices on Hyperliquid) are capped at 5x leverage in code; max leverage can be read from the Hyperliquid API when available. New HIP-3 markets are **discovered automatically**: a daily task scans all HIP-3 DEXes, keeps symbols with 24h volume above threshold, and adds new candidates (e.g. RIVN) to [targetAssets.ts](src/plugins/plugin-vince/src/constants/targetAssets.ts) so the bot can trade them. **Beware of low liquidity, high volatility, and increased liquidation risk** on HIP-3 perps (same notice as on Hyperliquid).
-
----
-
-### Polymarket: paper trading that proves the edge
-
-When spot moves, prediction markets often lag. Oracle runs a **latency arb engine**: Binance spot and Polymarket CLOB in real time, implied probability from the option-like payoff of binary contracts, edge above a threshold, Kelly-sized paper trades. No execution by default—only logs and learns. The goal is to show that the edge is real before a single dollar is at risk. You see whether it's running or paused on the leaderboard Polymarket tab; chat with Oracle for status, pause, or resume. Small edges, captured in code, 24/7.
-
----
-
-### Solus: Hypersurface options assistant that learns from its own calls
-
-Solus is the **CFO agent** for weekly options on Hypersurface (BTC, ETH, SOL, HYPE). One ask: "optimal strike for BTC" or "strike ritual" and you get a strike call with **assignment probability** (GBM closed-form, or ML-calibrated when the ONNX model is trained on your resolved predictions). No copy/paste: options context is cached and refreshed every 10 minutes, and VINCE’s Deribit data flows in automatically.
-
-Solus **measures itself**. Every strike call can auto-record a prediction; at expiry you resolve ("we got assigned" / "we didn’t"). Brier score over resolved predictions measures calibration. That score and the last 10 outcomes are injected into every optimal-strike and position-assess prompt—so Solus sees its own track record and tempers confidence when it’s been wrong. A Friday reminder nags you to resolve open predictions; a daily task writes calibration notes (e.g. Brier by asset, by IV bucket) into context. When you have 50+ resolved rows, a recurring task trains an ONNX assignment calibrator and the options context switches to ML-calibrated P(assign) for best CC/CSP strikes.
-
-**Tail risk** (e.g. P(spot down 15% in 7d) per asset) and **portfolio assignment risk** (when you have 2+ positions: joint P(at least one assigned), P(all), P(none) via Gaussian copula) are in the same context. No Python subprocess, no new APIs—TypeScript-only on top of existing Deribit data. The quant skill in `skills/quant/` is the reference narrative and math; Solus ships the same ideas in plugin-solus. [docs/SOLUS.md](docs/SOLUS.md) · [plugin-solus/FEATURE-STORE.md](src/plugins/plugin-solus/FEATURE-STORE.md) · [IMPROVEMENT_PROOF.md](src/plugins/plugin-solus/IMPROVEMENT_PROOF.md)
-
----
-
-### Forge: overnight self-optimization that writes its own improvements
-
-Every loop described above still had one manual step: a human decides when to run training, adjusts thresholds, and promotes the result. **Forge removes that step.**
-
-Forge is a new agent — an MLX-powered AutoResearch layer that runs overnight on Apple Silicon while the rest of the system sleeps. It proposes mutations to the system's mutable surfaces, measures each one against a paper-bot replay, and acts on the result: winning mutations become git branches ready for review; losing ones are reverted automatically.
-
-**What Forge can mutate:**
-
-- `policies/trading-policy.yaml` — sentiment-gate thresholds, position limits, risk parameters, signal minimums, ML gate confidence
-- `prompts/vince-entry-gate.md` — the LLM pre-trade gate prompt (fewer false positives/negatives)
-- `prompts/solus-strike-ritual.md` — Solus's strike-selection heuristics (better Brier calibration)
-- ML hyperparameters passed to `train_models.py`
-
-**What it optimizes for:**
-
-```
-composite = causal_uplift × Sharpe × brier_calibration
-```
-
-All three must improve together. A threshold change that boosts Sharpe but hurts causal uplift or Solus calibration does not pass. This is the same proof bar the rest of the system uses — Forge does not get a looser gate just because it runs overnight.
-
-**How it works:**
-
-1. Nightly trigger (configurable UTC hour, default 2 AM)
-2. Load current policy + feature store; read `SOUL.md` for investment thesis context
-3. Generate up to N mutations of the mutable surfaces
-4. Run each mutation through paper-bot replay and score on the composite metric
-5. Apply safety gate: composite must be at least +0.5% above baseline, max drawdown ≤ 15%, win rate ≥ 45%
-6. Winners → `git commit` on `forge/experiment-YYYYMMDD-NNN` branch; losers → `git checkout --` revert
-7. Push nightly Telegram summary: experiments run, winners, ΔMetric, committed branches
-
-**Why this matters:**
-
-The strategy genome already mutates 15+ parameters weekly on history. The ML loop retrains from outcomes every 12 hours. Forge adds a third layer that is faster and more targeted: it searches the parameter space nightly and surfaces the best candidates as diff-ready branches. A human can review the diff in 60 seconds and merge — or let `FORGE_AUTO_MERGE=true` handle it.
-
-Three improvement loops, all running without manual steps:
-
-| Loop | Runs | Optimizes |
-| :--- | :--- | :--- |
+| Loop | Cadence | Optimizes |
+|------|---------|-----------|
 | ML loop | Every 12h (90+ closed trades) | Model weights, signal thresholds, TP/SL |
 | Strategy genome | Weekly | 15+ algo parameters (Sharpe + drawdown) |
-| **Forge** | **Nightly** | **Policy thresholds + prompts + hyperparams (composite metric)** |
+| **Forge** | **Nightly** | **Policy thresholds + prompts + hyperparams** |
 
-**Runtime:** MLX on Apple Silicon (fast); falls back to `train_models.py` on CPU when MLX is unavailable.
-
-**Phase 1 ships now** with stub replay (random metrics). Real paper-bot replay wires in next PRD once `VincePaperTradingService.replayFeatureStore()` is implemented.
+```
+trades → feature store → [ML loop: train → ONNX → deploy]
+                       ↓
+          [Forge nightly: mutate policy + prompts → replay → commit winners]
+                       ↓
+        composite metric improves → both loops compound on each other
+```
 
 [Research charter: docs/FORGE_PROGRAM.md](docs/FORGE_PROGRAM.md) · [Agent brief: docs/FORGE.md](docs/FORGE.md)
 
 ---
 
-## TL;DR
+## Solus — Hypersurface Options
 
-VINCE pushes daily market intel (options, perps, memes, DeFi) to Discord and Slack. One command, **ALOHA**, gives the full read: vibe check + PERPS + OPTIONS + "trade today?".
+Solus handles the weekly onchain options strategy on Hypersurface (BTC, ETH, SOL, HYPE). One ask — "optimal strike for BTC" or "strike ritual" — and you get a strike call with **assignment probability** (GBM closed-form, or ML-calibrated when the ONNX model is trained on resolved predictions).
 
-Underneath is a self-evolving paper bot: ML loop, feature store, ONNX deployment, strategy genome, regime profiles, portfolio construction, and execution graduation. It trains in production and updates parameters weekly.
+**Self-calibrating:** every strike call auto-records a prediction; at expiry you resolve it. Brier score over resolved rows measures calibration. That score and the last 10 outcomes are injected into every subsequent prompt — Solus sees its own track record and tempers confidence when it's been wrong. Friday reminder triggers for resolution. At 50+ resolved rows, a recurring task trains an ONNX assignment calibrator and the context switches to ML-calibrated P(assign).
 
-Kelly runs lifestyle concierge (travel, wine, dining, health, fitness) and tracks the flywheel score. She does not give trading advice.
+**Tail risk** and **portfolio assignment risk** (Gaussian copula across 2+ positions) are in the same context. TypeScript-only, no extra APIs.
 
-Every losing trade gets an automated multi-agent post-mortem in `docs/standup/post-mortems/`. `bun run postmortems:ingest` turns those writeups into structured stats, guardrail suggestions, and RAG memory so each loss tightens the next decision.
+[SOLUS.md](docs/SOLUS.md) · [plugin-solus/FEATURE-STORE.md](src/plugins/plugin-solus/FEATURE-STORE.md) · [IMPROVEMENT_PROOF.md](src/plugins/plugin-solus/IMPROVEMENT_PROOF.md)
+
+---
+
+## Why
+
+The durable edge today is code: repeatable process, broad coverage, zero emotional drift.
+
+Renaissance's Medallion: ~39% annualized since the late 1980s. Berkshire's audited long-run record: ~19.9% annualized in the same period. Medallion won by repeating small statistical edges across many instruments with discipline. Code can monitor thousands of positions, react in milliseconds, and execute the same playbook without fatigue.
+
+Three foundations made this inevitable:
+1. **1952** — Markowitz proved portfolio construction could be mathematical.
+2. **1964** — Sharpe introduced CAPM: a way to measure and compare risk-adjusted returns.
+3. **1973** — Black-Scholes published the options pricing equation — clear inputs, measurable outputs, formulas that adapt with data.
+
+Edward Thorp proved these ideas in live markets. Jim Simons scaled them at Renaissance.
+
+### Five levels of autonomous investing
+
+| Level | Name | Edge |
+|:------|:-----|:-----|
+| **1** | Manual | Information scarcity. Who you knew, whether you had conviction. |
+| **2** | Algorithmic | Pre-defined rules execute automatically. Speed, no learning. |
+| **3** | Automated | Integrated workflows: data feeds, portfolio models, execution. Reduced friction. |
+| **4** | Autonomous | ML models that update on new data without explicit reprogramming. |
+| **5** | Agentic AI | Plans, chooses actions, uses tools, monitors outcomes, self-corrects. |
+
+VINCE v2 targets **Level 5** with a tighter surface: Solus as the weekly options workflow, Forge as the overnight self-improvement engine, Otaku as the on-chain identity layer, the paper bot as the causal proof harness. The loop is the same as v1. The agent count is not.
+
+Goal: stay in the game without living on screens. Push, not pull.
 
 ---
 
@@ -361,7 +188,7 @@ Every losing trade gets an automated multi-agent post-mortem in `docs/standup/po
 
 ```bash
 bun install
-cp .env.example .env   # add API keys
+cp .env.example .env   # add at minimum OPENAI_API_KEY or ANTHROPIC_API_KEY
 bun run build
 
 elizaos dev            # hot-reload
@@ -369,111 +196,92 @@ elizaos dev            # hot-reload
 bun start              # production (Postgres when POSTGRES_URL set)
 ```
 
-**Web UI:** `bun start` serves the API on port 3000 and the frontend on **5173**. Open http://localhost:5173 for chat and dashboard.
+**Web UI:** `bun start` serves the API on port 3000 and the frontend on **5173**. Open http://localhost:5173 for chat and the dashboard.
 
----
+**v2 slim mode** (4-agent core only):
 
-## Features
+```bash
+ELIZA_ENABLED=false KELLY_ENABLED=false ECHO_ENABLED=false \
+SENTINEL_ENABLED=false CLAWTERM_ENABLED=false \
+ORACLE_ENABLED=false NAVAL_ENABLED=false bun start
+```
 
-- **ALOHA** — One command: vibe check + PERPS + OPTIONS + "trade today?"
-- **Self-evolving paper bot** — End-to-end loop from signal to trade to feature store to training to ONNX deployment. Four models: signal quality, position sizing, TP optimizer, SL optimizer. Rule-based fallbacks keep it live when models are missing. Tune with env vars (ML threshold, swarm confidence, margin/size); see `Paper Bot & ML`.
-- **Strategy genome** — 15+ parameters mutate weekly, replay on history, and auto-promote the winner by Sharpe and drawdown.
-- **Regime profiles** — Five market personalities auto-shift risk limits, sizing, and signal thresholds from Oracle regime, Echo sentiment, and technicals.
-- **Execution graduation** — Otaku earns trust through four levels (paper → notify → confirm → auto), with circuit-breaker demotions.
-- **Portfolio construction** — Correlation matrix, heat caps, Kelly sizing, and opportunity-cost checks.
-- **Flywheel score** — One 0-100 health score across signal quality, trading performance, sentiment, content, knowledge, and engineering.
-- **Solus (Hypersurface)** — Strike ritual + optimal strike + assignment probability (GBM with optional ML). Brier calibration, auto-record, Friday resolve reminder, tail risk, and portfolio copula. Recursive learning. [SOLUS.md](docs/SOLUS.md)
-- **Multi-agent** — Ask any teammate by name. Standups run 2x/day. One thread, full team.
-- **Leaderboard** — One dashboard for Markets, Memetics, News, Digital Art, Trading Bot, and Knowledge. No chat required. [LEADERBOARD.md](docs/LEADERBOARD.md)
-- **Kelly** — Lifestyle concierge only. Daily briefing to channels with "kelly" or "lifestyle". Optional self-modification. [KELLY.md](docs/KELLY.md)
-- **Knowledge ingestion** — `VINCE_UPLOAD` and ingest-urls pipeline new information into `knowledge/`.
-- **X research (plugin-x-research)** — ALOHA-style X pulse and vibe, day reports, and machine-readable signals for downstream agents. **BTC long-term sentiment** delivers a structured payload (direction, confidence, targets, cue counts) so other agents can act on it without parsing prose. **Clawterm day report** ranks and dedupes X + web sources, exposes source stats (candidates, selected, dropped, reason), and returns clear no-data reasons. **Save research** writes to file with metadata and reason codes (no_room, low_value_filtered, etc.). Contract tests lock sourceStats and saveMeta shapes so integrations stay stable. [X-RESEARCH.md](docs/X-RESEARCH.md) · [plugin-x-research](src/plugins/plugin-x-research/)
-- **Forge (overnight self-optimization)** — MLX AutoResearch agent that runs nightly experiments: mutates `policies/trading-policy.yaml`, prompts, and ML hyperparameters → evaluates each against paper-bot replay → commits winners to git branches, reverts losers. Composite metric: `causal_uplift × Sharpe × brier_calibration`. Three improvement loops now run without manual steps: ML (12h), genome (weekly), Forge (nightly). [FORGE_PROGRAM.md](docs/FORGE_PROGRAM.md)
-- **Proof & next** — Prove recursive improvement for paper bot (HL perps) and Solus (Hypersurface options), improve X and Polymarket insight quality, and sharpen Eliza for Substack + X output. See **What's next**.
+**Forge config** (in `.env`):
+
+```bash
+FORGE_ENABLED=true
+FORGE_RUNTIME=mlx              # mlx (Apple Silicon) | python (CPU fallback)
+FORGE_BUDGET_MINUTES=120       # default 5-hour safe nightly window
+FORGE_NIGHTLY_HOUR_UTC=2       # default 2 AM UTC
+FORGE_TELEGRAM_PUSH=true       # push nightly summary to #forge/#ops
+```
 
 ---
 
 ## Paper Bot & ML
 
-The 12-phase roadmap built this loop; the algo (gates, open/skip, feature store) and the ML pipeline (train → ONNX → report → Sentinel) are documented in [PRD: Paper Trading Algo and ML](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) and [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md). Signals flow into trades, trades flow into the feature store, the feature store feeds Python training, and ONNX models deploy back to the bot. Four models: signal quality, position sizing, TP optimizer, SL optimizer. When models are missing, **rule-based fallbacks** keep it running (e.g. 60% signal-quality threshold, 0.5–2× position size). The dashboard’s “100 trades processed” is the **Weight Bandit** (Thompson Sampling) count of **closed** trades; ONNX stays “None loaded” until you run training and place the `.onnx` files (and `training_metadata.json`) in `.elizadb/vince-paper-bot/models/` (or the configured models dir).
+The paper bot runs 24/7: 15+ signal sources, 38 onchain assets (crypto, stocks, commodities, indices) as Hyperliquid perps. Every open position shows strength, confidence, sources, and R:R; every close feeds the feature store and ML loop.
+
+Four ONNX models: signal quality, position sizing, TP optimizer, SL optimizer. Rule-based fallbacks keep it running when models are missing. The dashboard's "100 trades processed" is the Weight Bandit (Thompson Sampling) count of **closed** trades; ONNX loads when you run training and place `.onnx` files + `training_metadata.json` in `.elizadb/vince-paper-bot/models/`.
 
 **VinceBench** scores every closed trade on process quality (signal, risk, timing, regime). The score trains the signal-quality model to learn more from high-quality decisions.
 
-### Recent improvements
+### Autopilot loop
 
-- **ONNX export fixed** — Graph and node I/O are renamed to `input`/`output` so onnxruntime loads models reliably; smoke tests run after every export so you see “ONNX smoke test passed” for all four models.
-- **Env tuning** — No code changes needed to adjust trade frequency or size: ML threshold, swarm confidence, aggressive margin/size (see table below).
-- **Training pipeline** — Sentinel improvement tasks write to `docs/standup/openclaw-queue/` with safe filenames (slashes in feature names no longer break writes). Feature prep uses a single concat for derived columns to avoid DataFrame fragmentation warnings.
-- **Paper bot** — Size is capped to the bucket max before the policy check so high-notional assets open at cap instead of being blocked; funnel log includes rejection reasons (e.g. no_primary_signal, sentiment_gate_long, swarm_min_confidence) for tuning visibility. CoinGlass connection test is retried with backoff before falling back to Binance free APIs.
+```
+trades → feature store → [ML loop every 12h: train → ONNX → deploy]
+                       ↓
+        [Forge nightly: mutate policy + prompts → replay → commit winners]
+                       ↓
+     composite metric improves → both loops compound on each other
+```
+
+1. **Trade** → outcomes written to feature store.
+2. **`TRAIN_ONNX_WHEN_READY`** runs every 12h; when there are 90+ complete trades, runs `train_models.py` (at most once per 24h).
+3. **New ONNX + `training_metadata.json`** written; on Cloud the task uploads to Supabase and calls `reloadModels()` without restart.
+4. **Forge** runs overnight, mutates policy thresholds and prompts, commits winners.
+5. Next cycle uses updated thresholds, TP/SL from ONNX, and (if `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true`) updated aggregator weights.
 
 ### Paper bot tuning (env)
 
-Tune no-trades vs margin/size without code changes. In `.env` (see `.env.example`):
-
 | Env var | Purpose |
 |--------|--------|
-| `VINCE_ML_SIGNAL_QUALITY_THRESHOLD` | 0–1. Override ML signal-quality threshold; lower = more trades (e.g. `0.5` when rule-based 60% is too strict). |
-| `VINCE_SWARM_ENABLED` | `true` / `false`. Enable swarm consensus gating in the trade loop. |
-| `VINCE_SWARM_MIN_CONFIDENCE` | 0–1 (default `0.5`). Min swarm consensus to allow a trade; lower = more trades. |
-| `VINCE_AGGRESSIVE_MARGIN_USD` | Fixed margin per trade in aggressive mode (default `1000`). Increase for larger paper size. |
-| `VINCE_AGGRESSIVE_BASE_SIZE_PCT` | Base size as % of portfolio when portfolio &lt; margin (default `12`). |
-| `VINCE_PAPER_MAX_SINGLE_TRADE_USD` | Paper bucket + policy cap per trade (default `10000`). High-notional assets (e.g. BTC, index products) often hit this; increase or leave unset to use default. |
+| `VINCE_ML_SIGNAL_QUALITY_THRESHOLD` | 0–1. Override ML signal-quality threshold; lower = more trades. |
+| `VINCE_SWARM_ENABLED` | `true`/`false`. Enable swarm consensus gating. |
+| `VINCE_SWARM_MIN_CONFIDENCE` | 0–1 (default `0.5`). Min swarm consensus to allow a trade. |
+| `VINCE_AGGRESSIVE_MARGIN_USD` | Fixed margin per trade in aggressive mode (default `1000`). |
+| `VINCE_AGGRESSIVE_BASE_SIZE_PCT` | Base size as % of portfolio when portfolio < margin (default `12`). |
+| `VINCE_PAPER_MAX_SINGLE_TRADE_USD` | Paper bucket cap per trade (default `10000`). |
 
-**Single-trade cap:** The paper bucket and policy rule **max-single-trade-usd** cap each trade at **$10k** by default (see [policies/trading-policy.yaml](policies/trading-policy.yaml) and the paper bucket in [vinceCapitalBuckets.service.ts](src/plugins/plugin-vince/src/services/vinceCapitalBuckets.service.ts), or `capital-buckets.json` when present). If you see "blocked by policy engine: max-single-trade-usd" in logs, the requested size exceeded this cap; set `VINCE_PAPER_MAX_SINGLE_TRADE_USD` to raise it.
-
-Many “no trade” outcomes come from ML quality below threshold, X sentiment not meeting 40% or neutral, confidence/strength below min, or swarm consensus below the min. Use these vars to relax gates for more paper volume or raise margin/size when you want larger positions. If you see many rejections for "ML quality below threshold 60%" and ONNX is not loaded, set `VINCE_ML_SIGNAL_QUALITY_THRESHOLD=0.5` (or 0.45) to allow more trades with rule-based scores.
-
-The **strategy genome** adds a second improvement loop: every week, the genome mutates 15+ parameters, replays against historical feature-store data, ranks variants by Sharpe ratio and max drawdown, and promotes the winner. Regime profiles shift the genome's risk limits and sizing multipliers based on the current market personality.
+**Single-trade cap:** The paper bucket and policy rule cap each trade at $10K by default. If you see "blocked by policy engine: max-single-trade-usd" in logs, set `VINCE_PAPER_MAX_SINGLE_TRADE_USD` to raise it.
 
 ### Re-run training
 
 ```bash
 bun run train-models -- --bench-score-weight
+# or with recency weighting:
+bun run train-models:recency
 ```
 
-Or with recency weighting: `bun run train-models:recency`. Output goes to `.elizadb/vince-paper-bot/models/` by default; **restart the agent** so the inference service loads the new ONNX and `training_metadata.json` (and the suggested threshold and suggested_tuning). Optionally run `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run improvement-weights` to update aggregator source weights from the report.
+Output goes to `.elizadb/vince-paper-bot/models/`. Restart the agent to load the new threshold and `training_metadata.json`. Optionally: `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run improvement-weights` to apply source weight changes from the improvement report.
 
-### Recursive improvement loop (autopilot)
+### Validate ML improvement
 
-The paper bot can **run on autopilot** so it keeps getting better from its own trades:
-
-1. **Trade** → outcomes (open/close, PnL, strength, confidence) are written to the feature store.
-2. **Task `TRAIN_ONNX_WHEN_READY`** runs every 12h; when there are **90+ complete trades**, it runs `train_models.py` (at most once per 24h).
-3. **New ONNX models** and `training_metadata.json` (threshold, suggested_tuning, holdout_metrics) are written; on Cloud the task uploads to Supabase and calls `reloadModels()` so new models apply without restart.
-4. **Optional:** Set `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true` so the task **applies source weights** from the improvement report after each successful training run. No extra script—weights update automatically and the next evaluation cycle uses them.
-5. **Next cycle** uses updated thresholds, TP/SL from ONNX, and (if applied) updated aggregator weights → more/better data → repeat.
-
-So: **trades → features → train → new models + weights → better decisions → more trades** is a **recursive loop** that runs without manual steps once the agent is up and the env flag is set. See [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) for how we **prove** the loop improves the bot.
-
-**Forge adds a third loop on top of this.** After the ML loop updates model weights, Forge runs overnight and searches for better policy thresholds, prompt heuristics, and hyperparameters — then commits the winners as git branches. The combined picture:
-
-```
-trades → feature store → [ML loop: train → ONNX → deploy]
-                       ↓
-                  [Forge nightly: mutate policy + prompts → replay → commit winners]
-                       ↓
-         composite metric improves → both loops compound on each other
+```bash
+bun run validate-ml
 ```
 
-### ML loop vs post-mortem loop (simple)
+Loads feature-store data, computes suggested tuning (Q0.25 of profitable trades), and reports baseline win rate vs filtered win rate.
 
-Both loops are recursive, but they do different jobs:
+Full loop: [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md) · ONNX: [ONNX.md](docs/ONNX.md) · Feature store: [FEATURE-STORE.md](docs/FEATURE-STORE.md)
 
-- **ML loop = performance engine.** It learns from many trades and predicts better signal quality, size, and TP/SL behavior.
-- **Post-mortem loop = safety engine.** It learns from losses and applies bounded guardrails (for example: lower leverage cap, minimum stop-vs-ATR floor), then validates and rolls back if results do not improve.
+### ML loop vs post-mortem loop
 
-Think of it this way:
+- **ML loop = performance engine.** Learns from many trades. Predicts better signal quality, size, TP/SL.
+- **Post-mortem loop = safety engine.** Learns from losses. Applies bounded guardrails, validates, rolls back if results don't improve.
+- **Forge = policy engine.** Searches the threshold/prompt/hyperparameter space nightly. Commits winners as diff-ready branches.
 
-- ML says: "Within our rules, what is the best move?"
-- Post-mortem policy says: "What mistakes are temporarily off-limits until proven safe again?"
-
-They are **complementary**, not conflicting, because of precedence:
-
-1. Hard risk limits and policy guardrails (including post-mortem candidate overlays)
-2. Policy engine checks (block/warn/size-reduce)
-3. ML optimization inside those limits
-
-This avoids double-counting risk while still allowing ML to improve decisions. If a post-mortem policy hurts outcomes, the candidate is rolled back automatically.
+Precedence: hard risk limits → post-mortem guardrails → policy engine → ML optimization inside those limits.
 
 ```mermaid
 flowchart TD
@@ -485,98 +293,62 @@ flowchart TD
   policyUpdate --> tradeDecision
 ```
 
-### Improving the paper algo after training (manual)
-
-1. Run `bun run train-models` when you have 90+ closed trades.
-2. Restart the agent to load the new threshold and suggested_tuning from `training_metadata.json`.
-3. Optionally run `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run improvement-weights` to apply source weight changes from the improvement report (or set the env and let the task do it on the next run).
-4. To get better models next run, collect more closed trades (e.g. 300+) and fill optional features (funding 8h delta, DVOL, ETF flow, WTT rubric); see [FEATURE-STORE.md](docs/FEATURE-STORE.md).
-
-### Validate ML improvement
-
-After training, validate that ML-derived thresholds (min strength / min confidence) would have improved selectivity on historical data:
-
-```bash
-bun run validate-ml
-```
-
-Or directly:
-
-```bash
-python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py \
-  --data .elizadb/vince-paper-bot/features
-```
-
-The script loads the same feature-store data, computes suggested tuning (Q0.25 of profitable trades), and reports baseline win rate vs filtered win rate and % of skipped trades that were losers.
-
-**Example run (Feb 2026, 158 closed trades):**
-
-| Metric | Value |
-|--------|--------|
-| Total trades with outcome | 158 |
-| Baseline win rate (all trades) | 23.4% (37 wins) |
-| Suggested tuning (Q0.25 profitable) | min_strength=56, min_confidence=50 |
-| If we had used suggested_tuning | 121 trades taken (20.7% win rate), 37 skipped (68% of skipped were losers) |
-| Result | On this dataset, suggested_tuning did not improve win rate (filtered 20.7% vs baseline 23.4%). Small samples or weak strength/confidence signal; re-run after more trades. |
-
-Conclusion: the ML logic can adjust parameters from data; improvement on live data depends on regime and data quality. Re-run after more closed trades.
-
-Full loop: [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md). ONNX details: [ONNX.md](docs/ONNX.md). Feature store: [FEATURE-STORE.md](docs/FEATURE-STORE.md).
-
 ---
 
 ## North Star
 
-You never have to "chat" with VINCE. He pings you. Proactive agent: day report (ALOHA), trades and reasoning, close results and PnL. Chat remains for deep dives. Stay in the game without 12+ hours on screens.
+You never have to chat with VINCE. He pings you.
 
-[Vision & gap](knowledge/internal-docs/vince-north-star.md)
+VINCE watches the portfolios, the perps data, the news, and the Hyperliquid tickers. When the situation changes — a funding rate spike, a thesis-relevant Mando Minutes item, a portfolio drift beyond threshold — VINCE surfaces it. When the situation warrants an options structure, Solus handles it. When it warrants an overnight experiment, Forge runs it.
+
+Stay in the game without 12+ hours on screens. The terminal monitors so you don't have to.
 
 ---
 
 ## Scripts
 
 | Script | Purpose |
-| :--- | :--- |
+|:-------|:--------|
 | `elizaos dev` | Hot-reload development |
-| `bun start` | Production start |
+| `bun start` | Production start (all agents) |
 | `bun run deploy:cloud` | Deploy to Eliza Cloud |
 | `bun run sync:supabase` | Backfill features to Supabase |
 | `bun run db:check` | Verify DB migrations |
 | `bun run train-models` | Train ML models (min 90 closed trades) |
 | `bun run train-models:recency` | Train with recency decay (upweight recent trades) |
-| `bun run improvement-weights` | Apply improvement report source weights (set `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true` to apply) |
+| `bun run improvement-weights` | Apply improvement report source weights |
 | `bun run validate-ml` | Validate ML thresholds on feature-store data |
 | `bun run type-check` | TypeScript check (no emit) |
 | `bun run check-all` | type-check + format + tests |
-| `FORGE_ENABLED=true bun start` | Start with Forge nightly self-optimization enabled |
+
+**v2 slim roster** (4-agent core):
+```bash
+ELIZA_ENABLED=false KELLY_ENABLED=false ECHO_ENABLED=false \
+SENTINEL_ENABLED=false CLAWTERM_ENABLED=false \
+ORACLE_ENABLED=false NAVAL_ENABLED=false bun start
+```
 
 ---
 
 ## Docs
 
 | Doc | What |
-| :--- | :--- |
-| **[PRD: One Dream — Agent Synergy](docs/standup/prds/PRD_ONE_DREAM_AGENT_SYNERGY.md)** | **Core focus:** $100K trading system, 6 phases (37 tasks), self-evolving genome, adversarial intelligence |
-| [PRD: Paper Trading Algo and ML](docs/standup/prds/PRD_PAPER_TRADING_ALGO_AND_ML.md) | Decision flow, gates, how ML improves the algo |
-| [PRD: ML Training Pipeline](docs/standup/prds/PRD_ML_TRAINING_PIPELINE.md) | Feature store → train → ONNX → report → Sentinel, end-to-end |
+|:----|:-----|
 | [FORGE_PROGRAM.md](docs/FORGE_PROGRAM.md) | Forge research charter — composite metric, mutable surfaces, safety gates, budget |
 | [FORGE.md](docs/FORGE.md) | Forge agent brief — can/cannot, key files, next PRDs |
-| [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, priorities, what we merge |
-| [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML, paper bot, feature store |
-| [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md) | Signal loop, MandoMinutes, train |
-| [ONNX.md](docs/ONNX.md) | Train, export, deploy |
-| [RELEASE_v4.2.0.md](docs/RELEASE_v4.2.0.md) | V4.2.0 — The Genome (Phases 1–5 complete) |
-| [RELEASE_v4.0.0.md](docs/RELEASE_v4.0.0.md) | v4.0.0 release notes (Paper Bot ML docs, validate-ml) |
+| [SOLUS.md](docs/SOLUS.md) | Solus options agent — Brier calibration, tail risk, copula |
+| [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML feature store schema and usage |
+| [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md) | Signal loop, training, ONNX deployment |
+| [ONNX.md](docs/ONNX.md) | Train, export, deploy ONNX models |
 | [MULTI_AGENT.md](docs/MULTI_AGENT.md) | ASK_AGENT, standups, Discord |
-| [OTAKU.md](docs/OTAKU.md) | Executor agent, DeFi, execution graduation |
+| [OTAKU.md](docs/OTAKU.md) | Executor agent, DeFi, ERC-8004 identity |
 | [DEPLOY.md](docs/DEPLOY.md) | Eliza Cloud, env, troubleshooting |
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | Push schedule, Discord, env vars |
-| [SUPABASE_MIGRATION.md](docs/SUPABASE_MIGRATION.md) | Production persistence |
-| [BRANDING.md](docs/BRANDING.md) | Voice, positioning, LIVETHELIFETV |
+| [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
+| [DEXTER.md](docs/DEXTER.md) | Dexter integration — SOUL.md, fundamentals, execution gate |
+| [AIHF.md](docs/AIHF.md) | AIHF adversarial challenge layer |
+| [RECURSIVE.md](docs/RECURSIVE.md) | Autoresearch architecture, signal cache, 5,000+ experiments/night |
 | [plugin-vince](src/plugins/plugin-vince/) | WHAT, WHY, HOW, README |
-| [plugin-kelly](src/plugins/plugin-kelly/) | Lifestyle concierge, flywheel score |
-| [OPENCLAW.md](OPENCLAW.md) | OpenClaw agents, vault, skills, tasks |
 
 ---
 
