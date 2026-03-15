@@ -27,7 +27,7 @@ export interface FdDiscoveryCandidate {
   snapshotAt: string | null;
   /** Structured sub-reasons for UI (Momentum, Quality, Event, Liquidity, Portfolio fit). */
   explanation?: DiscoveryExplanation;
-  /** Tags aligning with tastytrade preset watchlists (Earnings catalyst, Liquid Symbols style, Sector: X). */
+  /** Tags for UI (Earnings catalyst, High liquidity, Sector: X). See docs/TASTYTRADE_WATCHLIST_GLOSSARY.md. */
   tastytradeTags?: string[];
 }
 
@@ -365,7 +365,7 @@ function deriveTastytradeTags(explanation?: DiscoveryExplanation): string[] {
   if (explanation.liquidity) {
     const liq = explanation.liquidity.toLowerCase();
     if (liq.startsWith("high") || liq.startsWith("adequate"))
-      tags.push("Liquid Symbols style");
+      tags.push("High liquidity");
   }
   return tags;
 }

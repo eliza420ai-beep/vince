@@ -332,7 +332,7 @@ export interface FdDiscoveryCandidateItem {
   score: number;
   reason: string;
   explanation?: FdDiscoveryExplanation;
-  /** Tags aligning with tastytrade preset watchlists (Earnings catalyst, Liquid Symbols style, Sector: X). */
+  /** Tags for UI (Earnings catalyst, High liquidity, Sector: X). */
   tastytradeTags?: string[];
 }
 

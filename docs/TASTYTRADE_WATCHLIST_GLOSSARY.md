@@ -58,7 +58,7 @@ Sector watchlists follow the Global Industry Classification Standard (GICS). Exa
 
 | VINCE concept | Tastytrade preset(s) to think about |
 |---------------|-------------------------------------|
-| **Liquidity** (high/adequate dollar volume) | Liquid Symbols, Liquid ETFs, High Options Volume. We don't have star rating or IVR; we use dollar volume and coarse-screen thresholds. When we tag "Liquid Symbols style", the name fits the *liquidity* idea; you can add to Liquid Symbols or a custom list. |
+| **Liquidity** (high/adequate dollar volume) | Liquid Symbols, Liquid ETFs, High Options Volume. We don't have star rating or IVR; we use dollar volume and coarse-screen thresholds. When we tag **High liquidity**, the name has strong trading volume; you can add to tastytrade Liquid Symbols or a custom list. |
 | **Event** (earnings, 8-K, filings, insider cluster) | All Earnings, tasty Earnings. We have `days_since_earnings`, recent 8-K, filing intensity. "Earnings catalyst" tag = event-driven; for "earnings in next 7–10 days" we'd need next earnings date (future enhancement). |
 | **Momentum** (3m/12m, cohort-relative, sector-relative) | 52-Week Near High / 52-Week Near Low, tasty Fast Movers. We don't compute 52w distance or IVR yet; our momentum explanation aligns with *why* a name might show up on those lists. |
 | **Sector** (when we have GICS/sector on the symbol master) | Sector Watchlists (Technology, Healthcare, etc.). If the symbol master includes sector, we tag it so you can add to the matching tastytrade sector list. |
@@ -67,7 +67,7 @@ Sector watchlists follow the Global Industry Classification Standard (GICS). Exa
 ### Tags we expose
 
 - **Earnings catalyst** — Recent or upcoming earnings context (8-K, filing activity, earnings beat in explanation).
-- **Liquid Symbols style** — Meets our liquidity bar (dollar volume); conceptually aligned with tastytrade Liquid Symbols.
+- **High liquidity** — Meets our liquidity bar (strong dollar volume); aligns with tastytrade’s Liquid Symbols list.
 - **Sector: &lt;name&gt;** — When symbol master has sector (e.g. Technology, Healthcare); use tastytrade Sector Watchlists with the same name.
 
 Future: **52w near high/low**, **tasty Earnings** (next 7d + liquidity), **Dividend** when we have dividend data.
