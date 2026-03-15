@@ -1,20 +1,20 @@
-# Post-mortem: USOIL long (stop_loss)
+# Post-mortem: USOIL short (stop_loss)
 
 **Date:** 2026-03-15
 
 ## Trade Snapshot
 
-- USOIL long closed stop_loss: entry $124.03 -> exit $122.12, P&L $-156.11 (9795.25947295423 USD, 10x).
-- Entry time (UTC): 2026-03-15T01:18:35.593Z
+- USOIL short closed stop_loss: entry $123.91 -> exit $125.82, P&L $-71.55 (4484.741831569259 USD, 10x).
+- Entry time (UTC): 2026-03-15T12:09:22.754Z
 - Hold window target: intraday
-- Max loss budget: $146.93 (15.00%)
+- Max loss budget: $67.27 (15.00%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 25 minutes
-- Adverse move: 1.544%
+- Hold duration: 144 minutes
+- Adverse move: 1.545%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -24,30 +24,28 @@
 ### Echo
 
 - Lane: CT sentiment + macro risk pulse
-- Confidence: 30%
+- Confidence: 40%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: timestamp
+- Missing data flags: entry_datetime
 
-**Missing key context:** When did you enter/exit (time window)? What was CT sentiment on macro/energy at entry vs. exit? Were there geopolitical shifts or Fed moves that shifted the vibe?
+**Missing key context:** When did you enter vs. exit (date/time)? Was there a macro event (Fed speak, supply shock, geopolitical flare) that spiked oil during your hold? Did CT/energy traders call the move beforehand, or was it a surprise?
 
-**On the loss itself:** USOIL is macro-driven (geopolitics, dollar strength, supply shocks) — not a crypto sentiment play, so I can't give you alpha here. That's Solus's lane (execution/sizing) and Vince's (macro data). What I *can* flag: if CT was euphoric on energy/inflation hedges at your entry, that's a contrarian warning signal for reversals.
+**On sentiment alone:** Oil shorts typically get crushed on supply disruption narratives or hawkish Fed signals — if either hit while you were in, that's a CT miss, not a trade miss. Check if energy/macro Twitter was warning about inventory data, Middle East escalation, or Fed speakers that day; if the signal was there and you didn't catch it, that's your edge gap.
 
-**Confidence: 0.3** — I need the timestamp and what macro narrative was dominating CT when you traded.
+**Confidence: 0.4** — Can't assess sentiment's role without timing and macro catalyst. Ping me the entry/exit window and I'll pull CT vibe for that period.
 
 ### Oracle
 
 - Lane: prediction market regime
 - Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: condition_id, entry_datetime
+- Missing data flags: none
 
-**Missing context:** I need the trade date/timeframe and whether you had a Polymarket oil-price signal active (e.g., "Will crude close above $125 by EOW?"). Without that, I can't tie the stop-loss hit to regime shifts or mispricing in the prediction market.
+**Missing context:** I need the entry date, hold duration, and whether there was a corresponding Polymarket position on oil (e.g., "Will crude oil close above $125 by [date]?"). Without that, I can't assess whether the stop was hit due to market regime shift or if Polymarket pricing diverged from spot—which would tell us if the edge was real or if execution timing was off.
 
-**What I can say:** A $1.91 move (1.5%) on 10x leverage is tight—suggests you entered near support and got shaken out, likely on noise or a brief liquidation cascade rather than a structural break. If Polymarket was pricing oil *higher* at entry, the stop-loss kill was a liquidity event, not a regime call.
+**What I can say:** A 4-handle move on a 10x levered short is tight risk management (1.5% stop), which is sound. But on USOIL, a $71 loss on a $4.5K notional position suggests either a fast-moving intraday spike (reversible) or a genuine regime break. If Polymarket crude markets were pricing higher through that window, the stop was justified; if they stayed flat, we may have caught a wick.
 
-**Action:** Pull the condition_id for the oil market active that day and your entry time; I'll check if Poly odds diverged from spot at exit and flag whether the market was mispricing the move.
-
-**Confidence:
+**
 
 ### Solus
 
@@ -56,9 +54,9 @@
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing context:** entry signal (what triggered the long?), hold time, and whether this was sized within the paper bot's risk envelope. On mechanics alone: $156 loss on $9.8K notional (1.6% drawdown) with 10x leverage is tight risk management—the stop was only ~1.5% below entry, which is aggressive for crude oil's typical intraday range. If this is the bot's standard structure, it's sound; if it's ad-hoc, you're risking whipsaws. Next trade: log the signal quality (was the setup high-conviction or noise?) so we can tune bot entry rules.
+**Missing critical context:** position duration (hours? days?), stop placement rationale (% from entry?), and whether this was part of a hedged pair or standalone. That said: **10x on a commodity short into a rally is structural risk**—USOIL has strong upside momentum in risk-on regimes, and leverage amplifies whipsaws. Your stop at +191 bps is reasonable for a day trade but tight for a swing; if this was meant to be multi-day, the sizing (10x notional) is too aggressive relative to intraday noise. **Next:** post your entry logic (catalyst, technicals, funding?) and I'll assess whether the stop was right or the position size was wrong.
 
-**Confidence: 0.6** (mechanics clean, but signal quality unknown).
+**Confidence: 0.6** (mechanics clear, context gaps prevent full assessment).
 
 ## Root-Cause Tags
 
@@ -82,13 +80,13 @@
 
 ## Confidence and Data Gaps
 
-- Quality score: 81/100
-- Escalate to Sentinel: true
+- Quality score: 93/100
+- Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 - Context completeness: 92.9%
 - Regime vs execution: execution_miss
-- Risk budget: planned=$146.93, realized=$156.11, slippage=$9.18, breach=true
-- Consistency checks: fail (truncated_agent_findings)
+- Risk budget: planned=$67.27, realized=$71.55, slippage=$4.28, breach=true
+- Consistency checks: pass
 
 ## What changes on next trade?
 
@@ -105,8 +103,8 @@
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 81
-- PM_QUALITY_ESCALATE: true
+- PM_QUALITY_SCORE: 93
+- PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: sizing_too_aggressive
 - PM_SECONDARY_CAUSES: none
 - PM_PTQG_COMPLETE: true
@@ -114,67 +112,61 @@
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
 - PM_BUDGET_BREACH: true
-- PM_RISK_SLIPPAGE_USD: 9.18
+- PM_RISK_SLIPPAGE_USD: 4.28
 - PM_ADAPTATION_ELIGIBLE: false
 - PM_POLICY_VERSION_AT_ENTRY: baseline
 - PM_PROPOSED_DELTA_PRESENT: false
 
 ```json
 {
-  "qualityScore": 81,
-  "qualityEscalate": true,
+  "qualityScore": 93,
+  "qualityEscalate": false,
   "primaryCause": "sizing_too_aggressive",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 25,
-  "adverseMovePct": 1.544,
+  "holdMinutes": 144,
+  "adverseMovePct": 1.545,
   "riskBudget": {
-    "plannedRiskUsd": 146.93,
-    "realizedRiskUsd": 156.11,
-    "riskSlippageUsd": 9.18,
+    "plannedRiskUsd": 67.27,
+    "realizedRiskUsd": 71.55,
+    "riskSlippageUsd": 4.28,
     "budgetBreach": true
   },
   "consistencyChecks": {
-    "passed": false,
-    "issues": [
-      "truncated_agent_findings"
-    ],
-    "adverseMovePctFromPrices": 1.544,
+    "passed": true,
+    "issues": [],
+    "adverseMovePctFromPrices": 1.545,
     "adverseMovePctDelta": 0,
     "stopDistancePctFromPrices": 1.5,
     "stopDistancePctDelta": 0,
-    "hasTruncatedFindings": true
+    "hasTruncatedFindings": false
   },
   "adaptationEligible": false,
   "policyVersionAtEntry": "baseline",
   "proposedPolicyDelta": null,
   "echoContext": {
-    "entryTimestampUtc": "2026-03-15T01:18:35.593Z",
-    "exitTimestampUtc": "2026-03-15T01:43:25.145Z",
+    "entryTimestampUtc": "2026-03-15T12:09:22.754Z",
+    "exitTimestampUtc": "2026-03-15T14:33:16.715Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-15T01:18:35.593Z",
-    "exitTimestampUtc": "2026-03-15T01:43:25.145Z"
+    "entryTimestampUtc": "2026-03-15T12:09:22.754Z",
+    "exitTimestampUtc": "2026-03-15T14:33:16.715Z"
   },
   "solusContext": {
     "assetClass": "equity",
     "thesisClass": "momentum",
     "leverage": 10,
     "stopDistancePct": 1.5,
-    "maxLossUsd": 146.93,
+    "maxLossUsd": 67.27,
     "maxLossPct": 15,
     "entryAtrPct": 3
   },
   "agentContextMissing": {
     "Echo": [
-      "timestamp"
-    ],
-    "Oracle": [
-      "condition_id",
       "entry_datetime"
     ]
   },
