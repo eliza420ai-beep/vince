@@ -27,6 +27,8 @@ export interface FdDiscoveryCandidate {
   snapshotAt: string | null;
   /** Structured sub-reasons for UI (Momentum, Quality, Event, Liquidity, Portfolio fit). */
   explanation?: DiscoveryExplanation;
+  /** Tags aligning with tastytrade preset watchlists (Earnings catalyst, Liquid Symbols style, Sector: X). */
+  tastytradeTags?: string[];
 }
 
 export interface GemSubscores {
@@ -327,6 +329,7 @@ export function rankDiscoveryCandidates(
         inSleeve,
       },
     );
+    const tastytradeTags = deriveTastytradeTags(explanation);
     out.push({
       ticker: row.ticker,
       sleeve: row.sleeve,
@@ -336,7 +339,33 @@ export function rankDiscoveryCandidates(
       reason,
       snapshotAt: row.snapshotAt ?? null,
       ...(explanation && { explanation }),
+      ...(tastytradeTags.length > 0 && { tastytradeTags }),
     });
   }
   return out.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Derive tastytrade-preset-style tags from discovery explanation.
+ * See docs/TASTYTRADE_WATCHLIST_GLOSSARY.md.
+ */
+function deriveTastytradeTags(explanation?: DiscoveryExplanation): string[] {
+  const tags: string[] = [];
+  if (!explanation) return tags;
+  if (explanation.event) {
+    const e = explanation.event.toLowerCase();
+    if (
+      e.includes("8-k") ||
+      e.includes("earnings") ||
+      e.includes("filing") ||
+      e.includes("insider")
+    )
+      tags.push("Earnings catalyst");
+  }
+  if (explanation.liquidity) {
+    const liq = explanation.liquidity.toLowerCase();
+    if (liq.startsWith("high") || liq.startsWith("adequate"))
+      tags.push("Liquid Symbols style");
+  }
+  return tags;
 }

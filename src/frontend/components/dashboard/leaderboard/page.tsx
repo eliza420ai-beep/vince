@@ -498,6 +498,7 @@ function CompactTickerRows({
         sleeve?: string;
         score?: number;
         explanation?: DiscoveryExplanation;
+        tastytradeTags?: string[];
       }
   >;
   limit?: number;
@@ -510,12 +511,19 @@ function CompactTickerRows({
   const rows = (items ?? [])
     .map((item) =>
       typeof item === "string"
-        ? { ticker: item, reason: "", sleeve: "", explanation: undefined }
+        ? {
+            ticker: item,
+            reason: "",
+            sleeve: "",
+            explanation: undefined,
+            tastytradeTags: undefined,
+          }
         : {
             ticker: item?.ticker ?? "",
             reason: item?.reason ?? "",
             sleeve: item?.sleeve ?? "",
             explanation: item?.explanation as DiscoveryExplanation | undefined,
+            tastytradeTags: item?.tastytradeTags,
           },
     )
     .filter((item) => item.ticker);
@@ -576,6 +584,19 @@ function CompactTickerRows({
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
               Why it made the list: {compactReason(item.reason, 3)}
             </p>
+          ) : null}
+          {item.tastytradeTags && item.tastytradeTags.length > 0 ? (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {item.tastytradeTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                  title="Aligns with tastytrade preset watchlist"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           ) : null}
         </div>
       ))}

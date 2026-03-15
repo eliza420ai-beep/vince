@@ -28,7 +28,10 @@ import {
   type ForgeSignalRecord,
   type ReplayThresholdsConfig,
 } from "../forge/forgeSignalCache";
-import { getCurrentSleeveTickers } from "../utils/fdCandidateUniverse";
+import {
+  getCurrentSleeveTickers,
+  loadSymbolMaster,
+} from "../utils/fdCandidateUniverse";
 import {
   readDiscoveryMetrics,
   readDiscoveryRunHistory,
@@ -385,48 +388,29 @@ export interface FdDiscoveryExplanation {
   portfolioFit?: string;
 }
 
+/** One discovery candidate item in API (promoteNow, researchNext, avoid, newCandidates, existingSleeve). */
+export interface FdDiscoveryCandidateItem {
+  ticker: string;
+  sleeve: string;
+  score: number;
+  reason: string;
+  explanation?: FdDiscoveryExplanation;
+  /** Tags aligning with tastytrade preset watchlists (Earnings catalyst, Liquid Symbols style, Sector: X). */
+  tastytradeTags?: string[];
+}
+
 /** FD sleeve discovery: ranked candidates for watchlist/tastytrade. */
 export interface FdDiscoverySection {
   title: string;
   oneLiner: string;
-  promoteNow: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
-  researchNext: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
-  avoid: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
+  promoteNow: FdDiscoveryCandidateItem[];
+  researchNext: FdDiscoveryCandidateItem[];
+  avoid: FdDiscoveryCandidateItem[];
   generatedAt: string;
   /** From last full-universe run when available (net-new candidates). */
-  newCandidates?: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
+  newCandidates?: FdDiscoveryCandidateItem[];
   /** From last full-universe run when available (re-ranks of current sleeve). */
-  existingSleeve?: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
+  existingSleeve?: FdDiscoveryCandidateItem[];
   /** Prediction calibration (Brier) for discovery/FD projections. */
   calibration?: {
     windowDays: number;
@@ -504,6 +488,42 @@ export interface LeaderboardsResponse {
   forgeOpsStatus?: SectionStatus;
 }
 
+/** Build ticker → sector map from symbol master for tastytrade Sector tags. */
+function getTickerSectorMap(projectRoot: string): Map<string, string> {
+  const rows = loadSymbolMaster(projectRoot);
+  const map = new Map<string, string>();
+  for (const r of rows) {
+    if (r.sector?.trim()) {
+      map.set(r.ticker.trim().toUpperCase(), r.sector.trim());
+    }
+  }
+  return map;
+}
+
+function toDiscoveryItem(
+  c: {
+    ticker: string;
+    sleeve: string;
+    score: number;
+    reason: string;
+    explanation?: FdDiscoveryExplanation;
+    tastytradeTags?: string[];
+  },
+  sectorMap: Map<string, string>,
+): FdDiscoveryCandidateItem {
+  const sector = sectorMap.get(c.ticker.toUpperCase());
+  const tastytradeTags = [...(c.tastytradeTags ?? [])];
+  if (sector) tastytradeTags.push(`Sector: ${sector}`);
+  return {
+    ticker: c.ticker,
+    sleeve: c.sleeve,
+    score: c.score,
+    reason: c.reason,
+    ...(c.explanation && { explanation: c.explanation }),
+    ...(tastytradeTags.length > 0 && { tastytradeTags }),
+  };
+}
+
 function buildFdDiscoverySection(
   projectRoot: string = process.cwd(),
   universe: DiscoveryUniverseSelector = "sleeve",
@@ -514,33 +534,16 @@ function buildFdDiscoverySection(
       : getFdReplayRows(projectRoot);
   const sleeveTickers = new Set(getCurrentSleeveTickers(projectRoot));
   const ranked = rankDiscoveryCandidates(rows, { sleeveTickers });
+  const sectorMap = getTickerSectorMap(projectRoot);
   const promoteNow = ranked
     .filter((r) => r.bucket === "PromoteNow")
-    .map((c) => ({
-      ticker: c.ticker,
-      sleeve: c.sleeve,
-      score: c.score,
-      reason: c.reason,
-      ...(c.explanation && { explanation: c.explanation }),
-    }));
+    .map((c) => toDiscoveryItem(c, sectorMap));
   const researchNext = ranked
     .filter((r) => r.bucket === "ResearchNext")
-    .map((c) => ({
-      ticker: c.ticker,
-      sleeve: c.sleeve,
-      score: c.score,
-      reason: c.reason,
-      ...(c.explanation && { explanation: c.explanation }),
-    }));
+    .map((c) => toDiscoveryItem(c, sectorMap));
   const avoid = ranked
     .filter((r) => r.bucket === "Avoid")
-    .map((c) => ({
-      ticker: c.ticker,
-      sleeve: c.sleeve,
-      score: c.score,
-      reason: c.reason,
-      ...(c.explanation && { explanation: c.explanation }),
-    }));
+    .map((c) => toDiscoveryItem(c, sectorMap));
   const generatedAt =
     ranked.length > 0 && ranked[0]?.snapshotAt
       ? ranked[0].snapshotAt
@@ -561,18 +564,12 @@ function buildFdDiscoverySection(
     universe === "full" &&
     (lastRun?.newCandidates?.length || lastRun?.existingSleeve?.length)
   ) {
-    section.newCandidates = lastRun.newCandidates?.map((c) => ({
-      ticker: c.ticker,
-      sleeve: c.sleeve,
-      score: c.score,
-      reason: c.reason,
-    }));
-    section.existingSleeve = lastRun.existingSleeve?.map((c) => ({
-      ticker: c.ticker,
-      sleeve: c.sleeve,
-      score: c.score,
-      reason: c.reason,
-    }));
+    section.newCandidates = lastRun.newCandidates?.map((c) =>
+      toDiscoveryItem(c, sectorMap),
+    );
+    section.existingSleeve = lastRun.existingSleeve?.map((c) =>
+      toDiscoveryItem(c, sectorMap),
+    );
   }
   return section;
 }

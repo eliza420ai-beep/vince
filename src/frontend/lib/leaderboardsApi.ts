@@ -325,45 +325,26 @@ export interface FdDiscoveryExplanation {
   portfolioFit?: string;
 }
 
+/** One FD discovery candidate item (promoteNow, researchNext, avoid, newCandidates, existingSleeve). */
+export interface FdDiscoveryCandidateItem {
+  ticker: string;
+  sleeve: string;
+  score: number;
+  reason: string;
+  explanation?: FdDiscoveryExplanation;
+  /** Tags aligning with tastytrade preset watchlists (Earnings catalyst, Liquid Symbols style, Sector: X). */
+  tastytradeTags?: string[];
+}
+
 export interface FdDiscoverySection {
   title: string;
   oneLiner: string;
-  promoteNow: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
-  researchNext: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
-  avoid: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
+  promoteNow: FdDiscoveryCandidateItem[];
+  researchNext: FdDiscoveryCandidateItem[];
+  avoid: FdDiscoveryCandidateItem[];
   generatedAt: string;
-  newCandidates?: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
-  existingSleeve?: Array<{
-    ticker: string;
-    sleeve: string;
-    score: number;
-    reason: string;
-    explanation?: FdDiscoveryExplanation;
-  }>;
+  newCandidates?: FdDiscoveryCandidateItem[];
+  existingSleeve?: FdDiscoveryCandidateItem[];
   calibration?: {
     windowDays: number;
     overallMeanBrier: number | null;
