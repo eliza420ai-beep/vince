@@ -44,6 +44,7 @@ import type { VinceTopTradersService } from "../services/topTraders.service";
 import type { VinceRiskManagerService } from "../services/vinceRiskManager.service";
 import type { AggregatedTradeSignal } from "../types/paperTrading";
 import { BOT_FOOTER } from "../constants/botFormat";
+import { getAssetClassMaxLeverage } from "../constants/paperTradingDefaults";
 
 // ==========================================
 // Hybrid Strategy Configuration
@@ -715,6 +716,10 @@ export const vinceBotAction: Action = {
           leverage: signal.leverage,
           portfolioValue: portfolio.totalValue,
           currentExposure: positionManager.getCurrentExposure(),
+          assetClassMaxLeverage: getAssetClassMaxLeverage(
+            "crypto",
+            this.runtime,
+          ),
         });
 
         if (!validation.valid) {

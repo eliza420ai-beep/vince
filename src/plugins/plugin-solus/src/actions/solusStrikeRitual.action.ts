@@ -12,6 +12,7 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { isSolus } from "../utils/solus";
+import { loadPromptTemplate } from "../utils/loadPromptTemplate";
 
 const TRIGGERS = [
   "strike ritual",
@@ -67,8 +68,25 @@ export const solusStrikeRitualAction: Action = {
       );
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
-
-      const prompt = `You are Solus, the execution architect and on-chain options expert. The user wants the strike ritual (Friday process). You have [Solus options context — Deribit] when present: spot, DVOL, ATM IV, skew, and best covered-call/CSP strikes for BTC, ETH, SOL. You also have [ECHO WTT signal context] (daily directional signal) to inform bias when it is fresh. Use both with [Hypersurface spot USD] and [Solus sizing state]. When [Solus calibration] is present, use it to temper confidence or note past accuracy. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
+      const values =
+        (state as { values?: Record<string, unknown> }).values ?? {};
+      const templatePrompt = loadPromptTemplate(
+        "prompts/solus-strike-ritual.md",
+        {
+          asset: (values.asset as string) ?? "—",
+          spot: (values.spot as string) ?? "—",
+          expiry: (values.expiry as string) ?? "—",
+          dvol: (values.dvol as string) ?? "—",
+          put_call_ratio: (values.put_call_ratio as string) ?? "—",
+          regime: (values.regime as string) ?? "—",
+          thesis: (values.thesis as string) ?? "See context below.",
+          risk_budget_usd: (values.risk_budget_usd as string) ?? "—",
+          context: contextBlock || "No additional context.",
+        },
+      );
+      const prompt =
+        templatePrompt ??
+        `You are Solus, the execution architect and on-chain options expert. The user wants the strike ritual (Friday process). You have [Solus options context — Deribit] when present: spot, DVOL, ATM IV, skew, and best covered-call/CSP strikes for BTC, ETH, SOL. You also have [ECHO WTT signal context] (daily directional signal) to inform bias when it is fresh. Use both with [Hypersurface spot USD] and [Solus sizing state]. When [Solus calibration] is present, use it to temper confidence or note past accuracy. Never tell the user to go ask VINCE or paste someone else's output — you have the options data.
 If the context states we hold BTC (or another asset) and are in covered-call mode, do not ask to choose CC vs CSP; we are already selling covered calls. Go to: pick strike width and invalidation for this week's covered call.
 Using the context below (Hypersurface mechanics, [Solus options context — Deribit], [ECHO WTT signal context], sizing state), give a short step-by-step checklist and one clear next step. Steps: (1) Use options context (spot, IV, best strikes) already in context. (2) Pick asset: BTC, ETH, SOL, or HYPE. (3) Choose covered calls vs secured puts — unless we are in covered-call mode, then skip to strike. (4) Strike width (OTM %, ~20–35% assignment prob for calls). (5) Invalidation (what would change your mind). If ECHO signal is stale or only daily while weekly setup differs, explicitly downweight it. Be direct; benefit-led; no jargon. End with the single next action they should take. Reply in flowing prose; no bullet lists unless listing steps.
 

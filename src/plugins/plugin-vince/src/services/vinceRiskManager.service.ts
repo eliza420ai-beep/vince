@@ -587,6 +587,8 @@ export class VinceRiskManagerService extends Service {
     portfolioValue: number;
     currentExposure: number;
     maxLeverageOverride?: number;
+    /** Post-mortem guardrail: asset-class max leverage cap (from ASSET_CLASS_MAX_LEVERAGE). When set, enforced here. */
+    assetClassMaxLeverage?: number;
   }): { valid: boolean; reason: string; adjustedSize?: number } {
     const {
       sizeUsd,
@@ -594,6 +596,7 @@ export class VinceRiskManagerService extends Service {
       portfolioValue,
       currentExposure,
       maxLeverageOverride,
+      assetClassMaxLeverage,
     } = params;
 
     // Check if paused
@@ -609,17 +612,40 @@ export class VinceRiskManagerService extends Service {
       return { valid: false, reason: "Circuit breaker active" };
     }
 
-    // Check leverage
-    const effectiveMaxLeverage =
+    // Check leverage (policy limit, optional override, and post-mortem asset-class guardrail)
+    let effectiveMaxLeverage = this.limits.maxLeverage;
+    if (
       typeof maxLeverageOverride === "number" &&
       Number.isFinite(maxLeverageOverride) &&
       maxLeverageOverride > 0
-        ? Math.min(this.limits.maxLeverage, maxLeverageOverride)
-        : this.limits.maxLeverage;
+    ) {
+      effectiveMaxLeverage = Math.min(
+        effectiveMaxLeverage,
+        maxLeverageOverride,
+      );
+    }
+    if (
+      typeof assetClassMaxLeverage === "number" &&
+      Number.isFinite(assetClassMaxLeverage) &&
+      assetClassMaxLeverage > 0
+    ) {
+      effectiveMaxLeverage = Math.min(
+        effectiveMaxLeverage,
+        assetClassMaxLeverage,
+      );
+    }
     if (leverage > effectiveMaxLeverage) {
+      const isGuardrailCap =
+        typeof assetClassMaxLeverage === "number" &&
+        effectiveMaxLeverage === assetClassMaxLeverage;
+      if (isGuardrailCap) {
+        logger.info(
+          `[VinceRiskManager] Guardrail: leverage ${leverage}x exceeds asset-class cap ${assetClassMaxLeverage}x`,
+        );
+      }
       return {
         valid: false,
-        reason: `Leverage ${leverage}x exceeds maximum ${effectiveMaxLeverage}x`,
+        reason: `Leverage ${leverage}x exceeds maximum ${effectiveMaxLeverage}x${isGuardrailCap ? " (asset-class guardrail)" : ""}`,
       };
     }
 

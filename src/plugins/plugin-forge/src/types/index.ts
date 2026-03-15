@@ -59,6 +59,8 @@ export interface ForgeReplayResult {
   safetyGateReason?: string;
   /** All promotion gate failures (explicit reject reasons) */
   gateFailures?: string[];
+  /** SOUL.md alignment multiplier applied (1.0 or 0.8) */
+  thesisAlignment?: number;
 }
 
 export interface ForgeExperimentResult {

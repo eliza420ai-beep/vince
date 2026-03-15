@@ -20,6 +20,7 @@ export interface SentimentGateAdjustment {
   skipLongs: boolean;
   skipShorts: boolean;
   sentimentScore: number;
+  sentimentLabel: string;
   regime: string;
   adjustmentApplied: string;
 }
@@ -110,6 +111,7 @@ export function getSentimentGateAdjustment(
     skipLongs,
     skipShorts,
     sentimentScore,
+    sentimentLabel,
     regime,
     adjustmentApplied,
   };

@@ -67,7 +67,10 @@ export interface ReplayResult {
   sharpe: number;
   maxDrawdownPct: number;
   avgHoldingMinutes: number;
+  /** Multiplicative composite: causalUplift * sharpe * (1 - brierScore). Set in evolve() with baseline. */
   fitness: number;
+  /** Brier score when available (e.g. from Solus calibration); 0 for genome-only replay. */
+  brierScore?: number;
 }
 
 export interface GenerationRecord {
@@ -294,6 +297,22 @@ export class VinceGenomeService extends Service {
       results.push({ genome: candidate, result });
     }
 
+    const baselineWinRateFraction = currentResult.winRate / 100;
+    for (const r of results) {
+      r.result.fitness = this.compositeFitness(
+        r.result.winRate / 100,
+        baselineWinRateFraction,
+        r.result.sharpe,
+        r.result.brierScore ?? 0,
+      );
+    }
+    currentResult.fitness = this.compositeFitness(
+      currentResult.winRate / 100,
+      baselineWinRateFraction,
+      currentResult.sharpe,
+      currentResult.brierScore ?? 0,
+    );
+
     // Rank by fitness
     results.sort((a, b) => b.result.fitness - a.result.fitness);
     const best = results[0];
@@ -449,6 +468,23 @@ export class VinceGenomeService extends Service {
     await this.save();
     await this.appendHistoryLine(record);
 
+    try {
+      const dataDir = path.join(process.cwd(), "data");
+      if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+      const jsonlPath = path.join(dataDir, "genome-composite-history.jsonl");
+      const snapshot: Record<string, unknown> = {
+        date: new Date().toISOString().slice(0, 10),
+        generation: record.generation,
+        composite_fitness: record.bestFitness,
+        current_fitness: record.currentFitness,
+        promoted: record.promoted,
+        candidate_count: record.candidateCount,
+      };
+      fs.appendFileSync(jsonlPath, JSON.stringify(snapshot) + "\n", "utf-8");
+    } catch (e) {
+      logger.debug("[Genome] Could not append genome-composite-history:", e);
+    }
+
     return record;
   }
 
@@ -577,12 +613,8 @@ export class VinceGenomeService extends Service {
     const std = Math.sqrt(variance) || 1;
     const sharpe = mean / std;
 
-    // Composite fitness: weighted combination
-    const fitness =
-      sharpe * 0.4 +
-      (winRate / 100) * 0.3 +
-      Math.max(0, 1 - maxDrawdown / 20) * 0.2 +
-      Math.min(1, trades / 50) * 0.1;
+    const winRateFraction = winRate / 100;
+    const brierScore = 0;
 
     return {
       genomeId: genome.id,
@@ -594,8 +626,23 @@ export class VinceGenomeService extends Service {
       sharpe,
       maxDrawdownPct: maxDrawdown,
       avgHoldingMinutes: avgHolding,
-      fitness,
+      fitness: 0,
+      brierScore,
     };
+  }
+
+  /**
+   * Compute multiplicative composite fitness (causal_uplift * sharpe * (1 - brierScore)).
+   * Used in evolve() after baseline win rate is known.
+   */
+  private compositeFitness(
+    winRateFraction: number,
+    baselineWinRateFraction: number,
+    sharpe: number,
+    brierScore: number,
+  ): number {
+    const causalUplift = winRateFraction - baselineWinRateFraction;
+    return causalUplift * sharpe * (1 - brierScore);
   }
 
   // ==========================================

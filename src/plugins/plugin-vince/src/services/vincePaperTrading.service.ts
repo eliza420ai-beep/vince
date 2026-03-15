@@ -97,6 +97,7 @@ import {
   recordContextOutcome,
 } from "../utils/contextFeatureStats";
 import { getSentimentGateForDirection } from "./vinceSentimentGate";
+import { loadPromptTemplate } from "../utils/loadPromptTemplate";
 import { runPostMortem } from "../utils/postMortem";
 import type {
   VinceNarrativeRadarService,
@@ -1142,13 +1143,30 @@ export class VincePaperTradingService extends Service {
     sizeUsd: number,
     signal: AggregatedTradeSignal,
     regime: MarketRegime | null,
+    sentiment?: { sentimentScore: number; sentimentLabel: string },
   ): Promise<boolean> {
     const topSources =
       Object.keys(signal.sourceBreakdown ?? {})
         .slice(0, 5)
         .join(", ") || "—";
     const regimeStr = regime?.regime ?? "unknown";
-    const prompt = `You are a paper-trade entry gate. One candidate only. Reply with exactly one line: APPROVE or VETO, then a short reason.
+    const confirming =
+      signal.confirmingCount ??
+      Object.keys(signal.sourceBreakdown ?? {}).length;
+    const templatePrompt = loadPromptTemplate("prompts/vince-entry-gate.md", {
+      asset,
+      direction,
+      strength: signal.strength,
+      confidence: signal.confidence,
+      confirming,
+      regime: regimeStr,
+      sentiment_score: sentiment?.sentimentScore ?? 5,
+      sentiment_label: sentiment?.sentimentLabel ?? "neutral",
+      signal_summary: `${asset} ${direction.toUpperCase()} | size $${sizeUsd.toFixed(0)} | strength ${signal.strength}% confidence ${signal.confidence}% | regime ${regimeStr} | sources ${topSources}`,
+    });
+    const prompt =
+      templatePrompt ??
+      `You are a paper-trade entry gate. One candidate only. Reply with exactly one line: APPROVE or VETO, then a short reason.
 
 Candidate: ${asset} ${direction.toUpperCase()} | size $${sizeUsd.toFixed(0)} | strength ${signal.strength}% confidence ${signal.confidence}% | regime ${regimeStr} | sources ${topSources}.
 
@@ -2638,6 +2656,10 @@ Reply format: APPROVE reason or VETO reason`;
           ...(typeof adaptiveMaxLeverage === "number"
             ? { maxLeverageOverride: adaptiveMaxLeverage }
             : {}),
+          assetClassMaxLeverage: getAssetClassMaxLeverage(
+            inferPtqgAssetClass(asset),
+            this.runtime,
+          ),
         });
 
         if (!tradeValidation.valid) {
@@ -2665,6 +2687,10 @@ Reply format: APPROVE reason or VETO reason`;
             finalSize,
             tradeSignal,
             regime,
+            {
+              sentimentScore: sentimentGate.sentimentScore,
+              sentimentLabel: sentimentGate.sentimentLabel,
+            },
           );
           if (!proceed) {
             logger.debug(

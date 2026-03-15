@@ -176,6 +176,25 @@ trades → feature store → [ML loop: train → ONNX → deploy]
 
 ---
 
+## Three Loops That Never Sleep — What’s Implemented
+
+The architecture in [Three Loops That Never Sleep](https://ikigaistudio.substack.com/p/three-loops-that-never-sleep) is implemented end-to-end. These eight pieces close the gap between the essay and the codebase:
+
+| # | What | Where |
+|---|------|--------|
+| **1** | **Prompt templates at runtime** | Entry gate and Solus strike ritual load `prompts/vince-entry-gate.md` and `prompts/solus-strike-ritual.md` at invocation (inline fallback if missing). Forge’s prompt mutations affect live behavior. |
+| **2** | **Prompt mutations in Forge** | `generatePromptMutations()` and `applyPromptMutation()` in the experiment service; bounded parameter changes in those files are in the nightly experiment pool with policy mutations. |
+| **3** | **SOUL.md thesis alignment** | Experiments that contradict the thesis get a 0.8× multiplier on the composite; `thesis_alignment` is stored on results and in the Forge job ledger. |
+| **4** | **Causal uplift** | Replay uses a rule-based baseline (equal weights, no ML). Composite uses `causal_uplift = candidate_win_rate - baseline_win_rate` so the metric reflects causation, not correlation. |
+| **5** | **Genome composite** | Strategy genome fitness is the same multiplicative composite as Forge: `causal_uplift × Sharpe × (1 − Brier)`. Drawdown and trade count stay as hard gates. |
+| **6** | **Guardrails enforced** | `ASSET_CLASS_MAX_LEVERAGE` is enforced in `validateTrade()`; paper-trading and bot action pass asset-class caps; guardrail rejections are logged. |
+| **7** | **MLX in the nightly loop** | When `FORGE_USE_MLX=true` and the MLX service is available, the nightly run uses `forgeMlx.runAutoresearch()` for the experiment sweep; otherwise TypeScript replay runs. |
+| **8** | **Composite time-series** | After each Forge run, genome evolution, and ML training, a snapshot is appended to `data/forge-composite-history.jsonl`, `data/genome-composite-history.jsonl`, and `data/ml-composite-history.jsonl` for monitoring and charts. |
+
+One composite metric, one precedence order (hard limits → guardrails → policy → ML), and three loops that compound without manual steps.
+
+---
+
 ## Solus — Hypersurface Options
 
 Solus handles the weekly onchain options strategy on Hypersurface (BTC, ETH, SOL, HYPE). One ask — "optimal strike for BTC" or "strike ritual" — and you get a strike call with **assignment probability** (GBM closed-form, or ML-calibrated when the ONNX model is trained on resolved predictions).
@@ -413,6 +432,7 @@ Async command jobs are also appended to `.elizadb/forge/jobs.jsonl` with:
 | [RECURSIVE.md](docs/RECURSIVE.md) | Autoresearch architecture, signal cache, 5,000+ experiments/night |
 | [plugin-vince](src/plugins/plugin-vince/) | WHAT, WHY, HOW, README |
 | [We Built the Machine](https://ikigaistudio.substack.com/p/we-built-the-machine) | Full architecture essay — three layers, failure modes, harness, north star |
+| [Three Loops That Never Sleep](https://ikigaistudio.substack.com/p/three-loops-that-never-sleep) | Composite metric, ML / genome / Forge loops, precedence order — and [what’s implemented](#three-loops-that-never-sleep--whats-implemented) in this repo |
 
 ---
 

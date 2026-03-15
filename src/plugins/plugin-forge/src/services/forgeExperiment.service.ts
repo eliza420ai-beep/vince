@@ -34,6 +34,7 @@ import {
   validatePromotion,
   countRejectReasons,
 } from "./forgePromotionValidator.ts";
+import { appendCompositeSnapshot } from "../utils/compositeHistory.ts";
 import { runLowDataRemediation } from "../utils/lowDataRemediation.ts";
 import {
   loadForgeSignalCache,
@@ -47,6 +48,16 @@ import {
 const REPO_ROOT = process.cwd();
 const POLICY_PATH = path.join(REPO_ROOT, "policies", "trading-policy.yaml");
 const SOUL_PATH = path.join(REPO_ROOT, "knowledge", "teammate", "SOUL.md");
+const PROMPT_VINCE_GATE = path.join(
+  REPO_ROOT,
+  "prompts",
+  "vince-entry-gate.md",
+);
+const PROMPT_SOLUS_RITUAL = path.join(
+  REPO_ROOT,
+  "prompts",
+  "solus-strike-ritual.md",
+);
 
 /** Minimum composite delta (fraction) to commit a winner */
 const MIN_COMPOSITE_DELTA = 0.005; // +0.5%
@@ -62,6 +73,8 @@ const MIN_TRIGGERED_FOR_GATE = 5;
 interface ReplayContext {
   holdout: ForgeSignalRecord[];
   baselineResult: ForgeReplayResult;
+  /** Rule-based baseline (equal weights, no Thompson Sampling) for causal uplift */
+  ruleBasedMetrics: ReplayMetrics;
   baselineWeights: Record<string, number>;
   baselineThresholds: {
     minStrength: number;
@@ -150,6 +163,35 @@ export class ForgeExperimentService {
     }
   }
 
+  /**
+   * Score thesis alignment: experiments that contradict SOUL.md (e.g. loosening gates
+   * when thesis says "do not carelessly execute") get 0.8× multiplier on composite.
+   */
+  private getThesisAlignmentMultiplier(mutation: ForgeMutation): number {
+    const soul = this.readSoulThesis().toLowerCase();
+    const pushBack =
+      soul.includes("push back") ||
+      soul.includes("do not carelessly execute") ||
+      soul.includes("human decides");
+    if (!pushBack) return 1.0;
+    const before = typeof mutation.before === "number" ? mutation.before : null;
+    const after = typeof mutation.after === "number" ? mutation.after : null;
+    if (before === null || after === null) return 1.0;
+    const key = mutation.keyPath.toLowerCase();
+    const isEntryGate =
+      key.includes("strength") ||
+      key.includes("confidence") ||
+      key.includes("confirming");
+    const isPolicyGate =
+      key.includes("min_strength") ||
+      key.includes("min_confidence") ||
+      key.includes("bearish_threshold");
+    if ((isEntryGate || isPolicyGate) && after < before) {
+      return 0.8;
+    }
+    return 1.0;
+  }
+
   /** Count rows in the feature store. */
   async getFeatureStoreRowCount(): Promise<number> {
     return this.pythonService?.getFeatureStoreRowCount() ?? 0;
@@ -200,8 +242,18 @@ export class ForgeExperimentService {
     return latest?.weightsSnapshot ?? {};
   }
 
-  private toForgeReplayResult(metrics: ReplayMetrics): ForgeReplayResult {
-    const causalUplift = metrics.winRate;
+  /**
+   * Build ForgeReplayResult. When ruleBasedWinRate is provided, causal_uplift = winRate - ruleBasedWinRate
+   * (honest causation vs rule-based baseline); otherwise legacy: causalUplift = winRate.
+   */
+  private toForgeReplayResult(
+    metrics: ReplayMetrics,
+    ruleBasedWinRate?: number,
+  ): ForgeReplayResult {
+    const causalUplift =
+      ruleBasedWinRate !== undefined
+        ? metrics.winRate - ruleBasedWinRate
+        : metrics.winRate;
     const brierScore = metrics.brierScore;
     return {
       tradeCount: metrics.withOutcome,
@@ -410,6 +462,114 @@ export class ForgeExperimentService {
   }
 
   /**
+   * Generate candidate mutations for prompt files (vince-entry-gate, solus-strike-ritual).
+   * Mutates only numeric thresholds in rule lines; bounded variations.
+   */
+  generatePromptMutations(maxCount = 5): ForgeMutation[] {
+    const candidates: ForgeMutation[] = [];
+
+    // vince-entry-gate.md: rule thresholds
+    if (fs.existsSync(PROMPT_VINCE_GATE)) {
+      const raw = fs.readFileSync(PROMPT_VINCE_GATE, "utf-8");
+      const riskOffMatch = raw.match(/risk-off AND strength\s*<\s*(\d+)/);
+      const bearishMatch = raw.match(/bearish AND strength\s*<\s*(\d+)/);
+      const confirmingMatch = raw.match(
+        /confirming\s*<\s*(\d+)\s+for any HIP-3/,
+      );
+      if (riskOffMatch) {
+        const current = parseInt(riskOffMatch[1], 10);
+        [current - 5, current + 5]
+          .filter((v) => v >= 50 && v <= 85)
+          .forEach((after) => {
+            candidates.push({
+              filePath: "prompts/vince-entry-gate.md",
+              keyPath: "rule.risk_off_strength",
+              before: current,
+              after,
+              description: `Vince gate: risk-off strength threshold ${current} → ${after}`,
+            });
+          });
+      }
+      if (bearishMatch) {
+        const current = parseInt(bearishMatch[1], 10);
+        [current - 5, current + 5]
+          .filter((v) => v >= 55 && v <= 90)
+          .forEach((after) => {
+            candidates.push({
+              filePath: "prompts/vince-entry-gate.md",
+              keyPath: "rule.bearish_strength",
+              before: current,
+              after,
+              description: `Vince gate: bearish long strength threshold ${current} → ${after}`,
+            });
+          });
+      }
+      if (confirmingMatch) {
+        const current = parseInt(confirmingMatch[1], 10);
+        [current - 1, current + 1]
+          .filter((v) => v >= 1 && v <= 5)
+          .forEach((after) => {
+            candidates.push({
+              filePath: "prompts/vince-entry-gate.md",
+              keyPath: "rule.hip3_confirming",
+              before: current,
+              after,
+              description: `Vince gate: HIP-3 confirming minimum ${current} → ${after}`,
+            });
+          });
+      }
+    }
+
+    return candidates.slice(0, maxCount);
+  }
+
+  /**
+   * Apply a prompt file mutation by replacing the numeric value in the matching rule line.
+   * Returns true if the file was successfully modified.
+   */
+  applyPromptMutation(mutation: ForgeMutation): boolean {
+    const fullPath = path.join(REPO_ROOT, mutation.filePath);
+    if (!fs.existsSync(fullPath)) return false;
+    try {
+      const original = fs.readFileSync(fullPath, "utf-8");
+      let content = original;
+      const afterStr = String(mutation.after);
+      if (mutation.filePath === "prompts/vince-entry-gate.md") {
+        if (mutation.keyPath === "rule.risk_off_strength") {
+          content = content.replace(
+            /(regime is risk-off AND )strength < \d+/,
+            `$1strength < ${afterStr}`,
+          );
+        } else if (mutation.keyPath === "rule.bearish_strength") {
+          content = content.replace(
+            /(sentiment_label is bearish AND )strength < \d+/,
+            `$1strength < ${afterStr}`,
+          );
+        } else if (mutation.keyPath === "rule.hip3_confirming") {
+          content = content.replace(
+            /confirming < \d+(?= for any HIP-3)/,
+            `confirming < ${afterStr}`,
+          );
+        }
+      }
+      if (content === original) {
+        logger.warn(
+          `[ForgeExperiment] Prompt mutation pattern not found: ${mutation.keyPath}`,
+        );
+        return false;
+      }
+      fs.writeFileSync(fullPath, content, "utf-8");
+      logger.debug(
+        `[ForgeExperiment] Applied prompt mutation: ${mutation.keyPath} ${mutation.before} → ${mutation.after}`,
+      );
+      return true;
+    } catch (err) {
+      logger.error("[ForgeExperiment] Failed to apply prompt mutation:", err);
+      return false;
+    }
+  }
+
+  /**
    * Apply a mutation to policies/trading-policy.yaml by replacing the value.
    * Returns true if the file was successfully modified.
    */
@@ -467,9 +627,10 @@ export class ForgeExperimentService {
       candidateThresholds,
     );
 
+    const ruleWinRate = ctx.ruleBasedMetrics.winRate;
     if (candidateMetrics.withOutcome < MIN_TRIGGERED_FOR_GATE) {
       return {
-        ...this.toForgeReplayResult(candidateMetrics),
+        ...this.toForgeReplayResult(candidateMetrics, ruleWinRate),
         safetyGatePassed: false,
         safetyGateReason: `Insufficient holdout outcomes after mutation: ${candidateMetrics.withOutcome} < ${MIN_TRIGGERED_FOR_GATE}`,
       };
@@ -483,7 +644,7 @@ export class ForgeExperimentService {
     );
     if (!regimeGate.passed) {
       return {
-        ...this.toForgeReplayResult(candidateMetrics),
+        ...this.toForgeReplayResult(candidateMetrics, ruleWinRate),
         safetyGatePassed: false,
         safetyGateReason: regimeGate.reason,
       };
@@ -497,13 +658,16 @@ export class ForgeExperimentService {
     );
     if (!windowGate.passed) {
       return {
-        ...this.toForgeReplayResult(candidateMetrics),
+        ...this.toForgeReplayResult(candidateMetrics, ruleWinRate),
         safetyGatePassed: false,
         safetyGateReason: windowGate.reason,
       };
     }
 
-    const candidateResult = this.toForgeReplayResult(candidateMetrics);
+    const candidateResult = this.toForgeReplayResult(
+      candidateMetrics,
+      ruleWinRate,
+    );
     const promotion = validatePromotion({
       composite: candidateResult.composite,
       baselineComposite: ctx.baselineResult.composite,
@@ -579,15 +743,24 @@ export class ForgeExperimentService {
     const { holdout } = splitHoldout(allRecords, this.getHoldoutFraction());
     const baselineWeights = this.getBaselineWeights(allRecords);
     const baselineThresholds = this.buildReplayThresholds(policy);
+    const ruleBasedMetrics = replayWithWeights(
+      holdout,
+      { sourceWeights: {}, defaultWeight: 1.0 },
+      baselineThresholds,
+    );
     const baselineMetrics = replayWithWeights(
       holdout,
       { sourceWeights: baselineWeights, defaultWeight: 1.0 },
       baselineThresholds,
     );
-    const baselineResult = this.toForgeReplayResult(baselineMetrics);
+    const baselineResult = this.toForgeReplayResult(
+      baselineMetrics,
+      ruleBasedMetrics.winRate,
+    );
     return {
       holdout,
       baselineResult,
+      ruleBasedMetrics,
       baselineWeights,
       baselineThresholds,
     };
@@ -617,6 +790,53 @@ export class ForgeExperimentService {
       safetyGateStatus: "not_reached",
       committedBranches: [],
     };
+
+    if (
+      process.env.FORGE_USE_MLX === "true" &&
+      opts.runtime === "mlx" &&
+      this.mlxService
+    ) {
+      const available = await this.mlxService.isAvailable();
+      if (available) {
+        const featureStorePath = path.join(
+          REPO_ROOT,
+          ".elizadb",
+          "forge",
+          "signal-cache.jsonl",
+        );
+        logger.info(
+          "[ForgeExperiment] Running MLX autoresearch (FORGE_USE_MLX=true)",
+        );
+        const result = await this.mlxService.runAutoresearch(
+          featureStorePath,
+          opts.budgetMinutes,
+          opts.targetMetric,
+        );
+        summary.experimentsRun = 1;
+        summary.budgetConsumedMinutes = result.durationSeconds / 60;
+        if (result.compositeScore != null) {
+          summary.bestCompositeDelta = result.compositeScore;
+        }
+        summary.runtime = "mlx";
+        try {
+          appendCompositeSnapshot("forge-composite-history", {
+            date: summary.date,
+            baseline_composite: summary.baselineComposite,
+            best_candidate_composite: summary.bestCompositeDelta,
+            delta: summary.bestCompositeDelta,
+            winners: summary.winners.length,
+            losers: summary.losers.length,
+            runtime: "mlx",
+          });
+        } catch (e) {
+          logger.debug(
+            "[ForgeExperiment] Could not append forge-composite-history:",
+            e,
+          );
+        }
+        return summary;
+      }
+    }
 
     const cacheLabeledCount = loadForgeSignalCache().filter(
       (r) => r.outcome !== undefined && typeof r.pnlPct === "number",
@@ -656,9 +876,19 @@ export class ForgeExperimentService {
     }
     summary.baselineComposite = replayCtx.baselineResult.composite;
 
-    const mutations = this.generatePolicyMutations(policy, opts.maxExperiments);
+    const policyMutations = this.generatePolicyMutations(
+      policy,
+      Math.max(1, Math.floor(opts.maxExperiments / 2)),
+    );
+    const promptMutations = this.generatePromptMutations(
+      Math.max(0, opts.maxExperiments - policyMutations.length),
+    );
+    const mutations = [...policyMutations, ...promptMutations].slice(
+      0,
+      opts.maxExperiments,
+    );
     logger.info(
-      `[ForgeExperiment] Starting ${mutations.length} experiments. Baseline composite: ${replayCtx.baselineResult.composite.toFixed(4)} (holdout=${replayCtx.holdout.length})`,
+      `[ForgeExperiment] Starting ${mutations.length} experiments (${policyMutations.length} policy, ${promptMutations.length} prompt). Baseline composite: ${replayCtx.baselineResult.composite.toFixed(4)} (holdout=${replayCtx.holdout.length})`,
     );
 
     const initialBranch = await this.gitService!.getCurrentBranch();
@@ -672,11 +902,17 @@ export class ForgeExperimentService {
 
       const mutation = mutations[i];
       const experimentId = String(i + 1).padStart(3, "0");
+      const isPromptMutation = mutation.filePath.startsWith("prompts/");
+      const surface: ForgeSurface = isPromptMutation
+        ? mutation.filePath.includes("vince-entry-gate")
+          ? "prompt_vince_gate"
+          : "prompt_solus_ritual"
+        : "policy_threshold";
       const config: ForgeExperimentConfig = {
         id: `exp-${date.replace(/-/g, "")}-${experimentId}`,
         branch: `forge/experiment-${date.replace(/-/g, "")}-${experimentId}`,
         startedAt: new Date().toISOString(),
-        surface: "policy_threshold" as ForgeSurface,
+        surface,
         mutation,
       };
 
@@ -684,8 +920,10 @@ export class ForgeExperimentService {
         `[ForgeExperiment] Experiment ${experimentId}: ${mutation.description}`,
       );
 
-      // Apply mutation
-      const applied = this.applyPolicyMutation(mutation);
+      // Apply mutation (policy YAML or prompt file)
+      const applied = isPromptMutation
+        ? this.applyPromptMutation(mutation)
+        : this.applyPolicyMutation(mutation);
       if (!applied) {
         logger.warn(
           `[ForgeExperiment] Could not apply mutation ${experimentId}, skipping`,
@@ -695,24 +933,41 @@ export class ForgeExperimentService {
 
       // Run replay
       const result = await this.runPaperBotReplay(mutation, replayCtx);
+      const thesisMultiplier = this.getThesisAlignmentMultiplier(mutation);
+      const adjustedComposite = result.composite * thesisMultiplier;
       const compositeDelta =
-        result.composite - replayCtx.baselineResult.composite;
+        adjustedComposite - replayCtx.baselineResult.composite;
+      const resultWithAlignment = {
+        ...result,
+        composite: adjustedComposite,
+        thesisAlignment: thesisMultiplier,
+      };
+      const promotion = validatePromotion({
+        composite: adjustedComposite,
+        baselineComposite: replayCtx.baselineResult.composite,
+        winRate: result.winRate,
+        maxDrawdownPct: result.maxDrawdownPct,
+        policy: this.loadPolicy() ?? undefined,
+        holdoutCount: replayCtx.holdout.length,
+        withOutcome: result.tradeCount,
+      });
       const expResult: ForgeExperimentResult = {
         config,
-        result,
+        result: resultWithAlignment,
         compositeDelta,
-        winner: result.safetyGatePassed,
+        winner: promotion.passed,
         durationSeconds: (Date.now() - startTime) / 1000,
-        gateFailures: result.gateFailures,
+        gateFailures:
+          promotion.failures.length > 0 ? promotion.failures : undefined,
       };
 
       summary.experimentsRun++;
 
-      if (result.safetyGatePassed) {
+      if (promotion.passed) {
         // Hard guard: validate again immediately before commit
         const policy = this.loadPolicy();
         const hardCheck = validatePromotion({
-          composite: result.composite,
+          composite: adjustedComposite,
           baselineComposite: replayCtx.baselineResult.composite,
           winRate: result.winRate,
           maxDrawdownPct: result.maxDrawdownPct,
@@ -755,7 +1010,7 @@ export class ForgeExperimentService {
         await this.gitService!.revertLoser(mutation.filePath);
         summary.losers.push(expResult);
         logger.debug(
-          `[ForgeExperiment] Loser reverted: ${mutation.description} — ${result.safetyGateReason}`,
+          `[ForgeExperiment] Loser reverted: ${mutation.description} — ${(expResult.gateFailures ?? [])[0] ?? result.safetyGateReason}`,
         );
       }
     }
@@ -769,6 +1024,23 @@ export class ForgeExperimentService {
     summary.rejectReasonCounts = countRejectReasons(
       summary.losers.map((l) => l.gateFailures ?? []),
     );
+    try {
+      appendCompositeSnapshot("forge-composite-history", {
+        date: summary.date,
+        baseline_composite: summary.baselineComposite,
+        best_candidate_composite:
+          summary.baselineComposite + summary.bestCompositeDelta,
+        delta: summary.bestCompositeDelta,
+        winners: summary.winners.length,
+        losers: summary.losers.length,
+        runtime: summary.runtime,
+      });
+    } catch (e) {
+      logger.debug(
+        "[ForgeExperiment] Could not append forge-composite-history:",
+        e,
+      );
+    }
     logger.info(
       `[ForgeExperiment] Run complete. ${summary.winners.length} winners, ${summary.losers.length} losers. Best ΔComposite: +${(summary.bestCompositeDelta * 100).toFixed(2)}%`,
     );

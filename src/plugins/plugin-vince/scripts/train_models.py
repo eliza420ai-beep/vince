@@ -1533,6 +1533,28 @@ def _suggest_signal_factors(df: pd.DataFrame) -> List[Dict[str, str]]:
     return suggested
 
 
+def _append_ml_composite_history(improvement_report: Dict[str, Any]) -> None:
+    """Append one JSON line to data/ml-composite-history.jsonl for time-series tracking."""
+    try:
+        data_dir = Path.cwd() / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        path = data_dir / "ml-composite-history.jsonl"
+        holdout = improvement_report.get("holdout_metrics") or {}
+        # Composite: signal_quality AUC if present, else 0; include other metrics for visibility
+        sq = holdout.get("signal_quality") or {}
+        auc = float(sq.get("auc", 0)) if sq else 0
+        record = {
+            "date": datetime.now().isoformat()[:10],
+            "holdout_signal_quality_auc": auc,
+            "holdout_composite": auc,
+            "models": list(holdout.keys()),
+        }
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
+    except Exception as e:  # noqa: BLE001
+        logger.debug("Could not append ml-composite-history: %s", e)
+
+
 def build_improvement_report(
     df: pd.DataFrame,
     report_entries: Dict[str, Dict[str, Any]],
@@ -2075,6 +2097,7 @@ def main():
     if improvement_report:
         improvement_report["sentinel_tasks_created"] = _create_sentinel_tasks_from_report(improvement_report, output_dir)
         write_improvement_report_md(improvement_report, output_dir / "improvement_report.md")
+        _append_ml_composite_history(improvement_report)
 
     logger.info("=" * 60)
     logger.info("Training complete. Output: %s", output_dir)
