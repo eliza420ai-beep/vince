@@ -1,0 +1,28 @@
+{
+  "date": "2026-03-15",
+  "thesis": "SOL outperforms ETH this week on relative strength divergence the market has not fully priced",
+  "primaryTicker": "SOL",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 88.45,
+  "primaryRiskUsd": 645,
+  "invalidateCondition": "SOL breaks below $82",
+  "killConditions": [
+    "SOL < $82",
+    "ETH catches bid from ETF flows or L2 breakthrough narrative"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "ETH",
+  "altDirection": "short",
+  "altInstrument": "perp",
+  "evThresholdPct": 7,
+  "catalystSources": [
+    "headlines",
+    "polymarket"
+  ]
+}

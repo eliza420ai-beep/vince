@@ -195,3 +195,7 @@
 ## 2026-03-12
 
 - Clawterm: push security audit (ACIP/SkillGuard) earlier in onboarding instead of waiting for first prompt injection incident.
+## 2026-03-15
+
+- Reconnect X API as priority to catch sentiment shifts and mispricing before market moves.
+- Reorder Clawterm setup guide to prioritize security audit over tailscale binding to prevent downstream support friction.

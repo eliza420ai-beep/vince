@@ -67,3 +67,4 @@
 | 2026-03-11 | Signal flipped long on extreme fear (index 15) but paper bot's down 83%, so we'r | [View](day-reports/2026-03-11-day-report.md) |
 | 2026-03-12 | Fear index 18 with BTC ETF inflows fighting S Korea dumps—classic squeeze setup  | [View](day-reports/2026-03-12-day-report.md) |
 | 2026-03-12 | Signal flipped long on extreme fear (index 18) but paper bot's down 83%, so we'r | [View](day-reports/2026-03-12-day-report.md) |
+| 2026-03-15 | BTC rallying hard into our strike, Fed locked at hold, buying back the call earl | [View](day-reports/2026-03-15-day-report.md) |

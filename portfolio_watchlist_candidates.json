@@ -1,0 +1,1632 @@
+{
+  "generatedAt": "2026-03-15T08:37:33.001Z",
+  "promoteNow": [
+    {
+      "ticker": "AMAT",
+      "sleeve": "tastytrade",
+      "score": 0.6875000000000001,
+      "reason": "in sleeve, 3m +24%, 12m +129%, recent 8-K, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "KLAC",
+      "sleeve": "tastytrade",
+      "score": 0.6875000000000001,
+      "reason": "in sleeve, 3m +15%, 12m +109%, recent 8-K, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "ASML",
+      "sleeve": "tastytrade",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +20%, 12m +91%, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "VRT",
+      "sleeve": "tastytrade",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +42%, 12m +203%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "EQT",
+      "sleeve": "tastytrade",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +12%, 12m +32%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "NEE",
+      "sleeve": "watchlist",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +14%, 12m +27%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "GEV",
+      "sleeve": "watchlist",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +11%, 12m +170%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "EME",
+      "sleeve": "watchlist",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +13%, 12m +86%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "LRCX",
+      "sleeve": "tastytrade",
+      "score": 0.6625000000000001,
+      "reason": "in sleeve, 3m +26%, 12m +177%, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "STX",
+      "sleeve": "tastytrade",
+      "score": 0.6625000000000001,
+      "reason": "in sleeve, 3m +28%, 12m +342%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "LITE",
+      "sleeve": "tastytrade",
+      "score": 0.6525000000000001,
+      "reason": "in sleeve, 3m +70%, 12m +872%, recent 8-K, filing activity, liquid, high vol"
+    },
+    {
+      "ticker": "CCJ",
+      "sleeve": "watchlist",
+      "score": 0.6425000000000001,
+      "reason": "in sleeve, 3m +15%, 12m +153%, filing activity, liquid"
+    },
+    {
+      "ticker": "PWR",
+      "sleeve": "watchlist",
+      "score": 0.6375000000000001,
+      "reason": "in sleeve, 3m +21%, 12m +124%, liquid, moderate vol"
+    },
+    {
+      "ticker": "CDNS",
+      "sleeve": "tastytrade",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +20%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "AVGO",
+      "sleeve": "tastytrade",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +66%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "CEG",
+      "sleeve": "tastytrade",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +40%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "LLY",
+      "sleeve": "watchlist",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +20%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "ANET",
+      "sleeve": "tastytrade",
+      "score": 0.6250000000000001,
+      "reason": "in sleeve, 12m +66%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "CLS",
+      "sleeve": "watchlist",
+      "score": 0.6250000000000001,
+      "reason": "in sleeve, 12m +194%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "SNDK",
+      "sleeve": "tastytrade",
+      "score": 0.6225,
+      "reason": "in sleeve, 3m +184%, 12m +1212%, liquid, high vol"
+    },
+    {
+      "ticker": "BWXT",
+      "sleeve": "watchlist",
+      "score": 0.6200000000000001,
+      "reason": "in sleeve, 3m +8%, 12m +98%, liquid"
+    },
+    {
+      "ticker": "CRWD",
+      "sleeve": "watchlist",
+      "score": 0.6150000000000001,
+      "reason": "in sleeve, 12m +27%, recent 8-K, filing activity, liquid, high vol"
+    },
+    {
+      "ticker": "SNPS",
+      "sleeve": "tastytrade",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "ASTS",
+      "sleeve": "tastytrade",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, 3m +9%, 12m +213%, liquid, high vol"
+    },
+    {
+      "ticker": "ISRG",
+      "sleeve": "watchlist",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "PANW",
+      "sleeve": "watchlist",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "NOW",
+      "sleeve": "watchlist",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "VST",
+      "sleeve": "watchlist",
+      "score": 0.6000000000000001,
+      "reason": "in sleeve, 12m +30%, liquid, moderate vol"
+    },
+    {
+      "ticker": "ETN",
+      "sleeve": "watchlist",
+      "score": 0.6000000000000001,
+      "reason": "in sleeve, 12m +22%, liquid, moderate vol"
+    }
+  ],
+  "researchNext": [
+    {
+      "ticker": "OKLO",
+      "sleeve": "tastytrade",
+      "score": 0.5950000000000001,
+      "reason": "in sleeve, 12m +123%, filing activity, liquid, high vol"
+    },
+    {
+      "ticker": "ARM",
+      "sleeve": "tastytrade",
+      "score": 0.5850000000000001,
+      "reason": "in sleeve, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "IONQ",
+      "sleeve": "tastytrade",
+      "score": 0.5850000000000001,
+      "reason": "in sleeve, 12m +51%, liquid, high vol"
+    },
+    {
+      "ticker": "NET",
+      "sleeve": "watchlist",
+      "score": 0.5850000000000001,
+      "reason": "in sleeve, 12m +78%, liquid, high vol"
+    },
+    {
+      "ticker": "REGN",
+      "sleeve": "watchlist",
+      "score": 0.5750000000000001,
+      "reason": "in sleeve, liquid, moderate vol"
+    },
+    {
+      "ticker": "ABT",
+      "sleeve": "peer",
+      "score": 0.5750000000000001,
+      "reason": "recent 8-K, filing activity, margin, diversification, moderate vol"
+    },
+    {
+      "ticker": "ADI",
+      "sleeve": "peer",
+      "score": 0.5750000000000001,
+      "reason": "recent 8-K, filing activity, margin, diversification, moderate vol"
+    },
+    {
+      "ticker": "BSX",
+      "sleeve": "peer",
+      "score": 0.5750000000000001,
+      "reason": "recent 8-K, filing activity, margin, diversification, moderate vol"
+    },
+    {
+      "ticker": "NVO",
+      "sleeve": "watchlist",
+      "score": 0.5700000000000001,
+      "reason": "in sleeve, filing activity, liquid, high vol"
+    },
+    {
+      "ticker": "CIEN",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "SYK",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "TEAM",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "TMO",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "MSFT",
+      "sleeve": "expansion",
+      "score": 0.555,
+      "reason": "filing activity, margin, moderate vol"
+    },
+    {
+      "ticker": "TSM",
+      "sleeve": "peer",
+      "score": 0.535,
+      "reason": "filing activity, moderate vol"
+    },
+    {
+      "ticker": "ABB",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ANSS",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CSCO",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CTSH",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DDOG",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DELL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DHR",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DUK",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ELV",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "EXC",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GE",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GNRC",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "HPE",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "HUBS",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "JNPR",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MDB",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MCHP",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MRVL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MSI",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MU",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NRG",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NRGV",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NVDA",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ON",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ORCL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PEG",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PLTR",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PODD",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "RTX",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SAP",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SHOP",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SMCI",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "TT",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "VRTX",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "VEEV",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "WMB",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "XEL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ADSK",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AMD",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AMGN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AMZN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "APH",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "APP",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AXON",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AZN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "BE",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "BKNG",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CE",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CHTR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CMI",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CORZ",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "COST",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CPRT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CRDO",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CRWV",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CTAS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CVNA",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DASH",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DOCU",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ENPH",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ETR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "EXAS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "FLEX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "FSLR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "FTNT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GFS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GLW",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "HALO",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "INTU",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "KKR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "LIN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MELI",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "META",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NBIS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NEM",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NFLX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NOC",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NTNX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NXT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PCAR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PM",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "RBLX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ROP",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SERV",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SOUN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "TTWO",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "UBER",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "VRSN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "WDAY",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "WMT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ZS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    }
+  ],
+  "avoid": [],
+  "existingSleeve": [
+    {
+      "ticker": "AMAT",
+      "sleeve": "tastytrade",
+      "score": 0.6875000000000001,
+      "reason": "in sleeve, 3m +24%, 12m +129%, recent 8-K, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "KLAC",
+      "sleeve": "tastytrade",
+      "score": 0.6875000000000001,
+      "reason": "in sleeve, 3m +15%, 12m +109%, recent 8-K, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "ASML",
+      "sleeve": "tastytrade",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +20%, 12m +91%, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "VRT",
+      "sleeve": "tastytrade",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +42%, 12m +203%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "EQT",
+      "sleeve": "tastytrade",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +12%, 12m +32%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "NEE",
+      "sleeve": "watchlist",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +14%, 12m +27%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "GEV",
+      "sleeve": "watchlist",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +11%, 12m +170%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "EME",
+      "sleeve": "watchlist",
+      "score": 0.6675000000000001,
+      "reason": "in sleeve, 3m +13%, 12m +86%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "LRCX",
+      "sleeve": "tastytrade",
+      "score": 0.6625000000000001,
+      "reason": "in sleeve, 3m +26%, 12m +177%, filing activity, margin, liquid"
+    },
+    {
+      "ticker": "STX",
+      "sleeve": "tastytrade",
+      "score": 0.6625000000000001,
+      "reason": "in sleeve, 3m +28%, 12m +342%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "LITE",
+      "sleeve": "tastytrade",
+      "score": 0.6525000000000001,
+      "reason": "in sleeve, 3m +70%, 12m +872%, recent 8-K, filing activity, liquid, high vol"
+    },
+    {
+      "ticker": "CCJ",
+      "sleeve": "watchlist",
+      "score": 0.6425000000000001,
+      "reason": "in sleeve, 3m +15%, 12m +153%, filing activity, liquid"
+    },
+    {
+      "ticker": "PWR",
+      "sleeve": "watchlist",
+      "score": 0.6375000000000001,
+      "reason": "in sleeve, 3m +21%, 12m +124%, liquid, moderate vol"
+    },
+    {
+      "ticker": "CDNS",
+      "sleeve": "tastytrade",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +20%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "AVGO",
+      "sleeve": "tastytrade",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +66%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "CEG",
+      "sleeve": "tastytrade",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +40%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "LLY",
+      "sleeve": "watchlist",
+      "score": 0.6300000000000001,
+      "reason": "in sleeve, 12m +20%, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "ANET",
+      "sleeve": "tastytrade",
+      "score": 0.6250000000000001,
+      "reason": "in sleeve, 12m +66%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "CLS",
+      "sleeve": "watchlist",
+      "score": 0.6250000000000001,
+      "reason": "in sleeve, 12m +194%, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "SNDK",
+      "sleeve": "tastytrade",
+      "score": 0.6225,
+      "reason": "in sleeve, 3m +184%, 12m +1212%, liquid, high vol"
+    },
+    {
+      "ticker": "BWXT",
+      "sleeve": "watchlist",
+      "score": 0.6200000000000001,
+      "reason": "in sleeve, 3m +8%, 12m +98%, liquid"
+    },
+    {
+      "ticker": "CRWD",
+      "sleeve": "watchlist",
+      "score": 0.6150000000000001,
+      "reason": "in sleeve, 12m +27%, recent 8-K, filing activity, liquid, high vol"
+    },
+    {
+      "ticker": "SNPS",
+      "sleeve": "tastytrade",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "ASTS",
+      "sleeve": "tastytrade",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, 3m +9%, 12m +213%, liquid, high vol"
+    },
+    {
+      "ticker": "ISRG",
+      "sleeve": "watchlist",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "PANW",
+      "sleeve": "watchlist",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "NOW",
+      "sleeve": "watchlist",
+      "score": 0.6050000000000001,
+      "reason": "in sleeve, recent 8-K, filing activity, liquid"
+    },
+    {
+      "ticker": "VST",
+      "sleeve": "watchlist",
+      "score": 0.6000000000000001,
+      "reason": "in sleeve, 12m +30%, liquid, moderate vol"
+    },
+    {
+      "ticker": "ETN",
+      "sleeve": "watchlist",
+      "score": 0.6000000000000001,
+      "reason": "in sleeve, 12m +22%, liquid, moderate vol"
+    },
+    {
+      "ticker": "OKLO",
+      "sleeve": "tastytrade",
+      "score": 0.5950000000000001,
+      "reason": "in sleeve, 12m +123%, filing activity, liquid, high vol"
+    },
+    {
+      "ticker": "ARM",
+      "sleeve": "tastytrade",
+      "score": 0.5850000000000001,
+      "reason": "in sleeve, filing activity, liquid, moderate vol"
+    },
+    {
+      "ticker": "IONQ",
+      "sleeve": "tastytrade",
+      "score": 0.5850000000000001,
+      "reason": "in sleeve, 12m +51%, liquid, high vol"
+    },
+    {
+      "ticker": "NET",
+      "sleeve": "watchlist",
+      "score": 0.5850000000000001,
+      "reason": "in sleeve, 12m +78%, liquid, high vol"
+    },
+    {
+      "ticker": "REGN",
+      "sleeve": "watchlist",
+      "score": 0.5750000000000001,
+      "reason": "in sleeve, liquid, moderate vol"
+    },
+    {
+      "ticker": "NVO",
+      "sleeve": "watchlist",
+      "score": 0.5700000000000001,
+      "reason": "in sleeve, filing activity, liquid, high vol"
+    }
+  ],
+  "newCandidates": [
+    {
+      "ticker": "ABT",
+      "sleeve": "peer",
+      "score": 0.5750000000000001,
+      "reason": "recent 8-K, filing activity, margin, diversification, moderate vol"
+    },
+    {
+      "ticker": "ADI",
+      "sleeve": "peer",
+      "score": 0.5750000000000001,
+      "reason": "recent 8-K, filing activity, margin, diversification, moderate vol"
+    },
+    {
+      "ticker": "BSX",
+      "sleeve": "peer",
+      "score": 0.5750000000000001,
+      "reason": "recent 8-K, filing activity, margin, diversification, moderate vol"
+    },
+    {
+      "ticker": "CIEN",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "SYK",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "TEAM",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "TMO",
+      "sleeve": "peer",
+      "score": 0.555,
+      "reason": "recent 8-K, filing activity, diversification, moderate vol"
+    },
+    {
+      "ticker": "MSFT",
+      "sleeve": "expansion",
+      "score": 0.555,
+      "reason": "filing activity, margin, moderate vol"
+    },
+    {
+      "ticker": "TSM",
+      "sleeve": "peer",
+      "score": 0.535,
+      "reason": "filing activity, moderate vol"
+    },
+    {
+      "ticker": "ABB",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ANSS",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CSCO",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CTSH",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DDOG",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DELL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DHR",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DUK",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ELV",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "EXC",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GE",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GNRC",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "HPE",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "HUBS",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "JNPR",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MDB",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MCHP",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MRVL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MSI",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MU",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NRG",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NRGV",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NVDA",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ON",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ORCL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PEG",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PLTR",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PODD",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "RTX",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SAP",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SHOP",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SMCI",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "TT",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "VRTX",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "VEEV",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "WMB",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "XEL",
+      "sleeve": "peer",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ADSK",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AMD",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AMGN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AMZN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "APH",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "APP",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AXON",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "AZN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "BE",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "BKNG",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CE",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CHTR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CMI",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CORZ",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "COST",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CPRT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CRDO",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CRWV",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CTAS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "CVNA",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DASH",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "DOCU",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ENPH",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ETR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "EXAS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "FLEX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "FSLR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "FTNT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GFS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "GLW",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "HALO",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "INTU",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "KKR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "LIN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "MELI",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "META",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NBIS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NEM",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NFLX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NOC",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NTNX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "NXT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PCAR",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "PM",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "RBLX",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ROP",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SERV",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "SOUN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "TTWO",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "UBER",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "VRSN",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "WDAY",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "WMT",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    },
+    {
+      "ticker": "ZS",
+      "sleeve": "expansion",
+      "score": 0.525,
+      "reason": "moderate vol"
+    }
+  ]
+}

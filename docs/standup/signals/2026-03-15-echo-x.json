@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-03-15",
+  "signals": [
+    {
+      "asset": "SOL",
+      "direction": "long",
+      "confidence": 71
+    },
+    {
+      "asset": "ETH",
+      "direction": "short",
+      "confidence": 61
+    }
+  ]
+}
