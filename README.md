@@ -13,6 +13,8 @@
 
 ### _The machine should always be running._
 
+**The durable edge is not a better opinion. It is a better process.** — [We Built the Machine](https://ikigaistudio.substack.com/p/we-built-the-machine) (Substack)
+
 **Short-term monitoring terminal** — OI, funding rates, L/S ratios, portfolio drift, Mando Minutes news, Hyperliquid tickers. Solus runs the weekly Hypersurface options ritual. Forge self-optimizes overnight on Apple Silicon. Part of a three-layer stack: **VINCE** (hours→weeks), [Dexter](https://github.com/eliza420ai-beep/dexter) (months→years, thesis engine), [AIHF](https://github.com/eliza420ai-beep/ai-hedge-fund) (cycle-scale, 18-analyst second opinion).
 
 > **v2 refactor in progress.** v2 core = four agents: VINCE data, Solus, Otaku, Forge. Six agents are moving to other machines. Run the v2 slim roster today with env flags — no code changes required. See [Agent Roster](#agent-roster).
@@ -42,7 +44,7 @@ The three layers are designed to catch each other's failure modes.
 
 ## Monitor The Situation
 
-This is VINCE's primary job. Before any trade, before any options ritual, before any Forge run — the terminal reads the situation. One standout: **stock discovery from 17,000+ US tickers** (Financial Datasets) down to a ranked shortlist — screen broadly, enrich only survivors, explain why each name made the list. See [Gem Ticker Discovery — 17k → shortlist](#gem-ticker-discovery--17k--shortlist) below.
+This is VINCE's primary job. **VINCE doesn't wait to be asked.** It watches, and when something changes that requires attention, it tells you. Before any trade, before any options ritual, before any Forge run — the terminal reads the situation. One standout: **stock discovery from 17,000+ US tickers** (Financial Datasets) down to a ranked shortlist — screen broadly, enrich only survivors, explain why each name made the list. See [Gem Ticker Discovery — 17k → shortlist](#gem-ticker-discovery--17k--shortlist) below.
 
 **Portfolio state** — three JSON files are the ground truth (see [docs/DEXTER-PORTFOLIO-SYNC.md](docs/DEXTER-PORTFOLIO-SYNC.md)):
 - `portfolio_hyperliquid.json` — on-chain positions: weights, drift vs target, margin risk.
@@ -328,11 +330,13 @@ flowchart TD
 
 ## North Star
 
-You never have to chat with VINCE. He pings you.
+The north star is not a specific return target. **It is a specific operating state:** the portfolio reflects the thesis at all times, the options premium machine runs weekly without gaps, and the three improvement loops compound overnight without supervision. The human is freed from the mechanical work of executing a plan that is already built.
 
-VINCE watches the portfolios, the perps data, the news, and the Hyperliquid tickers. When the situation changes — a funding rate spike, a thesis-relevant Mando Minutes item, a portfolio drift beyond threshold — VINCE surfaces it. When the situation warrants an options structure, Solus handles it. When it warrants an overnight experiment, Forge runs it.
+**On Hyperliquid** — HIP-3 compliant sleeve: concentrated AI winners and financial rails (NVDA, TSM, MSFT, META, AMZN, GOOGL, PLTR, ORCL, COIN, HOOD). Position weights in `portfolio_hyperliquid.json`; drift monitored by VINCE; Solus writes weekly options on Hypersurface for premium income.
 
-Stay in the game without 12+ hours on screens. The terminal monitors so you don't have to.
+**On Tastytrade** — AI infrastructure bottleneck sleeve (ASML, AMAT, KLAC, LRCX, SNPS, CDNS, ANET, AVGO, VRT and extensions). Positions in `portfolio_tastytrade.json`; rebalanced by SOUL.md conviction tiers and regime.
+
+**Division of labor:** The machine monitors. The machine executes. The machine improves overnight. The human holds the thesis, challenges the machine, and writes the record. Weekly and quarterly [Substack](https://ikigaistudio.substack.com) reports are the accountability layer — thesis stated clearly, decisions explained, outcomes accounted for.
 
 ---
 
@@ -408,6 +412,7 @@ Async command jobs are also appended to `.elizadb/forge/jobs.jsonl` with:
 | [AIHF.md](docs/AIHF.md) | AIHF adversarial challenge layer |
 | [RECURSIVE.md](docs/RECURSIVE.md) | Autoresearch architecture, signal cache, 5,000+ experiments/night |
 | [plugin-vince](src/plugins/plugin-vince/) | WHAT, WHY, HOW, README |
+| [We Built the Machine](https://ikigaistudio.substack.com/p/we-built-the-machine) | Full architecture essay — three layers, failure modes, harness, north star |
 
 ---
 
