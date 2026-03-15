@@ -30,6 +30,7 @@ import {
 } from "../forge/forgeSignalCache";
 import { getCurrentSleeveTickers } from "../utils/fdCandidateUniverse";
 import {
+  readDiscoveryMetrics,
   readDiscoveryRunHistory,
   readResolvedOutcomes,
   type DiscoveryResolvedOutcome,
@@ -375,6 +376,15 @@ export interface FdDiscoveryBucketMetrics {
   resolvedCountByBucket: Record<string, number>;
 }
 
+/** Structured explanation for operator decision surface. */
+export interface FdDiscoveryExplanation {
+  momentum?: string;
+  quality?: string;
+  event?: string;
+  liquidity?: string;
+  portfolioFit?: string;
+}
+
 /** FD sleeve discovery: ranked candidates for watchlist/tastytrade. */
 export interface FdDiscoverySection {
   title: string;
@@ -384,18 +394,21 @@ export interface FdDiscoverySection {
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   researchNext: Array<{
     ticker: string;
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   avoid: Array<{
     ticker: string;
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   generatedAt: string;
   /** From last full-universe run when available (net-new candidates). */
@@ -404,6 +417,7 @@ export interface FdDiscoverySection {
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   /** From last full-universe run when available (re-ranks of current sleeve). */
   existingSleeve?: Array<{
@@ -411,6 +425,7 @@ export interface FdDiscoverySection {
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   /** Prediction calibration (Brier) for discovery/FD projections. */
   calibration?: {
@@ -476,6 +491,13 @@ export interface LeaderboardsResponse {
     lastGeneratedAt?: string | null;
     error?: string | null;
   };
+  /** From last discovery run: screened → enriched → ranked counts (when two-stage used). */
+  fdDiscoveryMetrics?: {
+    screenedCount?: number;
+    enrichedCount: number;
+    rankedCount: number;
+    generatedAt: string;
+  } | null;
   hip3Status?: SectionStatus;
   hlCryptoStatus?: SectionStatus;
   forgeOps?: ForgeOpsSection | null;
@@ -499,6 +521,7 @@ function buildFdDiscoverySection(
       sleeve: c.sleeve,
       score: c.score,
       reason: c.reason,
+      ...(c.explanation && { explanation: c.explanation }),
     }));
   const researchNext = ranked
     .filter((r) => r.bucket === "ResearchNext")
@@ -507,6 +530,7 @@ function buildFdDiscoverySection(
       sleeve: c.sleeve,
       score: c.score,
       reason: c.reason,
+      ...(c.explanation && { explanation: c.explanation }),
     }));
   const avoid = ranked
     .filter((r) => r.bucket === "Avoid")
@@ -515,6 +539,7 @@ function buildFdDiscoverySection(
       sleeve: c.sleeve,
       score: c.score,
       reason: c.reason,
+      ...(c.explanation && { explanation: c.explanation }),
     }));
   const generatedAt =
     ranked.length > 0 && ranked[0]?.snapshotAt
@@ -1944,6 +1969,8 @@ export async function buildLeaderboardsResponse(
     fdDiscoveryError,
   );
 
+  const fdDiscoveryMetrics = readDiscoveryMetrics(projectRoot) ?? null;
+
   return {
     updatedAt: now,
     hip3,
@@ -1958,6 +1985,7 @@ export async function buildLeaderboardsResponse(
     fdCache,
     fdDiscovery: fdDiscovery ?? null,
     fdDiscoveryStatus,
+    fdDiscoveryMetrics,
     hip3Status,
     hlCryptoStatus,
     forgeOps: forgeOps ?? null,

@@ -4,8 +4,11 @@
  * Supports both current-sleeve-only and full candidate universe (sleeve + peer + expansion).
  */
 
-import type { CandidateSource } from "./fdCandidateUniverse";
-import { getCandidateUniverseRows } from "./fdCandidateUniverse";
+import type { CandidateSource, UniverseMode } from "./fdCandidateUniverse";
+import {
+  getCandidateUniverseRows,
+  getCandidateUniverseRowsForMode,
+} from "./fdCandidateUniverse";
 import { loadDexterPortfolioAssets } from "./dexterPortfolio";
 import { readFdSnapshot } from "./fdFactorBuilder";
 import type { FdTickerSnapshot } from "./fdFactorBuilder.types";
@@ -51,6 +54,8 @@ export type FdReplayUniverseOptions = {
   includeSleeve?: boolean;
   includePeers?: boolean;
   includeExpansion?: boolean;
+  /** When set, use universe mode (curated_full or us_broad) instead of includeSleeve/Peers/Expansion. */
+  mode?: UniverseMode;
 };
 
 const DEFAULT_REPLAY_UNIVERSE_OPTIONS: FdReplayUniverseOptions = {
@@ -60,20 +65,22 @@ const DEFAULT_REPLAY_UNIVERSE_OPTIONS: FdReplayUniverseOptions = {
 };
 
 /**
- * Load replayable rows for the full candidate universe (sleeve + peer + expansion).
- * Each row has source (sleeve | peer | expansion). Use for discovery ranking of net-new names.
+ * Load replayable rows for the full candidate universe (sleeve + peer + expansion, or symbol_master for us_broad).
+ * Each row has source (sleeve | peer | expansion | symbol_master). Use for discovery ranking of net-new names.
  */
 export function getFdReplayRowsForUniverse(
   projectRoot: string = process.cwd(),
   options?: FdReplayUniverseOptions,
 ): FdReplayRow[] {
   const opts = { ...DEFAULT_REPLAY_UNIVERSE_OPTIONS, ...options };
-  const candidateRows = getCandidateUniverseRows(projectRoot, {
-    includeSleeve: opts.includeSleeve,
-    includePeers: opts.includePeers,
-    includeExpansion: opts.includeExpansion,
-    sleeveFirst: true,
-  });
+  const candidateRows = opts.mode
+    ? getCandidateUniverseRowsForMode(opts.mode, projectRoot)
+    : getCandidateUniverseRows(projectRoot, {
+        includeSleeve: opts.includeSleeve,
+        includePeers: opts.includePeers,
+        includeExpansion: opts.includeExpansion,
+        sleeveFirst: true,
+      });
   const rows: FdReplayRow[] = [];
   for (const c of candidateRows) {
     const snapshot = readFdSnapshot(c.ticker, projectRoot);

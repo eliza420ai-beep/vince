@@ -11,6 +11,14 @@ import type { RankedCandidatesResult } from "../services/vinceTickerDiscovery.se
 
 const HISTORY_FILENAME = "discovery-candidates-history.jsonl";
 const RESOLVED_FILENAME = "discovery-resolved-outcomes.jsonl";
+const METRICS_FILENAME = "discovery-metrics.json";
+
+export interface DiscoveryMetrics {
+  screenedCount?: number;
+  enrichedCount: number;
+  rankedCount: number;
+  generatedAt: string;
+}
 
 export interface DiscoveryCandidateRecord {
   ticker: string;
@@ -66,6 +74,36 @@ function getHistoryPath(projectRoot: string): string {
 
 function getResolvedPath(projectRoot: string): string {
   return path.join(getCacheDir(projectRoot), RESOLVED_FILENAME);
+}
+
+function getMetricsPath(projectRoot: string): string {
+  return path.join(getCacheDir(projectRoot), METRICS_FILENAME);
+}
+
+export function writeDiscoveryMetrics(
+  projectRoot: string,
+  metrics: DiscoveryMetrics,
+): void {
+  const dir = getCacheDir(projectRoot);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    getMetricsPath(projectRoot),
+    JSON.stringify(metrics, null, 2),
+    "utf-8",
+  );
+}
+
+export function readDiscoveryMetrics(
+  projectRoot: string = process.cwd(),
+): DiscoveryMetrics | null {
+  const filePath = getMetricsPath(projectRoot);
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    const raw = fs.readFileSync(filePath, "utf-8");
+    return JSON.parse(raw) as DiscoveryMetrics;
+  } catch {
+    return null;
+  }
 }
 
 function toRecord(

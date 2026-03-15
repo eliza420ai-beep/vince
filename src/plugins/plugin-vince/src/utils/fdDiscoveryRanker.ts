@@ -8,6 +8,15 @@ import type { FdReplayRow } from "./fdReplayImporter";
 
 export type DiscoveryBucket = "PromoteNow" | "ResearchNext" | "Avoid";
 
+/** Structured explanation per category for operator decision surface. */
+export interface DiscoveryExplanation {
+  momentum?: string;
+  quality?: string;
+  event?: string;
+  liquidity?: string;
+  portfolioFit?: string;
+}
+
 export interface FdDiscoveryCandidate {
   ticker: string;
   sleeve: string;
@@ -16,6 +25,8 @@ export interface FdDiscoveryCandidate {
   score: number;
   reason: string;
   snapshotAt: string | null;
+  /** Structured sub-reasons for UI (Momentum, Quality, Event, Liquidity, Portfolio fit). */
+  explanation?: DiscoveryExplanation;
 }
 
 export interface GemSubscores {
@@ -62,7 +73,12 @@ export function scoreTickerForDiscovery(
     sleeveTickers?: Set<string>;
     inSleeve?: boolean;
   },
-): { score: number; reason: string; subscores?: GemSubscores } {
+): {
+  score: number;
+  reason: string;
+  subscores?: GemSubscores;
+  explanation?: DiscoveryExplanation;
+} {
   const reasonParts: string[] = [];
   const sleeveTickers = options?.sleeveTickers ?? new Set<string>();
   const inSleeve =
@@ -72,6 +88,8 @@ export function scoreTickerForDiscovery(
   // Sleeve-fit: already in sleeve = higher fit for re-rank; net-new = neutral
   const sleeveFit = inSleeve ? 0.9 : 0.5;
   if (inSleeve) reasonParts.push("in sleeve");
+
+  const explanation: DiscoveryExplanation = {};
 
   if (!snapshot) {
     const score = 0.3;
@@ -87,6 +105,7 @@ export function scoreTickerForDiscovery(
         regime: 0.5,
         reasonParts: ["no snapshot"],
       },
+      explanation: { momentum: "no data", portfolioFit: "no snapshot" },
     };
   }
 
@@ -107,63 +126,93 @@ export function scoreTickerForDiscovery(
   const surprise = snapshot.earnings_surprise_pct ?? null;
   const sectorRelMom = snapshot.sector_relative_momentum_3m_pct ?? null;
 
-  // Momentum/trend subscore (0–1): absolute and optional sector-relative
+  // Cohort-relative momentum z-score when cohort stats provided
+  const cohortMom3 = options?.cohortMom3;
+  const mom3Z =
+    cohortMom3 && cohortMom3.sd > 0 && mom3 != null
+      ? (mom3 - cohortMom3.mean) / cohortMom3.sd
+      : null;
+
+  // Momentum/trend subscore (0–1): absolute, cohort-relative, and optional sector-relative
   let momentumTrend = 0.5;
+  const momentumParts: string[] = [];
   if (mom3 > 10) {
     momentumTrend += 0.15;
+    momentumParts.push(`3m +${mom3.toFixed(0)}%`);
     reasonParts.push(`3m +${mom3.toFixed(0)}%`);
   } else if (mom3 > 5) {
     momentumTrend += 0.08;
+    momentumParts.push(`3m +${mom3.toFixed(0)}%`);
     reasonParts.push(`3m +${mom3.toFixed(0)}%`);
   }
   if (mom12 > 15) {
     momentumTrend += 0.1;
+    momentumParts.push(`12m +${mom12.toFixed(0)}%`);
     reasonParts.push(`12m +${mom12.toFixed(0)}%`);
   } else if (mom12 > 10) {
     momentumTrend += 0.05;
+    momentumParts.push(`12m +${mom12.toFixed(0)}%`);
+  }
+  if (mom3Z != null && mom3Z > 0.5) {
+    momentumTrend += 0.05;
+    momentumParts.push("above-cohort momentum");
+    reasonParts.push("above-cohort momentum");
   }
   if (sectorRelMom != null && sectorRelMom > 0) {
     momentumTrend += 0.05;
+    momentumParts.push("sector-relative strength");
     reasonParts.push("sector-relative strength");
   }
   momentumTrend = Math.max(0, Math.min(1, momentumTrend));
+  if (momentumParts.length) explanation.momentum = momentumParts.join("; ");
 
   // Catalyst/event subscore: filings, earnings recency, insider cluster
   let catalystEvent = 0.5;
+  const eventParts: string[] = [];
   if (snapshot.recent_8k) {
     catalystEvent += 0.1;
+    eventParts.push("recent 8-K");
     reasonParts.push("recent 8-K");
   }
   if (filing90 >= 2) {
     catalystEvent += 0.05;
+    eventParts.push("filing activity");
     reasonParts.push("filing activity");
   }
   if (insiderBuy >= 2 && skew > 0.2) {
     catalystEvent += 0.1;
+    eventParts.push("insider cluster buy");
     reasonParts.push("insider cluster buy");
   }
   if (insiderSell >= 2 && skew < -0.2) {
     catalystEvent -= 0.1;
+    eventParts.push("insider cluster sell");
     reasonParts.push("insider cluster sell");
   }
   if (surprise != null && surprise > 5) {
     catalystEvent += 0.05;
+    eventParts.push("earnings beat");
     reasonParts.push("earnings beat");
   }
   catalystEvent = Math.max(0, Math.min(1, catalystEvent));
+  if (eventParts.length) explanation.event = eventParts.join("; ");
 
   // Valuation/quality subscore
   let valuationQuality = 0.5;
+  const qualityParts: string[] = [];
   if (margin != null && margin > 15) {
     valuationQuality += 0.1;
+    qualityParts.push("healthy margins");
     reasonParts.push("margin");
   }
   if (growth != null && growth > 10) {
     valuationQuality += 0.08;
+    qualityParts.push("revenue growth");
     reasonParts.push("revenue growth");
   }
   if (fcfYield != null && fcfYield > 5) {
     valuationQuality += 0.05;
+    qualityParts.push("FCF yield");
     reasonParts.push("FCF yield");
   }
   if (evSales != null && evSales > 0 && evSales < 5) {
@@ -171,13 +220,23 @@ export function scoreTickerForDiscovery(
   }
   if (dollarVol >= 1e6) {
     valuationQuality += 0.05;
+    qualityParts.push("liquid");
     reasonParts.push("liquid");
   }
   valuationQuality = Math.max(0, Math.min(1, valuationQuality));
+  if (qualityParts.length) explanation.quality = qualityParts.join("; ");
 
-  // Diversification: net-new names add more diversification than sleeve re-ranks
+  if (dollarVol > 0) {
+    const liqLabel =
+      dollarVol >= 10e6 ? "high" : dollarVol >= 1e6 ? "adequate" : "thin";
+    explanation.liquidity = `${liqLabel} liquidity ($${(dollarVol / 1e6).toFixed(1)}M avg)`;
+  }
+
+  // Diversification / portfolio fit: net-new names add more diversification than sleeve re-ranks
   const diversification = inSleeve ? 0.5 : 0.7;
-  if (!inSleeve && (momentumTrend > 0.55 || catalystEvent > 0.55)) {
+  if (inSleeve) explanation.portfolioFit = "in sleeve";
+  else if (momentumTrend > 0.55 || catalystEvent > 0.55) {
+    explanation.portfolioFit = "diversification";
     reasonParts.push("diversification");
   }
 
@@ -229,6 +288,7 @@ export function scoreTickerForDiscovery(
       regime,
       reasonParts,
     },
+    explanation: Object.keys(explanation).length ? explanation : undefined,
   };
 }
 
@@ -259,11 +319,14 @@ export function rankDiscoveryCandidates(
   for (const row of rows) {
     const snapshot = row.snapshot;
     const inSleeve = sleeveTickers.has(row.ticker);
-    const { score, reason } = scoreTickerForDiscovery(snapshot ?? null, {
-      cohortMom3,
-      sleeveTickers,
-      inSleeve,
-    });
+    const { score, reason, explanation } = scoreTickerForDiscovery(
+      snapshot ?? null,
+      {
+        cohortMom3,
+        sleeveTickers,
+        inSleeve,
+      },
+    );
     out.push({
       ticker: row.ticker,
       sleeve: row.sleeve,
@@ -272,6 +335,7 @@ export function rankDiscoveryCandidates(
       score,
       reason,
       snapshotAt: row.snapshotAt ?? null,
+      ...(explanation && { explanation }),
     });
   }
   return out.sort((a, b) => b.score - a.score);

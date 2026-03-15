@@ -9,7 +9,10 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getCurrentSleeveTickers } from "../utils/fdCandidateUniverse";
+import {
+  getCurrentSleeveTickers,
+  type UniverseMode,
+} from "../utils/fdCandidateUniverse";
 import {
   getFdReplayRows,
   getFdReplayRowsForUniverse,
@@ -28,6 +31,8 @@ export type DiscoveryUniverseSelector = "sleeve" | "full";
 
 export interface RankedCandidatesOptions {
   universe?: DiscoveryUniverseSelector;
+  /** When universe is "full", which mode to use (curated_full vs us_broad). Default curated_full. */
+  universeMode?: UniverseMode;
 }
 
 export interface RankedCandidatesResult {
@@ -74,7 +79,9 @@ export class VinceTickerDiscoveryService extends Service {
     const universe = options?.universe ?? "sleeve";
     const rows =
       universe === "full"
-        ? getFdReplayRowsForUniverse(projectRoot)
+        ? getFdReplayRowsForUniverse(projectRoot, {
+            mode: options?.universeMode ?? "curated_full",
+          })
         : getFdReplayRows(projectRoot);
     const sleeveTickers = new Set(getCurrentSleeveTickers(projectRoot));
     const ranked = rankDiscoveryCandidates(rows, { sleeveTickers });

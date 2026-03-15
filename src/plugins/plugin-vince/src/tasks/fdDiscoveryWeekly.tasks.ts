@@ -6,11 +6,14 @@
  */
 
 import { type IAgentRuntime, logger } from "@elizaos/core";
-import * as path from "node:path";
-import { getFullCandidateUniverse } from "../utils/fdCandidateUniverse";
+import {
+  getCandidateUniverseForMode,
+  type UniverseMode,
+} from "../utils/fdCandidateUniverse";
 import {
   appendDiscoveryRun,
   buildFdDiscoveryPredictionInput,
+  writeDiscoveryMetrics,
 } from "../utils/fdDiscoveryOutcomes";
 import { getCloseOnOrAfterDate } from "../utils/financialDatasetsCache";
 import type { VinceTickerDiscoveryService } from "../services/vinceTickerDiscovery.service";
@@ -49,14 +52,38 @@ export async function runFdDiscoveryNow(
   const useFullUniverse =
     process.env.VINCE_FD_DISCOVERY_FULL_UNIVERSE === "true" ||
     process.env.VINCE_FD_DISCOVERY_FULL_UNIVERSE === "1";
+  const modeRaw = process.env.VINCE_FD_DISCOVERY_UNIVERSE_MODE as
+    | UniverseMode
+    | undefined;
+  const universeMode: UniverseMode =
+    modeRaw === "sleeve" || modeRaw === "curated_full" || modeRaw === "us_broad"
+      ? modeRaw
+      : useFullUniverse
+        ? "curated_full"
+        : "sleeve";
 
+  let lastRefreshScreened: number | undefined;
+  let lastRefreshEnriched: number | undefined;
   if (fd) {
     try {
-      if (useFullUniverse) {
-        const tickers = getFullCandidateUniverse(projectRoot);
+      if (universeMode !== "sleeve") {
+        const tickers = getCandidateUniverseForMode(universeMode, projectRoot);
         if (tickers.length > 0) {
-          await fd.refreshForTickers(tickers, projectRoot);
-          fd.buildSnapshots(projectRoot, { tickers });
+          const refreshResult = await fd.refreshForTickers(
+            tickers,
+            projectRoot,
+          );
+          if (refreshResult.coarseScreen) {
+            lastRefreshScreened = refreshResult.coarseScreen.screenedCount;
+            lastRefreshEnriched = refreshResult.coarseScreen.survivorsCount;
+          } else {
+            lastRefreshEnriched =
+              refreshResult.enrichedTickers?.length ??
+              refreshResult.other?.length ??
+              tickers.length;
+          }
+          const toSnapshot = refreshResult.enrichedTickers ?? tickers;
+          fd.buildSnapshots(projectRoot, { tickers: toSnapshot });
         } else {
           fd.buildSnapshots(projectRoot);
         }
@@ -75,7 +102,10 @@ export async function runFdDiscoveryNow(
   }
 
   try {
-    const options = useFullUniverse ? { universe: "full" as const } : undefined;
+    const options =
+      universeMode !== "sleeve"
+        ? { universe: "full" as const, universeMode }
+        : undefined;
     const result = discovery.getRankedCandidates(projectRoot, options);
     const todayIso = new Date().toISOString().slice(0, 10);
     const allCandidates: FdDiscoveryCandidate[] = [
@@ -123,6 +153,21 @@ export async function runFdDiscoveryNow(
       projectRoot,
       pickTimeByTicker,
     );
+
+    const rankedCount =
+      result.promoteNow.length +
+      result.researchNext.length +
+      result.avoid.length +
+      (result.existingSleeve?.length ?? 0) +
+      (result.newCandidates?.length ?? 0);
+    writeDiscoveryMetrics(projectRoot, {
+      ...(lastRefreshScreened != null && {
+        screenedCount: lastRefreshScreened,
+      }),
+      enrichedCount: lastRefreshEnriched ?? rankedCount,
+      rankedCount,
+      generatedAt: result.generatedAt,
+    });
 
     const tracker = runtime.getService(
       "VINCE_PREDICTION_TRACKER_SERVICE",

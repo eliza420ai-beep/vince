@@ -10,6 +10,7 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getFdSleeveTickers } from "../utils/dexterPortfolio";
+import { coarseScreenFromPriceCache } from "../utils/fdCoarseScreen";
 import {
   prewarmFdPortfolioHistoryCache,
   readFdCacheManifest,
@@ -457,7 +458,7 @@ export class VinceFinancialDatasetsService extends Service {
 
   /**
    * Refresh FD cache for an arbitrary list of tickers (e.g. full candidate universe).
-   * Use this before discovery when ranking net-new names so snapshots exist for peers/expansion.
+   * Two-stage when list is large: prewarm prices → coarse screen → enrich only survivors.
    */
   async refreshForTickers(
     tickers: string[],
@@ -466,6 +467,12 @@ export class VinceFinancialDatasetsService extends Service {
       years?: number;
       force?: boolean;
       domains?: FdWarehouseDomain[];
+      /** When ticker count exceeds this, run coarse screen and enrich only survivors. Default 200. */
+      coarseScreenThreshold?: number;
+      /** Max survivors to enrich after coarse screen. Default 1000. */
+      coarseScreenTopN?: number;
+      /** Max concurrent price fetches during prewarm. Default 8. */
+      prewarmConcurrency?: number;
     },
   ): Promise<{
     prices: { tickerCount: number; hits: number; misses: number };
@@ -473,6 +480,9 @@ export class VinceFinancialDatasetsService extends Service {
       ticker: string;
       results: { domain: FdWarehouseDomain; ok: boolean }[];
     }>;
+    coarseScreen?: { screenedCount: number; survivorsCount: number };
+    /** When coarse screen was used, tickers that were enriched (survivors). Use for buildSnapshotsForTickers. */
+    enrichedTickers?: string[];
   }> {
     const root = projectRoot ?? process.cwd();
     const apiKey = this.getApiKey();
@@ -491,6 +501,10 @@ export class VinceFinancialDatasetsService extends Service {
       };
     }
 
+    const coarseThreshold = options?.coarseScreenThreshold ?? 200;
+    const useCoarseScreen = list.length > coarseThreshold;
+    let toEnrich = list;
+
     let pricesResult = { tickerCount: 0, hits: 0, misses: 0 };
     if (domains.includes("prices") && apiKey) {
       try {
@@ -500,6 +514,7 @@ export class VinceFinancialDatasetsService extends Service {
           years: options?.years ?? 5,
           force: options?.force ?? false,
           tickers: list,
+          concurrency: options?.prewarmConcurrency ?? 8,
         });
         pricesResult = {
           tickerCount: prewarm.tickerCount,
@@ -526,6 +541,26 @@ export class VinceFinancialDatasetsService extends Service {
       }
     }
 
+    let coarseScreenResult:
+      | { screenedCount: number; survivorsCount: number }
+      | undefined;
+    if (useCoarseScreen) {
+      const screen = coarseScreenFromPriceCache(list, root, {
+        minPrice: 2,
+        minDollarVolume: 500_000,
+        minBars: 252,
+        topN: options?.coarseScreenTopN ?? 1000,
+      });
+      toEnrich = screen.survivors;
+      coarseScreenResult = {
+        screenedCount: screen.screenedCount,
+        survivorsCount: screen.survivors.length,
+      };
+      logger.info(
+        `[VinceFinancialDatasets] coarse screen: ${screen.screenedCount} → ${screen.survivors.length} survivors`,
+      );
+    }
+
     const otherDomains = domains.filter(
       (d) => d !== "prices" && d !== "snapshots",
     );
@@ -533,7 +568,7 @@ export class VinceFinancialDatasetsService extends Service {
       ticker: string;
       results: { domain: FdWarehouseDomain; ok: boolean }[];
     }> = [];
-    for (const ticker of list) {
+    for (const ticker of toEnrich) {
       const results = await this.refreshTicker(ticker, otherDomains, root);
       other.push({ ticker, results });
     }
@@ -567,7 +602,12 @@ export class VinceFinancialDatasetsService extends Service {
       }
     }
 
-    return { prices: pricesResult, other };
+    return {
+      prices: pricesResult,
+      other,
+      ...(coarseScreenResult && { coarseScreen: coarseScreenResult }),
+      ...(useCoarseScreen && { enrichedTickers: toEnrich }),
+    };
   }
 
   /**

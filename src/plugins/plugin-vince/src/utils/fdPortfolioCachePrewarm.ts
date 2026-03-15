@@ -40,6 +40,8 @@ export type FdPrewarmOptions = {
   apiKey?: string;
   /** When set, use these tickers instead of sleeve tickers from portfolio files. */
   tickers?: string[];
+  /** Max concurrent price fetches. Default 8. */
+  concurrency?: number;
 };
 
 export type FdPrewarmResult = {
@@ -230,8 +232,9 @@ export async function prewarmFdPortfolioHistoryCache(
   const files: Array<{ ticker: string; file: string; rowCount: number }> = [];
   let hits = 0;
   let misses = 0;
+  const concurrency = Math.max(1, Math.min(32, opts.concurrency ?? 8));
 
-  for (const ticker of tickers) {
+  async function processOne(ticker: string): Promise<void> {
     const filePath = cachePathFor(projectRoot, ticker, startDate, endDate);
     if (!force && fs.existsSync(filePath)) {
       hits++;
@@ -249,7 +252,7 @@ export async function prewarmFdPortfolioHistoryCache(
         file: path.relative(projectRoot, filePath),
         rowCount,
       });
-      continue;
+      return;
     }
 
     misses++;
@@ -279,14 +282,17 @@ export async function prewarmFdPortfolioHistoryCache(
         rowCount: rows.length,
       });
     } catch (error) {
-      // Full-universe discovery should degrade gracefully when one ticker
-      // is unavailable from Financial Datasets.
       console.warn(
         `[fdPortfolioCachePrewarm] skipping ${ticker}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
     }
+  }
+
+  for (let i = 0; i < tickers.length; i += concurrency) {
+    const chunk = tickers.slice(i, i + concurrency);
+    await Promise.all(chunk.map(processOne));
   }
 
   const manifest: FdCacheManifest = {

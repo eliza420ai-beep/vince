@@ -23,6 +23,11 @@ import {
   SelectValue,
 } from "@/frontend/components/ui/select";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/frontend/components/ui/collapsible";
+import {
   Tabs,
   TabsContent,
   TabsList,
@@ -468,27 +473,49 @@ function compactReason(reason?: string | null, maxParts = 2): string {
     .join(" · ");
 }
 
+/** Structured explanation from discovery ranker (Momentum, Quality, Event, Liquidity, Portfolio fit). */
+type DiscoveryExplanation = {
+  momentum?: string;
+  quality?: string;
+  event?: string;
+  liquidity?: string;
+  portfolioFit?: string;
+};
+
 function CompactTickerRows({
   items,
   limit = 6,
   emptyLabel = "(none)",
   tone = "neutral",
   showReason = false,
+  showStructuredReason = false,
 }: {
-  items: Array<string | { ticker?: string; reason?: string; sleeve?: string }>;
+  items: Array<
+    | string
+    | {
+        ticker?: string;
+        reason?: string;
+        sleeve?: string;
+        score?: number;
+        explanation?: DiscoveryExplanation;
+      }
+  >;
   limit?: number;
   emptyLabel?: string;
   tone?: "neutral" | "green" | "amber" | "blue";
   showReason?: boolean;
+  /** When true, render explanation fields (Momentum, Quality, Event, etc.) when present. */
+  showStructuredReason?: boolean;
 }) {
   const rows = (items ?? [])
     .map((item) =>
       typeof item === "string"
-        ? { ticker: item, reason: "", sleeve: "" }
+        ? { ticker: item, reason: "", sleeve: "", explanation: undefined }
         : {
             ticker: item?.ticker ?? "",
             reason: item?.reason ?? "",
             sleeve: item?.sleeve ?? "",
+            explanation: item?.explanation as DiscoveryExplanation | undefined,
           },
     )
     .filter((item) => item.ticker);
@@ -527,7 +554,25 @@ function CompactTickerRows({
               </span>
             ) : null}
           </div>
-          {showReason && item.reason ? (
+          {showStructuredReason && item.explanation ? (
+            <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground space-y-0.5">
+              {[
+                item.explanation.momentum &&
+                  `Momentum: ${item.explanation.momentum}`,
+                item.explanation.quality &&
+                  `Quality: ${item.explanation.quality}`,
+                item.explanation.event && `Event: ${item.explanation.event}`,
+                item.explanation.liquidity &&
+                  `Liquidity: ${item.explanation.liquidity}`,
+                item.explanation.portfolioFit &&
+                  `Portfolio fit: ${item.explanation.portfolioFit}`,
+              ]
+                .filter(Boolean)
+                .map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+            </div>
+          ) : showReason && item.reason ? (
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
               Why it made the list: {compactReason(item.reason, 3)}
             </p>
@@ -575,14 +620,26 @@ function DiscoveryKpi({
 function FdDiscoveryCard({
   fdDiscovery,
   className,
+  viewFilter = "all",
+  discoveryMetrics,
 }: {
   fdDiscovery: FdDiscoverySection;
   className?: string;
+  /** When "net_new", show only the net-new candidates section. */
+  viewFilter?: "all" | "net_new";
+  /** Pipeline counts from last run (screened → enriched → ranked). */
+  discoveryMetrics?: {
+    screenedCount?: number;
+    enrichedCount: number;
+    rankedCount: number;
+    generatedAt: string;
+  } | null;
 }) {
   const promoteNow = fdDiscovery.promoteNow ?? [];
   const researchNext = fdDiscovery.researchNext ?? [];
   const avoid = fdDiscovery.avoid ?? [];
   const newCandidates = fdDiscovery.newCandidates ?? [];
+  const showDecisionBuckets = viewFilter === "all";
   const promotableCount =
     fdDiscovery.promotionVerdicts?.filter((v) => v.eligibleForPromotion)
       .length ?? 0;
@@ -610,6 +667,16 @@ function FdDiscoveryCard({
       <p className="text-sm text-muted-foreground mb-4">
         {fdDiscovery.oneLiner}
       </p>
+      {discoveryMetrics && (
+        <p className="text-xs text-muted-foreground mb-3">
+          Pipeline (last run):{" "}
+          {discoveryMetrics.screenedCount != null
+            ? `${discoveryMetrics.screenedCount} screened → `
+            : ""}
+          {discoveryMetrics.enrichedCount} enriched →{" "}
+          {discoveryMetrics.rankedCount} ranked
+        </p>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
         <DiscoveryKpi
           label="PromoteNow"
@@ -630,191 +697,256 @@ function FdDiscoveryCard({
         <DiscoveryKpi label="Need review" value={reviewCount} />
         <DiscoveryKpi label="Blocked" value={blockedCount} />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 text-sm">
-        <div className="rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-3">
-          <p className="font-medium text-green-700 dark:text-green-400">
-            PromoteNow
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Strongest names right now.
-          </p>
-          <div className="mt-3">
-            <CompactTickerRows
-              items={promoteNow}
-              tone="green"
-              showReason
-              limit={8}
-              emptyLabel="No PromoteNow names."
-            />
+      {showDecisionBuckets && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 text-sm">
+          <div className="rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-3">
+            <p className="font-medium text-green-700 dark:text-green-400">
+              PromoteNow
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Strongest names right now.
+            </p>
+            <div className="mt-3">
+              <CompactTickerRows
+                items={promoteNow}
+                tone="green"
+                showReason
+                showStructuredReason
+                limit={8}
+                emptyLabel="No PromoteNow names."
+              />
+            </div>
           </div>
-        </div>
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
-          <p className="font-medium text-amber-700 dark:text-amber-400">
-            ResearchNext
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Worth tracking, but not fully ready.
-          </p>
-          <div className="mt-3">
-            <CompactTickerRows
-              items={researchNext}
-              tone="amber"
-              showReason
-              limit={8}
-              emptyLabel="No ResearchNext names."
-            />
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+            <p className="font-medium text-amber-700 dark:text-amber-400">
+              ResearchNext
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Worth tracking, but not fully ready.
+            </p>
+            <div className="mt-3">
+              <CompactTickerRows
+                items={researchNext}
+                tone="amber"
+                showReason
+                showStructuredReason
+                limit={8}
+                emptyLabel="No ResearchNext names."
+              />
+            </div>
           </div>
-        </div>
-        <div className="rounded-lg border border-border bg-muted/20 px-3 py-3">
-          <p className="font-medium text-foreground">Avoid</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Lowest priority from the current run.
-          </p>
-          <div className="mt-3">
-            <CompactTickerRows items={avoid} emptyLabel="No Avoid names." />
-          </div>
-        </div>
-      </div>
-      {newCandidates.length > 0 && (
-        <div className="mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-3">
-          <p className="font-medium text-foreground">
-            Net-new candidates from the full run
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Names not already in the current sleeve/watchlist. The total count
-            is already shown above in the `Net-new` KPI.
-          </p>
-          <div className="mt-3">
-            <CompactTickerRows
-              items={newCandidates}
-              tone="blue"
-              showReason
-              limit={12}
-            />
+          <div className="rounded-lg border border-border bg-muted/20 px-3 py-3">
+            <p className="font-medium text-foreground">Avoid</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Lowest priority from the current run.
+            </p>
+            <div className="mt-3">
+              <CompactTickerRows items={avoid} emptyLabel="No Avoid names." />
+            </div>
           </div>
         </div>
       )}
-      {fdDiscovery.calibration && fdDiscovery.calibration.overallCount > 0 && (
-        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Calibration (30d)</span>{" "}
-          · {fdDiscovery.calibration.overallCount} resolved · Brier{" "}
-          {fdDiscovery.calibration.overallMeanBrier != null
-            ? fdDiscovery.calibration.overallMeanBrier.toFixed(3)
-            : "—"}
-          {fdDiscovery.calibration.byAgent?.length
-            ? ` · ${fdDiscovery.calibration.byAgent.map((a) => `${a.agent}=${a.meanBrier.toFixed(2)}`).join(" · ")}`
-            : ""}
-        </div>
-      )}
-      {(fdDiscovery.fdStatus != null ||
-        fdDiscovery.fdFreshness != null ||
-        fdDiscovery.bucketMetrics) && (
-        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-          {fdDiscovery.fdStatus != null && (
-            <span>FD: {fdDiscovery.fdStatus}</span>
-          )}
-          {fdDiscovery.fdFreshness != null && (
-            <span>{fdDiscovery.fdFreshness}</span>
-          )}
-          {fdDiscovery.bucketMetrics && (
-            <>
-              {fdDiscovery.bucketMetrics.promoteNowHitRate != null && (
-                <span>
-                  PromoteNow hit{" "}
-                  {(
-                    (fdDiscovery.bucketMetrics.promoteNowHitRate ?? 0) * 100
-                  ).toFixed(0)}
-                  %
-                </span>
-              )}
-              {fdDiscovery.bucketMetrics.researchNextHitRate != null && (
-                <span>
-                  ResearchNext hit{" "}
-                  {(
-                    (fdDiscovery.bucketMetrics.researchNextHitRate ?? 0) * 100
-                  ).toFixed(0)}
-                  %
-                </span>
-              )}
-              {fdDiscovery.bucketMetrics.avoidSaveRate != null && (
-                <span>
-                  Avoid save{" "}
-                  {(
-                    (fdDiscovery.bucketMetrics.avoidSaveRate ?? 0) * 100
-                  ).toFixed(0)}
-                  %
-                </span>
-              )}
-            </>
-          )}
-        </div>
-      )}
-      {(fdDiscovery.resolved?.length ?? 0) > 0 && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <p className="text-xs font-medium text-muted-foreground mb-2">
-            Resolved outcomes (sample)
-          </p>
-          <div className="overflow-x-auto text-xs">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-1 pr-2">Ticker</th>
-                  <th className="text-left py-1 pr-2">Horizon</th>
-                  <th className="text-left py-1 pr-2">Return %</th>
-                  <th className="text-left py-1 pr-2">Outcome</th>
-                  <th className="text-left py-1">Bucket</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fdDiscovery.resolved!.slice(0, 10).map((r, i) => (
-                  <tr
-                    key={`${r.runId}-${r.ticker}-${r.horizon}-${i}`}
-                    className="border-b border-border/50"
-                  >
-                    <td className="py-1 pr-2 font-mono">{r.ticker}</td>
-                    <td className="py-1 pr-2">{r.horizon}</td>
-                    <td className="py-1 pr-2">{r.returnPct.toFixed(2)}%</td>
-                    <td className="py-1 pr-2">{r.outcome === 1 ? "✓" : "✗"}</td>
-                    <td className="py-1">{r.bucket ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {newCandidates.length > 0 &&
+        (viewFilter === "net_new" || showDecisionBuckets) && (
+          <div className="mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-3">
+            <p className="font-medium text-foreground">
+              Net-new candidates from the full run
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Names not already in the current sleeve/watchlist. The total count
+              is already shown above in the `Net-new` KPI.
+            </p>
+            <div className="mt-3">
+              <CompactTickerRows
+                items={newCandidates}
+                tone="blue"
+                showReason
+                showStructuredReason
+                limit={12}
+              />
+            </div>
           </div>
-        </div>
-      )}
-      {(fdDiscovery.falsePositives?.length ?? 0) > 0 && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
-            False positives (wrong direction)
-          </p>
-          <ul className="text-xs text-muted-foreground space-y-0.5">
-            {fdDiscovery.falsePositives!.slice(0, 8).map((r, i) => (
-              <li key={`fp-${r.runId}-${r.ticker}-${r.horizon}-${i}`}>
-                <span className="font-mono">{r.ticker}</span> {r.horizon} ·{" "}
-                {r.returnPct.toFixed(2)}% · {r.bucket ?? "—"}
-              </li>
-            ))}
-            {fdDiscovery.falsePositives!.length > 8 && (
-              <li>+{fdDiscovery.falsePositives!.length - 8} more</li>
-            )}
-          </ul>
-        </div>
-      )}
-      {(fdDiscovery.open?.length ?? 0) > 0 && (
-        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
-          <span className="font-medium">Open predictions:</span>{" "}
-          {fdDiscovery.open!.length} (1m/3m)
-        </div>
-      )}
-      {(fdDiscovery.promotionVerdicts?.length ?? 0) > 0 && (
-        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Promotion policy</span>{" "}
-          · {promotableCount} promotable · {reviewCount} need review ·{" "}
-          {blockedCount} blocked
-        </div>
-      )}
+        )}
+      <FdDiscoveryDetailsCollapsible fdDiscovery={fdDiscovery} />
     </DashboardCard>
+  );
+}
+
+/** Collapsible diagnostics: calibration, resolved, false positives, open, promotion summary. */
+function FdDiscoveryDetailsCollapsible({
+  fdDiscovery,
+}: {
+  fdDiscovery: FdDiscoverySection;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasContent =
+    (fdDiscovery.calibration && fdDiscovery.calibration.overallCount > 0) ||
+    (fdDiscovery.resolved?.length ?? 0) > 0 ||
+    (fdDiscovery.falsePositives?.length ?? 0) > 0 ||
+    (fdDiscovery.open?.length ?? 0) > 0 ||
+    fdDiscovery.fdStatus != null ||
+    fdDiscovery.fdFreshness != null ||
+    fdDiscovery.bucketMetrics ||
+    (fdDiscovery.promotionVerdicts?.length ?? 0) > 0;
+  if (!hasContent) return null;
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="mt-4 pt-4 border-t border-border"
+    >
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted-foreground -ml-2"
+        >
+          {open ? "Hide" : "Show"} details (calibration, resolved, open
+          predictions)
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {fdDiscovery.calibration &&
+          fdDiscovery.calibration.overallCount > 0 && (
+            <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                Calibration (30d)
+              </span>{" "}
+              · {fdDiscovery.calibration.overallCount} resolved · Brier{" "}
+              {fdDiscovery.calibration.overallMeanBrier != null
+                ? fdDiscovery.calibration.overallMeanBrier.toFixed(3)
+                : "—"}
+              {fdDiscovery.calibration.byAgent?.length
+                ? ` · ${fdDiscovery.calibration.byAgent.map((a) => `${a.agent}=${a.meanBrier.toFixed(2)}`).join(" · ")}`
+                : ""}
+            </div>
+          )}
+        {(fdDiscovery.fdStatus != null ||
+          fdDiscovery.fdFreshness != null ||
+          fdDiscovery.bucketMetrics) && (
+          <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+            {fdDiscovery.fdStatus != null && (
+              <span>FD: {fdDiscovery.fdStatus}</span>
+            )}
+            {fdDiscovery.fdFreshness != null && (
+              <span>{fdDiscovery.fdFreshness}</span>
+            )}
+            {fdDiscovery.bucketMetrics && (
+              <>
+                {fdDiscovery.bucketMetrics.promoteNowHitRate != null && (
+                  <span>
+                    PromoteNow hit{" "}
+                    {(
+                      (fdDiscovery.bucketMetrics.promoteNowHitRate ?? 0) * 100
+                    ).toFixed(0)}
+                    %
+                  </span>
+                )}
+                {fdDiscovery.bucketMetrics.researchNextHitRate != null && (
+                  <span>
+                    ResearchNext hit{" "}
+                    {(
+                      (fdDiscovery.bucketMetrics.researchNextHitRate ?? 0) * 100
+                    ).toFixed(0)}
+                    %
+                  </span>
+                )}
+                {fdDiscovery.bucketMetrics.avoidSaveRate != null && (
+                  <span>
+                    Avoid save{" "}
+                    {(
+                      (fdDiscovery.bucketMetrics.avoidSaveRate ?? 0) * 100
+                    ).toFixed(0)}
+                    %
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {(fdDiscovery.resolved?.length ?? 0) > 0 && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              Resolved outcomes (sample)
+            </p>
+            <div className="overflow-x-auto text-xs">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-1 pr-2">Ticker</th>
+                    <th className="text-left py-1 pr-2">Horizon</th>
+                    <th className="text-left py-1 pr-2">Return %</th>
+                    <th className="text-left py-1 pr-2">Outcome</th>
+                    <th className="text-left py-1">Bucket</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fdDiscovery.resolved!.slice(0, 10).map((r, i) => (
+                    <tr
+                      key={`${r.runId}-${r.ticker}-${r.horizon}-${i}`}
+                      className="border-b border-border/50"
+                    >
+                      <td className="py-1 pr-2 font-mono">{r.ticker}</td>
+                      <td className="py-1 pr-2">{r.horizon}</td>
+                      <td className="py-1 pr-2">{r.returnPct.toFixed(2)}%</td>
+                      <td className="py-1 pr-2">
+                        {r.outcome === 1 ? "✓" : "✗"}
+                      </td>
+                      <td className="py-1">{r.bucket ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {(fdDiscovery.falsePositives?.length ?? 0) > 0 && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
+              False positives (wrong direction)
+            </p>
+            <ul className="text-xs text-muted-foreground space-y-0.5">
+              {fdDiscovery.falsePositives!.slice(0, 8).map((r, i) => (
+                <li key={`fp-${r.runId}-${r.ticker}-${r.horizon}-${i}`}>
+                  <span className="font-mono">{r.ticker}</span> {r.horizon} ·{" "}
+                  {r.returnPct.toFixed(2)}% · {r.bucket ?? "—"}
+                </li>
+              ))}
+              {fdDiscovery.falsePositives!.length > 8 && (
+                <li>+{fdDiscovery.falsePositives!.length - 8} more</li>
+              )}
+            </ul>
+          </div>
+        )}
+        {(fdDiscovery.open?.length ?? 0) > 0 && (
+          <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+            <span className="font-medium">Open predictions:</span>{" "}
+            {fdDiscovery.open!.length} (1m/3m)
+          </div>
+        )}
+        {(fdDiscovery.promotionVerdicts?.length ?? 0) > 0 &&
+          (() => {
+            const promotableCount = fdDiscovery.promotionVerdicts!.filter(
+              (v) => v.eligibleForPromotion,
+            ).length;
+            const reviewCount = fdDiscovery.promotionVerdicts!.filter(
+              (v) => v.requiresHumanReview,
+            ).length;
+            const blockedCount = fdDiscovery.promotionVerdicts!.filter(
+              (v) => v.blockedByPolicy,
+            ).length;
+            return (
+              <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  Promotion policy
+                </span>{" "}
+                · {promotableCount} promotable · {reviewCount} need review ·{" "}
+                {blockedCount} blocked
+              </div>
+            );
+          })()}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -1267,6 +1399,9 @@ export default function LeaderboardPage({
   const uploadAgentId = (elizaAgent?.id ?? leaderboardsAgentId) as string;
   const oracleAgentId = (oracleAgent?.id ?? null) as string | null;
   const [mainTab, setMainTab] = useState<MainTab>("trading_bot");
+  const [stocksViewFilter, setStocksViewFilter] = useState<"all" | "net_new">(
+    "all",
+  );
   const [stocksUniverse, setStocksUniverse] = useState<"sleeve" | "full">(
     "full",
   );
@@ -1749,6 +1884,20 @@ export default function LeaderboardPage({
                 {mainTab === "stocks" && (
                   <>
                     <Select
+                      value={stocksViewFilter}
+                      onValueChange={(v) =>
+                        setStocksViewFilter(v as "all" | "net_new")
+                      }
+                    >
+                      <SelectTrigger size="sm" className="w-[130px]">
+                        <SelectValue placeholder="View" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="net_new">Net-new only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
                       value={stocksUniverse}
                       onValueChange={(v) =>
                         setStocksUniverse(v as "sleeve" | "full")
@@ -2093,7 +2242,13 @@ export default function LeaderboardPage({
                 )}
 
                 {leaderboardsData?.fdDiscovery && (
-                  <FdDiscoveryCard fdDiscovery={leaderboardsData.fdDiscovery} />
+                  <FdDiscoveryCard
+                    fdDiscovery={leaderboardsData.fdDiscovery}
+                    viewFilter={stocksViewFilter}
+                    discoveryMetrics={
+                      leaderboardsData.fdDiscoveryMetrics ?? undefined
+                    }
+                  />
                 )}
 
                 {!leaderboardsData.hip3 && !leaderboardsData.hlCrypto && (
@@ -2191,6 +2346,10 @@ export default function LeaderboardPage({
                   <FdDiscoveryCard
                     fdDiscovery={leaderboardsData.fdDiscovery}
                     className="lg:col-span-2"
+                    viewFilter={stocksViewFilter}
+                    discoveryMetrics={
+                      leaderboardsData.fdDiscoveryMetrics ?? undefined
+                    }
                   />
                 ) : (
                   <StocksDiscoveryEmptyCard

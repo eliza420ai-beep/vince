@@ -266,6 +266,13 @@ export interface LeaderboardsResponse {
     lastGeneratedAt?: string | null;
     error?: string | null;
   };
+  /** From last discovery run: screened → enriched → ranked (when two-stage used). */
+  fdDiscoveryMetrics?: {
+    screenedCount?: number;
+    enrichedCount: number;
+    rankedCount: number;
+    generatedAt: string;
+  } | null;
   hip3Status?: "loading" | "ok" | "stale" | "error";
   hlCryptoStatus?: "loading" | "ok" | "stale" | "error";
   /** Forge Ops: replay gates and metrics for the Leaderboard card */
@@ -309,6 +316,15 @@ export interface FdDiscoveryBucketMetrics {
 }
 
 /** FD discovery: ranked sleeve candidates; optional net-new, calibration, and diagnostics */
+/** Structured explanation for operator decision surface. */
+export interface FdDiscoveryExplanation {
+  momentum?: string;
+  quality?: string;
+  event?: string;
+  liquidity?: string;
+  portfolioFit?: string;
+}
+
 export interface FdDiscoverySection {
   title: string;
   oneLiner: string;
@@ -317,18 +333,21 @@ export interface FdDiscoverySection {
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   researchNext: Array<{
     ticker: string;
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   avoid: Array<{
     ticker: string;
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   generatedAt: string;
   newCandidates?: Array<{
@@ -336,12 +355,14 @@ export interface FdDiscoverySection {
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   existingSleeve?: Array<{
     ticker: string;
     sleeve: string;
     score: number;
     reason: string;
+    explanation?: FdDiscoveryExplanation;
   }>;
   calibration?: {
     windowDays: number;
