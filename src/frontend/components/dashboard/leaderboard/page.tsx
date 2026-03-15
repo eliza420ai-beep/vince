@@ -46,6 +46,7 @@ import {
   fetchSubstackPostsWithError,
   fetchRecursiveNorthStarWithError,
   fetchRecursiveNorthStarOperatorStatusWithError,
+  runFdDiscoveryWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type {
@@ -55,6 +56,7 @@ import type {
   RecursiveNorthStarOperatorStatus,
   PolymarketPaperPositionsFetchResult,
   PolymarketPaperPosition,
+  FdDiscoverySection,
 } from "@/frontend/lib/leaderboardsApi";
 import type { RebelRanking } from "@/frontend/types/dashboard";
 import type {
@@ -386,6 +388,7 @@ function signalSourceDisplayName(name: string): string {
 type MainTab =
   | "knowledge"
   | "markets"
+  | "stocks"
   | "charts"
   | "news"
   | "recursive"
@@ -399,6 +402,7 @@ const VISIBLE_MAIN_TABS: MainTab[] = [
   "recursive",
   "news",
   "markets",
+  "stocks",
   "knowledge",
   "charts",
   "polymarket",
@@ -411,6 +415,7 @@ const MAIN_TAB_LABELS: Record<MainTab, string> = {
   recursive: "Recursive",
   news: "News",
   markets: "Markets",
+  stocks: "Stocks",
   knowledge: "Knowledge",
   charts: "Charts",
   polymarket: "Polymarket",
@@ -427,6 +432,572 @@ function toValidMainTab(value: string): MainTab {
     return "markets";
   if ((VISIBLE_MAIN_TABS as string[]).includes(value)) return value as MainTab;
   return "markets";
+}
+
+/** FD Discovery (sleeve) card: PromoteNow / ResearchNext / Avoid, calibration, resolved/open, promotion verdicts. */
+function FdDiscoveryCard({ fdDiscovery }: { fdDiscovery: FdDiscoverySection }) {
+  return (
+    <DashboardCard title={fdDiscovery.title}>
+      <p className="text-sm text-muted-foreground mb-3">
+        {fdDiscovery.oneLiner}
+      </p>
+      <p className="text-xs text-muted-foreground mb-3 rounded-md bg-muted/50 px-2 py-1.5">
+        Potential tickers to add to watchlist:{" "}
+        <span className="font-medium text-foreground">PromoteNow</span> (top)
+        and <span className="font-medium text-foreground">ResearchNext</span>{" "}
+        (middle); net-new candidates from the last full run at the bottom.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div>
+          <span className="font-medium text-green-600 dark:text-green-400">
+            PromoteNow ({(fdDiscovery.promoteNow ?? []).length})
+          </span>
+          <ul className="mt-1 space-y-0.5">
+            {(fdDiscovery.promoteNow ?? []).slice(0, 5).map((c) => (
+              <li key={c.ticker}>
+                <span className="font-mono">{c.ticker}</span>{" "}
+                {c.reason
+                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
+                  : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <span className="font-medium text-amber-600 dark:text-amber-400">
+            ResearchNext ({(fdDiscovery.researchNext ?? []).length})
+          </span>
+          <ul className="mt-1 space-y-0.5">
+            {(fdDiscovery.researchNext ?? []).slice(0, 5).map((c) => (
+              <li key={c.ticker}>
+                <span className="font-mono">{c.ticker}</span>{" "}
+                {c.reason
+                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
+                  : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <span className="font-medium text-muted-foreground">
+            Avoid ({(fdDiscovery.avoid ?? []).length})
+          </span>
+          <ul className="mt-1 space-y-0.5">
+            {(fdDiscovery.avoid ?? []).slice(0, 5).map((c) => (
+              <li key={c.ticker}>
+                <span className="font-mono">{c.ticker}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      {(fdDiscovery.newCandidates?.length ?? 0) > 0 && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <span className="text-xs font-medium text-muted-foreground">
+            Net-new candidates (last full run):{" "}
+            {fdDiscovery
+              .newCandidates!.slice(0, 8)
+              .map((c) => c.ticker)
+              .join(", ")}
+            {fdDiscovery.newCandidates!.length > 8 ? "…" : ""}
+          </span>
+        </div>
+      )}
+      {fdDiscovery.calibration && fdDiscovery.calibration.overallCount > 0 && (
+        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+          Calibration (30d): {fdDiscovery.calibration.overallCount} resolved ·
+          Brier{" "}
+          {fdDiscovery.calibration.overallMeanBrier != null
+            ? fdDiscovery.calibration.overallMeanBrier.toFixed(3)
+            : "—"}
+          {fdDiscovery.calibration.byAgent?.length
+            ? ` · by agent: ${fdDiscovery.calibration.byAgent.map((a) => `${a.agent}=${a.meanBrier.toFixed(2)}`).join(", ")}`
+            : ""}
+        </div>
+      )}
+      {(fdDiscovery.fdStatus != null ||
+        fdDiscovery.fdFreshness != null ||
+        fdDiscovery.bucketMetrics) && (
+        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+          {fdDiscovery.fdStatus != null && (
+            <span>FD: {fdDiscovery.fdStatus}</span>
+          )}
+          {fdDiscovery.fdFreshness != null && (
+            <span>{fdDiscovery.fdFreshness}</span>
+          )}
+          {fdDiscovery.bucketMetrics && (
+            <>
+              {fdDiscovery.bucketMetrics.promoteNowHitRate != null && (
+                <span>
+                  PromoteNow hit{" "}
+                  {(
+                    (fdDiscovery.bucketMetrics.promoteNowHitRate ?? 0) * 100
+                  ).toFixed(0)}
+                  %
+                </span>
+              )}
+              {fdDiscovery.bucketMetrics.researchNextHitRate != null && (
+                <span>
+                  ResearchNext hit{" "}
+                  {(
+                    (fdDiscovery.bucketMetrics.researchNextHitRate ?? 0) * 100
+                  ).toFixed(0)}
+                  %
+                </span>
+              )}
+              {fdDiscovery.bucketMetrics.avoidSaveRate != null && (
+                <span>
+                  Avoid save{" "}
+                  {(
+                    (fdDiscovery.bucketMetrics.avoidSaveRate ?? 0) * 100
+                  ).toFixed(0)}
+                  %
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {(fdDiscovery.resolved?.length ?? 0) > 0 && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            Resolved outcomes (sample)
+          </p>
+          <div className="overflow-x-auto text-xs">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-1 pr-2">Ticker</th>
+                  <th className="text-left py-1 pr-2">Horizon</th>
+                  <th className="text-left py-1 pr-2">Return %</th>
+                  <th className="text-left py-1 pr-2">Outcome</th>
+                  <th className="text-left py-1">Bucket</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fdDiscovery.resolved!.slice(0, 10).map((r, i) => (
+                  <tr
+                    key={`${r.runId}-${r.ticker}-${r.horizon}-${i}`}
+                    className="border-b border-border/50"
+                  >
+                    <td className="py-1 pr-2 font-mono">{r.ticker}</td>
+                    <td className="py-1 pr-2">{r.horizon}</td>
+                    <td className="py-1 pr-2">{r.returnPct.toFixed(2)}%</td>
+                    <td className="py-1 pr-2">{r.outcome === 1 ? "✓" : "✗"}</td>
+                    <td className="py-1">{r.bucket ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {(fdDiscovery.falsePositives?.length ?? 0) > 0 && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
+            False positives (wrong direction)
+          </p>
+          <ul className="text-xs text-muted-foreground space-y-0.5">
+            {fdDiscovery.falsePositives!.slice(0, 8).map((r, i) => (
+              <li key={`fp-${r.runId}-${r.ticker}-${r.horizon}-${i}`}>
+                <span className="font-mono">{r.ticker}</span> {r.horizon} ·{" "}
+                {r.returnPct.toFixed(2)}% · {r.bucket ?? "—"}
+              </li>
+            ))}
+            {fdDiscovery.falsePositives!.length > 8 && (
+              <li>+{fdDiscovery.falsePositives!.length - 8} more</li>
+            )}
+          </ul>
+        </div>
+      )}
+      {(fdDiscovery.open?.length ?? 0) > 0 && (
+        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+          <span className="font-medium">Open predictions:</span>{" "}
+          {fdDiscovery.open!.length} (1m/3m)
+        </div>
+      )}
+      {(fdDiscovery.promotionVerdicts?.length ?? 0) > 0 && (
+        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+          <span className="font-medium">Promotion policy:</span>{" "}
+          {
+            fdDiscovery.promotionVerdicts!.filter((v) => v.eligibleForPromotion)
+              .length
+          }{" "}
+          promotable ·{" "}
+          {
+            fdDiscovery.promotionVerdicts!.filter((v) => v.requiresHumanReview)
+              .length
+          }{" "}
+          need review ·{" "}
+          {
+            fdDiscovery.promotionVerdicts!.filter((v) => v.blockedByPolicy)
+              .length
+          }{" "}
+          blocked
+        </div>
+      )}
+    </DashboardCard>
+  );
+}
+
+function StocksWatchRadarCard({
+  fdDiscovery,
+  currentWatchlist,
+  fdDiscoveryStatus,
+  onRunDiscovery,
+  runDiscoveryLoading,
+  runDiscoveryMessage,
+}: {
+  fdDiscovery: FdDiscoverySection | null | undefined;
+  currentWatchlist: string[];
+  fdDiscoveryStatus?: {
+    state?: string;
+    message?: string;
+    replayRows?: number;
+    historyRuns?: number;
+    candidatesFileExists?: boolean;
+    error?: string | null;
+  } | null;
+  onRunDiscovery: () => void;
+  runDiscoveryLoading: boolean;
+  runDiscoveryMessage?: string;
+}) {
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const watchlistSet = new Set(
+    (currentWatchlist ?? []).map((t) => t.toUpperCase()),
+  );
+  const promoteNow = fdDiscovery?.promoteNow ?? [];
+  const researchNext = fdDiscovery?.researchNext ?? [];
+  const promotionVerdicts = fdDiscovery?.promotionVerdicts ?? [];
+
+  const addNow = promoteNow.filter(
+    (c) => !watchlistSet.has(c.ticker.toUpperCase()),
+  );
+  const researchQueue = researchNext.filter(
+    (c) => !watchlistSet.has(c.ticker.toUpperCase()),
+  );
+  const alreadyWatching = [...promoteNow, ...researchNext].filter((c) =>
+    watchlistSet.has(c.ticker.toUpperCase()),
+  );
+  const promotable = promotionVerdicts.filter((v) => v.eligibleForPromotion);
+  const needsReview = promotionVerdicts.filter((v) => v.requiresHumanReview);
+  const blocked = promotionVerdicts.filter((v) => v.blockedByPolicy);
+  const addNowTickers = addNow.map((c) => c.ticker);
+  const researchQueueTickers = researchQueue.map((c) => c.ticker);
+
+  async function copyText(key: string, text: string) {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      window.setTimeout(() => {
+        setCopiedKey((current) => (current === key ? null : current));
+      }, 2000);
+    } catch {
+      // noop
+    }
+  }
+
+  function buildWatchlistJsonSnippet(tickers: string[]): string {
+    return JSON.stringify(
+      tickers.map((ticker) => ({
+        symbol: ticker,
+      })),
+      null,
+      2,
+    );
+  }
+
+  return (
+    <DashboardCard title="Watchlist radar" className="lg:col-span-2">
+      <p className="text-sm text-muted-foreground mb-3">
+        This is the stock sleeve shortlist: what looks good now, what needs more
+        work, and what is already on the watchlist.
+      </p>
+
+      {!fdDiscovery ? (
+        <div className="rounded-lg border border-border bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p>
+                {fdDiscoveryStatus?.message ??
+                  "FD discovery is not populated yet. Once the discovery run has replay rows, this panel will show PromoteNow, ResearchNext, net-new names, promotion gates, and watchlist deltas."}
+              </p>
+              <p className="text-xs">
+                Replay rows: {fdDiscoveryStatus?.replayRows ?? 0} · history
+                runs: {fdDiscoveryStatus?.historyRuns ?? 0} · candidates file:{" "}
+                {fdDiscoveryStatus?.candidatesFileExists ? "yes" : "no"}
+              </p>
+              {fdDiscoveryStatus?.error ? (
+                <p className="text-xs text-red-500">
+                  {fdDiscoveryStatus.error}
+                </p>
+              ) : null}
+              {runDiscoveryMessage ? (
+                <p className="text-xs text-muted-foreground">
+                  {runDiscoveryMessage}
+                </p>
+              ) : null}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRunDiscovery}
+              disabled={runDiscoveryLoading}
+            >
+              <RefreshCw
+                className={cn(
+                  "w-4 h-4 mr-2",
+                  runDiscoveryLoading && "animate-spin",
+                )}
+              />
+              {runDiscoveryLoading
+                ? "Running discovery..."
+                : "Run discovery now"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => copyText("add-now", addNowTickers.join(", "))}
+              disabled={addNowTickers.length === 0}
+            >
+              {copiedKey === "add-now" ? (
+                <Check className="w-4 h-4 mr-2" />
+              ) : (
+                <Copy className="w-4 h-4 mr-2" />
+              )}
+              {copiedKey === "add-now"
+                ? "Copied add-now"
+                : "Copy add-now tickers"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                copyText(
+                  "watchlist-json",
+                  buildWatchlistJsonSnippet(addNowTickers),
+                )
+              }
+              disabled={addNowTickers.length === 0}
+            >
+              {copiedKey === "watchlist-json" ? (
+                <Check className="w-4 h-4 mr-2" />
+              ) : (
+                <Copy className="w-4 h-4 mr-2" />
+              )}
+              {copiedKey === "watchlist-json"
+                ? "Copied JSON"
+                : "Copy watchlist JSON"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                copyText("research-next", researchQueueTickers.join(", "))
+              }
+              disabled={researchQueueTickers.length === 0}
+            >
+              {copiedKey === "research-next" ? (
+                <Check className="w-4 h-4 mr-2" />
+              ) : (
+                <Copy className="w-4 h-4 mr-2" />
+              )}
+              {copiedKey === "research-next"
+                ? "Copied research-next"
+                : "Copy research-next"}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm">
+            <div className="rounded-lg border border-green-500/30 bg-green-500/5 px-3 py-3">
+              <p className="font-medium text-green-600 dark:text-green-400">
+                Add now ({addNow.length})
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                PromoteNow names not already on the watchlist.
+              </p>
+              <div className="mt-2 text-xs font-mono break-words">
+                {addNow.length > 0
+                  ? addNow
+                      .slice(0, 10)
+                      .map((c) => c.ticker)
+                      .join(", ")
+                  : "(none)"}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-3">
+              <p className="font-medium text-amber-600 dark:text-amber-400">
+                Research next ({researchQueue.length})
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Worth watching, but not yet strong enough for PromoteNow.
+              </p>
+              <div className="mt-2 text-xs font-mono break-words">
+                {researchQueue.length > 0
+                  ? researchQueue
+                      .slice(0, 10)
+                      .map((c) => c.ticker)
+                      .join(", ")
+                  : "(none)"}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-3">
+              <p className="font-medium text-foreground">
+                Already on watchlist ({alreadyWatching.length})
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Discovery agrees these are already being watched.
+              </p>
+              <div className="mt-2 text-xs font-mono break-words">
+                {alreadyWatching.length > 0
+                  ? alreadyWatching
+                      .slice(0, 10)
+                      .map((c) => c.ticker)
+                      .join(", ")
+                  : "(none)"}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-3">
+              <p className="font-medium text-foreground">Promotion gates</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Policy verdicts from the discovery pipeline.
+              </p>
+              <div className="mt-2 space-y-1 text-xs">
+                <div>Promotable: {promotable.length}</div>
+                <div>Need review: {needsReview.length}</div>
+                <div>Blocked: {blocked.length}</div>
+              </div>
+            </div>
+          </div>
+
+          {(promotable.length > 0 ||
+            needsReview.length > 0 ||
+            blocked.length > 0) && (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-3">
+                <p className="font-medium text-green-600 dark:text-green-400 mb-2">
+                  Promotable
+                </p>
+                <div className="font-mono break-words">
+                  {promotable.length > 0
+                    ? promotable
+                        .slice(0, 12)
+                        .map((v) => v.ticker)
+                        .join(", ")
+                    : "(none)"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+                <p className="font-medium text-amber-600 dark:text-amber-400 mb-2">
+                  Need review
+                </p>
+                <div className="font-mono break-words">
+                  {needsReview.length > 0
+                    ? needsReview
+                        .slice(0, 12)
+                        .map((v) => v.ticker)
+                        .join(", ")
+                    : "(none)"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-3">
+                <p className="font-medium text-muted-foreground mb-2">
+                  Blocked by policy
+                </p>
+                <div className="font-mono break-words">
+                  {blocked.length > 0
+                    ? blocked
+                        .slice(0, 12)
+                        .map((v) => v.ticker)
+                        .join(", ")
+                    : "(none)"}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </DashboardCard>
+  );
+}
+
+function StocksDiscoveryEmptyCard({
+  fdDiscoveryStatus,
+  onRunDiscovery,
+  runDiscoveryLoading,
+  runDiscoveryMessage,
+}: {
+  fdDiscoveryStatus?: {
+    state?: string;
+    message?: string;
+    replayRows?: number;
+    historyRuns?: number;
+    candidatesFileExists?: boolean;
+    error?: string | null;
+  } | null;
+  onRunDiscovery: () => void;
+  runDiscoveryLoading: boolean;
+  runDiscoveryMessage?: string;
+}) {
+  return (
+    <DashboardCard title="Sleeve discovery">
+      <p className="text-sm text-muted-foreground">
+        Discovery data is missing right now, so the watchlist shortlist cannot
+        render yet.
+      </p>
+      <div className="mt-3 rounded-lg border border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground space-y-1">
+        <p>{fdDiscoveryStatus?.message ?? "FD discovery payload is null."}</p>
+        <p>
+          Replay rows: {fdDiscoveryStatus?.replayRows ?? 0} · history runs:{" "}
+          {fdDiscoveryStatus?.historyRuns ?? 0} · candidates file:{" "}
+          {fdDiscoveryStatus?.candidatesFileExists ? "yes" : "no"}
+        </p>
+        {fdDiscoveryStatus?.error ? (
+          <p className="text-red-500">{fdDiscoveryStatus.error}</p>
+        ) : null}
+        {runDiscoveryMessage ? <p>{runDiscoveryMessage}</p> : null}
+      </div>
+      <ul className="mt-3 text-xs text-muted-foreground space-y-1">
+        <li>
+          Expected here: PromoteNow, ResearchNext, net-new candidates, promotion
+          gates, and resolved/open outcomes.
+        </li>
+        <li>
+          Source: FD replay rows + discovery run history from the weekly
+          discovery pipeline.
+        </li>
+        <li>
+          Once populated, this tab becomes the main place to decide what gets
+          added to the watchlist.
+        </li>
+      </ul>
+      <div className="mt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRunDiscovery}
+          disabled={runDiscoveryLoading}
+        >
+          <RefreshCw
+            className={cn(
+              "w-4 h-4 mr-2",
+              runDiscoveryLoading && "animate-spin",
+            )}
+          />
+          {runDiscoveryLoading ? "Running discovery..." : "Run discovery now"}
+        </Button>
+      </div>
+    </DashboardCard>
+  );
 }
 
 // Type assertion for gamification service (will be available after API client rebuild)
@@ -480,6 +1051,8 @@ export default function LeaderboardPage({
   const [edgeRefreshLoading, setEdgeRefreshLoading] = useState(false);
   const [testQualityCopied, setTestQualityCopied] = useState(false);
   const [cursorActualCost, setCursorActualCost] = useState<string>("");
+  const [fdDiscoveryRunLoading, setFdDiscoveryRunLoading] = useState(false);
+  const [fdDiscoveryRunMessage, setFdDiscoveryRunMessage] = useState("");
 
   // Redirect away from removed tabs (memetics, digital_art, Trading context / more — all coerced in toValidMainTab).
   useEffect(() => {
@@ -502,7 +1075,10 @@ export default function LeaderboardPage({
         refreshNews: mainTab === "news",
       }),
     enabled:
-      (mainTab === "markets" || mainTab === "news" || mainTab === "charts") &&
+      (mainTab === "markets" ||
+        mainTab === "stocks" ||
+        mainTab === "news" ||
+        mainTab === "charts") &&
       !!leaderboardsAgentId,
     staleTime: LEADERBOARDS_STALE_MS,
   });
@@ -846,6 +1422,28 @@ export default function LeaderboardPage({
     }
   };
 
+  const handleRunFdDiscovery = async () => {
+    if (!leaderboardsAgentId) return;
+    setFdDiscoveryRunLoading(true);
+    setFdDiscoveryRunMessage("");
+    try {
+      const result = await runFdDiscoveryWithError(leaderboardsAgentId);
+      if (!result.success) {
+        setFdDiscoveryRunMessage(result.error ?? "FD discovery run failed.");
+        return;
+      }
+      const counts = result.result?.candidateCounts;
+      setFdDiscoveryRunMessage(
+        counts
+          ? `Discovery run complete: ${counts.promoteNow} PromoteNow, ${counts.researchNext} ResearchNext, ${counts.avoid} Avoid, ${counts.newCandidates} net-new.`
+          : "Discovery run complete.",
+      );
+      await refetchLeaderboards();
+    } finally {
+      setFdDiscoveryRunLoading(false);
+    }
+  };
+
   // Calculate if we need to account for "Your Rank" card and referral card in height
   const hasUserRank =
     leaderboardData?.userRank != null && leaderboardData.userRank > 0;
@@ -869,17 +1467,19 @@ export default function LeaderboardPage({
         : "All-Time Rankings · Newly added knowledge"
       : mainTab === "markets"
         ? "HIP-3 and HL Crypto (perps) — no need to ask VINCE"
-        : mainTab === "news"
-          ? "MandoMinutes headlines with TLDR and deep dive"
-          : mainTab === "recursive"
-            ? "Recursive North Star: self-improvement + 1+1=3 proof"
-            : mainTab === "usage"
-              ? "Session token usage and estimated cost (TREASURY)"
-              : mainTab === "polymarket"
-                ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
-                : mainTab === "charts"
-                  ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
-                  : "No tilt. Every decision explained. Every outcome learned.";
+        : mainTab === "stocks"
+          ? "Watchlist radar, sleeve discovery, and HIP-3 stocks"
+          : mainTab === "news"
+            ? "MandoMinutes headlines with TLDR and deep dive"
+            : mainTab === "recursive"
+              ? "Recursive North Star: self-improvement + 1+1=3 proof"
+              : mainTab === "usage"
+                ? "Session token usage and estimated cost (TREASURY)"
+                : mainTab === "polymarket"
+                  ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
+                  : mainTab === "charts"
+                    ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
+                    : "No tilt. Every decision explained. Every outcome learned.";
 
   return (
     <DashboardPageLayout
@@ -902,22 +1502,44 @@ export default function LeaderboardPage({
                 </TabsTrigger>
               ))}
             </TabsList>
-            {(mainTab === "markets" || mainTab === "news") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetchLeaderboards()}
-                disabled={leaderboardsLoading || leaderboardsFetching}
-              >
-                <RefreshCw
-                  className={cn(
-                    "w-4 h-4 mr-2",
-                    (leaderboardsLoading || leaderboardsFetching) &&
-                      "animate-spin",
-                  )}
-                />
-                Refresh
-              </Button>
+            {(mainTab === "markets" ||
+              mainTab === "stocks" ||
+              mainTab === "news") && (
+              <div className="flex items-center gap-2">
+                {mainTab === "stocks" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRunFdDiscovery}
+                    disabled={fdDiscoveryRunLoading}
+                  >
+                    <RefreshCw
+                      className={cn(
+                        "w-4 h-4 mr-2",
+                        fdDiscoveryRunLoading && "animate-spin",
+                      )}
+                    />
+                    {fdDiscoveryRunLoading
+                      ? "Running discovery..."
+                      : "Run discovery now"}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchLeaderboards()}
+                  disabled={leaderboardsLoading || leaderboardsFetching}
+                >
+                  <RefreshCw
+                    className={cn(
+                      "w-4 h-4 mr-2",
+                      (leaderboardsLoading || leaderboardsFetching) &&
+                        "animate-spin",
+                    )}
+                  />
+                  Refresh
+                </Button>
+              </div>
             )}
             {mainTab === "trading_bot" && (
               <Button
@@ -1215,263 +1837,7 @@ export default function LeaderboardPage({
                 )}
 
                 {leaderboardsData?.fdDiscovery && (
-                  <DashboardCard title={leaderboardsData.fdDiscovery.title}>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {leaderboardsData.fdDiscovery.oneLiner}
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-green-600 dark:text-green-400">
-                          PromoteNow (
-                          {leaderboardsData.fdDiscovery.promoteNow?.length ?? 0}
-                          )
-                        </span>
-                        <ul className="mt-1 space-y-0.5">
-                          {(leaderboardsData.fdDiscovery.promoteNow ?? [])
-                            .slice(0, 5)
-                            .map((c) => (
-                              <li key={c.ticker}>
-                                <span className="font-mono">{c.ticker}</span>{" "}
-                                {c.reason
-                                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
-                                  : ""}
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <span className="font-medium text-amber-600 dark:text-amber-400">
-                          ResearchNext (
-                          {leaderboardsData.fdDiscovery.researchNext?.length ??
-                            0}
-                          )
-                        </span>
-                        <ul className="mt-1 space-y-0.5">
-                          {(leaderboardsData.fdDiscovery.researchNext ?? [])
-                            .slice(0, 5)
-                            .map((c) => (
-                              <li key={c.ticker}>
-                                <span className="font-mono">{c.ticker}</span>{" "}
-                                {c.reason
-                                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
-                                  : ""}
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <span className="font-medium text-muted-foreground">
-                          Avoid (
-                          {leaderboardsData.fdDiscovery.avoid?.length ?? 0})
-                        </span>
-                        <ul className="mt-1 space-y-0.5">
-                          {(leaderboardsData.fdDiscovery.avoid ?? [])
-                            .slice(0, 5)
-                            .map((c) => (
-                              <li key={c.ticker}>
-                                <span className="font-mono">{c.ticker}</span>
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                    </div>
-                    {(leaderboardsData.fdDiscovery.newCandidates?.length ?? 0) >
-                      0 && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Net-new candidates (last full run):{" "}
-                          {leaderboardsData.fdDiscovery
-                            .newCandidates!.slice(0, 8)
-                            .map((c) => c.ticker)
-                            .join(", ")}
-                          {leaderboardsData.fdDiscovery.newCandidates!.length >
-                          8
-                            ? "…"
-                            : ""}
-                        </span>
-                      </div>
-                    )}
-                    {leaderboardsData.fdDiscovery.calibration &&
-                      leaderboardsData.fdDiscovery.calibration.overallCount >
-                        0 && (
-                        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                          Calibration (30d):{" "}
-                          {
-                            leaderboardsData.fdDiscovery.calibration
-                              .overallCount
-                          }{" "}
-                          resolved · Brier{" "}
-                          {leaderboardsData.fdDiscovery.calibration
-                            .overallMeanBrier != null
-                            ? leaderboardsData.fdDiscovery.calibration.overallMeanBrier.toFixed(
-                                3,
-                              )
-                            : "—"}
-                          {leaderboardsData.fdDiscovery.calibration.byAgent
-                            ?.length
-                            ? ` · by agent: ${leaderboardsData.fdDiscovery.calibration.byAgent.map((a) => `${a.agent}=${a.meanBrier.toFixed(2)}`).join(", ")}`
-                            : ""}
-                        </div>
-                      )}
-                    {(leaderboardsData.fdDiscovery.fdStatus != null ||
-                      leaderboardsData.fdDiscovery.fdFreshness != null ||
-                      leaderboardsData.fdDiscovery.bucketMetrics) && (
-                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-                        {leaderboardsData.fdDiscovery.fdStatus != null && (
-                          <span>
-                            FD: {leaderboardsData.fdDiscovery.fdStatus}
-                          </span>
-                        )}
-                        {leaderboardsData.fdDiscovery.fdFreshness != null && (
-                          <span>
-                            {leaderboardsData.fdDiscovery.fdFreshness}
-                          </span>
-                        )}
-                        {leaderboardsData.fdDiscovery.bucketMetrics && (
-                          <>
-                            {leaderboardsData.fdDiscovery.bucketMetrics
-                              .promoteNowHitRate != null && (
-                              <span>
-                                PromoteNow hit{" "}
-                                {(
-                                  (leaderboardsData.fdDiscovery.bucketMetrics
-                                    .promoteNowHitRate ?? 0) * 100
-                                ).toFixed(0)}
-                                %
-                              </span>
-                            )}
-                            {leaderboardsData.fdDiscovery.bucketMetrics
-                              .researchNextHitRate != null && (
-                              <span>
-                                ResearchNext hit{" "}
-                                {(
-                                  (leaderboardsData.fdDiscovery.bucketMetrics
-                                    .researchNextHitRate ?? 0) * 100
-                                ).toFixed(0)}
-                                %
-                              </span>
-                            )}
-                            {leaderboardsData.fdDiscovery.bucketMetrics
-                              .avoidSaveRate != null && (
-                              <span>
-                                Avoid save{" "}
-                                {(
-                                  (leaderboardsData.fdDiscovery.bucketMetrics
-                                    .avoidSaveRate ?? 0) * 100
-                                ).toFixed(0)}
-                                %
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {(leaderboardsData.fdDiscovery.resolved?.length ?? 0) >
-                      0 && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">
-                          Resolved outcomes (sample)
-                        </p>
-                        <div className="overflow-x-auto text-xs">
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr className="border-b border-border">
-                                <th className="text-left py-1 pr-2">Ticker</th>
-                                <th className="text-left py-1 pr-2">Horizon</th>
-                                <th className="text-left py-1 pr-2">
-                                  Return %
-                                </th>
-                                <th className="text-left py-1 pr-2">Outcome</th>
-                                <th className="text-left py-1">Bucket</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {leaderboardsData.fdDiscovery
-                                .resolved!.slice(0, 10)
-                                .map((r, i) => (
-                                  <tr
-                                    key={`${r.runId}-${r.ticker}-${r.horizon}-${i}`}
-                                    className="border-b border-border/50"
-                                  >
-                                    <td className="py-1 pr-2 font-mono">
-                                      {r.ticker}
-                                    </td>
-                                    <td className="py-1 pr-2">{r.horizon}</td>
-                                    <td className="py-1 pr-2">
-                                      {r.returnPct.toFixed(2)}%
-                                    </td>
-                                    <td className="py-1 pr-2">
-                                      {r.outcome === 1 ? "✓" : "✗"}
-                                    </td>
-                                    <td className="py-1">{r.bucket ?? "—"}</td>
-                                  </tr>
-                                ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                    {(leaderboardsData.fdDiscovery.falsePositives?.length ??
-                      0) > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
-                          False positives (wrong direction)
-                        </p>
-                        <ul className="text-xs text-muted-foreground space-y-0.5">
-                          {leaderboardsData.fdDiscovery
-                            .falsePositives!.slice(0, 8)
-                            .map((r, i) => (
-                              <li
-                                key={`fp-${r.runId}-${r.ticker}-${r.horizon}-${i}`}
-                              >
-                                <span className="font-mono">{r.ticker}</span>{" "}
-                                {r.horizon} · {r.returnPct.toFixed(2)}% ·{" "}
-                                {r.bucket ?? "—"}
-                              </li>
-                            ))}
-                          {leaderboardsData.fdDiscovery.falsePositives!.length >
-                            8 && (
-                            <li>
-                              +
-                              {leaderboardsData.fdDiscovery.falsePositives!
-                                .length - 8}{" "}
-                              more
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                    {(leaderboardsData.fdDiscovery.open?.length ?? 0) > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                        <span className="font-medium">Open predictions:</span>{" "}
-                        {leaderboardsData.fdDiscovery.open!.length} (1m/3m)
-                      </div>
-                    )}
-                    {(leaderboardsData.fdDiscovery.promotionVerdicts?.length ??
-                      0) > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                        <span className="font-medium">Promotion policy:</span>{" "}
-                        {
-                          leaderboardsData.fdDiscovery.promotionVerdicts!.filter(
-                            (v) => v.eligibleForPromotion,
-                          ).length
-                        }{" "}
-                        promotable ·{" "}
-                        {
-                          leaderboardsData.fdDiscovery.promotionVerdicts!.filter(
-                            (v) => v.requiresHumanReview,
-                          ).length
-                        }{" "}
-                        need review ·{" "}
-                        {
-                          leaderboardsData.fdDiscovery.promotionVerdicts!.filter(
-                            (v) => v.blockedByPolicy,
-                          ).length
-                        }{" "}
-                        blocked
-                      </div>
-                    )}
-                  </DashboardCard>
+                  <FdDiscoveryCard fdDiscovery={leaderboardsData.fdDiscovery} />
                 )}
 
                 {!leaderboardsData.hip3 && !leaderboardsData.hlCrypto && (
@@ -1537,6 +1903,76 @@ export default function LeaderboardPage({
                 )}
                 <p className="text-sm text-muted-foreground">
                   Make sure VINCE is running, then click Refresh above.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Stocks tab: sleeve discovery (PromoteNow / ResearchNext) + HIP-3 stocks */}
+          <TabsContent
+            value="stocks"
+            className="mt-6 flex-1 min-h-0 min-h-[280px]"
+          >
+            {leaderboardsLoading || leaderboardsFetching ? (
+              <div className="space-y-4">
+                <div className="h-48 bg-muted/50 rounded-xl animate-pulse" />
+                <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
+              </div>
+            ) : leaderboardsData ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <StocksWatchRadarCard
+                  fdDiscovery={leaderboardsData.fdDiscovery}
+                  currentWatchlist={
+                    leaderboardsData.chartTickers?.watchlist ?? []
+                  }
+                  fdDiscoveryStatus={leaderboardsData.fdDiscoveryStatus}
+                  onRunDiscovery={handleRunFdDiscovery}
+                  runDiscoveryLoading={fdDiscoveryRunLoading}
+                  runDiscoveryMessage={fdDiscoveryRunMessage}
+                />
+                {leaderboardsData.fdDiscovery ? (
+                  <FdDiscoveryCard fdDiscovery={leaderboardsData.fdDiscovery} />
+                ) : (
+                  <StocksDiscoveryEmptyCard
+                    fdDiscoveryStatus={leaderboardsData.fdDiscoveryStatus}
+                    onRunDiscovery={handleRunFdDiscovery}
+                    runDiscoveryLoading={fdDiscoveryRunLoading}
+                    runDiscoveryMessage={fdDiscoveryRunMessage}
+                  />
+                )}
+                {leaderboardsData.hip3?.categories?.stocks &&
+                  leaderboardsData.hip3.categories.stocks.length > 0 && (
+                    <div className="lg:col-span-2">
+                      <MarketLeaderboardSection
+                        title="HIP-3 stocks"
+                        subtitle="Equity movers from HIP-3"
+                        topMovers={leaderboardsData.hip3.categories.stocks}
+                        volumeLeaders={[]}
+                        oneLiner="Stocks category from HIP-3 perps."
+                        bias={leaderboardsData.hip3.bias ?? ""}
+                        categories={[
+                          {
+                            label: "Stocks",
+                            rows: leaderboardsData.hip3.categories.stocks,
+                          },
+                        ]}
+                      />
+                    </div>
+                  )}
+                {!leaderboardsData.hip3?.categories?.stocks?.length && (
+                  <p className="text-center text-muted-foreground py-8 col-span-2">
+                    No stocks data yet. Run FD discovery or check Markets tab
+                    for HIP-3.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
+                <p className="font-medium text-foreground">
+                  Could not load leaderboards
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Make sure VINCE is running, then click Refresh.
                 </p>
               </div>
             )}

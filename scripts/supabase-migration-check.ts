@@ -29,19 +29,21 @@ if (hasPostgres && hasSupabaseKey) {
   console.log("  - Features also dual-write to Supabase for 500+ row ML queries.");
   console.log("");
   console.log("If you haven't yet, run scripts/supabase-feature-store-bootstrap.sql in Supabase SQL Editor.");
-  return;
+} else {
+  console.log("Next steps (see docs/FEATURE-STORE.md):");
+  if (!hasPostgres) {
+    if (hasSupabaseUrl || hasSupabaseKey) {
+      console.log("  1. Get direct Postgres connection string: Supabase Dashboard → Settings → Database → Connection string (URI, port 5432; not pooler).");
+      console.log("  2. Set POSTGRES_URL in .env (and deploy env).");
+    } else {
+      console.log("  1. Create a Supabase project; get direct connection string (port 5432, not pooler).");
+      console.log("  2. Set POSTGRES_URL in .env (and deploy env).");
+    }
+    console.log("  3. Restart (or redeploy); verify plugin_vince.paper_bot_features exists.");
+  }
+  if (hasPostgres && !hasSupabaseKey) {
+    console.log("  1. Run scripts/supabase-feature-store-bootstrap.sql in Supabase SQL Editor.");
+    console.log("  2. Set SUPABASE_SERVICE_ROLE_KEY (and optionally SUPABASE_URL) in .env.");
+  }
+  console.log("");
 }
-
-console.log("Next steps (see docs/FEATURE-STORE.md):");
-if (!hasPostgres) {
-  console.log("  1. Create a Supabase project; get direct connection string (port 5432, not pooler).");
-  console.log("  2. Set POSTGRES_URL in .env (and deploy env).");
-}
-if (hasPostgres && !hasSupabaseKey) {
-  console.log("  1. Run scripts/supabase-feature-store-bootstrap.sql in Supabase SQL Editor.");
-  console.log("  2. Set SUPABASE_SERVICE_ROLE_KEY (and optionally SUPABASE_URL) in .env.");
-}
-if (!hasPostgres) {
-  console.log("  3. Restart (or redeploy); verify plugin_vince.paper_bot_features exists.");
-}
-console.log("");

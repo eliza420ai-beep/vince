@@ -456,6 +456,19 @@ export interface LeaderboardsResponse {
     status?: "ready" | "missing" | "stale";
   };
   fdDiscovery?: FdDiscoverySection | null;
+  fdDiscoveryStatus?: {
+    state:
+      | "ready"
+      | "missing_candidates_file"
+      | "missing_replay_rows"
+      | "error";
+    candidatesFileExists: boolean;
+    historyRuns: number;
+    replayRows: number;
+    message: string;
+    lastGeneratedAt?: string | null;
+    error?: string | null;
+  };
   hip3Status?: SectionStatus;
   hlCryptoStatus?: SectionStatus;
   forgeOps?: ForgeOpsSection | null;
@@ -523,6 +536,60 @@ function buildFdDiscoverySection(
     }));
   }
   return section;
+}
+
+function buildFdDiscoveryStatus(
+  projectRoot: string = process.cwd(),
+  fdDiscovery: FdDiscoverySection | null,
+  error?: string | null,
+): NonNullable<LeaderboardsResponse["fdDiscoveryStatus"]> {
+  const replayRows = getFdReplayRows(projectRoot).length;
+  const historyRuns = readDiscoveryRunHistory(projectRoot, 1).length;
+  const candidatesFileExists = fs.existsSync(
+    path.join(projectRoot, "portfolio_watchlist_candidates.json"),
+  );
+
+  if (error) {
+    return {
+      state: "error",
+      candidatesFileExists,
+      historyRuns,
+      replayRows,
+      message: "FD discovery failed to build on the backend.",
+      error,
+      lastGeneratedAt: fdDiscovery?.generatedAt ?? null,
+    };
+  }
+  if (replayRows === 0) {
+    return {
+      state: "missing_replay_rows",
+      candidatesFileExists,
+      historyRuns,
+      replayRows,
+      message:
+        "No FD replay rows yet. Build FD snapshots for sleeve/watchlist tickers first.",
+      lastGeneratedAt: fdDiscovery?.generatedAt ?? null,
+    };
+  }
+  if (!candidatesFileExists && historyRuns === 0) {
+    return {
+      state: "missing_candidates_file",
+      candidatesFileExists,
+      historyRuns,
+      replayRows,
+      message:
+        "Weekly discovery has not written portfolio_watchlist_candidates.json yet.",
+      lastGeneratedAt: fdDiscovery?.generatedAt ?? null,
+    };
+  }
+  return {
+    state: "ready",
+    candidatesFileExists,
+    historyRuns,
+    replayRows,
+    message: "FD discovery is available.",
+    lastGeneratedAt: fdDiscovery?.generatedAt ?? null,
+  };
 }
 
 function buildFdDiscoveryDiagnostics(
@@ -1762,9 +1829,14 @@ export async function buildLeaderboardsResponse(
   };
   const fdCache = getFdCacheFreshness();
   const projectRoot = process.cwd();
-  let fdDiscovery = await safe("FdDiscovery", () =>
-    Promise.resolve(buildFdDiscoverySection(projectRoot)),
-  );
+  let fdDiscovery: FdDiscoverySection | null = null;
+  let fdDiscoveryError: string | null = null;
+  try {
+    fdDiscovery = buildFdDiscoverySection(projectRoot);
+  } catch (e) {
+    fdDiscoveryError = e instanceof Error ? e.message : String(e);
+    logger.debug(`[Leaderboards] FdDiscovery: ${fdDiscoveryError}`);
+  }
   const tracker = runtime.getService(
     "VINCE_PREDICTION_TRACKER_SERVICE",
   ) as PredictionTrackerService | null;
@@ -1842,6 +1914,12 @@ export async function buildLeaderboardsResponse(
   if (forgeOps) forgeOpsStatus = "ok";
   else if (news ?? hip3 ?? hlCrypto) forgeOpsStatus = "stale";
 
+  const fdDiscoveryStatus = buildFdDiscoveryStatus(
+    projectRoot,
+    fdDiscovery,
+    fdDiscoveryError,
+  );
+
   return {
     updatedAt: now,
     hip3,
@@ -1855,6 +1933,7 @@ export async function buildLeaderboardsResponse(
     chartTickers,
     fdCache,
     fdDiscovery: fdDiscovery ?? null,
+    fdDiscoveryStatus,
     hip3Status,
     hlCryptoStatus,
     forgeOps: forgeOps ?? null,

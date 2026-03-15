@@ -252,6 +252,19 @@ export interface LeaderboardsResponse {
   };
   /** FD sleeve discovery: PromoteNow / ResearchNext / Avoid; optional newCandidates, existingSleeve, calibration */
   fdDiscovery?: FdDiscoverySection | null;
+  fdDiscoveryStatus?: {
+    state:
+      | "ready"
+      | "missing_candidates_file"
+      | "missing_replay_rows"
+      | "error";
+    candidatesFileExists: boolean;
+    historyRuns: number;
+    replayRows: number;
+    message: string;
+    lastGeneratedAt?: string | null;
+    error?: string | null;
+  };
   hip3Status?: "loading" | "ok" | "stale" | "error";
   hlCryptoStatus?: "loading" | "ok" | "stale" | "error";
   /** Forge Ops: replay gates and metrics for the Leaderboard card */
@@ -428,6 +441,54 @@ export async function fetchLeaderboardsWithError(
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };
+  }
+}
+
+export async function runFdDiscoveryWithError(agentId: string): Promise<{
+  success: boolean;
+  error: string | null;
+  status: number | null;
+  result?: {
+    file?: string;
+    discoveryRunId?: string;
+    registeredPredictions?: number;
+    candidateCounts?: {
+      promoteNow: number;
+      researchNext: number;
+      avoid: number;
+      existingSleeve: number;
+      newCandidates: number;
+    };
+    useFullUniverse: boolean;
+    message?: string;
+  };
+}> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/leaderboards/fd-discovery/run?agentId=${encodeURIComponent(agentId)}`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(120000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { success: false, error: msg, status: res.status };
+    }
+    return {
+      success: Boolean(body?.success),
+      error: null,
+      status: res.status,
+      result: body?.result,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { success: false, error: msg, status: null };
   }
 }
 

@@ -183,7 +183,10 @@ import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
 import { registerFdCachePrewarmTask } from "./tasks/fdCachePrewarm.tasks";
-import { registerFdDiscoveryWeeklyTask } from "./tasks/fdDiscoveryWeekly.tasks";
+import {
+  registerFdDiscoveryWeeklyTask,
+  runFdDiscoveryNow,
+} from "./tasks/fdDiscoveryWeekly.tasks";
 
 // Tasks - Phase 5: The Genome (V4.2.0)
 import { registerCounterfactualWeeklyTask } from "./tasks/counterfactualWeekly.tasks";
@@ -420,6 +423,58 @@ export const vincePlugin: Plugin = {
             message: err instanceof Error ? err.message : String(err),
           });
           return;
+        }
+      },
+    },
+    {
+      name: "vince-fd-discovery-run",
+      path: "/vince/leaderboards/fd-discovery/run",
+      type: "POST",
+      handler: async (
+        req: {
+          params?: Record<string, string>;
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "FD discovery run requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/leaderboards/fd-discovery/run",
+          });
+          return;
+        }
+        try {
+          const result = await runFdDiscoveryNow(agentRuntime, process.cwd());
+          if (!result.success) {
+            res.status(500).json({
+              success: false,
+              error: result.message ?? "FD discovery run failed",
+              result,
+            });
+            return;
+          }
+          res.json({
+            success: true,
+            result,
+          });
+        } catch (err) {
+          logger.warn(`[VINCE] FD discovery run route error: ${err}`);
+          res.status(500).json({
+            success: false,
+            error: "Failed to run FD discovery",
+            message: err instanceof Error ? err.message : String(err),
+          });
         }
       },
     },
