@@ -37,6 +37,7 @@ import {
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 import { buildBankrResponse } from "./routes/dashboardBankr";
+import { readLastRunLedgerEntry } from "./research-autopilot/artifactPaths";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -118,6 +119,7 @@ import { VinceDataSufficiencyService } from "./services/vinceDataSufficiency.ser
 import { VinceSourceQualityService } from "./services/vinceSourceQuality.service";
 import { VinceProofCapitalAllocatorService } from "./services/vinceProofCapitalAllocator.service";
 import { VincePostMortemPolicyLoopService } from "./services/vincePostMortemPolicyLoop.service";
+import { ResearchAutopilotService } from "./services/researchAutopilot.service";
 
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
@@ -187,6 +189,7 @@ import {
   registerFdDiscoveryWeeklyTask,
   runFdDiscoveryNow,
 } from "./tasks/fdDiscoveryWeekly.tasks";
+import { registerResearchAutopilotTask } from "./tasks/researchAutopilot.tasks";
 
 // Tasks - Phase 5: The Genome (V4.2.0)
 import { registerCounterfactualWeeklyTask } from "./tasks/counterfactualWeekly.tasks";
@@ -286,6 +289,7 @@ export const vincePlugin: Plugin = {
     VinceSourceQualityService,
     VinceProofCapitalAllocatorService,
     VincePostMortemPolicyLoopService,
+    ResearchAutopilotService,
   ] as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
 
   // Actions - focus areas + paper trading bot controls
@@ -971,6 +975,130 @@ export const vincePlugin: Plugin = {
         }
       },
     },
+    {
+      name: "vince-research-autopilot-run",
+      path: "/vince/research-autopilot/run",
+      type: "POST",
+      handler: async (
+        req: {
+          body?: {
+            selectionMode?: string;
+            maxTickerCount?: number;
+            customSymbols?: string[];
+          };
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Research autopilot run requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/research-autopilot/run",
+          });
+          return;
+        }
+        try {
+          const body = req.body ?? {};
+          const selectionMode = (body.selectionMode ??
+            (req.query ?? {}).selectionMode ??
+            "research_next") as
+            | "add_now"
+            | "research_next"
+            | "net_new"
+            | "add_now_plus_research"
+            | "custom_symbols";
+          const maxTickerCount =
+            body.maxTickerCount ?? (req.query ?? {}).maxTickerCount;
+          const customSymbols =
+            body.customSymbols ?? (req.query ?? {}).customSymbols;
+          const service = agentRuntime.getService(
+            "RESEARCH_AUTOPILOT_SERVICE",
+          ) as ResearchAutopilotService | null;
+          if (!service) {
+            res
+              .status(503)
+              .json({ error: "Research autopilot service not available" });
+            return;
+          }
+          const result = await service.run({
+            selectionMode,
+            maxTickerCount:
+              maxTickerCount != null && maxTickerCount !== ""
+                ? Number(maxTickerCount)
+                : undefined,
+            customSymbols: Array.isArray(customSymbols)
+              ? customSymbols
+              : undefined,
+          });
+          res.json({
+            success: result.status === "completed",
+            runId: result.runId,
+            status: result.status,
+            symbols: result.symbols,
+            artifactPaths: result.artifactPaths,
+            essayTitle: result.essayTitle,
+            errors: result.errors,
+          });
+        } catch (err) {
+          logger.warn(`[VINCE] Research autopilot run error: ${err}`);
+          res.status(500).json({
+            success: false,
+            error: "Research autopilot run failed",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+    {
+      name: "vince-research-autopilot-last",
+      path: "/vince/research-autopilot/last",
+      type: "GET",
+      handler: async (
+        _req: { [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+      ) => {
+        try {
+          const projectRoot = process.cwd();
+          const last = readLastRunLedgerEntry(projectRoot);
+          if (!last) {
+            res.json({ success: true, lastRun: null });
+            return;
+          }
+          res.json({
+            success: true,
+            lastRun: {
+              runId: last.runId,
+              createdAt: last.createdAt,
+              selectionMode: last.selectionMode,
+              symbols: last.symbols,
+              status: last.status,
+              artifactPaths: last.artifactPaths,
+              essayTitle: last.essayTitle,
+              errors: last.errors,
+            },
+          });
+        } catch (err) {
+          logger.warn(`[VINCE] Research autopilot last-run error: ${err}`);
+          res.status(500).json({
+            error: "Failed to read last run",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
   ],
 
   // Providers - unified context (teammate loads first so IDENTITY/USER/SOUL/TOOLS/MEMORY are always in context)
@@ -1422,6 +1550,11 @@ export const vincePlugin: Plugin = {
             "[VINCE] Failed to register FD discovery weekly task:",
             e,
           );
+        }
+        try {
+          await registerResearchAutopilotTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register research autopilot task:", e);
         }
       });
     }
