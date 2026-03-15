@@ -253,30 +253,40 @@ export async function prewarmFdPortfolioHistoryCache(
     }
 
     misses++;
-    const { endpoint, rows } = await fetchHistorical(
-      ticker,
-      startDate,
-      endDate,
-      apiKey,
-    );
-    const payload: FdCacheEnvelope = {
-      ticker,
-      source: "financialdatasets",
-      endpoint,
-      interval: "day",
-      startDate,
-      endDate,
-      fetchedAt: new Date().toISOString(),
-      rowCount: rows.length,
-      rows,
-    };
-    ensureDir(path.dirname(filePath));
-    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), "utf-8");
-    files.push({
-      ticker,
-      file: path.relative(projectRoot, filePath),
-      rowCount: rows.length,
-    });
+    try {
+      const { endpoint, rows } = await fetchHistorical(
+        ticker,
+        startDate,
+        endDate,
+        apiKey,
+      );
+      const payload: FdCacheEnvelope = {
+        ticker,
+        source: "financialdatasets",
+        endpoint,
+        interval: "day",
+        startDate,
+        endDate,
+        fetchedAt: new Date().toISOString(),
+        rowCount: rows.length,
+        rows,
+      };
+      ensureDir(path.dirname(filePath));
+      fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), "utf-8");
+      files.push({
+        ticker,
+        file: path.relative(projectRoot, filePath),
+        rowCount: rows.length,
+      });
+    } catch (error) {
+      // Full-universe discovery should degrade gracefully when one ticker
+      // is unavailable from Financial Datasets.
+      console.warn(
+        `[fdPortfolioCachePrewarm] skipping ${ticker}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   const manifest: FdCacheManifest = {

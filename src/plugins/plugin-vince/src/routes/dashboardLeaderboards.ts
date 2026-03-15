@@ -34,10 +34,16 @@ import {
   readResolvedOutcomes,
   type DiscoveryResolvedOutcome,
 } from "../utils/fdDiscoveryOutcomes";
-import { getFdReplayRows } from "../utils/fdReplayImporter";
+import {
+  getFdReplayRows,
+  getFdReplayRowsForUniverse,
+} from "../utils/fdReplayImporter";
 import { rankDiscoveryCandidates } from "../utils/fdDiscoveryRanker";
 import type { PredictionTrackerService } from "../services/predictionTracker.service";
-import type { VinceTickerDiscoveryService } from "../services/vinceTickerDiscovery.service";
+import type {
+  DiscoveryUniverseSelector,
+  VinceTickerDiscoveryService,
+} from "../services/vinceTickerDiscovery.service";
 
 // Section-level timeouts for leaderboards. HIP-3 and HL Crypto can take
 // longer when upstream APIs are slow, so we keep this reasonably high to
@@ -447,6 +453,7 @@ export interface LeaderboardsResponse {
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
   chartTickers?: {
+    hyperliquid: string[];
     watchlist: string[];
     tastytrade: string[];
   };
@@ -477,8 +484,12 @@ export interface LeaderboardsResponse {
 
 function buildFdDiscoverySection(
   projectRoot: string = process.cwd(),
+  universe: DiscoveryUniverseSelector = "sleeve",
 ): FdDiscoverySection {
-  const rows = getFdReplayRows(projectRoot);
+  const rows =
+    universe === "full"
+      ? getFdReplayRowsForUniverse(projectRoot)
+      : getFdReplayRows(projectRoot);
   const sleeveTickers = new Set(getCurrentSleeveTickers(projectRoot));
   const ranked = rankDiscoveryCandidates(rows, { sleeveTickers });
   const promoteNow = ranked
@@ -521,7 +532,10 @@ function buildFdDiscoverySection(
     avoid,
     generatedAt,
   };
-  if (lastRun?.newCandidates?.length || lastRun?.existingSleeve?.length) {
+  if (
+    universe === "full" &&
+    (lastRun?.newCandidates?.length || lastRun?.existingSleeve?.length)
+  ) {
     section.newCandidates = lastRun.newCandidates?.map((c) => ({
       ticker: c.ticker,
       sleeve: c.sleeve,
@@ -541,9 +555,13 @@ function buildFdDiscoverySection(
 function buildFdDiscoveryStatus(
   projectRoot: string = process.cwd(),
   fdDiscovery: FdDiscoverySection | null,
+  universe: DiscoveryUniverseSelector = "sleeve",
   error?: string | null,
 ): NonNullable<LeaderboardsResponse["fdDiscoveryStatus"]> {
-  const replayRows = getFdReplayRows(projectRoot).length;
+  const replayRows =
+    universe === "full"
+      ? getFdReplayRowsForUniverse(projectRoot).length
+      : getFdReplayRows(projectRoot).length;
   const historyRuns = readDiscoveryRunHistory(projectRoot, 1).length;
   const candidatesFileExists = fs.existsSync(
     path.join(projectRoot, "portfolio_watchlist_candidates.json"),
@@ -1799,8 +1817,10 @@ async function buildMoreSection(
  */
 export async function buildLeaderboardsResponse(
   runtime: IAgentRuntime,
+  options?: { discoveryUniverse?: DiscoveryUniverseSelector },
 ): Promise<LeaderboardsResponse> {
   const now = Date.now();
+  const discoveryUniverse = options?.discoveryUniverse ?? "sleeve";
 
   // Markets first (hip3 + hlCrypto) — keep this isolated so Markets tab is reliable.
   const [hip3, hlCrypto] = await Promise.all([
@@ -1824,6 +1844,7 @@ export async function buildLeaderboardsResponse(
   const more = null as MoreLeaderboardSection | null;
   const dexter = loadDexterPortfolios();
   const chartTickers = {
+    hyperliquid: [...new Set(dexter.hyperliquid.map((s) => s.toUpperCase()))],
     watchlist: [...new Set(dexter.watchlist.map((s) => s.toUpperCase()))],
     tastytrade: [...new Set(dexter.tastytrade.map((s) => s.toUpperCase()))],
   };
@@ -1832,7 +1853,7 @@ export async function buildLeaderboardsResponse(
   let fdDiscovery: FdDiscoverySection | null = null;
   let fdDiscoveryError: string | null = null;
   try {
-    fdDiscovery = buildFdDiscoverySection(projectRoot);
+    fdDiscovery = buildFdDiscoverySection(projectRoot, discoveryUniverse);
   } catch (e) {
     fdDiscoveryError = e instanceof Error ? e.message : String(e);
     logger.debug(`[Leaderboards] FdDiscovery: ${fdDiscoveryError}`);
@@ -1855,7 +1876,9 @@ export async function buildLeaderboardsResponse(
       ) as VinceTickerDiscoveryService | null;
       if (discoverySvc?.getPromotionVerdicts && fdDiscovery.bucketMetrics) {
         try {
-          const result = discoverySvc.getRankedCandidates(projectRoot);
+          const result = discoverySvc.getRankedCandidates(projectRoot, {
+            universe: discoveryUniverse,
+          });
           const verdicts = discoverySvc.getPromotionVerdicts(
             result,
             projectRoot,
@@ -1917,6 +1940,7 @@ export async function buildLeaderboardsResponse(
   const fdDiscoveryStatus = buildFdDiscoveryStatus(
     projectRoot,
     fdDiscovery,
+    discoveryUniverse,
     fdDiscoveryError,
   );
 

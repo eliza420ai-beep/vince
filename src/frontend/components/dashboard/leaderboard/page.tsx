@@ -434,91 +434,282 @@ function toValidMainTab(value: string): MainTab {
   return "markets";
 }
 
-/** FD Discovery (sleeve) card: PromoteNow / ResearchNext / Avoid, calibration, resolved/open, promotion verdicts. */
-function FdDiscoveryCard({ fdDiscovery }: { fdDiscovery: FdDiscoverySection }) {
+function parseReasonParts(reason?: string | null): string[] {
+  if (!reason) return [];
+  return reason
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function humanizeDiscoveryReasonPart(part: string): string {
+  const momentum = part.match(/^(\d+m)\s*([+-]?\d+(?:\.\d+)?)%$/i);
+  if (momentum) {
+    return `${momentum[1].toUpperCase()} momentum ${momentum[2]}%`;
+  }
+
+  const normalized = part.toLowerCase();
+  if (normalized === "recent 8-k") return "fresh 8-K update";
+  if (normalized === "filing activity") return "active SEC filings";
+  if (normalized === "margin") return "healthy margins";
+  if (normalized === "diversification") return "diversified business mix";
+  if (normalized === "moderate vol") return "solid trading volume";
+  if (normalized === "high vol") return "high trading volume";
+  if (normalized === "liquid") return "liquid name";
+  if (normalized === "in sleeve") return "already validated in sleeve";
+
+  return part;
+}
+
+function compactReason(reason?: string | null, maxParts = 2): string {
+  return parseReasonParts(reason)
+    .slice(0, maxParts)
+    .map(humanizeDiscoveryReasonPart)
+    .join(" · ");
+}
+
+function CompactTickerRows({
+  items,
+  limit = 6,
+  emptyLabel = "(none)",
+  tone = "neutral",
+  showReason = false,
+}: {
+  items: Array<string | { ticker?: string; reason?: string; sleeve?: string }>;
+  limit?: number;
+  emptyLabel?: string;
+  tone?: "neutral" | "green" | "amber" | "blue";
+  showReason?: boolean;
+}) {
+  const rows = (items ?? [])
+    .map((item) =>
+      typeof item === "string"
+        ? { ticker: item, reason: "", sleeve: "" }
+        : {
+            ticker: item?.ticker ?? "",
+            reason: item?.reason ?? "",
+            sleeve: item?.sleeve ?? "",
+          },
+    )
+    .filter((item) => item.ticker);
+
+  const toneClasses =
+    tone === "green"
+      ? "border-green-500/20 bg-green-500/5"
+      : tone === "amber"
+        ? "border-amber-500/20 bg-amber-500/5"
+        : tone === "blue"
+          ? "border-blue-500/20 bg-blue-500/5"
+          : "border-border bg-muted/20";
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
+        {emptyLabel}
+      </div>
+    );
+  }
+
   return (
-    <DashboardCard title={fdDiscovery.title}>
-      <p className="text-sm text-muted-foreground mb-3">
+    <div className="space-y-2">
+      {rows.slice(0, limit).map((item) => (
+        <div
+          key={`${item.ticker}-${item.sleeve}`}
+          className={cn("rounded-md border px-3 py-2", toneClasses)}
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm text-foreground">
+              {item.ticker}
+            </span>
+            {item.sleeve ? (
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {item.sleeve}
+              </span>
+            ) : null}
+          </div>
+          {showReason && item.reason ? (
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              Why it made the list: {compactReason(item.reason, 3)}
+            </p>
+          ) : null}
+        </div>
+      ))}
+      {rows.length > limit ? (
+        <p className="text-[11px] text-muted-foreground">
+          +{rows.length - limit} more
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function DiscoveryKpi({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "neutral" | "green" | "amber" | "blue";
+}) {
+  const toneClasses =
+    tone === "green"
+      ? "border-green-500/30 bg-green-500/5 text-green-700 dark:text-green-400"
+      : tone === "amber"
+        ? "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+        : tone === "blue"
+          ? "border-blue-500/30 bg-blue-500/5 text-blue-700 dark:text-blue-400"
+          : "border-border bg-muted/30 text-foreground";
+
+  return (
+    <div className={cn("rounded-md border px-3 py-2", toneClasses)}>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
+
+/** FD Discovery (sleeve) card: PromoteNow / ResearchNext / Avoid, calibration, resolved/open, promotion verdicts. */
+function FdDiscoveryCard({
+  fdDiscovery,
+  className,
+}: {
+  fdDiscovery: FdDiscoverySection;
+  className?: string;
+}) {
+  const promoteNow = fdDiscovery.promoteNow ?? [];
+  const researchNext = fdDiscovery.researchNext ?? [];
+  const avoid = fdDiscovery.avoid ?? [];
+  const newCandidates = fdDiscovery.newCandidates ?? [];
+  const promotableCount =
+    fdDiscovery.promotionVerdicts?.filter((v) => v.eligibleForPromotion)
+      .length ?? 0;
+  const reviewCount =
+    fdDiscovery.promotionVerdicts?.filter((v) => v.requiresHumanReview)
+      .length ?? 0;
+  const blockedCount =
+    fdDiscovery.promotionVerdicts?.filter((v) => v.blockedByPolicy).length ?? 0;
+  const freshnessBadge =
+    typeof fdDiscovery.fdFreshness === "string" && fdDiscovery.fdFreshness
+      ? fdDiscovery.fdFreshness.replace(/^Last run:\s*/i, "")
+      : null;
+
+  return (
+    <DashboardCard
+      title={fdDiscovery.title}
+      subtitle="Current shortlist, net-new names, and promotion status"
+      className={className}
+      addon={
+        freshnessBadge ? (
+          <Badge variant="secondary">{freshnessBadge}</Badge>
+        ) : null
+      }
+    >
+      <p className="text-sm text-muted-foreground mb-4">
         {fdDiscovery.oneLiner}
       </p>
-      <p className="text-xs text-muted-foreground mb-3 rounded-md bg-muted/50 px-2 py-1.5">
-        Potential tickers to add to watchlist:{" "}
-        <span className="font-medium text-foreground">PromoteNow</span> (top)
-        and <span className="font-medium text-foreground">ResearchNext</span>{" "}
-        (middle); net-new candidates from the last full run at the bottom.
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-        <div>
-          <span className="font-medium text-green-600 dark:text-green-400">
-            PromoteNow ({(fdDiscovery.promoteNow ?? []).length})
-          </span>
-          <ul className="mt-1 space-y-0.5">
-            {(fdDiscovery.promoteNow ?? []).slice(0, 5).map((c) => (
-              <li key={c.ticker}>
-                <span className="font-mono">{c.ticker}</span>{" "}
-                {c.reason
-                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
-                  : ""}
-              </li>
-            ))}
-          </ul>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
+        <DiscoveryKpi
+          label="PromoteNow"
+          value={promoteNow.length}
+          tone="green"
+        />
+        <DiscoveryKpi
+          label="ResearchNext"
+          value={researchNext.length}
+          tone="amber"
+        />
+        <DiscoveryKpi
+          label="Net-new"
+          value={newCandidates.length}
+          tone="blue"
+        />
+        <DiscoveryKpi label="Promotable" value={promotableCount} />
+        <DiscoveryKpi label="Need review" value={reviewCount} />
+        <DiscoveryKpi label="Blocked" value={blockedCount} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 text-sm">
+        <div className="rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-3">
+          <p className="font-medium text-green-700 dark:text-green-400">
+            PromoteNow
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Strongest names right now.
+          </p>
+          <div className="mt-3">
+            <CompactTickerRows
+              items={promoteNow}
+              tone="green"
+              showReason
+              limit={8}
+              emptyLabel="No PromoteNow names."
+            />
+          </div>
         </div>
-        <div>
-          <span className="font-medium text-amber-600 dark:text-amber-400">
-            ResearchNext ({(fdDiscovery.researchNext ?? []).length})
-          </span>
-          <ul className="mt-1 space-y-0.5">
-            {(fdDiscovery.researchNext ?? []).slice(0, 5).map((c) => (
-              <li key={c.ticker}>
-                <span className="font-mono">{c.ticker}</span>{" "}
-                {c.reason
-                  ? `· ${c.reason.slice(0, 40)}${c.reason.length > 40 ? "…" : ""}`
-                  : ""}
-              </li>
-            ))}
-          </ul>
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+          <p className="font-medium text-amber-700 dark:text-amber-400">
+            ResearchNext
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Worth tracking, but not fully ready.
+          </p>
+          <div className="mt-3">
+            <CompactTickerRows
+              items={researchNext}
+              tone="amber"
+              showReason
+              limit={8}
+              emptyLabel="No ResearchNext names."
+            />
+          </div>
         </div>
-        <div>
-          <span className="font-medium text-muted-foreground">
-            Avoid ({(fdDiscovery.avoid ?? []).length})
-          </span>
-          <ul className="mt-1 space-y-0.5">
-            {(fdDiscovery.avoid ?? []).slice(0, 5).map((c) => (
-              <li key={c.ticker}>
-                <span className="font-mono">{c.ticker}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="rounded-lg border border-border bg-muted/20 px-3 py-3">
+          <p className="font-medium text-foreground">Avoid</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Lowest priority from the current run.
+          </p>
+          <div className="mt-3">
+            <CompactTickerRows items={avoid} emptyLabel="No Avoid names." />
+          </div>
         </div>
       </div>
-      {(fdDiscovery.newCandidates?.length ?? 0) > 0 && (
-        <div className="mt-3 pt-3 border-t border-border">
-          <span className="text-xs font-medium text-muted-foreground">
-            Net-new candidates (last full run):{" "}
-            {fdDiscovery
-              .newCandidates!.slice(0, 8)
-              .map((c) => c.ticker)
-              .join(", ")}
-            {fdDiscovery.newCandidates!.length > 8 ? "…" : ""}
-          </span>
+      {newCandidates.length > 0 && (
+        <div className="mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-3">
+          <p className="font-medium text-foreground">
+            Net-new candidates from the full run
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Names not already in the current sleeve/watchlist. The total count
+            is already shown above in the `Net-new` KPI.
+          </p>
+          <div className="mt-3">
+            <CompactTickerRows
+              items={newCandidates}
+              tone="blue"
+              showReason
+              limit={12}
+            />
+          </div>
         </div>
       )}
       {fdDiscovery.calibration && fdDiscovery.calibration.overallCount > 0 && (
-        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-          Calibration (30d): {fdDiscovery.calibration.overallCount} resolved ·
-          Brier{" "}
+        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Calibration (30d)</span>{" "}
+          · {fdDiscovery.calibration.overallCount} resolved · Brier{" "}
           {fdDiscovery.calibration.overallMeanBrier != null
             ? fdDiscovery.calibration.overallMeanBrier.toFixed(3)
             : "—"}
           {fdDiscovery.calibration.byAgent?.length
-            ? ` · by agent: ${fdDiscovery.calibration.byAgent.map((a) => `${a.agent}=${a.meanBrier.toFixed(2)}`).join(", ")}`
+            ? ` · ${fdDiscovery.calibration.byAgent.map((a) => `${a.agent}=${a.meanBrier.toFixed(2)}`).join(" · ")}`
             : ""}
         </div>
       )}
       {(fdDiscovery.fdStatus != null ||
         fdDiscovery.fdFreshness != null ||
         fdDiscovery.bucketMetrics) && (
-        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           {fdDiscovery.fdStatus != null && (
             <span>FD: {fdDiscovery.fdStatus}</span>
           )}
@@ -559,7 +750,7 @@ function FdDiscoveryCard({ fdDiscovery }: { fdDiscovery: FdDiscoverySection }) {
         </div>
       )}
       {(fdDiscovery.resolved?.length ?? 0) > 0 && (
-        <div className="mt-3 pt-3 border-t border-border">
+        <div className="mt-4 pt-4 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground mb-2">
             Resolved outcomes (sample)
           </p>
@@ -593,7 +784,7 @@ function FdDiscoveryCard({ fdDiscovery }: { fdDiscovery: FdDiscoverySection }) {
         </div>
       )}
       {(fdDiscovery.falsePositives?.length ?? 0) > 0 && (
-        <div className="mt-3 pt-3 border-t border-border">
+        <div className="mt-4 pt-4 border-t border-border">
           <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
             False positives (wrong direction)
           </p>
@@ -611,29 +802,16 @@ function FdDiscoveryCard({ fdDiscovery }: { fdDiscovery: FdDiscoverySection }) {
         </div>
       )}
       {(fdDiscovery.open?.length ?? 0) > 0 && (
-        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
           <span className="font-medium">Open predictions:</span>{" "}
           {fdDiscovery.open!.length} (1m/3m)
         </div>
       )}
       {(fdDiscovery.promotionVerdicts?.length ?? 0) > 0 && (
-        <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-          <span className="font-medium">Promotion policy:</span>{" "}
-          {
-            fdDiscovery.promotionVerdicts!.filter((v) => v.eligibleForPromotion)
-              .length
-          }{" "}
-          promotable ·{" "}
-          {
-            fdDiscovery.promotionVerdicts!.filter((v) => v.requiresHumanReview)
-              .length
-          }{" "}
-          need review ·{" "}
-          {
-            fdDiscovery.promotionVerdicts!.filter((v) => v.blockedByPolicy)
-              .length
-          }{" "}
-          blocked
+        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Promotion policy</span>{" "}
+          · {promotableCount} promotable · {reviewCount} need review ·{" "}
+          {blockedCount} blocked
         </div>
       )}
     </DashboardCard>
@@ -643,6 +821,7 @@ function FdDiscoveryCard({ fdDiscovery }: { fdDiscovery: FdDiscoverySection }) {
 function StocksWatchRadarCard({
   fdDiscovery,
   currentWatchlist,
+  universe,
   fdDiscoveryStatus,
   onRunDiscovery,
   runDiscoveryLoading,
@@ -650,6 +829,7 @@ function StocksWatchRadarCard({
 }: {
   fdDiscovery: FdDiscoverySection | null | undefined;
   currentWatchlist: string[];
+  universe: "sleeve" | "full";
   fdDiscoveryStatus?: {
     state?: string;
     message?: string;
@@ -669,6 +849,9 @@ function StocksWatchRadarCard({
   const promoteNow = fdDiscovery?.promoteNow ?? [];
   const researchNext = fdDiscovery?.researchNext ?? [];
   const promotionVerdicts = fdDiscovery?.promotionVerdicts ?? [];
+  const netNewCandidates = (fdDiscovery?.newCandidates ?? []).filter(
+    (c) => !watchlistSet.has(c.ticker.toUpperCase()),
+  );
 
   const addNow = promoteNow.filter(
     (c) => !watchlistSet.has(c.ticker.toUpperCase()),
@@ -710,10 +893,15 @@ function StocksWatchRadarCard({
 
   return (
     <DashboardCard title="Watchlist radar" className="lg:col-span-2">
-      <p className="text-sm text-muted-foreground mb-3">
-        This is the stock sleeve shortlist: what looks good now, what needs more
-        work, and what is already on the watchlist.
-      </p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          This is the stock sleeve shortlist: what looks good now, what needs
+          more work, and what is already on the watchlist.
+        </p>
+        <Badge variant="secondary">
+          {universe === "full" ? "Full universe" : "Sleeve only"}
+        </Badge>
+      </div>
 
       {!fdDiscovery ? (
         <div className="rounded-lg border border-border bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
@@ -759,7 +947,7 @@ function StocksWatchRadarCard({
         </div>
       ) : (
         <>
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -771,9 +959,7 @@ function StocksWatchRadarCard({
               ) : (
                 <Copy className="w-4 h-4 mr-2" />
               )}
-              {copiedKey === "add-now"
-                ? "Copied add-now"
-                : "Copy add-now tickers"}
+              {copiedKey === "add-now" ? "Copied add-now" : "Copy add now"}
             </Button>
             <Button
               variant="outline"
@@ -791,9 +977,7 @@ function StocksWatchRadarCard({
               ) : (
                 <Copy className="w-4 h-4 mr-2" />
               )}
-              {copiedKey === "watchlist-json"
-                ? "Copied JSON"
-                : "Copy watchlist JSON"}
+              {copiedKey === "watchlist-json" ? "Copied JSON" : "Copy JSON"}
             </Button>
             <Button
               variant="ghost"
@@ -810,59 +994,71 @@ function StocksWatchRadarCard({
               )}
               {copiedKey === "research-next"
                 ? "Copied research-next"
-                : "Copy research-next"}
+                : "Copy research"}
             </Button>
           </div>
+
+          {universe === "full" && (
+            <div className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">
+                  Net-new candidates
+                </p>
+                <Badge variant="secondary">{netNewCandidates.length}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Names from the broader discovery universe that are not already
+                in the current sleeve/watchlist.
+              </p>
+              <div className="mt-3">
+                <CompactTickerRows
+                  items={netNewCandidates}
+                  tone="blue"
+                  showReason
+                  limit={8}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm">
             <div className="rounded-lg border border-green-500/30 bg-green-500/5 px-3 py-3">
               <p className="font-medium text-green-600 dark:text-green-400">
-                Add now ({addNow.length})
+                Add now
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 PromoteNow names not already on the watchlist.
               </p>
-              <div className="mt-2 text-xs font-mono break-words">
-                {addNow.length > 0
-                  ? addNow
-                      .slice(0, 10)
-                      .map((c) => c.ticker)
-                      .join(", ")
-                  : "(none)"}
+              <div className="mt-2">
+                <CompactTickerRows items={addNow} tone="green" limit={6} />
               </div>
             </div>
 
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-3">
               <p className="font-medium text-amber-600 dark:text-amber-400">
-                Research next ({researchQueue.length})
+                Research next
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Worth watching, but not yet strong enough for PromoteNow.
               </p>
-              <div className="mt-2 text-xs font-mono break-words">
-                {researchQueue.length > 0
-                  ? researchQueue
-                      .slice(0, 10)
-                      .map((c) => c.ticker)
-                      .join(", ")
-                  : "(none)"}
+              <div className="mt-2">
+                <CompactTickerRows
+                  items={researchQueue}
+                  tone="amber"
+                  limit={6}
+                />
               </div>
             </div>
 
             <div className="rounded-lg border border-border bg-muted/30 px-3 py-3">
               <p className="font-medium text-foreground">
-                Already on watchlist ({alreadyWatching.length})
+                Already on watchlist
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Discovery agrees these are already being watched.
               </p>
-              <div className="mt-2 text-xs font-mono break-words">
-                {alreadyWatching.length > 0
-                  ? alreadyWatching
-                      .slice(0, 10)
-                      .map((c) => c.ticker)
-                      .join(", ")
-                  : "(none)"}
+              <div className="mt-2">
+                <CompactTickerRows items={alreadyWatching} limit={6} />
               </div>
             </div>
 
@@ -871,10 +1067,31 @@ function StocksWatchRadarCard({
               <p className="text-xs text-muted-foreground mt-1">
                 Policy verdicts from the discovery pipeline.
               </p>
-              <div className="mt-2 space-y-1 text-xs">
-                <div>Promotable: {promotable.length}</div>
-                <div>Need review: {needsReview.length}</div>
-                <div>Blocked: {blocked.length}</div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-md border border-green-500/20 bg-green-500/5 px-2 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Promotable
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-green-700 dark:text-green-400">
+                    {promotable.length}
+                  </p>
+                </div>
+                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-2 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Review
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-amber-700 dark:text-amber-400">
+                    {needsReview.length}
+                  </p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/20 px-2 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Blocked
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {blocked.length}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -887,39 +1104,50 @@ function StocksWatchRadarCard({
                 <p className="font-medium text-green-600 dark:text-green-400 mb-2">
                   Promotable
                 </p>
-                <div className="font-mono break-words">
-                  {promotable.length > 0
-                    ? promotable
-                        .slice(0, 12)
-                        .map((v) => v.ticker)
-                        .join(", ")
-                    : "(none)"}
+                <div>
+                  <CompactTickerRows
+                    items={promotable}
+                    tone="green"
+                    limit={8}
+                  />
                 </div>
               </div>
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
                 <p className="font-medium text-amber-600 dark:text-amber-400 mb-2">
                   Need review
                 </p>
-                <div className="font-mono break-words">
-                  {needsReview.length > 0
-                    ? needsReview
-                        .slice(0, 12)
-                        .map((v) => v.ticker)
-                        .join(", ")
-                    : "(none)"}
+                <div>
+                  <CompactTickerRows
+                    items={needsReview}
+                    tone="amber"
+                    limit={8}
+                  />
                 </div>
               </div>
               <div className="rounded-lg border border-border bg-muted/30 px-3 py-3">
                 <p className="font-medium text-muted-foreground mb-2">
                   Blocked by policy
                 </p>
-                <div className="font-mono break-words">
-                  {blocked.length > 0
-                    ? blocked
-                        .slice(0, 12)
-                        .map((v) => v.ticker)
-                        .join(", ")
-                    : "(none)"}
+                <div className="space-y-2">
+                  {blocked.length > 0 ? (
+                    blocked.slice(0, 8).map((v) => (
+                      <div
+                        key={v.ticker}
+                        className="rounded-md border border-border/70 bg-muted/20 px-3 py-2"
+                      >
+                        <p className="font-mono text-sm text-foreground">
+                          {v.ticker}
+                        </p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {v.blockedByPolicy}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-md border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
+                      (none)
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -935,6 +1163,7 @@ function StocksDiscoveryEmptyCard({
   onRunDiscovery,
   runDiscoveryLoading,
   runDiscoveryMessage,
+  className,
 }: {
   fdDiscoveryStatus?: {
     state?: string;
@@ -947,9 +1176,14 @@ function StocksDiscoveryEmptyCard({
   onRunDiscovery: () => void;
   runDiscoveryLoading: boolean;
   runDiscoveryMessage?: string;
+  className?: string;
 }) {
   return (
-    <DashboardCard title="Sleeve discovery">
+    <DashboardCard
+      title="Sleeve discovery"
+      subtitle="Discovery pipeline status and next step"
+      className={className}
+    >
       <p className="text-sm text-muted-foreground">
         Discovery data is missing right now, so the watchlist shortlist cannot
         render yet.
@@ -1033,6 +1267,9 @@ export default function LeaderboardPage({
   const uploadAgentId = (elizaAgent?.id ?? leaderboardsAgentId) as string;
   const oracleAgentId = (oracleAgent?.id ?? null) as string | null;
   const [mainTab, setMainTab] = useState<MainTab>("trading_bot");
+  const [stocksUniverse, setStocksUniverse] = useState<"sleeve" | "full">(
+    "full",
+  );
   const [scope, setScope] = useState<"weekly" | "all_time">("weekly");
   const [copied, setCopied] = useState(false);
   const [uploadText, setUploadText] = useState("");
@@ -1069,10 +1306,11 @@ export default function LeaderboardPage({
     refetch: refetchLeaderboards,
     isFetching: leaderboardsFetching,
   } = useQuery({
-    queryKey: ["leaderboards", leaderboardsAgentId],
+    queryKey: ["leaderboards", leaderboardsAgentId, mainTab, stocksUniverse],
     queryFn: () =>
       fetchLeaderboardsWithError(leaderboardsAgentId, {
         refreshNews: mainTab === "news",
+        discoveryUniverse: mainTab === "stocks" ? stocksUniverse : "sleeve",
       }),
     enabled:
       (mainTab === "markets" ||
@@ -1427,7 +1665,9 @@ export default function LeaderboardPage({
     setFdDiscoveryRunLoading(true);
     setFdDiscoveryRunMessage("");
     try {
-      const result = await runFdDiscoveryWithError(leaderboardsAgentId);
+      const result = await runFdDiscoveryWithError(leaderboardsAgentId, {
+        discoveryUniverse: stocksUniverse,
+      });
       if (!result.success) {
         setFdDiscoveryRunMessage(result.error ?? "FD discovery run failed.");
         return;
@@ -1435,7 +1675,7 @@ export default function LeaderboardPage({
       const counts = result.result?.candidateCounts;
       setFdDiscoveryRunMessage(
         counts
-          ? `Discovery run complete: ${counts.promoteNow} PromoteNow, ${counts.researchNext} ResearchNext, ${counts.avoid} Avoid, ${counts.newCandidates} net-new.`
+          ? `Discovery run complete (${stocksUniverse}): ${counts.promoteNow} PromoteNow, ${counts.researchNext} ResearchNext, ${counts.avoid} Avoid, ${counts.newCandidates} net-new.`
           : "Discovery run complete.",
       );
       await refetchLeaderboards();
@@ -1507,22 +1747,38 @@ export default function LeaderboardPage({
               mainTab === "news") && (
               <div className="flex items-center gap-2">
                 {mainTab === "stocks" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRunFdDiscovery}
-                    disabled={fdDiscoveryRunLoading}
-                  >
-                    <RefreshCw
-                      className={cn(
-                        "w-4 h-4 mr-2",
-                        fdDiscoveryRunLoading && "animate-spin",
-                      )}
-                    />
-                    {fdDiscoveryRunLoading
-                      ? "Running discovery..."
-                      : "Run discovery now"}
-                  </Button>
+                  <>
+                    <Select
+                      value={stocksUniverse}
+                      onValueChange={(v) =>
+                        setStocksUniverse(v as "sleeve" | "full")
+                      }
+                    >
+                      <SelectTrigger size="sm" className="w-[160px]">
+                        <SelectValue placeholder="Universe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full">Full universe</SelectItem>
+                        <SelectItem value="sleeve">Sleeve only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRunFdDiscovery}
+                      disabled={fdDiscoveryRunLoading}
+                    >
+                      <RefreshCw
+                        className={cn(
+                          "w-4 h-4 mr-2",
+                          fdDiscoveryRunLoading && "animate-spin",
+                        )}
+                      />
+                      {fdDiscoveryRunLoading
+                        ? "Running discovery..."
+                        : "Run discovery now"}
+                    </Button>
+                  </>
                 )}
                 <Button
                   variant="outline"
@@ -1925,19 +2181,24 @@ export default function LeaderboardPage({
                   currentWatchlist={
                     leaderboardsData.chartTickers?.watchlist ?? []
                   }
+                  universe={stocksUniverse}
                   fdDiscoveryStatus={leaderboardsData.fdDiscoveryStatus}
                   onRunDiscovery={handleRunFdDiscovery}
                   runDiscoveryLoading={fdDiscoveryRunLoading}
                   runDiscoveryMessage={fdDiscoveryRunMessage}
                 />
                 {leaderboardsData.fdDiscovery ? (
-                  <FdDiscoveryCard fdDiscovery={leaderboardsData.fdDiscovery} />
+                  <FdDiscoveryCard
+                    fdDiscovery={leaderboardsData.fdDiscovery}
+                    className="lg:col-span-2"
+                  />
                 ) : (
                   <StocksDiscoveryEmptyCard
                     fdDiscoveryStatus={leaderboardsData.fdDiscoveryStatus}
                     onRunDiscovery={handleRunFdDiscovery}
                     runDiscoveryLoading={fdDiscoveryRunLoading}
                     runDiscoveryMessage={fdDiscoveryRunMessage}
+                    className="lg:col-span-2"
                   />
                 )}
                 {leaderboardsData.hip3?.categories?.stocks &&

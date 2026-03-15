@@ -242,6 +242,7 @@ export interface LeaderboardsResponse {
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
   chartTickers?: {
+    hyperliquid: string[];
     watchlist: string[];
     tastytrade: string[];
   };
@@ -407,7 +408,7 @@ export async function fetchLeaderboards(
 
 export async function fetchLeaderboardsWithError(
   agentId: string,
-  options?: { refreshNews?: boolean },
+  options?: { refreshNews?: boolean; discoveryUniverse?: "sleeve" | "full" },
 ): Promise<LeaderboardsFetchResult> {
   const base = window.location.origin;
   // ElizaOS core registers plugin routes as /{plugin.name}{route.path} → plugin-vince/vince/leaderboards
@@ -416,6 +417,9 @@ export async function fetchLeaderboardsWithError(
   });
   if (options?.refreshNews) {
     params.set("refreshNews", "1");
+  }
+  if (options?.discoveryUniverse) {
+    params.set("discoveryUniverse", options.discoveryUniverse);
   }
   const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/leaderboards?${params.toString()}`;
   try {
@@ -444,7 +448,10 @@ export async function fetchLeaderboardsWithError(
   }
 }
 
-export async function runFdDiscoveryWithError(agentId: string): Promise<{
+export async function runFdDiscoveryWithError(
+  agentId: string,
+  options?: { discoveryUniverse?: "sleeve" | "full" },
+): Promise<{
   success: boolean;
   error: string | null;
   status: number | null;
@@ -464,7 +471,13 @@ export async function runFdDiscoveryWithError(agentId: string): Promise<{
   };
 }> {
   const base = window.location.origin;
-  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/leaderboards/fd-discovery/run?agentId=${encodeURIComponent(agentId)}`;
+  const params = new URLSearchParams({
+    agentId,
+  });
+  if (options?.discoveryUniverse) {
+    params.set("discoveryUniverse", options.discoveryUniverse);
+  }
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/leaderboards/fd-discovery/run?${params.toString()}`;
   try {
     const res = await fetch(url, {
       method: "POST",

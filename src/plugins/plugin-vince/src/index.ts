@@ -397,6 +397,11 @@ export const vincePlugin: Plugin = {
           // Optional: allow callers (frontend News tab) to force a fresh
           // MandoMinutes refresh before building the leaderboards payload.
           const refreshNews = ((req.query ?? {})["refreshNews"] ?? "") === "1";
+          const discoveryUniverseRaw = String(
+            (req.query ?? {})["discoveryUniverse"] ?? "sleeve",
+          ).toLowerCase();
+          const discoveryUniverse =
+            discoveryUniverseRaw === "full" ? "full" : "sleeve";
           if (refreshNews) {
             const newsSvc = agentRuntime.getService(
               "VINCE_NEWS_SENTIMENT_SERVICE",
@@ -414,7 +419,9 @@ export const vincePlugin: Plugin = {
             }
           }
 
-          const data = await buildLeaderboardsResponse(agentRuntime);
+          const data = await buildLeaderboardsResponse(agentRuntime, {
+            discoveryUniverse,
+          });
           res.json(data);
         } catch (err) {
           logger.warn(`[VINCE] Leaderboards route error: ${err}`);
@@ -455,7 +462,24 @@ export const vincePlugin: Plugin = {
           return;
         }
         try {
-          const result = await runFdDiscoveryNow(agentRuntime, process.cwd());
+          const discoveryUniverseRaw = String(
+            (req.query ?? {})["discoveryUniverse"] ?? "sleeve",
+          ).toLowerCase();
+          const useFullUniverse = discoveryUniverseRaw === "full";
+          const previous = process.env.VINCE_FD_DISCOVERY_FULL_UNIVERSE;
+          let result;
+          try {
+            process.env.VINCE_FD_DISCOVERY_FULL_UNIVERSE = useFullUniverse
+              ? "true"
+              : "false";
+            result = await runFdDiscoveryNow(agentRuntime, process.cwd());
+          } finally {
+            if (previous == null) {
+              delete process.env.VINCE_FD_DISCOVERY_FULL_UNIVERSE;
+            } else {
+              process.env.VINCE_FD_DISCOVERY_FULL_UNIVERSE = previous;
+            }
+          }
           if (!result.success) {
             res.status(500).json({
               success: false,

@@ -12,6 +12,7 @@ interface ChartTicker {
 
 interface ChartsTabProps {
   chartTickers?: {
+    hyperliquid: string[];
     watchlist: string[];
     tastytrade: string[];
   };
@@ -36,19 +37,16 @@ const CRYPTO_TICKERS: ChartTicker[] = [
   },
 ];
 
-const STOCK_TICKERS: ChartTicker[] = [
-  { label: "HOOD", tradingViewSymbol: "NASDAQ:HOOD", exchange: "NASDAQ" },
-  { label: "CRCL", tradingViewSymbol: "NASDAQ:CRCL", exchange: "NASDAQ" },
-  { label: "COIN", tradingViewSymbol: "NASDAQ:COIN", exchange: "NASDAQ" },
-  { label: "HODL", tradingViewSymbol: "NASDAQ:HODL", exchange: "NASDAQ" },
-  { label: "NVDA", tradingViewSymbol: "NASDAQ:NVDA", exchange: "NASDAQ" },
-  { label: "TSLA", tradingViewSymbol: "NASDAQ:TSLA", exchange: "NASDAQ" },
-  { label: "MSTR", tradingViewSymbol: "NASDAQ:MSTR", exchange: "NASDAQ" },
-];
-
 const EXCHANGE_OVERRIDES: Record<string, string> = {
+  LLY: "NYSE",
   NEE: "NYSE",
   CCJ: "NYSE",
+  CLS: "NYSE",
+  NVO: "NYSE",
+  NOW: "NYSE",
+  GEV: "NYSE",
+  BWXT: "NYSE",
+  NET: "NYSE",
   PWR: "NYSE",
   ETN: "NYSE",
   EME: "NYSE",
@@ -62,6 +60,21 @@ const EXCHANGE_OVERRIDES: Record<string, string> = {
   KLAC: "NASDAQ",
   SNPS: "NASDAQ",
   CDNS: "NASDAQ",
+  AVGO: "NASDAQ",
+  EQT: "NYSE",
+  SNDK: "NASDAQ",
+  STX: "NASDAQ",
+  ARM: "NASDAQ",
+  LITE: "NASDAQ",
+  OKLO: "NYSE",
+  IONQ: "NYSE",
+  ASTS: "NASDAQ",
+  TSM: "NYSE",
+  ORCL: "NYSE",
+  RTX: "NYSE",
+  GLD: "AMEX",
+  SLV: "AMEX",
+  CRCL: "NYSE",
 };
 
 function toTradingViewStockTicker(symbol: string): ChartTicker {
@@ -199,18 +212,20 @@ export function ChartsTab({ chartTickers, fdCache }: ChartsTabProps) {
     CRYPTO_TICKERS[0],
   );
   const [intervalCrypto, setIntervalCrypto] = useState<string>("240");
-  const [selectedStock, setSelectedStock] = useState<ChartTicker>(
-    STOCK_TICKERS[0],
-  );
-  const [intervalStock, setIntervalStock] = useState<string>("240");
+  const hyperliquidTickers = toChartTickers(chartTickers?.hyperliquid);
   const watchlistTickers = toChartTickers(chartTickers?.watchlist);
   const tastytradeTickers = toChartTickers(chartTickers?.tastytrade);
+  const fallbackStockTicker = toTradingViewStockTicker("NVDA");
+  const [selectedHyperliquid, setSelectedHyperliquid] = useState<ChartTicker>(
+    hyperliquidTickers[0] ?? fallbackStockTicker,
+  );
+  const [intervalHyperliquid, setIntervalHyperliquid] = useState<string>("240");
   const [selectedWatchlist, setSelectedWatchlist] = useState<ChartTicker>(
-    watchlistTickers[0] ?? STOCK_TICKERS[0],
+    watchlistTickers[0] ?? fallbackStockTicker,
   );
   const [intervalWatchlist, setIntervalWatchlist] = useState<string>("240");
   const [selectedTastytrade, setSelectedTastytrade] = useState<ChartTicker>(
-    tastytradeTickers[0] ?? STOCK_TICKERS[0],
+    tastytradeTickers[0] ?? fallbackStockTicker,
   );
   const [intervalTastytrade, setIntervalTastytrade] = useState<string>("240");
   const cacheStatus = fdCache?.status ?? "missing";
@@ -268,20 +283,22 @@ export function ChartsTab({ chartTickers, fdCache }: ChartsTabProps) {
         />
       </div>
 
-      {/* Fav stocks */}
-      <div className="flex flex-col min-h-0 flex-1">
-        <p className="text-sm font-medium text-muted-foreground mb-2">
-          Fav stocks
-        </p>
-        <ChartBlock
-          tickers={STOCK_TICKERS}
-          selectedTicker={selectedStock}
-          onSelectTicker={setSelectedStock}
-          interval={intervalStock}
-          onIntervalChange={setIntervalStock}
-          layoutId="chartsStocks"
-        />
-      </div>
+      {/* Hyperliquid sleeve from portfolio_hyperliquid.json */}
+      {hyperliquidTickers.length > 0 && (
+        <div className="flex flex-col min-h-0 flex-1">
+          <p className="text-sm font-medium text-muted-foreground mb-2">
+            Hyperliquid sleeve
+          </p>
+          <ChartBlock
+            tickers={hyperliquidTickers}
+            selectedTicker={selectedHyperliquid}
+            onSelectTicker={setSelectedHyperliquid}
+            interval={intervalHyperliquid}
+            onIntervalChange={setIntervalHyperliquid}
+            layoutId="chartsHyperliquid"
+          />
+        </div>
+      )}
 
       {/* Watchlist sleeve from portfolio_watchlist.json */}
       {watchlistTickers.length > 0 && (
