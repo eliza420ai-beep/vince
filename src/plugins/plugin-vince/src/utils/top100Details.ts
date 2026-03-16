@@ -25,6 +25,10 @@ export interface Top100DetailsResponse {
     spark30d?: Top100SparkPoint[];
   } | null;
   peers: any[]; // serialized Top100StockRow[]
+  /** Wave2: drawer-only; from dedicated cache when available. */
+  analystEstimatesSummary?: string | null;
+  companyFactsSnapshot?: string | null;
+  newsSummary?: string | null;
 }
 
 function isFiniteNumber(v: unknown): v is number {

@@ -1,5 +1,6 @@
 import type { Top100StockRow } from "@/frontend/lib/leaderboardsApi";
 import { cn } from "@/frontend/lib/utils";
+import { getFdBadges } from "./top100-utils";
 
 function scoreClass(score?: number) {
   if (score == null) return "text-muted-foreground";
@@ -219,6 +220,15 @@ export function Top100Table({
                         {r.convictionTier}
                       </span>
                     ) : null}
+                    {getFdBadges(r).map((badge) => (
+                      <span
+                        key={badge}
+                        className="inline-flex items-center rounded border border-border/50 bg-muted/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
+                        title={`FD: ${badge}`}
+                      >
+                        {badge}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </td>

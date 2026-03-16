@@ -19,6 +19,7 @@ import { buildAllFdSnapshots } from "../utils/fdFactorBuilder";
 import type { FdTickerSnapshot } from "../utils/fdFactorBuilder.types";
 import { scoreFdProjection } from "../utils/fdProjection";
 import type {
+  FdCompanyFacts,
   FdDomainManifest,
   FdEarningsEnvelope,
   FdFilingsEnvelope,
@@ -312,6 +313,45 @@ export class VinceFinancialDatasetsService extends Service {
     const filePath = path.join(dir, `${upper}_insiders.json`);
     fs.writeFileSync(filePath, JSON.stringify(envelope, null, 2), "utf-8");
     return envelope;
+  }
+
+  /**
+   * Fetch company facts (name, sector, industry, exchange, market_cap) and cache to company-facts/{TICKER}_facts.json.
+   */
+  async fetchAndCacheCompanyFacts(
+    ticker: string,
+    projectRoot?: string,
+  ): Promise<FdCompanyFacts | null> {
+    const apiKey = this.getApiKey();
+    if (!apiKey) return null;
+    const root = projectRoot ?? process.cwd();
+    const cacheRoot = this.getCacheRoot(root);
+    const dir = path.join(cacheRoot, "company-facts");
+    ensureDir(dir);
+    const upper = ticker.toUpperCase().trim();
+    const res = await requestJson(
+      `${BASE_URL}/company/facts?ticker=${upper}`,
+      apiKey,
+    );
+    if (!res.ok || !res.json) return null;
+    const data = res.json as Record<string, unknown>;
+    const facts: FdCompanyFacts = {
+      ticker: upper,
+      name: typeof data.name === "string" ? data.name : undefined,
+      sector: typeof data.sector === "string" ? data.sector : undefined,
+      industry: typeof data.industry === "string" ? data.industry : undefined,
+      exchange: typeof data.exchange === "string" ? data.exchange : undefined,
+      market_cap:
+        typeof data.market_cap === "number" ? data.market_cap : undefined,
+      employee_count:
+        typeof data.employee_count === "number"
+          ? data.employee_count
+          : undefined,
+      fetchedAt: new Date().toISOString(),
+    };
+    const filePath = path.join(dir, `${upper}_facts.json`);
+    fs.writeFileSync(filePath, JSON.stringify(facts, null, 2), "utf-8");
+    return facts;
   }
 
   /** Refresh selected domains for one ticker. Does not include prices (use refreshSleeve for that). */

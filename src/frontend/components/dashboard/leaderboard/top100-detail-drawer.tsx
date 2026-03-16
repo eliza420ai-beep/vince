@@ -336,6 +336,245 @@ export function Top100DetailDrawer(props: {
             </div>
           ) : null}
 
+          {r &&
+          (typeof r.revenueGrowthYoyPct === "number" ||
+            typeof r.operatingMarginPct === "number" ||
+            typeof r.grossMarginPct === "number" ||
+            typeof r.daysSinceEarnings === "number" ||
+            typeof r.earningsSurprisePct === "number" ||
+            r.recent8k === true ||
+            r.recent10q === true ||
+            r.recent10k === true ||
+            typeof r.insiderBuySellSkew === "number" ||
+            typeof r.insiderBuyCount === "number" ||
+            typeof r.insiderSellCount === "number" ||
+            typeof r.volRealized20d === "number" ||
+            typeof r.dollarVolumeAvg === "number" ||
+            typeof r.drawdownPct === "number") ? (
+            <div className="rounded-xl border border-border/60 p-4 space-y-4">
+              <div className="flex items-baseline justify-between">
+                <div className="text-sm font-semibold">FD context</div>
+                {typeof r.fdSnapshotAt === "number" ? (
+                  <div className="text-[11px] text-muted-foreground">
+                    Snapshot {fmtUpdatedAt(r.fdSnapshotAt)}
+                  </div>
+                ) : null}
+              </div>
+
+              {(typeof r.revenueGrowthYoyPct === "number" ||
+                typeof r.operatingMarginPct === "number" ||
+                typeof r.grossMarginPct === "number") && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Quality
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {typeof r.revenueGrowthYoyPct === "number" ? (
+                      <MiniMetric
+                        label="Rev growth YoY"
+                        value={fmtPct(r.revenueGrowthYoyPct)}
+                      />
+                    ) : null}
+                    {typeof r.operatingMarginPct === "number" ? (
+                      <MiniMetric
+                        label="Op margin"
+                        value={fmtPct(r.operatingMarginPct)}
+                      />
+                    ) : null}
+                    {typeof r.grossMarginPct === "number" ? (
+                      <MiniMetric
+                        label="Gross margin"
+                        value={fmtPct(r.grossMarginPct)}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {(typeof r.daysSinceEarnings === "number" ||
+                typeof r.earningsSurprisePct === "number" ||
+                r.recent8k === true ||
+                r.recent10q === true ||
+                r.recent10k === true) && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Catalyst
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {typeof r.daysSinceEarnings === "number" ? (
+                      <MiniMetric
+                        label="Days since earnings"
+                        value={String(r.daysSinceEarnings)}
+                      />
+                    ) : null}
+                    {typeof r.earningsSurprisePct === "number" ? (
+                      <MiniMetric
+                        label="Earnings surprise"
+                        value={fmtPct(r.earningsSurprisePct)}
+                      />
+                    ) : null}
+                    {r.recent8k === true ? (
+                      <span className="inline-flex items-center rounded border border-border/60 bg-muted/20 px-2 py-1 text-[10px]">
+                        Recent 8-K
+                      </span>
+                    ) : null}
+                    {r.recent10q === true ? (
+                      <span className="inline-flex items-center rounded border border-border/60 bg-muted/20 px-2 py-1 text-[10px]">
+                        Recent 10-Q
+                      </span>
+                    ) : null}
+                    {r.recent10k === true ? (
+                      <span className="inline-flex items-center rounded border border-border/60 bg-muted/20 px-2 py-1 text-[10px]">
+                        Recent 10-K
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {(typeof r.insiderBuySellSkew === "number" ||
+                typeof r.insiderBuyCount === "number" ||
+                typeof r.insiderSellCount === "number") && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Insider
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {typeof r.insiderBuySellSkew === "number" ? (
+                      <MiniMetric
+                        label="Buy/sell skew"
+                        value={r.insiderBuySellSkew.toFixed(2)}
+                      />
+                    ) : null}
+                    {typeof r.insiderBuyCount === "number" ? (
+                      <MiniMetric
+                        label="Buys"
+                        value={String(r.insiderBuyCount)}
+                      />
+                    ) : null}
+                    {typeof r.insiderSellCount === "number" ? (
+                      <MiniMetric
+                        label="Sells"
+                        value={String(r.insiderSellCount)}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {(typeof r.volRealized20d === "number" ||
+                typeof r.dollarVolumeAvg === "number" ||
+                typeof r.drawdownPct === "number") && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Risk / liquidity
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {typeof r.volRealized20d === "number" ? (
+                      <MiniMetric
+                        label="Realized vol 20d"
+                        value={fmtPct(r.volRealized20d * 100)}
+                      />
+                    ) : null}
+                    {typeof r.dollarVolumeAvg === "number" ? (
+                      <MiniMetric
+                        label="Avg $ volume"
+                        value={
+                          r.dollarVolumeAvg >= 1e9
+                            ? `${(r.dollarVolumeAvg / 1e9).toFixed(2)}B`
+                            : r.dollarVolumeAvg >= 1e6
+                              ? `${(r.dollarVolumeAvg / 1e6).toFixed(1)}M`
+                              : r.dollarVolumeAvg >= 1e3
+                                ? `${(r.dollarVolumeAvg / 1e3).toFixed(1)}K`
+                                : String(r.dollarVolumeAvg)
+                        }
+                      />
+                    ) : null}
+                    {typeof r.drawdownPct === "number" ? (
+                      <MiniMetric
+                        label="Drawdown"
+                        value={fmtPct(r.drawdownPct)}
+                        className="text-rose-600 dark:text-rose-400"
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {r &&
+          !(
+            typeof r.revenueGrowthYoyPct === "number" ||
+            typeof r.operatingMarginPct === "number" ||
+            typeof r.grossMarginPct === "number" ||
+            typeof r.daysSinceEarnings === "number" ||
+            typeof r.earningsSurprisePct === "number" ||
+            r.recent8k === true ||
+            r.recent10q === true ||
+            r.recent10k === true ||
+            typeof r.insiderBuySellSkew === "number" ||
+            typeof r.insiderBuyCount === "number" ||
+            typeof r.insiderSellCount === "number" ||
+            typeof r.volRealized20d === "number" ||
+            typeof r.dollarVolumeAvg === "number" ||
+            typeof r.drawdownPct === "number"
+          ) ? (
+            <div className="rounded-xl border border-border/60 border-dashed p-4 bg-muted/10">
+              <div className="text-sm font-semibold text-muted-foreground">
+                FD context
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Quality, catalyst, insider, and risk/liquidity metrics appear
+                once FD snapshots exist for this ticker (from portfolio
+                universe). Run the FD snapshot refresh task (fundamentals,
+                earnings, filings, insiders, company facts) and ensure{" "}
+                <code className="text-[10px] bg-muted/40 px-1 rounded">
+                  VINCE_TOP100_FD_SNAPSHOT_REFRESH_ENABLED
+                </code>{" "}
+                is not disabled.
+              </p>
+            </div>
+          ) : null}
+
+          {(props.detail?.analystEstimatesSummary ||
+            props.detail?.companyFactsSnapshot ||
+            props.detail?.newsSummary) && (
+            <div className="rounded-xl border border-border/60 p-4 space-y-3">
+              <div className="text-sm font-semibold">FD wave2 (drawer)</div>
+              {props.detail?.analystEstimatesSummary ? (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                    Analyst estimates
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {props.detail.analystEstimatesSummary}
+                  </div>
+                </div>
+              ) : null}
+              {props.detail?.companyFactsSnapshot ? (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                    Company facts
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {props.detail.companyFactsSnapshot}
+                  </div>
+                </div>
+              ) : null}
+              {props.detail?.newsSummary ? (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                    News summary
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {props.detail.newsSummary}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {r?.whyNow ||
           r?.keyStrength ||
           r?.riskSummary ||

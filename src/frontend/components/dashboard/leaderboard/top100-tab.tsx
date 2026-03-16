@@ -344,6 +344,8 @@ export function Top100Tab({
   const [freshOnly, setFreshOnly] = useState(false);
   const [scoredOnly, setScoredOnly] = useState(false);
   const [liveOnly, setLiveOnly] = useState(false);
+  const [fdRecent8k, setFdRecent8k] = useState(false);
+  const [fdInsiderBuy, setFdInsiderBuy] = useState(false);
   const [sortMode, setSortMode] = useState<Top100SortMode>("rank");
   const [sortDir, setSortDir] = useState<Top100SortDir>("asc");
   const [selectedRow, setSelectedRow] = useState<Top100StockRow | null>(null);
@@ -446,6 +448,8 @@ export function Top100Tab({
       freshOnly,
       scoredOnly,
       liveOnly,
+      fdRecent8k,
+      fdInsiderBuy,
       sortMode,
       sortDir,
     });
@@ -460,6 +464,8 @@ export function Top100Tab({
     freshOnly,
     scoredOnly,
     liveOnly,
+    fdRecent8k,
+    fdInsiderBuy,
     sortMode,
     sortDir,
   ]);
@@ -594,7 +600,8 @@ export function Top100Tab({
           Could not load Top100 stocks
         </p>
         <p className="text-sm text-muted-foreground">
-          Check that TOP100.md exists and is parseable.
+          Ensure portfolio_hyperliquid.json, portfolio_tastytrade.json, and
+          portfolio_watchlist.json exist at repo root.
         </p>
       </div>
     );
@@ -605,8 +612,8 @@ export function Top100Tab({
       <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[160px] flex flex-col justify-center">
         <p className="font-medium text-foreground">No Top100 data yet</p>
         <p className="text-sm text-muted-foreground">
-          Populate TOP100.md with the annex + scorecard to see the full map
-          here.
+          Data is sourced from portfolio JSONs; run FD prewarm and snapshot
+          refresh tasks to fill prices and fundamentals.
         </p>
       </div>
     );
@@ -640,27 +647,54 @@ export function Top100Tab({
           {meta.total} names ·{" "}
           {meta.byCategory.map((c) => `${c.category} (${c.count})`).join(" · ")}
         </p>
-        {status === "stale" || meta.warnings?.length ? (
+        {status === "stale" ||
+        meta.warnings?.length ||
+        meta.fdSnapshotCoveragePct != null ||
+        meta.fdEarningsCoveragePct != null ? (
           <div className="mt-2 text-[11px] text-muted-foreground/90">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border/60 bg-muted/40 font-medium">
-              Partial coverage
-            </span>
-            {meta.scoredCoveragePct != null ||
-            meta.quoteCoveragePct != null ||
-            meta.historyCoveragePct != null ||
-            meta.marketCapCoveragePct != null ? (
-              <span className="ml-2">
-                {meta.scoredCoveragePct != null
-                  ? `Score ${meta.scoredCoveragePct.toFixed(0)}%`
+            {(status === "stale" || meta.warnings?.length) && (
+              <>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border/60 bg-muted/40 font-medium">
+                  Partial coverage
+                </span>
+                {meta.scoredCoveragePct != null ||
+                meta.quoteCoveragePct != null ||
+                meta.historyCoveragePct != null ||
+                meta.marketCapCoveragePct != null ? (
+                  <span className="ml-2">
+                    {meta.scoredCoveragePct != null
+                      ? `Score ${meta.scoredCoveragePct.toFixed(0)}%`
+                      : null}
+                    {meta.quoteCoveragePct != null
+                      ? ` · Quote ${meta.quoteCoveragePct.toFixed(0)}%`
+                      : null}
+                    {meta.historyCoveragePct != null
+                      ? ` · Hist ${meta.historyCoveragePct.toFixed(0)}%`
+                      : null}
+                    {meta.marketCapCoveragePct != null
+                      ? ` · MCap ${meta.marketCapCoveragePct.toFixed(0)}%`
+                      : null}
+                  </span>
+                ) : null}
+              </>
+            )}
+            {meta.fdSnapshotCoveragePct != null ||
+            meta.fdEarningsCoveragePct != null ||
+            meta.fdInsiderCoveragePct != null ||
+            meta.fdFilingCoveragePct != null ? (
+              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full border border-border/50 bg-muted/20">
+                FD{" "}
+                {meta.fdSnapshotCoveragePct != null
+                  ? `snap ${meta.fdSnapshotCoveragePct.toFixed(0)}%`
                   : null}
-                {meta.quoteCoveragePct != null
-                  ? ` · Quote ${meta.quoteCoveragePct.toFixed(0)}%`
+                {meta.fdEarningsCoveragePct != null
+                  ? ` · earn ${meta.fdEarningsCoveragePct.toFixed(0)}%`
                   : null}
-                {meta.historyCoveragePct != null
-                  ? ` · Hist ${meta.historyCoveragePct.toFixed(0)}%`
+                {meta.fdInsiderCoveragePct != null
+                  ? ` · ins ${meta.fdInsiderCoveragePct.toFixed(0)}%`
                   : null}
-                {meta.marketCapCoveragePct != null
-                  ? ` · MCap ${meta.marketCapCoveragePct.toFixed(0)}%`
+                {meta.fdFilingCoveragePct != null
+                  ? ` · filing ${meta.fdFilingCoveragePct.toFixed(0)}%`
                   : null}
               </span>
             ) : null}
@@ -692,6 +726,10 @@ export function Top100Tab({
         onScoredOnlyChange={setScoredOnly}
         liveOnly={liveOnly}
         onLiveOnlyChange={setLiveOnly}
+        fdRecent8k={fdRecent8k}
+        onFdRecent8kChange={setFdRecent8k}
+        fdInsiderBuy={fdInsiderBuy}
+        onFdInsiderBuyChange={setFdInsiderBuy}
         sortMode={sortMode}
         onSortModeChange={setSortMode}
         sortDir={sortDir}

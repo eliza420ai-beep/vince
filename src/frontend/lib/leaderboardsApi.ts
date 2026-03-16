@@ -292,6 +292,22 @@ export interface Top100StockRow {
   convictionTier?: "S" | "A" | "B" | "C" | "D";
   riskSummary?: string;
   theme?: string;
+  /** FD snapshot-derived (catalyst / quality / risk) */
+  earningsSurprisePct?: number;
+  daysSinceEarnings?: number;
+  recent8k?: boolean;
+  recent10q?: boolean;
+  recent10k?: boolean;
+  insiderBuySellSkew?: number;
+  insiderBuyCount?: number;
+  insiderSellCount?: number;
+  revenueGrowthYoyPct?: number;
+  operatingMarginPct?: number;
+  grossMarginPct?: number;
+  volRealized20d?: number;
+  drawdownPct?: number;
+  dollarVolumeAvg?: number;
+  fdSnapshotAt?: number;
 }
 
 export interface Top100SparkPoint {
@@ -319,6 +335,10 @@ export interface Top100DetailsPayload {
     spark30d?: Top100SparkPoint[];
   } | null;
   peers: Top100StockRow[];
+  /** Wave2: drawer-only enrichment from FD cache when available. */
+  analystEstimatesSummary?: string | null;
+  companyFactsSnapshot?: string | null;
+  newsSummary?: string | null;
 }
 
 export interface Top100Meta {
@@ -342,10 +362,19 @@ export interface Top100Meta {
   quoteCoveragePct?: number;
   historyCoveragePct?: number;
   marketCapCoveragePct?: number;
+  fdSnapshotCoveragePct?: number;
+  fdEarningsCoveragePct?: number;
+  fdInsiderCoveragePct?: number;
+  fdFilingCoveragePct?: number;
   liveTop10Entrants?: string[];
   liveTop10Exits?: string[];
   liveTop25Entrants?: string[];
   liveTop25Exits?: string[];
+  missingFdSnapshotTickers?: string[];
+  missingFdEarningsTickers?: string[];
+  missingFdInsiderTickers?: string[];
+  missingFdFilingTickers?: string[];
+  staleFdSnapshotTickers?: string[];
   rituals?: {
     historyDrift?: {
       biggestClimbers: string[];

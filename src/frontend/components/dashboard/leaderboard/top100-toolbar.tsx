@@ -35,6 +35,11 @@ export function Top100Toolbar(props: {
   liveOnly: boolean;
   onLiveOnlyChange: (v: boolean) => void;
 
+  fdRecent8k: boolean;
+  onFdRecent8kChange: (v: boolean) => void;
+  fdInsiderBuy: boolean;
+  onFdInsiderBuyChange: (v: boolean) => void;
+
   sortMode: Top100SortMode;
   onSortModeChange: (v: Top100SortMode) => void;
   sortDir: Top100SortDir;
@@ -141,6 +146,22 @@ export function Top100Toolbar(props: {
               />
               Live overlay
             </label>
+            <label className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/70 px-3 py-1.5 text-[11px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={props.fdRecent8k}
+                onChange={(e) => props.onFdRecent8kChange(e.target.checked)}
+              />
+              Recent 8-K
+            </label>
+            <label className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/70 px-3 py-1.5 text-[11px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={props.fdInsiderBuy}
+                onChange={(e) => props.onFdInsiderBuyChange(e.target.checked)}
+              />
+              Insider buy
+            </label>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center xl:justify-end">
@@ -161,6 +182,8 @@ export function Top100Toolbar(props: {
                 <option value="offAth">Off ATH</option>
                 <option value="rankDrift">Rank drift</option>
                 <option value="historyDrift">History drift</option>
+                <option value="earningsSurprise">Earnings surprise</option>
+                <option value="insiderSkew">Insider skew</option>
               </select>
 
               <div className="inline-flex rounded-lg border border-border/50 overflow-hidden">
@@ -203,6 +226,8 @@ export function Top100Toolbar(props: {
                 props.onFreshOnlyChange(false);
                 props.onScoredOnlyChange(false);
                 props.onLiveOnlyChange(false);
+                props.onFdRecent8kChange(false);
+                props.onFdInsiderBuyChange(false);
                 props.onSortModeChange("rank");
                 props.onSortDirChange("asc");
               }}

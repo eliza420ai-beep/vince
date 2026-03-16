@@ -354,7 +354,16 @@ export async function registerForgeDailyReportTask(
     },
   });
 
-  const existing = await runtime.getTasksByName(TASK_NAME);
+  let existing: Awaited<ReturnType<IAgentRuntime["getTasksByName"]>> = [];
+  try {
+    existing = await runtime.getTasksByName(TASK_NAME);
+  } catch (err) {
+    logger.debug(
+      "[ForgeDailyReport] DB not ready yet, skipping task creation",
+      err instanceof Error ? err.message : err,
+    );
+    return;
+  }
   if (existing.length > 0) {
     logger.debug("[ForgeDailyReport] Task already registered");
     return;

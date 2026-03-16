@@ -254,8 +254,17 @@ export async function registerForgeNightlyTask(
     },
   });
 
-  // Check for existing task
-  const existing = await runtime.getTasksByName("FORGE_NIGHTLY_RUN");
+  // Check for existing task (DB may not be ready during plugin init)
+  let existing: Awaited<ReturnType<IAgentRuntime["getTasksByName"]>> = [];
+  try {
+    existing = await runtime.getTasksByName("FORGE_NIGHTLY_RUN");
+  } catch (err) {
+    logger.debug(
+      "[ForgeNightly] DB not ready yet, skipping task creation",
+      err instanceof Error ? err.message : err,
+    );
+    return;
+  }
   if (existing.length > 0) {
     logger.debug("[ForgeNightly] Task already registered");
     return;

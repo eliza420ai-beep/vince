@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { loadDexterPortfolioAssets } from "./dexterPortfolio";
 
 export type Top100Category =
   | "AI Semiconductors"
@@ -69,6 +70,22 @@ export interface Top100StockRow {
   convictionTier?: "S" | "A" | "B" | "C" | "D";
   riskSummary?: string;
   theme?: string;
+  /** FD snapshot-derived (catalyst / quality / risk) */
+  earningsSurprisePct?: number;
+  daysSinceEarnings?: number;
+  recent8k?: boolean;
+  recent10q?: boolean;
+  recent10k?: boolean;
+  insiderBuySellSkew?: number;
+  insiderBuyCount?: number;
+  insiderSellCount?: number;
+  revenueGrowthYoyPct?: number;
+  operatingMarginPct?: number;
+  grossMarginPct?: number;
+  volRealized20d?: number;
+  drawdownPct?: number;
+  dollarVolumeAvg?: number;
+  fdSnapshotAt?: number;
 }
 
 export interface Top100Rituals {
@@ -117,6 +134,11 @@ export interface Top100Meta {
   historyCoveragePct?: number;
   /** Percent of rows with market cap available. */
   marketCapCoveragePct?: number;
+  /** FD snapshot coverage (rows with fdSnapshotAt). */
+  fdSnapshotCoveragePct?: number;
+  fdEarningsCoveragePct?: number;
+  fdInsiderCoveragePct?: number;
+  fdFilingCoveragePct?: number;
   liveTop10Entrants?: string[];
   liveTop10Exits?: string[];
   liveTop25Entrants?: string[];
@@ -130,15 +152,97 @@ export interface Top100Meta {
   missingFdHistoryTickers?: string[];
   /** Tickers missing market cap from any source. */
   missingMarketCapTickers?: string[];
+  /** FD telemetry: tickers missing or stale. */
+  missingFdSnapshotTickers?: string[];
+  missingFdEarningsTickers?: string[];
+  missingFdInsiderTickers?: string[];
+  missingFdFilingTickers?: string[];
+  staleFdSnapshotTickers?: string[];
 }
 
-interface CachedTop100 {
+export interface CachedTop100 {
   mtimeMs: number;
   rows: Top100StockRow[];
   meta: Top100Meta;
 }
 
 let cache: CachedTop100 | null = null;
+
+const PORTFOLIO_FILES = [
+  "portfolio_hyperliquid.json",
+  "portfolio_tastytrade.json",
+  "portfolio_watchlist.json",
+] as const;
+
+/**
+ * Load ticker universe from portfolio JSONs (hyperliquid, tastytrade, watchlist).
+ * Returns rows with sleeve and category "Unknown"; company and scores filled by enrichment.
+ */
+export function loadPortfolioUniverse(
+  projectRoot: string = process.cwd(),
+): CachedTop100 {
+  const root = path.resolve(projectRoot);
+  let mtimeMs = 0;
+  for (const name of PORTFOLIO_FILES) {
+    const filePath = path.join(root, name);
+    if (fs.existsSync(filePath)) {
+      const stat = fs.statSync(filePath);
+      if (stat.mtimeMs > mtimeMs) mtimeMs = stat.mtimeMs;
+    }
+  }
+  const assets = loadDexterPortfolioAssets(root);
+  const seen = new Set<string>();
+  const rows: Top100StockRow[] = [];
+  for (const a of assets) {
+    const ticker = a.ticker.toUpperCase().trim();
+    if (!ticker || seen.has(ticker)) continue;
+    seen.add(ticker);
+    rows.push({
+      id: `top100:${ticker}`,
+      ticker,
+      company: null,
+      category: "Unknown",
+      sleeve: a.sleeve,
+    });
+  }
+  const byCategoryMap = new Map<Top100Category, number>();
+  for (const r of rows) {
+    const cur = byCategoryMap.get(r.category) ?? 0;
+    byCategoryMap.set(r.category, cur + 1);
+  }
+  const byCategory = Array.from(byCategoryMap.entries())
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => a.category.localeCompare(b.category));
+  const topByComposite = [...rows]
+    .filter((r) => typeof r.composite === "number")
+    .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0))
+    .slice(0, 10);
+  const sleeveAverages: Top100Meta["sleeveAverages"] = {};
+  const bySleeve = new Map<string, number[]>();
+  for (const r of rows) {
+    if (r.sleeve) {
+      const arr = bySleeve.get(r.sleeve) ?? [];
+      arr.push(r.composite ?? 0);
+      bySleeve.set(r.sleeve, arr);
+    }
+  }
+  bySleeve.forEach((vals, sleeve) => {
+    const finite = vals.filter((v) => Number.isFinite(v));
+    if (finite.length > 0) {
+      const avg = finite.reduce((s, v) => s + v, 0) / finite.length;
+      sleeveAverages[sleeve as keyof typeof sleeveAverages] = avg;
+    }
+  });
+  const meta: Top100Meta = {
+    total: rows.length,
+    byCategory,
+    topByComposite,
+    highestUpside: [],
+    sleeveAverages:
+      Object.keys(sleeveAverages).length > 0 ? sleeveAverages : undefined,
+  };
+  return { mtimeMs, rows, meta };
+}
 
 const CATEGORY_HEADING_TO_CATEGORY: Record<string, Top100Category> = {
   "I. AI Semiconductors": "AI Semiconductors",
@@ -418,6 +522,9 @@ function parseHighestUpside(markdown: string): Array<{
   return out;
 }
 
+/**
+ * @deprecated Use loadPortfolioUniverse() instead. TOP100.md is informational; ticker universe comes from portfolio_*.json.
+ */
 export function loadTop100FromMarkdown(
   projectRoot: string = process.cwd(),
 ): CachedTop100 {

@@ -34,7 +34,8 @@
     "@elizaos/core": "workspace:*",
     "drizzle-orm": "^0.45.0",
     "uuid": "^9.0.0",
-    "yaml": "^2.7.0"
+    "yaml": "^2.7.0",
+    "yahoo-finance2": "^3.13.0"
   },
   "devDependencies": {
     "vitest": "^3.0.0"

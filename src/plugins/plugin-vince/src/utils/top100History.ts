@@ -45,17 +45,35 @@ export function getTop100HistoryPath(
   return path.join(getTop100Dir(projectRoot), "top100-snapshots.jsonl");
 }
 
+const PORTFOLIO_FILES = [
+  "portfolio_hyperliquid.json",
+  "portfolio_tastytrade.json",
+  "portfolio_watchlist.json",
+] as const;
+
+/**
+ * Source meta from portfolio JSONs (no longer TOP100.md).
+ * mtime = max mtime of the three files; hash = hash of concatenated file paths + mtimes for stability.
+ */
 export function getTop100SourceMeta(projectRoot: string = process.cwd()): {
   top100FileMtimeMs: number;
   top100FileHash: string;
 } {
-  const filePath = path.join(projectRoot, "TOP100.md");
-  const stat = fs.statSync(filePath);
-  const raw = fs.readFileSync(filePath, "utf-8");
-  return {
-    top100FileMtimeMs: stat.mtimeMs,
-    top100FileHash: createHash("sha1").update(raw).digest("hex"),
-  };
+  const root = path.resolve(projectRoot);
+  let top100FileMtimeMs = 0;
+  const parts: string[] = [];
+  for (const name of PORTFOLIO_FILES) {
+    const filePath = path.join(root, name);
+    if (fs.existsSync(filePath)) {
+      const stat = fs.statSync(filePath);
+      if (stat.mtimeMs > top100FileMtimeMs) top100FileMtimeMs = stat.mtimeMs;
+      parts.push(`${name}:${stat.mtimeMs}`);
+    }
+  }
+  const top100FileHash = createHash("sha1")
+    .update(parts.sort().join("|"))
+    .digest("hex");
+  return { top100FileMtimeMs, top100FileHash };
 }
 
 function toSnapshotRows(rows: Top100StockRow[]): Top100SnapshotRow[] {

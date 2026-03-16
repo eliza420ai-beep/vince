@@ -1,5 +1,6 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import { loadTop100FromMarkdown } from "../utils/top100Stocks";
+import YahooFinance from "yahoo-finance2";
+import { loadDexterPortfolioAssets } from "../utils/dexterPortfolio";
 import { writeProfileToCache } from "../utils/top100ProfileCache";
 import {
   readYahooQuoteFromCache,
@@ -8,9 +9,6 @@ import {
 } from "../utils/yahooQuotesCache";
 import * as fs from "node:fs";
 import * as path from "node:path";
-
-const YAHOO_ENDPOINT =
-  "https://query1.finance.yahoo.com/v7/finance/quote?lang=en-US&region=US";
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -61,9 +59,9 @@ export class VinceYahooQuotesService extends Service {
     const batchSize = args?.batchSize ?? 16;
     const retryMisses = args?.retryMisses !== false;
 
-    const { rows } = loadTop100FromMarkdown(projectRoot);
+    const assets = loadDexterPortfolioAssets(projectRoot);
     const tickers = Array.from(
-      new Set(rows.map((r) => r.ticker.toUpperCase().trim()).filter(Boolean)),
+      new Set(assets.map((a) => a.ticker.toUpperCase().trim()).filter(Boolean)),
     );
 
     const toFetch: string[] = [];
@@ -91,72 +89,68 @@ export class VinceYahooQuotesService extends Service {
     let fetched = 0;
     const fetchedTickers = new Set<string>();
 
+    const yahooFinance = new YahooFinance();
+    const now = new Date().toISOString();
+
     const doBatch = async (batch: string[]): Promise<string[]> => {
-      const url = `${YAHOO_ENDPOINT}&symbols=${encodeURIComponent(
-        batch.join(","),
-      )}`;
-      try {
-        const res = await fetch(url);
-        if (!res.ok) {
-          logger.debug(
-            `[VINCE][YahooQuotes] HTTP ${res.status} for batch ${batch.join(",")}`,
-          );
-          return batch;
-        }
-        const body = (await res.json()) as any;
-        const results: any[] = body?.quoteResponse?.result ?? [];
-        const now = new Date().toISOString();
-        const returned = new Set<string>();
-        for (const q of results) {
-          const ticker = String(q.symbol ?? "")
-            .toUpperCase()
-            .trim();
-          if (!ticker) continue;
-          returned.add(ticker);
-          const env: YahooQuoteEnvelope = {
-            ticker,
-            price:
-              typeof q.regularMarketPrice === "number"
-                ? q.regularMarketPrice
-                : undefined,
-            change1dPct:
-              typeof q.regularMarketChangePercent === "number"
-                ? q.regularMarketChangePercent
-                : undefined,
-            marketCap:
-              typeof q.marketCap === "number" ? q.marketCap : undefined,
-            currency:
-              typeof q.currency === "string"
-                ? q.currency.toUpperCase()
-                : undefined,
-            avgVolume:
-              typeof q.averageDailyVolume3Month === "number"
-                ? q.averageDailyVolume3Month
-                : undefined,
-            updatedAt: now,
-          };
-          writeYahooQuoteToCache(projectRoot, env);
-          if (typeof env.marketCap === "number") {
-            writeProfileToCache(projectRoot, {
-              ticker: env.ticker,
-              marketCap: env.marketCap,
-              currency: env.currency,
-              avgVolume: env.avgVolume,
-              updatedAt: env.updatedAt,
-            });
+      const missed: string[] = [];
+      await Promise.all(
+        batch.map(async (ticker) => {
+          try {
+            const q = await yahooFinance.quote(ticker);
+            if (!q) {
+              missed.push(ticker);
+              return;
+            }
+            const sym = String((q as Record<string, unknown>).symbol ?? ticker)
+              .toUpperCase()
+              .trim();
+            const reg = q as Record<string, unknown>;
+            const env: YahooQuoteEnvelope = {
+              ticker: sym,
+              price:
+                typeof reg.regularMarketPrice === "number"
+                  ? reg.regularMarketPrice
+                  : undefined,
+              change1dPct:
+                typeof reg.regularMarketChangePercent === "number"
+                  ? reg.regularMarketChangePercent
+                  : undefined,
+              marketCap:
+                typeof reg.marketCap === "number" ? reg.marketCap : undefined,
+              currency:
+                typeof reg.currency === "string"
+                  ? (reg.currency as string).toUpperCase()
+                  : undefined,
+              avgVolume:
+                typeof reg.averageDailyVolume3Month === "number"
+                  ? reg.averageDailyVolume3Month
+                  : undefined,
+              updatedAt: now,
+            };
+            writeYahooQuoteToCache(projectRoot, env);
+            if (typeof env.marketCap === "number") {
+              writeProfileToCache(projectRoot, {
+                ticker: env.ticker,
+                marketCap: env.marketCap,
+                currency: env.currency,
+                avgVolume: env.avgVolume,
+                updatedAt: env.updatedAt,
+              });
+            }
+            fetched += 1;
+            fetchedTickers.add(sym);
+          } catch (e) {
+            logger.debug(
+              `[VINCE][YahooQuotes] fetch error for ${ticker}: ${
+                e instanceof Error ? e.message : String(e)
+              }`,
+            );
+            missed.push(ticker);
           }
-          fetched += 1;
-          fetchedTickers.add(ticker);
-        }
-        return batch.filter((t) => !returned.has(t));
-      } catch (e) {
-        logger.debug(
-          `[VINCE][YahooQuotes] fetch error for batch ${batch.join(",")}: ${
-            e instanceof Error ? e.message : String(e)
-          }`,
-        );
-        return batch;
-      }
+        }),
+      );
+      return missed;
     };
 
     for (let i = 0; i < toFetch.length; i += batchSize) {

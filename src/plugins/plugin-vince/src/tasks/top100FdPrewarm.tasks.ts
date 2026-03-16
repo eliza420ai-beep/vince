@@ -1,5 +1,5 @@
 import { type IAgentRuntime, type UUID, logger } from "@elizaos/core";
-import { loadTop100FromMarkdown } from "../utils/top100Stocks";
+import { loadDexterPortfolioAssets } from "../utils/dexterPortfolio";
 import { prewarmFdPortfolioHistoryCache } from "../utils/fdPortfolioCachePrewarm";
 
 const TASK_NAME = "VINCE_TOP100_FD_PREWARM";
@@ -60,15 +60,15 @@ export async function registerTop100FdPrewarmTask(
 
       let tickers: string[];
       try {
-        const { rows } = loadTop100FromMarkdown(process.cwd());
+        const assets = loadDexterPortfolioAssets(process.cwd());
         tickers = Array.from(
           new Set(
-            rows.map((r) => r.ticker.toUpperCase().trim()).filter(Boolean),
+            assets.map((a) => a.ticker.toUpperCase().trim()).filter(Boolean),
           ),
         );
       } catch (err) {
         logger.warn(
-          `[Top100FdPrewarm] load Top100 failed: ${err instanceof Error ? err.message : String(err)}`,
+          `[Top100FdPrewarm] load portfolio failed: ${err instanceof Error ? err.message : String(err)}`,
         );
         return;
       }

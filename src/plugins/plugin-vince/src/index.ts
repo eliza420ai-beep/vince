@@ -198,6 +198,7 @@ import {
 import { registerResearchAutopilotTask } from "./tasks/researchAutopilot.tasks";
 import { registerTop100SnapshotTask } from "./tasks/top100Snapshot.tasks";
 import { registerTop100FdPrewarmTask } from "./tasks/top100FdPrewarm.tasks";
+import { registerTop100FdSnapshotRefreshTask } from "./tasks/top100FdSnapshotRefresh.tasks";
 import { registerTop100YahooRefreshTask } from "./tasks/top100YahooRefresh.tasks";
 
 // Tasks - Phase 5: The Genome (V4.2.0)
@@ -1770,6 +1771,14 @@ export const vincePlugin: Plugin = {
           await registerTop100FdPrewarmTask(runtime);
         } catch (e) {
           logger.warn("[VINCE] Failed to register Top100 FD prewarm task:", e);
+        }
+        try {
+          await registerTop100FdSnapshotRefreshTask(runtime);
+        } catch (e) {
+          logger.warn(
+            "[VINCE] Failed to register Top100 FD snapshot refresh task:",
+            e,
+          );
         }
       });
     }

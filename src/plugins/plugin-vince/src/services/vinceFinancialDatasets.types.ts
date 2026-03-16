@@ -70,3 +70,15 @@ export interface FdInsidersEnvelope {
   fetchedAt: string;
   insider_trades: unknown[];
 }
+
+/** Company facts from FD (name, sector, industry, exchange, market_cap). */
+export interface FdCompanyFacts {
+  ticker: string;
+  name?: string;
+  sector?: string;
+  industry?: string;
+  exchange?: string;
+  market_cap?: number;
+  employee_count?: number;
+  fetchedAt: string;
+}

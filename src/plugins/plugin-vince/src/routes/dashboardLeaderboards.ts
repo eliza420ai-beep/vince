@@ -1882,7 +1882,7 @@ export async function buildLeaderboardsResponse(
   };
   const fdCache = getFdCacheFreshness();
   const projectRoot = process.cwd();
-  // Top100 stocks: VINCE-curated AI infrastructure bench from TOP100.md
+  // Top100 stocks: portfolio universe (hyperliquid + tastytrade + watchlist)
   const top100Built = buildTop100StocksSection({ projectRoot, hip3 });
   const top100 = top100Built.section;
   const top100Status = top100Built.status as SectionStatus;

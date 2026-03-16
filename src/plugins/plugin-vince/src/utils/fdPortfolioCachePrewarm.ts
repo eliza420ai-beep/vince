@@ -175,6 +175,82 @@ function cachePathFor(
   );
 }
 
+const RECENT_CACHE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/**
+ * True if the ticker has any price cache file with mtime within maxAgeMs.
+ * Used to skip re-fetch when a recent cache exists (any date range).
+ */
+function hasRecentCacheForTicker(
+  projectRoot: string,
+  ticker: string,
+  maxAgeMs: number = RECENT_CACHE_MS,
+): boolean {
+  const dir = getCacheDir(projectRoot);
+  if (!fs.existsSync(dir)) return false;
+  const upper = ticker.toUpperCase().trim();
+  const now = Date.now();
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const e of entries) {
+      if (
+        !e.isFile() ||
+        !e.name.startsWith(`${upper}_`) ||
+        !e.name.endsWith("_day.json")
+      )
+        continue;
+      const stat = fs.statSync(path.join(dir, e.name));
+      if (now - stat.mtimeMs < maxAgeMs) return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
+/** Find latest cache file for ticker (by mtime) for rowCount when skipping fetch. */
+function getLatestCacheFileForTicker(
+  projectRoot: string,
+  ticker: string,
+): { file: string; rowCount: number } | null {
+  const dir = getCacheDir(projectRoot);
+  if (!fs.existsSync(dir)) return null;
+  const upper = ticker.toUpperCase().trim();
+  let best: { file: string; mtime: number; rowCount: number } | null = null;
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const e of entries) {
+      if (
+        !e.isFile() ||
+        !e.name.startsWith(`${upper}_`) ||
+        !e.name.endsWith("_day.json")
+      )
+        continue;
+      const fullPath = path.join(dir, e.name);
+      const stat = fs.statSync(fullPath);
+      let rowCount = 0;
+      try {
+        const parsed = JSON.parse(
+          fs.readFileSync(fullPath, "utf-8"),
+        ) as FdCacheEnvelope;
+        rowCount = parsed.rowCount ?? 0;
+      } catch {
+        // ignore
+      }
+      if (!best || stat.mtimeMs > best.mtime) {
+        best = {
+          file: path.relative(projectRoot, fullPath),
+          mtime: stat.mtimeMs,
+          rowCount,
+        };
+      }
+    }
+  } catch {
+    return null;
+  }
+  return best ? { file: best.file, rowCount: best.rowCount } : null;
+}
+
 export function readFdCacheManifest(
   projectRoot = process.cwd(),
 ): FdCacheManifest | null {
@@ -251,6 +327,17 @@ export async function prewarmFdPortfolioHistoryCache(
         ticker,
         file: path.relative(projectRoot, filePath),
         rowCount,
+      });
+      return;
+    }
+
+    if (!force && hasRecentCacheForTicker(projectRoot, ticker)) {
+      hits++;
+      const latest = getLatestCacheFileForTicker(projectRoot, ticker);
+      files.push({
+        ticker,
+        file: latest?.file ?? path.relative(projectRoot, filePath),
+        rowCount: latest?.rowCount ?? 0,
       });
       return;
     }

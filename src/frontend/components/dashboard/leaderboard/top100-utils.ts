@@ -15,7 +15,9 @@ export type Top100SortMode =
   | "upside"
   | "offAth"
   | "rankDrift"
-  | "historyDrift";
+  | "historyDrift"
+  | "earningsSurprise"
+  | "insiderSkew";
 
 export type Top100SortDir = "asc" | "desc";
 
@@ -50,6 +52,42 @@ export function computeTop100ToolbarOptions(rows: Top100StockRow[]) {
   return { categories, sleeves, flags, sources };
 }
 
+/** Compact catalyst/risk badges derived from FD snapshot fields. */
+export function getFdBadges(row: Top100StockRow): string[] {
+  const badges: string[] = [];
+  if (
+    typeof row.earningsSurprisePct === "number" &&
+    row.earningsSurprisePct > 0
+  ) {
+    badges.push("earnings beat");
+  }
+  if (row.recent8k === true) {
+    badges.push("fresh filing");
+  }
+  if (
+    typeof row.insiderBuySellSkew === "number" &&
+    row.insiderBuySellSkew > 0
+  ) {
+    badges.push("insider buy");
+  }
+  if (typeof row.volRealized20d === "number" && row.volRealized20d > 0.4) {
+    badges.push("high vol");
+  }
+  if (
+    typeof row.revenueGrowthYoyPct === "number" &&
+    row.revenueGrowthYoyPct >= 15
+  ) {
+    badges.push("strong growth");
+  }
+  if (
+    typeof row.dollarVolumeAvg === "number" &&
+    row.dollarVolumeAvg < 5_000_000
+  ) {
+    badges.push("thin liquidity");
+  }
+  return badges;
+}
+
 export function filterAndSortTop100Rows(params: {
   rows: Top100StockRow[];
   search: string;
@@ -60,6 +98,8 @@ export function filterAndSortTop100Rows(params: {
   freshOnly: boolean;
   scoredOnly: boolean;
   liveOnly: boolean;
+  fdRecent8k?: boolean;
+  fdInsiderBuy?: boolean;
   sortMode: Top100SortMode;
   sortDir: Top100SortDir;
 }): Top100StockRow[] {
@@ -104,6 +144,17 @@ export function filterAndSortTop100Rows(params: {
     out = out.filter((r) => r.flags?.includes(params.flag));
   }
 
+  if (params.fdRecent8k === true) {
+    out = out.filter((r) => r.recent8k === true);
+  }
+
+  if (params.fdInsiderBuy === true) {
+    out = out.filter(
+      (r) =>
+        typeof r.insiderBuySellSkew === "number" && r.insiderBuySellSkew > 0,
+    );
+  }
+
   const dir = params.sortDir === "asc" ? 1 : -1;
 
   const getSortVal = (r: Top100StockRow): number => {
@@ -128,6 +179,10 @@ export function filterAndSortTop100Rows(params: {
         return r.rankDrift ?? Number.NEGATIVE_INFINITY;
       case "historyDrift":
         return r.historyRankDrift ?? Number.NEGATIVE_INFINITY;
+      case "earningsSurprise":
+        return r.earningsSurprisePct ?? Number.NEGATIVE_INFINITY;
+      case "insiderSkew":
+        return r.insiderBuySellSkew ?? Number.NEGATIVE_INFINITY;
       default:
         return r.rank ?? Number.POSITIVE_INFINITY;
     }

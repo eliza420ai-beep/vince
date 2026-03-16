@@ -1,6 +1,6 @@
 import type { HIP3LeaderboardSection } from "../routes/dashboardLeaderboards";
 import {
-  loadTop100FromMarkdown,
+  loadPortfolioUniverse,
   type Top100Meta,
   type Top100Rituals,
   type Top100StockRow,
@@ -13,8 +13,12 @@ import {
   getTrailingReturnDays,
   summarizeFdCachedHistory,
 } from "./financialDatasetsCache";
+import { readFdSnapshot } from "./fdFactorBuilder";
 import { computeVinceContext } from "./top100Scoring";
 import { readLatestTop100Snapshot } from "./top100History";
+import { readCompanyFactsFromCache } from "./top100CompanyFactsCache";
+import { sectorToCategory } from "./top100SectorMap";
+import { computeSyntheticScore } from "./top100SyntheticScorecard";
 
 export type Top100SectionStatus = "loading" | "ok" | "stale" | "error";
 
@@ -86,6 +90,62 @@ function computeCoverageMeta(
     .filter((r) => typeof r.marketCap !== "number")
     .map((r) => r.ticker);
 
+  const fdSnapshotRows = rows.filter(
+    (r) =>
+      typeof r.fdSnapshotAt === "number" && Number.isFinite(r.fdSnapshotAt),
+  );
+  const fdEarningsRows = rows.filter(
+    (r) =>
+      typeof r.earningsSurprisePct === "number" ||
+      typeof r.daysSinceEarnings === "number",
+  );
+  const fdInsiderRows = rows.filter(
+    (r) =>
+      typeof r.insiderBuySellSkew === "number" ||
+      typeof r.insiderBuyCount === "number" ||
+      typeof r.insiderSellCount === "number",
+  );
+  const fdFilingRows = rows.filter(
+    (r) => r.recent8k === true || r.recent10q === true || r.recent10k === true,
+  );
+  const fdSnapshotStaleMs = 36 * 60 * 60 * 1000;
+  const now = Date.now();
+  const staleFdSnapshotTickers = rows
+    .filter(
+      (r) =>
+        typeof r.fdSnapshotAt === "number" &&
+        Number.isFinite(r.fdSnapshotAt) &&
+        now - r.fdSnapshotAt > fdSnapshotStaleMs,
+    )
+    .map((r) => r.ticker);
+  const missingFdSnapshotTickers = rows
+    .filter(
+      (r) =>
+        typeof r.fdSnapshotAt !== "number" || !Number.isFinite(r.fdSnapshotAt),
+    )
+    .map((r) => r.ticker);
+  const missingFdEarningsTickers = rows
+    .filter(
+      (r) =>
+        typeof r.earningsSurprisePct !== "number" &&
+        typeof r.daysSinceEarnings !== "number",
+    )
+    .map((r) => r.ticker);
+  const missingFdInsiderTickers = rows
+    .filter(
+      (r) =>
+        typeof r.insiderBuySellSkew !== "number" &&
+        typeof r.insiderBuyCount !== "number" &&
+        typeof r.insiderSellCount !== "number",
+    )
+    .map((r) => r.ticker);
+  const missingFdFilingTickers = rows
+    .filter(
+      (r) =>
+        r.recent8k !== true && r.recent10q !== true && r.recent10k !== true,
+    )
+    .map((r) => r.ticker);
+
   const warnings: string[] = [];
   if (total !== 100) warnings.push(`Expected 100 rows; got ${total}.`);
   if (scored < Math.min(50, total))
@@ -112,6 +172,31 @@ function computeCoverageMeta(
       `Missing market cap: ${formatTickerWarning(missingMarketCapTickers)}.`,
     );
   }
+  if (missingFdSnapshotTickers.length) {
+    warnings.push(
+      `Missing FD snapshot: ${formatTickerWarning(missingFdSnapshotTickers)}.`,
+    );
+  }
+  if (missingFdEarningsTickers.length) {
+    warnings.push(
+      `Missing FD earnings: ${formatTickerWarning(missingFdEarningsTickers)}.`,
+    );
+  }
+  if (missingFdInsiderTickers.length) {
+    warnings.push(
+      `Missing FD insider: ${formatTickerWarning(missingFdInsiderTickers)}.`,
+    );
+  }
+  if (missingFdFilingTickers.length) {
+    warnings.push(
+      `Missing FD filing: ${formatTickerWarning(missingFdFilingTickers)}.`,
+    );
+  }
+  if (staleFdSnapshotTickers.length) {
+    warnings.push(
+      `Stale FD snapshot: ${formatTickerWarning(staleFdSnapshotTickers)}.`,
+    );
+  }
 
   return {
     ...meta,
@@ -119,12 +204,30 @@ function computeCoverageMeta(
     quoteCoveragePct: pct(quote, total),
     historyCoveragePct: pct(history, total),
     marketCapCoveragePct: pct(mcap, total),
+    fdSnapshotCoveragePct: pct(fdSnapshotRows.length, total),
+    fdEarningsCoveragePct: pct(fdEarningsRows.length, total),
+    fdInsiderCoveragePct: pct(fdInsiderRows.length, total),
+    fdFilingCoveragePct: pct(fdFilingRows.length, total),
     missingYahooTickers:
       missingYahooTickers.length > 0 ? missingYahooTickers : undefined,
     missingFdHistoryTickers:
       missingFdHistoryTickers.length > 0 ? missingFdHistoryTickers : undefined,
     missingMarketCapTickers:
       missingMarketCapTickers.length > 0 ? missingMarketCapTickers : undefined,
+    missingFdSnapshotTickers:
+      missingFdSnapshotTickers.length > 0
+        ? missingFdSnapshotTickers
+        : undefined,
+    missingFdEarningsTickers:
+      missingFdEarningsTickers.length > 0
+        ? missingFdEarningsTickers
+        : undefined,
+    missingFdInsiderTickers:
+      missingFdInsiderTickers.length > 0 ? missingFdInsiderTickers : undefined,
+    missingFdFilingTickers:
+      missingFdFilingTickers.length > 0 ? missingFdFilingTickers : undefined,
+    staleFdSnapshotTickers:
+      staleFdSnapshotTickers.length > 0 ? staleFdSnapshotTickers : undefined,
     warnings: warnings.length ? warnings : undefined,
   };
 }
@@ -295,6 +398,15 @@ function applyOverlays({
     const key = row.ticker.toUpperCase().trim();
     let out: Top100StockRow = { ...row };
 
+    const companyFacts = readCompanyFactsFromCache(projectRoot, key);
+    if (companyFacts) {
+      if (companyFacts.name) out.company = companyFacts.name;
+      out.category = sectorToCategory(
+        companyFacts.sector,
+        companyFacts.industry,
+      );
+    }
+
     const yahoo = readYahooQuoteFromCache(projectRoot, key);
     if (yahoo) {
       out = {
@@ -381,6 +493,54 @@ function applyOverlays({
       };
     }
 
+    const fdSnapshot = readFdSnapshot(key, projectRoot);
+    if (fdSnapshot) {
+      out = {
+        ...out,
+        earningsSurprisePct:
+          fdSnapshot.earnings_surprise_pct ?? out.earningsSurprisePct,
+        daysSinceEarnings:
+          fdSnapshot.days_since_earnings ?? out.daysSinceEarnings,
+        recent8k: fdSnapshot.recent_8k ?? out.recent8k,
+        recent10q: fdSnapshot.recent_10q ?? out.recent10q,
+        recent10k: fdSnapshot.recent_10k ?? out.recent10k,
+        insiderBuySellSkew:
+          fdSnapshot.insider_buy_sell_skew ?? out.insiderBuySellSkew,
+        insiderBuyCount: fdSnapshot.insider_buy_count ?? out.insiderBuyCount,
+        insiderSellCount: fdSnapshot.insider_sell_count ?? out.insiderSellCount,
+        revenueGrowthYoyPct:
+          fdSnapshot.revenue_growth_yoy_pct ?? out.revenueGrowthYoyPct,
+        operatingMarginPct:
+          fdSnapshot.operating_margin_pct ?? out.operatingMarginPct,
+        grossMarginPct: fdSnapshot.gross_margin_pct ?? out.grossMarginPct,
+        volRealized20d: fdSnapshot.vol_realized_20d ?? out.volRealized20d,
+        drawdownPct: fdSnapshot.drawdown_pct ?? out.drawdownPct,
+        dollarVolumeAvg: fdSnapshot.dollar_volume_avg ?? out.dollarVolumeAvg,
+        fdSnapshotAt: fdSnapshot.snapshotAt
+          ? new Date(fdSnapshot.snapshotAt).getTime()
+          : out.fdSnapshotAt,
+      };
+      if (
+        typeof out.composite !== "number" ||
+        !Number.isFinite(out.composite)
+      ) {
+        const synthetic = computeSyntheticScore(out, fdSnapshot);
+        if (synthetic) {
+          out = {
+            ...out,
+            composite: synthetic.composite,
+            growthScore: synthetic.growthScore,
+            valuationScore: synthetic.valuationScore,
+            momentumScore: synthetic.momentumScore,
+            profitScore: synthetic.profitScore,
+            earningsScore: synthetic.earningsScore,
+            balanceSheetScore: synthetic.balanceSheetScore,
+            insiderScore: synthetic.insiderScore,
+          };
+        }
+      }
+    }
+
     if (out.quoteUpdatedAt) {
       const ageMs = Date.now() - out.quoteUpdatedAt;
       out.quoteStale = ageMs > 6 * 60 * 60 * 1000;
@@ -396,14 +556,23 @@ function applyOverlays({
     return out;
   });
 
-  const ranked = [...withOverlays].filter(
-    (r) => typeof r.change1dPct === "number",
+  const byComposite = [...withOverlays].sort(
+    (a, b) => (b.composite ?? -1) - (a.composite ?? -1),
   );
+  const rankById = new Map<string, number>();
+  byComposite.forEach((row, idx) => rankById.set(row.id, idx + 1));
+  const withRank = withOverlays.map((row) => {
+    const rank = rankById.get(row.id);
+    if (rank == null) return row;
+    return { ...row, rank };
+  });
+
+  const ranked = [...withRank].filter((r) => typeof r.change1dPct === "number");
   ranked.sort((a, b) => (b.change1dPct ?? 0) - (a.change1dPct ?? 0));
   const liveRankById = new Map<string, number>();
   ranked.forEach((row, idx) => liveRankById.set(row.id, idx + 1));
 
-  const withLiveRank = withOverlays.map((row) => {
+  const withLiveRank = withRank.map((row) => {
     const liveRank = liveRankById.get(row.id);
     if (!liveRank) return row;
     if (row.rank == null) return { ...row, liveRank };
@@ -477,7 +646,7 @@ export function buildTop100StocksSection(args: {
 }): { section: Top100StocksSection | null; status: Top100SectionStatus } {
   const projectRoot = args.projectRoot ?? process.cwd();
   try {
-    const { rows, meta } = loadTop100FromMarkdown(projectRoot);
+    const { rows, meta } = loadPortfolioUniverse(projectRoot);
     if (!rows.length) return { section: null, status: "stale" };
     const { rows: enriched, metaPatch } = applyOverlays({
       rows,
