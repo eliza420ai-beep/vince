@@ -401,6 +401,71 @@ export interface LeaderboardsFetchResult {
   status: number | null;
 }
 
+// ---------------------------------------------------------------------------
+// Unbias (Analyst Consensus & Sentiment tab)
+// ---------------------------------------------------------------------------
+
+export interface UnbiasAssetSummary {
+  asset: "BTC" | "ETH";
+  consensusIndex: number;
+  consensusIndex30dMA: number | null;
+  zScore: number | null;
+  avgSentimentScore: number | null;
+  bullishAnalysts: number;
+  bearishAnalysts: number;
+  totalAnalysts: number;
+  bullishOpinions: number;
+  bearishOpinions: number;
+  totalOpinions: number;
+  lastUpdated: string;
+  sourcePlan: string;
+}
+
+export interface UnbiasSummaryMeta {
+  dailyLimit: number | null;
+  dailyUsed: number | null;
+  rateLimitLimit: number | null;
+  rateLimitRemaining: number | null;
+  rateLimitWindow: "minute" | "unknown";
+  lastRefreshedAt: string;
+}
+
+export interface UnbiasSummaryResponse {
+  assets: UnbiasAssetSummary[];
+  meta: UnbiasSummaryMeta;
+}
+
+export interface UnbiasAnalystItem {
+  handle: string;
+  name: string | null;
+  avgSentimentScore: number;
+  label: "bullish" | "bearish" | "neutral";
+  contentCount: number;
+  lastSeen: string;
+}
+
+export interface UnbiasAnalystsResponse {
+  asset: "BTC" | "ETH";
+  period: {
+    start: string;
+    end: string;
+  };
+  count: number;
+  analysts: UnbiasAnalystItem[];
+}
+
+export interface UnbiasSummaryFetchResult {
+  data: UnbiasSummaryResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
+export interface UnbiasAnalystsFetchResult {
+  data: UnbiasAnalystsResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
 export async function fetchLeaderboards(
   agentId: string,
 ): Promise<LeaderboardsResponse | null> {
@@ -448,6 +513,139 @@ export async function fetchLeaderboardsWithError(
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };
   }
+}
+
+export async function fetchUnbiasSummaryWithError(
+  agentId: string,
+): Promise<UnbiasSummaryFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/unbias/summary`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as UnbiasSummaryResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchUnbiasAnalystsWithError(
+  agentId: string,
+  asset: "BTC" | "ETH",
+  days = 7,
+): Promise<UnbiasAnalystsFetchResult> {
+  const base = window.location.origin;
+  const params = new URLSearchParams({
+    asset,
+    days: String(days),
+  });
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/unbias/analysts?${params.toString()}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as UnbiasAnalystsResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Unbias (Analyst Consensus & Sentiment tab)
+// ---------------------------------------------------------------------------
+
+export interface UnbiasAssetSummary {
+  asset: "BTC" | "ETH";
+  consensusIndex: number;
+  consensusIndex30dMA: number | null;
+  zScore: number | null;
+  avgSentimentScore: number | null;
+  bullishAnalysts: number;
+  bearishAnalysts: number;
+  totalAnalysts: number;
+  bullishOpinions: number;
+  bearishOpinions: number;
+  totalOpinions: number;
+  lastUpdated: string;
+  sourcePlan: string;
+}
+
+export interface UnbiasSummaryMeta {
+  dailyLimit: number | null;
+  dailyUsed: number | null;
+  rateLimitLimit: number | null;
+  rateLimitRemaining: number | null;
+  rateLimitWindow: "minute" | "unknown";
+  lastRefreshedAt: string;
+}
+
+export interface UnbiasSummaryResponse {
+  assets: UnbiasAssetSummary[];
+  meta: UnbiasSummaryMeta;
+}
+
+export interface UnbiasAnalystItem {
+  handle: string;
+  name: string | null;
+  avgSentimentScore: number;
+  label: "bullish" | "bearish" | "neutral";
+  contentCount: number;
+  lastSeen: string;
+}
+
+export interface UnbiasAnalystsResponse {
+  asset: "BTC" | "ETH";
+  period: {
+    start: string;
+    end: string;
+  };
+  count: number;
+  analysts: UnbiasAnalystItem[];
+}
+
+export interface UnbiasSummaryFetchResult {
+  data: UnbiasSummaryResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
+export interface UnbiasAnalystsFetchResult {
+  data: UnbiasAnalystsResponse | null;
+  error: string | null;
+  status: number | null;
 }
 
 export async function runFdDiscoveryWithError(

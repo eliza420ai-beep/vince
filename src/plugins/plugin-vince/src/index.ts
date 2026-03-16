@@ -37,6 +37,10 @@ import {
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 import { buildBankrResponse } from "./routes/dashboardBankr";
+import {
+  buildUnbiasSummaryResponse,
+  buildUnbiasAnalystsResponse,
+} from "./routes/unbias";
 import { readLastRunLedgerEntry } from "./research-autopilot/artifactPaths";
 
 // Services - Data Sources
@@ -501,6 +505,91 @@ export const vincePlugin: Plugin = {
           res.status(500).json({
             success: false,
             error: "Failed to run FD discovery",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+    {
+      name: "vince-unbias-summary",
+      path: "/vince/unbias/summary",
+      type: "GET",
+      handler: async (
+        req: { [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Unbias summary requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/unbias/summary",
+          });
+          return;
+        }
+        try {
+          const data = await buildUnbiasSummaryResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Unbias summary route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build Unbias summary",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+    {
+      name: "vince-unbias-analysts",
+      path: "/vince/unbias/analysts",
+      type: "GET",
+      handler: async (
+        req: {
+          query?: Record<string, string | string[] | undefined>;
+          [k: string]: unknown;
+        },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Unbias analysts requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/unbias/analysts",
+          });
+          return;
+        }
+        try {
+          const query = (req.query ?? {}) as Record<string, string>;
+          const assetRaw = (query.asset ?? "BTC").toString().toUpperCase();
+          const asset: "BTC" | "ETH" =
+            assetRaw === "ETH" ? "ETH" : "BTC";
+          const daysRaw = query.days ?? "7";
+          const days = Number.parseInt(daysRaw.toString(), 10) || 7;
+          const data = await buildUnbiasAnalystsResponse(
+            agentRuntime,
+            asset,
+            days,
+          );
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Unbias analysts route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build Unbias analysts summary",
             message: err instanceof Error ? err.message : String(err),
           });
         }

@@ -54,6 +54,7 @@ import {
   fetchRecursiveNorthStarOperatorStatusWithError,
   runFdDiscoveryWithError,
   LEADERBOARDS_STALE_MS,
+  fetchUnbiasSummaryWithError,
 } from "@/frontend/lib/leaderboardsApi";
 import type {
   PaperResponse,
@@ -63,6 +64,7 @@ import type {
   PolymarketPaperPositionsFetchResult,
   PolymarketPaperPosition,
   FdDiscoverySection,
+  UnbiasSummaryResponse,
 } from "@/frontend/lib/leaderboardsApi";
 import type { RebelRanking } from "@/frontend/types/dashboard";
 import type {
@@ -1918,6 +1920,20 @@ export default function LeaderboardPage({
   });
 
   const {
+    data: unbiasSummaryResult,
+  }: {
+    data: { data: UnbiasSummaryResponse | null; error: string | null } | undefined;
+  } = useQuery({
+    queryKey: ["unbias-summary", leaderboardsAgentId],
+    queryFn: async () => {
+      const res = await fetchUnbiasSummaryWithError(leaderboardsAgentId);
+      return { data: res.data ?? null, error: res.error };
+    },
+    enabled: mainTab === "news" && !!leaderboardsAgentId,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const {
     data: paperResult,
     isLoading: paperLoading,
     isFetching: paperFetching,
@@ -2903,7 +2919,7 @@ export default function LeaderboardPage({
             />
           </TabsContent>
 
-          {/* News tab: X vibe check (top) + MandoMinutes TLDR + headlines */}
+          {/* News tab: X vibe check (top) + Unbias consensus + MandoMinutes TLDR + headlines */}
           <TabsContent
             value="news"
             className="mt-6 flex-1 min-h-0 overflow-auto"
@@ -3157,6 +3173,65 @@ export default function LeaderboardPage({
                       Richer vibe in chat: ask ECHO for &quot;X pulse&quot; or
                       &quot;CT vibe&quot;.
                     </p>
+                  </DashboardCard>
+                )}
+
+                {/* Unbias consensus strip (BTC/ETH) */}
+                {unbiasSummaryResult?.data && (
+                  <DashboardCard
+                    title="Analyst consensus (Unbias)"
+                    className="shrink-0"
+                  >
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Free-tier snapshot of BTC/ETH analyst consensus. Updated{" "}
+                      {new Date(
+                        unbiasSummaryResult.data.meta.lastRefreshedAt,
+                      ).toLocaleTimeString()}
+                      .
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      {unbiasSummaryResult.data.assets.map((a) => {
+                        const z = a.zScore ?? 0;
+                        const zLabel =
+                          z >= 0.8
+                            ? "bullish"
+                            : z <= -1.5
+                              ? "bearish"
+                              : "neutral";
+                        const zClass =
+                          zLabel === "bullish"
+                            ? "text-green-600 dark:text-green-400"
+                            : zLabel === "bearish"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-muted-foreground";
+                        return (
+                          <div
+                            key={a.asset}
+                            className="rounded-md border border-border/60 px-3 py-2"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-semibold">
+                                {a.asset}
+                              </span>
+                              <span className={cn("text-xs font-medium", zClass)}>
+                                z-score {z.toFixed(2)} ({zLabel})
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Consensus {a.consensusIndex.toFixed(1)} · 30d MA{" "}
+                              {a.consensusIndex30dMA != null
+                                ? a.consensusIndex30dMA.toFixed(1)
+                                : "—"}
+                              .
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              {a.bullishAnalysts} bullish / {a.bearishAnalysts} bearish ·{" "}
+                              {a.totalOpinions} opinions.
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </DashboardCard>
                 )}
 
