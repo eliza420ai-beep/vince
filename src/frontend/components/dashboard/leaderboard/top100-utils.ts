@@ -14,7 +14,8 @@ export type Top100SortMode =
   | "marketCap"
   | "upside"
   | "offAth"
-  | "rankDrift";
+  | "rankDrift"
+  | "historyDrift";
 
 export type Top100SortDir = "asc" | "desc";
 
@@ -125,6 +126,8 @@ export function filterAndSortTop100Rows(params: {
         return parsePctText(r.offAthPct) ?? Number.NEGATIVE_INFINITY;
       case "rankDrift":
         return r.rankDrift ?? Number.NEGATIVE_INFINITY;
+      case "historyDrift":
+        return r.historyRankDrift ?? Number.NEGATIVE_INFINITY;
       default:
         return r.rank ?? Number.POSITIVE_INFINITY;
     }

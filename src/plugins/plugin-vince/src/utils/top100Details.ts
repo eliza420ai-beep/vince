@@ -1,4 +1,7 @@
-import { buildTop100StocksSection } from "./top100Enrichment";
+import {
+  buildTop100StocksSection,
+  type Top100StocksSection,
+} from "./top100Enrichment";
 import { getLatestFdCacheForTicker } from "./financialDatasetsCache";
 import {
   readYahooQuoteFromCache,
@@ -63,36 +66,40 @@ function buildSpark30dFromFdCache(
   };
 }
 
-export async function buildTop100Details(
-  tickerRaw: string,
-): Promise<Top100DetailsResponse | null> {
-  const ticker = normalizeTicker(tickerRaw);
-  if (!ticker) return null;
-
-  const built = buildTop100StocksSection({
-    projectRoot: process.cwd(),
-    hip3: null,
-  });
-  const section = built.section;
+export async function buildTop100Details(params: {
+  ticker?: string;
+  id?: string;
+  section?: Top100StocksSection | null;
+}): Promise<Top100DetailsResponse | null> {
+  const ticker = normalizeTicker(params.ticker ?? "");
+  const id = String(params.id ?? "").trim();
+  const section =
+    params.section ??
+    buildTop100StocksSection({
+      projectRoot: process.cwd(),
+      hip3: null,
+    }).section;
   if (!section) return null;
 
-  const row = section.rows.find((r) => normalizeTicker(r.ticker) === ticker);
+  const row = section.rows.find((r) => {
+    if (id && r.id === id) return true;
+    if (ticker && normalizeTicker(r.ticker) === ticker) return true;
+    return false;
+  });
   if (!row) return null;
 
   const peers = section.rows
-    .filter(
-      (r) =>
-        r.category === row.category && normalizeTicker(r.ticker) !== ticker,
-    )
+    .filter((r) => r.category === row.category && r.id !== row.id)
     .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0))
     .slice(0, 8);
 
   const projectRoot = process.cwd();
-  const quote = readYahooQuoteFromCache(projectRoot, ticker);
-  const fdCache = buildSpark30dFromFdCache(projectRoot, ticker);
+  const resolvedTicker = normalizeTicker(row.ticker);
+  const quote = readYahooQuoteFromCache(projectRoot, resolvedTicker);
+  const fdCache = buildSpark30dFromFdCache(projectRoot, resolvedTicker);
 
   return {
-    ticker,
+    ticker: resolvedTicker,
     row,
     quote,
     fdCache,

@@ -716,10 +716,7 @@ export const vinceBotAction: Action = {
           leverage: signal.leverage,
           portfolioValue: portfolio.totalValue,
           currentExposure: positionManager.getCurrentExposure(),
-          assetClassMaxLeverage: getAssetClassMaxLeverage(
-            "crypto",
-            this.runtime,
-          ),
+          assetClassMaxLeverage: getAssetClassMaxLeverage("crypto", runtime),
         });
 
         if (!validation.valid) {

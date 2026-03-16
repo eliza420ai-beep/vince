@@ -1,6 +1,6 @@
-import type { Service } from "@elizaos/core";
-import { logger } from "@elizaos/core";
+import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { loadTop100FromMarkdown } from "../utils/top100Stocks";
+import { writeProfileToCache } from "../utils/top100ProfileCache";
 import {
   readYahooQuoteFromCache,
   writeYahooQuoteToCache,
@@ -29,20 +29,37 @@ function isFresh(projectRoot: string, ticker: string, ttlMs: number): boolean {
   }
 }
 
-export class VinceYahooQuotesService implements Service {
+export class VinceYahooQuotesService extends Service {
   static serviceType = "VINCE_YAHOO_QUOTES_SERVICE" as const;
   readonly serviceType = VinceYahooQuotesService.serviceType;
+  capabilityDescription =
+    "Yahoo Finance quote cache for Top100 tickers (price, 1D, marketCap, avgVolume)";
+
+  constructor(protected runtime: IAgentRuntime) {
+    super();
+  }
+
+  static async start(runtime: IAgentRuntime): Promise<VinceYahooQuotesService> {
+    return new VinceYahooQuotesService(runtime);
+  }
+
+  async stop(): Promise<void> {}
 
   async refreshTop100Quotes(args?: {
     projectRoot?: string;
     ttlMs?: number;
+    batchSize?: number;
+    retryMisses?: boolean;
   }): Promise<{
     requested: number;
     fetched: number;
     skippedFresh: number;
+    missed: string[];
   }> {
     const projectRoot = args?.projectRoot ?? process.cwd();
     const ttlMs = args?.ttlMs ?? DEFAULT_TTL_MS;
+    const batchSize = args?.batchSize ?? 16;
+    const retryMisses = args?.retryMisses !== false;
 
     const { rows } = loadTop100FromMarkdown(projectRoot);
     const tickers = Array.from(
@@ -63,14 +80,18 @@ export class VinceYahooQuotesService implements Service {
     }
 
     if (!toFetch.length) {
-      return { requested: tickers.length, fetched: 0, skippedFresh };
+      return {
+        requested: tickers.length,
+        fetched: 0,
+        skippedFresh,
+        missed: [],
+      };
     }
 
-    const batchSize = 16;
     let fetched = 0;
+    const fetchedTickers = new Set<string>();
 
-    for (let i = 0; i < toFetch.length; i += batchSize) {
-      const batch = toFetch.slice(i, i + batchSize);
+    const doBatch = async (batch: string[]): Promise<string[]> => {
       const url = `${YAHOO_ENDPOINT}&symbols=${encodeURIComponent(
         batch.join(","),
       )}`;
@@ -80,16 +101,18 @@ export class VinceYahooQuotesService implements Service {
           logger.debug(
             `[VINCE][YahooQuotes] HTTP ${res.status} for batch ${batch.join(",")}`,
           );
-          continue;
+          return batch;
         }
         const body = (await res.json()) as any;
         const results: any[] = body?.quoteResponse?.result ?? [];
         const now = new Date().toISOString();
+        const returned = new Set<string>();
         for (const q of results) {
           const ticker = String(q.symbol ?? "")
             .toUpperCase()
             .trim();
           if (!ticker) continue;
+          returned.add(ticker);
           const env: YahooQuoteEnvelope = {
             ticker,
             price:
@@ -113,17 +136,58 @@ export class VinceYahooQuotesService implements Service {
             updatedAt: now,
           };
           writeYahooQuoteToCache(projectRoot, env);
+          if (typeof env.marketCap === "number") {
+            writeProfileToCache(projectRoot, {
+              ticker: env.ticker,
+              marketCap: env.marketCap,
+              currency: env.currency,
+              avgVolume: env.avgVolume,
+              updatedAt: env.updatedAt,
+            });
+          }
           fetched += 1;
+          fetchedTickers.add(ticker);
         }
+        return batch.filter((t) => !returned.has(t));
       } catch (e) {
         logger.debug(
           `[VINCE][YahooQuotes] fetch error for batch ${batch.join(",")}: ${
             e instanceof Error ? e.message : String(e)
           }`,
         );
+        return batch;
+      }
+    };
+
+    for (let i = 0; i < toFetch.length; i += batchSize) {
+      const batch = toFetch.slice(i, i + batchSize);
+      await doBatch(batch);
+    }
+
+    let stillMissing = toFetch.filter(
+      (t) =>
+        !fetchedTickers.has(t) &&
+        (!readYahooQuoteFromCache(projectRoot, t) ||
+          !isFresh(projectRoot, t, ttlMs)),
+    );
+
+    if (retryMisses && stillMissing.length > 0 && stillMissing.length <= 50) {
+      for (const t of stillMissing) {
+        await doBatch([t]);
       }
     }
 
-    return { requested: tickers.length, fetched, skippedFresh };
+    const missed = tickers.filter(
+      (t) =>
+        !readYahooQuoteFromCache(projectRoot, t) ||
+        !isFresh(projectRoot, t, ttlMs),
+    );
+
+    return {
+      requested: tickers.length,
+      fetched,
+      skippedFresh,
+      missed,
+    };
   }
 }

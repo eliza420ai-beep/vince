@@ -947,7 +947,7 @@ export class ForgeExperimentService {
         baselineComposite: replayCtx.baselineResult.composite,
         winRate: result.winRate,
         maxDrawdownPct: result.maxDrawdownPct,
-        policy: this.loadPolicy() ?? undefined,
+        policy: this.loadPolicy() ?? null,
         holdoutCount: replayCtx.holdout.length,
         withOutcome: result.tradeCount,
       });

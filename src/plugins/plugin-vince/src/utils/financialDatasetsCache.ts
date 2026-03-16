@@ -209,6 +209,40 @@ export function summarizeFdCachedHistory(
   };
 }
 
+/**
+ * Compute 1D return from cached FD daily bars as (latest close - previous bar close) / previous bar close.
+ * Use this for row-level 1D when Yahoo/HIP-3 are absent; avoids calendar-day offset issues (e.g. weekends).
+ */
+export function getPreviousBarReturn1d(
+  projectRoot: string,
+  ticker: string,
+): { returnPct: number; latestDate: string; previousDate: string } | null {
+  const payload = getLatestFdCacheForTicker(projectRoot, ticker);
+  if (!payload?.rows?.length) return null;
+  const sorted = [...payload.rows].sort((a, b) => {
+    const ta = parseDateToTime(rowDate(a)) ?? 0;
+    const tb = parseDateToTime(rowDate(b)) ?? 0;
+    return ta - tb;
+  });
+  if (sorted.length < 2) return null;
+  const prev = sorted[sorted.length - 2];
+  const latest = sorted[sorted.length - 1];
+  const prevClose = prev?.close;
+  const latestClose = latest?.close;
+  if (
+    !isFiniteNumber(prevClose) ||
+    !isFiniteNumber(latestClose) ||
+    prevClose === 0
+  )
+    return null;
+  const returnPct = ((latestClose - prevClose) / prevClose) * 100;
+  return {
+    returnPct,
+    latestDate: String(rowDate(latest)).slice(0, 10),
+    previousDate: String(rowDate(prev)).slice(0, 10),
+  };
+}
+
 /** Convenience: trailing return over N calendar days using cached daily bars. */
 export function getTrailingReturnDays(
   projectRoot: string,

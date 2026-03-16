@@ -42,6 +42,7 @@ export interface Top100StockRow {
     close: number;
   }>;
   marketCap?: number;
+  marketCapSource?: "yahoo" | "hip3" | "fd_cache" | "profile_cache";
   avgVolume?: number;
   dollarVolume?: number;
   quoteSource?: "yahoo" | "hip3" | "fd_cache";
@@ -49,12 +50,46 @@ export interface Top100StockRow {
   quoteStale?: boolean;
   liveRank?: number;
   rankDrift?: number;
+  prevLiveRank?: number;
+  historyRankDrift?: number;
+  enteredTop10?: boolean;
+  exitedTop10?: boolean;
+  enteredTop25?: boolean;
+  exitedTop25?: boolean;
+  growthScore?: number;
+  valuationScore?: number;
+  momentumScore?: number;
+  profitScore?: number;
+  earningsScore?: number;
+  balanceSheetScore?: number;
+  insiderScore?: number;
   /** VINCE-native context (editorial heuristics) */
   keyStrength?: string;
   whyNow?: string;
   convictionTier?: "S" | "A" | "B" | "C" | "D";
   riskSummary?: string;
   theme?: string;
+}
+
+export interface Top100Rituals {
+  historyDrift?: {
+    biggestClimbers: string[];
+    biggestFallers: string[];
+    biggestMismatches: string[];
+  };
+  momentum?: {
+    continuation: string[];
+    pullbacks: string[];
+    failures: string[];
+  };
+  risk?: {
+    flagged: string[];
+    clean: string[];
+  };
+  upsideVsTape?: {
+    confirmed: string[];
+    breakingDown: string[];
+  };
 }
 
 export interface Top100Meta {
@@ -82,8 +117,19 @@ export interface Top100Meta {
   historyCoveragePct?: number;
   /** Percent of rows with market cap available. */
   marketCapCoveragePct?: number;
+  liveTop10Entrants?: string[];
+  liveTop10Exits?: string[];
+  liveTop25Entrants?: string[];
+  liveTop25Exits?: string[];
+  rituals?: Top100Rituals;
   /** Human-readable warnings when the dataset is incomplete. */
   warnings?: string[];
+  /** Tickers missing Yahoo quote (price/1D). */
+  missingYahooTickers?: string[];
+  /** Tickers missing FD history (7D/30D). */
+  missingFdHistoryTickers?: string[];
+  /** Tickers missing market cap from any source. */
+  missingMarketCapTickers?: string[];
 }
 
 interface CachedTop100 {
@@ -201,12 +247,31 @@ function parseScorecard(markdown: string): {
       composite?: number;
       sleeve?: string;
       flags?: string[];
+      growthScore?: number;
+      valuationScore?: number;
+      momentumScore?: number;
+      profitScore?: number;
+      earningsScore?: number;
+      balanceSheetScore?: number;
+      insiderScore?: number;
     }
   >;
 } {
   const byTicker = new Map<
     string,
-    { rank?: number; composite?: number; sleeve?: string; flags?: string[] }
+    {
+      rank?: number;
+      composite?: number;
+      sleeve?: string;
+      flags?: string[];
+      growthScore?: number;
+      valuationScore?: number;
+      momentumScore?: number;
+      profitScore?: number;
+      earningsScore?: number;
+      balanceSheetScore?: number;
+      insiderScore?: number;
+    }
   >();
 
   const scorecardIndex = markdown.indexOf("# Ticker Scorecard");
@@ -235,12 +300,31 @@ function parseScorecard(markdown: string): {
       .slice(1, -1)
       .map((c) => c.trim());
     if (cells.length < 12) continue;
-    const [rankStr, ticker, sleeve, compositeStr, , , , , , , , flagsStr] =
-      cells;
+    const [
+      rankStr,
+      ticker,
+      sleeve,
+      compositeStr,
+      growthStr,
+      valuationStr,
+      momentumStr,
+      profitStr,
+      earningsStr,
+      balanceSheetStr,
+      insiderStr,
+      flagsStr,
+    ] = cells;
     if (!ticker || ticker === "Ticker") continue;
     const normalizedTicker = ticker.toUpperCase().trim();
     const rank = Number.parseInt(rankStr, 10);
     const composite = Number.parseFloat(compositeStr);
+    const growthScore = Number.parseFloat(growthStr);
+    const valuationScore = Number.parseFloat(valuationStr);
+    const momentumScore = Number.parseFloat(momentumStr);
+    const profitScore = Number.parseFloat(profitStr);
+    const earningsScore = Number.parseFloat(earningsStr);
+    const balanceSheetScore = Number.parseFloat(balanceSheetStr);
+    const insiderScore = Number.parseFloat(insiderStr);
     const flags =
       flagsStr && flagsStr !== "-" && flagsStr !== "—"
         ? flagsStr.split(",").map((f) => f.trim())
@@ -250,6 +334,17 @@ function parseScorecard(markdown: string): {
       composite: Number.isFinite(composite) ? composite : undefined,
       sleeve: sleeve || undefined,
       flags: flags.length > 0 ? flags : undefined,
+      growthScore: Number.isFinite(growthScore) ? growthScore : undefined,
+      valuationScore: Number.isFinite(valuationScore)
+        ? valuationScore
+        : undefined,
+      momentumScore: Number.isFinite(momentumScore) ? momentumScore : undefined,
+      profitScore: Number.isFinite(profitScore) ? profitScore : undefined,
+      earningsScore: Number.isFinite(earningsScore) ? earningsScore : undefined,
+      balanceSheetScore: Number.isFinite(balanceSheetScore)
+        ? balanceSheetScore
+        : undefined,
+      insiderScore: Number.isFinite(insiderScore) ? insiderScore : undefined,
     });
   }
 
@@ -353,6 +448,13 @@ export function loadTop100FromMarkdown(
         composite: score.composite,
         sleeve: score.sleeve,
         flags: score.flags,
+        growthScore: score.growthScore,
+        valuationScore: score.valuationScore,
+        momentumScore: score.momentumScore,
+        profitScore: score.profitScore,
+        earningsScore: score.earningsScore,
+        balanceSheetScore: score.balanceSheetScore,
+        insiderScore: score.insiderScore,
       });
     }
   }
@@ -403,4 +505,48 @@ export function loadTop100FromMarkdown(
 
   cache = { mtimeMs: stat.mtimeMs, rows, meta };
   return cache;
+}
+
+/**
+ * Diff annex tickers (from category tables) vs scorecard tickers (from # Ticker Scorecard).
+ * Use for validation: onlyInAnnex = in annex but not in scorecard (unscored);
+ * onlyInScorecard = in scorecard but not in any annex table.
+ */
+export function validateTop100ScorecardAnnexDiff(
+  projectRoot: string = process.cwd(),
+): {
+  annexTickers: string[];
+  scorecardTickers: string[];
+  onlyInAnnex: string[];
+  onlyInScorecard: string[];
+} {
+  const filePath = path.join(projectRoot, "TOP100.md");
+  if (!fs.existsSync(filePath)) {
+    return {
+      annexTickers: [],
+      scorecardTickers: [],
+      onlyInAnnex: [],
+      onlyInScorecard: [],
+    };
+  }
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const annexSections = parseAnnexTables(raw);
+  const { byTicker } = parseScorecard(raw);
+  const annexSet = new Set<string>();
+  for (const section of annexSections) {
+    for (const row of section.rows) {
+      annexSet.add(row.ticker.toUpperCase().trim());
+    }
+  }
+  const scorecardSet = new Set(byTicker.keys());
+  const annexTickers = [...annexSet].sort();
+  const scorecardTickers = [...scorecardSet].sort();
+  const onlyInAnnex = annexTickers.filter((t) => !scorecardSet.has(t));
+  const onlyInScorecard = scorecardTickers.filter((t) => !annexSet.has(t));
+  return {
+    annexTickers,
+    scorecardTickers,
+    onlyInAnnex,
+    onlyInScorecard,
+  };
 }

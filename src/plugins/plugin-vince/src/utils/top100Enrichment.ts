@@ -2,15 +2,19 @@ import type { HIP3LeaderboardSection } from "../routes/dashboardLeaderboards";
 import {
   loadTop100FromMarkdown,
   type Top100Meta,
+  type Top100Rituals,
   type Top100StockRow,
 } from "./top100Stocks";
+import { readProfileFromCache } from "./top100ProfileCache";
 import { readYahooQuoteFromCache } from "./yahooQuotesCache";
 import {
+  getPreviousBarReturn1d,
   getRecentFdSparkline,
   getTrailingReturnDays,
   summarizeFdCachedHistory,
 } from "./financialDatasetsCache";
 import { computeVinceContext } from "./top100Scoring";
+import { readLatestTop100Snapshot } from "./top100History";
 
 export type Top100SectionStatus = "loading" | "ok" | "stale" | "error";
 
@@ -19,9 +23,26 @@ export interface Top100StocksSection {
   meta: Top100Meta;
 }
 
+interface Top100MetaPatch {
+  liveTop10Entrants?: string[];
+  liveTop10Exits?: string[];
+  liveTop25Entrants?: string[];
+  liveTop25Exits?: string[];
+  rituals?: Top100Rituals;
+}
+
 function pct(n: number, d: number): number {
   if (!Number.isFinite(n) || !Number.isFinite(d) || d <= 0) return 0;
   return (n / d) * 100;
+}
+
+function formatTickerWarning(tickers: string[], max = 12): string {
+  const unique = [
+    ...new Set(tickers.map((ticker) => ticker.toUpperCase().trim())),
+  ];
+  const shown = unique.slice(0, max);
+  const extra = unique.length - shown.length;
+  return extra > 0 ? `${shown.join(", ")} (+${extra} more)` : shown.join(", ");
 }
 
 function computeCoverageMeta(
@@ -30,6 +51,15 @@ function computeCoverageMeta(
 ): Top100Meta {
   const total = rows.length || 0;
   const scored = rows.filter((r) => typeof r.composite === "number").length;
+  const unscoredTickers = rows
+    .filter(
+      (r) =>
+        typeof r.composite !== "number" ||
+        !Number.isFinite(r.composite) ||
+        typeof r.rank !== "number" ||
+        !Number.isFinite(r.rank),
+    )
+    .map((r) => r.ticker);
   const quote = rows.filter(
     (r) => typeof r.priceLive === "number" || typeof r.change1dPct === "number",
   ).length;
@@ -39,12 +69,49 @@ function computeCoverageMeta(
   ).length;
   const mcap = rows.filter((r) => typeof r.marketCap === "number").length;
 
+  const missingYahooTickers = rows
+    .filter(
+      (r) =>
+        r.quoteSource !== "yahoo" &&
+        (typeof r.priceLive !== "number" || typeof r.change1dPct !== "number"),
+    )
+    .map((r) => r.ticker);
+  const missingFdHistoryTickers = rows
+    .filter(
+      (r) =>
+        typeof r.change7dPct !== "number" || typeof r.change30dPct !== "number",
+    )
+    .map((r) => r.ticker);
+  const missingMarketCapTickers = rows
+    .filter((r) => typeof r.marketCap !== "number")
+    .map((r) => r.ticker);
+
   const warnings: string[] = [];
   if (total !== 100) warnings.push(`Expected 100 rows; got ${total}.`);
   if (scored < Math.min(50, total))
     warnings.push(`Low score coverage: ${scored}/${total}.`);
+  if (unscoredTickers.length) {
+    warnings.push(
+      `Missing scorecard coverage for: ${formatTickerWarning(unscoredTickers)}.`,
+    );
+  }
   if (quote < Math.min(70, total))
     warnings.push(`Low quote coverage: ${quote}/${total}.`);
+  if (missingYahooTickers.length) {
+    warnings.push(
+      `Missing Yahoo quote: ${formatTickerWarning(missingYahooTickers)}.`,
+    );
+  }
+  if (missingFdHistoryTickers.length) {
+    warnings.push(
+      `Missing FD history: ${formatTickerWarning(missingFdHistoryTickers)}.`,
+    );
+  }
+  if (missingMarketCapTickers.length) {
+    warnings.push(
+      `Missing market cap: ${formatTickerWarning(missingMarketCapTickers)}.`,
+    );
+  }
 
   return {
     ...meta,
@@ -52,8 +119,152 @@ function computeCoverageMeta(
     quoteCoveragePct: pct(quote, total),
     historyCoveragePct: pct(history, total),
     marketCapCoveragePct: pct(mcap, total),
+    missingYahooTickers:
+      missingYahooTickers.length > 0 ? missingYahooTickers : undefined,
+    missingFdHistoryTickers:
+      missingFdHistoryTickers.length > 0 ? missingFdHistoryTickers : undefined,
+    missingMarketCapTickers:
+      missingMarketCapTickers.length > 0 ? missingMarketCapTickers : undefined,
     warnings: warnings.length ? warnings : undefined,
   };
+}
+
+function parsePctText(p?: string | null): number | undefined {
+  if (!p) return undefined;
+  const m = `${p}`.match(/-?\d+(\.\d+)?/);
+  if (!m) return undefined;
+  const v = Number(m[0]);
+  return Number.isFinite(v) ? v : undefined;
+}
+
+function tickersOf(rows: Top100StockRow[], count = 5): string[] {
+  return rows.slice(0, count).map((row) => row.ticker);
+}
+
+function computeRituals(rows: Top100StockRow[]): Top100Rituals {
+  const biggestClimbers = [...rows]
+    .filter(
+      (row) =>
+        typeof row.historyRankDrift === "number" && row.historyRankDrift > 0,
+    )
+    .sort((a, b) => (b.historyRankDrift ?? 0) - (a.historyRankDrift ?? 0));
+  const biggestFallers = [...rows]
+    .filter(
+      (row) =>
+        typeof row.historyRankDrift === "number" && row.historyRankDrift < 0,
+    )
+    .sort((a, b) => (a.historyRankDrift ?? 0) - (b.historyRankDrift ?? 0));
+  const biggestMismatches = [...rows]
+    .filter((row) => typeof row.rankDrift === "number")
+    .sort(
+      (a, b) =>
+        Math.abs(b.rankDrift ?? 0) - Math.abs(a.rankDrift ?? 0) ||
+        (b.composite ?? 0) - (a.composite ?? 0),
+    );
+
+  const continuation = [...rows]
+    .filter(
+      (row) =>
+        (row.change1dPct ?? Number.NEGATIVE_INFINITY) > 0 &&
+        (row.change7dPct ?? Number.NEGATIVE_INFINITY) > 0 &&
+        (row.change30dPct ?? Number.NEGATIVE_INFINITY) > 0 &&
+        (row.momentumScore ?? 50) >= 50,
+    )
+    .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
+  const pullbacks = [...rows]
+    .filter(
+      (row) =>
+        (row.change1dPct ?? Number.POSITIVE_INFINITY) < 0 &&
+        (row.change7dPct ?? Number.NEGATIVE_INFINITY) > 0 &&
+        (row.change30dPct ?? Number.NEGATIVE_INFINITY) > 0 &&
+        (row.momentumScore ?? 50) >= 45,
+    )
+    .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
+  const failures = [...rows]
+    .filter(
+      (row) =>
+        (row.change7dPct ?? Number.POSITIVE_INFINITY) < 0 &&
+        (row.change30dPct ?? Number.POSITIVE_INFINITY) < 0 &&
+        (row.momentumScore ?? 50) <= 55,
+    )
+    .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
+
+  const flagged = [...rows]
+    .filter((row) => (row.flags?.length ?? 0) > 0 || !!row.riskSummary)
+    .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
+  const clean = [...rows]
+    .filter(
+      (row) =>
+        !(row.flags?.length ?? 0) &&
+        !row.quoteStale &&
+        (row.change7dPct ?? Number.NEGATIVE_INFINITY) >= 0 &&
+        (row.insiderScore ?? 50) >= 50,
+    )
+    .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
+
+  const confirmed = [...rows]
+    .filter((row) => {
+      const upside = parsePctText(row.upsidePct);
+      return (
+        typeof upside === "number" &&
+        upside >= 15 &&
+        (row.change30dPct ?? Number.NEGATIVE_INFINITY) > 0 &&
+        (row.valuationScore ?? 50) >= 35
+      );
+    })
+    .sort(
+      (a, b) =>
+        (parsePctText(b.upsidePct) ?? 0) - (parsePctText(a.upsidePct) ?? 0),
+    );
+  const breakingDown = [...rows]
+    .filter((row) => {
+      const upside = parsePctText(row.upsidePct);
+      return (
+        typeof upside === "number" &&
+        upside >= 15 &&
+        (row.change30dPct ?? Number.POSITIVE_INFINITY) < 0 &&
+        (row.valuationScore ?? 50) < 60
+      );
+    })
+    .sort(
+      (a, b) =>
+        (parsePctText(b.upsidePct) ?? 0) - (parsePctText(a.upsidePct) ?? 0),
+    );
+
+  return {
+    historyDrift: {
+      biggestClimbers: tickersOf(biggestClimbers),
+      biggestFallers: tickersOf(biggestFallers),
+      biggestMismatches: tickersOf(biggestMismatches),
+    },
+    momentum: {
+      continuation: tickersOf(continuation),
+      pullbacks: tickersOf(pullbacks),
+      failures: tickersOf(failures),
+    },
+    risk: {
+      flagged: tickersOf(flagged),
+      clean: tickersOf(clean),
+    },
+    upsideVsTape: {
+      confirmed: tickersOf(confirmed),
+      breakingDown: tickersOf(breakingDown),
+    },
+  };
+}
+
+function diffTickers(
+  current: Set<string>,
+  previous: Set<string>,
+): {
+  entrants: string[];
+  exits: string[];
+} {
+  const entrants = [...current]
+    .filter((ticker) => !previous.has(ticker))
+    .sort();
+  const exits = [...previous].filter((ticker) => !current.has(ticker)).sort();
+  return { entrants, exits };
 }
 
 function applyOverlays({
@@ -64,7 +275,7 @@ function applyOverlays({
   rows: Top100StockRow[];
   projectRoot: string;
   hip3: HIP3LeaderboardSection | null;
-}): Top100StockRow[] {
+}): { rows: Top100StockRow[]; metaPatch: Top100MetaPatch } {
   const byTickerHip3 = new Map<
     string,
     { price?: number; change24h?: number; volume?: number }
@@ -96,6 +307,8 @@ function applyOverlays({
             : out.change1dPct,
         marketCap:
           typeof yahoo.marketCap === "number" ? yahoo.marketCap : out.marketCap,
+        marketCapSource:
+          typeof yahoo.marketCap === "number" ? "yahoo" : out.marketCapSource,
         avgVolume:
           typeof yahoo.avgVolume === "number" ? yahoo.avgVolume : out.avgVolume,
         quoteSource: "yahoo",
@@ -113,6 +326,25 @@ function applyOverlays({
           avgVolume: fromHip3.volume,
           quoteSource: "hip3",
         };
+      }
+    }
+
+    if (typeof out.marketCap !== "number") {
+      const profile = readProfileFromCache(projectRoot, key);
+      if (profile && typeof profile.marketCap === "number") {
+        out = {
+          ...out,
+          marketCap: profile.marketCap,
+          marketCapSource: "profile_cache",
+        };
+      }
+    }
+
+    if (typeof out.change1dPct !== "number") {
+      const fd1d = getPreviousBarReturn1d(projectRoot, key);
+      if (fd1d) {
+        out = { ...out, change1dPct: fd1d.returnPct };
+        if (!out.quoteSource) out.quoteSource = "fd_cache";
       }
     }
 
@@ -171,12 +403,72 @@ function applyOverlays({
   const liveRankById = new Map<string, number>();
   ranked.forEach((row, idx) => liveRankById.set(row.id, idx + 1));
 
-  return withOverlays.map((row) => {
+  const withLiveRank = withOverlays.map((row) => {
     const liveRank = liveRankById.get(row.id);
     if (!liveRank) return row;
     if (row.rank == null) return { ...row, liveRank };
     return { ...row, liveRank, rankDrift: row.rank - liveRank };
   });
+
+  const latestSnapshot = readLatestTop100Snapshot(projectRoot);
+  const previousById = new Map(
+    (latestSnapshot?.rows ?? []).map((row) => [row.id, row]),
+  );
+  const currentTop10 = new Set(
+    withLiveRank
+      .filter((row) => typeof row.liveRank === "number" && row.liveRank <= 10)
+      .map((row) => row.ticker),
+  );
+  const currentTop25 = new Set(
+    withLiveRank
+      .filter((row) => typeof row.liveRank === "number" && row.liveRank <= 25)
+      .map((row) => row.ticker),
+  );
+  const previousTop10 = new Set(
+    (latestSnapshot?.rows ?? [])
+      .filter((row) => typeof row.liveRank === "number" && row.liveRank <= 10)
+      .map((row) => row.ticker),
+  );
+  const previousTop25 = new Set(
+    (latestSnapshot?.rows ?? [])
+      .filter((row) => typeof row.liveRank === "number" && row.liveRank <= 25)
+      .map((row) => row.ticker),
+  );
+  const top10Diff = diffTickers(currentTop10, previousTop10);
+  const top25Diff = diffTickers(currentTop25, previousTop25);
+
+  const rowsWithHistory = withLiveRank.map((row) => {
+    const previous = previousById.get(row.id);
+    const next: Top100StockRow = {
+      ...row,
+      enteredTop10:
+        currentTop10.has(row.ticker) && !previousTop10.has(row.ticker),
+      exitedTop10:
+        !currentTop10.has(row.ticker) && previousTop10.has(row.ticker),
+      enteredTop25:
+        currentTop25.has(row.ticker) && !previousTop25.has(row.ticker),
+      exitedTop25:
+        !currentTop25.has(row.ticker) && previousTop25.has(row.ticker),
+    };
+    if (typeof previous?.liveRank === "number") {
+      next.prevLiveRank = previous.liveRank;
+      if (typeof row.liveRank === "number") {
+        next.historyRankDrift = previous.liveRank - row.liveRank;
+      }
+    }
+    return next;
+  });
+
+  return {
+    rows: rowsWithHistory,
+    metaPatch: {
+      liveTop10Entrants: top10Diff.entrants,
+      liveTop10Exits: top10Diff.exits,
+      liveTop25Entrants: top25Diff.entrants,
+      liveTop25Exits: top25Diff.exits,
+      rituals: computeRituals(rowsWithHistory),
+    },
+  };
 }
 
 export function buildTop100StocksSection(args: {
@@ -187,13 +479,31 @@ export function buildTop100StocksSection(args: {
   try {
     const { rows, meta } = loadTop100FromMarkdown(projectRoot);
     if (!rows.length) return { section: null, status: "stale" };
-    const enriched = applyOverlays({ rows, projectRoot, hip3: args.hip3 });
-    const metaWithCoverage = computeCoverageMeta(enriched, meta);
+    const { rows: enriched, metaPatch } = applyOverlays({
+      rows,
+      projectRoot,
+      hip3: args.hip3,
+    });
+    const metaWithCoverage = computeCoverageMeta(enriched, {
+      ...meta,
+      ...metaPatch,
+    });
 
     // Degrade to stale when coverage is weak.
     const weak =
       (metaWithCoverage.scoredCoveragePct ?? 0) < 50 ||
       (metaWithCoverage.quoteCoveragePct ?? 0) < 60;
+    const historyRows = enriched.filter(
+      (row) =>
+        typeof row.liveRank === "number" &&
+        typeof row.prevLiveRank === "number",
+    ).length;
+    if (historyRows > 0 && historyRows < Math.min(25, enriched.length)) {
+      metaWithCoverage.warnings = [
+        ...(metaWithCoverage.warnings ?? []),
+        `Limited drift coverage: ${historyRows}/${enriched.length}.`,
+      ];
+    }
 
     return {
       section: { rows: enriched, meta: metaWithCoverage },

@@ -5,7 +5,7 @@ import type {
   Top100StockRow,
 } from "@/frontend/lib/leaderboardsApi";
 import { cn } from "@/frontend/lib/utils";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Top100Table } from "./top100-table";
 import { Top100Toolbar } from "./top100-toolbar";
 import {
@@ -49,7 +49,7 @@ function CategoryGrid({ section }: { section: Top100StocksSection }) {
             <div className="space-y-1">
               {leaders.map((r) => (
                 <div
-                  key={r.id ?? r.ticker}
+                  key={r.id}
                   className="flex items-baseline justify-between text-xs"
                 >
                   <div className="flex items-baseline gap-2">
@@ -81,38 +81,238 @@ function CategoryGrid({ section }: { section: Top100StocksSection }) {
   );
 }
 
-function TopList({ title, rows }: { title: string; rows: Top100StockRow[] }) {
+function TopList({
+  title,
+  rows,
+  subtitle,
+  onActivate,
+  active,
+  onSelectRow,
+  selectedRowId,
+}: {
+  title: string;
+  rows: Top100StockRow[];
+  subtitle?: string;
+  onActivate?: () => void;
+  active?: boolean;
+  onSelectRow?: (row: Top100StockRow) => void;
+  selectedRowId?: string | null;
+}) {
   if (!rows.length) return null;
   return (
-    <DashboardCard title={title}>
-      <div className="space-y-1">
+    <DashboardCard
+      className="border-border/50 bg-background/60 shadow-none"
+      title={title}
+      addon={
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+            {rows.length}
+          </span>
+          {onActivate ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onActivate();
+              }}
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-[10px] font-mono leading-none",
+                active
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/35",
+              )}
+            >
+              {active ? "Focused" : "Focus"}
+            </button>
+          ) : null}
+        </div>
+      }
+    >
+      {subtitle ? (
+        <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+          {subtitle}
+        </div>
+      ) : null}
+      <div className="space-y-1.5">
         {rows.map((r) => (
-          <div
-            key={r.id ?? r.ticker}
-            className="flex items-baseline justify-between text-xs"
+          <button
+            type="button"
+            key={r.id}
+            onClick={() => onSelectRow?.(r)}
+            className={cn(
+              "grid w-full grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 rounded-lg border border-transparent px-2 py-1.5 text-left text-xs transition hover:border-border/40 hover:bg-muted/20",
+              selectedRowId === r.id
+                ? "bg-primary/8 ring-1 ring-inset ring-primary/20"
+                : null,
+            )}
           >
-            <div className="flex items-baseline gap-2">
-              <span className="font-mono text-[11px] text-muted-foreground">
-                {r.rank ?? "—"}
-              </span>
+            <div className="flex min-w-0 items-baseline gap-2">
+              {typeof r.rank === "number" ? (
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  {r.rank}
+                </span>
+              ) : null}
               <span className="font-semibold">{r.ticker}</span>
+              {selectedRowId === r.id ? (
+                <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-mono text-primary">
+                  active
+                </span>
+              ) : null}
               {r.company && (
-                <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                <span className="truncate text-[11px] text-muted-foreground">
                   {r.company}
                 </span>
               )}
             </div>
-            <div className="flex items-baseline gap-3">
+            <div className="flex min-w-[94px] items-baseline justify-end gap-3 text-right">
               {r.upsidePct && (
                 <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
                   {r.upsidePct}
                 </span>
               )}
-              <span
-                className={cn("font-mono text-[11px]", scoreClass(r.composite))}
-              >
-                {r.composite != null ? r.composite.toFixed(1) : "—"}
-              </span>
+              {hasCompositeScore(r) ? (
+                <span
+                  className={cn(
+                    "font-mono text-[11px] tabular-nums",
+                    scoreClass(r.composite),
+                  )}
+                >
+                  {r.composite!.toFixed(1)}
+                </span>
+              ) : (
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  unscored
+                </span>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </DashboardCard>
+  );
+}
+
+function rowsByTickers(
+  rows: Top100StockRow[],
+  tickers?: string[],
+): Top100StockRow[] {
+  if (!tickers?.length) return [];
+  const byTicker = new Map(rows.map((row) => [row.ticker.toUpperCase(), row]));
+  return tickers
+    .map((ticker) => byTicker.get(ticker.toUpperCase()))
+    .filter(Boolean) as Top100StockRow[];
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+}
+
+function hasCompositeScore(row: Top100StockRow): boolean {
+  return typeof row.composite === "number" && Number.isFinite(row.composite);
+}
+
+function RitualCard(props: {
+  title: string;
+  subtitle?: string;
+  selectedRowId?: string | null;
+  groups: Array<{
+    label: string;
+    rows: Top100StockRow[];
+    onActivate?: () => void;
+    active?: boolean;
+    onSelectRow?: (row: Top100StockRow) => void;
+  }>;
+}) {
+  const groups = props.groups.filter((group) => group.rows.length);
+  if (!groups.length) return null;
+  return (
+    <DashboardCard
+      className="border-border/50 bg-background/60 shadow-none"
+      title={props.title}
+      addon={
+        <span className="rounded-full border border-border/60 bg-muted/20 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+          {groups.reduce((sum, group) => sum + group.rows.length, 0)}
+        </span>
+      }
+    >
+      {props.subtitle ? (
+        <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+          {props.subtitle}
+        </div>
+      ) : null}
+      <div
+        className={cn(
+          "grid gap-2.5",
+          groups.length > 1 ? "xl:grid-cols-2" : "grid-cols-1",
+        )}
+      >
+        {groups.map((group) => (
+          <div
+            key={group.label}
+            className="rounded-xl border border-border/30 bg-muted/[0.06] p-2.5"
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                {group.label}
+                <span className="ml-1.5 font-mono text-muted-foreground/70">
+                  {group.rows.length}
+                </span>
+              </div>
+              {group.onActivate ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    group.onActivate?.();
+                  }}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[10px] font-mono leading-none",
+                    group.active
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/35",
+                  )}
+                >
+                  {group.active ? "Focused" : "Focus"}
+                </button>
+              ) : null}
+            </div>
+            <div className="space-y-1">
+              {group.rows.slice(0, 4).map((row) => (
+                <button
+                  type="button"
+                  key={row.id}
+                  onClick={() => group.onSelectRow?.(row)}
+                  className={cn(
+                    "grid w-full grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 rounded-lg border border-transparent px-2 py-1.5 text-left text-xs transition hover:border-border/40 hover:bg-muted/20",
+                    props.selectedRowId === row.id
+                      ? "bg-primary/8 ring-1 ring-inset ring-primary/20"
+                      : null,
+                  )}
+                >
+                  <div className="flex min-w-0 items-baseline gap-2">
+                    <span className="font-semibold">{row.ticker}</span>
+                    {props.selectedRowId === row.id ? (
+                      <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-mono text-primary">
+                        active
+                      </span>
+                    ) : null}
+                    <span className="truncate text-[11px] text-muted-foreground">
+                      {row.company ?? "—"}
+                    </span>
+                  </div>
+                  {hasCompositeScore(row) ? (
+                    <span className="w-[58px] text-right font-mono text-[11px] text-muted-foreground">
+                      {row.composite!.toFixed(1)}
+                    </span>
+                  ) : (
+                    <span className="text-right font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      unscored
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         ))}
@@ -130,6 +330,8 @@ export function Top100Tab({
   status: "loading" | "ok" | "stale" | "error" | undefined;
   agentId: string;
 }) {
+  const [focusedTickers, setFocusedTickers] = useState<string[] | null>(null);
+  const [activeFocusKey, setActiveFocusKey] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<
     Top100Category | "ALL"
   >("ALL");
@@ -147,18 +349,95 @@ export function Top100Tab({
   const [selectedRow, setSelectedRow] = useState<Top100StockRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const categoryOptions: (Top100Category | "ALL")[] = useMemo(() => {
-    const cats = section?.meta?.byCategory?.map((c) => c.category) ?? [];
-    return ["ALL", ...cats];
-  }, [section?.meta?.byCategory]);
+  const sectionRows = section?.rows ?? [];
+  const topScore = section?.meta.topByComposite ?? [];
+  const biggestClimbers = [...sectionRows]
+    .filter(
+      (row) =>
+        typeof row.historyRankDrift === "number" && row.historyRankDrift > 0,
+    )
+    .sort((a, b) => (b.historyRankDrift ?? 0) - (a.historyRankDrift ?? 0))
+    .slice(0, 5);
+  const biggestFallers = [...sectionRows]
+    .filter(
+      (row) =>
+        typeof row.historyRankDrift === "number" && row.historyRankDrift < 0,
+    )
+    .sort((a, b) => (a.historyRankDrift ?? 0) - (b.historyRankDrift ?? 0))
+    .slice(0, 5);
+  const top10Entrants = rowsByTickers(
+    sectionRows,
+    section?.meta.liveTop10Entrants,
+  );
+  const top10Exits = rowsByTickers(sectionRows, section?.meta.liveTop10Exits);
+  const rituals = section?.meta.rituals;
+  const focusPresets = [
+    { key: "entered-top10", label: "Entered top 10", rows: top10Entrants },
+    { key: "exited-top10", label: "Exited top 10", rows: top10Exits },
+    {
+      key: "biggest-climbers",
+      label: "Biggest climbers",
+      rows: biggestClimbers,
+    },
+    { key: "biggest-fallers", label: "Biggest fallers", rows: biggestFallers },
+    {
+      key: "history-climbers",
+      label: "History drift: Climbers",
+      rows: rowsByTickers(sectionRows, rituals?.historyDrift?.biggestClimbers),
+    },
+    {
+      key: "history-mismatches",
+      label: "History drift: Mismatches",
+      rows: rowsByTickers(
+        sectionRows,
+        rituals?.historyDrift?.biggestMismatches,
+      ),
+    },
+    {
+      key: "momentum-continuation",
+      label: "Momentum: Continuation",
+      rows: rowsByTickers(sectionRows, rituals?.momentum?.continuation),
+    },
+    {
+      key: "momentum-pullbacks",
+      label: "Momentum: Pullbacks",
+      rows: rowsByTickers(sectionRows, rituals?.momentum?.pullbacks),
+    },
+    {
+      key: "risk-flagged",
+      label: "Risk: Flagged",
+      rows: rowsByTickers(sectionRows, rituals?.risk?.flagged),
+    },
+    {
+      key: "risk-clean",
+      label: "Risk: Clean",
+      rows: rowsByTickers(sectionRows, rituals?.risk?.clean),
+    },
+    {
+      key: "upside-confirmed",
+      label: "Upside vs tape: Confirmed",
+      rows: rowsByTickers(sectionRows, rituals?.upsideVsTape?.confirmed),
+    },
+    {
+      key: "upside-breaking-down",
+      label: "Upside vs tape: Breaking down",
+      rows: rowsByTickers(sectionRows, rituals?.upsideVsTape?.breakingDown),
+    },
+  ].filter((preset) => preset.rows.length);
 
   const toolbarOptions = useMemo(() => {
     return computeTop100ToolbarOptions(section?.rows ?? []);
   }, [section?.rows]);
 
   const filteredRows = useMemo(() => {
+    const baseRows =
+      focusedTickers?.length && section?.rows?.length
+        ? section.rows.filter((row) =>
+            focusedTickers.includes(row.ticker.toUpperCase()),
+          )
+        : (section?.rows ?? []);
     return filterAndSortTop100Rows({
-      rows: section?.rows ?? [],
+      rows: baseRows,
       search,
       category: selectedCategory,
       sleeve: selectedSleeve,
@@ -172,6 +451,7 @@ export function Top100Tab({
     });
   }, [
     section?.rows,
+    focusedTickers,
     search,
     selectedCategory,
     selectedSleeve,
@@ -184,16 +464,119 @@ export function Top100Tab({
     sortDir,
   ]);
 
+  function openRow(row: Top100StockRow) {
+    setSelectedRow(row);
+    setDrawerOpen(true);
+  }
+
+  function activateFocusPreset(
+    key: string,
+    rows: Top100StockRow[],
+    options?: {
+      syncSelection?: boolean;
+      allowToggle?: boolean;
+    },
+  ) {
+    const tickers = rows.map((row) => row.ticker.toUpperCase());
+    if (!tickers.length) return;
+    const next = JSON.stringify(tickers);
+    const prev = JSON.stringify(focusedTickers ?? []);
+
+    if (
+      options?.allowToggle !== false &&
+      activeFocusKey === key &&
+      next === prev
+    ) {
+      setFocusedTickers(null);
+      setActiveFocusKey(null);
+      return;
+    }
+
+    setFocusedTickers(tickers);
+    setActiveFocusKey(key);
+
+    if (options?.syncSelection) {
+      const current =
+        selectedRow && rows.find((row) => row.id === selectedRow.id)
+          ? rows.find((row) => row.id === selectedRow.id)
+          : rows[0];
+      if (current) openRow(current);
+    }
+  }
+
+  function isFocusedKey(key: string) {
+    return !!focusedTickers?.length && activeFocusKey === key;
+  }
+
   const detailsQuery = useQuery({
-    queryKey: ["top100-details", agentId, selectedRow?.ticker ?? ""],
-    enabled: drawerOpen && !!selectedRow?.ticker,
+    queryKey: ["top100-details", agentId, selectedRow?.id ?? ""],
+    enabled: drawerOpen && !!selectedRow?.id,
     queryFn: async () => {
-      if (!selectedRow?.ticker)
-        return { data: null, error: "Missing ticker", status: null };
-      return await fetchTop100DetailsWithError(agentId, selectedRow.ticker);
+      if (!selectedRow?.id || !selectedRow?.ticker) {
+        return { data: null, error: "Missing row identity", status: null };
+      }
+      return await fetchTop100DetailsWithError(agentId, {
+        id: selectedRow.id,
+        ticker: selectedRow.ticker,
+      });
     },
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    if (!focusedTickers?.length || !filteredRows.length) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (
+        event.key !== "ArrowDown" &&
+        event.key !== "ArrowUp" &&
+        event.key !== "ArrowLeft" &&
+        event.key !== "ArrowRight"
+      ) {
+        return;
+      }
+      if (isTypingTarget(event.target)) return;
+
+      event.preventDefault();
+
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        if (!focusPresets.length || !activeFocusKey) return;
+        const currentPresetIndex = focusPresets.findIndex(
+          (preset) => preset.key === activeFocusKey,
+        );
+        if (currentPresetIndex === -1) return;
+        const delta = event.key === "ArrowRight" ? 1 : -1;
+        const nextPresetIndex =
+          (currentPresetIndex + delta + focusPresets.length) %
+          focusPresets.length;
+        const nextPreset = focusPresets[nextPresetIndex];
+        activateFocusPreset(nextPreset.key, nextPreset.rows, {
+          syncSelection: true,
+          allowToggle: false,
+        });
+        return;
+      }
+
+      const currentIndex = selectedRow
+        ? filteredRows.findIndex((row) => row.id === selectedRow.id)
+        : -1;
+      const fallbackIndex =
+        event.key === "ArrowDown" ? 0 : filteredRows.length - 1;
+      const nextIndex =
+        currentIndex === -1
+          ? fallbackIndex
+          : event.key === "ArrowDown"
+            ? Math.min(currentIndex + 1, filteredRows.length - 1)
+            : Math.max(currentIndex - 1, 0);
+      const nextRow = filteredRows[nextIndex];
+      if (nextRow) {
+        openRow(nextRow);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeFocusKey, filteredRows, focusPresets, focusedTickers, selectedRow]);
 
   if (status === "loading" && !section) {
     return (
@@ -230,7 +613,17 @@ export function Top100Tab({
   }
 
   const { meta } = section;
-  const topScore = meta.topByComposite ?? [];
+  const focusedLabel =
+    focusedTickers?.length && focusedTickers.length <= 6
+      ? focusedTickers.join(", ")
+      : focusedTickers?.length
+        ? `${focusedTickers.length} tickers`
+        : null;
+  const activeFocusLabel =
+    focusPresets.find((preset) => preset.key === activeFocusKey)?.label ?? null;
+  const focusedSelectionIndex = selectedRow
+    ? filteredRows.findIndex((row) => row.id === selectedRow.id)
+    : -1;
 
   return (
     <div className="space-y-6">
@@ -305,11 +698,245 @@ export function Top100Tab({
         onSortDirChange={setSortDir}
       />
 
+      {focusedLabel ? (
+        <div className="flex flex-col gap-2 rounded-2xl border border-primary/15 bg-primary/[0.04] px-3.5 py-3 text-xs md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+              Focus
+            </span>
+            <span className="font-medium text-foreground">{focusedLabel}</span>
+            {activeFocusLabel ? (
+              <span className="rounded-full border border-primary/20 bg-background/70 px-2 py-0.5 text-[11px] font-mono text-primary">
+                {activeFocusLabel}
+              </span>
+            ) : null}
+            <span className="text-[11px] text-muted-foreground/80">
+              Use ←/→ cohorts · ↑/↓ names
+              {focusedSelectionIndex >= 0
+                ? ` · ${focusedSelectionIndex + 1}/${filteredRows.length}`
+                : null}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFocusedTickers(null);
+              setActiveFocusKey(null);
+            }}
+            className="self-start rounded-full border border-border/50 bg-background/70 px-3 py-1 text-[11px] font-mono text-muted-foreground hover:bg-muted/30 md:self-auto"
+          >
+            Clear focus
+          </button>
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
+        <TopList
+          title="Entered top 10"
+          subtitle="Fresh leaders"
+          rows={top10Entrants}
+          onActivate={() => activateFocusPreset("entered-top10", top10Entrants)}
+          active={isFocusedKey("entered-top10")}
+          onSelectRow={openRow}
+          selectedRowId={selectedRow?.id ?? null}
+        />
+        <TopList
+          title="Exited top 10"
+          subtitle="Losing urgency"
+          rows={top10Exits}
+          onActivate={() => activateFocusPreset("exited-top10", top10Exits)}
+          active={isFocusedKey("exited-top10")}
+          onSelectRow={openRow}
+          selectedRowId={selectedRow?.id ?? null}
+        />
+        <TopList
+          title="Biggest climbers"
+          subtitle="Live repricing"
+          rows={biggestClimbers}
+          onActivate={() =>
+            activateFocusPreset("biggest-climbers", biggestClimbers)
+          }
+          active={isFocusedKey("biggest-climbers")}
+          onSelectRow={openRow}
+          selectedRowId={selectedRow?.id ?? null}
+        />
+        <TopList
+          title="Biggest fallers"
+          subtitle="Slipping"
+          rows={biggestFallers}
+          onActivate={() =>
+            activateFocusPreset("biggest-fallers", biggestFallers)
+          }
+          active={isFocusedKey("biggest-fallers")}
+          onSelectRow={openRow}
+          selectedRowId={selectedRow?.id ?? null}
+        />
+      </div>
+
+      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
+        <RitualCard
+          title="History drift"
+          subtitle="Repricing"
+          selectedRowId={selectedRow?.id ?? null}
+          groups={[
+            {
+              label: "Climbers",
+              rows: rowsByTickers(
+                section.rows,
+                rituals?.historyDrift?.biggestClimbers,
+              ),
+              onActivate: () =>
+                activateFocusPreset(
+                  "history-climbers",
+                  rowsByTickers(
+                    section.rows,
+                    rituals?.historyDrift?.biggestClimbers,
+                  ),
+                ),
+              active: isFocusedKey("history-climbers"),
+              onSelectRow: openRow,
+            },
+            {
+              label: "Mismatches",
+              rows: rowsByTickers(
+                section.rows,
+                rituals?.historyDrift?.biggestMismatches,
+              ),
+              onActivate: () =>
+                activateFocusPreset(
+                  "history-mismatches",
+                  rowsByTickers(
+                    section.rows,
+                    rituals?.historyDrift?.biggestMismatches,
+                  ),
+                ),
+              active: isFocusedKey("history-mismatches"),
+              onSelectRow: openRow,
+            },
+          ]}
+        />
+        <RitualCard
+          title="Momentum ritual"
+          subtitle="Trend / pullback"
+          selectedRowId={selectedRow?.id ?? null}
+          groups={[
+            {
+              label: "Continuation",
+              rows: rowsByTickers(
+                section.rows,
+                rituals?.momentum?.continuation,
+              ),
+              onActivate: () =>
+                activateFocusPreset(
+                  "momentum-continuation",
+                  rowsByTickers(section.rows, rituals?.momentum?.continuation),
+                ),
+              active: isFocusedKey("momentum-continuation"),
+              onSelectRow: openRow,
+            },
+            {
+              label: "Pullbacks",
+              rows: rowsByTickers(section.rows, rituals?.momentum?.pullbacks),
+              onActivate: () =>
+                activateFocusPreset(
+                  "momentum-pullbacks",
+                  rowsByTickers(section.rows, rituals?.momentum?.pullbacks),
+                ),
+              active: isFocusedKey("momentum-pullbacks"),
+              onSelectRow: openRow,
+            },
+          ]}
+        />
+        <RitualCard
+          title="Risk ritual"
+          subtitle="Crowded vs clean"
+          selectedRowId={selectedRow?.id ?? null}
+          groups={[
+            {
+              label: "Flagged",
+              rows: rowsByTickers(section.rows, rituals?.risk?.flagged),
+              onActivate: () =>
+                activateFocusPreset(
+                  "risk-flagged",
+                  rowsByTickers(section.rows, rituals?.risk?.flagged),
+                ),
+              active: isFocusedKey("risk-flagged"),
+              onSelectRow: openRow,
+            },
+            {
+              label: "Clean",
+              rows: rowsByTickers(section.rows, rituals?.risk?.clean),
+              onActivate: () =>
+                activateFocusPreset(
+                  "risk-clean",
+                  rowsByTickers(section.rows, rituals?.risk?.clean),
+                ),
+              active: isFocusedKey("risk-clean"),
+              onSelectRow: openRow,
+            },
+          ]}
+        />
+        <RitualCard
+          title="Upside confirmed"
+          subtitle="Target vs tape"
+          selectedRowId={selectedRow?.id ?? null}
+          groups={[
+            {
+              label: "Confirmed",
+              rows: rowsByTickers(
+                section.rows,
+                rituals?.upsideVsTape?.confirmed,
+              ),
+              onActivate: () =>
+                activateFocusPreset(
+                  "upside-confirmed",
+                  rowsByTickers(section.rows, rituals?.upsideVsTape?.confirmed),
+                ),
+              active: isFocusedKey("upside-confirmed"),
+              onSelectRow: openRow,
+            },
+          ]}
+        />
+        <RitualCard
+          title="Upside breaking down"
+          subtitle="Target vs tape"
+          selectedRowId={selectedRow?.id ?? null}
+          groups={[
+            {
+              label: "Breaking down",
+              rows: rowsByTickers(
+                section.rows,
+                rituals?.upsideVsTape?.breakingDown,
+              ),
+              onActivate: () =>
+                activateFocusPreset(
+                  "upside-breaking-down",
+                  rowsByTickers(
+                    section.rows,
+                    rituals?.upsideVsTape?.breakingDown,
+                  ),
+                ),
+              active: isFocusedKey("upside-breaking-down"),
+              onSelectRow: openRow,
+            },
+          ]}
+        />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
         <div className="space-y-6">
-          <DashboardCard title="Composite rankings (command center)">
+          <DashboardCard
+            title="Composite rankings (command center)"
+            subtitle={`${filteredRows.length} names in current view`}
+            addon={
+              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                {sortMode} {sortDir}
+              </span>
+            }
+          >
             <Top100Table
               rows={filteredRows}
+              selectedRowId={selectedRow?.id ?? null}
               onRowClick={(r) => {
                 setSelectedRow(r);
                 setDrawerOpen(true);
@@ -319,7 +946,12 @@ export function Top100Tab({
         </div>
 
         <div className="space-y-6">
-          <TopList title="Top 10 by composite" rows={topScore} />
+          <TopList
+            title="Top 10 by composite"
+            rows={topScore}
+            onSelectRow={openRow}
+            selectedRowId={selectedRow?.id ?? null}
+          />
           {meta.highestUpside?.length ? (
             <DashboardCard title="Highest upside (Street PT)">
               <div className="space-y-1 text-xs">

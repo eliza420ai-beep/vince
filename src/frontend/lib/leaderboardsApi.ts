@@ -264,6 +264,7 @@ export interface Top100StockRow {
   change30dPct?: number;
   sparkline7d?: Top100SparkPoint[];
   marketCap?: number;
+  marketCapSource?: "yahoo" | "hip3" | "fd_cache" | "profile_cache";
   avgVolume?: number;
   dollarVolume?: number;
   quoteSource?: "yahoo" | "hip3" | "fd_cache";
@@ -272,6 +273,19 @@ export interface Top100StockRow {
   liveRank?: number;
   /** Difference between editorial rank and a live-derived rank when available. */
   rankDrift?: number;
+  prevLiveRank?: number;
+  historyRankDrift?: number;
+  enteredTop10?: boolean;
+  exitedTop10?: boolean;
+  enteredTop25?: boolean;
+  exitedTop25?: boolean;
+  growthScore?: number;
+  valuationScore?: number;
+  momentumScore?: number;
+  profitScore?: number;
+  earningsScore?: number;
+  balanceSheetScore?: number;
+  insiderScore?: number;
   /** VINCE-native context (editorial heuristics) */
   keyStrength?: string;
   whyNow?: string;
@@ -328,7 +342,34 @@ export interface Top100Meta {
   quoteCoveragePct?: number;
   historyCoveragePct?: number;
   marketCapCoveragePct?: number;
+  liveTop10Entrants?: string[];
+  liveTop10Exits?: string[];
+  liveTop25Entrants?: string[];
+  liveTop25Exits?: string[];
+  rituals?: {
+    historyDrift?: {
+      biggestClimbers: string[];
+      biggestFallers: string[];
+      biggestMismatches: string[];
+    };
+    momentum?: {
+      continuation: string[];
+      pullbacks: string[];
+      failures: string[];
+    };
+    risk?: {
+      flagged: string[];
+      clean: string[];
+    };
+    upsideVsTape?: {
+      confirmed: string[];
+      breakingDown: string[];
+    };
+  };
   warnings?: string[];
+  missingYahooTickers?: string[];
+  missingFdHistoryTickers?: string[];
+  missingMarketCapTickers?: string[];
 }
 
 export interface Top100StocksSection {
@@ -632,11 +673,16 @@ export async function fetchLeaderboardsWithError(
 
 export async function fetchTop100DetailsWithError(
   agentId: string,
-  ticker: string,
+  params: { ticker: string; id?: string },
 ): Promise<Top100DetailsFetchResult> {
   const base = window.location.origin;
-  const params = new URLSearchParams({ ticker: ticker.toUpperCase().trim() });
-  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/top100/details?${params.toString()}`;
+  const query = new URLSearchParams({
+    ticker: params.ticker.toUpperCase().trim(),
+  });
+  if (params.id) {
+    query.set("id", params.id);
+  }
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/top100/details?${query.toString()}`;
   try {
     const res = await fetch(url, {
       method: "GET",

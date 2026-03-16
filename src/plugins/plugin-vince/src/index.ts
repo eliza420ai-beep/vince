@@ -196,6 +196,9 @@ import {
   runFdDiscoveryNow,
 } from "./tasks/fdDiscoveryWeekly.tasks";
 import { registerResearchAutopilotTask } from "./tasks/researchAutopilot.tasks";
+import { registerTop100SnapshotTask } from "./tasks/top100Snapshot.tasks";
+import { registerTop100FdPrewarmTask } from "./tasks/top100FdPrewarm.tasks";
+import { registerTop100YahooRefreshTask } from "./tasks/top100YahooRefresh.tasks";
 
 // Tasks - Phase 5: The Genome (V4.2.0)
 import { registerCounterfactualWeeklyTask } from "./tasks/counterfactualWeekly.tasks";
@@ -531,12 +534,14 @@ export const vincePlugin: Plugin = {
           return;
         }
         const ticker = String((req.query ?? {})["ticker"] ?? "").trim();
-        if (!ticker) {
-          res.status(400).json({ error: "Missing ticker" });
+        const id = String((req.query ?? {})["id"] ?? "").trim();
+        if (!ticker && !id) {
+          res.status(400).json({ error: "Missing ticker or id" });
           return;
         }
         const result = await buildTop100DetailsResponse(agentRuntime, {
           ticker,
+          id,
         });
         if (!result.ok) {
           res.status(404).json({ error: result.error });
@@ -1747,6 +1752,24 @@ export const vincePlugin: Plugin = {
           await registerResearchAutopilotTask(runtime);
         } catch (e) {
           logger.warn("[VINCE] Failed to register research autopilot task:", e);
+        }
+        try {
+          await registerTop100SnapshotTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register Top100 snapshot task:", e);
+        }
+        try {
+          await registerTop100YahooRefreshTask(runtime);
+        } catch (e) {
+          logger.warn(
+            "[VINCE] Failed to register Top100 Yahoo refresh task:",
+            e,
+          );
+        }
+        try {
+          await registerTop100FdPrewarmTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register Top100 FD prewarm task:", e);
         }
       });
     }
