@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-03-16",
+  "signals": [
+    {
+      "asset": "ETH",
+      "direction": "long",
+      "confidence": 71
+    },
+    {
+      "asset": "COIN",
+      "direction": "long",
+      "confidence": 61
+    }
+  ]
+}

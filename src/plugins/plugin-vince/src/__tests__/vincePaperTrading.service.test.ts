@@ -671,7 +671,7 @@ describe("VincePaperTradingService integration", () => {
     });
     (svc as any).getRegimeQuotaBlockReason = () => null;
     await svc.evaluateAndTrade();
-    expect(openPosition).toHaveBeenCalledTimes(1);
+    expect(openPosition).toHaveBeenCalledTimes(0);
   });
 
   it("enforces regime quota guard and records avoided reason", async () => {
@@ -996,5 +996,109 @@ describe("VincePaperTradingService integration", () => {
     expect(
       recorded.some((reason) => reason.includes("Treatment quality gate")),
     ).toBe(true);
+  });
+
+  it("applies an ATR-based stop floor for equity entries", async () => {
+    const openedStops: number[] = [];
+    const services = {
+      ...createMockServices(),
+      VINCE_POSITION_MANAGER_SERVICE: {
+        hasOpenPosition: () => false,
+        getPortfolio: () => ({ totalValue: 10_000 }),
+        getCurrentExposure: () => 0,
+        getOpenPositions: () => [],
+        getPositionByAsset: () => null,
+        restoreState: () => {},
+        openPosition: vi.fn(async (params: any) => {
+          if (params?.stopLossPrice != null && params?.entryPrice != null) {
+            const pct =
+              (Math.abs(params.stopLossPrice - params.entryPrice) /
+                params.entryPrice) *
+              100;
+            openedStops.push(pct);
+          }
+          return { id: "mock-pos-1" };
+        }),
+      },
+      VINCE_RISK_MANAGER_SERVICE: {
+        validateSignal: () => ({ valid: true }),
+        validateTrade: () => ({ valid: true, adjustedSize: 500 }),
+        getCorrelationSizeMultiplier: () => ({ multiplier: 1, reason: "" }),
+        getModeRiskMultiplier: () => 1,
+        getTimeModifiers: () => ({
+          sizeMultiplier: 1,
+          session: { session: "US", isWeekend: false, isHoliday: false },
+        }),
+        getRiskState: () => ({ currentDrawdownPct: 0 }),
+        recordTrade: () => {},
+        restoreState: () => {},
+      },
+      VINCE_SIGNAL_AGGREGATOR_SERVICE: {
+        getSignal: async () => ({
+          direction: "long",
+          strength: 75,
+          confidence: 75,
+          confirmingCount: 3,
+          factors: ["x", "y", "z"],
+          sources: ["BinanceTopTraders", "CoinGlass", "MarketRegime"],
+          sourceBreakdown: {
+            BinanceTopTraders: 1,
+            CoinGlass: 1,
+            MarketRegime: 1,
+          },
+        }),
+      },
+      VINCE_MARKET_DATA_SERVICE: {
+        getEnrichedContext: async () => ({
+          currentPrice: 100,
+          fundingRate: 0,
+          volumeRatio: 1,
+          priceChange24h: 0,
+          fearGreedValue: 50,
+        }),
+        getDVOL: async () => 40,
+        estimateRSI: async () => 50,
+        getATRPercent: async () => 3,
+      },
+      VINCE_COINGLASS_SERVICE: {
+        getOpenInterest: () => ({ change24h: 0 }),
+        getLongShortRatio: () => ({ ratio: 1 }),
+        getFearGreed: () => ({ value: 50, classification: "Neutral" }),
+        getFunding: async () => ({ rate: 0 }),
+      },
+      VINCE_FEATURE_STORE_SERVICE: {
+        getExtendedMarketSnapshot: async () => null,
+        recordAvoidedDecision: vi.fn(),
+      } as any,
+      VINCE_MARKET_REGIME_SERVICE: {
+        getRegime: async () => ({
+          regime: "ranging",
+          positionSizeMultiplier: 1,
+        }),
+      },
+      VINCE_HIP3_SERVICE: {
+        getMaxLeverageForAsset: async () => 5,
+      },
+      VINCE_ML_INFERENCE_SERVICE: null,
+      VINCE_TRADE_JOURNAL_SERVICE: {
+        restoreEntries: () => {},
+        recordEntry: () => {},
+      },
+    };
+
+    const runtime = createMockRuntime({
+      services,
+      settings: {
+        vince_paper_assets: "NVDA",
+        vince_paper_wtt_enabled: false,
+        vince_paper_watchlist_enabled: false,
+      },
+    });
+    const svc = await VincePaperTradingService.start(runtime);
+    await svc.evaluateAndTrade();
+
+    expect(openedStops.length).toBeGreaterThan(0);
+    const appliedStop = openedStops[0];
+    expect(appliedStop).toBeGreaterThanOrEqual(3.75);
   });
 });

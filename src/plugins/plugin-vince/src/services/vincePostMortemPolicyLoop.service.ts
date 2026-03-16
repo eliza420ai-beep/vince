@@ -75,6 +75,17 @@ interface PolicyLoopState {
 interface IngestedPostMortemRow {
   date?: string;
   file?: string;
+  asset?: string;
+  assetClass?: PtqgAssetClass;
+  primaryCause?:
+    | "thesis_invalid"
+    | "regime_conflict"
+    | "sizing_too_aggressive"
+    | "stop_too_tight_for_vol"
+    | "agent_lane_mismatch"
+    | "missing_pretrade_data"
+    | "execution_or_slippage"
+    | "unknown_insufficient_evidence";
   adaptationEligible?: boolean;
   proposedPolicyDelta?: {
     confidence?: number;
@@ -176,6 +187,46 @@ export class VincePostMortemPolicyLoopService extends Service {
     if (rowKey === this.state.lastProcessedPostMortemKey) return;
 
     const overlay = this.buildBoundedOverlay(latest.proposedPolicyDelta);
+
+    const recent = rows.slice(-10);
+    const equitySizingCount = recent.filter(
+      (r) =>
+        r.assetClass === "equity" && r.primaryCause === "sizing_too_aggressive",
+    ).length;
+    const assetSizingCount = recent.filter(
+      (r) =>
+        r.asset &&
+        latest.asset &&
+        r.asset.toUpperCase() === latest.asset.toUpperCase() &&
+        r.primaryCause === "sizing_too_aggressive",
+    ).length;
+
+    const needsExtraTightening =
+      equitySizingCount >= 2 || assetSizingCount >= 2;
+
+    if (needsExtraTightening) {
+      const base = overlay.maxLeverageByAssetClass ?? {};
+      const currentEquity =
+        base.equity ?? getAssetClassMaxLeverage("equity", this.runtime);
+      const tightenedEquity = Math.max(
+        1,
+        Number((currentEquity * 0.8).toFixed(2)),
+      );
+      overlay.maxLeverageByAssetClass = {
+        ...base,
+        equity: tightenedEquity,
+      };
+      const baseMax = overlay.maxSingleTradeUsd;
+      if (typeof baseMax === "number" && Number.isFinite(baseMax)) {
+        overlay.maxSingleTradeUsd = Math.round(Math.max(100, baseMax * 0.9));
+      }
+      const baseStop = overlay.stopToAtrMin ?? 0;
+      if (baseStop > 0) {
+        overlay.stopToAtrMin = Number(
+          Math.max(baseStop, Math.min(3, baseStop * 1.1)).toFixed(2),
+        );
+      }
+    }
     if (
       !overlay.maxLeverageByAssetClass &&
       overlay.stopToAtrMin === undefined &&

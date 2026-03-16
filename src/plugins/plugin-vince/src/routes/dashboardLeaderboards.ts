@@ -38,6 +38,7 @@ import {
   readResolvedOutcomes,
   type DiscoveryResolvedOutcome,
 } from "../utils/fdDiscoveryOutcomes";
+import { buildTop100StocksSection } from "../utils/top100Enrichment";
 import {
   getFdReplayRows,
   getFdReplayRowsForUniverse,
@@ -314,6 +315,11 @@ export interface MoreLeaderboardSection {
   } | null;
 }
 
+export interface Top100StocksSection {
+  rows: import("../utils/top100Stocks").Top100StockRow[];
+  meta: import("../utils/top100Stocks").Top100Meta;
+}
+
 export type SectionStatus = "loading" | "ok" | "stale" | "error";
 
 /** Forge Ops: deterministic replay gates and metrics for the Leaderboard card. */
@@ -451,6 +457,10 @@ export interface LeaderboardsResponse {
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
+  /** VINCE Top100 stocks view (curated AI-infrastructure bench) */
+  top100Stocks?: Top100StocksSection | null;
+  /** Top100 section status for UI hints */
+  top100Status?: SectionStatus;
   chartTickers?: {
     hyperliquid: string[];
     watchlist: string[];
@@ -1872,6 +1882,10 @@ export async function buildLeaderboardsResponse(
   };
   const fdCache = getFdCacheFreshness();
   const projectRoot = process.cwd();
+  // Top100 stocks: VINCE-curated AI infrastructure bench from TOP100.md
+  const top100Built = buildTop100StocksSection({ projectRoot, hip3 });
+  const top100 = top100Built.section;
+  const top100Status = top100Built.status as SectionStatus;
   let fdDiscovery: FdDiscoverySection | null = null;
   let fdDiscoveryError: string | null = null;
   try {
@@ -1978,6 +1992,8 @@ export async function buildLeaderboardsResponse(
     news,
     digitalArt,
     more,
+    top100Stocks: top100,
+    top100Status,
     chartTickers,
     fdCache,
     fdDiscovery: fdDiscovery ?? null,

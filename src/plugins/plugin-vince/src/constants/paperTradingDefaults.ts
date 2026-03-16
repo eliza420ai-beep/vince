@@ -134,8 +134,8 @@ export const DEFAULT_RISK_LIMITS: RiskLimits = {
   /** Maximum 10% of portfolio per position */
   maxPositionSizePct: 10,
 
-  /** Maximum 50% of capital deployed (e.g. up to $50K of $100K) */
-  maxTotalExposurePct: 50,
+  /** Maximum 100% of capital deployed — fully deploy the $100K */
+  maxTotalExposurePct: 100,
 
   /** Maximum 5x leverage */
   maxLeverage: 5,
@@ -181,8 +181,8 @@ export const TAKE_PROFIT_TARGETS_FAST_TP = [1, 2, 3];
  */
 export const MAX_POSITION_AGE_FAST_TP_MS = 12 * 60 * 60 * 1000;
 
-/** Default leverage */
-export const DEFAULT_LEVERAGE = 3;
+/** Default leverage — matches the crypto asset-class cap (4x) */
+export const DEFAULT_LEVERAGE = 4;
 
 /**
  * Optional dollar take-profit: close position when unrealized P&L reaches this (e.g. $210 = half of $420/day).
@@ -342,7 +342,7 @@ export type PtqgAssetClass = "crypto" | "equity" | "commodity" | "other";
  */
 export const ASSET_CLASS_MAX_LEVERAGE: Record<PtqgAssetClass, number> = {
   crypto: 4,
-  equity: 10,
+  equity: 5,
   commodity: 4,
   other: 5,
 };

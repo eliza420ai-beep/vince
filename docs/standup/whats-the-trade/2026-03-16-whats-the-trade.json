@@ -1,0 +1,29 @@
+{
+  "date": "2026-03-16",
+  "thesis": "ETH outperforms BTC this week as staked ETH ETF momentum and record inflows ($72m vs BTC's $54m) haven't fully repriced the relative strength narrative.",
+  "primaryTicker": "ETH",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 2245,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "ETH/BTC ratio < 0.030",
+  "killConditions": [
+    "BTC dominance continues expanding",
+    "broader crypto sentiment sours",
+    "ETH/BTC ratio makes new lows below recent support"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "COIN",
+  "altDirection": "long",
+  "altInstrument": "perp",
+  "evThresholdPct": 2,
+  "catalystSources": [
+    "headlines",
+    "polymarket"
+  ]
+}

@@ -199,3 +199,7 @@
 
 - Reconnect X API as priority to catch sentiment shifts and mispricing before market moves.
 - Reorder Clawterm setup guide to prioritize security audit over tailscale binding to prevent downstream support friction.
+## 2026-03-16
+
+- Bundle scheduled trading checks, daily briefings, and auto-research templates in Clawterm starter pack to drive long-tail user adoption.
+- Test dynamic strike width adjustments when market regime shifts mid-session to improve Hypersurface wheel consistency.

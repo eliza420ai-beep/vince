@@ -56,6 +56,7 @@ import {
   LEADERBOARDS_STALE_MS,
   fetchUnbiasSummaryWithError,
 } from "@/frontend/lib/leaderboardsApi";
+import { Top100Tab } from "@/frontend/components/dashboard/leaderboard/top100-tab";
 import type {
   PaperResponse,
   KnowledgeResponse,
@@ -398,6 +399,7 @@ type MainTab =
   | "knowledge"
   | "markets"
   | "stocks"
+  | "top100"
   | "charts"
   | "news"
   | "recursive"
@@ -412,6 +414,7 @@ const VISIBLE_MAIN_TABS: MainTab[] = [
   "news",
   "markets",
   "stocks",
+  "top100",
   "knowledge",
   "charts",
   "polymarket",
@@ -425,6 +428,7 @@ const MAIN_TAB_LABELS: Record<MainTab, string> = {
   news: "News",
   markets: "Markets",
   stocks: "Stocks",
+  top100: "Top100",
   knowledge: "Knowledge",
   charts: "Charts",
   polymarket: "Polymarket",
@@ -1913,6 +1917,7 @@ export default function LeaderboardPage({
     enabled:
       (mainTab === "markets" ||
         mainTab === "stocks" ||
+        mainTab === "top100" ||
         mainTab === "news" ||
         mainTab === "charts") &&
       !!leaderboardsAgentId,
@@ -1922,7 +1927,9 @@ export default function LeaderboardPage({
   const {
     data: unbiasSummaryResult,
   }: {
-    data: { data: UnbiasSummaryResponse | null; error: string | null } | undefined;
+    data:
+      | { data: UnbiasSummaryResponse | null; error: string | null }
+      | undefined;
   } = useQuery({
     queryKey: ["unbias-summary", leaderboardsAgentId],
     queryFn: async () => {
@@ -2356,7 +2363,8 @@ export default function LeaderboardPage({
             </TabsList>
             {(mainTab === "markets" ||
               mainTab === "stocks" ||
-              mainTab === "news") && (
+              mainTab === "news" ||
+              mainTab === "top100") && (
               <div className="flex items-center gap-2">
                 {mainTab === "stocks" && (
                   <>
@@ -3213,7 +3221,9 @@ export default function LeaderboardPage({
                               <span className="text-xs font-semibold">
                                 {a.asset}
                               </span>
-                              <span className={cn("text-xs font-medium", zClass)}>
+                              <span
+                                className={cn("text-xs font-medium", zClass)}
+                              >
                                 z-score {z.toFixed(2)} ({zLabel})
                               </span>
                             </div>
@@ -3225,8 +3235,8 @@ export default function LeaderboardPage({
                               .
                             </p>
                             <p className="text-[11px] text-muted-foreground mt-1">
-                              {a.bullishAnalysts} bullish / {a.bearishAnalysts} bearish ·{" "}
-                              {a.totalOpinions} opinions.
+                              {a.bullishAnalysts} bullish / {a.bearishAnalysts}{" "}
+                              bearish · {a.totalOpinions} opinions.
                             </p>
                           </div>
                         );
@@ -4798,6 +4808,18 @@ export default function LeaderboardPage({
                 </div>
               ) : null}
             </div>
+          </TabsContent>
+
+          {/* Top100 tab: VINCE-curated AI infrastructure bench */}
+          <TabsContent
+            value="top100"
+            className="mt-6 flex-1 min-h-0 min-h-[280px]"
+          >
+            <Top100Tab
+              section={leaderboardsData?.top100Stocks ?? null}
+              status={leaderboardsData?.top100Status}
+              agentId={agentId}
+            />
           </TabsContent>
 
           <TabsContent

@@ -231,6 +231,111 @@ export interface MoreLeaderboardSection {
   } | null;
 }
 
+export type Top100Category =
+  | "AI Semiconductors"
+  | "AI Cloud & Compute"
+  | "AI Platforms & Infrastructure"
+  | "Defense & Aerospace"
+  | "Healthcare & Biotech"
+  | "Energy, Power & Utilities"
+  | "Enterprise Software"
+  | "Industrial & Automation"
+  | "Consumer & Digital Commerce"
+  | "Unknown";
+
+export interface Top100StockRow {
+  /** Stable unique id for React keys and diffing (one row per normalized ticker). */
+  id: string;
+  ticker: string;
+  company: string | null;
+  category: Top100Category;
+  rank?: number;
+  composite?: number;
+  sleeve?: string;
+  flags?: string[];
+  price?: string;
+  avgPriceTarget?: string;
+  upsidePct?: string;
+  offAthPct?: string;
+  /** Quote / overlay fields joined in the leaderboards route. */
+  priceLive?: number;
+  change1dPct?: number;
+  change7dPct?: number;
+  change30dPct?: number;
+  sparkline7d?: Top100SparkPoint[];
+  marketCap?: number;
+  avgVolume?: number;
+  dollarVolume?: number;
+  quoteSource?: "yahoo" | "hip3" | "fd_cache";
+  quoteUpdatedAt?: number;
+  quoteStale?: boolean;
+  liveRank?: number;
+  /** Difference between editorial rank and a live-derived rank when available. */
+  rankDrift?: number;
+  /** VINCE-native context (editorial heuristics) */
+  keyStrength?: string;
+  whyNow?: string;
+  convictionTier?: "S" | "A" | "B" | "C" | "D";
+  riskSummary?: string;
+  theme?: string;
+}
+
+export interface Top100SparkPoint {
+  date: string;
+  close: number;
+}
+
+export interface Top100DetailsPayload {
+  ticker: string;
+  row: Top100StockRow;
+  quote: {
+    ticker: string;
+    price?: number;
+    change1dPct?: number;
+    marketCap?: number;
+    currency?: string;
+    avgVolume?: number;
+    updatedAt: string;
+  } | null;
+  fdCache?: {
+    fetchedAt?: string;
+    startDate?: string;
+    endDate?: string;
+    rowCount?: number;
+    spark30d?: Top100SparkPoint[];
+  } | null;
+  peers: Top100StockRow[];
+}
+
+export interface Top100Meta {
+  total: number;
+  byCategory: Array<{
+    category: Top100Category;
+    count: number;
+  }>;
+  topByComposite: Top100StockRow[];
+  highestUpside: Array<{
+    ticker: string;
+    upside: string;
+    sector: string;
+  }>;
+  sleeveAverages?: {
+    tastytrade?: number;
+    hyperliquid?: number;
+    watchlist?: number;
+  };
+  scoredCoveragePct?: number;
+  quoteCoveragePct?: number;
+  historyCoveragePct?: number;
+  marketCapCoveragePct?: number;
+  warnings?: string[];
+}
+
+export interface Top100StocksSection {
+  rows: Top100StockRow[];
+  meta: Top100Meta;
+}
+
 export interface LeaderboardsResponse {
   updatedAt: number;
   hip3: HIP3LeaderboardSection | null;
@@ -241,6 +346,10 @@ export interface LeaderboardsResponse {
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
+  /** VINCE Top100 stocks view (curated AI-infrastructure bench) */
+  top100Stocks?: Top100StocksSection | null;
+  /** Top100 section status for UI hints */
+  top100Status?: "loading" | "ok" | "stale" | "error";
   chartTickers?: {
     hyperliquid: string[];
     watchlist: string[];
@@ -401,6 +510,12 @@ export interface LeaderboardsFetchResult {
   status: number | null;
 }
 
+export interface Top100DetailsFetchResult {
+  data: Top100DetailsPayload | null;
+  error: string | null;
+  status: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Unbias (Analyst Consensus & Sentiment tab)
 // ---------------------------------------------------------------------------
@@ -506,6 +621,39 @@ export async function fetchLeaderboardsWithError(
     }
     return {
       data: body as LeaderboardsResponse,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+export async function fetchTop100DetailsWithError(
+  agentId: string,
+  ticker: string,
+): Promise<Top100DetailsFetchResult> {
+  const base = window.location.origin;
+  const params = new URLSearchParams({ ticker: ticker.toUpperCase().trim() });
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/top100/details?${params.toString()}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(12000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as Top100DetailsPayload,
       error: null,
       status: res.status,
     };

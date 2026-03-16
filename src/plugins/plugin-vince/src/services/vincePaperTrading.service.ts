@@ -56,6 +56,7 @@ import {
   AGGRESSIVE_MARGIN_USD,
   AGGRESSIVE_BASE_SIZE_PCT,
   AGGRESSIVE_RISK_LIMITS,
+  DEFAULT_RISK_LIMITS,
   DEFAULT_STOP_LOSS_PCT,
   DEFAULT_TAKE_PROFIT_TARGETS,
   TAKE_PROFIT_TARGETS_FAST_TP,
@@ -2400,11 +2401,15 @@ Reply format: APPROVE reason or VETO reason`;
           "VINCE_AGGRESSIVE_BASE_SIZE_PCT",
           AGGRESSIVE_BASE_SIZE_PCT,
         );
+        // Non-aggressive: start at max allowed margin (maxPositionSizePct × leverage) so
+        // downstream multipliers (correlation, ML, sentiment) reduce from the full allowed
+        // size rather than from an arbitrary 5% notional floor.
+        const maxMarginPct = DEFAULT_RISK_LIMITS.maxPositionSizePct / 100; // 0.10
         let baseSizeUsd = aggressive
           ? portfolio.totalValue >= effectiveMarginUsd
             ? effectiveMarginUsd * leverage
             : portfolio.totalValue * (effectiveBaseSizePct / 100)
-          : portfolio.totalValue * 0.05;
+          : portfolio.totalValue * maxMarginPct * leverage;
         if (this.hasSwarmTreatmentSource(tradeSignal)) {
           const minEdge = this.getNumericSettingOrEnv(
             "VINCE_SWARM_TREATMENT_MIN_EDGE",
@@ -3958,7 +3963,9 @@ Reply format: APPROVE reason or VETO reason`;
 
     const activePolicyLoop = this.getPostMortemPolicyLoop();
     const adaptiveOverlay = activePolicyLoop?.getEffectiveOverlay();
-    const minStopToAtr = adaptiveOverlay?.stopToAtrMin;
+    const assetClass = inferPtqgAssetClass(asset);
+    const baseMinStopToAtr = assetClass === "equity" ? 1.25 : undefined;
+    const minStopToAtr = adaptiveOverlay?.stopToAtrMin ?? baseMinStopToAtr;
     if (
       typeof minStopToAtr === "number" &&
       Number.isFinite(minStopToAtr) &&

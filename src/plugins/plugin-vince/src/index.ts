@@ -37,6 +37,7 @@ import {
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 import { buildBankrResponse } from "./routes/dashboardBankr";
+import { buildTop100DetailsResponse } from "./routes/dashboardTop100Details";
 import {
   buildUnbiasSummaryResponse,
   buildUnbiasAnalystsResponse,
@@ -124,6 +125,7 @@ import { VinceSourceQualityService } from "./services/vinceSourceQuality.service
 import { VinceProofCapitalAllocatorService } from "./services/vinceProofCapitalAllocator.service";
 import { VincePostMortemPolicyLoopService } from "./services/vincePostMortemPolicyLoop.service";
 import { ResearchAutopilotService } from "./services/researchAutopilot.service";
+import { VinceYahooQuotesService } from "./services/vinceYahooQuotes.service";
 
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
@@ -294,6 +296,7 @@ export const vincePlugin: Plugin = {
     VinceProofCapitalAllocatorService,
     VincePostMortemPolicyLoopService,
     ResearchAutopilotService,
+    VinceYahooQuotesService,
   ] as unknown as NonNullable<import("@elizaos/core").Plugin["services"]>,
 
   // Actions - focus areas + paper trading bot controls
@@ -442,6 +445,107 @@ export const vincePlugin: Plugin = {
       },
     },
     {
+      name: "vince-top100-refresh-yahoo",
+      path: "/vince/top100/refresh-yahoo",
+      type: "POST",
+      handler: async (
+        req: {
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Top100 Yahoo refresh requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/top100/refresh-yahoo",
+          });
+          return;
+        }
+        const ttlMsRaw = (req.query ?? {})["ttlMs"];
+        const ttlMs =
+          typeof ttlMsRaw === "string" && ttlMsRaw.length
+            ? Number.parseInt(ttlMsRaw, 10)
+            : undefined;
+        try {
+          const svc = agentRuntime.getService(
+            VinceYahooQuotesService.serviceType,
+          ) as VinceYahooQuotesService | null;
+          if (!svc) {
+            res.status(500).json({
+              error: "Yahoo quote service not available",
+            });
+            return;
+          }
+          const result = await svc.refreshTop100Quotes({
+            projectRoot: process.cwd(),
+            ttlMs,
+          });
+          res.json({
+            ok: true,
+            ...result,
+          });
+        } catch (err) {
+          logger.warn(`[VINCE] Top100 Yahoo refresh error: ${err}`);
+          res.status(500).json({
+            error: "Failed to refresh Yahoo quotes",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+    {
+      name: "vince-top100-details",
+      path: "/vince/top100/details",
+      type: "GET",
+      handler: async (
+        req: {
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Top100 details require agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/top100/details?ticker=NVDA",
+          });
+          return;
+        }
+        const ticker = String((req.query ?? {})["ticker"] ?? "").trim();
+        if (!ticker) {
+          res.status(400).json({ error: "Missing ticker" });
+          return;
+        }
+        const result = await buildTop100DetailsResponse(agentRuntime, {
+          ticker,
+        });
+        if (!result.ok) {
+          res.status(404).json({ error: result.error });
+          return;
+        }
+        res.json(result.data);
+      },
+    },
+    {
       name: "vince-fd-discovery-run",
       path: "/vince/leaderboards/fd-discovery/run",
       type: "POST",
@@ -576,8 +680,7 @@ export const vincePlugin: Plugin = {
         try {
           const query = (req.query ?? {}) as Record<string, string>;
           const assetRaw = (query.asset ?? "BTC").toString().toUpperCase();
-          const asset: "BTC" | "ETH" =
-            assetRaw === "ETH" ? "ETH" : "BTC";
+          const asset: "BTC" | "ETH" = assetRaw === "ETH" ? "ETH" : "BTC";
           const daysRaw = query.days ?? "7";
           const days = Number.parseInt(daysRaw.toString(), 10) || 7;
           const data = await buildUnbiasAnalystsResponse(

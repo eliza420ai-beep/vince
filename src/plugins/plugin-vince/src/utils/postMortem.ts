@@ -675,12 +675,20 @@ function buildProposedPolicyDelta(
       ? findings.reduce((sum, f) => sum + f.confidence, 0) / findings.length
       : 0;
   const hasDataGaps = evidence.missingData.length > 0;
-  const adaptationEligible =
+  const baseEligible =
     quality.total >= QUALITY_THRESHOLD &&
     !quality.escalate &&
     !hasDataGaps &&
-    consistencyChecks.passed &&
-    avgConfidence >= 0.55;
+    consistencyChecks.passed;
+
+  const confidenceEligible = baseEligible && avgConfidence >= 0.55;
+
+  const deterministicRiskEligible =
+    baseEligible &&
+    avgConfidence >= 0.3 &&
+    (primary === "sizing_too_aggressive" || riskBudget.budgetBreach);
+
+  const adaptationEligible = confidenceEligible || deterministicRiskEligible;
 
   if (!adaptationEligible) {
     return { adaptationEligible };

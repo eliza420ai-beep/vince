@@ -92,8 +92,7 @@ async function unbiasFetch(
   params?: URLSearchParams,
 ): Promise<{ json: any; headers: Headers }> {
   const apiKey = ensureApiKey();
-  const url =
-    UNBIAS_BASE_URL + path + (params ? `?${params.toString()}` : "");
+  const url = UNBIAS_BASE_URL + path + (params ? `?${params.toString()}` : "");
 
   const res = await fetch(url, {
     method: "GET",
@@ -116,7 +115,7 @@ async function unbiasFetch(
     const base = `Unbias API error ${res.status}`;
     const detail =
       body && typeof body === "object"
-        ? body.error ?? body.message ?? JSON.stringify(body)
+        ? (body.error ?? body.message ?? JSON.stringify(body))
         : "";
     throw new Error(detail ? `${base}: ${detail}` : base);
   }
@@ -363,4 +362,3 @@ export async function buildUnbiasAnalystsResponse(
     throw err;
   }
 }
-

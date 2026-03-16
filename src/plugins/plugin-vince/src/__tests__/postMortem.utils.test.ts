@@ -142,6 +142,62 @@ describe("postMortem utils", () => {
     expect(out.evidence.missingData.length).toBeGreaterThan(0);
   });
 
+  it("marks adaptation eligible for deterministic sizing + budget breach even with moderate confidence", () => {
+    const position = makePosition(
+      { realizedPnl: -120, realizedPnlPct: -15 },
+      {
+        sentimentScore: 5,
+        regime: "uncertain",
+        entryATRPct: 3,
+        ptqgMeta: {
+          assetClass: "equity",
+          thesisClass: "momentum",
+          entryTimestampUtc: new Date().toISOString(),
+          expectedHoldWindow: "intraday",
+          leverage: 10,
+          stopDistancePct: 1.5,
+          maxLossUsd: 114.26,
+          maxLossPct: 15,
+          catalystFlag: false,
+          lowConfidenceMode: false,
+          blocked: false,
+        },
+      },
+    );
+    const findings = [
+      {
+        agent: "Echo",
+        lane: "CT sentiment + macro risk pulse",
+        reply: "Crowded long into your short. Confidence: 0.4",
+        confidence: 0.4,
+        sourceStamp: "x_sentiment_snapshot",
+        missingData: [],
+      },
+      {
+        agent: "Oracle",
+        lane: "prediction market regime",
+        reply: "Odds were flat; no clear regime miss. Confidence: 0.4",
+        confidence: 0.4,
+        sourceStamp: "polymarket_regime_snapshot",
+        missingData: [],
+      },
+      {
+        agent: "Solus",
+        lane: "options mechanics and sizing",
+        reply: "10x with a 1.5% stop is sizing too aggressive. Confidence: 0.5",
+        confidence: 0.5,
+        sourceStamp: "options_mechanics_snapshot",
+        missingData: [],
+      },
+    ] as any;
+
+    const structured = buildStructuredPostMortem(position, findings);
+    expect(structured.primaryCause).toBe("sizing_too_aggressive");
+    expect(structured.riskBudget.budgetBreach).toBe(true);
+    expect(structured.adaptationEligible).toBe(true);
+    expect(structured.proposedPolicyDelta).toBeDefined();
+  });
+
   it("renders required sections and machine-readable markers", () => {
     const position = makePosition({}, {});
     const findings = [

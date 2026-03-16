@@ -169,6 +169,11 @@ export interface FdCachedHistorySummary {
   avgVolume: number | null;
 }
 
+export interface FdSparklinePoint {
+  date: string;
+  close: number;
+}
+
 export function summarizeFdCachedHistory(
   ticker: string,
   projectRoot: string = process.cwd(),
@@ -202,4 +207,74 @@ export function summarizeFdCachedHistory(
     returnPct,
     avgVolume,
   };
+}
+
+/** Convenience: trailing return over N calendar days using cached daily bars. */
+export function getTrailingReturnDays(
+  projectRoot: string,
+  ticker: string,
+  days: number,
+): { returnPct: number; endDate: string; endPrice: number } | null {
+  if (!Number.isFinite(days) || days <= 0) return null;
+  const payload = getLatestFdCacheForTicker(projectRoot, ticker);
+  if (!payload?.rows?.length) return null;
+  const endDate = payload.endDate;
+  const end = getCloseOnOrAfterDate(projectRoot, ticker, endDate);
+  if (!end) return null;
+  const endTime = parseDateToTime(end.date);
+  if (endTime == null) return null;
+  const msOffset = days * 24 * 60 * 60 * 1000;
+  const startIso = new Date(endTime - msOffset).toISOString().slice(0, 10);
+  const start = getCloseOnOrAfterDate(projectRoot, ticker, startIso);
+  if (!start) return null;
+  if (start.close === 0) return null;
+  const returnPct = ((end.close - start.close) / start.close) * 100;
+  return { returnPct, endDate: end.date, endPrice: end.close };
+}
+
+/** Extract a compact recent close series from cached FD daily bars for mini charts. */
+export function getRecentFdSparkline(
+  projectRoot: string,
+  ticker: string,
+  options?: {
+    maxPoints?: number;
+    lookbackDays?: number;
+  },
+): FdSparklinePoint[] | null {
+  const payload = getLatestFdCacheForTicker(projectRoot, ticker);
+  if (!payload?.rows?.length) return null;
+
+  const maxPoints = Math.max(7, options?.maxPoints ?? 24);
+  const lookbackDays = Math.max(7, options?.lookbackDays ?? 45);
+
+  const sorted = [...payload.rows].sort((a, b) => {
+    const ta = parseDateToTime(rowDate(a)) ?? 0;
+    const tb = parseDateToTime(rowDate(b)) ?? 0;
+    return ta - tb;
+  });
+
+  const latestRow = sorted[sorted.length - 1];
+  const latestTime = parseDateToTime(rowDate(latestRow));
+  if (latestTime == null) return null;
+
+  const cutoff = latestTime - lookbackDays * 24 * 60 * 60 * 1000;
+  const recent = sorted
+    .filter((row) => {
+      const t = parseDateToTime(rowDate(row));
+      return t != null && t >= cutoff && isFiniteNumber(row.close);
+    })
+    .map((row) => ({
+      date: String(rowDate(row)).slice(0, 10),
+      close: row.close as number,
+    }));
+
+  if (!recent.length) return null;
+  if (recent.length <= maxPoints) return recent;
+
+  const step = (recent.length - 1) / (maxPoints - 1);
+  const compact: FdSparklinePoint[] = [];
+  for (let i = 0; i < maxPoints; i++) {
+    compact.push(recent[Math.round(i * step)]);
+  }
+  return compact;
 }

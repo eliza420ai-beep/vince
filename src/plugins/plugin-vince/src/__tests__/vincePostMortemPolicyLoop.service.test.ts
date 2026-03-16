@@ -123,4 +123,41 @@ describe("VincePostMortemPolicyLoopService", () => {
     expect(svc.getStatus().hasCandidate).toBe(false);
     expect(svc.getPolicyVersionTag()).toBe("baseline");
   });
+
+  it("tightens overlay when repeated equity sizing_too_aggressive is present", () => {
+    const baseRow = makePostmortemRow({
+      asset: "CRCL",
+      assetClass: "equity",
+      primaryCause: "sizing_too_aggressive",
+      proposedPolicyDelta: {
+        confidence: 0.8,
+        sampleSizeHint: 20,
+        maxStepChangePct: 20,
+        expiresAtUtc: new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        riskIntent: {
+          maxLeverageByAssetClass: { equity: 8 },
+          maxSingleTradeUsd: 5000,
+          stopToAtrMin: 1.2,
+          enforcePreTradeRiskCheck: true,
+        },
+        validationPlan: {
+          windowTrades: 5,
+          targetMetrics: {},
+          rollbackTriggers: [],
+        },
+      },
+    });
+    writePostmortemsJsonl([baseRow, { ...baseRow }]);
+    const svc = new VincePostMortemPolicyLoopService({} as any);
+
+    svc.refreshFromPostMortems();
+    const overlay = svc.getEffectiveOverlay();
+
+    expect(overlay.maxLeverageByAssetClass?.equity).toBeLessThanOrEqual(8);
+    if (overlay.maxSingleTradeUsd != null) {
+      expect(overlay.maxSingleTradeUsd).toBeLessThanOrEqual(5000);
+    }
+  });
 });
