@@ -108,7 +108,20 @@ export function filterAndSortTop100Rows(params: {
 
   if (q) {
     out = out.filter((r) => {
-      const hay = `${r.ticker} ${r.company ?? ""}`.toLowerCase();
+      const fdBadges = getFdBadges(r).join(" ");
+      const hay = [
+        r.ticker,
+        r.company ?? "",
+        r.category ?? "",
+        r.theme ?? "",
+        r.whyNow ?? "",
+        r.keyStrength ?? "",
+        r.convictionTier ?? "",
+        Array.isArray(r.flags) ? r.flags.join(" ") : "",
+        fdBadges,
+      ]
+        .join(" ")
+        .toLowerCase();
       return hay.includes(q);
     });
   }
@@ -157,41 +170,72 @@ export function filterAndSortTop100Rows(params: {
 
   const dir = params.sortDir === "asc" ? 1 : -1;
 
-  const getSortVal = (r: Top100StockRow): number => {
+  const getSortVal = (r: Top100StockRow): number | null => {
     switch (params.sortMode) {
       case "rank":
-        return r.rank ?? Number.POSITIVE_INFINITY;
+        return typeof r.rank === "number" && Number.isFinite(r.rank)
+          ? r.rank
+          : null;
       case "composite":
-        return r.composite ?? Number.NEGATIVE_INFINITY;
+        return typeof r.composite === "number" && Number.isFinite(r.composite)
+          ? r.composite
+          : null;
       case "change1d":
-        return r.change1dPct ?? Number.NEGATIVE_INFINITY;
+        return typeof r.change1dPct === "number" &&
+          Number.isFinite(r.change1dPct)
+          ? r.change1dPct
+          : null;
       case "change7d":
-        return r.change7dPct ?? Number.NEGATIVE_INFINITY;
+        return typeof r.change7dPct === "number" &&
+          Number.isFinite(r.change7dPct)
+          ? r.change7dPct
+          : null;
       case "change30d":
-        return r.change30dPct ?? Number.NEGATIVE_INFINITY;
+        return typeof r.change30dPct === "number" &&
+          Number.isFinite(r.change30dPct)
+          ? r.change30dPct
+          : null;
       case "marketCap":
-        return r.marketCap ?? Number.NEGATIVE_INFINITY;
+        return typeof r.marketCap === "number" && Number.isFinite(r.marketCap)
+          ? r.marketCap
+          : null;
       case "upside":
-        return parsePctText(r.upsidePct) ?? Number.NEGATIVE_INFINITY;
+        return parsePctText(r.upsidePct);
       case "offAth":
-        return parsePctText(r.offAthPct) ?? Number.NEGATIVE_INFINITY;
+        return parsePctText(r.offAthPct);
       case "rankDrift":
-        return r.rankDrift ?? Number.NEGATIVE_INFINITY;
+        return typeof r.rankDrift === "number" && Number.isFinite(r.rankDrift)
+          ? r.rankDrift
+          : null;
       case "historyDrift":
-        return r.historyRankDrift ?? Number.NEGATIVE_INFINITY;
+        return typeof r.historyRankDrift === "number" &&
+          Number.isFinite(r.historyRankDrift)
+          ? r.historyRankDrift
+          : null;
       case "earningsSurprise":
-        return r.earningsSurprisePct ?? Number.NEGATIVE_INFINITY;
+        return typeof r.earningsSurprisePct === "number" &&
+          Number.isFinite(r.earningsSurprisePct)
+          ? r.earningsSurprisePct
+          : null;
       case "insiderSkew":
-        return r.insiderBuySellSkew ?? Number.NEGATIVE_INFINITY;
+        return typeof r.insiderBuySellSkew === "number" &&
+          Number.isFinite(r.insiderBuySellSkew)
+          ? r.insiderBuySellSkew
+          : null;
       default:
-        return r.rank ?? Number.POSITIVE_INFINITY;
+        return typeof r.rank === "number" && Number.isFinite(r.rank)
+          ? r.rank
+          : null;
     }
   };
 
   return [...out].sort((a, b) => {
     const av = getSortVal(a);
     const bv = getSortVal(b);
-    if (av !== bv) return (av < bv ? -1 : 1) * dir;
+    const aMissing = av == null;
+    const bMissing = bv == null;
+    if (aMissing !== bMissing) return aMissing ? 1 : -1;
+    if (!aMissing && !bMissing && av !== bv) return (av < bv ? -1 : 1) * dir;
 
     // Stable-ish tie breaks.
     const ar = a.rank ?? Number.POSITIVE_INFINITY;

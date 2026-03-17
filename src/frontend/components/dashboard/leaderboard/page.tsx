@@ -4817,6 +4817,7 @@ export default function LeaderboardPage({
           >
             <Top100Tab
               section={leaderboardsData?.top100Stocks ?? null}
+              draftCompare={leaderboardsData?.top100DraftCompare ?? null}
               status={leaderboardsData?.top100Status}
               agentId={agentId}
             />

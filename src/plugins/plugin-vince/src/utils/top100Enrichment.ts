@@ -22,6 +22,7 @@ import { computeSyntheticScore } from "./top100SyntheticScorecard";
 import { getPriceTargetSeed } from "./top100PriceTargetSeed";
 import { getEditorialScorecard } from "./top100EditorialScorecard";
 import { getStrategicLayer } from "./top100StrategicLayer";
+import { loadDexterScorecard } from "./dexterScorecard";
 
 export type Top100SectionStatus = "loading" | "ok" | "stale" | "error";
 
@@ -36,6 +37,77 @@ interface Top100MetaPatch {
   liveTop25Entrants?: string[];
   liveTop25Exits?: string[];
   rituals?: Top100Rituals;
+}
+
+function computeDerivedMeta(
+  rows: Top100StockRow[],
+): Pick<
+  Top100Meta,
+  "total" | "byCategory" | "topByComposite" | "highestUpside" | "sleeveAverages"
+> {
+  const total = rows.length;
+
+  const byCategoryMap = new Map<Top100StockRow["category"], number>();
+  for (const r of rows) {
+    byCategoryMap.set(r.category, (byCategoryMap.get(r.category) ?? 0) + 1);
+  }
+  const byCategory = Array.from(byCategoryMap.entries())
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => a.category.localeCompare(b.category));
+
+  const topByComposite = [...rows]
+    .filter(
+      (r) => typeof r.composite === "number" && Number.isFinite(r.composite),
+    )
+    .sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0))
+    .slice(0, 10);
+
+  const highestUpside = [...rows]
+    .map((r) => {
+      const upside = parsePctText(r.upsidePct);
+      if (upside == null) return null;
+      return {
+        ticker: r.ticker,
+        upside: r.upsidePct ?? `${upside.toFixed(0)}%`,
+        sector: r.category === "Unknown" ? "Unknown" : r.category,
+        upsideNum: upside,
+      };
+    })
+    .filter(Boolean) as Array<{
+    ticker: string;
+    upside: string;
+    sector: string;
+    upsideNum: number;
+  }>;
+  highestUpside.sort((a, b) => b.upsideNum - a.upsideNum);
+
+  const bySleeve = new Map<string, number[]>();
+  for (const r of rows) {
+    if (!r.sleeve) continue;
+    if (typeof r.composite !== "number" || !Number.isFinite(r.composite))
+      continue;
+    const arr = bySleeve.get(r.sleeve) ?? [];
+    arr.push(r.composite);
+    bySleeve.set(r.sleeve, arr);
+  }
+  const sleeveAverages: NonNullable<Top100Meta["sleeveAverages"]> = {};
+  bySleeve.forEach((vals, sleeve) => {
+    if (!vals.length) return;
+    const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+    sleeveAverages[sleeve as keyof typeof sleeveAverages] = avg;
+  });
+
+  return {
+    total,
+    byCategory,
+    topByComposite,
+    highestUpside: highestUpside
+      .slice(0, 25)
+      .map(({ upsideNum, ...rest }) => rest),
+    sleeveAverages: Object.keys(sleeveAverages).length
+      ? sleeveAverages
+      : undefined,
+  };
 }
 
 function pct(n: number, d: number): number {
@@ -382,6 +454,7 @@ function applyOverlays({
   projectRoot: string;
   hip3: HIP3LeaderboardSection | null;
 }): { rows: Top100StockRow[]; metaPatch: Top100MetaPatch } {
+  const dexter = loadDexterScorecard(projectRoot);
   const byTickerHip3 = new Map<
     string,
     { price?: number; change24h?: number; volume?: number }
@@ -427,6 +500,59 @@ function applyOverlays({
       if (!out.avgPriceTarget) out.avgPriceTarget = ptSeed.avgPriceTarget;
       if (!out.upsidePct) out.upsidePct = ptSeed.upsidePct;
       if (!out.offAthPct) out.offAthPct = ptSeed.offAthPct;
+    }
+
+    // 3.5 Dexter scorecard (canonical) — composite/sub-scores/flags when available
+    const dex = dexter?.bySymbol.get(key);
+    if (dex) {
+      const growth = dex.factors?.growth?.score;
+      const valuation = dex.factors?.valuation?.score;
+      const momentum = dex.factors?.momentum?.score;
+      const profit = dex.factors?.profitability?.score;
+      const earnings = dex.factors?.earnings_quality?.score;
+      const balanceSheet = dex.factors?.balance_sheet?.score;
+      const insider = dex.factors?.insider_signal?.score;
+
+      out = {
+        ...out,
+        composite:
+          typeof dex.composite === "number" && Number.isFinite(dex.composite)
+            ? dex.composite
+            : out.composite,
+        growthScore:
+          typeof growth === "number" && Number.isFinite(growth)
+            ? growth
+            : out.growthScore,
+        valuationScore:
+          typeof valuation === "number" && Number.isFinite(valuation)
+            ? valuation
+            : out.valuationScore,
+        momentumScore:
+          typeof momentum === "number" && Number.isFinite(momentum)
+            ? momentum
+            : out.momentumScore,
+        profitScore:
+          typeof profit === "number" && Number.isFinite(profit)
+            ? profit
+            : out.profitScore,
+        earningsScore:
+          typeof earnings === "number" && Number.isFinite(earnings)
+            ? earnings
+            : out.earningsScore,
+        balanceSheetScore:
+          typeof balanceSheet === "number" && Number.isFinite(balanceSheet)
+            ? balanceSheet
+            : out.balanceSheetScore,
+        insiderScore:
+          typeof insider === "number" && Number.isFinite(insider)
+            ? insider
+            : out.insiderScore,
+        flags:
+          Array.isArray(dex.flags) && dex.flags.length ? dex.flags : out.flags,
+        scoreSource: "dexter",
+        scoreGeneratedAt: dexter?.generatedAtMs ?? undefined,
+      };
+      if (!out.sleeve && dex.sleeve) out.sleeve = dex.sleeve;
     }
 
     const yahoo = readYahooQuoteFromCache(projectRoot, key);
@@ -558,7 +684,9 @@ function applyOverlays({
             earningsScore: synthetic.earningsScore,
             balanceSheetScore: synthetic.balanceSheetScore,
             insiderScore: synthetic.insiderScore,
+            scoreSource: "synthetic",
           };
+          if (!out.scoreGeneratedAt) out.scoreGeneratedAt = out.fdSnapshotAt;
         }
       }
     }
@@ -577,6 +705,7 @@ function applyOverlays({
           earningsScore: editorial.earningsScore,
           balanceSheetScore: editorial.balanceSheetScore,
           insiderScore: editorial.insiderScore,
+          scoreSource: "editorial",
         };
       }
     }
@@ -699,9 +828,18 @@ export function buildTop100StocksSection(args: {
       projectRoot,
       hip3: args.hip3,
     });
+    const dexter = loadDexterScorecard(projectRoot);
+    const dexterCoveredCount = enriched.filter(
+      (r) => r.scoreSource === "dexter",
+    ).length;
+    const derivedMeta = computeDerivedMeta(enriched);
     const metaWithCoverage = computeCoverageMeta(enriched, {
       ...meta,
+      ...derivedMeta,
       ...metaPatch,
+      dexterScorecardGeneratedAt: dexter?.generatedAtMs ?? null,
+      dexterScorecardTickerCount: dexter?.tickerCount,
+      dexterScorecardCoveredCount: dexterCoveredCount || undefined,
     });
 
     // Degrade to stale when coverage is weak.

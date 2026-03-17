@@ -53,3 +53,7 @@ knowledge/
 
 # tasks/todo.md — operational notes; not public
 tasks/todo.md
+
+cache_dexter/
+cache_aifh/
+cache_aihf/

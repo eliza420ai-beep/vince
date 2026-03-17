@@ -1,0 +1,3950 @@
+{
+  "generatedAt": "2026-03-15T14:51:22.518Z",
+  "tickerCount": 54,
+  "weights": {
+    "growth": 0.25,
+    "valuation": 0.2,
+    "momentum": 0.15,
+    "profitability": 0.15,
+    "earnings_quality": 0.1,
+    "balance_sheet": 0.1,
+    "insider_signal": 0.05
+  },
+  "tickers": [
+    {
+      "symbol": "AMAT",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 50.8,
+      "factors": {
+        "growth": {
+          "score": 32.8,
+          "metrics": {
+            "revenue_growth": 0.031176470588235295,
+            "earnings_per_share_growth": 0.07298431175759194,
+            "free_cash_flow_growth": -0.49094468918257467,
+            "operating_income_growth": 0.02523524379811805
+          }
+        },
+        "valuation": {
+          "score": 42.7,
+          "metrics": {
+            "pe": 32.61,
+            "ev_ebitda": 24.967,
+            "fcf_yield": 0.004068394685442564,
+            "peg": 17.28786263025864
+          }
+        },
+        "momentum": {
+          "score": 74,
+          "metrics": {
+            "ret_3m": 0.2644107956017916,
+            "ret_6m": 1.0353396901072704,
+            "ret_12m": 1.277625875291764,
+            "dist_ath": -0.13525762754779092
+          }
+        },
+        "profitability": {
+          "score": 54.9,
+          "metrics": {
+            "gross_margin": 0.49,
+            "operating_margin": 0.34184255561893895,
+            "net_margin": 0.289,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 66,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0312,
+            "net_income_chg": 0.068
+          }
+        },
+        "balance_sheet": {
+          "score": 65.3,
+          "metrics": {
+            "current_ratio": 2.715,
+            "debt_to_equity": 0.733,
+            "interest_coverage": 34.73913043478261,
+            "free_cash_flow_per_share": 1.311
+          }
+        },
+        "insider_signal": {
+          "score": 32.1,
+          "metrics": {
+            "insider_net": -103906555
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "AMZN",
+      "sleeve": "hyperliquid",
+      "sector": "Consumer Discretionary",
+      "industry": "Internet & Direct Marketing Retail",
+      "composite": 53.8,
+      "factors": {
+        "growth": {
+          "score": 63.4,
+          "metrics": {
+            "revenue_growth": 0.18436578989726313,
+            "earnings_per_share_growth": -0.0021315809864434895,
+            "free_cash_flow_growth": 11.328450269853509,
+            "operating_income_growth": -0.06348873755893138
+          }
+        },
+        "valuation": {
+          "score": 72.4,
+          "metrics": {
+            "pe": 31.769,
+            "ev_ebitda": 15.39,
+            "fcf_yield": 0.006480202035358004,
+            "peg": -546.2433143340088
+          }
+        },
+        "momentum": {
+          "score": 34.1,
+          "metrics": {
+            "ret_3m": -0.09818481848184824,
+            "ret_6m": -0.0897655051501206,
+            "ret_12m": 0.07107122595285986,
+            "dist_ath": -0.18240157480314967
+          }
+        },
+        "profitability": {
+          "score": 31.1,
+          "metrics": {
+            "gross_margin": 0.485,
+            "operating_margin": 0.1256736618147395,
+            "net_margin": 0.099,
+            "return_on_equity": 0.05731932657163495
+          }
+        },
+        "earnings_quality": {
+          "score": 55.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.1844,
+            "net_income_chg": 0.0002
+          }
+        },
+        "balance_sheet": {
+          "score": 53.5,
+          "metrics": {
+            "current_ratio": 1.051,
+            "debt_to_equity": 0.99,
+            "interest_coverage": 39.49484536082474,
+            "free_cash_flow_per_share": 1.493
+          }
+        },
+        "insider_signal": {
+          "score": 56.6,
+          "metrics": {
+            "insider_net": -40570760
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "ANET",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "composite": 57.2,
+      "factors": {
+        "growth": {
+          "score": 51.7,
+          "metrics": {
+            "revenue_growth": 0.07776285578131092,
+            "earnings_per_share_growth": 0.11836277959193289,
+            "free_cash_flow_growth": -0.010661497455779016,
+            "operating_income_growth": 0.05598365982731408
+          }
+        },
+        "valuation": {
+          "score": 35.7,
+          "metrics": {
+            "pe": 46.991,
+            "ev_ebitda": 37.637,
+            "fcf_yield": 0.00742345087985298,
+            "peg": 14.585207558008102
+          }
+        },
+        "momentum": {
+          "score": 59.7,
+          "metrics": {
+            "ret_3m": -0.006101644467594314,
+            "ret_6m": -0.04175335389913193,
+            "ret_12m": 0.6667082605440477,
+            "dist_ath": -0.6901071876015034
+          }
+        },
+        "profitability": {
+          "score": 75.5,
+          "metrics": {
+            "gross_margin": 0.629,
+            "operating_margin": 0.457191092531554,
+            "net_margin": 0.384,
+            "return_on_equity": 0.07163793031048701
+          }
+        },
+        "earnings_quality": {
+          "score": 79.1,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0778,
+            "net_income_chg": 0.1205
+          }
+        },
+        "balance_sheet": {
+          "score": 66.3,
+          "metrics": {
+            "current_ratio": 3.048,
+            "debt_to_equity": 0.572,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 0.974
+          }
+        },
+        "insider_signal": {
+          "score": 45.3,
+          "metrics": {
+            "insider_net": -63957154
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "ARM",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 45.3,
+      "factors": {
+        "growth": {
+          "score": 33.5,
+          "metrics": {
+            "revenue_growth": 0.09427312775330396,
+            "earnings_per_share_growth": -0.06390914856508632,
+            "free_cash_flow_growth": -0.5664335664335665,
+            "operating_income_growth": -0.24503311258278146
+          }
+        },
+        "valuation": {
+          "score": 32.6,
+          "metrics": {
+            "pe": 144.655,
+            "ev_ebitda": 103.325,
+            "fcf_yield": 0.0016052666555045974,
+            "peg": -81.30137017863525
+          }
+        },
+        "momentum": {
+          "score": 33.1,
+          "metrics": {
+            "ret_3m": -0.1497722932275598,
+            "ret_6m": -0.23161178969729146,
+            "ret_12m": 0.03302097278000904,
+            "dist_ath": -0.37922342593585756
+          }
+        },
+        "profitability": {
+          "score": 62.7,
+          "metrics": {
+            "gross_margin": 0.976,
+            "operating_margin": 0.18357487922705315,
+            "net_margin": 0.18,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 50.3,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0943,
+            "net_income_chg": -0.063
+          }
+        },
+        "balance_sheet": {
+          "score": 66.8,
+          "metrics": {
+            "current_ratio": 5.427,
+            "debt_to_equity": 0.305,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 0.175
+          }
+        },
+        "insider_signal": {
+          "score": 86.8,
+          "metrics": {
+            "insider_net": 0
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth"
+      ]
+    },
+    {
+      "symbol": "ASML",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 67.2,
+      "factors": {
+        "growth": {
+          "score": 86,
+          "metrics": {
+            "revenue_growth": 0.29298829164449175,
+            "earnings_per_share_growth": 0.3397028033570208,
+            "free_cash_flow_growth": 14.952478933960416,
+            "operating_income_growth": 0.3531582459859459
+          }
+        },
+        "valuation": {
+          "score": 59.1,
+          "metrics": {
+            "pe": 36.652,
+            "ev_ebitda": 27.887,
+            "fcf_yield": 0.0343662774595665,
+            "peg": 4.2955437732829225
+          }
+        },
+        "momentum": {
+          "score": 64.5,
+          "metrics": {
+            "ret_3m": 0.19846995119518374,
+            "ret_6m": 0.65344588202047,
+            "ret_12m": 0.9373875235750586,
+            "dist_ath": -0.11845320371304474
+          }
+        },
+        "profitability": {
+          "score": 60.8,
+          "metrics": {
+            "gross_margin": 0.522,
+            "operating_margin": 0.3546886737119396,
+            "net_margin": 0.292,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 41.3,
+          "metrics": {
+            "revenue_surprise": 0,
+            "eps_surprise": 0,
+            "revenue_chg": 0.293,
+            "net_income_chg": 0.3366
+          }
+        },
+        "balance_sheet": {
+          "score": 65.2,
+          "metrics": {
+            "current_ratio": 1.262,
+            "debt_to_equity": 1.578,
+            "interest_coverage": 302.359649122807,
+            "free_cash_flow_per_share": 36.853
+          }
+        },
+        "insider_signal": {
+          "score": 88.7,
+          "metrics": {
+            "insider_net": 0
+          }
+        }
+      },
+      "flags": [
+        "high_momentum"
+      ]
+    },
+    {
+      "symbol": "ASTS",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Communications Equipment",
+      "composite": 58,
+      "factors": {
+        "growth": {
+          "score": 76.9,
+          "metrics": {
+            "revenue_growth": 2.684442635185562,
+            "earnings_per_share_growth": 0.41197707968159525,
+            "free_cash_flow_growth": -0.08558967011842368,
+            "operating_income_growth": 0.5370449306250272
+          }
+        },
+        "valuation": {
+          "score": 69.3,
+          "metrics": {
+            "pe": -77.957,
+            "ev_ebitda": -104.277,
+            "fcf_yield": -0.013473691776283698,
+            "peg": -8.747819116381844
+          }
+        },
+        "momentum": {
+          "score": 77.8,
+          "metrics": {
+            "ret_3m": 0.018761061946902746,
+            "ret_6m": 1.2298553719008267,
+            "ret_12m": 2.305513016845329,
+            "dist_ath": -0.29281677451060695
+          }
+        },
+        "profitability": {
+          "score": 9.8,
+          "metrics": {
+            "gross_margin": 0.458,
+            "operating_margin": -0.9800018414510634,
+            "net_margin": -1.362,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 70.7,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 2.6844,
+            "net_income_chg": 0.398
+          }
+        },
+        "balance_sheet": {
+          "score": 38.1,
+          "metrics": {
+            "current_ratio": 16.353,
+            "debt_to_equity": 1.424,
+            "interest_coverage": -2.934925274361661,
+            "free_cash_flow_per_share": -1.263
+          }
+        },
+        "insider_signal": {
+          "score": 18.9,
+          "metrics": {
+            "insider_net": -169390956
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "AVGO",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 51.3,
+      "factors": {
+        "growth": {
+          "score": 47.9,
+          "metrics": {
+            "revenue_growth": 0.07194004995836803,
+            "earnings_per_share_growth": -0.1406795851716341,
+            "free_cash_flow_growth": 0.07286364854004822,
+            "operating_income_growth": 0.17903014416775884
+          }
+        },
+        "valuation": {
+          "score": 44.5,
+          "metrics": {
+            "pe": 62.902,
+            "ev_ebitda": 43.394,
+            "fcf_yield": 0.005099364362636879,
+            "peg": -15.193476034508183
+          }
+        },
+        "momentum": {
+          "score": 50.7,
+          "metrics": {
+            "ret_3m": -0.2072249427861308,
+            "ret_6m": -0.10478784005335251,
+            "ret_12m": 0.6835284280936456,
+            "dist_ath": -0.8154720309761377
+          }
+        },
+        "profitability": {
+          "score": 79.1,
+          "metrics": {
+            "gross_margin": 0.681,
+            "operating_margin": 0.46584848014085234,
+            "net_margin": 0.381,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 45.4,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0719,
+            "net_income_chg": -0.1372
+          }
+        },
+        "balance_sheet": {
+          "score": 51.6,
+          "metrics": {
+            "current_ratio": 1.902,
+            "debt_to_equity": 1.127,
+            "interest_coverage": 11.230961298377029,
+            "free_cash_flow_per_share": 1.69
+          }
+        },
+        "insider_signal": {
+          "score": 24.5,
+          "metrics": {
+            "insider_net": -149377472
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "high_momentum",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "BWXT",
+      "sleeve": "watchlist",
+      "sector": "Industrials",
+      "industry": "Aerospace & Defense",
+      "composite": 42.1,
+      "factors": {
+        "growth": {
+          "score": 30.8,
+          "metrics": {
+            "revenue_growth": 0.022574530813149467,
+            "earnings_per_share_growth": 0.13220127007998078,
+            "free_cash_flow_growth": -0.4013994709831073,
+            "operating_income_growth": -0.08860759493670886
+          }
+        },
+        "valuation": {
+          "score": 32.3,
+          "metrics": {
+            "pe": 48.039,
+            "ev_ebitda": 31.292,
+            "fcf_yield": 0.00359462642118057,
+            "peg": 12.85435548857205
+          }
+        },
+        "momentum": {
+          "score": 53.6,
+          "metrics": {
+            "ret_3m": 0.05862144181481077,
+            "ret_6m": 0.15327036178934228,
+            "ret_12m": 0.9998969815596992,
+            "dist_ath": -0.10904584882280047
+          }
+        },
+        "profitability": {
+          "score": 33.1,
+          "metrics": {
+            "gross_margin": 0.211,
+            "operating_margin": 0.12500649099952363,
+            "net_margin": 0.105,
+            "return_on_equity": 0.06612151941140847
+          }
+        },
+        "earnings_quality": {
+          "score": 68.3,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0226,
+            "net_income_chg": 0.1325
+          }
+        },
+        "balance_sheet": {
+          "score": 39.3,
+          "metrics": {
+            "current_ratio": 2.322,
+            "debt_to_equity": 2.465,
+            "interest_coverage": 10.593705156414426,
+            "free_cash_flow_per_share": 0.62
+          }
+        },
+        "insider_signal": {
+          "score": 83,
+          "metrics": {
+            "insider_net": -5520992
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "CCJ",
+      "sleeve": "watchlist",
+      "sector": "Materials",
+      "industry": "Metals & Mining",
+      "composite": 50.7,
+      "factors": {
+        "growth": {
+          "score": 50,
+          "metrics": {
+            "revenue_growth": null,
+            "earnings_per_share_growth": null,
+            "free_cash_flow_growth": null,
+            "operating_income_growth": null
+          }
+        },
+        "valuation": {
+          "score": 16,
+          "metrics": {
+            "pe": 92.545,
+            "ev_ebitda": 46.576,
+            "fcf_yield": null,
+            "peg": null
+          }
+        },
+        "momentum": {
+          "score": 69.3,
+          "metrics": {
+            "ret_3m": 0.12721955295592235,
+            "ret_6m": 0.38164127512482393,
+            "ret_12m": 1.5812006696962446,
+            "dist_ath": -0.19516742486389738
+          }
+        },
+        "profitability": {
+          "score": 50,
+          "metrics": {
+            "gross_margin": null,
+            "operating_margin": null,
+            "net_margin": null,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 50,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": null,
+            "revenue_chg": null,
+            "net_income_chg": null
+          }
+        },
+        "balance_sheet": {
+          "score": 75.5,
+          "metrics": {
+            "current_ratio": 2.466,
+            "debt_to_equity": 0.492,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": null
+          }
+        },
+        "insider_signal": {
+          "score": 90.6,
+          "metrics": {
+            "insider_net": 0
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "high_momentum"
+      ]
+    },
+    {
+      "symbol": "CDNS",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 53.9,
+      "factors": {
+        "growth": {
+          "score": 70,
+          "metrics": {
+            "revenue_growth": 0.07564470085253033,
+            "earnings_per_share_growth": 0.3532508479936293,
+            "free_cash_flow_growth": 0.8501613846587094,
+            "operating_income_growth": 0.2384511803668881
+          }
+        },
+        "valuation": {
+          "score": 31.5,
+          "metrics": {
+            "pe": 76.73,
+            "ev_ebitda": 45.294,
+            "fcf_yield": 0.006022876863512948,
+            "peg": 6.205599797775534
+          }
+        },
+        "momentum": {
+          "score": 34.1,
+          "metrics": {
+            "ret_3m": -0.14429240079897454,
+            "ret_6m": -0.16434726912775133,
+            "ret_12m": 0.18823480708726592,
+            "dist_ath": -0.23124514556606054
+          }
+        },
+        "profitability": {
+          "score": 64.2,
+          "metrics": {
+            "gross_margin": 0.869,
+            "operating_margin": 0.36274975453332164,
+            "net_margin": 0.27,
+            "return_on_equity": 0.05522636844532854
+          }
+        },
+        "earnings_quality": {
+          "score": 58.4,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0756,
+            "net_income_chg": 0.3518
+          }
+        },
+        "balance_sheet": {
+          "score": 63.9,
+          "metrics": {
+            "current_ratio": 2.856,
+            "debt_to_equity": 0.855,
+            "interest_coverage": 17.744599184782608,
+            "free_cash_flow_per_share": 1.892
+          }
+        },
+        "insider_signal": {
+          "score": 62.3,
+          "metrics": {
+            "insider_net": -35637868
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "CEG",
+      "sleeve": "tastytrade",
+      "sector": "Utilities",
+      "industry": "Independent Power and Renewable Electricity Producers",
+      "composite": 28.5,
+      "factors": {
+        "growth": {
+          "score": 7.2,
+          "metrics": {
+            "revenue_growth": -0.07549467275494673,
+            "earnings_per_share_growth": -0.5353120718879022,
+            "free_cash_flow_growth": -1.1034722222222222,
+            "operating_income_growth": -0.4745098039215686
+          }
+        },
+        "valuation": {
+          "score": 49,
+          "metrics": {
+            "pe": 47.573,
+            "ev_ebitda": 17.426,
+            "fcf_yield": -0.001350583131410328,
+            "peg": -4.770612734506216
+          }
+        },
+        "momentum": {
+          "score": 39.8,
+          "metrics": {
+            "ret_3m": -0.20293185419968318,
+            "ret_6m": -0.06711388648448136,
+            "ret_12m": 0.43789012245675885,
+            "dist_ath": -0.2529520980319347
+          }
+        },
+        "profitability": {
+          "score": 26.6,
+          "metrics": {
+            "gross_margin": 0.138,
+            "operating_margin": 0.13236746789594994,
+            "net_margin": 0.071,
+            "return_on_equity": 0.06480836236933799
+          }
+        },
+        "earnings_quality": {
+          "score": 28.9,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": -0.0755,
+            "net_income_chg": -0.5355
+          }
+        },
+        "balance_sheet": {
+          "score": 25.7,
+          "metrics": {
+            "current_ratio": 1.502,
+            "debt_to_equity": 2.914,
+            "interest_coverage": 7.115044247787611,
+            "free_cash_flow_per_share": -0.476
+          }
+        },
+        "insider_signal": {
+          "score": 30.2,
+          "metrics": {
+            "insider_net": -104398570
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "CLS",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Electronic Equipment, Instruments & Components",
+      "composite": 48.1,
+      "factors": {
+        "growth": {
+          "score": 57.6,
+          "metrics": {
+            "revenue_growth": 0.14430181590482155,
+            "earnings_per_share_growth": -0.0011544071633315671,
+            "free_cash_flow_growth": 0.7536557930258717,
+            "operating_income_growth": -0.03027494593759654
+          }
+        },
+        "valuation": {
+          "score": 57.7,
+          "metrics": {
+            "pe": 40.848,
+            "ev_ebitda": 28.464,
+            "fcf_yield": 0.004584488389228164,
+            "peg": -1101.2158120736199
+          }
+        },
+        "momentum": {
+          "score": 52.8,
+          "metrics": {
+            "ret_3m": -0.25027745368657706,
+            "ret_6m": 0.08971336394093554,
+            "ret_12m": 2.0489526675153336,
+            "dist_ath": -0.25282890445534734
+          }
+        },
+        "profitability": {
+          "score": 14.4,
+          "metrics": {
+            "gross_margin": 0.118,
+            "operating_margin": 0.0858847027278448,
+            "net_margin": 0.073,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 71.7,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": null,
+            "revenue_chg": 0.1443,
+            "net_income_chg": -0.0011
+          }
+        },
+        "balance_sheet": {
+          "score": 45.4,
+          "metrics": {
+            "current_ratio": 1.44,
+            "debt_to_equity": 2.255,
+            "interest_coverage": 24.91269841269841,
+            "free_cash_flow_per_share": 1.356
+          }
+        },
+        "insider_signal": {
+          "score": 7.5,
+          "metrics": {
+            "insider_net": -329532568
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "COIN",
+      "sleeve": "hyperliquid",
+      "sector": "Financials",
+      "industry": "Capital Markets",
+      "composite": 33.2,
+      "factors": {
+        "growth": {
+          "score": 25.5,
+          "metrics": {
+            "revenue_growth": -0.04685841922670016,
+            "earnings_per_share_growth": -2.468763156653334,
+            "free_cash_flow_growth": 4.907064874476587,
+            "operating_income_growth": -2.648570288805288
+          }
+        },
+        "valuation": {
+          "score": 54,
+          "metrics": {
+            "pe": 48.382,
+            "ev_ebitda": 33.304,
+            "fcf_yield": 0.050267122484854224,
+            "peg": 0.37045586147497667
+          }
+        },
+        "momentum": {
+          "score": 31.3,
+          "metrics": {
+            "ret_3m": -0.27317671548583744,
+            "ret_6m": -0.3947189202575533,
+            "ret_12m": 0.10163952898754847,
+            "dist_ath": -0.5342083948735051
+          }
+        },
+        "profitability": {
+          "score": 33.3,
+          "metrics": {
+            "gross_margin": 0.877,
+            "operating_margin": -0.48492501104636443,
+            "net_margin": -0.374,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 2,
+          "metrics": {
+            "revenue_surprise": 0,
+            "eps_surprise": 0,
+            "revenue_chg": -0.0469,
+            "net_income_chg": -2.5414
+          }
+        },
+        "balance_sheet": {
+          "score": 54.7,
+          "metrics": {
+            "current_ratio": 2.343,
+            "debt_to_equity": 1.006,
+            "interest_coverage": -38.22927455406542,
+            "free_cash_flow_per_share": 11.422
+          }
+        },
+        "insider_signal": {
+          "score": 13.2,
+          "metrics": {
+            "insider_net": -189835443
+          }
+        }
+      },
+      "flags": [
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "CRCL",
+      "sleeve": "hyperliquid",
+      "sector": "Financials",
+      "industry": "Financial Services",
+      "composite": 49.5,
+      "factors": {
+        "growth": {
+          "score": 43.9,
+          "metrics": {
+            "revenue_growth": 0.04119314533516997,
+            "earnings_per_share_growth": -0.3937086667921395,
+            "free_cash_flow_growth": 8.648831852583086,
+            "operating_income_growth": -0.08432239648313748
+          }
+        },
+        "valuation": {
+          "score": 60.6,
+          "metrics": {
+            "pe": -268.648,
+            "ev_ebitda": 2160.2,
+            "fcf_yield": 0.012448204976602152,
+            "peg": -3.555238539633316
+          }
+        },
+        "momentum": {
+          "score": 70.4,
+          "metrics": {
+            "ret_3m": 0.3026984306198488,
+            "ret_6m": -0.07931694861155436,
+            "ret_12m": null,
+            "dist_ath": -0.5620421332321124
+          }
+        },
+        "profitability": {
+          "score": 35.9,
+          "metrics": {
+            "gross_margin": 0.401,
+            "operating_margin": 0.18199970917853323,
+            "net_margin": 0.173,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 62.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0412,
+            "net_income_chg": -0.3777
+          }
+        },
+        "balance_sheet": {
+          "score": 22.3,
+          "metrics": {
+            "current_ratio": 1.033,
+            "debt_to_equity": 22.642,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 1.465
+          }
+        },
+        "insider_signal": {
+          "score": 39.6,
+          "metrics": {
+            "insider_net": -76506009
+          }
+        }
+      },
+      "flags": [
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "CRWD",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 53.1,
+      "factors": {
+        "growth": {
+          "score": 71.9,
+          "metrics": {
+            "revenue_growth": 0.05763123012953678,
+            "earnings_per_share_growth": 2.7386156836526925,
+            "free_cash_flow_growth": 0.2716190950177553,
+            "operating_income_growth": 4.872996451731311
+          }
+        },
+        "valuation": {
+          "score": 41.8,
+          "metrics": {
+            "pe": -684.776,
+            "ev_ebitda": 540.954,
+            "fcf_yield": 0.0033982517538012455,
+            "peg": 6.843181586626834
+          }
+        },
+        "momentum": {
+          "score": 41.2,
+          "metrics": {
+            "ret_3m": -0.14656621269197334,
+            "ret_6m": 0.01302453565695938,
+            "ret_12m": 0.32854178570354553,
+            "dist_ath": -0.20761214643158216
+          }
+        },
+        "profitability": {
+          "score": 33.3,
+          "metrics": {
+            "gross_margin": 0.761,
+            "operating_margin": 0.04849794120463469,
+            "net_margin": 0.045,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 84.4,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0576,
+            "net_income_chg": 2.7465
+          }
+        },
+        "balance_sheet": {
+          "score": 45.4,
+          "metrics": {
+            "current_ratio": 1.773,
+            "debt_to_equity": 1.494,
+            "interest_coverage": 8.382944915254237,
+            "free_cash_flow_per_share": 1.497
+          }
+        },
+        "insider_signal": {
+          "score": 52.8,
+          "metrics": {
+            "insider_net": -51909178
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "DDOG",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 46.6,
+      "factors": {
+        "growth": {
+          "score": 71,
+          "metrics": {
+            "revenue_growth": 0.07626367496903408,
+            "earnings_per_share_growth": 0.36671945292969094,
+            "free_cash_flow_growth": 0.3602163102004188,
+            "operating_income_growth": 0.472117202268431
+          }
+        },
+        "valuation": {
+          "score": 16.8,
+          "metrics": {
+            "pe": 442.614,
+            "ev_ebitda": 211.204,
+            "fcf_yield": 0.006102640880190744,
+            "peg": 27.925072320512893
+          }
+        },
+        "momentum": {
+          "score": 40.7,
+          "metrics": {
+            "ret_3m": -0.1693128752501668,
+            "ret_6m": -0.08776556776556776,
+            "ret_12m": 0.2618565058775839,
+            "dist_ath": -0.3765271379931905
+          }
+        },
+        "profitability": {
+          "score": 37.3,
+          "metrics": {
+            "gross_margin": 0.804,
+            "operating_margin": 0.05882328256367539,
+            "net_margin": 0.049,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 59.4,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0763,
+            "net_income_chg": 0.3743
+          }
+        },
+        "balance_sheet": {
+          "score": 62,
+          "metrics": {
+            "current_ratio": 3.382,
+            "debt_to_equity": 0.78,
+            "interest_coverage": 21.565384615384616,
+            "free_cash_flow_per_share": 0.829
+          }
+        },
+        "insider_signal": {
+          "score": 34,
+          "metrics": {
+            "insider_net": -103126614
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "EME",
+      "sleeve": "watchlist",
+      "sector": "Industrials",
+      "industry": "Construction & Engineering",
+      "composite": 59.6,
+      "factors": {
+        "growth": {
+          "score": 63.2,
+          "metrics": {
+            "revenue_growth": 0.04918995082911216,
+            "earnings_per_share_growth": 0.4713305907012248,
+            "free_cash_flow_growth": 0.09704667612133391,
+            "operating_income_growth": 0.4471159743860252
+          }
+        },
+        "valuation": {
+          "score": 74.7,
+          "metrics": {
+            "pe": 21.517,
+            "ev_ebitda": 14.144,
+            "fcf_yield": 0.018020172013082515,
+            "peg": 1.3369864330038992
+          }
+        },
+        "momentum": {
+          "score": 55,
+          "metrics": {
+            "ret_3m": 0.10996278807967719,
+            "ret_6m": 0.12848922235645688,
+            "ret_12m": 0.9036522578569128,
+            "dist_ath": -0.1265763604375054
+          }
+        },
+        "profitability": {
+          "score": 22.9,
+          "metrics": {
+            "gross_margin": 0.197,
+            "operating_margin": 0.13069226373500734,
+            "net_margin": 0.096,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 81,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0492,
+            "net_income_chg": 0.4714
+          }
+        },
+        "balance_sheet": {
+          "score": 60.9,
+          "metrics": {
+            "current_ratio": 1.22,
+            "debt_to_equity": 1.529,
+            "interest_coverage": 49.07071547420965,
+            "free_cash_flow_per_share": 11.025
+          }
+        },
+        "insider_signal": {
+          "score": 60.4,
+          "metrics": {
+            "insider_net": -37738070
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "EQT",
+      "sleeve": "tastytrade",
+      "sector": "Energy",
+      "industry": "Oil, Gas & Consumable Fuels",
+      "composite": 70.1,
+      "factors": {
+        "growth": {
+          "score": 81.2,
+          "metrics": {
+            "revenue_growth": 0.21929253522083192,
+            "earnings_per_share_growth": 1.015971292433939,
+            "free_cash_flow_growth": 0.3101378236991339,
+            "operating_income_growth": 0.7232430872070073
+          }
+        },
+        "valuation": {
+          "score": 78,
+          "metrics": {
+            "pe": 16.403,
+            "ev_ebitda": 7.264,
+            "fcf_yield": 0.015325953209817287,
+            "peg": 0.4862531176777395
+          }
+        },
+        "momentum": {
+          "score": 45.5,
+          "metrics": {
+            "ret_3m": 0.14802924915284477,
+            "ret_6m": 0.26364350215940346,
+            "ret_12m": 0.3174375767498978,
+            "dist_ath": -0.004176980198019741
+          }
+        },
+        "profitability": {
+          "score": 72.5,
+          "metrics": {
+            "gross_margin": 0.765,
+            "operating_margin": 0.4149637929525546,
+            "net_margin": 0.284,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 94.7,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.2193,
+            "net_income_chg": 1.016
+          }
+        },
+        "balance_sheet": {
+          "score": 37.7,
+          "metrics": {
+            "current_ratio": 0.763,
+            "debt_to_equity": 0.608,
+            "interest_coverage": 9.390432961555591,
+            "free_cash_flow_per_share": 0.821
+          }
+        },
+        "insider_signal": {
+          "score": 66,
+          "metrics": {
+            "insider_net": -26084768
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "ETN",
+      "sleeve": "watchlist",
+      "sector": "Industrials",
+      "industry": "Machinery",
+      "composite": 45.4,
+      "factors": {
+        "growth": {
+          "score": 44.3,
+          "metrics": {
+            "revenue_growth": 0.009587864911276474,
+            "earnings_per_share_growth": 0.12338917722874253,
+            "free_cash_flow_growth": 0.3640238704177323,
+            "operating_income_growth": 0.01640566741237882
+          }
+        },
+        "valuation": {
+          "score": 58,
+          "metrics": {
+            "pe": 30.269,
+            "ev_ebitda": 21.798,
+            "fcf_yield": 0.012933548301839659,
+            "peg": 8.856839979197872
+          }
+        },
+        "momentum": {
+          "score": 37.4,
+          "metrics": {
+            "ret_3m": 0.01438520379038688,
+            "ret_6m": -0.028696365127083956,
+            "ret_12m": 0.2527317589002467,
+            "dist_ath": -0.10272917771213613
+          }
+        },
+        "profitability": {
+          "score": 34.6,
+          "metrics": {
+            "gross_margin": 0.368,
+            "operating_margin": 0.19319631467044648,
+            "net_margin": 0.16,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 16.9,
+          "metrics": {
+            "revenue_surprise": 0,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0096,
+            "net_income_chg": 0.1208
+          }
+        },
+        "balance_sheet": {
+          "score": 53.8,
+          "metrics": {
+            "current_ratio": 1.319,
+            "debt_to_equity": 1.121,
+            "interest_coverage": 19.47142857142857,
+            "free_cash_flow_per_share": 4.119
+          }
+        },
+        "insider_signal": {
+          "score": 96.2,
+          "metrics": {
+            "insider_net": 6347848
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "symbol": "FLEX",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Electronic Equipment, Instruments & Components",
+      "composite": 43,
+      "factors": {
+        "growth": {
+          "score": 41.9,
+          "metrics": {
+            "revenue_growth": 0.03482889733840304,
+            "earnings_per_share_growth": 0.030909859507132747,
+            "free_cash_flow_growth": 0.13805970149253732,
+            "operating_income_growth": 0.05723905723905724
+          }
+        },
+        "valuation": {
+          "score": 55.1,
+          "metrics": {
+            "pe": 2.542585334697194e-7,
+            "ev_ebitda": 30.081050083847103,
+            "fcf_yield": 0.014294272554586731,
+            "peg": 34.68867193923116
+          }
+        },
+        "momentum": {
+          "score": 45.1,
+          "metrics": {
+            "ret_3m": -0.10646387832699622,
+            "ret_6m": 0.1075231279455402,
+            "ret_12m": 0.8878310026777745,
+            "dist_ath": -0.1197280799112097
+          }
+        },
+        "profitability": {
+          "score": 9,
+          "metrics": {
+            "gross_margin": 0.09620289033720601,
+            "operating_margin": 0.04614932392710171,
+            "net_margin": 0.03386228393312553,
+            "return_on_equity": 0.0466705721538762
+          }
+        },
+        "earnings_quality": {
+          "score": 63.6,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": null,
+            "revenue_chg": 0.0373,
+            "net_income_chg": 0.201
+          }
+        },
+        "balance_sheet": {
+          "score": 32.2,
+          "metrics": {
+            "current_ratio": 1.395725865880619,
+            "debt_to_equity": 0.9978519820347589,
+            "interest_coverage": 6.038461538461538,
+            "free_cash_flow_per_share": -0.5222018409986562
+          }
+        },
+        "insider_signal": {
+          "score": 75.5,
+          "metrics": {
+            "insider_net": -11506160
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "GE",
+      "sleeve": "watchlist",
+      "sector": "Industrials",
+      "industry": "Machinery",
+      "composite": 46,
+      "factors": {
+        "growth": {
+          "score": 47.7,
+          "metrics": {
+            "revenue_growth": 0.044002955422379114,
+            "earnings_per_share_growth": 0.18430761361346726,
+            "free_cash_flow_growth": -0.155011135857461,
+            "operating_income_growth": 0.1669112252384446
+          }
+        },
+        "valuation": {
+          "score": 45.2,
+          "metrics": {
+            "pe": 37.329,
+            "ev_ebitda": 27.379,
+            "fcf_yield": 0.005838462113410848,
+            "peg": 6.937786381058431
+          }
+        },
+        "momentum": {
+          "score": 49.3,
+          "metrics": {
+            "ret_3m": 0.03907496012759171,
+            "ret_6m": 0.06390003195001603,
+            "ret_12m": 0.5574784325953643,
+            "dist_ath": -0.13319257245328864
+          }
+        },
+        "profitability": {
+          "score": 39.2,
+          "metrics": {
+            "gross_margin": 0.342,
+            "operating_margin": 0.25013761107179366,
+            "net_margin": 0.2,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 64.3,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 100,
+            "revenue_chg": 0.044,
+            "net_income_chg": 0.178
+          }
+        },
+        "balance_sheet": {
+          "score": 32.4,
+          "metrics": {
+            "current_ratio": 1.041,
+            "debt_to_equity": 5.958,
+            "interest_coverage": 12.724,
+            "free_cash_flow_per_share": 1.798
+          }
+        },
+        "insider_signal": {
+          "score": 41.5,
+          "metrics": {
+            "insider_net": -69483522
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "GEV",
+      "sleeve": "watchlist",
+      "sector": "Utilities",
+      "industry": "Independent Power and Renewable Electricity Producers",
+      "composite": 61.9,
+      "factors": {
+        "growth": {
+          "score": 85.4,
+          "metrics": {
+            "revenue_growth": 0.0990069214565152,
+            "earnings_per_share_growth": 7.133187836716545,
+            "free_cash_flow_growth": 1.4781420765027322,
+            "operating_income_growth": 0.5035663338088445
+          }
+        },
+        "valuation": {
+          "score": 51.6,
+          "metrics": {
+            "pe": 36.308,
+            "ev_ebitda": 48.395,
+            "fcf_yield": 0.01022969370842396,
+            "peg": 0.06784776201530388
+          }
+        },
+        "momentum": {
+          "score": 60.3,
+          "metrics": {
+            "ret_3m": 0.14316955410394772,
+            "ret_6m": 0.2868995284149949,
+            "ret_12m": 1.6812549960031973,
+            "dist_ath": -0.0864295603622415
+          }
+        },
+        "profitability": {
+          "score": 35.3,
+          "metrics": {
+            "gross_margin": 0.212,
+            "operating_margin": 0.09620299379335524,
+            "net_margin": 0.334,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 92.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.099,
+            "net_income_chg": 7.1062
+          }
+        },
+        "balance_sheet": {
+          "score": 43.1,
+          "metrics": {
+            "current_ratio": 0.982,
+            "debt_to_equity": 4.537,
+            "interest_coverage": 23.42222222222222,
+            "free_cash_flow_per_share": 6.743
+          }
+        },
+        "insider_signal": {
+          "score": 47.2,
+          "metrics": {
+            "insider_net": -62070690
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "GOOGL",
+      "sleeve": "hyperliquid",
+      "sector": "Communication Services",
+      "industry": "Interactive Media & Services",
+      "composite": 58.7,
+      "factors": {
+        "growth": {
+          "score": 44.6,
+          "metrics": {
+            "revenue_growth": 0.11219783870400407,
+            "earnings_per_share_growth": -0.012776428361604399,
+            "free_cash_flow_growth": 0.00367932627447774,
+            "operating_income_growth": -0.1068434171765239
+          }
+        },
+        "valuation": {
+          "score": 71.5,
+          "metrics": {
+            "pe": 28.577,
+            "ev_ebitda": 20.961,
+            "fcf_yield": 0.006500182288929409,
+            "peg": -85.79894186562116
+          }
+        },
+        "momentum": {
+          "score": 47.9,
+          "metrics": {
+            "ret_3m": -0.032487277150081706,
+            "ret_6m": 0.25531561461794006,
+            "ret_12m": 0.8572130744654705,
+            "dist_ath": -0.12048648491373047
+          }
+        },
+        "profitability": {
+          "score": 72.5,
+          "metrics": {
+            "gross_margin": 0.598,
+            "operating_margin": 0.34626501155241635,
+            "net_margin": 0.303,
+            "return_on_equity": 0.09041608614846963
+          }
+        },
+        "earnings_quality": {
+          "score": 77.3,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.1122,
+            "net_income_chg": -0.015
+          }
+        },
+        "balance_sheet": {
+          "score": 74.6,
+          "metrics": {
+            "current_ratio": 2.005,
+            "debt_to_equity": 0.433,
+            "interest_coverage": 132.26510067114094,
+            "free_cash_flow_per_share": 2.035
+          }
+        },
+        "insider_signal": {
+          "score": 0,
+          "metrics": {
+            "insider_net": -451657747
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "HOOD",
+      "sleeve": "hyperliquid",
+      "sector": "Financials",
+      "industry": "Capital Markets",
+      "composite": 40,
+      "factors": {
+        "growth": {
+          "score": 43.3,
+          "metrics": {
+            "revenue_growth": 0.00706436420722135,
+            "earnings_per_share_growth": 0.07540652998438147,
+            "free_cash_flow_growth": 0.4017632241813602,
+            "operating_income_growth": 0.04258675078864353
+          }
+        },
+        "valuation": {
+          "score": 18,
+          "metrics": {
+            "pe": 54.009,
+            "ev_ebitda": 40.531,
+            "fcf_yield": -0.009341359329785647,
+            "peg": 22.292008311112255
+          }
+        },
+        "momentum": {
+          "score": 41.4,
+          "metrics": {
+            "ret_3m": -0.40517101637218345,
+            "ret_6m": -0.3619925236894723,
+            "ret_12m": 1.0374791782343142,
+            "dist_ath": -0.518627836809655
+          }
+        },
+        "profitability": {
+          "score": 84.2,
+          "metrics": {
+            "gross_margin": 0.956,
+            "operating_margin": 0.5151987529228371,
+            "net_margin": 0.472,
+            "return_on_equity": 0.06490019843585852
+          }
+        },
+        "earnings_quality": {
+          "score": 39.5,
+          "metrics": {
+            "revenue_surprise": 0,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0071,
+            "net_income_chg": 0.0881
+          }
+        },
+        "balance_sheet": {
+          "score": 17,
+          "metrics": {
+            "current_ratio": 1.262,
+            "debt_to_equity": 3.171,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": -1.058
+          }
+        },
+        "insider_signal": {
+          "score": 20.8,
+          "metrics": {
+            "insider_net": -162178466
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "high_momentum",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "IONQ",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "composite": 70,
+      "factors": {
+        "growth": {
+          "score": 87,
+          "metrics": {
+            "revenue_growth": 0.5524507098780916,
+            "earnings_per_share_growth": 1.5985750749321814,
+            "free_cash_flow_growth": 0.37372934206423447,
+            "operating_income_growth": 1.68793167408129
+          }
+        },
+        "valuation": {
+          "score": 62.6,
+          "metrics": {
+            "pe": -31.147,
+            "ev_ebitda": -32.94,
+            "fcf_yield": -0.005053808851095154,
+            "peg": 0.1319440064839999
+          }
+        },
+        "momentum": {
+          "score": 37,
+          "metrics": {
+            "ret_3m": -0.37240723120837305,
+            "ret_6m": -0.4069411976263263,
+            "ret_12m": 0.5432849789424425,
+            "dist_ath": -0.5982458277500305
+          }
+        },
+        "profitability": {
+          "score": 71.9,
+          "metrics": {
+            "gross_margin": 0.296,
+            "operating_margin": 11.775569558894814,
+            "net_margin": 12.178,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 97.1,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.5525,
+            "net_income_chg": 1.7144
+          }
+        },
+        "balance_sheet": {
+          "score": 58.6,
+          "metrics": {
+            "current_ratio": 15.504,
+            "debt_to_equity": 0.726,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": -0.287
+          }
+        },
+        "insider_signal": {
+          "score": 77.4,
+          "metrics": {
+            "insider_net": -10110395
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "ISRG",
+      "sleeve": "watchlist",
+      "sector": "Health Care",
+      "industry": "Health Care Equipment & Supplies",
+      "composite": 51.7,
+      "factors": {
+        "growth": {
+          "score": 58.1,
+          "metrics": {
+            "revenue_growth": 0.14414594227775337,
+            "earnings_per_share_growth": 0.14100561209185558,
+            "free_cash_flow_growth": -0.0076128330614464385,
+            "operating_income_growth": 0.1181796801505174
+          }
+        },
+        "valuation": {
+          "score": 21.5,
+          "metrics": {
+            "pe": 70.298,
+            "ev_ebitda": 49.892,
+            "fcf_yield": 0.00363595800465046,
+            "peg": 17.91470846540783
+          }
+        },
+        "momentum": {
+          "score": 36.8,
+          "metrics": {
+            "ret_3m": -0.13738672902660043,
+            "ret_6m": 0.049991104785625406,
+            "ret_12m": -0.009690003775326028,
+            "dist_ath": -0.22653779998361867
+          }
+        },
+        "profitability": {
+          "score": 60.8,
+          "metrics": {
+            "gross_margin": 0.664,
+            "operating_margin": 0.33176331030632894,
+            "net_margin": 0.277,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 78.1,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 100,
+            "revenue_chg": 0.1441,
+            "net_income_chg": 0.1283
+          }
+        },
+        "balance_sheet": {
+          "score": 86,
+          "metrics": {
+            "current_ratio": 4.875,
+            "debt_to_equity": 0.141,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 2.056
+          }
+        },
+        "insider_signal": {
+          "score": 37.7,
+          "metrics": {
+            "insider_net": -79789332
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "KLAC",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 52.7,
+      "factors": {
+        "growth": {
+          "score": 37.6,
+          "metrics": {
+            "revenue_growth": 0.02724557092011206,
+            "earnings_per_share_growth": 0.026407356305086536,
+            "free_cash_flow_growth": 0.18423060213175038,
+            "operating_income_growth": 0.014066847222594457
+          }
+        },
+        "valuation": {
+          "score": 43.2,
+          "metrics": {
+            "pe": 35.027,
+            "ev_ebitda": 27.683,
+            "fcf_yield": 0.007904876874478824,
+            "peg": 52.76985464727246
+          }
+        },
+        "momentum": {
+          "score": 67.3,
+          "metrics": {
+            "ret_3m": 0.1383909226596478,
+            "ret_6m": 0.471587726395718,
+            "ret_12m": 1.081643433602348,
+            "dist_ath": -0.1579322257243086
+          }
+        },
+        "profitability": {
+          "score": 70.6,
+          "metrics": {
+            "gross_margin": 0.614,
+            "operating_margin": 0.4246008517669524,
+            "net_margin": 0.347,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 39.5,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0272,
+            "net_income_chg": 0.022
+          }
+        },
+        "balance_sheet": {
+          "score": 64.4,
+          "metrics": {
+            "current_ratio": 2.828,
+            "debt_to_equity": 2.059,
+            "interest_coverage": 20.09489292070965,
+            "free_cash_flow_per_share": 9.613
+          }
+        },
+        "insider_signal": {
+          "score": 71.7,
+          "metrics": {
+            "insider_net": -15785310
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "LITE",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Communications Equipment",
+      "composite": 57.9,
+      "factors": {
+        "growth": {
+          "score": 96.1,
+          "metrics": {
+            "revenue_growth": 0.24672161858373923,
+            "earnings_per_share_growth": 17.592448979591836,
+            "free_cash_flow_growth": 3.360655737704918,
+            "operating_income_growth": 8.431192660550458
+          }
+        },
+        "valuation": {
+          "score": 23.9,
+          "metrics": {
+            "pe": 108.72,
+            "ev_ebitda": 92.679,
+            "fcf_yield": 0.0015792994783193621,
+            "peg": 0.19883196367534633
+          }
+        },
+        "momentum": {
+          "score": 84.9,
+          "metrics": {
+            "ret_3m": 0.6729823429815369,
+            "ret_6m": 2.81854987118145,
+            "ret_12m": 9.325095372366894,
+            "dist_ath": -0.2052345994254708
+          }
+        },
+        "profitability": {
+          "score": 30.7,
+          "metrics": {
+            "gross_margin": 0.361,
+            "operating_margin": 0.1544703230653644,
+            "net_margin": 0.118,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 73,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.2467,
+            "net_income_chg": 17.619
+          }
+        },
+        "balance_sheet": {
+          "score": 22.5,
+          "metrics": {
+            "current_ratio": 0.606,
+            "debt_to_equity": 4.676,
+            "interest_coverage": 16.317460317460316,
+            "free_cash_flow_per_share": 0.608
+          }
+        },
+        "insider_signal": {
+          "score": 43.4,
+          "metrics": {
+            "insider_net": -66977649
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "LLY",
+      "sleeve": "watchlist",
+      "sector": "Health Care",
+      "industry": "Pharmaceuticals",
+      "composite": 48.2,
+      "factors": {
+        "growth": {
+          "score": 50.8,
+          "metrics": {
+            "revenue_growth": 0.09608654152083997,
+            "earnings_per_share_growth": 0.19036878269043112,
+            "free_cash_flow_growth": -0.8995435819922349,
+            "operating_income_growth": 0.14294010287041645
+          }
+        },
+        "valuation": {
+          "score": 25.7,
+          "metrics": {
+            "pe": 49.224,
+            "ev_ebitda": 37.821,
+            "fcf_yield": 0.0006672341877717512,
+            "peg": 8.040332158777337
+          }
+        },
+        "momentum": {
+          "score": 41.6,
+          "metrics": {
+            "ret_3m": -0.02407418415264817,
+            "ret_6m": 0.30406809727425577,
+            "ret_12m": 0.22881556789122448,
+            "dist_ath": -0.11249256716579276
+          }
+        },
+        "profitability": {
+          "score": 83,
+          "metrics": {
+            "gross_margin": 0.825,
+            "operating_margin": 0.42847812564793697,
+            "net_margin": 0.344,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 83.5,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0961,
+            "net_income_chg": 0.189
+          }
+        },
+        "balance_sheet": {
+          "score": 31.7,
+          "metrics": {
+            "current_ratio": 1.579,
+            "debt_to_equity": 3.239,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 0.757
+          }
+        },
+        "insider_signal": {
+          "score": 3.8,
+          "metrics": {
+            "insider_net": -433408103
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "LRCX",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 49.1,
+      "factors": {
+        "growth": {
+          "score": 28.9,
+          "metrics": {
+            "revenue_growth": 0.0038725263059633864,
+            "earnings_per_share_growth": 0.023909375501498496,
+            "free_cash_flow_growth": -0.23507773350323716,
+            "operating_income_growth": -0.01212858266251139
+          }
+        },
+        "valuation": {
+          "score": 36.5,
+          "metrics": {
+            "pe": 35.997,
+            "ev_ebitda": 29.874,
+            "fcf_yield": 0.00545094840542796,
+            "peg": 58.686182004545756
+          }
+        },
+        "momentum": {
+          "score": 89.6,
+          "metrics": {
+            "ret_3m": 0.2577796218362869,
+            "ret_6m": 0.8142954856361149,
+            "ret_12m": 1.8195588626096195,
+            "dist_ath": -0.811762618646323
+          }
+        },
+        "profitability": {
+          "score": 57.5,
+          "metrics": {
+            "gross_margin": 0.496,
+            "operating_margin": 0.343626719922257,
+            "net_margin": 0.298,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 62.1,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0039,
+            "net_income_chg": 0.0162
+          }
+        },
+        "balance_sheet": {
+          "score": 51.8,
+          "metrics": {
+            "current_ratio": 2.256,
+            "debt_to_equity": 1.108,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 0.972
+          }
+        },
+        "insider_signal": {
+          "score": 22.6,
+          "metrics": {
+            "insider_net": -158612620
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "META",
+      "sleeve": "hyperliquid",
+      "sector": "Communication Services",
+      "industry": "Interactive Media & Services",
+      "composite": 64.5,
+      "factors": {
+        "growth": {
+          "score": 75.4,
+          "metrics": {
+            "revenue_growth": 0.16882635338199134,
+            "earnings_per_share_growth": 7.376614216702384,
+            "free_cash_flow_growth": 0.3277529095792301,
+            "operating_income_growth": 0.17038268014587085
+          }
+        },
+        "valuation": {
+          "score": 68,
+          "metrics": {
+            "pe": 27.52,
+            "ev_ebitda": 16.305,
+            "fcf_yield": 0.008914065574821902,
+            "peg": 0.09906326925471076
+          }
+        },
+        "momentum": {
+          "score": 33.1,
+          "metrics": {
+            "ret_3m": -0.05975088477271684,
+            "ret_6m": -0.18777379266533434,
+            "ret_12m": 0.03905932547744828,
+            "dist_ath": -0.22315189873417718
+          }
+        },
+        "profitability": {
+          "score": 61.8,
+          "metrics": {
+            "gross_margin": 0.818,
+            "operating_margin": 0.42332159016913495,
+            "net_margin": 0.38,
+            "return_on_equity": 0.013959168530293817
+          }
+        },
+        "earnings_quality": {
+          "score": 94.6,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.1688,
+            "net_income_chg": 7.4046
+          }
+        },
+        "balance_sheet": {
+          "score": 75.4,
+          "metrics": {
+            "current_ratio": 2.599,
+            "debt_to_equity": 0.685,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 5.876
+          }
+        },
+        "insider_signal": {
+          "score": 17,
+          "metrics": {
+            "insider_net": -170814960
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "MRVL",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 45.2,
+      "factors": {
+        "growth": {
+          "score": 19.9,
+          "metrics": {
+            "revenue_growth": 0.06951072547601832,
+            "earnings_per_share_growth": -0.7882298344662719,
+            "free_cash_flow_growth": -0.4912349812881623,
+            "operating_income_growth": -0.8092296832259772
+          }
+        },
+        "valuation": {
+          "score": 64.6,
+          "metrics": {
+            "pe": 25.067,
+            "ev_ebitda": 15.13,
+            "fcf_yield": 0.0038591376221365514,
+            "peg": -2.1437613094273713
+          }
+        },
+        "momentum": {
+          "score": 56.3,
+          "metrics": {
+            "ret_3m": -0.017555630101755648,
+            "ret_6m": 0.3045285820341501,
+            "ret_12m": 0.2777777777777777,
+            "dist_ath": -0.30303030303030304
+          }
+        },
+        "profitability": {
+          "score": 43.8,
+          "metrics": {
+            "gross_margin": 0.517,
+            "operating_margin": 0.19488889890476405,
+            "net_margin": 0.179,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 39.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0695,
+            "net_income_chg": -0.7917
+          }
+        },
+        "balance_sheet": {
+          "score": 48.8,
+          "metrics": {
+            "current_ratio": 2.006,
+            "debt_to_equity": 0.557,
+            "interest_coverage": 8.511811023622048,
+            "free_cash_flow_per_share": 0.3
+          }
+        },
+        "insider_signal": {
+          "score": 69.8,
+          "metrics": {
+            "insider_net": -18208807
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "MSFT",
+      "sleeve": "hyperliquid",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 56.5,
+      "factors": {
+        "growth": {
+          "score": 51.6,
+          "metrics": {
+            "revenue_growth": 0.04634815186744429,
+            "earnings_per_share_growth": 0.38617079912750124,
+            "free_cash_flow_growth": -0.770798425749133,
+            "operating_income_growth": 0.3995257007343067
+          }
+        },
+        "valuation": {
+          "score": 50.3,
+          "metrics": {
+            "pe": 30.139,
+            "ev_ebitda": 18.947,
+            "fcf_yield": 0.0016364132920758858,
+            "peg": 2.4202815810392733
+          }
+        },
+        "momentum": {
+          "score": 30.3,
+          "metrics": {
+            "ret_3m": -0.18185202804724188,
+            "ret_6m": -0.2242596587566189,
+            "ret_12m": 0.04430129102093616,
+            "dist_ath": -0.2702971940893243
+          }
+        },
+        "profitability": {
+          "score": 83.7,
+          "metrics": {
+            "gross_margin": 0.68,
+            "operating_margin": 0.6026847784627121,
+            "net_margin": 0.473,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 78.5,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0463,
+            "net_income_chg": 0.386
+          }
+        },
+        "balance_sheet": {
+          "score": 57.1,
+          "metrics": {
+            "current_ratio": 1.386,
+            "debt_to_equity": 0.702,
+            "interest_coverage": 66.55163043478261,
+            "free_cash_flow_per_share": 0.792
+          }
+        },
+        "insider_signal": {
+          "score": 58.5,
+          "metrics": {
+            "insider_net": -37848006
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "MU",
+      "sleeve": "hyperliquid",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 64.7,
+      "factors": {
+        "growth": {
+          "score": 67.3,
+          "metrics": {
+            "revenue_growth": 0.21653585635953124,
+            "earnings_per_share_growth": 0.6957858637181594,
+            "free_cash_flow_growth": -0.9569120287253142,
+            "operating_income_growth": 0.6736513597860009
+          }
+        },
+        "valuation": {
+          "score": 47.5,
+          "metrics": {
+            "pe": 4.382393279780077e-8,
+            "ev_ebitda": 31.38492756462006,
+            "fcf_yield": 0.000527344024272966,
+            "peg": 0.613023597327161
+          }
+        },
+        "momentum": {
+          "score": 73.1,
+          "metrics": {
+            "ret_3m": 0.6487270757564034,
+            "ret_6m": 1.7102334160147556,
+            "ret_12m": 3.491252107925801,
+            "dist_ath": -0.026656007309273675
+          }
+        },
+        "profitability": {
+          "score": 71.7,
+          "metrics": {
+            "gross_margin": 0.5604339221578831,
+            "operating_margin": 0.3317719840919134,
+            "net_margin": 0.3840797478560434,
+            "return_on_equity": 0.0891065537530184
+          }
+        },
+        "earnings_quality": {
+          "score": 91.6,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 100,
+            "revenue_chg": 0.2057,
+            "net_income_chg": 0.637
+          }
+        },
+        "balance_sheet": {
+          "score": 62,
+          "metrics": {
+            "current_ratio": 2.4597844112769485,
+            "debt_to_equity": 0.16006870047274088,
+            "interest_coverage": 30.274193548387096,
+            "free_cash_flow_per_share": -0.13238451709194776
+          }
+        },
+        "insider_signal": {
+          "score": 26.4,
+          "metrics": {
+            "insider_net": -124370627
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "NEE",
+      "sleeve": "watchlist",
+      "sector": "Utilities",
+      "industry": "Electric Utilities",
+      "composite": 40.9,
+      "factors": {
+        "growth": {
+          "score": 11.1,
+          "metrics": {
+            "revenue_growth": -0.184032136580467,
+            "earnings_per_share_growth": -0.3774347850372556,
+            "free_cash_flow_growth": -0.8208279430789134,
+            "operating_income_growth": -0.29811433702484286
+          }
+        },
+        "valuation": {
+          "score": 64.1,
+          "metrics": {
+            "pe": 24.461,
+            "ev_ebitda": 15.009,
+            "fcf_yield": 0.0016567787733758495,
+            "peg": -2.885791464299498
+          }
+        },
+        "momentum": {
+          "score": 45.9,
+          "metrics": {
+            "ret_3m": 0.1424701391454255,
+            "ret_6m": 0.29508654383026234,
+            "ret_12m": 0.2756771621064209,
+            "dist_ath": -0.03030936454849504
+          }
+        },
+        "profitability": {
+          "score": 58.8,
+          "metrics": {
+            "gross_margin": 0.574,
+            "operating_margin": 0.3607692307692308,
+            "net_margin": 0.236,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 40.4,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 100,
+            "revenue_chg": -0.184,
+            "net_income_chg": -0.3704
+          }
+        },
+        "balance_sheet": {
+          "score": 13.5,
+          "metrics": {
+            "current_ratio": 0.595,
+            "debt_to_equity": 2.678,
+            "interest_coverage": 4.0085470085470085,
+            "free_cash_flow_per_share": 0.133
+          }
+        },
+        "insider_signal": {
+          "score": 84.9,
+          "metrics": {
+            "insider_net": -3597762
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "NET",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 35.4,
+      "factors": {
+        "growth": {
+          "score": 31.1,
+          "metrics": {
+            "revenue_growth": 0.09337629686829992,
+            "earnings_per_share_growth": -8.313917921648176,
+            "free_cash_flow_growth": 0.3264328873831215,
+            "operating_income_growth": -2.6003779924401513
+          }
+        },
+        "valuation": {
+          "score": 38,
+          "metrics": {
+            "pe": -675.271,
+            "ev_ebitda": 415.146,
+            "fcf_yield": 0.0014400083752986214,
+            "peg": 6.877787728382217
+          }
+        },
+        "momentum": {
+          "score": 50.8,
+          "metrics": {
+            "ret_3m": 0.021639817263765293,
+            "ret_6m": -0.0400777155250317,
+            "ret_12m": 0.8685136323658749,
+            "dist_ath": -0.161271219897355
+          }
+        },
+        "profitability": {
+          "score": 26.1,
+          "metrics": {
+            "gross_margin": 0.736,
+            "operating_margin": -0.012401811533473174,
+            "net_margin": -0.02,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 41.7,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0934,
+            "net_income_chg": -8.362
+          }
+        },
+        "balance_sheet": {
+          "score": 25.7,
+          "metrics": {
+            "current_ratio": 1.976,
+            "debt_to_equity": 3.137,
+            "interest_coverage": -2.6397644613785936,
+            "free_cash_flow_per_share": 0.283
+          }
+        },
+        "insider_signal": {
+          "score": 35.8,
+          "metrics": {
+            "insider_net": -84885211
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "NOW",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 41.3,
+      "factors": {
+        "growth": {
+          "score": 42.5,
+          "metrics": {
+            "revenue_growth": 0.04725565013208101,
+            "earnings_per_share_growth": -0.20119521912350594,
+            "free_cash_flow_growth": 2.4602076124567476,
+            "operating_income_growth": -0.22046109510086456
+          }
+        },
+        "valuation": {
+          "score": 47.9,
+          "metrics": {
+            "pe": 91.143,
+            "ev_ebitda": 53.016,
+            "fcf_yield": 0.01255354085173264,
+            "peg": -19.74702728327696
+          }
+        },
+        "momentum": {
+          "score": 25,
+          "metrics": {
+            "ret_3m": -0.8690244267945452,
+            "ret_6m": -0.8776911815363417,
+            "ret_12m": -0.8600083783051181,
+            "dist_ath": -0.9029212484727313
+          }
+        },
+        "profitability": {
+          "score": 39,
+          "metrics": {
+            "gross_margin": 0.766,
+            "operating_margin": 0.1516255605381166,
+            "net_margin": 0.112,
+            "return_on_equity": 0.044420847712591804
+          }
+        },
+        "earnings_quality": {
+          "score": 40.1,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0473,
+            "net_income_chg": -0.2012
+          }
+        },
+        "balance_sheet": {
+          "score": 43.2,
+          "metrics": {
+            "current_ratio": 1.003,
+            "debt_to_equity": 1.008,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 1.925
+          }
+        },
+        "insider_signal": {
+          "score": 64.2,
+          "metrics": {
+            "insider_net": -28756889
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "NVDA",
+      "sleeve": "hyperliquid",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 66.1,
+      "factors": {
+        "growth": {
+          "score": 76.4,
+          "metrics": {
+            "revenue_growth": 0.1950847279233765,
+            "earnings_per_share_growth": 0.34628643058602326,
+            "free_cash_flow_growth": 0.5782952747004295,
+            "operating_income_growth": 0.32828907545332525
+          }
+        },
+        "valuation": {
+          "score": 46.2,
+          "metrics": {
+            "pe": 37.982,
+            "ev_ebitda": 31.541,
+            "fcf_yield": 0.0076537464742529185,
+            "peg": 3.065500427841956
+          }
+        },
+        "momentum": {
+          "score": 46,
+          "metrics": {
+            "ret_3m": -0.0037583595865804398,
+            "ret_6m": 0.013665504442694987,
+            "ret_12m": 0.5595258695276,
+            "dist_ath": -0.12939528593508498
+          }
+        },
+        "profitability": {
+          "score": 88.9,
+          "metrics": {
+            "gross_margin": 0.75,
+            "operating_margin": 0.7408369662542017,
+            "net_margin": 0.631,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 90.3,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.1951,
+            "net_income_chg": 0.3463
+          }
+        },
+        "balance_sheet": {
+          "score": 80.2,
+          "metrics": {
+            "current_ratio": 3.905,
+            "debt_to_equity": 0.315,
+            "interest_coverage": 691.3835616438356,
+            "free_cash_flow_per_share": 1.436
+          }
+        },
+        "insider_signal": {
+          "score": 9.4,
+          "metrics": {
+            "insider_net": -319593099
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "NVO",
+      "sleeve": "watchlist",
+      "sector": "Health Care",
+      "industry": "Biotechnology",
+      "composite": 54.3,
+      "factors": {
+        "growth": {
+          "score": 48.3,
+          "metrics": {
+            "revenue_growth": 0.055591122492530946,
+            "earnings_per_share_growth": 0.3506504479397712,
+            "free_cash_flow_growth": -1.3328304442870778,
+            "operating_income_growth": 0.33969510522396834
+          }
+        },
+        "valuation": {
+          "score": 57.3,
+          "metrics": {
+            "pe": 14.037,
+            "ev_ebitda": 9.872,
+            "fcf_yield": -0.04781381609629782,
+            "peg": 0.23976784306705903
+          }
+        },
+        "momentum": {
+          "score": 31.1,
+          "metrics": {
+            "ret_3m": -0.24517796778683631,
+            "ret_6m": -0.30818297794787675,
+            "ret_12m": -0.49980234550006586,
+            "dist_ath": -0.7416105098359539
+          }
+        },
+        "profitability": {
+          "score": 81.7,
+          "metrics": {
+            "gross_margin": 0.809,
+            "operating_margin": 0.43193419589608817,
+            "net_margin": 0.34,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 78.6,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0556,
+            "net_income_chg": 0.3441
+          }
+        },
+        "balance_sheet": {
+          "score": 13.8,
+          "metrics": {
+            "current_ratio": 0.8,
+            "debt_to_equity": 1.798,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": -2.433
+          }
+        },
+        "insider_signal": {
+          "score": 92.5,
+          "metrics": {
+            "insider_net": 0
+          }
+        }
+      },
+      "flags": [
+        "drawdown_40pct"
+      ]
+    },
+    {
+      "symbol": "OKLO",
+      "sleeve": "tastytrade",
+      "sector": "Utilities",
+      "industry": "Electric Utilities",
+      "composite": 39,
+      "factors": {
+        "growth": {
+          "score": 28.2,
+          "metrics": {
+            "revenue_growth": null,
+            "earnings_per_share_growth": -0.13549949379822337,
+            "free_cash_flow_growth": -0.19273309902832333,
+            "operating_income_growth": -0.20355405293972129
+          }
+        },
+        "valuation": {
+          "score": 38.7,
+          "metrics": {
+            "pe": 39.856,
+            "ev_ebitda": -210.528,
+            "fcf_yield": -0.0014005061378082409,
+            "peg": 40.91463026855296
+          }
+        },
+        "momentum": {
+          "score": 47.1,
+          "metrics": {
+            "ret_3m": -0.4333009708737864,
+            "ret_6m": -0.29428122355217023,
+            "ret_12m": 1.437160751565762,
+            "dist_ath": -0.6648099230504192
+          }
+        },
+        "profitability": {
+          "score": 50,
+          "metrics": {
+            "gross_margin": null,
+            "operating_margin": null,
+            "net_margin": null,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 11.5,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 0,
+            "revenue_chg": null,
+            "net_income_chg": -0.2041
+          }
+        },
+        "balance_sheet": {
+          "score": 71.2,
+          "metrics": {
+            "current_ratio": 67.506,
+            "debt_to_equity": 0.034,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": -0.153
+          }
+        },
+        "insider_signal": {
+          "score": 28.3,
+          "metrics": {
+            "insider_net": -120116824
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "ORCL",
+      "sleeve": "hyperliquid",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 42.2,
+      "factors": {
+        "growth": {
+          "score": 30.5,
+          "metrics": {
+            "revenue_growth": 0.07049445759123178,
+            "earnings_per_share_growth": -0.40011197452235486,
+            "free_cash_flow_growth": -0.1522022674826929,
+            "operating_income_growth": -0.2436815785917016
+          }
+        },
+        "valuation": {
+          "score": 55.1,
+          "metrics": {
+            "pe": 25.806,
+            "ev_ebitda": 17.078,
+            "fcf_yield": -0.02748992154700984,
+            "peg": -2.8059405433192404
+          }
+        },
+        "momentum": {
+          "score": 28.9,
+          "metrics": {
+            "ret_3m": -0.2199647975861201,
+            "ret_6m": -0.4691286193442398,
+            "ret_12m": 0.050453745090071944,
+            "dist_ath": -0.5275789601924892
+          }
+        },
+        "profitability": {
+          "score": 56.2,
+          "metrics": {
+            "gross_margin": 0.646,
+            "operating_margin": 0.32553810354857476,
+            "net_margin": 0.215,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 42.1,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0705,
+            "net_income_chg": -0.3935
+          }
+        },
+        "balance_sheet": {
+          "score": 15.5,
+          "metrics": {
+            "current_ratio": 1.347,
+            "debt_to_equity": 5.356,
+            "interest_coverage": 4.742372881355932,
+            "free_cash_flow_per_share": -3.996
+          }
+        },
+        "insider_signal": {
+          "score": 100,
+          "metrics": {
+            "insider_net": 1275445986
+          }
+        }
+      },
+      "flags": [
+        "drawdown_40pct"
+      ]
+    },
+    {
+      "symbol": "PANW",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 42.1,
+      "factors": {
+        "growth": {
+          "score": 47.3,
+          "metrics": {
+            "revenue_growth": 0.04850444624090541,
+            "earnings_per_share_growth": 0.2412683957765959,
+            "free_cash_flow_growth": -0.7723770005927683,
+            "operating_income_growth": 0.3325242718446602
+          }
+        },
+        "valuation": {
+          "score": 19.6,
+          "metrics": {
+            "pe": 96.223,
+            "ev_ebitda": 52.803,
+            "fcf_yield": 0.003113141030396174,
+            "peg": 11.834454537323559
+          }
+        },
+        "momentum": {
+          "score": 39.7,
+          "metrics": {
+            "ret_3m": -0.12266232401765087,
+            "ret_6m": -0.14916704875439402,
+            "ret_12m": -0.05280172413793105,
+            "dist_ath": -0.5885439763488544
+          }
+        },
+        "profitability": {
+          "score": 52.9,
+          "metrics": {
+            "gross_margin": 0.736,
+            "operating_margin": 0.21164225134926754,
+            "net_margin": 0.167,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 76.6,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0485,
+            "net_income_chg": 0.2934
+          }
+        },
+        "balance_sheet": {
+          "score": 45.4,
+          "metrics": {
+            "current_ratio": 1.045,
+            "debt_to_equity": 1.659,
+            "interest_coverage": 2960,
+            "free_cash_flow_per_share": 0.545
+          }
+        },
+        "insider_signal": {
+          "score": 5.7,
+          "metrics": {
+            "insider_net": -391045791
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "PLTR",
+      "sleeve": "hyperliquid",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 56.4,
+      "factors": {
+        "growth": {
+          "score": 74,
+          "metrics": {
+            "revenue_growth": 0.1911028099419859,
+            "earnings_per_share_growth": 0.27385226477292707,
+            "free_cash_flow_growth": 0.5253857272916035,
+            "operating_income_growth": 0.2901834142759392
+          }
+        },
+        "valuation": {
+          "score": 11,
+          "metrics": {
+            "pe": 260.706,
+            "ev_ebitda": 252.27,
+            "fcf_yield": 0.0018034049896757762,
+            "peg": 25.41620184929292
+          }
+        },
+        "momentum": {
+          "score": 44.2,
+          "metrics": {
+            "ret_3m": -0.1951050442572252,
+            "ret_6m": -0.11946567111940742,
+            "ret_12m": 0.895880432052248,
+            "dist_ath": -0.2714065064195386
+          }
+        },
+        "profitability": {
+          "score": 87.1,
+          "metrics": {
+            "gross_margin": 0.846,
+            "operating_margin": 0.43961552514142005,
+            "net_margin": 0.433,
+            "return_on_equity": 0.07216479828333604
+          }
+        },
+        "earnings_quality": {
+          "score": 87.9,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.1911,
+            "net_income_chg": 0.2798
+          }
+        },
+        "balance_sheet": {
+          "score": 71.2,
+          "metrics": {
+            "current_ratio": 7.11,
+            "debt_to_equity": 0.191,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 0.32
+          }
+        },
+        "insider_signal": {
+          "score": 1.9,
+          "metrics": {
+            "insider_net": -450495785
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "PWR",
+      "sleeve": "watchlist",
+      "sector": "Industrials",
+      "industry": "Construction & Engineering",
+      "composite": 44.5,
+      "factors": {
+        "growth": {
+          "score": 41,
+          "metrics": {
+            "revenue_growth": 0.027588617985042866,
+            "earnings_per_share_growth": -0.07130570707951936,
+            "free_cash_flow_growth": 1.218210793569364,
+            "operating_income_growth": -0.06900501289487615
+          }
+        },
+        "valuation": {
+          "score": 65.5,
+          "metrics": {
+            "pe": 61.199,
+            "ev_ebitda": 26.825,
+            "fcf_yield": 0.01484004714638255,
+            "peg": -27.97971511737726
+          }
+        },
+        "momentum": {
+          "score": 60.7,
+          "metrics": {
+            "ret_3m": 0.19727570623888968,
+            "ret_6m": 0.46137557838600896,
+            "ret_12m": 1.2334891525830036,
+            "dist_ath": -0.023818670764502475
+          }
+        },
+        "profitability": {
+          "score": 10.5,
+          "metrics": {
+            "gross_margin": 0.155,
+            "operating_margin": 0.06302018325038626,
+            "net_margin": 0.04,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 37.1,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0276,
+            "net_income_chg": -0.0706
+          }
+        },
+        "balance_sheet": {
+          "score": 42.4,
+          "metrics": {
+            "current_ratio": 1.136,
+            "debt_to_equity": 1.779,
+            "interest_coverage": 6.524277868722606,
+            "free_cash_flow_per_share": 6.252
+          }
+        },
+        "insider_signal": {
+          "score": 50.9,
+          "metrics": {
+            "insider_net": -53312577
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "REGN",
+      "sleeve": "watchlist",
+      "sector": "Health Care",
+      "industry": "Biotechnology",
+      "composite": 51.3,
+      "factors": {
+        "growth": {
+          "score": 17.9,
+          "metrics": {
+            "revenue_growth": 0.034626961084622966,
+            "earnings_per_share_growth": -0.4166192012585674,
+            "free_cash_flow_growth": -0.3494672969731179,
+            "operating_income_growth": -0.40766296420958154
+          }
+        },
+        "valuation": {
+          "score": 76.6,
+          "metrics": {
+            "pe": 18.008,
+            "ev_ebitda": 13.977,
+            "fcf_yield": 0.011365440120450092,
+            "peg": -2.3054425469673925
+          }
+        },
+        "momentum": {
+          "score": 57.7,
+          "metrics": {
+            "ret_3m": -0.0013792179967861973,
+            "ret_6m": 0.3317321428571429,
+            "ret_12m": 0.09573764711068011,
+            "dist_ath": -0.379435161762748
+          }
+        },
+        "profitability": {
+          "score": 66.7,
+          "metrics": {
+            "gross_margin": 0.849,
+            "operating_margin": 0.2718379115928224,
+            "net_margin": 0.217,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 34.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0346,
+            "net_income_chg": -0.4215
+          }
+        },
+        "balance_sheet": {
+          "score": 89.1,
+          "metrics": {
+            "current_ratio": 4.126,
+            "debt_to_equity": 0.298,
+            "interest_coverage": 86.54918032786885,
+            "free_cash_flow_per_share": 8.943
+          }
+        },
+        "insider_signal": {
+          "score": 11.3,
+          "metrics": {
+            "insider_net": -203954143
+          }
+        }
+      },
+      "flags": [
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "RTX",
+      "sleeve": "hyperliquid",
+      "sector": "Industrials",
+      "industry": "Aerospace & Defense",
+      "composite": 46.1,
+      "factors": {
+        "growth": {
+          "score": 38.3,
+          "metrics": {
+            "revenue_growth": 0.07829878103034078,
+            "earnings_per_share_growth": -0.15573403729024232,
+            "free_cash_flow_growth": -0.2062111801242236,
+            "operating_income_growth": -0.06895319757056091
+          }
+        },
+        "valuation": {
+          "score": 70.6,
+          "metrics": {
+            "pe": 36.527,
+            "ev_ebitda": 19.324,
+            "fcf_yield": 0.012993214800411598,
+            "peg": -9.73463902711948
+          }
+        },
+        "momentum": {
+          "score": 54,
+          "metrics": {
+            "ret_3m": 0.152744899109458,
+            "ret_6m": 0.31228745588707096,
+            "ret_12m": 0.5829721362229103,
+            "dist_ath": -0.03601055806938153
+          }
+        },
+        "profitability": {
+          "score": 17.6,
+          "metrics": {
+            "gross_margin": 0.195,
+            "operating_margin": 0.10751712187474215,
+            "net_margin": 0.067,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 30.5,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0783,
+            "net_income_chg": -0.1543
+          }
+        },
+        "balance_sheet": {
+          "score": 36.9,
+          "metrics": {
+            "current_ratio": 1.026,
+            "debt_to_equity": 1.593,
+            "interest_coverage": 6.515,
+            "free_cash_flow_per_share": 2.382
+          }
+        },
+        "insider_signal": {
+          "score": 98.1,
+          "metrics": {
+            "insider_net": 48711421
+          }
+        }
+      },
+      "flags": [
+        "high_momentum"
+      ]
+    },
+    {
+      "symbol": "SNDK",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "composite": 81.9,
+      "factors": {
+        "growth": {
+          "score": 92.8,
+          "metrics": {
+            "revenue_growth": 0.3106585788561525,
+            "earnings_per_share_growth": 6.133067415412393,
+            "free_cash_flow_growth": 1.2374429223744292,
+            "operating_income_growth": 4.865853658536586
+          }
+        },
+        "valuation": {
+          "score": 85.6,
+          "metrics": {
+            "pe": -38.749,
+            "ev_ebitda": -68.33,
+            "fcf_yield": 0.02429513311939423,
+            "peg": 0.08190558354888193
+          }
+        },
+        "momentum": {
+          "score": 77.8,
+          "metrics": {
+            "ret_3m": 1.7383800339389923,
+            "ret_6m": 6.681644026471613,
+            "ret_12m": 12.658546655656483,
+            "dist_ath": -0.04872683354660607
+          }
+        },
+        "profitability": {
+          "score": 51.6,
+          "metrics": {
+            "gross_margin": 0.509,
+            "operating_margin": 0.3180165289256198,
+            "net_margin": 0.265,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 97.6,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 100,
+            "revenue_chg": 0.3107,
+            "net_income_chg": 6.1696
+          }
+        },
+        "balance_sheet": {
+          "score": 84.6,
+          "metrics": {
+            "current_ratio": 3.114,
+            "debt_to_equity": 0.273,
+            "interest_coverage": 38.48,
+            "free_cash_flow_per_share": 6.667
+          }
+        },
+        "insider_signal": {
+          "score": 79.2,
+          "metrics": {
+            "insider_net": -9161749
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "SNPS",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 40.7,
+      "factors": {
+        "growth": {
+          "score": 30,
+          "metrics": {
+            "revenue_growth": 0.06826942692672716,
+            "earnings_per_share_growth": -0.8594438454217489,
+            "free_cash_flow_growth": 0.3574402834141892,
+            "operating_income_growth": -0.6598685347826271
+          }
+        },
+        "valuation": {
+          "score": 50.3,
+          "metrics": {
+            "pe": 80.786,
+            "ev_ebitda": 33.801,
+            "fcf_yield": 0.009232031253716147,
+            "peg": -15.93919907334275
+          }
+        },
+        "momentum": {
+          "score": 39.2,
+          "metrics": {
+            "ret_3m": -0.13541884926455183,
+            "ret_6m": -0.03013280056410861,
+            "ret_12m": -0.03721592234821969,
+            "dist_ath": -0.36061052142248395
+          }
+        },
+        "profitability": {
+          "score": 30.7,
+          "metrics": {
+            "gross_margin": 0.735,
+            "operating_margin": 0.10046919666987435,
+            "net_margin": 0.027,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 38.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0683,
+            "net_income_chg": -0.8552
+          }
+        },
+        "balance_sheet": {
+          "score": 51.6,
+          "metrics": {
+            "current_ratio": 1.363,
+            "debt_to_equity": 0.546,
+            "interest_coverage": 1.4873244630181606,
+            "free_cash_flow_per_share": 4.333
+          }
+        },
+        "insider_signal": {
+          "score": 73.6,
+          "metrics": {
+            "insider_net": -15098454
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "STX",
+      "sleeve": "tastytrade",
+      "sector": "Information Technology",
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "composite": 55.7,
+      "factors": {
+        "growth": {
+          "score": 57.5,
+          "metrics": {
+            "revenue_growth": 0.07455306200076074,
+            "earnings_per_share_growth": 0.0756900790273837,
+            "free_cash_flow_growth": 0.4215456674473068,
+            "operating_income_growth": 0.12247838616714697
+          }
+        },
+        "valuation": {
+          "score": 52.3,
+          "metrics": {
+            "pe": 31.171,
+            "ev_ebitda": 23.863,
+            "fcf_yield": 0.00988494706355793,
+            "peg": 13.68108972450262
+          }
+        },
+        "momentum": {
+          "score": 76.9,
+          "metrics": {
+            "ret_3m": 0.24641871041091434,
+            "ret_6m": 0.9578039695902851,
+            "ret_12m": 3.481546367671104,
+            "dist_ath": -0.14076180665965027
+          }
+        },
+        "profitability": {
+          "score": 44.4,
+          "metrics": {
+            "gross_margin": 0.416,
+            "operating_margin": 0.2757522123893805,
+            "net_margin": 0.21,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 67,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0746,
+            "net_income_chg": 0.0801
+          }
+        },
+        "balance_sheet": {
+          "score": 35.4,
+          "metrics": {
+            "current_ratio": 1.119,
+            "debt_to_equity": 17.972,
+            "interest_coverage": 10.819444444444445,
+            "free_cash_flow_per_share": 2.81
+          }
+        },
+        "insider_signal": {
+          "score": 49.1,
+          "metrics": {
+            "insider_net": -54861366
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "TSM",
+      "sleeve": "hyperliquid",
+      "sector": "Information Technology",
+      "industry": "Semiconductors & Semiconductor Equipment",
+      "composite": 71,
+      "factors": {
+        "growth": {
+          "score": 61.3,
+          "metrics": {
+            "revenue_growth": 0.05674417977585096,
+            "earnings_per_share_growth": 0.11816093623106146,
+            "free_cash_flow_growth": 1.6469588746978592,
+            "operating_income_growth": 0.12642277370014338
+          }
+        },
+        "valuation": {
+          "score": 73.4,
+          "metrics": {
+            "pe": 28.69,
+            "ev_ebitda": 17.392,
+            "fcf_yield": 0.2341659524835878,
+            "peg": 0.2637463993438159
+          }
+        },
+        "momentum": {
+          "score": 59.8,
+          "metrics": {
+            "ret_3m": 0.10975889781859927,
+            "ret_6m": 0.304554043111094,
+            "ret_12m": 0.971618392680226,
+            "dist_ath": -0.127459830294277
+          }
+        },
+        "profitability": {
+          "score": 81,
+          "metrics": {
+            "gross_margin": 0.623,
+            "operating_margin": 0.5694873942450526,
+            "net_margin": 0.483,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 64.4,
+          "metrics": {
+            "revenue_surprise": null,
+            "eps_surprise": 100,
+            "revenue_chg": 0.0567,
+            "net_income_chg": 0.1182
+          }
+        },
+        "balance_sheet": {
+          "score": 87.2,
+          "metrics": {
+            "current_ratio": 2.618,
+            "debt_to_equity": 0.456,
+            "interest_coverage": 195.74341881746045,
+            "free_cash_flow_per_share": 71.161
+          }
+        },
+        "insider_signal": {
+          "score": 94.3,
+          "metrics": {
+            "insider_net": 0
+          }
+        }
+      },
+      "flags": [
+        "high_momentum"
+      ]
+    },
+    {
+      "symbol": "VRT",
+      "sleeve": "tastytrade",
+      "sector": "Industrials",
+      "industry": "Electrical Equipment",
+      "composite": 54.7,
+      "factors": {
+        "growth": {
+          "score": 62.3,
+          "metrics": {
+            "revenue_growth": 0.07631362583152702,
+            "earnings_per_share_growth": 0.11681383179203943,
+            "free_cash_flow_growth": 0.9132034632034632,
+            "operating_income_growth": 0.12601941747572815
+          }
+        },
+        "valuation": {
+          "score": 48.1,
+          "metrics": {
+            "pe": 46.476,
+            "ev_ebitda": 29.812,
+            "fcf_yield": 0.014269655626989048,
+            "peg": 11.900088447220622
+          }
+        },
+        "momentum": {
+          "score": 70.7,
+          "metrics": {
+            "ret_3m": 0.44900929139146983,
+            "ret_6m": 0.9199050726787303,
+            "ret_12m": 2.115657720543988,
+            "dist_ath": -0.04139820780567284
+          }
+        },
+        "profitability": {
+          "score": 35.9,
+          "metrics": {
+            "gross_margin": 0.389,
+            "operating_margin": 0.20135416666666667,
+            "net_margin": 0.155,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 53.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0763,
+            "net_income_chg": 0.1182
+          }
+        },
+        "balance_sheet": {
+          "score": 53.9,
+          "metrics": {
+            "current_ratio": 1.547,
+            "debt_to_equity": 2.099,
+            "interest_coverage": 34.724550898203596,
+            "free_cash_flow_per_share": 2.311
+          }
+        },
+        "insider_signal": {
+          "score": 54.7,
+          "metrics": {
+            "insider_net": -48262695
+          }
+        }
+      },
+      "flags": [
+        "high_momentum",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "VST",
+      "sleeve": "watchlist",
+      "sector": "Utilities",
+      "industry": "Independent Power and Renewable Electricity Producers",
+      "composite": 32.6,
+      "factors": {
+        "growth": {
+          "score": 11.5,
+          "metrics": {
+            "revenue_growth": -0.07785153892576946,
+            "earnings_per_share_growth": -0.6426434854314703,
+            "free_cash_flow_growth": -0.3262135922330097,
+            "operating_income_growth": -0.4929947460595447
+          }
+        },
+        "valuation": {
+          "score": 64.9,
+          "metrics": {
+            "pe": 72.69,
+            "ev_ebitda": 13.65,
+            "fcf_yield": 0.012696039402173067,
+            "peg": -3.650607808917514
+          }
+        },
+        "momentum": {
+          "score": 40.8,
+          "metrics": {
+            "ret_3m": -0.08963344788087058,
+            "ret_6m": -0.2420123986647592,
+            "ret_12m": 0.3470338983050847,
+            "dist_ath": -0.2706038913362702
+          }
+        },
+        "profitability": {
+          "score": 26.8,
+          "metrics": {
+            "gross_margin": 0.496,
+            "operating_margin": 0.1263089005235602,
+            "net_margin": 0.04,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 2.9,
+          "metrics": {
+            "revenue_surprise": 0,
+            "eps_surprise": 0,
+            "revenue_chg": -0.0779,
+            "net_income_chg": -0.6426
+          }
+        },
+        "balance_sheet": {
+          "score": 22.5,
+          "metrics": {
+            "current_ratio": 0.777,
+            "debt_to_equity": 7.149,
+            "interest_coverage": 2.1365313653136533,
+            "free_cash_flow_per_share": 2.05
+          }
+        },
+        "insider_signal": {
+          "score": 81.1,
+          "metrics": {
+            "insider_net": -8215729
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "WDAY",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 40,
+      "factors": {
+        "growth": {
+          "score": 36.7,
+          "metrics": {
+            "revenue_growth": 0.04111842105263158,
+            "earnings_per_share_growth": -0.41585189208763346,
+            "free_cash_flow_growth": 1.2145454545454546,
+            "operating_income_growth": -0.21893491124260356
+          }
+        },
+        "valuation": {
+          "score": 58.4,
+          "metrics": {
+            "pe": 66.653,
+            "ev_ebitda": 32.184,
+            "fcf_yield": 0.026368950106612395,
+            "peg": -7.66033505725857
+          }
+        },
+        "momentum": {
+          "score": 25,
+          "metrics": {
+            "ret_3m": -0.4059542938760935,
+            "ret_6m": -0.4042257934553919,
+            "ret_12m": -0.4389596155467498,
+            "dist_ath": -0.5667784251814719
+          }
+        },
+        "profitability": {
+          "score": 37.9,
+          "metrics": {
+            "gross_margin": 0.759,
+            "operating_margin": 0.10426540284360189,
+            "net_margin": 0.057,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 35.2,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0411,
+            "net_income_chg": -0.4246
+          }
+        },
+        "balance_sheet": {
+          "score": 54,
+          "metrics": {
+            "current_ratio": 1.322,
+            "debt_to_equity": 1.316,
+            "interest_coverage": null,
+            "free_cash_flow_per_share": 4.663
+          }
+        },
+        "insider_signal": {
+          "score": 15.1,
+          "metrics": {
+            "insider_net": -172489478
+          }
+        }
+      },
+      "flags": [
+        "pe_above_50_low_growth",
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    },
+    {
+      "symbol": "ZS",
+      "sleeve": "watchlist",
+      "sector": "Information Technology",
+      "industry": "Software",
+      "composite": 30.3,
+      "factors": {
+        "growth": {
+          "score": 11.7,
+          "metrics": {
+            "revenue_growth": 0.03506988854376028,
+            "earnings_per_share_growth": -1.9324303641737461,
+            "free_cash_flow_growth": -0.5907799736750416,
+            "operating_income_growth": -1.7336321434288458
+          }
+        },
+        "valuation": {
+          "score": 47.1,
+          "metrics": {
+            "pe": -471.623,
+            "ev_ebitda": 155.96,
+            "fcf_yield": 0.00530254163413704,
+            "peg": 4.810432308707481
+          }
+        },
+        "momentum": {
+          "score": 25,
+          "metrics": {
+            "ret_3m": -0.36483807005948454,
+            "ret_6m": -0.4570429746813094,
+            "ret_12m": -0.18894398143264068,
+            "dist_ath": -0.5427483867130579
+          }
+        },
+        "profitability": {
+          "score": 29.4,
+          "metrics": {
+            "gross_margin": 0.766,
+            "operating_margin": -0.02093408405260919,
+            "net_margin": -0.042,
+            "return_on_equity": null
+          }
+        },
+        "earnings_quality": {
+          "score": 31.8,
+          "metrics": {
+            "revenue_surprise": 100,
+            "eps_surprise": 0,
+            "revenue_chg": 0.0351,
+            "net_income_chg": -1.9541
+          }
+        },
+        "balance_sheet": {
+          "score": 32,
+          "metrics": {
+            "current_ratio": 1.901,
+            "debt_to_equity": 2.076,
+            "interest_coverage": -4.045723762141672,
+            "free_cash_flow_per_share": 1.059
+          }
+        },
+        "insider_signal": {
+          "score": 67.9,
+          "metrics": {
+            "insider_net": -21153893
+          }
+        }
+      },
+      "flags": [
+        "drawdown_40pct",
+        "insider_selling"
+      ]
+    }
+  ]
+}

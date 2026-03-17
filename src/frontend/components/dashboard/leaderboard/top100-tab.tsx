@@ -3,6 +3,8 @@ import type {
   Top100Category,
   Top100StocksSection,
   Top100StockRow,
+  Top100DraftCompareSection,
+  AihfDraftId,
 } from "@/frontend/lib/leaderboardsApi";
 import { cn } from "@/frontend/lib/utils";
 import { useEffect, useMemo, useState } from "react";
@@ -18,6 +20,17 @@ import {
 import { Top100DetailDrawer } from "./top100-detail-drawer";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTop100DetailsWithError } from "@/frontend/lib/leaderboardsApi";
+
+function fmtAgeShort(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+}
 
 function scoreClass(score?: number) {
   if (score == null) return "text-muted-foreground";
@@ -344,10 +357,12 @@ function RitualCard(props: {
 
 export function Top100Tab({
   section,
+  draftCompare,
   status,
   agentId,
 }: {
   section: Top100StocksSection | null | undefined;
+  draftCompare: Top100DraftCompareSection | null | undefined;
   status: "loading" | "ok" | "stale" | "error" | undefined;
   agentId: string;
 }) {
@@ -371,6 +386,12 @@ export function Top100Tab({
   const [sortDir, setSortDir] = useState<Top100SortDir>("asc");
   const [selectedRow, setSelectedRow] = useState<Top100StockRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [compareMode, setCompareMode] = useState<
+    "all" | "overlap" | "draftOnly" | "canonicalOnly"
+  >("all");
+  const [compareDraftFilter, setCompareDraftFilter] = useState<
+    AihfDraftId | "ALL"
+  >("ALL");
 
   const sectionRows = section?.rows ?? [];
   const topScore = section?.meta.topByComposite ?? [];
@@ -452,6 +473,30 @@ export function Top100Tab({
     return computeTop100ToolbarOptions(section?.rows ?? []);
   }, [section?.rows]);
 
+  const compareDrafts = draftCompare?.drafts ?? [];
+  const comparePresence = draftCompare?.presenceByTicker ?? {};
+  const compareFilteredPresence = useMemo(() => {
+    if (compareDraftFilter === "ALL") return comparePresence;
+    const out: typeof comparePresence = {};
+    for (const [ticker, byDraft] of Object.entries(comparePresence)) {
+      if (byDraft && byDraft[compareDraftFilter] != null) out[ticker] = byDraft;
+    }
+    return out;
+  }, [comparePresence, compareDraftFilter]);
+
+  const compareSets = useMemo(() => {
+    const canonical = new Set(
+      sectionRows.map((r) => r.ticker.toUpperCase().trim()),
+    );
+    const draft = new Set(Object.keys(compareFilteredPresence));
+    const overlap: string[] = [];
+    const draftOnly: string[] = [];
+    const canonicalOnly: string[] = [];
+    for (const t of draft) (canonical.has(t) ? overlap : draftOnly).push(t);
+    for (const t of canonical) if (!draft.has(t)) canonicalOnly.push(t);
+    return { canonical, draft, overlap, draftOnly, canonicalOnly };
+  }, [sectionRows, compareFilteredPresence]);
+
   const filteredRows = useMemo(() => {
     const baseRows =
       focusedTickers?.length && section?.rows?.length
@@ -459,8 +504,20 @@ export function Top100Tab({
             focusedTickers.includes(row.ticker.toUpperCase()),
           )
         : (section?.rows ?? []);
+    const compareFiltered =
+      compareMode === "all"
+        ? baseRows
+        : compareMode === "overlap"
+          ? baseRows.filter((r) =>
+              compareSets.draft.has(r.ticker.toUpperCase().trim()),
+            )
+          : compareMode === "draftOnly"
+            ? []
+            : baseRows.filter(
+                (r) => !compareSets.draft.has(r.ticker.toUpperCase().trim()),
+              );
     return filterAndSortTop100Rows({
-      rows: baseRows,
+      rows: compareFiltered,
       search,
       category: selectedCategory,
       sleeve: selectedSleeve,
@@ -489,7 +546,31 @@ export function Top100Tab({
     fdInsiderBuy,
     sortMode,
     sortDir,
+    compareMode,
+    compareSets.draft,
   ]);
+
+  function clearFocus() {
+    setFocusedTickers(null);
+    setActiveFocusKey(null);
+  }
+
+  function clearAllFiltersAndFocus() {
+    setSearch("");
+    setSelectedCategory("ALL");
+    setSelectedSleeve("ALL");
+    setSelectedFlag("ALL");
+    setSelectedSource("ALL");
+    setFreshOnly(false);
+    setScoredOnly(false);
+    setLiveOnly(false);
+    setFdRecent8k(false);
+    setFdInsiderBuy(false);
+    setSortMode("rank");
+    setSortDir("asc");
+    clearFocus();
+    setSelectedRow(null);
+  }
 
   function openRow(row: Top100StockRow) {
     setSelectedRow(row);
@@ -652,6 +733,19 @@ export function Top100Tab({
   const focusedSelectionIndex = selectedRow
     ? filteredRows.findIndex((row) => row.id === selectedRow.id)
     : -1;
+  const dexterGeneratedAtMs = meta.dexterScorecardGeneratedAt ?? null;
+  const dexterAgeText =
+    dexterGeneratedAtMs != null
+      ? `${fmtAgeShort(Date.now() - dexterGeneratedAtMs)} ago`
+      : null;
+  const dexterCovered =
+    typeof meta.dexterScorecardCoveredCount === "number"
+      ? meta.dexterScorecardCoveredCount
+      : null;
+  const dexterTickerCount =
+    typeof meta.dexterScorecardTickerCount === "number"
+      ? meta.dexterScorecardTickerCount
+      : null;
 
   return (
     <div className="space-y-6">
@@ -665,48 +759,59 @@ export function Top100Tab({
         </p>
         <p className="text-[11px] text-muted-foreground/70 mt-2">
           <span className="font-medium text-muted-foreground/90">
-            Data source:
+            Universe:
           </span>{" "}
-          Tickers from portfolio_hyperliquid.json, portfolio_tastytrade.json,
-          portfolio_watchlist.json. Scores and cohorts from FD snapshots +
-          synthetic scorecard (growth, valuation, momentum, profit, earnings,
-          insider).
+          Dex portfolio sleeves ·{" "}
+          <span className="font-medium text-muted-foreground/90">Ranking:</span>{" "}
+          composite + upside overlays ·{" "}
+          <span className="font-medium text-muted-foreground/90">Signals:</span>{" "}
+          filings, earnings, insiders (when available)
         </p>
         <p className="text-[11px] text-muted-foreground/80 mt-1">
           {meta.total} names ·{" "}
           {meta.byCategory.map((c) => `${c.category} (${c.count})`).join(" · ")}
         </p>
+        {(dexterAgeText || dexterCovered != null) && (
+          <p className="text-[11px] text-muted-foreground/80 mt-1">
+            <span className="font-medium text-muted-foreground/90">
+              Dexter:
+            </span>{" "}
+            {dexterCovered != null
+              ? `${dexterCovered}/${meta.total} scored`
+              : null}
+            {dexterTickerCount != null ? ` · ${dexterTickerCount} total` : null}
+            {dexterAgeText ? ` · updated ${dexterAgeText}` : null}
+          </p>
+        )}
         {status === "stale" ||
         meta.warnings?.length ||
         meta.fdSnapshotCoveragePct != null ||
         meta.fdEarningsCoveragePct != null ? (
           <div className="mt-2 text-[11px] text-muted-foreground/90">
             {(status === "stale" || meta.warnings?.length) && (
-              <>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border/60 bg-muted/40 font-medium">
-                  Partial coverage
-                </span>
-                {meta.scoredCoveragePct != null ||
-                meta.quoteCoveragePct != null ||
-                meta.historyCoveragePct != null ||
-                meta.marketCapCoveragePct != null ? (
-                  <span className="ml-2">
-                    {meta.scoredCoveragePct != null
-                      ? `Score ${meta.scoredCoveragePct.toFixed(0)}%`
-                      : null}
-                    {meta.quoteCoveragePct != null
-                      ? ` · Quote ${meta.quoteCoveragePct.toFixed(0)}%`
-                      : null}
-                    {meta.historyCoveragePct != null
-                      ? ` · Hist ${meta.historyCoveragePct.toFixed(0)}%`
-                      : null}
-                    {meta.marketCapCoveragePct != null
-                      ? ` · MCap ${meta.marketCapCoveragePct.toFixed(0)}%`
-                      : null}
-                  </span>
-                ) : null}
-              </>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 font-medium text-amber-700 dark:text-amber-300">
+                Coverage limited
+              </span>
             )}
+            {meta.scoredCoveragePct != null ||
+            meta.quoteCoveragePct != null ||
+            meta.historyCoveragePct != null ||
+            meta.marketCapCoveragePct != null ? (
+              <span className="ml-2">
+                {meta.scoredCoveragePct != null
+                  ? `Score ${meta.scoredCoveragePct.toFixed(0)}%`
+                  : null}
+                {meta.quoteCoveragePct != null
+                  ? ` · Quotes ${meta.quoteCoveragePct.toFixed(0)}%`
+                  : null}
+                {meta.historyCoveragePct != null
+                  ? ` · History ${meta.historyCoveragePct.toFixed(0)}%`
+                  : null}
+                {meta.marketCapCoveragePct != null
+                  ? ` · MCap ${meta.marketCapCoveragePct.toFixed(0)}%`
+                  : null}
+              </span>
+            ) : null}
             {meta.fdSnapshotCoveragePct != null ||
             meta.fdEarningsCoveragePct != null ||
             meta.fdInsiderCoveragePct != null ||
@@ -727,8 +832,18 @@ export function Top100Tab({
                   : null}
               </span>
             ) : null}
+
             {meta.warnings?.length ? (
-              <div className="mt-1">{meta.warnings.slice(0, 2).join(" ")}</div>
+              <details className="mt-2 rounded-xl border border-border/50 bg-muted/10 px-3 py-2">
+                <summary className="cursor-pointer select-none text-[11px] font-medium text-foreground/80">
+                  Data quality details
+                </summary>
+                <div className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                  {meta.warnings.map((w) => (
+                    <div key={w}>- {w}</div>
+                  ))}
+                </div>
+              </details>
             ) : null}
           </div>
         ) : null}
@@ -763,78 +878,450 @@ export function Top100Tab({
         onSortModeChange={setSortMode}
         sortDir={sortDir}
         onSortDirChange={setSortDir}
+        onReset={() => {
+          clearFocus();
+          setSelectedRow(null);
+        }}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-        <div className="space-y-6">
-          <DashboardCard
-            title="Composite rankings (command center)"
-            subtitle={`${filteredRows.length} names in current view`}
-            addon={
-              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
-                {sortMode} {sortDir}
+      {(search.trim() ||
+        selectedCategory !== "ALL" ||
+        selectedSleeve !== "ALL" ||
+        selectedFlag !== "ALL" ||
+        selectedSource !== "ALL" ||
+        freshOnly ||
+        scoredOnly ||
+        liveOnly ||
+        fdRecent8k ||
+        fdInsiderBuy ||
+        focusedTickers?.length) && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+            Active filters
+          </span>
+
+          {focusedTickers?.length ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] text-primary hover:bg-primary/15"
+              onClick={() => clearFocus()}
+              title="Clear focus"
+            >
+              Focused
+              <span className="font-mono text-[10px] text-primary/80">
+                {activeFocusLabel ?? `${focusedTickers.length} tickers`}
               </span>
-            }
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {search.trim() ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setSearch("")}
+              title="Clear search"
+            >
+              Search
+              <span className="font-mono text-[10px] text-foreground/70">
+                {search.trim().slice(0, 24)}
+                {search.trim().length > 24 ? "…" : ""}
+              </span>
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {selectedCategory !== "ALL" ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setSelectedCategory("ALL")}
+            >
+              Category{" "}
+              <span className="text-foreground/70">{selectedCategory}</span>
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {selectedSleeve !== "ALL" ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setSelectedSleeve("ALL")}
+            >
+              Sleeve{" "}
+              <span className="text-foreground/70">{selectedSleeve}</span>
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {selectedSource !== "ALL" ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setSelectedSource("ALL")}
+            >
+              Source{" "}
+              <span className="text-foreground/70">{selectedSource}</span>
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {selectedFlag !== "ALL" ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setSelectedFlag("ALL")}
+            >
+              Tag <span className="text-foreground/70">{selectedFlag}</span>
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {freshOnly ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setFreshOnly(false)}
+            >
+              Fresh quotes{" "}
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {scoredOnly ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setScoredOnly(false)}
+            >
+              Scored only{" "}
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {liveOnly ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setLiveOnly(false)}
+            >
+              Live overlay{" "}
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {fdRecent8k ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setFdRecent8k(false)}
+            >
+              Recent 8-K{" "}
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          {fdInsiderBuy ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/20"
+              onClick={() => setFdInsiderBuy(false)}
+            >
+              Insider buy{" "}
+              <span className="font-mono text-[11px] leading-none">×</span>
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            className="ml-1 h-8 rounded-lg border border-border/60 bg-background/70 px-3 text-xs text-muted-foreground hover:bg-muted/30"
+            onClick={() => clearAllFiltersAndFocus()}
           >
+            Clear all
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <DashboardCard
+          title="Composite rankings (command center)"
+          subtitle={`${filteredRows.length} names in current view`}
+          addon={
+            <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+              {sortMode} {sortDir}
+            </span>
+          }
+        >
+          {filteredRows.length ? (
             <Top100Table
               rows={filteredRows}
+              draftPresence={draftCompare?.presenceByTicker ?? null}
               selectedRowId={selectedRow?.id ?? null}
               onRowClick={(r) => {
                 setSelectedRow(r);
                 setDrawerOpen(true);
               }}
             />
-          </DashboardCard>
-        </div>
-
-        <div className="space-y-6">
-          <TopList
-            title="Top 10 by composite"
-            rows={topScore}
-            onSelectRow={openRow}
-            selectedRowId={selectedRow?.id ?? null}
-          />
-          {meta.highestUpside?.length ? (
-            <DashboardCard title="Highest upside (Street PT)">
-              <div className="space-y-1 text-xs">
-                {meta.highestUpside.slice(0, 10).map((h) => (
-                  <div
-                    key={h.ticker}
-                    className="flex items-baseline justify-between"
+          ) : (
+            <div className="rounded-xl border border-border/60 bg-muted/10 px-4 py-6 text-sm">
+              <div className="font-medium text-foreground/85">
+                No matches in the current view
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Clear filters or turn off focus to see the full list.
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="h-8 rounded-lg border border-border/60 bg-background/80 px-3 text-xs text-muted-foreground hover:bg-muted/30"
+                  onClick={() => {
+                    setSearch("");
+                    setSelectedCategory("ALL");
+                    setSelectedSleeve("ALL");
+                    setSelectedFlag("ALL");
+                    setSelectedSource("ALL");
+                    setFreshOnly(false);
+                    setScoredOnly(false);
+                    setLiveOnly(false);
+                    setFdRecent8k(false);
+                    setFdInsiderBuy(false);
+                    setSortMode("rank");
+                    setSortDir("asc");
+                    setSelectedRow(null);
+                  }}
+                >
+                  Clear filters
+                </button>
+                {focusedTickers?.length ? (
+                  <button
+                    type="button"
+                    className="h-8 rounded-lg border border-border/60 bg-background/80 px-3 text-xs text-muted-foreground hover:bg-muted/30"
+                    onClick={() => clearFocus()}
                   >
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold">{h.ticker}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {h.sector}
+                    Clear focus
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          )}
+        </DashboardCard>
+
+        {compareDrafts.length ? (
+          <DashboardCard
+            title="AIHF drafts (compare layer)"
+            subtitle="Staging inputs for research. Does not change canonical membership, ranks, or scores."
+            addon={
+              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                {compareDrafts.length} drafts
+              </span>
+            }
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-xl border border-border/50 bg-background/60 p-1">
+                {(
+                  [
+                    ["all", "All"],
+                    ["overlap", "Only overlap"],
+                    ["canonicalOnly", "Only canonical"],
+                    ["draftOnly", "Only in draft"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setCompareMode(key)}
+                    className={cn(
+                      "h-8 rounded-lg px-3 text-xs",
+                      compareMode === key
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted/30",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+                  Draft
+                </span>
+                <select
+                  value={compareDraftFilter}
+                  onChange={(e) =>
+                    setCompareDraftFilter(e.target.value as AihfDraftId | "ALL")
+                  }
+                  className="h-8 rounded-lg border border-border/60 bg-background/70 px-2 text-xs text-muted-foreground"
+                >
+                  <option value="ALL">All drafts</option>
+                  {compareDrafts.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {compareMode === "draftOnly" ? (
+              <div className="mt-4 rounded-xl border border-border/60 bg-muted/10 px-4 py-5 text-sm">
+                <div className="font-medium text-foreground/85">
+                  Draft-only names are not shown in the canonical table
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Draft-only count:{" "}
+                  <span className="font-mono">
+                    {compareSets.draftOnly.length}
+                  </span>
+                  . Use this as a “what should we track next?” staging list.
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+              {compareDrafts.map((d) => (
+                <DashboardCard
+                  key={d.id}
+                  className="border-border/50 bg-background/60 shadow-none"
+                  title={d.label}
+                  subtitle={`${d.overlapCount}/${d.canonicalOnlyCount + d.overlapCount} overlap · ${d.draftOnlyCount} only in draft`}
+                  addon={
+                    <span className="rounded-full border border-border/60 bg-muted/20 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                      {d.assetCount} assets
+                    </span>
+                  }
+                >
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Total weight
+                      </div>
+                      <div className="mt-0.5 font-mono text-[12px] text-foreground/85">
+                        {d.totalTargetWeightPct.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Model
+                      </div>
+                      <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                        {d.modelProvider ? `${d.modelProvider} · ` : ""}
+                        {d.modelName ?? "—"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {d.topWeights.length ? (
+                    <div className="mt-3">
+                      <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+                        Top weights
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {d.topWeights.map((w) => (
+                          <span
+                            key={w.symbol}
+                            className="rounded-full border border-border/60 bg-muted/20 px-2 py-0.5 text-[10px] font-mono text-muted-foreground"
+                          >
+                            {w.symbol} {w.targetWeightPct.toFixed(1)}%
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </DashboardCard>
+              ))}
+            </div>
+
+            {draftCompare?.errors?.length ? (
+              <div className="mt-4 rounded-xl border border-border/60 bg-muted/10 px-4 py-3 text-xs text-muted-foreground">
+                <div className="font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+                  Draft load warnings
+                </div>
+                <div className="mt-1 space-y-1">
+                  {draftCompare.errors.slice(0, 3).map((e) => (
+                    <div key={`${e.id}-${e.path}`} className="font-mono">
+                      {e.id}: {e.error}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </DashboardCard>
+        ) : null}
+
+        <div className="rounded-2xl border border-border/50 bg-muted/10 p-3 sm:p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold text-foreground/85">
+                Leaders
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Quick scans from the same dataset as the table
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <TopList
+              title="Top 10 by composite"
+              rows={topScore}
+              onSelectRow={openRow}
+              selectedRowId={selectedRow?.id ?? null}
+            />
+            {meta.highestUpside?.length ? (
+              <DashboardCard title="Highest upside (Street PT)">
+                <div className="space-y-1 text-xs">
+                  {meta.highestUpside.slice(0, 10).map((h) => (
+                    <div
+                      key={h.ticker}
+                      className="flex items-baseline justify-between"
+                    >
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold">{h.ticker}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {h.sector}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                        {h.upside}
                       </span>
                     </div>
-                    <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
-                      {h.upside}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </DashboardCard>
-          ) : null}
-          {meta.sleeveAverages && (
-            <DashboardCard title="Sleeve averages">
-              <div className="space-y-1 text-xs">
-                {Object.entries(meta.sleeveAverages).map(([key, val]) => (
-                  <div
-                    key={key}
-                    className="flex items-baseline justify-between"
-                  >
-                    <span className="capitalize text-muted-foreground">
-                      {key}
-                    </span>
-                    <span className={cn("font-mono", scoreClass(val ?? 0))}>
-                      {(val ?? 0).toFixed(1)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </DashboardCard>
-          )}
+                  ))}
+                </div>
+              </DashboardCard>
+            ) : (
+              <DashboardCard title="Highest upside (Street PT)">
+                <div className="text-xs text-muted-foreground">
+                  Not enough price target coverage yet.
+                </div>
+              </DashboardCard>
+            )}
+            {meta.sleeveAverages ? (
+              <DashboardCard title="Sleeve averages">
+                <div className="space-y-1 text-xs">
+                  {Object.entries(meta.sleeveAverages).map(([key, val]) => (
+                    <div
+                      key={key}
+                      className="flex items-baseline justify-between"
+                    >
+                      <span className="capitalize text-muted-foreground">
+                        {key}
+                      </span>
+                      <span className={cn("font-mono", scoreClass(val ?? 0))}>
+                        {(val ?? 0).toFixed(1)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </DashboardCard>
+            ) : (
+              <DashboardCard title="Sleeve averages">
+                <div className="text-xs text-muted-foreground">
+                  Not enough score coverage yet.
+                </div>
+              </DashboardCard>
+            )}
+          </div>
         </div>
       </div>
 

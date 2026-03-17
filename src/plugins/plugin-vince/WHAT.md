@@ -81,3 +81,78 @@ VINCE runs on **free** sources by default (Binance, Deribit, DexScreener, Hyperl
 - **ML improvement, tuning, and proof:** [IMPROVEMENT_WEIGHTS_AND_TUNING.md](./IMPROVEMENT_WEIGHTS_AND_TUNING.md), [ML_IMPROVEMENT_PROOF.md](./ML_IMPROVEMENT_PROOF.md).
 - **Why ElizaOS (and trade-offs):** [WHY.md](./WHY.md).
 - **Cost coverage and profitability context:** [TREASURY.md](../../docs/TREASURY.md) (project root).
+
+---
+
+## Dexter as Portfolio Authority (VINCE consumes)
+
+VINCE is the **monitoring layer**. Dexter is the **portfolio construction + scorecard authority**.
+
+In this repo, we treat these root artifacts as the canonical portfolio inputs published by Dexter:
+
+- `portfolio_watchlist.json`
+- `portfolio_tastytrade.json`
+- `portfolio_hyperliquid.json`
+- `scorecard.json`
+
+Operational boundary:
+
+- **VINCE can propose** new names and enrich them with live overlays (quotes, filings, insiders, momentum).
+- **Dexter promotes** names into the canonical portfolio files and republishes `scorecard.json`.
+
+Discovery funnel:
+
+- `portfolio_watchlist_candidates.json` is a **staging inbox** for names surfaced by VINCE (often from X/news/filings). It is _not_ the active watchlist.
+- Once Dexter approves a candidate, it gets promoted into `portfolio_watchlist.json` (and later into sleeves).
+
+---
+
+## AIHF portfolio drafts (compare only)
+
+We may also copy AI Hedge Fund (AIHF) draft artifacts into this repo for **comparison inside the Top100 tab**:
+
+- `portfolio_draft_top100.json`
+- `portfolio_draft_tastytrade_full.json`
+- `portfolio_draft_hyperliquid_full.json`
+
+Guardrails:
+
+- These drafts are **staging/compare inputs** only.
+- They can annotate **overlap** (and suggested target weights) on existing canonical Top100 rows.
+- They do **not** redefine canonical Top100 membership, rank, sleeves, score coverage, score provenance, or history.
+
+---
+
+## Dexter cache import (cost + reuse)
+
+Dexter may publish a local `cache_dexter/` folder (gitignored) with historical API responses to reduce re-fetching and cost.
+
+In VINCE:
+
+- `cache_dexter/` is **staging only**. Readers do not use it directly.
+- `.elizadb/financialdatasets-cache/` is the **canonical runtime cache** consumed by Top100, FD snapshots, and discovery.
+
+Import path:
+
+- When `VINCE_DEXTER_CACHE_IMPORT=true`, the weekly discovery task will import supported `cache_dexter/` domains into `.elizadb/financialdatasets-cache/` before building snapshots.
+- The importer is deterministic and file-based (no API calls). It only writes when the source cache file is newer than the destination.
+
+Supported imported domains (today):
+
+- `cache_dexter/prices` → `.elizadb/financialdatasets-cache/prices` (FD daily envelopes)
+- `cache_dexter/company_facts` → `.elizadb/financialdatasets-cache/company-facts` (per-ticker facts)
+- `cache_dexter/earnings` → `.elizadb/financialdatasets-cache/earnings`
+- `cache_dexter/insider-trades` → `.elizadb/financialdatasets-cache/insiders`
+
+Note: `cache_aifh/` (AI hedge fund cache) is typically hash-keyed blobs without ticker/query metadata. VINCE does not import it unless it also ships an index/manifest that maps cache keys back to tickers and date ranges.
+
+Recommended index format:
+
+- Write `cache_aifh/index.jsonl` where each line includes:
+  - `key` (filename without `.json`)
+  - `kind` (e.g. `prices`, `company_news`, `line_items`)
+  - `endpoint` (e.g. `/prices/`)
+  - `params` (must include `ticker` when applicable)
+  - optional `startDate`, `endDate`, `expiresAt`
+
+A tiny Python helper to generate this at cache-write time lives at `scripts/aifh-cache-index-writer.py`.

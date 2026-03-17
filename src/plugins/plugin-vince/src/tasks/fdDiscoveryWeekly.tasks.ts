@@ -66,6 +66,15 @@ export async function runFdDiscoveryNow(
   let lastRefreshEnriched: number | undefined;
   if (fd) {
     try {
+      const shouldImportDexterCache =
+        process.env.VINCE_DEXTER_CACHE_IMPORT === "true" ||
+        process.env.VINCE_DEXTER_CACHE_IMPORT === "1";
+      if (shouldImportDexterCache) {
+        const importResult = fd.importDexterCache(projectRoot);
+        logger.info(
+          `[FdDiscoveryWeekly] Imported Dexter cache → FD warehouse: prices ${importResult.imported.prices}/${importResult.skipped.prices} skipped, earnings ${importResult.imported.earnings}/${importResult.skipped.earnings} skipped, insiders ${importResult.imported.insiders}/${importResult.skipped.insiders} skipped, company-facts ${importResult.imported["company-facts"]}/${importResult.skipped["company-facts"]} skipped`,
+        );
+      }
       if (universeMode !== "sleeve") {
         const tickers = getCandidateUniverseForMode(universeMode, projectRoot);
         if (tickers.length > 0) {

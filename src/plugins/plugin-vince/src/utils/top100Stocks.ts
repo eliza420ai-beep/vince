@@ -24,6 +24,10 @@ export interface Top100StockRow {
   rank?: number;
   /** Composite score from scorecard (0–100) */
   composite?: number;
+  /** Where the composite/factors came from (Dexter is canonical when available). */
+  scoreSource?: "dexter" | "editorial" | "synthetic";
+  /** When the score source was generated (ms). */
+  scoreGeneratedAt?: number;
   /** Sleeve from scorecard: tastytrade | hyperliquid | watchlist */
   sleeve?: string;
   /** Human-readable scorecard flags (high_momentum, insider_selling, etc.) */
@@ -128,6 +132,10 @@ export interface Top100Meta {
     hyperliquid?: number;
     watchlist?: number;
   };
+  /** Dexter scorecard freshness + coverage (canonical when present). */
+  dexterScorecardGeneratedAt?: number | null;
+  dexterScorecardTickerCount?: number;
+  dexterScorecardCoveredCount?: number;
   /** Percent of rows with composite score present. */
   scoredCoveragePct?: number;
   /** Percent of rows with price or 1D change available. */

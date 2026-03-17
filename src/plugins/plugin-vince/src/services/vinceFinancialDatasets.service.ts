@@ -31,6 +31,11 @@ import {
   FD_REFRESH_POLICY_MS,
   FD_WAREHOUSE_DOMAINS,
 } from "./vinceFinancialDatasets.types";
+import {
+  getDexterCacheDomainsPresent,
+  importDexterCacheToVinceFdWarehouse,
+  type DexterCacheImportResult,
+} from "../utils/dexterCacheImport";
 
 const BASE_URL = "https://api.financialdatasets.ai";
 
@@ -89,6 +94,28 @@ export class VinceFinancialDatasetsService extends Service {
   /** Cache root: .elizadb/financialdatasets-cache */
   getCacheRoot(projectRoot: string = process.cwd()): string {
     return path.join(projectRoot, ".elizadb", "financialdatasets-cache");
+  }
+
+  /**
+   * Harvest the copied Dexter cache/ folder into VINCE's canonical FD warehouse.
+   * This is a local file import (no API calls) that preserves existing readers.
+   */
+  importDexterCache(
+    projectRoot: string = process.cwd(),
+    options?: {
+      sourceRoot?: string;
+      domains?: Array<"prices" | "company-facts" | "earnings" | "insiders">;
+    },
+  ): DexterCacheImportResult {
+    return importDexterCacheToVinceFdWarehouse(projectRoot, options);
+  }
+
+  /** Convenience: list which Dexter cache domains are present. */
+  getDexterCacheStatus(
+    projectRoot: string = process.cwd(),
+    sourceRoot?: string,
+  ): Array<{ domain: string; path: string; fileCount: number }> {
+    return getDexterCacheDomainsPresent(projectRoot, sourceRoot);
   }
 
   /** Domain subdir, e.g. prices, fundamentals, earnings, filings, insiders, snapshots */

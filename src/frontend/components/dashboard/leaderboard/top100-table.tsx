@@ -1,4 +1,7 @@
-import type { Top100StockRow } from "@/frontend/lib/leaderboardsApi";
+import type {
+  AihfDraftId,
+  Top100StockRow,
+} from "@/frontend/lib/leaderboardsApi";
 import { cn } from "@/frontend/lib/utils";
 import { getFdBadges } from "./top100-utils";
 
@@ -58,6 +61,27 @@ function fmtMcap(v?: number) {
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
   if (v >= 1e12) return `${(v / 1e12).toFixed(2)}T`;
   return `${(v / 1e9).toFixed(1)}B`;
+}
+
+function draftChipLabel(id: AihfDraftId): string {
+  if (id === "aihf_top100") return "AIHF Top100";
+  if (id === "aihf_tastytrade_full") return "AIHF Tastytrade";
+  return "AIHF Hyperliquid";
+}
+
+function DraftChip({ id, weight }: { id: AihfDraftId; weight?: number }) {
+  return (
+    <span
+      className="inline-flex items-center rounded border border-border/50 bg-muted/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
+      title={
+        typeof weight === "number"
+          ? `${draftChipLabel(id)} · target ${weight.toFixed(2)}%`
+          : draftChipLabel(id)
+      }
+    >
+      {draftChipLabel(id)}
+    </span>
+  );
 }
 
 function historyCue(row: Top100StockRow): string | null {
@@ -190,10 +214,12 @@ export function Top100Table({
   rows,
   onRowClick,
   selectedRowId,
+  draftPresence,
 }: {
   rows: Top100StockRow[];
   onRowClick?: (row: Top100StockRow) => void;
   selectedRowId?: string | null;
+  draftPresence?: Record<string, Partial<Record<AihfDraftId, number>>> | null;
 }) {
   if (!rows.length) return null;
   return (
@@ -201,8 +227,12 @@ export function Top100Table({
       <table className="w-full text-xs">
         <thead className="bg-muted/50">
           <tr>
-            <th className="text-left py-2 px-3 w-10">#</th>
-            <th className="text-left py-2 px-3">Ticker</th>
+            <th className="text-left py-2 px-3 w-10 sticky left-0 z-20 bg-muted/50 border-r border-border/30">
+              #
+            </th>
+            <th className="text-left py-2 px-3 sticky left-10 z-20 bg-muted/50 border-r border-border/30">
+              Ticker
+            </th>
             <th className="text-left py-2 px-3 hidden sm:table-cell">
               Company
             </th>
@@ -235,11 +265,23 @@ export function Top100Table({
                 onRowClick ? "cursor-pointer" : null,
               )}
               onClick={() => onRowClick?.(r)}
+              tabIndex={onRowClick ? 0 : -1}
+              role={onRowClick ? "button" : undefined}
+              aria-label={
+                onRowClick ? `Open details for ${r.ticker}` : undefined
+              }
+              onKeyDown={(e) => {
+                if (!onRowClick) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onRowClick(r);
+                }
+              }}
             >
-              <td className="py-1.5 px-3 text-muted-foreground font-mono">
+              <td className="py-1.5 px-3 text-muted-foreground font-mono sticky left-0 z-10 bg-background/95 border-r border-border/20">
                 {r.rank ?? "—"}
               </td>
-              <td className="py-1.5 px-3 font-semibold">
+              <td className="py-1.5 px-3 font-semibold sticky left-10 z-10 bg-background/95 border-r border-border/20">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span>{r.ticker}</span>
@@ -249,6 +291,22 @@ export function Top100Table({
                       </span>
                     ) : null}
                     <SourcePill src={r.quoteSource} stale={r.quoteStale} />
+                    {(() => {
+                      const byDraft =
+                        draftPresence?.[r.ticker.toUpperCase().trim()];
+                      if (!byDraft) return null;
+                      const entries = Object.entries(byDraft).filter(
+                        ([, v]) => typeof v === "number" && Number.isFinite(v),
+                      ) as Array<[AihfDraftId, number]>;
+                      if (!entries.length) return null;
+                      return (
+                        <span className="hidden lg:inline-flex items-center gap-1.5">
+                          {entries.slice(0, 3).map(([id, w]) => (
+                            <DraftChip key={id} id={id} weight={w} />
+                          ))}
+                        </span>
+                      );
+                    })()}
                     {r.strategicLayer ? (
                       <span
                         className="inline-flex items-center rounded border border-border/50 bg-muted/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
@@ -262,6 +320,15 @@ export function Top100Table({
                       <span className="inline-flex items-center rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
                         top10
                       </span>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-normal text-muted-foreground sm:hidden">
+                    <span className="font-mono">
+                      ${fmtPrice(r.priceLive, r.price)}
+                    </span>
+                    <span className="font-mono">{fmtPct(r.change1dPct)}</span>
+                    {typeof r.marketCap === "number" ? (
+                      <span className="font-mono">{fmtMcap(r.marketCap)}</span>
                     ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-[10px] font-normal text-muted-foreground">

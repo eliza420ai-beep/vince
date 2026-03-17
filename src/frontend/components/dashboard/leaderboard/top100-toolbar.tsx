@@ -9,6 +9,7 @@ import type {
 export function Top100Toolbar(props: {
   search: string;
   onSearchChange: (v: string) => void;
+  onReset?: () => void;
 
   category: Top100Category | "ALL";
   categories: Top100Category[];
@@ -230,6 +231,7 @@ export function Top100Toolbar(props: {
                 props.onFdInsiderBuyChange(false);
                 props.onSortModeChange("rank");
                 props.onSortDirChange("asc");
+                props.onReset?.();
               }}
             >
               Reset

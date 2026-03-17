@@ -39,6 +39,7 @@ import {
   type DiscoveryResolvedOutcome,
 } from "../utils/fdDiscoveryOutcomes";
 import { buildTop100StocksSection } from "../utils/top100Enrichment";
+import { loadAihfPortfolioDrafts } from "../utils/aihfPortfolioDrafts";
 import {
   getFdReplayRows,
   getFdReplayRowsForUniverse,
@@ -320,6 +321,34 @@ export interface Top100StocksSection {
   meta: import("../utils/top100Stocks").Top100Meta;
 }
 
+export type AihfDraftId =
+  | "aihf_top100"
+  | "aihf_tastytrade_full"
+  | "aihf_hyperliquid_full";
+
+export interface Top100DraftCompareDraft {
+  id: AihfDraftId;
+  label: string;
+  sleeve: string | null;
+  paramsProfile: string | null;
+  modelName: string | null;
+  modelProvider: string | null;
+  marginRequirement: number | null;
+  assetCount: number;
+  totalTargetWeightPct: number;
+  overlapCount: number;
+  draftOnlyCount: number;
+  canonicalOnlyCount: number;
+  topWeights: Array<{ symbol: string; targetWeightPct: number }>;
+}
+
+export interface Top100DraftCompareSection {
+  drafts: Top100DraftCompareDraft[];
+  canonicalCount: number;
+  presenceByTicker: Record<string, Partial<Record<AihfDraftId, number>>>;
+  errors?: Array<{ id: AihfDraftId; path: string; error: string }>;
+}
+
 export type SectionStatus = "loading" | "ok" | "stale" | "error";
 
 /** Forge Ops: deterministic replay gates and metrics for the Leaderboard card. */
@@ -459,6 +488,8 @@ export interface LeaderboardsResponse {
   more: MoreLeaderboardSection | null;
   /** VINCE Top100 stocks view (curated AI-infrastructure bench) */
   top100Stocks?: Top100StocksSection | null;
+  /** AIHF portfolio drafts: compare/staging layer for Top100 (does not change canonical rows) */
+  top100DraftCompare?: Top100DraftCompareSection | null;
   /** Top100 section status for UI hints */
   top100Status?: SectionStatus;
   chartTickers?: {
@@ -1886,6 +1917,74 @@ export async function buildLeaderboardsResponse(
   const top100Built = buildTop100StocksSection({ projectRoot, hip3 });
   const top100 = top100Built.section;
   const top100Status = top100Built.status as SectionStatus;
+
+  // AIHF portfolio drafts: compare layer (non-canonical)
+  let top100DraftCompare: Top100DraftCompareSection | null = null;
+  try {
+    const loaded = loadAihfPortfolioDrafts(projectRoot);
+    if (loaded.drafts.length) {
+      const canonicalTickers = new Set(
+        (top100?.rows ?? []).map((r) => r.ticker.toUpperCase().trim()),
+      );
+      const canonicalCount = canonicalTickers.size;
+      const presenceByTicker: Record<
+        string,
+        Partial<Record<AihfDraftId, number>>
+      > = {};
+
+      const drafts: Top100DraftCompareDraft[] = loaded.drafts.map((d) => {
+        const draftTickers = new Set(d.assets.map((a) => a.symbol));
+        let overlapCount = 0;
+        for (const t of draftTickers)
+          if (canonicalTickers.has(t)) overlapCount++;
+        const draftOnlyCount = Math.max(0, draftTickers.size - overlapCount);
+        const canonicalOnlyCount = Math.max(0, canonicalCount - overlapCount);
+
+        const totalTargetWeightPct = d.assets.reduce(
+          (sum, a) => sum + a.targetWeightPct,
+          0,
+        );
+        const topWeights = [...d.assets]
+          .sort((a, b) => b.targetWeightPct - a.targetWeightPct)
+          .slice(0, 8)
+          .map((a) => ({
+            symbol: a.symbol,
+            targetWeightPct: a.targetWeightPct,
+          }));
+
+        for (const a of d.assets) {
+          const key = a.symbol;
+          presenceByTicker[key] = presenceByTicker[key] ?? {};
+          presenceByTicker[key]![d.id] = a.targetWeightPct;
+        }
+
+        return {
+          id: d.id,
+          label: d.label,
+          sleeve: d.sleeve,
+          paramsProfile: d.paramsProfile,
+          modelName: d.modelName,
+          modelProvider: d.modelProvider,
+          marginRequirement: d.marginRequirement,
+          assetCount: d.assets.length,
+          totalTargetWeightPct,
+          overlapCount,
+          draftOnlyCount,
+          canonicalOnlyCount,
+          topWeights,
+        };
+      });
+
+      top100DraftCompare = {
+        drafts,
+        canonicalCount,
+        presenceByTicker,
+        ...(loaded.errors.length ? { errors: loaded.errors } : {}),
+      };
+    }
+  } catch {
+    // leave null on error
+  }
   let fdDiscovery: FdDiscoverySection | null = null;
   let fdDiscoveryError: string | null = null;
   try {
@@ -1993,6 +2092,7 @@ export async function buildLeaderboardsResponse(
     digitalArt,
     more,
     top100Stocks: top100,
+    top100DraftCompare,
     top100Status,
     chartTickers,
     fdCache,

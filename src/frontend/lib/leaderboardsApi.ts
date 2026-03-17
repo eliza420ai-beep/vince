@@ -251,6 +251,10 @@ export interface Top100StockRow {
   category: Top100Category;
   rank?: number;
   composite?: number;
+  /** Where the composite/factors came from (Dexter is canonical when available). */
+  scoreSource?: "dexter" | "editorial" | "synthetic";
+  /** When the score source was generated (ms). */
+  scoreGeneratedAt?: number;
   sleeve?: string;
   flags?: string[];
   /** Strategic layer from TOP100 essay (Layer 1–6). */
@@ -360,6 +364,10 @@ export interface Top100Meta {
     hyperliquid?: number;
     watchlist?: number;
   };
+  /** Dexter scorecard freshness + coverage (canonical when present). */
+  dexterScorecardGeneratedAt?: number | null;
+  dexterScorecardTickerCount?: number;
+  dexterScorecardCoveredCount?: number;
   scoredCoveragePct?: number;
   quoteCoveragePct?: number;
   historyCoveragePct?: number;
@@ -420,6 +428,8 @@ export interface LeaderboardsResponse {
   more: MoreLeaderboardSection | null;
   /** VINCE Top100 stocks view (curated AI-infrastructure bench) */
   top100Stocks?: Top100StocksSection | null;
+  /** AIHF portfolio drafts: compare/staging layer for Top100 (does not change canonical rows) */
+  top100DraftCompare?: Top100DraftCompareSection | null;
   /** Top100 section status for UI hints */
   top100Status?: "loading" | "ok" | "stale" | "error";
   chartTickers?: {
@@ -459,6 +469,36 @@ export interface LeaderboardsResponse {
   /** Forge Ops: replay gates and metrics for the Leaderboard card */
   forgeOps?: ForgeOpsSection | null;
   forgeOpsStatus?: "loading" | "ok" | "stale" | "error";
+}
+
+export type AihfDraftId =
+  | "aihf_top100"
+  | "aihf_tastytrade_full"
+  | "aihf_hyperliquid_full";
+
+export interface Top100DraftCompareDraft {
+  id: AihfDraftId;
+  label: string;
+  sleeve: string | null;
+  paramsProfile: string | null;
+  modelName: string | null;
+  modelProvider: string | null;
+  marginRequirement: number | null;
+  assetCount: number;
+  totalTargetWeightPct: number;
+  overlapCount: number;
+  draftOnlyCount: number;
+  canonicalOnlyCount: number;
+  topWeights: Array<{ symbol: string; targetWeightPct: number }>;
+}
+
+export interface Top100DraftCompareSection {
+  drafts: Top100DraftCompareDraft[];
+  canonicalCount: number;
+  /** ticker -> map of draftId -> targetWeightPct */
+  presenceByTicker: Record<string, Partial<Record<AihfDraftId, number>>>;
+  /** loader errors (non-fatal) */
+  errors?: Array<{ id: AihfDraftId; path: string; error: string }>;
 }
 
 /** Resolved outcome row for FD discovery diagnostics */

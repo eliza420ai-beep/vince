@@ -25,15 +25,27 @@
 
 ## The Three-Layer System
 
-Each layer has a distinct time horizon and job. Understanding which layer answers which question is the most important thing about working with this system.
+Each layer has a distinct time horizon, operational cadence, and job. Understanding which layer answers which question — and how often you run it — is the most important thing about working with this system.
 
-| Layer | Repo | Time horizon | Primary job |
-|-------|------|-------------|-------------|
-| **Short-term** | **VINCE** (this repo) | Hours → weeks | Monitor the situation. Watch OI, funding, L/S ratios, portfolio drift, Mando Minutes, Hyperliquid tickers. Execute Solus options ritual. Surface signals that require immediate action. Run Forge overnight. |
-| **Mid-term** | **[Dexter](https://github.com/eliza420ai-beep/dexter)** | Months → 2–3 years | Investment thesis (SOUL.md). Build the two active sleeves (tastytrade + Hyperliquid). Re-underwrite the thesis when VINCE monitoring surfaces a regime shift. |
-| **Long-term** | **[AIHF](https://github.com/eliza420ai-beep/ai-hedge-fund)** | Cycle-scale | 18-analyst second opinion. Challenges the thesis against a long-term structural view. Runs `/double-check` and conviction scoring. |
+| Layer | Repo | Time horizon | Cadence | Primary job |
+|-------|------|-------------|---------|-------------|
+| **Layer 1** | **VINCE** (this repo) | Hours → weeks | **Daily** | Monitor the situation. Watch OI, funding, L/S ratios, portfolio drift, Mando Minutes, Hyperliquid tickers. Execute Solus options ritual. Surface signals that require immediate action. Run Forge overnight. |
+| **Layer 2** | **[Dexter](https://github.com/eliza420ai-beep/dexter)** | Months → 2–3 years | **Weekly** | Hold the thesis (SOUL.md). Build the two active sleeves (tastytrade + Hyperliquid). Re-underwrite when VINCE surfaces a regime shift. Publish `scorecard.json` and canonical portfolio files. |
+| **Layer 3** | **[AIHF](https://github.com/eliza420ai-beep/ai-hedge-fund)** | Cycle-scale | **Monthly / Quarterly** | 18-analyst second opinion. Challenge the thesis. Run conviction scoring. Find the blind spots before they find you. |
 
-**Why the split matters:** each layer has a different failure mode.
+### Artifacts that flow between layers
+
+| From | To | Artifact | Purpose |
+|------|----|----------|---------|
+| Dexter | VINCE | `scorecard.json`, `portfolio_*.json` | Canonical Top100 membership, scoring, sleeve weights. VINCE reads these as ground truth. |
+| Dexter | VINCE | `cache_dexter/` | Historical API responses (prices, earnings, insiders, company facts). Reduces API cost; imported into `.elizadb/financialdatasets-cache/` when `VINCE_DEXTER_CACHE_IMPORT=true`. |
+| AIHF | VINCE | `portfolio_draft_top100.json`, `portfolio_draft_tastytrade_full.json`, `portfolio_draft_hyperliquid_full.json` | Compare/staging artifacts for the Top100 tab. Show overlap and weight differences vs canonical. Never redefine membership, rank, or scores. |
+| VINCE | Dexter | `portfolio_watchlist_candidates.json`, discovery runs | Newly surfaced names (X, filings, broad FD screen). Staging inbox — Dexter promotes into sleeves. |
+
+### Why the split matters
+
+Each layer has a different failure mode:
+
 - **VINCE failure** = missed executions. The thesis is right, the machine is running, but no one is at the terminal when the window opens. Twelve weeks of uncollected Solus premiums. An airdrop T&C window that expired.
 - **Dexter failure** = wrong thesis. Monitoring is active but the conviction map is stale.
 - **AIHF failure** = blind spots. The thesis and monitoring are both internally consistent but unchallenged.
