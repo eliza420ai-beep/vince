@@ -18,6 +18,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir, path } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -793,7 +794,7 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     ...SOLUS_OFFCHAIN_SECTORS,
     ...PRIORITY_ASSETS,
   ],
-  messageExamples: [
+  messageExamples: messageExamplesGroups([
     [
       { name: "{{user1}}", content: { text: "Aloha" } },
       {
@@ -1341,8 +1342,8 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
         },
       },
     ],
-  ],
-  style: {
+  ]),
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -1371,7 +1372,7 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       "Keep the architect tone: confident, no fluff, one move.",
     ],
     post: ["One call. Direct. Architect energy."],
-  },
+  }),
 };
 
 const buildPlugins = (): Plugin[] =>

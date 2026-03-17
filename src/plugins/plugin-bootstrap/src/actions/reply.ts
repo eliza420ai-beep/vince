@@ -6,6 +6,8 @@ import {
   type IAgentRuntime,
   type Memory,
   ModelType,
+  type ProviderDataRecord,
+  type ProviderValue,
   type State,
   type ActionResult,
   logger,
@@ -92,13 +94,13 @@ export const replyAction = {
           lastReply: responseContent.text,
           lastReplyTime: Date.now(),
           thoughtProcess: parsedXml?.thought,
-        } as Record<string, unknown>,
+        } as Record<string, ProviderValue>,
         data: {
           actionName: "REPLY",
           response: responseContent,
           thought: parsedXml?.thought,
           messageGenerated: true,
-        } as Record<string, unknown>,
+        } as ProviderDataRecord,
         success: true,
       };
     } catch (error) {
@@ -110,11 +112,11 @@ export const replyAction = {
           success: false,
           responded: false,
           error: true,
-        } as Record<string, unknown>,
+        } as Record<string, ProviderValue>,
         data: {
           actionName: "REPLY",
           error: error instanceof Error ? error.message : String(error),
-        } as Record<string, unknown>,
+        } as ProviderDataRecord,
         success: false,
         error: error instanceof Error ? error : new Error(String(error)),
       };

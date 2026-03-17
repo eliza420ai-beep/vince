@@ -4,6 +4,7 @@ import {
   type ProjectAgent,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -284,7 +285,7 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     "Stablecoins and peg dynamics",
     "Cross-chain liquidity and routing",
   ],
-  messageExamples: [
+  messageExamples: messageExamplesGroups([
     [
       {
         name: "{{name1}}",
@@ -445,8 +446,8 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
         },
       },
     ],
-  ],
-  style: {
+  ]),
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -502,7 +503,7 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       "Reference reputable, relevant sources",
     ],
     post: [],
-  },
+  }),
 };
 
 // Core plugins (required for startup). DeFi plugins (cdp, morpho, relay, etherscan, etc.)

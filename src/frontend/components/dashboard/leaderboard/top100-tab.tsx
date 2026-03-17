@@ -29,9 +29,21 @@ function scoreClass(score?: number) {
 function CategoryGrid({ section }: { section: Top100StocksSection }) {
   const { byCategory } = section.meta;
   if (!byCategory?.length) return null;
+  // Skip category breakdown when everything is "Unknown" (redundant with main table)
+  const meaningful = byCategory.filter((c) => c.category !== "Unknown");
+  const unknownOnly =
+    meaningful.length === 0 &&
+    byCategory.length === 1 &&
+    byCategory[0].category === "Unknown";
+  if (unknownOnly) return null;
+  // Show named categories first, then "Other" for Unknown
+  const ordered = [
+    ...meaningful,
+    ...byCategory.filter((c) => c.category === "Unknown"),
+  ];
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {byCategory.map((cat) => {
+      {ordered.map((cat) => {
         const leaders = section.rows
           .filter((r) => r.category === cat.category)
           .sort((a, b) => {
@@ -40,10 +52,11 @@ function CategoryGrid({ section }: { section: Top100StocksSection }) {
             return bScore - aScore;
           })
           .slice(0, 3);
+        const title = cat.category === "Unknown" ? "Other" : cat.category;
         return (
           <DashboardCard
             key={cat.category}
-            title={cat.category}
+            title={title}
             subtitle={`${cat.count} names`}
           >
             <div className="space-y-1">
@@ -133,6 +146,10 @@ function TopList({
           {subtitle}
         </div>
       ) : null}
+      <div className="mb-1 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground/60">
+        <span>Rank · Ticker</span>
+        <span className="text-right min-w-[94px]">Composite</span>
+      </div>
       <div className="space-y-1.5">
         {rows.map((r) => (
           <button
@@ -257,7 +274,7 @@ function RitualCard(props: {
               <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                 {group.label}
                 <span className="ml-1.5 font-mono text-muted-foreground/70">
-                  {group.rows.length}
+                  {Math.min(4, group.rows.length)}
                 </span>
               </div>
               {group.onActivate ? (
@@ -279,6 +296,10 @@ function RitualCard(props: {
               ) : null}
             </div>
             <div className="space-y-1">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-muted-foreground/70">
+                <span>Ticker</span>
+                <span className="text-right w-[58px]">Composite</span>
+              </div>
               {group.rows.slice(0, 4).map((row) => (
                 <button
                   type="button"
@@ -639,11 +660,19 @@ export function Top100Tab({
           The Next Bull Market · VINCE Top100
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          100-stock AI infrastructure bench, ranked by composite score and
-          upside, across chips, cloud, power, grid, defence, robotics, space,
-          materials, digital finance, and digital health.
+          Portfolio universe (hyperliquid, tastytrade, watchlist), ranked by
+          composite score and upside.
         </p>
-        <p className="text-[11px] text-muted-foreground/80 mt-2">
+        <p className="text-[11px] text-muted-foreground/70 mt-2">
+          <span className="font-medium text-muted-foreground/90">
+            Data source:
+          </span>{" "}
+          Tickers from portfolio_hyperliquid.json, portfolio_tastytrade.json,
+          portfolio_watchlist.json. Scores and cohorts from FD snapshots +
+          synthetic scorecard (growth, valuation, momentum, profit, earnings,
+          insider).
+        </p>
+        <p className="text-[11px] text-muted-foreground/80 mt-1">
           {meta.total} names ·{" "}
           {meta.byCategory.map((c) => `${c.category} (${c.count})`).join(" · ")}
         </p>
@@ -736,6 +765,79 @@ export function Top100Tab({
         onSortDirChange={setSortDir}
       />
 
+      <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
+        <div className="space-y-6">
+          <DashboardCard
+            title="Composite rankings (command center)"
+            subtitle={`${filteredRows.length} names in current view`}
+            addon={
+              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                {sortMode} {sortDir}
+              </span>
+            }
+          >
+            <Top100Table
+              rows={filteredRows}
+              selectedRowId={selectedRow?.id ?? null}
+              onRowClick={(r) => {
+                setSelectedRow(r);
+                setDrawerOpen(true);
+              }}
+            />
+          </DashboardCard>
+        </div>
+
+        <div className="space-y-6">
+          <TopList
+            title="Top 10 by composite"
+            rows={topScore}
+            onSelectRow={openRow}
+            selectedRowId={selectedRow?.id ?? null}
+          />
+          {meta.highestUpside?.length ? (
+            <DashboardCard title="Highest upside (Street PT)">
+              <div className="space-y-1 text-xs">
+                {meta.highestUpside.slice(0, 10).map((h) => (
+                  <div
+                    key={h.ticker}
+                    className="flex items-baseline justify-between"
+                  >
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-semibold">{h.ticker}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {h.sector}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                      {h.upside}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+          ) : null}
+          {meta.sleeveAverages && (
+            <DashboardCard title="Sleeve averages">
+              <div className="space-y-1 text-xs">
+                {Object.entries(meta.sleeveAverages).map(([key, val]) => (
+                  <div
+                    key={key}
+                    className="flex items-baseline justify-between"
+                  >
+                    <span className="capitalize text-muted-foreground">
+                      {key}
+                    </span>
+                    <span className={cn("font-mono", scoreClass(val ?? 0))}>
+                      {(val ?? 0).toFixed(1)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+          )}
+        </div>
+      </div>
+
       {focusedLabel ? (
         <div className="flex flex-col gap-2 rounded-2xl border border-primary/15 bg-primary/[0.04] px-3.5 py-3 text-xs md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
@@ -768,47 +870,55 @@ export function Top100Tab({
         </div>
       ) : null}
 
-      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
-        <TopList
-          title="Entered top 10"
-          subtitle="Fresh leaders"
-          rows={top10Entrants}
-          onActivate={() => activateFocusPreset("entered-top10", top10Entrants)}
-          active={isFocusedKey("entered-top10")}
-          onSelectRow={openRow}
-          selectedRowId={selectedRow?.id ?? null}
-        />
-        <TopList
-          title="Exited top 10"
-          subtitle="Losing urgency"
-          rows={top10Exits}
-          onActivate={() => activateFocusPreset("exited-top10", top10Exits)}
-          active={isFocusedKey("exited-top10")}
-          onSelectRow={openRow}
-          selectedRowId={selectedRow?.id ?? null}
-        />
-        <TopList
-          title="Biggest climbers"
-          subtitle="Live repricing"
-          rows={biggestClimbers}
-          onActivate={() =>
-            activateFocusPreset("biggest-climbers", biggestClimbers)
-          }
-          active={isFocusedKey("biggest-climbers")}
-          onSelectRow={openRow}
-          selectedRowId={selectedRow?.id ?? null}
-        />
-        <TopList
-          title="Biggest fallers"
-          subtitle="Slipping"
-          rows={biggestFallers}
-          onActivate={() =>
-            activateFocusPreset("biggest-fallers", biggestFallers)
-          }
-          active={isFocusedKey("biggest-fallers")}
-          onSelectRow={openRow}
-          selectedRowId={selectedRow?.id ?? null}
-        />
+      <div className="space-y-3">
+        <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+          Cohorts · Rank and composite from FD + synthetic scorecard; lists from
+          snapshot signals (history drift, momentum, risk, upside)
+        </p>
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
+          <TopList
+            title="Entered top 10"
+            subtitle="Fresh leaders · Rank · Composite"
+            rows={top10Entrants}
+            onActivate={() =>
+              activateFocusPreset("entered-top10", top10Entrants)
+            }
+            active={isFocusedKey("entered-top10")}
+            onSelectRow={openRow}
+            selectedRowId={selectedRow?.id ?? null}
+          />
+          <TopList
+            title="Exited top 10"
+            subtitle="Losing urgency · Rank · Composite"
+            rows={top10Exits}
+            onActivate={() => activateFocusPreset("exited-top10", top10Exits)}
+            active={isFocusedKey("exited-top10")}
+            onSelectRow={openRow}
+            selectedRowId={selectedRow?.id ?? null}
+          />
+          <TopList
+            title="Biggest climbers"
+            subtitle="Live repricing · Rank · Composite"
+            rows={biggestClimbers}
+            onActivate={() =>
+              activateFocusPreset("biggest-climbers", biggestClimbers)
+            }
+            active={isFocusedKey("biggest-climbers")}
+            onSelectRow={openRow}
+            selectedRowId={selectedRow?.id ?? null}
+          />
+          <TopList
+            title="Biggest fallers"
+            subtitle="Slipping · Rank · Composite"
+            rows={biggestFallers}
+            onActivate={() =>
+              activateFocusPreset("biggest-fallers", biggestFallers)
+            }
+            active={isFocusedKey("biggest-fallers")}
+            onSelectRow={openRow}
+            selectedRowId={selectedRow?.id ?? null}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
@@ -959,79 +1069,6 @@ export function Top100Tab({
             },
           ]}
         />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-        <div className="space-y-6">
-          <DashboardCard
-            title="Composite rankings (command center)"
-            subtitle={`${filteredRows.length} names in current view`}
-            addon={
-              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
-                {sortMode} {sortDir}
-              </span>
-            }
-          >
-            <Top100Table
-              rows={filteredRows}
-              selectedRowId={selectedRow?.id ?? null}
-              onRowClick={(r) => {
-                setSelectedRow(r);
-                setDrawerOpen(true);
-              }}
-            />
-          </DashboardCard>
-        </div>
-
-        <div className="space-y-6">
-          <TopList
-            title="Top 10 by composite"
-            rows={topScore}
-            onSelectRow={openRow}
-            selectedRowId={selectedRow?.id ?? null}
-          />
-          {meta.highestUpside?.length ? (
-            <DashboardCard title="Highest upside (Street PT)">
-              <div className="space-y-1 text-xs">
-                {meta.highestUpside.slice(0, 10).map((h) => (
-                  <div
-                    key={h.ticker}
-                    className="flex items-baseline justify-between"
-                  >
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold">{h.ticker}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {h.sector}
-                      </span>
-                    </div>
-                    <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
-                      {h.upside}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </DashboardCard>
-          ) : null}
-          {meta.sleeveAverages && (
-            <DashboardCard title="Sleeve averages">
-              <div className="space-y-1 text-xs">
-                {Object.entries(meta.sleeveAverages).map(([key, val]) => (
-                  <div
-                    key={key}
-                    className="flex items-baseline justify-between"
-                  >
-                    <span className="capitalize text-muted-foreground">
-                      {key}
-                    </span>
-                    <span className={cn("font-mono", scoreClass(val ?? 0))}>
-                      {(val ?? 0).toFixed(1)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </DashboardCard>
-          )}
-        </div>
       </div>
 
       <CategoryGrid section={section} />

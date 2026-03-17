@@ -105,8 +105,8 @@ export const teammateContextProvider: Provider = {
       logger.debug("[TeammateContext] knowledge/teammate/ not found; skipping");
       return {
         text: "",
-        values: {} as Record<string, unknown>,
-        data: {} as Record<string, unknown>,
+        values: {} as Record<string, import("@elizaos/core").ProviderValue>,
+        data: {} as import("@elizaos/core").ProviderDataRecord,
       };
     }
 
@@ -171,8 +171,8 @@ export const teammateContextProvider: Provider = {
 
     return {
       text,
-      values: values as Record<string, unknown>,
-      data: data as Record<string, unknown>,
+      values: values as Record<string, import("@elizaos/core").ProviderValue>,
+      data: data as import("@elizaos/core").ProviderDataRecord,
     };
   },
 };

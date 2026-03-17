@@ -136,6 +136,7 @@ export const forgeReportAction: Action = {
       text,
       actions: ["FORGE_REPORT"],
     });
+    return undefined;
   },
 
   examples: [

@@ -391,8 +391,11 @@ Range: ${(statistics.low_price * 100).toFixed(1)}%-${(statistics.high_price * 10
         text,
         success: true,
         // Return ONLY the summary (no data_points array) to avoid bloating DB/context
-        data: { ...summary } as Record<string, unknown>,
-        values: { ...summary } as Record<string, unknown>,
+        data: { ...summary } as import("@elizaos/core").ProviderDataRecord,
+        values: { ...summary } as Record<
+          string,
+          import("@elizaos/core").ProviderValue
+        >,
         input: inputParams,
       };
 

@@ -271,7 +271,7 @@ export const kellyContextProvider: Provider = {
     const text = textParts.join("\n");
 
     return {
-      values: values as Record<string, unknown>,
+      values: values as Record<string, import("@elizaos/core").ProviderValue>,
       text,
     };
   },

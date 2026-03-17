@@ -30,6 +30,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -194,7 +195,7 @@ Your knowledge includes the full nav.al archive: essay titles by year and an int
     "philosophy",
     "no status games",
   ],
-  messageExamples: [
+  messageExamples: messageExamplesGroups([
     [
       {
         name: "{{user}}",
@@ -225,8 +226,8 @@ Your knowledge includes the full nav.al archive: essay titles by year and an int
         },
       },
     ],
-  ],
-  style: {
+  ]),
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -252,7 +253,7 @@ Your knowledge includes the full nav.al archive: essay titles by year and an int
       "When asked for reading: 2–4 books, title + author + one line why.",
     ],
     post: ["Concise. One idea. No fluff."],
-  },
+  }),
 };
 
 const buildPlugins = (): Plugin[] =>

@@ -173,7 +173,7 @@ export function createMockRuntimeWithComposeState(stateOverrides?: {
     ...stateOverrides?.values,
   };
   const state: State = {
-    values: values as Record<string, unknown>,
+    values: values as import("@elizaos/core").StateValues,
     data: stateOverrides?.data ?? {},
     text:
       stateOverrides?.text ??

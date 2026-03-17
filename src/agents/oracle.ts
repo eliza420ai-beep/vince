@@ -21,6 +21,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -192,7 +193,7 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
     "ask Solus",
     "ask Otaku",
   ],
-  messageExamples: [
+  messageExamples: messageExamplesGroups([
     [
       {
         name: "{{user}}",
@@ -391,8 +392,8 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
         },
       },
     ],
-  ],
-  style: {
+  ]),
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -418,7 +419,7 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       "Polymarket discovery, odds, portfolio → you answer. Live data / paper bot → VINCE. Strike / execution → Solus.",
     ],
     post: ["One clear answer. Odds and IDs when relevant."],
-  },
+  }),
 };
 
 const buildPlugins = (): Plugin[] =>

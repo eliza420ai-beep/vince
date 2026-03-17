@@ -5,6 +5,7 @@ import {
   Service,
   ServiceType,
   type IAgentRuntime,
+  type JsonValue,
   type Memory,
   type State,
   type Task,
@@ -289,7 +290,7 @@ export class TaskService extends Service {
       logger.debug(`[Bootstrap] Executing task ${task.name} (${task.id})`);
       await worker.execute(
         this.runtime,
-        (task.metadata || {}) as Record<string, unknown>,
+        (task.metadata || {}) as Record<string, object | JsonValue>,
         task,
       );
       //logger.debug('task.tags are', task.tags);

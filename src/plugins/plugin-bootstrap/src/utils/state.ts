@@ -110,7 +110,7 @@ export function updateWorkingMemory(
           ...value,
           timestamp: Date.now(),
         },
-      } as Record<string, unknown>,
+      } as import("@elizaos/core").WorkingMemory,
     },
   };
 }

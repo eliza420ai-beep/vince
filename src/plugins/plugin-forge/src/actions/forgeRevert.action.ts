@@ -91,6 +91,7 @@ export const forgeRevertAction: Action = {
       text,
       actions: ["FORGE_REVERT"],
     });
+    return undefined;
   },
 
   examples: [

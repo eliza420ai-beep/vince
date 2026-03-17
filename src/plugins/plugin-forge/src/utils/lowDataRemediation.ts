@@ -6,7 +6,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { type IAgentRuntime, logger } from "@elizaos/core";
+import { type IAgentRuntime, type TargetInfo, logger } from "@elizaos/core";
 import {
   readFdCacheManifest,
   prewarmFdPortfolioHistoryCache,
@@ -147,7 +147,7 @@ export async function runLowDataRemediation(
           {
             source: source as "telegram" | "discord" | "slack",
             roomId: room.id,
-          },
+          } as unknown as TargetInfo,
           { text: message },
         );
         sent++;
@@ -168,7 +168,7 @@ export async function runLowDataRemediation(
             {
               source: source as "telegram" | "discord" | "slack",
               roomId: room.id,
-            },
+            } as unknown as TargetInfo,
             { text: message },
           );
           sent++;

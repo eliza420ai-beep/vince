@@ -17,8 +17,11 @@ import { readFdSnapshot } from "./fdFactorBuilder";
 import { computeVinceContext } from "./top100Scoring";
 import { readLatestTop100Snapshot } from "./top100History";
 import { readCompanyFactsFromCache } from "./top100CompanyFactsCache";
-import { sectorToCategory } from "./top100SectorMap";
+import { sectorToCategory, TICKER_CATEGORY_OVERRIDE } from "./top100SectorMap";
 import { computeSyntheticScore } from "./top100SyntheticScorecard";
+import { getPriceTargetSeed } from "./top100PriceTargetSeed";
+import { getEditorialScorecard } from "./top100EditorialScorecard";
+import { getStrategicLayer } from "./top100StrategicLayer";
 
 export type Top100SectionStatus = "loading" | "ok" | "stale" | "error";
 
@@ -398,13 +401,32 @@ function applyOverlays({
     const key = row.ticker.toUpperCase().trim();
     let out: Top100StockRow = { ...row };
 
+    // 1. Category override (editorial) — before FD facts
+    const categoryOverride = TICKER_CATEGORY_OVERRIDE[key];
+    if (categoryOverride) out.category = categoryOverride;
+
     const companyFacts = readCompanyFactsFromCache(projectRoot, key);
     if (companyFacts) {
       if (companyFacts.name) out.company = companyFacts.name;
-      out.category = sectorToCategory(
-        companyFacts.sector,
-        companyFacts.industry,
-      );
+      // Only set category from FD if override did not set it
+      if (!categoryOverride)
+        out.category = sectorToCategory(
+          companyFacts.sector,
+          companyFacts.industry,
+        );
+    }
+
+    // 2. Strategic layer seed
+    const layerEntry = getStrategicLayer(key);
+    if (layerEntry) out.strategicLayer = layerEntry;
+
+    // 3. Price target seed — fill only if blank
+    const ptSeed = getPriceTargetSeed(key);
+    if (ptSeed) {
+      if (!out.price) out.price = ptSeed.price;
+      if (!out.avgPriceTarget) out.avgPriceTarget = ptSeed.avgPriceTarget;
+      if (!out.upsidePct) out.upsidePct = ptSeed.upsidePct;
+      if (!out.offAthPct) out.offAthPct = ptSeed.offAthPct;
     }
 
     const yahoo = readYahooQuoteFromCache(projectRoot, key);
@@ -539,6 +561,30 @@ function applyOverlays({
           };
         }
       }
+    }
+
+    // 5. Editorial scorecard fallback — composite/sub-scores if still null after FD
+    if (typeof out.composite !== "number" || !Number.isFinite(out.composite)) {
+      const editorial = getEditorialScorecard(key);
+      if (editorial) {
+        out = {
+          ...out,
+          composite: editorial.composite,
+          growthScore: editorial.growthScore,
+          valuationScore: editorial.valuationScore,
+          momentumScore: editorial.momentumScore,
+          profitScore: editorial.profitScore,
+          earningsScore: editorial.earningsScore,
+          balanceSheetScore: editorial.balanceSheetScore,
+          insiderScore: editorial.insiderScore,
+        };
+      }
+    }
+
+    // 6. Risk flags from editorial — only if flags still empty
+    if (!out.flags?.length) {
+      const editorial = getEditorialScorecard(key);
+      if (editorial?.flags?.length) out.flags = editorial.flags;
     }
 
     if (out.quoteUpdatedAt) {

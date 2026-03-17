@@ -1,33 +1,31 @@
 ---
-date: 2026-03-16T09:16:29.998Z
+date: 2026-03-16T21:32:44.660Z
 type: day-report
 generated: automated-standup
 ---
 
 Day Report — 2026-03-16
 
-Solus's call: Uncertain — BTC $69.2K, $1.3K below our $70.5K call strike with momentum unclear; holding through Wednesday then reassessing buyback if BTC breaks $69.8K.
+Solus's call: Above — BTC at $74.2K crushed our $70.5K covered call strike; buying back early to avoid assignment and roll higher next week.
 
-TL;DR: Range-bound day with BTC holding $69.2K, Fed locked at 99% hold, waiting for conviction signals before any moves.
+TL;DR: BTC broke above our strike, Fed's locked at hold, buying back the call early to reset higher.
 
-Essay idea: "The Watchlist Trap" — tastytrade's built-in categories feel like shortcuts but create friction; conviction beats convenience.
-Research: How post-mortem regime conflicts inform strike selection when market structure shifts mid-session.
+Essay idea: "The Watchlist Trap—Why Your Best Trades Die in Tastytrade's Built-In Categories"
+Research: How other platforms (Apex, IB) handle watchlist management vs tastytrade's rigid bins.
 
 TODO
 | WHAT | WHY | OWNER |
 |------|-----|-------|
-| Review BTC $70.5K call buyback decision | Wednesday assessment point | @Solus |
-| Complete watchlist integration in HYPE-WHEEL.md | Map discovery to execution flow | @Eliza |
-| Configure Bankr wallet keys | Get Otaku operational | @Otaku |
-| Merge discovery polish and regime-conditional bandit | Ship VINCE signal weighting | @Sentinel |
-| Ship 3-5 async agent templates | Unlock Clawterm adoption | @Clawterm |
-| Wait for daily close confirmation | Paper bot trade entry signal | @VINCE |
-| Hit 75 feature store rows | Unlock Phase 2 experiments | @Forge |
+| Buy back BTC covered call | $3.7K above strike, assignment risk | @Solus |
+| Complete wallet setup | Need operational DeFi execution | @Otaku |
+| Add watchlist architecture section | Fill knowledge gap on platform constraints | @Eliza |
+| Test regime conditional bandit | Improve Sharpe by 0.12 pts from overnight runs | @Forge |
+| Push nix-openclaw docs | Cut onboarding friction in half | @Clawterm |
 
 Risk: Clear
 
 Wrap-up
-Clean setup but we're in wait-and-see mode. VINCE queued one trade but needs daily close confirmation, Solus holds the $70.5K call through Wednesday, Oracle confirms no macro shocks this week. The real insight came from Clawterm—people want agents that do stuff async, not just respond to prompts. Watch for BTC momentum signals and Wednesday's strike decision.
+Range-bound price action but our positions are moving fast. BTC's momentum above our call strike forces early action—better to buy back now and roll higher than wait for assignment. Fed certainty at 99% means vol stays quiet, so our edge is in roll discipline, not expiry gambling. The watchlist bottleneck Eliza flagged could unlock faster signal flow once we map platform constraints to strike selection.
 
 ---
 One team, one dream.

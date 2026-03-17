@@ -86,6 +86,7 @@ export const forgePushDailyReportAction: Action = {
         actions: ["FORGE_PUSH_DAILY_REPORT"],
       });
     }
+    return undefined;
   },
 
   examples: [

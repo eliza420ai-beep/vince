@@ -1,20 +1,20 @@
-# Post-mortem: SILVER short (stop_loss)
+# Post-mortem: SOL short (stop_loss)
 
 **Date:** 2026-03-16
 
 ## Trade Snapshot
 
-- SILVER short closed stop_loss: entry $79.91 -> exit $81.11, P&L $-45.18 (2897.2906671260607 USD, 4x).
-- Entry time (UTC): 2026-03-16T16:48:26.075Z
+- SOL short closed stop_loss: entry $93.51 -> exit $95.86, P&L $-104.19 (4070.7960038672254 USD, 4x).
+- Entry time (UTC): 2026-03-16T16:48:05.504Z
 - Hold window target: intraday
-- Max loss budget: $43.46 (6.00%)
+- Max loss budget: $101.77 (10.00%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 106 minutes
-- Adverse move: 1.509%
+- Hold duration: 225 minutes
+- Adverse move: 2.51%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -26,26 +26,22 @@
 - Lane: CT sentiment + macro risk pulse
 - Confidence: 60%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: timestamp, entry_datetime
+- Missing data flags: timestamp
 
-**Missing key context:** When did you enter (date/time)? What was CT sentiment on SILVER/commodities at entry vs. exit? Was there a macro catalyst (Fed speak, inflation data, USD move) that shifted the vibe between entry and exit?
-
-That said: **Silver shorts have been crowded on CT lately** — if you entered into peak bearish consensus, you likely got stopped into a reversal. Commodity sentiment can flip fast on macro news. The 4x leverage amplified a move that might've been a normal retest.
-
-**What I'd flag:** Check if there was a macro event (USD weakness, real rates drop, risk-on shift) between your entry and stop. If sentiment was already extreme bearish on SILVER, that's a contrarian red flag for shorts.
-
-Confidence: 0.6 (need timestamps + macro context to give you real feedback on the sentiment angle).
+Missing key context: **When did you enter?** (Was CT bullish/bearish on SOL at entry? Did sentiment shift before your exit?) and **What was the macro backdrop?** (BTC momentum, Fed news, risk-on/off). That said — if you shorted into a retail FOMO spike (common SOL play), the stop hit because momentum traders piled in faster than sentiment could flip bearish. Next time, check if CT is already pricing the move before you fade it. Confidence: 0.6 (need entry timestamp + CT vibe at that moment to give you real feedback).
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 30%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
-- Missing data flags: entry_datetime
+- Missing data flags: timestamp
 
-**Missing context:** I need the trade date/time, Polymarket SILVER price at entry/exit, and your probability estimate vs market odds to assess regime and pricing. Was this a mean-reversion short into strength, or a directional fade? Without the Poly signal (consensus vs spot), I can't tell if the market was mispricing the move or if your thesis just got stopped out by normal vol. The 4x leverage + tight stop ($1.20 range on a $80 asset = 1.5%) suggests you were trading intraday momentum—did Poly show weakness while spot rallied, or did both move against you? That tells me whether the regime shifted or your entry timing was off.
+**Missing key context:** I need the entry timestamp, exit timestamp, and what Polymarket was pricing SOL at those moments—was there a consensus shift (e.g., macro pivot, Fed news) that SOL's Poly odds moved *against* your short, or did price just whip on leverage noise? 
 
-**Confidence: 0.3** (need Poly context and thesis to calibrate).
+**On the trade itself:** A 2.5% loss on 4x is tight stop discipline, which is right. But if Polymarket's SOL price probability *increased* during your hold (suggesting the market repriced SOL higher conviction), that's regime confirmation—you were fighting consensus. If Poly stayed flat or dipped, it's pure momentum whip and your stop caught noise, not signal.
+
+**Feedback:** Pull the Poly price action (via GET_POLYMARKET_PRICE for SOL markets) against your trade timestamps. That'll tell us whether you shorted into a repricing event
 
 ### Solus
 
@@ -54,7 +50,7 @@ Confidence: 0.6 (need timestamps + macro context to give you real feedback on th
 - Source stamp: options_mechanics_snapshot
 - Missing data flags: none
 
-**Missing critical context:** entry date, hold duration, IV/vol regime at entry vs exit, and whether this was a planned scalp or swing. That said—**$45 loss on $2,897 notional (4x) = 1.6% drawdown is acceptable for a paper trade**, but the leverage (4x on a commodity with no funding edge) suggests you're treating this like perps, not options. If this was a short-dated option or futures scalp, the stop at 1.2% above entry is tight; if it was a swing, you got shaken out. **Mechanics call:** Size down to 2x on commodity shorts until you prove edge, or move to weekly options (theta works for you there, not against). Confidence: **0.65** (need trade duration and intended hold to refine).
+**Stop hit at $95.86 on a $93.51 short (2.5% move)** — that's tight for 4x leverage on SOL; you got shaken out before mean reversion had room. **Missing context:** entry thesis (support level? IV crush play?), hold duration, and whether $95.86 was your planned stop or a panic close. If it was planned, the mechanics are sound (defined risk); if panic, tighten your thesis clarity before re-entry. **Sizing check:** $104 loss on $4,070 notional is 2.5% account bleed — acceptable if this is your test-fire on SOL shorts, but scale down if you're taking 4x on thesis you're not 95% confident in. **Next:** Post the entry thesis and we can assess whether the stop placement was right or whether you need a different timeframe/leverage combo
 
 ## Root-Cause Tags
 
@@ -72,18 +68,18 @@ Confidence: 0.6 (need timestamps + macro context to give you real feedback on th
    - success_metric: Post-mortems with pmevCompletenessPct >= 90% over rolling 7 days.
    - rollback: If operational overhead causes missed trades, reduce required manual fields.
 3. [experiment] owner=solus due=7d
-   - action: A/B test defined-risk structure recommendation vs spot leverage entries.
+   - action: A/B test perps sizing: baseline vs capped leverage with same signal cohort.
    - success_metric: Reduce losses tagged sizing_too_aggressive by >= 20% in test window.
    - rollback: Abort if win rate drops by >8 points with no drawdown improvement.
 
 ## Confidence and Data Gaps
 
-- Quality score: 89/100
+- Quality score: 91/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 - Context completeness: 92.9%
 - Regime vs execution: regime_miss
-- Risk budget: planned=$43.46, realized=$45.18, slippage=$1.72, breach=true
+- Risk budget: planned=$101.77, realized=$104.19, slippage=$2.42, breach=true
 - Consistency checks: pass
 
 ## What changes on next trade?
@@ -98,13 +94,13 @@ Confidence: 0.6 (need timestamps + macro context to give you real feedback on th
 - Adaptation eligible: true
 - Policy version at entry: baseline
 - Proposed delta: present
-- Delta confidence: 0.5
+- Delta confidence: 0.6
 - Delta window trades: 20
-- Delta expiry: 2026-03-30T18:34:42.779Z
+- Delta expiry: 2026-03-30T20:33:31.627Z
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 89
+- PM_QUALITY_SCORE: 91
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: regime_conflict
 - PM_SECONDARY_CAUSES: none
@@ -113,50 +109,50 @@ Confidence: 0.6 (need timestamps + macro context to give you real feedback on th
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
 - PM_BUDGET_BREACH: true
-- PM_RISK_SLIPPAGE_USD: 1.72
+- PM_RISK_SLIPPAGE_USD: 2.42
 - PM_ADAPTATION_ELIGIBLE: true
 - PM_POLICY_VERSION_AT_ENTRY: baseline
 - PM_PROPOSED_DELTA_PRESENT: true
 
 ```json
 {
-  "qualityScore": 89,
+  "qualityScore": 91,
   "qualityEscalate": false,
   "primaryCause": "regime_conflict",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 106,
-  "adverseMovePct": 1.509,
+  "holdMinutes": 225,
+  "adverseMovePct": 2.51,
   "riskBudget": {
-    "plannedRiskUsd": 43.46,
-    "realizedRiskUsd": 45.18,
-    "riskSlippageUsd": 1.72,
+    "plannedRiskUsd": 101.77,
+    "realizedRiskUsd": 104.19,
+    "riskSlippageUsd": 2.42,
     "budgetBreach": true
   },
   "consistencyChecks": {
     "passed": true,
     "issues": [],
-    "adverseMovePctFromPrices": 1.509,
+    "adverseMovePctFromPrices": 2.51,
     "adverseMovePctDelta": 0,
-    "stopDistancePctFromPrices": 1.5,
+    "stopDistancePctFromPrices": 2.5,
     "stopDistancePctDelta": 0,
     "hasTruncatedFindings": false
   },
   "adaptationEligible": true,
   "policyVersionAtEntry": "baseline",
   "proposedPolicyDelta": {
-    "confidence": 0.5,
+    "confidence": 0.6,
     "sampleSizeHint": 20,
     "maxStepChangePct": 20,
-    "expiresAtUtc": "2026-03-30T18:34:42.779Z",
+    "expiresAtUtc": "2026-03-30T20:33:31.627Z",
     "riskIntent": {
       "enforcePreTradeRiskCheck": true,
       "maxLeverageByAssetClass": {
-        "commodity": 3
+        "crypto": 3
       },
-      "maxSingleTradeUsd": 2463
+      "maxSingleTradeUsd": 3460
     },
     "validationPlan": {
       "windowTrades": 20,
@@ -173,31 +169,30 @@ Confidence: 0.6 (need timestamps + macro context to give you real feedback on th
     }
   },
   "echoContext": {
-    "entryTimestampUtc": "2026-03-16T16:48:26.075Z",
-    "exitTimestampUtc": "2026-03-16T18:34:31.341Z",
+    "entryTimestampUtc": "2026-03-16T16:48:05.504Z",
+    "exitTimestampUtc": "2026-03-16T20:33:18.949Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-16T16:48:26.075Z",
-    "exitTimestampUtc": "2026-03-16T18:34:31.341Z"
+    "entryTimestampUtc": "2026-03-16T16:48:05.504Z",
+    "exitTimestampUtc": "2026-03-16T20:33:18.949Z"
   },
   "solusContext": {
-    "assetClass": "commodity",
+    "assetClass": "crypto",
     "thesisClass": "momentum",
     "leverage": 4,
-    "stopDistancePct": 1.5,
-    "maxLossUsd": 43.46,
-    "maxLossPct": 6,
-    "entryAtrPct": 3
+    "stopDistancePct": 2.5,
+    "maxLossUsd": 101.77,
+    "maxLossPct": 10,
+    "entryAtrPct": 5
   },
   "agentContextMissing": {
     "Echo": [
-      "timestamp",
-      "entry_datetime"
+      "timestamp"
     ],
     "Oracle": [
-      "entry_datetime"
+      "timestamp"
     ]
   },
   "contextCompletenessPct": 92.9,

@@ -238,7 +238,7 @@ export const getTokenMetadataAction: Action = {
           content: {
             results: serviceResults,
             summary: summaryLines,
-          } as unknown as Record<string, unknown>,
+          } as unknown as import("@elizaos/core").JsonObject,
           source: message.content.source,
         });
       }

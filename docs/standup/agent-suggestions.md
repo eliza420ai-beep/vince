@@ -203,3 +203,8 @@
 
 - Bundle scheduled trading checks, daily briefings, and auto-research templates in Clawterm starter pack to drive long-tail user adoption.
 - Test dynamic strike width adjustments when market regime shifts mid-session to improve Hypersurface wheel consistency.
+## 2026-03-16
+
+- Add watchlist architecture section to options/README to prevent best trades from getting lost in platform buckets.
+- Push NixOS/nix-openclaw as default onboarding path in setup guide to cut deployment friction.
+- Run full WTT pulse when X API returns to catch mispricing before market reaction.

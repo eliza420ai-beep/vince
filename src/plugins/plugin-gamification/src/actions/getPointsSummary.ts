@@ -63,13 +63,13 @@ export const getPointsSummaryAction: Action = {
 
       await callback?.({
         text,
-        data: summary as unknown as Record<string, unknown>,
+        data: summary as unknown as import("@elizaos/core").JsonObject,
       });
 
       return {
         text,
         success: true,
-        data: summary as unknown as Record<string, unknown>,
+        data: summary as unknown as import("@elizaos/core").JsonObject,
       };
     } catch (error) {
       const errorText = "Could not load your points.";

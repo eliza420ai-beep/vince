@@ -28,6 +28,8 @@ export interface Top100StockRow {
   sleeve?: string;
   /** Human-readable scorecard flags (high_momentum, insider_selling, etc.) */
   flags?: string[];
+  /** Strategic layer from TOP100 essay (Layer 1–6 thematic positioning) */
+  strategicLayer?: { layer: number; name: string };
   /** Annex price fields – strings so we can show them directly without risky numeric parsing */
   price?: string;
   avgPriceTarget?: string;

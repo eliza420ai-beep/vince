@@ -9,7 +9,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
-import { type IAgentRuntime, type UUID, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type TargetInfo,
+  type UUID,
+  logger,
+} from "@elizaos/core";
 import {
   loadForgeSignalCache,
   replayWithWeights,
@@ -278,7 +283,7 @@ export async function pushForgeDailySummaryToRooms(
           {
             source: source as "telegram" | "discord" | "slack",
             roomId: room.id,
-          },
+          } as unknown as TargetInfo,
           { text: summary },
         );
         sent++;

@@ -115,7 +115,7 @@ export const vinceDexterDriftAction: Action = {
     _state: State,
     _options: unknown,
     callback?: HandlerCallback,
-  ): Promise<void | undefined> => {
+  ): Promise<import("@elizaos/core").ActionResult | undefined> => {
     try {
       const dexter = loadDexterPortfolios();
       const positionManager = runtime.getService(
@@ -143,6 +143,7 @@ export const vinceDexterDriftAction: Action = {
         });
       }
     }
+    return undefined;
   },
 
   examples: [

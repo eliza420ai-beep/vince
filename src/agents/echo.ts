@@ -27,6 +27,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -137,7 +138,7 @@ PRICES — NEVER HALLUCINATE:
     "Knows that the best alpha often comes from accounts with <10k followers",
   ],
 
-  messageExamples: [
+  messageExamples: messageExamplesGroups([
     [
       {
         name: "{{user1}}",
@@ -200,7 +201,7 @@ PRICES — NEVER HALLUCINATE:
         },
       },
     ],
-  ],
+  ]),
 
   postExamples: [
     "📊 CT Pulse | Morning\n\nBTC 📈 +32 (cautiously bullish)\nETH 😐 -5 (indifferent, L2 chatter)\nSOL 📈 +48 (meme season continues)\n\nTop thread: @Tetranode on DeFi yields post-points\nBreaking: ETF decision delayed (expected)\n\nNo contrarian warnings today.",
@@ -225,7 +226,7 @@ PRICES — NEVER HALLUCINATE:
     "account reputation",
   ],
 
-  style: {
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -257,7 +258,7 @@ PRICES — NEVER HALLUCINATE:
       "use structured format for pulse updates",
       "include contrarian warnings when relevant",
     ],
-  },
+  }),
 
   adjectives: [
     "tuned-in",

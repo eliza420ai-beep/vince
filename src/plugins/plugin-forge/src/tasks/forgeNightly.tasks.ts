@@ -13,7 +13,12 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { type IAgentRuntime, type UUID, logger } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type TargetInfo,
+  type UUID,
+  logger,
+} from "@elizaos/core";
 import { ForgeExperimentService } from "../services/forgeExperiment.service.ts";
 import type { ForgeRunSummary, ForgeRuntime } from "../types/index.ts";
 
@@ -183,7 +188,7 @@ async function pushSummaryToTelegram(
         if (!isForgeChannel(room.name ?? "")) continue;
         try {
           await runtime.sendMessageToTarget(
-            { source: "telegram", roomId: room.id },
+            { source: "telegram", roomId: room.id } as unknown as TargetInfo,
             { text: message },
           );
           sent++;

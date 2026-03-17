@@ -55,7 +55,7 @@ export const forgeRunAction: Action = {
         text: "Forge is disabled. Set FORGE_ENABLED=true to enable autoresearch.",
         actions: ["FORGE_RUN"],
       });
-      return;
+      return undefined;
     }
 
     const budgetMinutes = parseInt(
@@ -156,6 +156,7 @@ export const forgeRunAction: Action = {
         await svc?.stop();
       }
     });
+    return undefined;
   },
 
   examples: [

@@ -77,6 +77,49 @@ function historyCue(row: Top100StockRow): string | null {
   return `Prev ${row.prevLiveRank} -> ${row.liveRank}`;
 }
 
+function flagLabel(flag: string): string {
+  if (flag === "high_momentum") return "↑ momentum";
+  if (flag === "insider_selling") return "insider sell";
+  if (flag === "drawdown_40pct") return "-40%";
+  if (flag === "pe_above_50_low_growth") return "PE/growth";
+  return flag;
+}
+
+function flagVariant(
+  flag: string,
+): "green" | "amber" | "red" | "orange" | "muted" {
+  if (flag === "high_momentum") return "green";
+  if (flag === "insider_selling") return "amber";
+  if (flag === "drawdown_40pct") return "red";
+  if (flag === "pe_above_50_low_growth") return "orange";
+  return "muted";
+}
+
+function FlagBadge({ flag }: { flag: string }) {
+  const variant = flagVariant(flag);
+  const label = flagLabel(flag);
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-medium",
+        variant === "green" &&
+          "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        variant === "amber" &&
+          "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+        variant === "red" &&
+          "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+        variant === "orange" &&
+          "border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-400",
+        variant === "muted" &&
+          "border-border/50 bg-muted/20 text-muted-foreground",
+      )}
+      title={flag}
+    >
+      {label}
+    </span>
+  );
+}
+
 function historyDriftChip(row: Top100StockRow) {
   if (typeof row.historyRankDrift !== "number") return null;
   const improving = row.historyRankDrift > 0;
@@ -206,6 +249,15 @@ export function Top100Table({
                       </span>
                     ) : null}
                     <SourcePill src={r.quoteSource} stale={r.quoteStale} />
+                    {r.strategicLayer ? (
+                      <span
+                        className="inline-flex items-center rounded border border-border/50 bg-muted/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
+                        title={r.strategicLayer.name}
+                      >
+                        L{r.strategicLayer.layer} ·{" "}
+                        {r.strategicLayer.name.split(/[,&]/)[0].trim()}
+                      </span>
+                    ) : null}
                     {r.enteredTop10 ? (
                       <span className="inline-flex items-center rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
                         top10
@@ -220,6 +272,9 @@ export function Top100Table({
                         {r.convictionTier}
                       </span>
                     ) : null}
+                    {r.flags?.map((flag) => (
+                      <FlagBadge key={flag} flag={flag} />
+                    ))}
                     {getFdBadges(r).map((badge) => (
                       <span
                         key={badge}

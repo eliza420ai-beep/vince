@@ -160,10 +160,16 @@ export const substackContextProvider: Provider = {
       }
 
       const text = textParts.length > 0 ? textParts.join("\n\n") : "";
-      return { text, values: values as Record<string, unknown> };
+      return {
+        text,
+        values: values as Record<string, import("@elizaos/core").ProviderValue>,
+      };
     } catch (err) {
       logger.debug(`[SubstackContext] Provider error: ${err}`);
-      return { text: "", values: {} as Record<string, unknown> };
+      return {
+        text: "",
+        values: {} as Record<string, import("@elizaos/core").ProviderValue>,
+      };
     }
   },
 };

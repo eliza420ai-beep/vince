@@ -60,10 +60,11 @@ ${link}
 
 Signups: ${stats.totalReferrals} · Activated: ${stats.activatedReferrals} · Points earned: ${stats.totalPointsEarned.toLocaleString()}`;
 
-      const data = { code, stats, referralLink: link } as Record<
-        string,
-        unknown
-      >;
+      const data = {
+        code,
+        stats,
+        referralLink: link,
+      } as unknown as import("@elizaos/core").JsonObject;
 
       await callback?.({
         text,

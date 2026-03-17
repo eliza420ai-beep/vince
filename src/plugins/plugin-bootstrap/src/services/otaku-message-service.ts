@@ -1123,7 +1123,8 @@ export class OtakuMessageService implements IMessageService {
         // Ensure workingMemory exists on accumulatedState
         if (!accumulatedState.data) accumulatedState.data = {} as StateData;
         if (!accumulatedState.data.workingMemory)
-          accumulatedState.data.workingMemory = {} as Record<string, unknown>;
+          accumulatedState.data.workingMemory =
+            {} as import("@elizaos/core").WorkingMemory;
 
         // Parse and store parameters if provided
         let actionParams: Record<string, unknown> = {};

@@ -36,6 +36,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -598,7 +599,7 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
     "skills",
     "tasks",
   ],
-  messageExamples: [
+  messageExamples: messageExamplesGroups([
     [
       {
         name: "{{user1}}",
@@ -675,8 +676,8 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
         },
       },
     ],
-  ],
-  style: {
+  ]),
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -710,7 +711,7 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
       "When asked about VC pitch: no slides, demos that blow people away, smooth elevator pitch",
     ],
     post: ["Concise. Impact-scored. Multi-agent aware. OpenClaw-aware."],
-  },
+  }),
 };
 
 const buildPlugins = (): Plugin[] =>

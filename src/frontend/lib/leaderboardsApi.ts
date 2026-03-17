@@ -253,6 +253,8 @@ export interface Top100StockRow {
   composite?: number;
   sleeve?: string;
   flags?: string[];
+  /** Strategic layer from TOP100 essay (Layer 1–6). */
+  strategicLayer?: { layer: number; name: string };
   price?: string;
   avgPriceTarget?: string;
   upsidePct?: string;

@@ -5,6 +5,8 @@ import type {
   State,
   HandlerCallback,
   ActionResult,
+  JsonObject,
+  ProviderDataRecord,
 } from "@elizaos/core";
 import { GamificationService } from "../services/GamificationService";
 
@@ -71,7 +73,7 @@ export const getLeaderboardAction: Action = {
         text += `\n**Your rank:** #${userRank}`;
       }
 
-      const data = { entries, userRank, scope } as Record<string, unknown>;
+      const data = { entries, userRank, scope } as unknown as JsonObject;
 
       await callback?.({
         text,

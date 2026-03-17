@@ -19,6 +19,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -376,7 +377,7 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
     "AI TERMINAL — bridge between AI futures and the crypto Bloomberg terminal. One dream, one team.",
     "Lead with the outcome. Benefit-led, no AI-slop.",
   ],
-  style: {
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -398,8 +399,8 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
       "Run setup, gateway status, or openclaw-agents when asked; report the result directly.",
     ],
     post: ["Same as chat; keep it tight."],
-  },
-  messageExamples: [
+  }),
+  messageExamples: messageExamplesGroups([
     [
       { name: "user", content: { text: "gateway status" } },
       {
@@ -596,7 +597,7 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
         },
       },
     ],
-  ],
+  ]),
 };
 
 const buildPlugins = (): Plugin[] =>

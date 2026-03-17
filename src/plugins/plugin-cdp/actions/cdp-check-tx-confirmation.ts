@@ -5,6 +5,8 @@ import {
   type State,
   type HandlerCallback,
   type ActionResult,
+  type JsonObject,
+  type ProviderDataRecord,
   logger,
 } from "@elizaos/core";
 import { createPublicClient, http } from "viem";
@@ -299,13 +301,13 @@ export const cdpCheckTxConfirmation: Action = {
 
         callback?.({
           text,
-          content: data as unknown as Record<string, unknown>,
+          content: data as unknown as JsonObject,
         });
 
         return {
           text,
           success: true,
-          data: data as Record<string, unknown>,
+          data: data as ProviderDataRecord,
           values: {
             confirmed: true,
             status: receipt.status,
@@ -347,13 +349,13 @@ export const cdpCheckTxConfirmation: Action = {
 
           callback?.({
             text,
-            content: data as unknown as Record<string, unknown>,
+            content: data as unknown as JsonObject,
           });
 
           return {
             text,
             success: true,
-            data: data as Record<string, unknown>,
+            data: data as ProviderDataRecord,
             values: {
               confirmed: false,
               status: "pending",

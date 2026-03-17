@@ -292,14 +292,14 @@ export const marketPositionsAction: Action = {
           text,
           actions: ["GET_MORPHO_MARKET_POSITIONS"],
           source: message.content.source,
-          data: data as unknown as Record<string, unknown>,
+          data: data as unknown as import("@elizaos/core").JsonObject,
         });
       }
 
       const successResult: MarketPositionsActionResult = {
         text,
         success: true,
-        data: data as unknown as Record<string, unknown>,
+        data: data as unknown as import("@elizaos/core").JsonObject,
         input: inputParams,
         values: {
           positionsFetched: true,

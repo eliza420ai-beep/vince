@@ -69,3 +69,4 @@
 | 2026-03-12 | Signal flipped long on extreme fear (index 18) but paper bot's down 83%, so we'r | [View](day-reports/2026-03-12-day-report.md) |
 | 2026-03-15 | BTC rallying hard into our strike, Fed locked at hold, buying back the call earl | [View](day-reports/2026-03-15-day-report.md) |
 | 2026-03-16 | Range-bound day with BTC holding $69.2K, Fed locked at 99% hold, waiting for con | [View](day-reports/2026-03-16-day-report.md) |
+| 2026-03-16 | BTC broke above our strike, Fed's locked at hold, buying back the call early to  | [View](day-reports/2026-03-16-day-report.md) |

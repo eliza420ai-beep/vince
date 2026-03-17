@@ -231,14 +231,14 @@ export const marketInfoAction: Action = {
           text,
           actions: ["GET_MORPHO_MARKET_INFO"],
           source: message.content.source,
-          data: data as unknown as Record<string, unknown>,
+          data: data as unknown as import("@elizaos/core").JsonObject,
         });
       }
 
       const successResult: MarketInfoActionResult = {
         text,
         success: true,
-        data: data as unknown as Record<string, unknown>,
+        data: data as unknown as import("@elizaos/core").ProviderDataRecord,
         input: inputParams,
         values: {
           marketsFetched: true,

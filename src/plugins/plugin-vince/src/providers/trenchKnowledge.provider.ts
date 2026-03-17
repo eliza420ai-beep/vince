@@ -110,8 +110,8 @@ export const trenchKnowledgeProvider: Provider = {
         logger.debug("[TrenchKnowledge] Knowledge directory not found");
         return {
           text: "",
-          values: {} as Record<string, unknown>,
-          data: {} as Record<string, unknown>,
+          values: {} as Record<string, import("@elizaos/core").ProviderValue>,
+          data: {} as import("@elizaos/core").ProviderDataRecord,
         };
       }
 
@@ -195,8 +195,8 @@ export const trenchKnowledgeProvider: Provider = {
 
     return {
       text: contextParts.join("\n"),
-      values: values as Record<string, unknown>,
-      data: data as Record<string, unknown>,
+      values: values as Record<string, import("@elizaos/core").ProviderValue>,
+      data: data as import("@elizaos/core").ProviderDataRecord,
     };
   },
 };

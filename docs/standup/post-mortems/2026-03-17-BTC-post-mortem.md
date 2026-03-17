@@ -1,20 +1,20 @@
 # Post-mortem: BTC short (stop_loss)
 
-**Date:** 2026-03-16
+**Date:** 2026-03-17
 
 ## Trade Snapshot
 
-- BTC short closed stop_loss: entry $74352.13 -> exit $74858.00, P&L $-13.98 (1913.509395109395 USD, 4x).
-- Entry time (UTC): 2026-03-16T23:11:08.745Z
+- BTC short closed stop_loss: entry $74685.06 -> exit $75204.00, P&L $-16.97 (2278.152258064516 USD, 4x).
+- Entry time (UTC): 2026-03-16T23:52:07.646Z
 - Hold window target: intraday
-- Max loss budget: $12.44 (2.60%)
+- Max loss budget: $14.81 (2.60%)
 
 ## Evidence Pack
 
 - PTQG complete: true
 - PMEP completeness: 100%
-- Hold duration: 33 minutes
-- Adverse move: 0.68%
+- Hold duration: 19 minutes
+- Adverse move: 0.695%
 - Sentiment snapshot: sentiment_score:5
 - Regime snapshot: regime:uncertain
 - Missing data: none
@@ -26,37 +26,39 @@
 - Lane: CT sentiment + macro risk pulse
 - Confidence: 60%
 - Source stamp: x_sentiment_snapshot
-- Missing data flags: none
+- Missing data flags: timestamp
 
-**Post-mortem feedback (sentiment lane):**
+**Missing context:** What was CT sentiment when you entered? Was it extreme bearish (contrarian setup) or consensus short? Did macro shift mid-trade (Fed speak, jobs data, geopolitical news)?
 
-The $506 move against you suggests CT was already pricing in BTC strength—did you check X sentiment *before* entry? If CT was net bullish (>+40 score) or whales were accumulating, that short was fighting the tape. The real miss: **what was the macro/geopolitical vibe at entry?** (Fed news, macro risk-off, etc.) Without knowing the sentiment backdrop, I can't tell if this was a timing miss or a directional miss against consensus.
+**Sentiment take:** A $519 move on a short in 4x leverage is tight — suggests the market had conviction against your thesis. If CT was split or cautiously bullish at entry, that's your red flag; if CT was doom-posting and you shorted into that consensus, you got caught in a squeeze rather than a sentiment failure.
 
-**Missing context:** CT sentiment score at entry time, whale positioning (via on-chain), macro catalyst that day.
+**What I'd need:** Entry timestamp + CT vibe at that moment (was X posting "BTC dead money" or "ETH breakout incoming"?). That tells us if you were early contrarian or late consensus.
 
-**Confidence: 0.6** — I'd need the X vibe snapshot from entry to give you real teeth on this.
+Confidence: 0.6 (can't assess sentiment alignment without the entry context).
 
 ### Oracle
 
 - Lane: prediction market regime
-- Confidence: 30%
+- Confidence: 60%
 - Source stamp: polymarket_regime_snapshot
 - Missing data flags: none
 
-Missing critical context: what was your edge thesis (Polymarket consensus vs your model), position sizing rationale (Kelly %), and the timeframe you were trading? A $506 move on a 4x BTC short against a market that's likely pricing in macro uncertainty suggests you either got the regime wrong or were sized too aggressively for the volatility regime—Polymarket's BTC election/macro markets would show if consensus shifted against your directional bias mid-trade. Without knowing if this was a mean-reversion play, macro hedge, or model divergence, I can't assess whether the stop was well-placed or whether you should have sized down. Pull the Polymarket BTC odds snapshot from entry/exit time and I can compare your thesis to what the market was pricing.
+**Missing context:** What was your thesis entry point (Polymarket odds on BTC price action, macro sentiment, vol regime)? Did you have a corresponding long position or hedge in prediction markets to validate the short, or was this pure perps directional?
 
-Confidence: 0.3
+**On the trade itself:** A $519 move stop on a $74.7K entry (70 bps) is tight for 4x leverage in BTC—you got whipsawed, which is normal in mean-reversion regimes. The real question is whether Polymarket was pricing a breakout (odds on BTC >$76K or similar) that you missed, or if this was a pure technical rejection that the market repriced faster than your stop. If Poly was already 65%+ on upside and you shorted, that's fighting consensus; if it was 40–50%, you had edge but got stopped into a trend.
+
+**Feedback
 
 ### Solus
 
 - Lane: options mechanics and sizing
-- Confidence: 72%
+- Confidence: 60%
 - Source stamp: options_mechanics_snapshot
-- Missing data flags: none
+- Missing data flags: timestamp
 
-**Missing critical context:** stop-loss width ($505 range = 0.68%), leverage (4x confirmed), but no entry rationale, position duration, or market regime at entry/exit. That said: **$505 stop on a $74K short is tight for BTC's intraday noise**—you're getting shaken out by normal volatility, not a structural break. At 4x, you're also eating $1,913 on a micro move; that's sizing + stops working against each other. **Mechanic call:** widen stops to 1.5–2% ($1,100–1,500 range) OR reduce leverage to 2x, OR add a re-entry rule so you don't just absorb the loss and walk. Right now you're paying tuition for volatility you could've survived.
+**Missing context:** Entry date, hold duration, and what triggered the stop (time decay, volatility spike, or pure price move?). On mechanics: 4x leverage on a $519 move is tight—$2,278 loss suggests your stop was ~2.8% below entry, which is aggressive for BTC perps in current vol. For a short, that's reasonable sizing if you expected consolidation; the issue is whether the thesis broke (BTC momentum shifted) or just unlucky fill. **Call:** Post-trade, check if your stop placement was reactive (too tight) or if the directional view was wrong—those require different adjustments next time.
 
-**Confidence: 0.72** (mechanics are sound; missing entry
+**Confidence: 0.6** (need entry timestamp and vol context to assess sizing rigor).
 
 ## Root-Cause Tags
 
@@ -80,12 +82,12 @@ Confidence: 0.3
 
 ## Confidence and Data Gaps
 
-- Quality score: 95/100
+- Quality score: 91/100
 - Escalate to Sentinel: false
 - Score breakdown: completeness=30, evidence=25, diagnosis=15, actionability=15, ownership=10
 - Context completeness: 92.9%
 - Regime vs execution: execution_miss
-- Risk budget: planned=$12.44, realized=$13.98, slippage=$1.54, breach=true
+- Risk budget: planned=$14.81, realized=$16.97, slippage=$2.16, breach=true
 - Consistency checks: pass
 
 ## What changes on next trade?
@@ -100,13 +102,13 @@ Confidence: 0.3
 - Adaptation eligible: true
 - Policy version at entry: baseline
 - Proposed delta: present
-- Delta confidence: 0.54
+- Delta confidence: 0.6
 - Delta window trades: 20
-- Delta expiry: 2026-03-30T23:44:20.098Z
+- Delta expiry: 2026-03-31T00:11:16.622Z
 
 ## Machine-Readable Summary
 
-- PM_QUALITY_SCORE: 95
+- PM_QUALITY_SCORE: 91
 - PM_QUALITY_ESCALATE: false
 - PM_PRIMARY_CAUSE: stop_too_tight_for_vol
 - PM_SECONDARY_CAUSES: none
@@ -115,32 +117,32 @@ Confidence: 0.3
 - PM_MISSING_DATA_COUNT: 0
 - PM_CONTEXT_COMPLETENESS_PCT: 92.9
 - PM_BUDGET_BREACH: true
-- PM_RISK_SLIPPAGE_USD: 1.54
+- PM_RISK_SLIPPAGE_USD: 2.16
 - PM_ADAPTATION_ELIGIBLE: true
 - PM_POLICY_VERSION_AT_ENTRY: baseline
 - PM_PROPOSED_DELTA_PRESENT: true
 
 ```json
 {
-  "qualityScore": 95,
+  "qualityScore": 91,
   "qualityEscalate": false,
   "primaryCause": "stop_too_tight_for_vol",
   "secondaryCauses": [],
   "ptqgComplete": true,
   "pmevCompletenessPct": 100,
   "missingData": [],
-  "holdMinutes": 33,
-  "adverseMovePct": 0.68,
+  "holdMinutes": 19,
+  "adverseMovePct": 0.695,
   "riskBudget": {
-    "plannedRiskUsd": 12.44,
-    "realizedRiskUsd": 13.98,
-    "riskSlippageUsd": 1.54,
+    "plannedRiskUsd": 14.81,
+    "realizedRiskUsd": 16.97,
+    "riskSlippageUsd": 2.16,
     "budgetBreach": true
   },
   "consistencyChecks": {
     "passed": true,
     "issues": [],
-    "adverseMovePctFromPrices": 0.68,
+    "adverseMovePctFromPrices": 0.695,
     "adverseMovePctDelta": 0,
     "stopDistancePctFromPrices": 0.65,
     "stopDistancePctDelta": 0,
@@ -149,17 +151,17 @@ Confidence: 0.3
   "adaptationEligible": true,
   "policyVersionAtEntry": "baseline",
   "proposedPolicyDelta": {
-    "confidence": 0.54,
+    "confidence": 0.6,
     "sampleSizeHint": 20,
     "maxStepChangePct": 20,
-    "expiresAtUtc": "2026-03-30T23:44:20.098Z",
+    "expiresAtUtc": "2026-03-31T00:11:16.622Z",
     "riskIntent": {
       "enforcePreTradeRiskCheck": true,
       "stopToAtrMin": 1,
       "maxLeverageByAssetClass": {
         "crypto": 3
       },
-      "maxSingleTradeUsd": 1626
+      "maxSingleTradeUsd": 1936
     },
     "validationPlan": {
       "windowTrades": 20,
@@ -176,25 +178,32 @@ Confidence: 0.3
     }
   },
   "echoContext": {
-    "entryTimestampUtc": "2026-03-16T23:11:08.745Z",
-    "exitTimestampUtc": "2026-03-16T23:44:07.084Z",
+    "entryTimestampUtc": "2026-03-16T23:52:07.646Z",
+    "exitTimestampUtc": "2026-03-17T00:11:04.538Z",
     "sentimentScore": 5,
     "regime": "uncertain"
   },
   "oracleContext": {
-    "entryTimestampUtc": "2026-03-16T23:11:08.745Z",
-    "exitTimestampUtc": "2026-03-16T23:44:07.084Z"
+    "entryTimestampUtc": "2026-03-16T23:52:07.646Z",
+    "exitTimestampUtc": "2026-03-17T00:11:04.538Z"
   },
   "solusContext": {
     "assetClass": "crypto",
     "thesisClass": "momentum",
     "leverage": 4,
     "stopDistancePct": 0.65,
-    "maxLossUsd": 12.44,
+    "maxLossUsd": 14.81,
     "maxLossPct": 2.6,
-    "entryAtrPct": 1.1086910994764396
+    "entryAtrPct": 1.1059685863874344
   },
-  "agentContextMissing": {},
+  "agentContextMissing": {
+    "Echo": [
+      "timestamp"
+    ],
+    "Solus": [
+      "timestamp"
+    ]
+  },
   "contextCompletenessPct": 92.9,
   "regimeVsExecution": "execution_miss"
 }

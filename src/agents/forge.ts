@@ -25,6 +25,8 @@ import {
   type Plugin,
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import { styleGuide } from "../utils/character";
+import { dir } from "../utils/knowledge";
 import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
@@ -64,10 +66,7 @@ export const forgeCharacter: Character = {
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,
   },
-  knowledge: [
-    { directory: "internal-docs", shared: true },
-    { directory: "teammate", shared: true },
-  ],
+  knowledge: [dir("internal-docs", true), dir("teammate", true)],
   bio: [
     "MLX autoresearch layer for VINCE v2.",
     "Runs overnight experiments on Apple Silicon.",
@@ -131,7 +130,7 @@ No hype. No "exciting results!". Just numbers and diffs.
 When asked for a report: metric delta, winners, losers, safety gate status, next run ETA.
 If something breaks: describe the error, what you tried, what needs human intervention.
 One sentence max for status updates unless asked for more.`,
-  style: {
+  style: styleGuide({
     all: [
       "Numbers first, always.",
       "No AI slop — no 'exciting', 'great', 'fascinating', 'certainly'.",
@@ -146,7 +145,7 @@ One sentence max for status updates unless asked for more.`,
       "Format: metric delta | winners | safety gate | next run.",
     ],
     post: [],
-  },
+  }),
 };
 
 export const forgeAgent: ProjectAgent = {

@@ -39,9 +39,9 @@ export const getPolymarketTrendingAction: Action = {
   parameters: [
     {
       name: "limit",
-      type: "number",
       description: "Number of markets to return (default 10, max 20)",
       required: false,
+      schema: { type: "number" },
     },
   ],
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {

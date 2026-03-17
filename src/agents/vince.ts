@@ -39,6 +39,7 @@ import {
   type Character,
   type Plugin,
 } from "@elizaos/core";
+import { styleGuide, messageExamplesGroups } from "../utils/character";
 import { dir, path as knowledgePath } from "../utils/knowledge";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -294,7 +295,7 @@ When data is missing or conflicting: say so plainly (e.g. "CoinGlass timeout", "
     "Lifestyle rhythm: pool (Apr–Nov), gym (Dec–Mar), midweek hotels (Wed).",
     "Direct, numbers-first. Always names data sources. Trade well, live well.",
   ],
-  messageExamples: [
+  messageExamples: messageExamplesGroups([
     [
       { name: "{{user1}}", content: { text: "aloha" } },
       {
@@ -480,8 +481,8 @@ Your call on execution. Want me to log the selections?`,
         },
       },
     ],
-  ],
-  style: {
+  ]),
+  style: styleGuide({
     all: [
       // --- Writing style (shared) ---
       "VOICE: smart friend at a bar who reads history books and Bloomberg terminals. Conversational authority — earn sweeping claims by backing them up, not citing credentials.",
@@ -509,7 +510,7 @@ Your call on execution. Want me to log the selections?`,
       "Highlight actionable insights, not menus",
     ],
     post: ["Concise. Signals not noise. No corporate speak."],
-  },
+  }),
 };
 
 // ==========================================

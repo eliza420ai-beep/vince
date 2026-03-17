@@ -92,7 +92,10 @@ export const polymarketDiscoveryProvider: Provider = {
       }
     }
 
-    return { text, values: values as Record<string, unknown> };
+    return {
+      text,
+      values: values as Record<string, import("@elizaos/core").ProviderValue>,
+    };
   },
 };
 

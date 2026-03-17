@@ -9,6 +9,7 @@ import type {
   State,
   HandlerCallback,
   ActionResult,
+  ProviderDataRecord,
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import {
@@ -82,7 +83,7 @@ export const cdpAdvancedTradeCancelOrder: Action = {
       return {
         success: failed.length === 0,
         text,
-        data: data as Record<string, unknown>,
+        data: data as ProviderDataRecord,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

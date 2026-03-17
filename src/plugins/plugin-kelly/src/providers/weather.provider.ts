@@ -190,7 +190,10 @@ export const weatherProvider: Provider = {
       text =
         "Weather unavailable; avoid recommending outdoor activities (beach, surf) without user confirmation.";
       values.weatherSummary = text;
-      const ret = { values: values as Record<string, unknown>, text };
+      const ret: import("@elizaos/core").ProviderResult = {
+        values: values as Record<string, import("@elizaos/core").ProviderValue>,
+        text,
+      };
       weatherCache = { result: ret, at: now };
       return ret;
     }
@@ -276,7 +279,7 @@ export const weatherProvider: Provider = {
     text = parts.join(" ");
     values.weatherSummary = text;
     const result: ProviderResult = {
-      values: values as Record<string, unknown>,
+      values: values as Record<string, import("@elizaos/core").ProviderValue>,
       text,
     };
     weatherCache = { result, at: now };

@@ -88,7 +88,7 @@ export const openclawContextProvider: Provider = {
       values: {
         openclawContext: paragraph,
         openclawGatewayConfigured: gatewaySet,
-      } as Record<string, unknown>,
+      } as Record<string, import("@elizaos/core").ProviderValue>,
     };
   },
 };
