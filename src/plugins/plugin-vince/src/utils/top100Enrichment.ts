@@ -457,7 +457,7 @@ function applyOverlays({
   const dexter = loadDexterScorecard(projectRoot);
   const byTickerHip3 = new Map<
     string,
-    { price?: number; change24h?: number; volume?: number }
+    { price?: number; change24h?: number; volume?: number; marketCap?: number }
   >();
   if (hip3?.categories?.stocks?.length) {
     for (const row of hip3.categories.stocks) {
@@ -466,6 +466,7 @@ function applyOverlays({
         price: row.price,
         change24h: row.change24h,
         volume: row.volume,
+        marketCap: row.marketCap,
       });
     }
   }
@@ -584,6 +585,14 @@ function applyOverlays({
           priceLive: fromHip3.price,
           change1dPct: fromHip3.change24h,
           avgVolume: fromHip3.volume,
+          marketCap:
+            typeof fromHip3.marketCap === "number"
+              ? fromHip3.marketCap
+              : out.marketCap,
+          marketCapSource:
+            typeof fromHip3.marketCap === "number"
+              ? "hip3"
+              : out.marketCapSource,
           quoteSource: "hip3",
         };
       }

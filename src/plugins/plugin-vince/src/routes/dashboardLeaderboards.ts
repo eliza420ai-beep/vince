@@ -40,6 +40,7 @@ import {
 } from "../utils/fdDiscoveryOutcomes";
 import { buildTop100StocksSection } from "../utils/top100Enrichment";
 import { loadAihfPortfolioDrafts } from "../utils/aihfPortfolioDrafts";
+import { VinceYahooQuotesService } from "../services/vinceYahooQuotes.service";
 import {
   getFdReplayRows,
   getFdReplayRowsForUniverse,
@@ -1914,9 +1915,43 @@ export async function buildLeaderboardsResponse(
   const fdCache = getFdCacheFreshness();
   const projectRoot = process.cwd();
   // Top100 stocks: portfolio universe (hyperliquid + tastytrade + watchlist)
-  const top100Built = buildTop100StocksSection({ projectRoot, hip3 });
-  const top100 = top100Built.section;
-  const top100Status = top100Built.status as SectionStatus;
+  let top100Built = buildTop100StocksSection({ projectRoot, hip3 });
+  let top100 = top100Built.section;
+  let top100Status = top100Built.status as SectionStatus;
+
+  // If Yahoo market caps haven't been cached yet, do a quick on-demand refresh
+  // for missing tickers and rebuild Top100 once so the UI can show Mkt Cap.
+  try {
+    const rows = top100?.rows ?? [];
+    const missingMcap = rows
+      .filter((r) => typeof r.marketCap !== "number")
+      .map((r) => r.ticker.toUpperCase().trim())
+      .filter(Boolean);
+
+    const cacheDir = path.join(projectRoot, ".elizadb", "yahoo-quotes");
+    const needsBootstrap = !fs.existsSync(cacheDir);
+    const missingPct = rows.length ? missingMcap.length / rows.length : 0;
+
+    if (needsBootstrap || missingPct >= 0.5) {
+      const svc = runtime.getService(
+        VinceYahooQuotesService.serviceType,
+      ) as VinceYahooQuotesService | null;
+      if (svc && missingMcap.length) {
+        await svc.refreshTop100Quotes({
+          projectRoot,
+          ttlMs: 0,
+          batchSize: 16,
+          retryMisses: false,
+          tickers: missingMcap.slice(0, 60),
+        });
+        top100Built = buildTop100StocksSection({ projectRoot, hip3 });
+        top100 = top100Built.section;
+        top100Status = top100Built.status as SectionStatus;
+      }
+    }
+  } catch {
+    // best-effort; keep leaderboards responsive
+  }
 
   // AIHF portfolio drafts: compare layer (non-canonical)
   let top100DraftCompare: Top100DraftCompareSection | null = null;

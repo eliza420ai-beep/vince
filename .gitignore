@@ -18,6 +18,9 @@ dist/
 .eliza/
 .elizadb/
 .elizadb-test/
+# Local DB backups (created when rotating PGLite dirs)
+.elizadb.bak*/
+.eliza/.elizadb.bak*/
 
 # OpenClaw research cache (ephemeral, runtime-generated)
 .openclaw-cache/

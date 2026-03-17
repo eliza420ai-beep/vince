@@ -48,6 +48,8 @@ export class VinceYahooQuotesService extends Service {
     ttlMs?: number;
     batchSize?: number;
     retryMisses?: boolean;
+    /** Optional explicit tickers (uppercased); defaults to Dexter portfolio universe. */
+    tickers?: string[];
   }): Promise<{
     requested: number;
     fetched: number;
@@ -59,9 +61,15 @@ export class VinceYahooQuotesService extends Service {
     const batchSize = args?.batchSize ?? 16;
     const retryMisses = args?.retryMisses !== false;
 
-    const assets = loadDexterPortfolioAssets(projectRoot);
     const tickers = Array.from(
-      new Set(assets.map((a) => a.ticker.toUpperCase().trim()).filter(Boolean)),
+      new Set(
+        (args?.tickers?.length
+          ? args.tickers
+          : loadDexterPortfolioAssets(projectRoot).map((a) => a.ticker)
+        )
+          .map((t) => t.toUpperCase().trim())
+          .filter(Boolean),
+      ),
     );
 
     const toFetch: string[] = [];
