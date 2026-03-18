@@ -29,6 +29,24 @@ Each entry follows this structure:
 
 <!-- Add newest entries at the top. Keep entries short — 2-3 lines per section max. -->
 
+### 2026-03-18 — Stripe Machine Payments + MPP Analysis for Otaku
+
+**What worked:**
+- Discovered Stripe is now a full x402 + MPP facilitator via the forked machine-payments repo and docs.stripe.com/payments/machine.
+- Identified MPP (Machine Payments Protocol) as a new protocol we hadn't accounted for — supports cards/wallets/SPTs alongside crypto, massively expanding Otaku's buyer base.
+- Formulated dual facilitator strategy: BANKR for DeFi execution (structural buyback thesis), Stripe for data API monetization (fiat settlement, broader market).
+- Recognized that BANKR and Stripe don't compete — they serve different functions for the same agent.
+
+**What didn't work:**
+- MPP and Shared Payment Tokens (SPTs) were not on our radar. The Khala Research report mentioned Stripe as an x402 facilitator but didn't cover MPP or the fiat-settlement angle.
+- We forked machine-payments but hadn't analyzed what it means for Otaku's architecture.
+
+**Change next time:**
+- When we fork a reference repo, immediately analyze its implications for our agents — don't let it sit unreviewed.
+- Track both x402 AND MPP as separate protocols with different buyer profiles. x402 = crypto-native agents. MPP = everyone else.
+
+---
+
 ### 2026-03-18 — x402 Ecosystem Analysis for Otaku
 
 **What worked:**

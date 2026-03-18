@@ -48,9 +48,9 @@ Set `ELIZA_ENABLED=true`, `KELLY_ENABLED=true`, etc. in `.env` to re-enable any 
 | **Project overview**                      | [README.md](README.md)                                                                                                                                                                                           |
 | **Workflow orchestration**                | Plan-first, subagents, [tasks/todo.md](tasks/todo.md), [tasks/lessons.md](tasks/lessons.md). Full: [knowledge/internal-docs/WORKFLOW-ORCHESTRATION.md](knowledge/internal-docs/WORKFLOW-ORCHESTRATION.md).                                                                          |
 | **Dexter drift & guardrails**            | Ask VINCE "drift" or "dexter drift" for paper vs Dexter universe (HL/tastytrade/watchlist + core crypto). Leverage caps and process: [docs/GUARDRAILS.md](docs/GUARDRAILS.md). Portfolio sync: [docs/DEXTER-PORTFOLIO-SYNC.md](docs/DEXTER-PORTFOLIO-SYNC.md).                          |
-| **x402 / Agentic commerce**              | Otaku is an autonomous economic actor in the x402 machine economy. x402 (HTTP 402 USDC micropayments, Coinbase + Cloudflare), ERC-8004 (agent identity), ERC-8183 (Jobs/escrow/commerce), ERC-8126 (security scoring). Full analysis: [docs/OTAKU.md § x402 Ecosystem Positioning](docs/OTAKU.md). BANKR is structural link (0.8% swap-fee buybacks). x402 investable universe: $VIRTUAL, $BNKR, $KITE, $DREAMS, $ROBO. See SOUL.md Layer 9. |
+| **x402 / MPP / Agentic commerce**        | Otaku is an autonomous economic actor via **two protocols**: x402 (USDC crypto micropayments) and MPP (crypto + cards/wallets/SPTs via Stripe). **Dual facilitator:** BANKR for DeFi execution (0.8% swap-fee buybacks), Stripe for data API monetization (fiat settlement, 1.5%, gasless). ERC-8004 (agent identity), ERC-8183 (Jobs/escrow/commerce), ERC-8126 (security scoring). Full analysis: [docs/OTAKU.md § x402 Ecosystem Positioning](docs/OTAKU.md). Reference implementation: [machine-payments fork](https://github.com/eliza420ai-beep/machine-payments). Stripe docs: [docs.stripe.com/payments/machine](https://docs.stripe.com/payments/machine). x402 investable universe: $VIRTUAL, $BNKR, $KITE, $DREAMS, $ROBO. See SOUL.md Layer 9. |
 
-**Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution, x402 micropayments, ERC-8004 identity). Otaku is an **autonomous economic actor** in the x402 machine economy — seller today, buyer on roadmap, with ERC-8183 commerce integration planned. **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
+**Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution, x402 micropayments, ERC-8004 identity). Otaku is an **autonomous economic actor** via x402 (crypto) and MPP (fiat) — seller today via x402 paid routes, with Stripe machine payments (fiat settlement + MPP/SPT card payments), x402/MPP buyer, and ERC-8183 commerce on roadmap. Dual facilitator: BANKR for DeFi execution, Stripe for data API monetization. **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
 
 ---
 
@@ -93,6 +93,26 @@ Full framework: [knowledge/internal-docs/WORKFLOW-ORCHESTRATION.md](knowledge/in
 - Point at logs, errors, failing tests — then resolve them.
 - Zero context switching required from the user.
 - Go fix failing CI tests without being told how.
+
+### 7. Context Amnesia Check
+- After drafting a task file or plan, review it in a fresh AI window to catch blind spots.
+- The original context can anchor you to assumptions — a clean read catches what familiarity misses.
+
+### 8. Escape Hatch
+- Stop iterating when AI reviewers only flag confirmed false positives.
+- Trust human verification after 2-3 full review cycles.
+- Infinite iteration is a tool, not a religion — know when to ship.
+
+### 9. GG Hook (End-of-Session)
+- After every significant session: document learnings in [tasks/lessons.md](tasks/lessons.md).
+- Update `CLAUDE.md` or `AGENTS.md` if new patterns or gotchas emerged.
+- The codebase absorbs the session's knowledge — next session starts smarter.
+
+### 10. Model Selection
+- **Opus** orchestrates complex tasks and reviews. Never delegate orchestration to a sub-agent model.
+- **Cheaper models** (Composer/Sonnet) for parallel sub-tasks: search, exploration, boilerplate.
+- **Multiple models for review** — different models catch different bug classes.
+- Monitor cost: heavy orchestration scales quickly. See [docs/TREASURY.md](docs/TREASURY.md).
 
 ---
 

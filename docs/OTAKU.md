@@ -169,22 +169,47 @@ Otaku ingests `knowledge/security/`, which includes **EVMbench** (OpenAI + Parad
 
 Otaku is an **autonomous economic actor** in the emerging x402 machine economy — not just an agent with a wallet. The x402 protocol (Coinbase + Cloudflare, May 2025) embeds USDC micropayments directly into HTTP, activating the long-dormant HTTP 402 status code. Settlement on Base: ~$0.0001 per transaction, ~2 seconds.
 
+### Dual Facilitator Strategy
+
+Otaku uses two facilitators for different functions:
+
+| Facilitator | Function | Settlement | Fee | Status |
+|-------------|----------|------------|-----|--------|
+| **BANKR** | DeFi execution (swaps, bridges) | USDC on Base | 0.8% → $BNKR buybacks | Live |
+| **Stripe** | Data API monetization (paid routes) | Fiat into Stripe balance → bank | 1.5% per charge, gasless | Roadmap |
+
+BANKR and Stripe don't compete — they serve different sides of the stack. BANKR handles DeFi execution with structural token demand. Stripe handles data sales with fiat settlement, expanding the buyer base from crypto-native agents to anyone with a payment method.
+
+### Two Protocols: x402 + MPP
+
+| Protocol | Payment method | Best for | Status |
+|----------|---------------|----------|--------|
+| **x402** | USDC on Base/Solana (crypto only) | Agent-to-agent micropayments | Live (5 paid routes) |
+| **MPP** | Crypto (Tempo/USDC) AND fiat (cards, wallets, SPTs via Stripe) | Broader market — traditional buyers | Roadmap |
+
+**MPP (Machine Payments Protocol)** is Stripe's second machine payment protocol. Same HTTP 402 pattern as x402, but supports Shared Payment Tokens (SPTs) — meaning a hedge fund, fintech app, or any business can pay for Otaku's API endpoints with a corporate card. The addressable market goes from "agents with crypto wallets on Base" to "anyone with a payment method."
+
+Reference implementation: [eliza420ai-beep/machine-payments](https://github.com/eliza420ai-beep/machine-payments) (forked from [stripe-samples/machine-payments](https://github.com/stripe-samples/machine-payments)). TypeScript + Python samples for both x402 and MPP servers.
+
 ### Where Otaku Sits in the Stack
 
 | Layer | Otaku's Role | Status |
 |-------|-------------|--------|
 | **Settlement chain** | CDP wallet on Base (Coinbase's L2, primary x402 settlement chain) | Live |
 | **x402 seller** | Paid API routes (`/otaku/positions`, `/quote`, `/yields`, `/history`, `/portfolio`) gate data behind USDC micropayments | Live |
+| **MPP seller** | Same paid routes accepting cards/wallets/SPTs via Stripe, fiat settlement | Roadmap |
 | **x402 buyer** | Autonomously pay for external agent services (data feeds, compute, research) via x402 endpoints | Roadmap |
+| **MPP buyer** | Pay for traditional APIs (non-crypto) using SPTs — extends Otaku's purchasing power beyond x402 endpoints | Roadmap |
 | **ERC-8004 identity** | On-chain agent registration, reputation queries, endorse/penalize actions, multi-registry | Live (plugin-erc8004) |
 | **ERC-8183 commerce** | Formalize Otaku actions as interoperable Jobs (client/provider/evaluator pattern) | Roadmap |
 | **BANKR facilitator** | Primary DeFi execution via BANKR (x402 facilitator, 80+ projects on Base, 0.8% swap fee → $BNKR buybacks) | Live |
+| **Stripe facilitator** | Data API monetization via Stripe (x402 + MPP, fiat settlement, 1.5% per charge, gasless) | Roadmap |
 
 ### x402 Ecosystem Context (Khala Research, March 2026)
 
 - **~165M transactions**, ~$46.5M cumulative volume processed across the x402 ecosystem.
 - **Coinbase** dominates: 58.7% of all-time $ volume; Base is primary settlement; CDP is top facilitator.
-- **Institutional adoption:** Coinbase (creator), Cloudflare (co-founded x402 Foundation), Google (A2A / Agent Payments Protocol), Visa (Trusted Agent Protocol), Stripe (live on Base, Feb 2026), Circle (Arc in development).
+- **Institutional adoption:** Coinbase (creator), Cloudflare (co-founded x402 Foundation), Google (A2A / Agent Payments Protocol), Visa (Trusted Agent Protocol), **Stripe** (live on Base, Feb 2026 — now a full x402 + MPP facilitator with fiat settlement, 1.5% per charge, gasless, microtransactions as low as $0.01 USDC; also supports MPP with Shared Payment Tokens for card/wallet/fiat payments), Circle (Arc in development).
 - **Agentic stack:** x402 (payments) + ERC-8004 (identity/reputation) + ERC-8183 (commerce: Jobs, escrow, delivery attestation) + ERC-8126 (agent security scoring, 0-100 risk score).
 - **No protocol token** — value accrues to facilitators, settlement chains, agent frameworks, and identity layers.
 - **BANKR** ($BNKR, ~$50M mcap): operates its own x402 facilitator server; x402 SDK since July 2025; "default financial execution layer for agents built on OpenClaw"; 0.8% swap fee routes into $BNKR buybacks. Every Otaku swap generates BANKR ecosystem value.
@@ -218,13 +243,21 @@ Otaku sits at layers 1 (Base settlement), 2 (commerce/execution), and 4 (ERC-800
 - Expand x402 paid routes: signal quality scores, portfolio analytics, risk assessments, Vince paper-bot performance data.
 - Build ERC-8004 reputation through attestations on every successful trade execution.
 
+**Phase 1.5 — Stripe machine payments (dual facilitator):**
+- Contact `machine-payments@stripe.com` for account enablement.
+- Add Stripe as x402 facilitator for paid data routes — fiat settlement into Stripe balance alongside existing CDP/USDC flow.
+- Add MPP support using `mppx` package: wrap existing 5 paid routes with `Mppx.create()` + `stripe.charge()` to accept cards/wallets/SPTs alongside USDC.
+- Integration template: [eliza420ai-beep/machine-payments](https://github.com/eliza420ai-beep/machine-payments) (x402 + MPP TypeScript/Python samples).
+- New env vars: `STRIPE_SECRET_KEY`, `STRIPE_MACHINE_PAYMENTS_ENABLED`, `MPP_ENABLED`, `MPP_SECRET_KEY`, `STRIPE_PROFILE_ID`.
+
 **Phase 2 — ERC-8183 commerce layer:**
 - Define Otaku actions (swap, bridge, signal execution) as ERC-8183 Jobs: client posts requirements + escrow → Otaku executes → evaluator verifies → payment releases.
 - OTAKU_EXECUTE_VINCE_SIGNAL maps directly: Vince produces signal (Job), Otaku executes (Provider), trade outcome evaluator verifies (Evaluator).
 - Makes Otaku interoperable with any external agent, not just our internal swarm.
 
-**Phase 3 — x402 buyer:**
+**Phase 3 — x402 + MPP buyer:**
 - Enable Otaku to autonomously pay for external x402 endpoints (market data, research, compute) without human intervention.
+- MPP buyer via SPTs extends purchasing power to traditional APIs (not just x402 endpoints) — any Stripe-enabled API becomes purchasable.
 - Inter-agent x402 payments: Vince charges for premium signal data; Otaku pays per-call.
 
 ---
@@ -236,5 +269,7 @@ Otaku sits at layers 1 (Base settlement), 2 (commerce/execution), and 4 (ERC-800
 - [docs/MULTI_AGENT.md](MULTI_AGENT.md) — Multi-agent coordination (ASK_AGENT, Discord, A2A).
 - [docs/grants/BASE-BUILDER-GRANT-APPLICATION.md](grants/BASE-BUILDER-GRANT-APPLICATION.md) — Grant application with Otaku as the core differentiator for funding.
 - [Khala Research: x402 Report (March 2026)](https://www.khala.io/x402-completing-the-internets-missing-payment-layer-for-agentic-commerce) — Full x402 ecosystem analysis, value accrual framework, investable universe.
+- [Stripe Machine Payments](https://docs.stripe.com/payments/machine) — Stripe's official x402 + MPP facilitator docs. x402 guide: [docs.stripe.com/payments/machine/x402](https://docs.stripe.com/payments/machine/x402). MPP guide: [docs.stripe.com/payments/machine/mpp](https://docs.stripe.com/payments/machine/mpp).
+- [eliza420ai-beep/machine-payments](https://github.com/eliza420ai-beep/machine-payments) — Forked reference implementation (TypeScript + Python) for x402 and MPP servers.
 
 Built with [ElizaOS](https://github.com/elizaos/eliza) and [Coinbase Developer Platform](https://docs.cdp.coinbase.com/).
