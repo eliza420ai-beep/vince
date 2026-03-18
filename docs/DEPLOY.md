@@ -37,6 +37,77 @@ Like [elizaOS/otaku](https://github.com/elizaOS/otaku), you can deploy to **Rail
 
 ---
 
+## VPS security (non-negotiable)
+
+Never expose your VPS to the entire internet.
+
+- **Inbound 443 (HTTPS)**: allow **only** from **Cloudflare IP ranges** (so the public internet hits Cloudflare, then Cloudflare hits your box).
+- **Inbound 22 (SSH)**: allow **only** from your **Tailscale subnet range** (your laptop → Tailscale → VPS).
+- **Everything else inbound**: deny.
+- **Still use SSH keys**: firewalling reduces who can knock; keys decide who gets in.
+
+Why: if 22/443 are open to the world, *anyone* can connect and you’re betting your security on “no unpatched vulns”. If 22 is Tailscale-only, an attacker usually needs to compromise your Tailnet (often: your laptop) first.
+
+### Example: Ubuntu/Debian with UFW
+
+This assumes:
+
+- You proxy web traffic through Cloudflare (orange-clouded DNS).
+- You access SSH via Tailscale.
+
+**1) Install UFW and lock inbound by default:**
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ufw
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+```
+
+**2) Allow SSH only from Tailscale:**
+
+If you use “normal” Tailscale IPs, they live in `100.64.0.0/10` (CGNAT). If you’ve configured a different Tailnet subnet (or you’re using a subnet router), replace this with *your actual* Tailnet/subnet(s).
+
+```bash
+sudo ufw allow from 100.64.0.0/10 to any port 22 proto tcp
+```
+
+**3) Allow HTTPS only from Cloudflare IP ranges:**
+
+Use Cloudflare’s published IPv4/IPv6 ranges:
+
+- `https://www.cloudflare.com/ips-v4`
+- `https://www.cloudflare.com/ips-v6`
+
+Add them all (example shows one; you must add the full list):
+
+```bash
+sudo ufw allow from 173.245.48.0/20 to any port 443 proto tcp
+```
+
+**4) Enable the firewall:**
+
+```bash
+sudo ufw enable
+sudo ufw status verbose
+```
+
+### Unattended upgrades + auto reboot (Ubuntu/Debian)
+
+At minimum, turn on unattended security updates. If you’re OK with reboots to apply kernel patches automatically, enable that too.
+
+```bash
+sudo apt-get install -y unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
+
+Then set (or verify) these in `/etc/apt/apt.conf.d/50unattended-upgrades`:
+
+- `Unattended-Upgrade::Automatic-Reboot "true";`
+- `Unattended-Upgrade::Automatic-Reboot-Time "03:30";`
+
+If you want the agent to do this for you, tell it: “enable unattended upgrades with auto reboot”.
+
 **Quick reference:** PGLite (recommended) = leave `POSTGRES_URL` unset. Postgres = set `POSTGRES_URL` (port 5432, `?sslmode=verify-full`). Minimal deploy = `ANTHROPIC_API_KEY` + `OPENAI_API_KEY` only; full = add API keys and optional `SUPABASE_SERVICE_ROLE_KEY`.
 
 **Deploy with PGLite (recommended):** Leave `POSTGRES_URL` unset. The app uses embedded **PGLite**. **Paper trades** are always stored in **JSONL** under `.elizadb/vince-paper-bot/features/` (and in the PGLite table `plugin_vince.paper_bot_features`). No external DB required.

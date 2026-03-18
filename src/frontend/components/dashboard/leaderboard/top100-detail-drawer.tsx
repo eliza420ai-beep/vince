@@ -1,4 +1,5 @@
 import type {
+  AihfDraftId,
   Top100DetailsPayload,
   Top100StockRow,
 } from "@/frontend/lib/leaderboardsApi";
@@ -30,6 +31,19 @@ function fmtUpdatedAt(value?: string | number) {
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.round(mins / 60);
   return `${hrs}h ago`;
+}
+
+function draftLabel(id: AihfDraftId): string {
+  switch (id) {
+    case "aihf_top100":
+      return "AIHF Top100";
+    case "aihf_tastytrade_full":
+      return "AIHF Tastytrade (full)";
+    case "aihf_hyperliquid_full":
+      return "AIHF Hyperliquid (full)";
+    default:
+      return String(id);
+  }
 }
 
 function dailyRitualNotes(row: Top100StockRow): string[] {
@@ -172,6 +186,7 @@ export function Top100DetailDrawer(props: {
   onOpenChange: (v: boolean) => void;
   row: Top100StockRow | null;
   detail: Top100DetailsPayload | null;
+  draftWeights?: Partial<Record<AihfDraftId, number>> | null;
   loading?: boolean;
   error?: string | null;
 }) {
@@ -613,6 +628,32 @@ export function Top100DetailDrawer(props: {
                     <div className="mt-0.5">{r.riskSummary}</div>
                   </div>
                 ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {props.draftWeights && Object.keys(props.draftWeights).length ? (
+            <div className="rounded-xl border border-border/60 p-4">
+              <div className="text-sm font-semibold">AIHF drafts (compare)</div>
+              <div className="mt-3 space-y-2 text-sm">
+                {Object.entries(props.draftWeights)
+                  .filter(
+                    ([, w]) => typeof w === "number" && Number.isFinite(w),
+                  )
+                  .sort((a, b) => (b[1] as number) - (a[1] as number))
+                  .map(([id, w]) => (
+                    <div
+                      key={id}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <div className="text-muted-foreground">
+                        {draftLabel(id as AihfDraftId)}
+                      </div>
+                      <div className="font-mono">
+                        {(w as number).toFixed(2)}%
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
           ) : null}

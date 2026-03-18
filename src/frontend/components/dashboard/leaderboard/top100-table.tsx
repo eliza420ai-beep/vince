@@ -63,6 +63,37 @@ function fmtMcap(v?: number) {
   return `${(v / 1e9).toFixed(1)}B`;
 }
 
+function scoreSourceLabel(src: Top100StockRow["scoreSource"]): string | null {
+  if (src === "dexter") return "DX";
+  if (src === "synthetic") return "SYN";
+  if (src === "editorial") return "ED";
+  return null;
+}
+
+function ScorePill({
+  src,
+  stale,
+}: {
+  src: Top100StockRow["scoreSource"];
+  stale?: boolean;
+}) {
+  const label = scoreSourceLabel(src);
+  if (!label) return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-mono leading-none",
+        stale
+          ? "border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10"
+          : "border-border/60 text-muted-foreground bg-muted/30",
+      )}
+      title={stale ? "Score is stale" : "Score source"}
+    >
+      {label}
+    </span>
+  );
+}
+
 function draftChipLabel(id: AihfDraftId): string {
   if (id === "aihf_top100") return "AIHF Top100";
   if (id === "aihf_tastytrade_full") return "AIHF Tastytrade";
@@ -290,6 +321,7 @@ export function Top100Table({
                         active
                       </span>
                     ) : null}
+                    <ScorePill src={r.scoreSource} stale={r.scoreStale} />
                     <SourcePill src={r.quoteSource} stale={r.quoteStale} />
                     {(() => {
                       const byDraft =

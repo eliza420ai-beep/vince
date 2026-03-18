@@ -34,11 +34,13 @@ export interface AihfPortfolioDraft {
   assets: AihfPortfolioDraftAsset[];
   bySymbol: Map<string, AihfPortfolioDraftAsset>;
   sourcePath: string;
+  fileMtimeMs: number | null;
 }
 
 export interface AihfPortfolioDraftLoadResult {
   drafts: AihfPortfolioDraft[];
   errors: Array<{ id: AihfDraftId; path: string; error: string }>;
+  maxMtimeMs: number | null;
 }
 
 function normalizeSymbol(sym: string): string {
@@ -61,6 +63,12 @@ function loadOneDraft(params: {
   filename: string;
 }): AihfPortfolioDraft {
   const filePath = path.join(path.resolve(params.projectRoot), params.filename);
+  let fileMtimeMs: number | null = null;
+  try {
+    fileMtimeMs = fs.statSync(filePath).mtimeMs;
+  } catch {
+    fileMtimeMs = null;
+  }
   const parsed = readJson(filePath) as AihfPortfolioDraftRaw;
   const assetsRaw = Array.isArray(parsed.assets) ? parsed.assets : [];
   const assets: AihfPortfolioDraftAsset[] = assetsRaw
@@ -87,6 +95,7 @@ function loadOneDraft(params: {
     assets,
     bySymbol,
     sourcePath: filePath,
+    fileMtimeMs,
   };
 }
 
@@ -117,19 +126,28 @@ export function loadAihfPortfolioDrafts(
 
   const drafts: AihfPortfolioDraft[] = [];
   const errors: Array<{ id: AihfDraftId; path: string; error: string }> = [];
+  let maxMtimeMs: number | null = null;
 
   for (const c of configs) {
     const filePath = path.join(path.resolve(projectRoot), c.filename);
     if (!fs.existsSync(filePath)) continue;
     try {
-      drafts.push(
-        loadOneDraft({
-          projectRoot,
-          id: c.id,
-          label: c.label,
-          filename: c.filename,
-        }),
-      );
+      const draft = loadOneDraft({
+        projectRoot,
+        id: c.id,
+        label: c.label,
+        filename: c.filename,
+      });
+      if (
+        typeof draft.fileMtimeMs === "number" &&
+        Number.isFinite(draft.fileMtimeMs)
+      ) {
+        maxMtimeMs =
+          maxMtimeMs == null
+            ? draft.fileMtimeMs
+            : Math.max(maxMtimeMs, draft.fileMtimeMs);
+      }
+      drafts.push(draft);
     } catch (e) {
       errors.push({
         id: c.id,
@@ -139,5 +157,5 @@ export function loadAihfPortfolioDrafts(
     }
   }
 
-  return { drafts, errors };
+  return { drafts, errors, maxMtimeMs };
 }

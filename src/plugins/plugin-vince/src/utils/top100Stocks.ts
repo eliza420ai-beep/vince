@@ -28,6 +28,8 @@ export interface Top100StockRow {
   scoreSource?: "dexter" | "editorial" | "synthetic";
   /** When the score source was generated (ms). */
   scoreGeneratedAt?: number;
+  /** True when the score is older than the staleness threshold. */
+  scoreStale?: boolean;
   /** Sleeve from scorecard: tastytrade | hyperliquid | watchlist */
   sleeve?: string;
   /** Human-readable scorecard flags (high_momentum, insider_selling, etc.) */
@@ -92,6 +94,8 @@ export interface Top100StockRow {
   drawdownPct?: number;
   dollarVolumeAvg?: number;
   fdSnapshotAt?: number;
+  /** True when the FD snapshot is older than the staleness threshold. */
+  fdSnapshotStale?: boolean;
 }
 
 export interface Top100Rituals {
@@ -136,6 +140,8 @@ export interface Top100Meta {
   dexterScorecardGeneratedAt?: number | null;
   dexterScorecardTickerCount?: number;
   dexterScorecardCoveredCount?: number;
+  /** Age (ms) of the Dexter scorecard; null when unknown. */
+  dexterScorecardAgeMs?: number | null;
   /** Percent of rows with composite score present. */
   scoredCoveragePct?: number;
   /** Percent of rows with price or 1D change available. */
@@ -168,6 +174,9 @@ export interface Top100Meta {
   missingFdInsiderTickers?: string[];
   missingFdFilingTickers?: string[];
   staleFdSnapshotTickers?: string[];
+  /** AIHF draft file mtimes (ms) when drafts are present. */
+  aihfDraftsMaxMtimeMs?: number | null;
+  aihfDraftsAgeMs?: number | null;
 }
 
 export interface CachedTop100 {

@@ -778,6 +778,10 @@ function getFdCacheFreshness(): {
   generatedAt?: number | null;
   fileCount?: number;
   status?: "ready" | "missing" | "stale";
+  perDomain?: Record<
+    string,
+    { fileCount: number; latestMtimeMs: number | null; ageMs: number | null }
+  >;
 } {
   try {
     const manifestPath = path.join(
@@ -801,10 +805,65 @@ function getFdCacheFreshness(): {
     const fileCount = Array.isArray(parsed.files) ? parsed.files.length : 0;
     const stale =
       generatedAt != null && Date.now() - generatedAt > 7 * 24 * 60 * 60 * 1000;
+
+    const cacheRoot = path.join(
+      process.cwd(),
+      ".elizadb",
+      "financialdatasets-cache",
+    );
+    const domains = [
+      "prices",
+      "fundamentals",
+      "earnings",
+      "filings",
+      "insiders",
+      "company-facts",
+      "snapshots",
+    ];
+    const perDomain: NonNullable<
+      ReturnType<typeof getFdCacheFreshness>["perDomain"]
+    > = {};
+    for (const d of domains) {
+      const dir = path.join(cacheRoot, d);
+      if (!fs.existsSync(dir)) {
+        perDomain[d] = { fileCount: 0, latestMtimeMs: null, ageMs: null };
+        continue;
+      }
+      let latestMtimeMs: number | null = null;
+      let files = 0;
+      try {
+        const entries = fs.readdirSync(dir);
+        files = entries.length;
+        for (const name of entries) {
+          const p = path.join(dir, name);
+          try {
+            const st = fs.statSync(p);
+            if (!st.isFile()) continue;
+            latestMtimeMs =
+              latestMtimeMs == null
+                ? st.mtimeMs
+                : Math.max(latestMtimeMs, st.mtimeMs);
+          } catch {
+            // ignore bad files
+          }
+        }
+      } catch {
+        // ignore bad directory reads
+      }
+      perDomain[d] = {
+        fileCount: files,
+        latestMtimeMs,
+        ageMs:
+          latestMtimeMs != null
+            ? Math.max(0, Date.now() - latestMtimeMs)
+            : null,
+      };
+    }
     return {
       generatedAt,
       fileCount,
       status: stale ? "stale" : "ready",
+      perDomain,
     };
   } catch {
     return { generatedAt: null, fileCount: 0, status: "missing" };
@@ -2016,6 +2075,17 @@ export async function buildLeaderboardsResponse(
         presenceByTicker,
         ...(loaded.errors.length ? { errors: loaded.errors } : {}),
       };
+
+      if (top100?.meta) {
+        const maxMtimeMs =
+          typeof loaded.maxMtimeMs === "number" &&
+          Number.isFinite(loaded.maxMtimeMs)
+            ? loaded.maxMtimeMs
+            : null;
+        top100.meta.aihfDraftsMaxMtimeMs = maxMtimeMs;
+        top100.meta.aihfDraftsAgeMs =
+          maxMtimeMs != null ? Math.max(0, Date.now() - maxMtimeMs) : null;
+      }
     }
   } catch {
     // leave null on error

@@ -7,6 +7,7 @@ import {
   readYahooQuoteFromCache,
   type YahooQuoteEnvelope,
 } from "./yahooQuotesCache";
+import { readCompanyFactsFromCache } from "./top100CompanyFactsCache";
 
 export interface Top100SparkPoint {
   date: string;
@@ -37,6 +38,76 @@ function isFiniteNumber(v: unknown): v is number {
 
 function normalizeTicker(t: string): string {
   return t.toUpperCase().trim();
+}
+
+function fmtMcap(v?: number): string | null {
+  if (typeof v !== "number" || !Number.isFinite(v)) return null;
+  if (v >= 1e12) return `${(v / 1e12).toFixed(2)}T`;
+  return `${(v / 1e9).toFixed(1)}B`;
+}
+
+function buildCompanyFactsSnapshot(
+  projectRoot: string,
+  ticker: string,
+): string | null {
+  const facts = readCompanyFactsFromCache(projectRoot, ticker);
+  if (!facts) return null;
+  const lines: string[] = [];
+  if (facts.name) lines.push(`Name: ${facts.name}`);
+  if (facts.exchange) lines.push(`Exchange: ${facts.exchange}`);
+  if (facts.sector) lines.push(`Sector: ${facts.sector}`);
+  if (facts.industry) lines.push(`Industry: ${facts.industry}`);
+  const mcap = fmtMcap(facts.market_cap);
+  if (mcap) lines.push(`Market cap: ${mcap}`);
+  if (
+    typeof facts.employee_count === "number" &&
+    Number.isFinite(facts.employee_count)
+  ) {
+    lines.push(`Employees: ${facts.employee_count.toLocaleString("en-US")}`);
+  }
+  if (facts.fetchedAt) lines.push(`Fetched: ${facts.fetchedAt}`);
+  return lines.length ? lines.join("\n") : null;
+}
+
+function buildAnalystEstimatesSummary(row: any): string | null {
+  // Minimal, deterministic “street frame” using the annex seed already surfaced on rows.
+  const avgPt =
+    typeof row?.avgPriceTarget === "string" ? row.avgPriceTarget : null;
+  const upside = typeof row?.upsidePct === "string" ? row.upsidePct : null;
+  const offAth = typeof row?.offAthPct === "string" ? row.offAthPct : null;
+  const parts = [
+    avgPt ? `Avg PT: ${avgPt}` : null,
+    upside ? `Upside: ${upside}` : null,
+    offAth ? `Off ATH: ${offAth}` : null,
+  ].filter(Boolean) as string[];
+  return parts.length ? parts.join("\n") : null;
+}
+
+function buildNewsSummary(row: any): string | null {
+  // Deterministic “what happened recently” summary from FD snapshot fields.
+  const parts: string[] = [];
+  if (row?.recent8k === true) parts.push("Recent 8-K");
+  if (row?.recent10q === true) parts.push("Recent 10-Q");
+  if (row?.recent10k === true) parts.push("Recent 10-K");
+  if (
+    typeof row?.daysSinceEarnings === "number" &&
+    Number.isFinite(row.daysSinceEarnings)
+  ) {
+    parts.push(`Earnings: ${row.daysSinceEarnings}d ago`);
+  }
+  if (
+    typeof row?.earningsSurprisePct === "number" &&
+    Number.isFinite(row.earningsSurprisePct)
+  ) {
+    parts.push(`Surprise: ${row.earningsSurprisePct.toFixed(1)}%`);
+  }
+  if (
+    typeof row?.insiderBuySellSkew === "number" &&
+    Number.isFinite(row.insiderBuySellSkew)
+  ) {
+    parts.push(`Insiders skew: ${row.insiderBuySellSkew.toFixed(2)}`);
+  }
+  return parts.length ? parts.join("\n") : null;
 }
 
 function buildSpark30dFromFdCache(
@@ -101,6 +172,12 @@ export async function buildTop100Details(params: {
   const resolvedTicker = normalizeTicker(row.ticker);
   const quote = readYahooQuoteFromCache(projectRoot, resolvedTicker);
   const fdCache = buildSpark30dFromFdCache(projectRoot, resolvedTicker);
+  const analystEstimatesSummary = buildAnalystEstimatesSummary(row);
+  const companyFactsSnapshot = buildCompanyFactsSnapshot(
+    projectRoot,
+    resolvedTicker,
+  );
+  const newsSummary = buildNewsSummary(row);
 
   return {
     ticker: resolvedTicker,
@@ -108,5 +185,8 @@ export async function buildTop100Details(params: {
     quote,
     fdCache,
     peers,
+    analystEstimatesSummary,
+    companyFactsSnapshot,
+    newsSummary,
   };
 }

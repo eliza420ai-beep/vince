@@ -255,6 +255,8 @@ export interface Top100StockRow {
   scoreSource?: "dexter" | "editorial" | "synthetic";
   /** When the score source was generated (ms). */
   scoreGeneratedAt?: number;
+  /** True when the score is older than the staleness threshold. */
+  scoreStale?: boolean;
   sleeve?: string;
   flags?: string[];
   /** Strategic layer from TOP100 essay (Layer 1–6). */
@@ -314,6 +316,8 @@ export interface Top100StockRow {
   drawdownPct?: number;
   dollarVolumeAvg?: number;
   fdSnapshotAt?: number;
+  /** True when the FD snapshot is older than the staleness threshold. */
+  fdSnapshotStale?: boolean;
 }
 
 export interface Top100SparkPoint {
@@ -368,6 +372,8 @@ export interface Top100Meta {
   dexterScorecardGeneratedAt?: number | null;
   dexterScorecardTickerCount?: number;
   dexterScorecardCoveredCount?: number;
+  /** Age (ms) of the Dexter scorecard; null when unknown. */
+  dexterScorecardAgeMs?: number | null;
   scoredCoveragePct?: number;
   quoteCoveragePct?: number;
   historyCoveragePct?: number;
@@ -409,6 +415,9 @@ export interface Top100Meta {
   missingYahooTickers?: string[];
   missingFdHistoryTickers?: string[];
   missingMarketCapTickers?: string[];
+  /** AIHF draft file mtimes (ms) when drafts are present. */
+  aihfDraftsMaxMtimeMs?: number | null;
+  aihfDraftsAgeMs?: number | null;
 }
 
 export interface Top100StocksSection {
@@ -441,6 +450,10 @@ export interface LeaderboardsResponse {
     generatedAt?: number | null;
     fileCount?: number;
     status?: "ready" | "missing" | "stale";
+    perDomain?: Record<
+      string,
+      { fileCount: number; latestMtimeMs: number | null; ageMs: number | null }
+    >;
   };
   /** FD sleeve discovery: PromoteNow / ResearchNext / Avoid; optional newCandidates, existingSleeve, calibration */
   fdDiscovery?: FdDiscoverySection | null;

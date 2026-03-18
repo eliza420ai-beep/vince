@@ -26,6 +26,9 @@ import { loadDexterScorecard } from "./dexterScorecard";
 
 export type Top100SectionStatus = "loading" | "ok" | "stale" | "error";
 
+const SCORE_STALE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days (Dexter cadence is weekly)
+const FD_SNAPSHOT_STALE_MS = 36 * 60 * 60 * 1000; // 36 hours
+
 export interface Top100StocksSection {
   rows: Top100StockRow[];
   meta: Top100Meta;
@@ -183,14 +186,13 @@ function computeCoverageMeta(
   const fdFilingRows = rows.filter(
     (r) => r.recent8k === true || r.recent10q === true || r.recent10k === true,
   );
-  const fdSnapshotStaleMs = 36 * 60 * 60 * 1000;
   const now = Date.now();
   const staleFdSnapshotTickers = rows
     .filter(
       (r) =>
         typeof r.fdSnapshotAt === "number" &&
         Number.isFinite(r.fdSnapshotAt) &&
-        now - r.fdSnapshotAt > fdSnapshotStaleMs,
+        now - r.fdSnapshotAt > FD_SNAPSHOT_STALE_MS,
     )
     .map((r) => r.ticker);
   const missingFdSnapshotTickers = rows
@@ -700,6 +702,21 @@ function applyOverlays({
       }
     }
 
+    // Staleness flags (operator trust)
+    if (
+      typeof out.scoreGeneratedAt === "number" &&
+      Number.isFinite(out.scoreGeneratedAt)
+    ) {
+      out.scoreStale = Date.now() - out.scoreGeneratedAt > SCORE_STALE_MS;
+    }
+    if (
+      typeof out.fdSnapshotAt === "number" &&
+      Number.isFinite(out.fdSnapshotAt)
+    ) {
+      out.fdSnapshotStale =
+        Date.now() - out.fdSnapshotAt > FD_SNAPSHOT_STALE_MS;
+    }
+
     // 5. Editorial scorecard fallback — composite/sub-scores if still null after FD
     if (typeof out.composite !== "number" || !Number.isFinite(out.composite)) {
       const editorial = getEditorialScorecard(key);
@@ -716,6 +733,7 @@ function applyOverlays({
           insiderScore: editorial.insiderScore,
           scoreSource: "editorial",
         };
+        if (!out.scoreGeneratedAt) out.scoreGeneratedAt = Date.now();
       }
     }
 
@@ -849,6 +867,10 @@ export function buildTop100StocksSection(args: {
       dexterScorecardGeneratedAt: dexter?.generatedAtMs ?? null,
       dexterScorecardTickerCount: dexter?.tickerCount,
       dexterScorecardCoveredCount: dexterCoveredCount || undefined,
+      dexterScorecardAgeMs:
+        dexter?.generatedAtMs != null
+          ? Math.max(0, Date.now() - dexter.generatedAtMs)
+          : null,
     });
 
     // Degrade to stale when coverage is weak.
