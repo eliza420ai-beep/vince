@@ -13,7 +13,7 @@ This folder contains **one briefing document per agent** in the VINCE multi-agen
 | **ECHO**     | [ECHO.md](ECHO.md)         | CSO  | Crypto Twitter sentiment, pulse/vibe, watchlist, save research; handoffs for price/TA to VINCE.                       |
 | **Oracle**   | [ORACLE.md](ORACLE.md)     | CPO  | Polymarket read-only: discovery, odds, portfolio; handoffs for perps/options to VINCE, execution to Solus/Otaku.      |
 | **Solus**    | [SOLUS.md](SOLUS.md)       | CFO  | Hypersurface options: strike ritual, mechanics, position assess, optimal strike; spot + pasted context; no execution. |
-| **Otaku**    | [OTAKU.md](OTAKU.md)       | COO  | Only agent with a funded wallet; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution.              |
+| **Otaku**    | [OTAKU.md](OTAKU.md)       | COO  | Only agent with a funded wallet; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution. x402 seller (5 paid routes live), ERC-8004 identity, x402 buyer + ERC-8183 on roadmap. Autonomous economic actor in the machine economy via BANKR on Base. |
 | **Kelly**    | [KELLY.md](KELLY.md)       | CVO  | Lifestyle concierge; one team one dream (orchestrates others via ASK_AGENT); plugin-personality (self-modification).  |
 | **Sentinel** | [SENTINEL.md](SENTINEL.md) | CTO  | Core dev: PRDs, project radar, impact suggestions, OpenClaw expert, cost status, ART; weekly + optional daily tasks.  |
 | **Forge**    | [FORGE.md](FORGE.md)       | —    | MLX AutoResearch: overnight self-optimization experiments; mutate policy/prompts/ML weights → commit winners.         |

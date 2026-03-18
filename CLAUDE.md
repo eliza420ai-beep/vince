@@ -16,7 +16,7 @@ This repository is the **VINCE** project: a unified data-intelligence **multi-ag
 | ------------ | ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | **VINCE**    | CDO  | `src/agents/vince.ts`    | Data and paper trading bot; ALOHA, options, perps, memes; no execution.                                      |
 | **Solus**    | CFO  | `src/agents/solus.ts`    | Hypersurface options: strike ritual, mechanics, optimal strike; spot + pasted context; no execution.         |
-| **Otaku**    | COO  | `src/agents/otaku.ts`    | **Only agent with a funded wallet**; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution. |
+| **Otaku**    | COO  | `src/agents/otaku.ts`    | **Only agent with a funded wallet**; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution. x402 seller + ERC-8004 identity live; x402 buyer + ERC-8183 on roadmap. |
 | **Forge**    | —    | `src/agents/forge.ts`    | MLX AutoResearch: overnight self-optimization; mutate → replay → commit winners. Silent by default.          |
 
 **v1 agents — migrated to portable skills (disabled by default):**
@@ -48,8 +48,9 @@ Set `ELIZA_ENABLED=true`, `KELLY_ENABLED=true`, etc. in `.env` to re-enable any 
 | **Project overview**                      | [README.md](README.md)                                                                                                                                                                                           |
 | **Workflow orchestration**                | Plan-first, subagents, [tasks/todo.md](tasks/todo.md), [tasks/lessons.md](tasks/lessons.md). Full: [knowledge/internal-docs/WORKFLOW-ORCHESTRATION.md](knowledge/internal-docs/WORKFLOW-ORCHESTRATION.md).                                                                          |
 | **Dexter drift & guardrails**            | Ask VINCE "drift" or "dexter drift" for paper vs Dexter universe (HL/tastytrade/watchlist + core crypto). Leverage caps and process: [docs/GUARDRAILS.md](docs/GUARDRAILS.md). Portfolio sync: [docs/DEXTER-PORTFOLIO-SYNC.md](docs/DEXTER-PORTFOLIO-SYNC.md).                          |
+| **x402 / Agentic commerce**              | Otaku is an autonomous economic actor in the x402 machine economy. x402 (HTTP 402 USDC micropayments, Coinbase + Cloudflare), ERC-8004 (agent identity), ERC-8183 (Jobs/escrow/commerce), ERC-8126 (security scoring). Full analysis: [docs/OTAKU.md § x402 Ecosystem Positioning](docs/OTAKU.md). BANKR is structural link (0.8% swap-fee buybacks). x402 investable universe: $VIRTUAL, $BNKR, $KITE, $DREAMS, $ROBO. See SOUL.md Layer 9. |
 
-**Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution). **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
+**Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution, x402 micropayments, ERC-8004 identity). Otaku is an **autonomous economic actor** in the x402 machine economy — seller today, buyer on roadmap, with ERC-8183 commerce integration planned. **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
 
 ---
 
@@ -379,7 +380,7 @@ elizaos test
 | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md)                           | Paper bot feature storage and ML             |
 | [docs/TREASURY.md](docs/TREASURY.md)                                     | Cost and Sentinel cost steward               |
 | [docs/DEPLOY.md](docs/DEPLOY.md)                                         | Deploy to Eliza Cloud                        |
-| [docs/OTAKU.md](docs/OTAKU.md)                                           | Otaku DeFi execution (reference agent brief) |
+| [docs/OTAKU.md](docs/OTAKU.md)                                           | Otaku DeFi execution, x402 ecosystem positioning, ERC-8183 roadmap |
 | [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md)                         | Why 24/7 research, knowledge, ONNX matter    |
 | [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) | Left/mid/right curves                        |
 | [src/plugins/plugin-vince/](src/plugins/plugin-vince/)                   | WHAT, WHY, HOW, CLAUDE, README               |

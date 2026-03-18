@@ -165,11 +165,76 @@ Otaku ingests `knowledge/security/`, which includes **EVMbench** (OpenAI + Parad
 
 ---
 
+## x402 Ecosystem Positioning
+
+Otaku is an **autonomous economic actor** in the emerging x402 machine economy — not just an agent with a wallet. The x402 protocol (Coinbase + Cloudflare, May 2025) embeds USDC micropayments directly into HTTP, activating the long-dormant HTTP 402 status code. Settlement on Base: ~$0.0001 per transaction, ~2 seconds.
+
+### Where Otaku Sits in the Stack
+
+| Layer | Otaku's Role | Status |
+|-------|-------------|--------|
+| **Settlement chain** | CDP wallet on Base (Coinbase's L2, primary x402 settlement chain) | Live |
+| **x402 seller** | Paid API routes (`/otaku/positions`, `/quote`, `/yields`, `/history`, `/portfolio`) gate data behind USDC micropayments | Live |
+| **x402 buyer** | Autonomously pay for external agent services (data feeds, compute, research) via x402 endpoints | Roadmap |
+| **ERC-8004 identity** | On-chain agent registration, reputation queries, endorse/penalize actions, multi-registry | Live (plugin-erc8004) |
+| **ERC-8183 commerce** | Formalize Otaku actions as interoperable Jobs (client/provider/evaluator pattern) | Roadmap |
+| **BANKR facilitator** | Primary DeFi execution via BANKR (x402 facilitator, 80+ projects on Base, 0.8% swap fee → $BNKR buybacks) | Live |
+
+### x402 Ecosystem Context (Khala Research, March 2026)
+
+- **~165M transactions**, ~$46.5M cumulative volume processed across the x402 ecosystem.
+- **Coinbase** dominates: 58.7% of all-time $ volume; Base is primary settlement; CDP is top facilitator.
+- **Institutional adoption:** Coinbase (creator), Cloudflare (co-founded x402 Foundation), Google (A2A / Agent Payments Protocol), Visa (Trusted Agent Protocol), Stripe (live on Base, Feb 2026), Circle (Arc in development).
+- **Agentic stack:** x402 (payments) + ERC-8004 (identity/reputation) + ERC-8183 (commerce: Jobs, escrow, delivery attestation) + ERC-8126 (agent security scoring, 0-100 risk score).
+- **No protocol token** — value accrues to facilitators, settlement chains, agent frameworks, and identity layers.
+- **BANKR** ($BNKR, ~$50M mcap): operates its own x402 facilitator server; x402 SDK since July 2025; "default financial execution layer for agents built on OpenClaw"; 0.8% swap fee routes into $BNKR buybacks. Every Otaku swap generates BANKR ecosystem value.
+
+### Value Accrual Framework
+
+Value accrues at five points in the x402 stack (in order of durability):
+
+1. **Settlement chains** (Base/Solana) — sequencer fees on every tx. Most durable.
+2. **Agent commerce OS** (Virtuals ACP) — transaction fees on agent-to-agent commerce. Highest growth.
+3. **Commerce layers** (DREAMS Router) — router fees across frameworks. Unproven but asymmetric.
+4. **Identity/trust** (ERC-8004, Kite AIR) — attestation fees. Essential for high-value autonomous tx.
+5. **Facilitators** — commoditizing toward zero margins (Dexter's zero-fee model compressing the market).
+
+Otaku sits at layers 1 (Base settlement), 2 (commerce/execution), and 4 (ERC-8004 identity). Correct positioning — we avoid the facilitator race to zero.
+
+### x402 Investable Universe (for Dexter coverage)
+
+| Position | Ticker | Layer | Relevance to Otaku |
+|----------|--------|-------|-------------------|
+| Coinbase | $COIN (equity) | Foundation — multi-layer moat | Protocol author; Otaku's CDP wallet provider; Base settlement |
+| Virtuals Protocol | $VIRTUAL (~$518M) | Agent commerce OS | Co-authored ERC-8183; $1.4M/mo protocol fees; 21K+ agents; $480M aGDP |
+| Kite AI | $KITE (~$368M) | Agent-native L1 | PayPal + Coinbase Ventures; BIP-32 agent identity |
+| DayDreams | $DREAMS (~$6.3M) | Commerce layer | x402-native router; binary/asymmetric |
+| BANKR | $BNKR (~$50M) | Facilitator + execution | Otaku's primary DeFi execution layer |
+| Fabric/OpenMind | $ROBO (~$70M) | Physical economy | Robots + x402; Circle partnership |
+
+### Roadmap: Otaku as Autonomous Economic Actor
+
+**Phase 1 — Deepen what's live:**
+- Expand x402 paid routes: signal quality scores, portfolio analytics, risk assessments, Vince paper-bot performance data.
+- Build ERC-8004 reputation through attestations on every successful trade execution.
+
+**Phase 2 — ERC-8183 commerce layer:**
+- Define Otaku actions (swap, bridge, signal execution) as ERC-8183 Jobs: client posts requirements + escrow → Otaku executes → evaluator verifies → payment releases.
+- OTAKU_EXECUTE_VINCE_SIGNAL maps directly: Vince produces signal (Job), Otaku executes (Provider), trade outcome evaluator verifies (Evaluator).
+- Makes Otaku interoperable with any external agent, not just our internal swarm.
+
+**Phase 3 — x402 buyer:**
+- Enable Otaku to autonomously pay for external x402 endpoints (market data, research, compute) without human intervention.
+- Inter-agent x402 payments: Vince charges for premium signal data; Otaku pays per-call.
+
+---
+
 ## References
 
 - [CLAUDE.md](CLAUDE.md) — VINCE project layout; Otaku as the only agent with a funded wallet.
 - [README.md](README.md) — Repo overview and quick start.
 - [docs/MULTI_AGENT.md](MULTI_AGENT.md) — Multi-agent coordination (ASK_AGENT, Discord, A2A).
 - [docs/grants/BASE-BUILDER-GRANT-APPLICATION.md](grants/BASE-BUILDER-GRANT-APPLICATION.md) — Grant application with Otaku as the core differentiator for funding.
+- [Khala Research: x402 Report (March 2026)](https://www.khala.io/x402-completing-the-internets-missing-payment-layer-for-agentic-commerce) — Full x402 ecosystem analysis, value accrual framework, investable universe.
 
 Built with [ElizaOS](https://github.com/elizaos/eliza) and [Coinbase Developer Platform](https://docs.cdp.coinbase.com/).
