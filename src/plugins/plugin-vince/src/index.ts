@@ -25,6 +25,7 @@ import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import type { Service } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { buildPulseResponse } from "./routes/dashboardPulse";
+import { buildYesNoResponse } from "./routes/dashboardYesNo";
 import {
   buildLeaderboardsResponse,
   buildDebugXSentimentResponse,
@@ -445,6 +446,47 @@ export const vincePlugin: Plugin = {
             message: err instanceof Error ? err.message : String(err),
           });
           return;
+        }
+      },
+    },
+    {
+      name: "vince-yesno",
+      path: "/vince/yesno",
+      type: "GET",
+      handler: async (
+        req: {
+          params?: Record<string, string>;
+          query?: Record<string, string>;
+          [k: string]: unknown;
+        },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "YES/NO requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/yesno?mode=swing|day",
+          });
+          return;
+        }
+        try {
+          const mode = (req.query ?? {})["mode"];
+          const payload = await buildYesNoResponse(agentRuntime, { mode });
+          res.json(payload);
+        } catch (err) {
+          logger.warn(`[VINCE] YES/NO route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build YES/NO",
+            message: err instanceof Error ? err.message : String(err),
+          });
         }
       },
     },

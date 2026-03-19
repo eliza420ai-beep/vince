@@ -847,26 +847,9 @@ export function Top100Tab({
                   {meta.warnings.map((w) => (
                     <div key={w}>- {w}</div>
                   ))}
-                  {props.fdCache?.perDomain ? (
-                    <div className="pt-2 border-t border-border/40">
-                      <div className="font-medium text-foreground/80">
-                        FD cache freshness
-                      </div>
-                      <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                        {Object.entries(props.fdCache.perDomain).map(
-                          ([domain, v]) => (
-                            <div key={domain}>
-                              <span className="font-medium">{domain}</span>
-                              {` · ${v.fileCount} files`}
-                              {fmtAgeMaybe(v.ageMs)
-                                ? ` · ${fmtAgeMaybe(v.ageMs)}`
-                                : ""}
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
+                  {/* FD cache freshness details live on the broader leaderboards payload.
+                      This view only has Top100Meta, so keep it out of the type-checked surface. */}
+                  {null}
                 </div>
               </details>
             ) : null}

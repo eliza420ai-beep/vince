@@ -57,6 +57,7 @@ import {
   fetchUnbiasSummaryWithError,
 } from "@/frontend/lib/leaderboardsApi";
 import { Top100Tab } from "@/frontend/components/dashboard/leaderboard/top100-tab";
+import { YesNoTab } from "@/frontend/components/dashboard/leaderboard/yesno-tab";
 import type {
   PaperResponse,
   KnowledgeResponse,
@@ -401,6 +402,7 @@ type MainTab =
   | "stocks"
   | "top100"
   | "charts"
+  | "yesno"
   | "news"
   | "recursive"
   | "trading_bot"
@@ -417,6 +419,7 @@ const VISIBLE_MAIN_TABS: MainTab[] = [
   "top100",
   "knowledge",
   "charts",
+  "yesno",
   "polymarket",
   "usage",
 ];
@@ -431,6 +434,7 @@ const MAIN_TAB_LABELS: Record<MainTab, string> = {
   top100: "Top100",
   knowledge: "Knowledge",
   charts: "Charts",
+  yesno: "YES/NO",
   polymarket: "Polymarket",
   usage: "Usage",
 };
@@ -2338,7 +2342,9 @@ export default function LeaderboardPage({
                   ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
                   : mainTab === "charts"
                     ? "TradingView charts — BTC and core pairs (ETH/BTC, SOL/BTC, etc.)"
-                    : "No tilt. Every decision explained. Every outcome learned.";
+                    : mainTab === "yesno"
+                      ? "Should you trade? Market quality + swing execution window"
+                      : "No tilt. Every decision explained. Every outcome learned.";
 
   return (
     <DashboardPageLayout
@@ -2925,6 +2931,14 @@ export default function LeaderboardPage({
               chartTickers={leaderboardsData?.chartTickers}
               fdCache={leaderboardsData?.fdCache}
             />
+          </TabsContent>
+
+          {/* YES/NO tab: market risk manager */}
+          <TabsContent
+            value="yesno"
+            className="mt-6 flex-1 min-h-0 flex flex-col overflow-auto"
+          >
+            <YesNoTab agentId={leaderboardsAgentId} />
           </TabsContent>
 
           {/* News tab: X vibe check (top) + Unbias consensus + MandoMinutes TLDR + headlines */}
