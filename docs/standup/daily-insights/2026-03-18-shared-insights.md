@@ -1,5 +1,5 @@
 ---
-date: 2026-03-18T09:41:49.802Z
+date: 2026-03-18T21:41:56.823Z
 type: shared-daily-insights
 ---
 
@@ -43,7 +43,12 @@ Signal neutral at 0% confidence. Paper: 0 open. NEWS: No data yet - run MANDO_MI
 
 **Essay Suggestion:** [LLM unavailable -- review recent uploads for a timely topic]
 
-**Recent uploads:** No new uploads in last 48h.
+**Recent uploads (6):**
+- 📄 **internal-docs:** WORKFLOW-ORCHESTRATION (2019 words) — Preview: > Adapted from the Fairmint AI-Led Development playbook. Codified for the VINCE multi-agent project. Quality of output is directly proportional to quality of input. No exceptions. - Every task file, e…
+- 📝 **teammate:** SOUL (591 words) — Preview: Who we are, how we operate, what we stand for. Every agent in VINCE reads this before responding. We are a multi-agent system built around one thesis: a BTC-heavy portfolio with two counter-concentrat…
+- 📝 **teammate:** THREE-CURVES (825 words) — Preview: The three curves define how work and capital flow through the VINCE system. Each curve has a different risk profile, time horizon, and agent responsibility. **What:** Perpetual futures on Hyperliquid.…
+- 📝 **teammate:** MEMORY (823 words) — Preview: Persistent context that survives between sessions. Every agent reads this before starting work. Update after meaningful decisions, preference changes, or strategy shifts. _Last updated: 2026-03-18_ <!…
+- 📝 **teammate:** NO-AI-SLOP (591 words) — Preview: Zero tolerance for generic LLM output. Every agent reads this. Every reply follows it.
 
 ---
 
@@ -90,6 +95,9 @@ If uncertain (like last week), say so and explain why with data.
 
 ## Sentinel
 Recent code (git log --oneline):
+7561a1e7 docs(workflow): clarify AI-led dev orchestration checklist
+a60f3d2f docs(otaku): document x402 stack + ERC-8183 roadmap
+933e6727 feat(top100): add freshness + richer detail snapshots
 a3f56ad3 fix(top100): bootstrap yahoo market cap cache
 df96bb14 feat(top100): add AIHF draft compare layer
 09562fc2 fix(types): resolve TS errors in agents and plugins for core types
@@ -97,13 +105,10 @@ ddf247a8 Portfolio-driven Top100 tab + Forge init guard
 d81483f3 Top100 data coverage: Yahoo/FD prewarm, 1D fallback, profile cache, telemetry; fix type-check
 b58c4ad6 feat(top100): add live overlays, toolbar, detail drawer, and Yahoo quote cache
 18b82290 feat(leaderboard): surface Unbias consensus on News tab
-fdfdce1d Add .claude/rules/ with path-specific glob rules
-605fed5e chore: add TOP100.md, update trade-attribution and USOIL post-mortem
-ba862751 chore: add docs, standup outputs, and watchlist data
 
-**Branch:** main (5 uncommitted)
+**Branch:** main
 
-**Shipped this week:** other: bootstrap yahoo market cap cache, resolve TS errors in agents and plugins for core types, Portfolio-driven Top100 tab + Forge init guard | top100: add AIHF draft compare layer, add live overlays, toolbar, detail drawer, and Yahoo quote cache | leaderboard: surface Unbias consensus on News tab | discovery: tastytrade preset alignment — glossary + tags
+**Shipped this week:** other: clarify AI-led dev orchestration checklist, document x402 stack + ERC-8183 roadmap, bootstrap yahoo market cap cache | top100: add freshness + richer detail snapshots, add AIHF draft compare layer, add live overlays, toolbar, detail drawer, and Yahoo quote cache | leaderboard: surface Unbias consensus on News tab
 
 **Recent PRDs:** RECURSIVE_NORTH_STAR_ACCELERATION_RUNBOOK.md, PRD_WHATS_THE_TRADE_IMPROVEMENT_SYSTEM.md, PRD_REGIME_CONDITIONAL_BANDIT.md
 
