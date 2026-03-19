@@ -65,6 +65,19 @@ if (s.includes(agentsListPatched)) {
   console.log("patch-elizaos-server-plugin-routes: agents-list merge applied");
 }
 
+// If DB-backed getAgents() fails, fall back to the live runtime registry so the
+// frontend can still leave the loading screen.
+const agentsListDbFallbackUnpatched =
+  'const allAgents = await db.getAgents();\n      const runtimesList = elizaOS.getAgents();';
+const agentsListDbFallbackPatched =
+  'let allAgents = [];\n      try {\n        allAgents = await db.getAgents();\n      } catch (error) {\n        logger.error({ src: "http", error }, "DB getAgents failed, falling back to runtime agents");\n      }\n      const runtimesList = elizaOS.getAgents();';
+if (s.includes(agentsListDbFallbackPatched)) {
+  // already applied
+} else if (s.includes(agentsListDbFallbackUnpatched)) {
+  s = s.replace(agentsListDbFallbackUnpatched, agentsListDbFallbackPatched);
+  console.log("patch-elizaos-server-plugin-routes: agents-list DB fallback applied");
+}
+
 // Pre-create all agent records in DB so they appear in GET /api/agents even if runtime fails to start (e.g. Kelly)
 const startAgentsUnpatched =
   "});\n    const agentIds = await this.elizaOS.addAgents(agentConfigs, options);";

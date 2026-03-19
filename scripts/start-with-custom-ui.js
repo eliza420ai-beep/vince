@@ -156,18 +156,25 @@ async function main() {
   }));
 
   const port = parseInt(process.env.SERVER_PORT || "3000", 10);
-  const hasCustomDataDir = !!process.env.PGLITE_DATA_DIR;
+  const requestedDataDir = process.env.PGLITE_DATA_DIR?.trim();
   const legacyDefaultDataDir = path.resolve(rootDir, ".eliza/.elizadb");
   const runtimeDataDir = path.resolve(
     rootDir,
     `.eliza/.elizadb-runtime-${process.pid}`,
   );
-  let initialDataDir = process.env.PGLITE_DATA_DIR;
-  if (!initialDataDir) {
-    initialDataDir = fs.existsSync(legacyDefaultDataDir)
+  const normalizedRequestedDataDir = requestedDataDir
+    ? path.resolve(requestedDataDir)
+    : "";
+  // Treat an env var that just repeats the legacy default as "not custom" so
+  // concurrent local starts still get isolated runtime DBs.
+  const hasCustomDataDir =
+    !!normalizedRequestedDataDir &&
+    normalizedRequestedDataDir !== legacyDefaultDataDir;
+  let initialDataDir = hasCustomDataDir
+    ? normalizedRequestedDataDir
+    : fs.existsSync(legacyDefaultDataDir)
       ? runtimeDataDir
       : legacyDefaultDataDir;
-  }
 
   if (!hasCustomDataDir && initialDataDir !== legacyDefaultDataDir) {
     console.warn(

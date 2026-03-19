@@ -208,3 +208,8 @@
 - Add watchlist architecture section to options/README to prevent best trades from getting lost in platform buckets.
 - Push NixOS/nix-openclaw as default onboarding path in setup guide to cut deployment friction.
 - Run full WTT pulse when X API returns to catch mispricing before market reaction.
+## 2026-03-19
+
+- Operationalize the input checklist so task handoffs between agents stop degrading output quality.
+- Document context system failure modes and detection mechanisms before shipping production agents.
+- Push nix-openclaw in setup guide and clarify Tailscale binding for remote deployments.

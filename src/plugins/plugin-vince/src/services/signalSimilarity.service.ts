@@ -105,6 +105,8 @@ const MAX_STORED_CONTEXTS = 500; // Keep last 500 trades
 const MIN_SIMILARITY_THRESHOLD = 0.6; // Only consider trades with >60% similarity
 const TOP_K_SIMILAR = 10; // Find top 10 most similar trades
 const MIN_SAMPLES_FOR_PREDICTION = 3; // Need at least 3 similar trades
+const EMBEDDING_COOLDOWN_MS = 5 * 60 * 1000;
+const EMBEDDING_CACHE_MAX = 256;
 
 // ==========================================
 // Signal Similarity Service
@@ -118,6 +120,8 @@ export class VinceSignalSimilarityService extends Service {
   private statePath: string | null = null;
   private initialized = false;
   private embeddingDimension = 0;
+  private embeddingCooldownUntil = 0;
+  private readonly embeddingCache = new Map<string, number[]>();
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -213,6 +217,22 @@ export class VinceSignalSimilarityService extends Service {
    * Get embedding for text
    */
   private async getEmbedding(text: string): Promise<number[]> {
+    if (!text.trim()) {
+      return [];
+    }
+
+    const cached = this.embeddingCache.get(text);
+    if (cached) {
+      return cached;
+    }
+
+    if (Date.now() < this.embeddingCooldownUntil) {
+      logger.debug(
+        "[SignalSimilarity] Embedding cooldown active, skipping similarity embedding",
+      );
+      return [];
+    }
+
     try {
       const result = await this.runtime.useModel(ModelType.TEXT_EMBEDDING, {
         text,
@@ -220,10 +240,14 @@ export class VinceSignalSimilarityService extends Service {
 
       // Handle different embedding response formats
       if (Array.isArray(result)) {
-        return result as number[];
+        const embedding = result as number[];
+        this.cacheEmbedding(text, embedding);
+        return embedding;
       }
       if (result && typeof result === "object" && "embedding" in result) {
-        return (result as { embedding: number[] }).embedding;
+        const embedding = (result as { embedding: number[] }).embedding;
+        this.cacheEmbedding(text, embedding);
+        return embedding;
       }
 
       logger.debug(
@@ -232,8 +256,40 @@ export class VinceSignalSimilarityService extends Service {
       return [];
     } catch (error) {
       logger.debug(`[SignalSimilarity] Embedding error: ${error}`);
+      if (this.isRateLimitError(error)) {
+        this.embeddingCooldownUntil = Date.now() + EMBEDDING_COOLDOWN_MS;
+        logger.warn(
+          `[SignalSimilarity] Embedding provider rate limited. Cooling down for ${Math.ceil(
+            EMBEDDING_COOLDOWN_MS / 1000,
+          )}s`,
+        );
+      }
       return [];
     }
+  }
+
+  private cacheEmbedding(text: string, embedding: number[]): void {
+    if (embedding.length === 0) {
+      return;
+    }
+
+    if (this.embeddingCache.has(text)) {
+      this.embeddingCache.delete(text);
+    }
+    this.embeddingCache.set(text, embedding);
+
+    if (this.embeddingCache.size > EMBEDDING_CACHE_MAX) {
+      const oldestKey = this.embeddingCache.keys().next().value;
+      if (oldestKey) {
+        this.embeddingCache.delete(oldestKey);
+      }
+    }
+  }
+
+  private isRateLimitError(error: unknown): boolean {
+    const msg = error instanceof Error ? error.message : String(error);
+    const normalized = msg.toLowerCase();
+    return normalized.includes("429") || normalized.includes("rate limit");
   }
 
   /**

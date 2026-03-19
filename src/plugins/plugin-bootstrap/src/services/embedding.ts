@@ -38,6 +38,12 @@ function isBadRequestError(error: unknown): boolean {
   return msg.includes("400") || msg.includes("Bad Request");
 }
 
+function isRateLimitError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  const normalized = msg.toLowerCase();
+  return normalized.includes("429") || normalized.includes("rate limit");
+}
+
 /**
  * Service responsible for generating embeddings asynchronously
  * This service listens for EMBEDDING_GENERATION_REQUESTED events
@@ -52,8 +58,15 @@ export class EmbeddingGenerationService extends Service {
   private isProcessing = false;
   private processingInterval: NodeJS.Timeout | null = null;
   private maxQueueSize = 1000;
-  private batchSize = 10; // Process up to 10 embeddings at a time
+  private batchSize = Math.max(
+    1,
+    parseInt(process.env.EMBEDDING_BATCH_SIZE ?? "2", 10) || 2,
+  );
   private processingIntervalMs = 100; // Check queue every 100ms
+  private rateLimitedUntil = 0;
+  private readonly baseRateLimitBackoffMs = 30_000;
+  private readonly maxRateLimitBackoffMs = 5 * 60_000;
+  private currentRateLimitBackoffMs = this.baseRateLimitBackoffMs;
 
   static async start(runtime: IAgentRuntime): Promise<Service> {
     logger.info("[EmbeddingService] Starting embedding generation service");
@@ -229,6 +242,10 @@ export class EmbeddingGenerationService extends Service {
       return;
     }
 
+    if (Date.now() < this.rateLimitedUntil) {
+      return;
+    }
+
     this.isProcessing = true;
 
     try {
@@ -242,12 +259,21 @@ export class EmbeddingGenerationService extends Service {
         `[EmbeddingService] Processing batch of ${batch.length} items. Remaining in queue: ${this.queue.length}`,
       );
 
-      // Process items in parallel
-      const promises = batch.map(async (item) => {
+      for (let index = 0; index < batch.length; index++) {
+        const item = batch[index];
         try {
           await this.generateEmbedding(item);
+          this.resetRateLimitBackoff();
         } catch (error) {
           const is400 = isBadRequestError(error);
+          const is429 = isRateLimitError(error);
+
+          if (is429) {
+            this.handleRateLimit(error);
+            this.requeueRateLimitedItems(batch, index);
+            break;
+          }
+
           // Do not retry 400 Bad Request (invalid/empty content) to avoid log spam
           const shouldRetry = !is400 && item.retryCount < item.maxRetries;
 
@@ -287,11 +313,60 @@ export class EmbeddingGenerationService extends Service {
             );
           }
         }
-      });
-
-      await Promise.all(promises);
+      }
     } finally {
       this.isProcessing = false;
+    }
+  }
+
+  private requeueRateLimitedItems(
+    batch: EmbeddingQueueItem[],
+    failedIndex: number,
+  ): void {
+    const retryItems: EmbeddingQueueItem[] = [];
+
+    for (let index = failedIndex; index < batch.length; index++) {
+      const item = batch[index];
+      if (index === failedIndex) {
+        if (item.retryCount < item.maxRetries) {
+          retryItems.push({
+            ...item,
+            retryCount: item.retryCount + 1,
+          });
+        }
+        continue;
+      }
+
+      retryItems.push(item);
+    }
+
+    for (let index = retryItems.length - 1; index >= 0; index--) {
+      this.queue.unshift(retryItems[index]);
+    }
+  }
+
+  private handleRateLimit(error: unknown): void {
+    const cooldownMs = this.currentRateLimitBackoffMs;
+    this.rateLimitedUntil = Date.now() + cooldownMs;
+    logger.warn(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        cooldownMs,
+      },
+      "[EmbeddingService] Embedding provider rate limited, pausing queue",
+    );
+    this.currentRateLimitBackoffMs = Math.min(
+      this.currentRateLimitBackoffMs * 2,
+      this.maxRateLimitBackoffMs,
+    );
+  }
+
+  private resetRateLimitBackoff(): void {
+    if (this.currentRateLimitBackoffMs !== this.baseRateLimitBackoffMs) {
+      this.currentRateLimitBackoffMs = this.baseRateLimitBackoffMs;
+    }
+    if (this.rateLimitedUntil !== 0) {
+      this.rateLimitedUntil = 0;
     }
   }
 

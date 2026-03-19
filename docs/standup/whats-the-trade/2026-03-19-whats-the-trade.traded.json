@@ -1,0 +1,28 @@
+{
+  "date": "2026-03-19",
+  "thesis": "MSTR trades at a discount to its BTC holdings despite 96% prediction market odds of reaching 800k+ BTC by year-end, creating asymmetric upside as the gap closes.",
+  "primaryTicker": "BTC",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 67200,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "BTC < $62k",
+  "killConditions": [
+    "dies if < $62k",
+    "corporate treasury thesis cracks below $62k"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "max_asymmetry",
+    "timingForgiveness": "forgiving"
+  },
+  "altTicker": "MSTR",
+  "altDirection": "long",
+  "altInstrument": "equity",
+  "evThresholdPct": 65,
+  "catalystSources": [
+    "headlines",
+    "polymarket"
+  ]
+}

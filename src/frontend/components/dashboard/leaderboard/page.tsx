@@ -2360,13 +2360,15 @@ export default function LeaderboardPage({
           className="flex flex-col flex-1 min-h-0"
         >
           <div className="flex items-center justify-between flex-shrink-0 gap-2">
-            <TabsList>
-              {VISIBLE_MAIN_TABS.map((tab) => (
-                <TabsTrigger key={tab} value={tab}>
-                  {MAIN_TAB_LABELS[tab]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="max-w-full overflow-x-auto">
+              <TabsList className="w-max">
+                {VISIBLE_MAIN_TABS.map((tab) => (
+                  <TabsTrigger key={tab} value={tab} className="flex-none">
+                    {MAIN_TAB_LABELS[tab]}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
             {(mainTab === "markets" ||
               mainTab === "stocks" ||
               mainTab === "news" ||
