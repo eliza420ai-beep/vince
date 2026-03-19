@@ -72,4 +72,11 @@ _From terminal and logs (e.g. 2026-03-01):_
 
 ## Rules to Prevent Repeat Mistakes
 
-- (Write rules for yourself based on lessons learned)
+- **Plan node default:** Enter plan mode for any non-trivial task (3+ steps or architectural decisions). If something goes sideways, stop and re-plan.
+- **Subagent strategy:** Use subagents for research, exploration, and parallel analysis. Keep one focused task per subagent.
+- **Self-improvement loop:** After any correction from the user, update `tasks/lessons.md` with the pattern (what went wrong, what fixed it, and the rule to prevent repeat).
+- **Verification before done:** Never mark completion without proof. Diff behavior when relevant; run tests and check logs; ask: “Would a staff engineer approve this?”
+- **Demand elegance (balanced):** For non-trivial changes, pause and ask if there is a more elegant way. If it feels hacky, implement the elegant solution.
+- **Autonomous bug fixing:** When given a bug report, fix it directly (with evidence) instead of asking for hand-holding.
+- **Task management:** Plan first in `tasks/todo.md` with checkable items; verify the plan before implementation; track progress; explain changes; document results; capture lessons after.
+- **Core principles:** Simplicity first; no laziness—find the root cause; minimal impact—avoid introducing bugs.

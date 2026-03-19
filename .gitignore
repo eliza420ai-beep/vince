@@ -18,7 +18,9 @@ dist/
 .eliza/
 .elizadb/
 .elizadb-test/
-# Local DB backups (created when rotating PGLite dirs)
+# Local PGLite/Postgres backup artifacts (rotating snapshots, raw clusters)
+.eliza-backups/
+# Some legacy backup naming patterns (kept for backward compatibility)
 .elizadb.bak*/
 .eliza/.elizadb.bak*/
 

@@ -328,6 +328,7 @@ elizaos test
 
 - **Default:** PGLite (no `POSTGRES_URL`). Data in `PGLITE_DATA_DIR` (e.g. `.eliza/.elizadb`).
 - **Production:** Set `POSTGRES_URL` (direct connection, port 5432; not pooler). Optional Supabase: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` for feature store / ML.
+- **Backups:** Local backup/rotation artifacts under `.eliza-backups/` are gitignored.
 
 ---
 
