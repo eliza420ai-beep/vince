@@ -29,6 +29,25 @@ export interface YesNoResponse {
   executionWindowScore: number;
   summary: string;
   terminalAnalysis?: string;
+  dataQuality?: {
+    isFresh?: boolean;
+    isComplete?: boolean;
+    missingInputs?: string[];
+    sectorCoverageCount?: number;
+    sectorCoverageRequired?: number;
+    servedFromCache?: boolean;
+    fetchedAt?: number;
+    fetchDiagnostics?: {
+      provider?: string;
+      quoteChecks?: Array<{ key: string; ok: boolean }>;
+      historyChecks?: Array<{
+        key: string;
+        ok: boolean;
+        points?: number | null;
+      }>;
+      sectorHistoryMissing?: string[];
+    };
+  };
   regime?: "uptrend" | "downtrend" | "chop";
   categoryWeights: YesNoCategoryWeights;
   categoryScores: YesNoCategoryScores;
@@ -49,6 +68,11 @@ export interface YesNoResponse {
   breadth?: {
     proxyUsed?: boolean;
     scoreNote?: string | null;
+    proxyType?: string | null;
+    positiveSectorCount?: number | null;
+    totalSectors?: number | null;
+    breadthLookbackDays?: number | null;
+    breadthStage?: 1 | 2 | 3;
   };
   momentum?: {
     leaders?: Array<{
@@ -97,6 +121,7 @@ interface YesNoCachePayload {
 
 const CACHE_TTL_MS = 30_000;
 const CACHE_PREFIX = "vince:yesno:v1";
+const FRESHNESS_THRESHOLD_MS = 60_000;
 
 function parseMode(raw: unknown): YesNoMode {
   const s = String(raw ?? "").toLowerCase();
@@ -118,11 +143,25 @@ export async function buildYesNoResponse(
       typeof cached.fetchedAt === "number" &&
       now - cached.fetchedAt < CACHE_TTL_MS
     ) {
-      return cached.data;
+      const payload = cached.data;
+      const ageMs = now - cached.fetchedAt;
+      payload.dataQuality = {
+        ...(payload.dataQuality ?? {}),
+        servedFromCache: true,
+        fetchedAt: cached.fetchedAt,
+        isFresh: ageMs < FRESHNESS_THRESHOLD_MS,
+      };
+      return payload;
     }
 
     const svc = new YesNoMarketService(runtime);
     const payload = await svc.getYesNoDecision({ mode });
+    payload.dataQuality = {
+      ...(payload.dataQuality ?? {}),
+      servedFromCache: false,
+      fetchedAt: now,
+      isFresh: true,
+    };
     const toCache: YesNoCachePayload = { data: payload, fetchedAt: now };
     await runtime.setCache(cacheKey, toCache);
     return payload;
@@ -130,7 +169,17 @@ export async function buildYesNoResponse(
     logger.warn(`[VINCE] YES/NO route compute error: ${err}`);
     // If cache exists, return stale payload rather than failing the UI.
     const cached = await runtime.getCache<YesNoCachePayload>(cacheKey);
-    if (cached?.data) return cached.data;
+    if (cached?.data) {
+      const payload = cached.data;
+      const ageMs = now - cached.fetchedAt;
+      payload.dataQuality = {
+        ...(payload.dataQuality ?? {}),
+        servedFromCache: true,
+        fetchedAt: cached.fetchedAt,
+        isFresh: ageMs < FRESHNESS_THRESHOLD_MS,
+      };
+      return payload;
+    }
 
     // Last resort: safe decision gate.
     return {
@@ -142,6 +191,27 @@ export async function buildYesNoResponse(
       summary: "Market data unavailable; preserving capital.",
       terminalAnalysis:
         "No reliable market signals were fetched. Decision is set to NO to avoid trading without confirmation.",
+      dataQuality: {
+        isFresh: false,
+        isComplete: false,
+        missingInputs: ["market_data_unavailable"],
+        sectorCoverageCount: 0,
+        sectorCoverageRequired: 0,
+        servedFromCache: false,
+        fetchedAt: now,
+        fetchDiagnostics: {
+          provider: "yahoo_chart",
+          quoteChecks: [{ key: "vix_quote", ok: false }],
+          historyChecks: [
+            { key: "vix_history", ok: false, points: null },
+            { key: "spy_history", ok: false, points: null },
+            { key: "qqq_history", ok: false, points: null },
+            { key: "dxy_history", ok: false, points: null },
+            { key: "tnx_history", ok: false, points: null },
+          ],
+          sectorHistoryMissing: [],
+        },
+      },
       categoryWeights: {
         volatility: 25,
         momentum: 25,

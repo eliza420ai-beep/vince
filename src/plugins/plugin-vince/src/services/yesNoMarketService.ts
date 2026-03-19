@@ -99,19 +99,24 @@ async function fetchHistoricalCloses(
   const period2 = Math.floor(Date.now() / 1000);
   const period1 = Math.floor((Date.now() - lookbackDays * 86400000) / 1000);
   try {
-    const historical = await yahoo.historical(ticker, {
+    const chart = await yahoo.chart(ticker, {
       period1,
       period2,
       interval,
     } as any);
-    const closes = (historical ?? [])
+    const quotes = Array.isArray((chart as any)?.quotes)
+      ? ((chart as any).quotes as any[])
+      : [];
+    const closes = quotes
       .map((r: any) => {
         const c =
-          typeof r?.adjClose === "number"
-            ? r.adjClose
-            : typeof r?.close === "number"
-              ? r.close
-              : null;
+          typeof r?.adjclose === "number"
+            ? r.adjclose
+            : typeof r?.adjClose === "number"
+              ? r.adjClose
+              : typeof r?.close === "number"
+                ? r.close
+                : null;
         return c;
       })
       .filter((x: unknown): x is number => typeof x === "number");
@@ -119,7 +124,7 @@ async function fetchHistoricalCloses(
     return closes;
   } catch (e) {
     logger.debug(
-      `[VINCE][YESNO] historical fetch failed for ${ticker}: ${
+      `[VINCE][YESNO] chart fetch failed for ${ticker}: ${
         e instanceof Error ? e.message : String(e)
       }`,
     );
@@ -275,6 +280,36 @@ function buildSummaryAndDecisionExplanation(params: {
   )}%, execution at ${executionWindowScore.toFixed(0)}%.${regimeStr} Expect chop or risk-off behavior—preserve capital.`;
 }
 
+function buildDataQualitySummary(params: {
+  decision: YesNoDecision;
+  marketQualityScore: number;
+  executionWindowScore: number;
+  missingInputs: string[];
+  sectorCoverageCount: number;
+  sectorCoverageRequired: number;
+  regime?: TrendRegime;
+}): string {
+  const {
+    decision,
+    marketQualityScore,
+    executionWindowScore,
+    missingInputs,
+    sectorCoverageCount,
+    sectorCoverageRequired,
+    regime,
+  } = params;
+
+  const regimeStr = regime ? ` Regime is ${regime}.` : "";
+  const missingStr =
+    missingInputs.length > 0 ? missingInputs.slice(0, 6).join(", ") : "unknown";
+
+  return `Risk gate: ${decision}. Data quality failed: missing/insufficient inputs: ${missingStr}. Market quality computed as ${marketQualityScore.toFixed(
+    0,
+  )}% and execution computed as ${executionWindowScore.toFixed(
+    0,
+  )}% but the permission is blocked. Sector coverage ${sectorCoverageCount}/${sectorCoverageRequired}.${regimeStr}`;
+}
+
 export class YesNoMarketService {
   constructor(private runtime: IAgentRuntime) {}
 
@@ -282,6 +317,12 @@ export class YesNoMarketService {
     const mode = params.mode;
     const yahoo = new YahooFinance();
     const updatedAt = Date.now();
+    const alertNow = updatedAt;
+    const sectorCoverageRequired = 9; // 9 of 11 sectors must have returns computed
+    const minSpyLen = 200;
+    const minQqqLen = 200;
+    const minVixHistoryLen = 50;
+    const minMacroHistoryLen = 10;
 
     const vixTicker = "^VIX";
     const spyTicker = "SPY";
@@ -290,7 +331,8 @@ export class YesNoMarketService {
     const tnxTicker = "^TNX";
 
     const sectorLookbackDays = mode === "day" ? 20 : 40;
-    const rsiLookbackClosesDays = 220;
+    // Calendar days need extra buffer to reliably produce 200+ daily bars.
+    const trendLookbackCalendarDays = 320;
 
     const [
       vixQuote,
@@ -303,8 +345,8 @@ export class YesNoMarketService {
     ] = await Promise.all([
       fetchQuotePrice(yahoo, vixTicker),
       fetchHistoricalCloses(yahoo, vixTicker, 365),
-      fetchHistoricalCloses(yahoo, spyTicker, rsiLookbackClosesDays),
-      fetchHistoricalCloses(yahoo, qqqTicker, rsiLookbackClosesDays),
+      fetchHistoricalCloses(yahoo, spyTicker, trendLookbackCalendarDays),
+      fetchHistoricalCloses(yahoo, qqqTicker, trendLookbackCalendarDays),
       fetchHistoricalCloses(yahoo, dxyTicker, 120),
       fetchHistoricalCloses(yahoo, tnxTicker, 120),
       Promise.all(
@@ -314,6 +356,23 @@ export class YesNoMarketService {
         }),
       ),
     ]);
+
+    const sectorHistoryMissing = sectorHistories
+      .filter((h) => !h.closes || h.closes.length === 0)
+      .map((h) => h.symbol);
+
+    const missingInputs: string[] = [];
+    if (vixQuote == null) missingInputs.push("vix_quote");
+    if (!vixHistory || vixHistory.length < minVixHistoryLen)
+      missingInputs.push("vix_history");
+    if (!spyHistory || spyHistory.length < minSpyLen)
+      missingInputs.push("spy_history");
+    if (!qqqHistory || qqqHistory.length < minQqqLen)
+      missingInputs.push("qqq_history");
+    if (!dxyHistory || dxyHistory.length < minMacroHistoryLen)
+      missingInputs.push("dxy_history");
+    if (!tnxHistory || tnxHistory.length < minMacroHistoryLen)
+      missingInputs.push("tnx_history");
 
     const vixLevel = vixQuote;
     const vixPercentile1y =
@@ -347,8 +406,9 @@ export class YesNoMarketService {
     const trendScore = scoreTrend({ regime, rsi14: spyRsi14 });
 
     // Sector momentum + breadth proxy.
+    const breadthLookbackDays = mode === "day" ? 10 : 20;
     const sectorReturns = await (async () => {
-      const lookback = mode === "day" ? 10 : 20;
+      const lookback = breadthLookbackDays;
       return sectorHistories.map((h) => {
         if (!h.closes) return { symbol: h.symbol, ret: null as number | null };
         const ret = computeReturnFromCloses(h.closes, lookback);
@@ -360,6 +420,13 @@ export class YesNoMarketService {
       symbol: r.symbol,
       ret: r.ret,
     }));
+
+    const sectorCoverageCount = returnsClean.filter(
+      (x) => x.ret != null,
+    ).length;
+    if (sectorCoverageCount < sectorCoverageRequired) {
+      missingInputs.push("sector_coverage_insufficient");
+    }
 
     const relStrength = computeRelStrengthScores(returnsClean);
 
@@ -427,7 +494,10 @@ export class YesNoMarketService {
       categoryScores,
     });
 
-    const decision = marketQualityDecision(marketQualityScore);
+    const envDecision = marketQualityDecision(marketQualityScore);
+    const isComplete = missingInputs.length === 0;
+
+    let decision: YesNoDecision = isComplete ? envDecision : "NO";
 
     // Execution window (breakout holding + follow-through + pullback buy).
     const pivotLookbackDays = mode === "day" ? 10 : 20;
@@ -473,6 +543,66 @@ export class YesNoMarketService {
       pullbacksBought,
     });
 
+    // Execution matters for discretionary permission. Environment can look fine,
+    // but if setups aren't working, the gate blocks.
+    if (isComplete) {
+      if (executionWindowScore < 55) {
+        decision = "NO";
+      } else if (executionWindowScore < 70 && envDecision === "YES") {
+        decision = "CAUTION";
+      }
+    }
+
+    // Event risk gate (macro/news/event shock). Reuse headline-derived risk events.
+    // Critical blocks discretionary trading; warnings cap at CAUTION.
+    const newsSvc = this.runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as {
+      getActiveRiskEventsForAsset?: (asset: string) => Array<{
+        severity?: string;
+        description?: string;
+        timestamp?: number;
+      }>;
+    } | null;
+
+    const marketRiskEvents =
+      newsSvc?.getActiveRiskEventsForAsset?.("MARKET") ?? [];
+    const criticalEvents = marketRiskEvents.filter(
+      (e) => (e?.severity ?? "").toLowerCase() === "critical",
+    );
+    const warningEvents = marketRiskEvents.filter(
+      (e) => (e?.severity ?? "").toLowerCase() === "warning",
+    );
+
+    let eventAlert: YesNoResponse["alert"] = null;
+    if (criticalEvents.length > 0) {
+      decision = "NO";
+      const newest = criticalEvents[0];
+      const ageMs =
+        typeof newest?.timestamp === "number" ? alertNow - newest.timestamp : 0;
+      const etaSeconds = Math.max(
+        0,
+        Math.floor((4 * 3600 * 1000 - ageMs) / 1000),
+      );
+      eventAlert = {
+        title: `Critical event risk`,
+        message: `${criticalEvents.length} critical risk event(s) are active for the US market tape. ${newest?.description ?? "Trading is blocked to preserve capital."}`,
+        etaSeconds,
+      };
+    } else if (warningEvents.length > 0) {
+      if (decision === "YES") decision = "CAUTION";
+      const newest = warningEvents[0];
+      const ageMs =
+        typeof newest?.timestamp === "number" ? alertNow - newest.timestamp : 0;
+      const etaSeconds = Math.max(
+        0,
+        Math.floor((4 * 3600 * 1000 - ageMs) / 1000),
+      );
+      eventAlert = {
+        title: `Warning event risk`,
+        message: `${warningEvents.length} warning risk event(s) are active for the US market tape. ${newest?.description ?? "Use smaller size and wait for confirmation."}`,
+        etaSeconds,
+      };
+    }
+
     // Category directions for UI.
     const directions = {
       volatility: vixScore.direction,
@@ -482,20 +612,32 @@ export class YesNoMarketService {
       macro: macroRes.direction,
     };
 
-    const summary = buildSummaryAndDecisionExplanation({
-      mode,
-      decision,
-      marketQualityScore,
-      executionWindowScore,
-      regime,
-    });
+    const summary = isComplete
+      ? buildSummaryAndDecisionExplanation({
+          mode,
+          decision,
+          marketQualityScore,
+          executionWindowScore,
+          regime,
+        })
+      : buildDataQualitySummary({
+          decision: "NO",
+          marketQualityScore,
+          executionWindowScore,
+          missingInputs,
+          sectorCoverageCount,
+          sectorCoverageRequired,
+          regime,
+        });
 
-    const terminalAnalysis = buildTerminalAnalysis({
-      decision,
-      marketQualityScore,
-      executionWindowScore,
-      regime,
-    });
+    const terminalAnalysis = isComplete
+      ? buildTerminalAnalysis({
+          decision,
+          marketQualityScore,
+          executionWindowScore,
+          regime,
+        })
+      : "Preserving capital: the YES/NO gate is blocked because one or more required market inputs were missing or incomplete.";
 
     const sectorHeatmap = {
       sectors: SECTOR_ETFS.map((s) => {
@@ -521,6 +663,45 @@ export class YesNoMarketService {
       executionWindowScore,
       summary,
       terminalAnalysis,
+      dataQuality: {
+        isFresh: true,
+        isComplete,
+        missingInputs,
+        sectorCoverageCount,
+        sectorCoverageRequired,
+        fetchDiagnostics: {
+          provider: "yahoo_chart",
+          quoteChecks: [{ key: "vix_quote", ok: vixQuote != null }],
+          historyChecks: [
+            {
+              key: "vix_history",
+              ok: !!vixHistory && vixHistory.length >= minVixHistoryLen,
+              points: vixHistory?.length ?? null,
+            },
+            {
+              key: "spy_history",
+              ok: !!spyHistory && spyHistory.length >= minSpyLen,
+              points: spyHistory?.length ?? null,
+            },
+            {
+              key: "qqq_history",
+              ok: !!qqqHistory && qqqHistory.length >= minQqqLen,
+              points: qqqHistory?.length ?? null,
+            },
+            {
+              key: "dxy_history",
+              ok: !!dxyHistory && dxyHistory.length >= minMacroHistoryLen,
+              points: dxyHistory?.length ?? null,
+            },
+            {
+              key: "tnx_history",
+              ok: !!tnxHistory && tnxHistory.length >= minMacroHistoryLen,
+              points: tnxHistory?.length ?? null,
+            },
+          ],
+          sectorHistoryMissing,
+        },
+      },
       regime,
       categoryWeights: QUALITY_WEIGHTS,
       categoryScores,
@@ -545,7 +726,13 @@ export class YesNoMarketService {
       },
       breadth: {
         proxyUsed: true,
-        scoreNote: "Breadth uses sector participation proxy (ETF leadership).",
+        proxyType: "sector_positive_return_rate",
+        positiveSectorCount,
+        totalSectors: SECTOR_ETFS.length,
+        breadthLookbackDays,
+        breadthStage: 1,
+        scoreNote:
+          "Breadth uses a sector participation proxy: fraction of sector ETFs with positive returns over the lookback window.",
       },
       momentum: {
         topBottomSpread: spread,
@@ -568,7 +755,7 @@ export class YesNoMarketService {
         fedStance: macroRes.fedStance,
       },
       sectorHeatmap,
-      alert: null,
+      alert: eventAlert,
       tickers: [
         {
           label: "SPY",

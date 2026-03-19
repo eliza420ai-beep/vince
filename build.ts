@@ -57,6 +57,7 @@ async function build() {
             "@elizaos/cli",
             "zod",
             "@elizaos/plugin-discovery",
+            "yahoo-finance2",
           ],
           naming: {
             entry: "[dir]/[name].[ext]",

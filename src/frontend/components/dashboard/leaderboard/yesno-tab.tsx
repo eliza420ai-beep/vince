@@ -34,6 +34,25 @@ type YesNoResponse = {
   executionWindowScore: number;
   summary: string;
   terminalAnalysis?: string;
+  dataQuality?: {
+    isFresh?: boolean;
+    isComplete?: boolean;
+    missingInputs?: string[];
+    sectorCoverageCount?: number;
+    sectorCoverageRequired?: number;
+    servedFromCache?: boolean;
+    fetchedAt?: number;
+    fetchDiagnostics?: {
+      provider?: string;
+      quoteChecks?: Array<{ key: string; ok: boolean }>;
+      historyChecks?: Array<{
+        key: string;
+        ok: boolean;
+        points?: number | null;
+      }>;
+      sectorHistoryMissing?: string[];
+    };
+  };
   regime?: "uptrend" | "downtrend" | "chop";
   categoryWeights: Record<YesNoCategoryKey, number>;
   categoryScores: CategoryScores;
@@ -59,6 +78,11 @@ type YesNoResponse = {
   breadth?: {
     proxyUsed?: boolean;
     scoreNote?: string | null;
+    proxyType?: string | null;
+    positiveSectorCount?: number | null;
+    totalSectors?: number | null;
+    breadthLookbackDays?: number | null;
+    breadthStage?: 1 | 2 | 3;
   };
   momentum?: {
     leaders?: SectorRow[];
@@ -232,6 +256,17 @@ export function YesNoTab({ agentId }: { agentId: UUID | string }) {
   const marketQualityScore = data?.marketQualityScore ?? 0;
   const executionWindowScore =
     data?.executionWindowScore ?? data?.executionWindow?.score ?? 0;
+  const dataQuality = data?.dataQuality;
+  const failedHistoryChecks = useMemo(
+    () =>
+      (dataQuality?.fetchDiagnostics?.historyChecks ?? []).filter((c) => !c.ok),
+    [dataQuality?.fetchDiagnostics?.historyChecks],
+  );
+  const failedQuoteChecks = useMemo(
+    () =>
+      (dataQuality?.fetchDiagnostics?.quoteChecks ?? []).filter((c) => !c.ok),
+    [dataQuality?.fetchDiagnostics?.quoteChecks],
+  );
 
   const top3 = useMemo(() => {
     const sectors = data?.sectorHeatmap?.sectors ?? [];
@@ -407,6 +442,109 @@ export function YesNoTab({ agentId }: { agentId: UUID | string }) {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {data?.terminalAnalysis ?? data?.summary ?? "—"}
                 </p>
+                {dataQuality ? (
+                  <div className="mt-3 rounded-lg border border-border/60 bg-muted/10 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+                        Data Quality
+                      </div>
+                      <Badge
+                        variant={
+                          dataQuality.isComplete ? "default" : "secondary"
+                        }
+                        className={cn(
+                          "px-3 py-1 text-sm font-mono",
+                          dataQuality.isComplete
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {dataQuality.isComplete ? "PASS" : "FAIL"}
+                      </Badge>
+                    </div>
+                    {!dataQuality.isComplete ? (
+                      <div className="mt-2 text-[11px] font-mono text-muted-foreground">
+                        Missing:{" "}
+                        {dataQuality.missingInputs?.slice(0, 6).join(", ") ||
+                          "—"}
+                        {typeof dataQuality.sectorCoverageCount === "number" &&
+                        typeof dataQuality.sectorCoverageRequired ===
+                          "number" ? (
+                          <>
+                            {" "}
+                            | Sector: {dataQuality.sectorCoverageCount}/
+                            {dataQuality.sectorCoverageRequired}
+                          </>
+                        ) : null}
+                      </div>
+                    ) : typeof dataQuality.sectorCoverageCount === "number" &&
+                      typeof dataQuality.sectorCoverageRequired === "number" ? (
+                      <div className="mt-2 text-[11px] font-mono text-muted-foreground">
+                        Sector coverage: {dataQuality.sectorCoverageCount}/
+                        {dataQuality.sectorCoverageRequired}
+                      </div>
+                    ) : null}
+                    {typeof data?.breadth?.positiveSectorCount === "number" &&
+                    typeof data?.breadth?.totalSectors === "number" &&
+                    typeof data?.breadth?.breadthLookbackDays === "number" ? (
+                      <div className="mt-1 text-[11px] font-mono text-muted-foreground">
+                        Breadth proxy: {data.breadth.positiveSectorCount}/
+                        {data.breadth.totalSectors} positive over{" "}
+                        {data.breadth.breadthLookbackDays}d
+                      </div>
+                    ) : null}
+                    {dataQuality?.fetchDiagnostics ? (
+                      <div className="mt-2 rounded-md border border-border/60 bg-background/40 p-2">
+                        <div className="text-[11px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70">
+                          Fetch Diagnostics
+                        </div>
+                        <div className="mt-1 text-[11px] font-mono text-muted-foreground">
+                          Provider:{" "}
+                          {dataQuality.fetchDiagnostics.provider ?? "unknown"}
+                          {typeof dataQuality.servedFromCache === "boolean" ? (
+                            <>
+                              {" "}
+                              | Cache:{" "}
+                              {dataQuality.servedFromCache ? "served" : "fresh"}
+                            </>
+                          ) : null}
+                        </div>
+                        {failedQuoteChecks.length > 0 ? (
+                          <div className="mt-1 text-[11px] font-mono text-muted-foreground">
+                            Quote fail:{" "}
+                            {failedQuoteChecks.map((c) => c.key).join(", ")}
+                          </div>
+                        ) : null}
+                        {failedHistoryChecks.length > 0 ? (
+                          <div className="mt-1 text-[11px] font-mono text-muted-foreground">
+                            History fail:{" "}
+                            {failedHistoryChecks
+                              .map((c) =>
+                                typeof c.points === "number"
+                                  ? `${c.key}(${c.points})`
+                                  : c.key,
+                              )
+                              .join(", ")}
+                          </div>
+                        ) : null}
+                        {(
+                          dataQuality.fetchDiagnostics.sectorHistoryMissing ??
+                          []
+                        ).length > 0 ? (
+                          <div className="mt-1 text-[11px] font-mono text-muted-foreground">
+                            Sector misses:{" "}
+                            {(
+                              dataQuality.fetchDiagnostics
+                                .sectorHistoryMissing ?? []
+                            )
+                              .slice(0, 6)
+                              .join(", ")}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {data?.regime ? (
                   <div className="mt-2 text-[11px] font-mono text-muted-foreground">
                     Regime: {data.regime}
