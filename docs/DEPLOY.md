@@ -39,6 +39,24 @@ Like [elizaOS/otaku](https://github.com/elizaOS/otaku), you can deploy to **Rail
 
 **Persistence:** Same as Eliza Cloud — with **PGLite only** (no `POSTGRES_URL`), redeploys get a fresh filesystem; set **`POSTGRES_URL`** (e.g. Supabase) if you want DB and paper-trade data to persist across deploys. See [Will trading data persist and be used after a redeploy?](#will-trading-data-persist-and-be-used-after-a-redeploy).
 
+**Postgres on Supabase + Dexter artifacts (`DEXTER_ARTIFACT_ROOT`):**
+- **Enable Postgres:** set `POSTGRES_URL` to your Supabase Postgres connection string.
+- **Sync Dexter outputs into the container:** copy/rsync the Dexter artifact files into a directory you control, then set:
+  - `DEXTER_ARTIFACT_ROOT=/absolute/path/to/dexter-artifacts` (example: `/app/dexter-artifacts`)
+- **Files VINCE expects under `DEXTER_ARTIFACT_ROOT`:**
+  - `portfolio_hyperliquid.json`
+  - `portfolio_tastytrade.json`
+  - `portfolio_watchlist.json`
+  - (optional) `.dexter/scorecard.json` or `scorecard.json`
+  - (optional, if you import FD cache) `.dexter/cache/` (or legacy `cache_dexter/` / `cache/`)
+- **What VINCE writes back (Phase C / regime handoff):** VINCE will emit `regime_bundle_v1.json` under:
+  - default: `${DEXTER_ARTIFACT_ROOT}/.dexter/regime_bundle_v1.json`
+  - or: `REGIME_BUNDLE_OUT_PATH` (if set; relative paths resolve under `DEXTER_ARTIFACT_ROOT`)
+
+Refs:
+- `docs/DEXTER_ARTIFACT_SYNC_RUNBOOK.md`
+- regime bundle schema: `docs/regime_bundle_v1.schema.json`
+
 **Production checklist (gating, Dexter/AIHF, tests):** [PRD: Three-layer stack, cross-repo integration, and production readiness](standup/prds/PRD_THREE_LAYER_STACK_PRODUCTION_AND_REPO_INTEGRATION.md).
 
 **API auth, health probes, Socket.IO, rate limits:** [API_SECURITY_AND_PRODUCTION.md](API_SECURITY_AND_PRODUCTION.md). Verification script: `scripts/verify-api-gating.sh`.
