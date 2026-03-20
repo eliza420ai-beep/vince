@@ -112,9 +112,13 @@ Deterministic checks we prepared:
 
 1. Set `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (embeddings + VINCE model).
 2. Set `ELIZA_SERVER_AUTH_TOKEN` in production so `/api/*` cannot be called without a token.
-3. Decide Dexter artifact mode:
+3. Decide whether to enable **JWT data isolation** (`ENABLE_DATA_ISOLATION=true`):
+   - Meaning: with isolation on, the server requires a real JWT (`Authorization: Bearer <JWT>`) for most `/api/*` routes, so a caller cannot “impersonate” another entity by sending a chosen `entityId`.
+   - Required config when enabled: you must have a JWT verifier configured (e.g. `JWT_SECRET` and/or `JWT_JWKS_URI`, depending on your setup).
+   - If you enable isolation but do not configure a verifier, the server may warn and not reliably enforce the behavior.
+4. Decide Dexter artifact mode:
    - set `DEXTER_ARTIFACT_ROOT` to an absolute path where `portfolio_*.json` exist
-4. Decide AIHF mode:
+5. Decide AIHF mode:
    - **HTTP (recommended)**: set `VINCE_AIH_F_SECOND_OPINION_HTTP_ENABLED=true`, `AIHF_BASE_URL`, confirm endpoint works
    - **Artifact file**: set `AIHF_ARTIFACT_ROOT` (and ensure `last_second_opinion_summary.json` is present and updated)
 
