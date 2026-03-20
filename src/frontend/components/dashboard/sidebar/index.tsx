@@ -24,7 +24,7 @@ import { cn } from "@/frontend/lib/utils";
 import DotsVerticalIcon from "@/frontend/components/icons/dots-vertical";
 import { Bullet } from "@/frontend/components/ui/bullet";
 import PlusIcon from "@/frontend/components/icons/plus";
-import { ChevronDown, LogOut, Trophy, User } from "lucide-react";
+import { ChevronDown, Link2, LogOut, Trophy, User } from "lucide-react";
 
 interface Channel {
   id: string;
@@ -63,6 +63,7 @@ export interface DashboardSidebarProps extends React.ComponentProps<
   onAccountClick?: () => void;
   onChatClick?: () => void;
   onLeaderboardClick?: () => void;
+  onPasteTradeClick?: () => void;
   onHomeClick?: () => void;
 }
 
@@ -82,6 +83,7 @@ export function DashboardSidebar({
   onAccountClick,
   onChatClick,
   onLeaderboardClick,
+  onPasteTradeClick,
   onHomeClick,
   ...props
 }: DashboardSidebarProps) {
@@ -434,19 +436,32 @@ export function DashboardSidebar({
       </SidebarContent>
 
       <SidebarFooter className="p-0">
-        {onLeaderboardClick && (
+        {(onLeaderboardClick || onPasteTradeClick) && (
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={onLeaderboardClick}
-                    className="w-full"
-                  >
-                    <Trophy className="mr-2 h-4 w-4" />
-                    <span className="font-medium text-sm">Leaderboard</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {onLeaderboardClick && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={onLeaderboardClick}
+                      className="w-full"
+                    >
+                      <Trophy className="mr-2 h-4 w-4" />
+                      <span className="font-medium text-sm">Leaderboard</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {onPasteTradeClick && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={onPasteTradeClick}
+                      className="w-full"
+                    >
+                      <Link2 className="mr-2 h-4 w-4" />
+                      <span className="font-medium text-sm">Paste trade</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -511,6 +526,18 @@ export function DashboardSidebar({
                         >
                           <Trophy className="mr-2 h-4 w-4" />
                           Leaderboard
+                        </button>
+                      )}
+                      {onPasteTradeClick && (
+                        <button
+                          onClick={() => {
+                            onPasteTradeClick();
+                            setIsPopoverOpen(false);
+                          }}
+                          className="flex items-center px-4 py-2 text-sm hover:bg-accent text-left w-full"
+                        >
+                          <Link2 className="mr-2 h-4 w-4" />
+                          Paste trade
                         </button>
                       )}
                       {onSignOut && (

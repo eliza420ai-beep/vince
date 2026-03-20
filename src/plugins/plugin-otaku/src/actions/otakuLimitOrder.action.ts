@@ -13,6 +13,7 @@ import {
   type ActionResult,
   type IAgentRuntime,
   type Memory,
+  type State,
   type HandlerCallback,
   logger,
 } from "@elizaos/core";

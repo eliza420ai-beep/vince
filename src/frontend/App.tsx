@@ -17,6 +17,7 @@ import NotificationsContainer from "./components/dashboard/notifications/notific
 import AccountPage from "./components/dashboard/account/page";
 import LeaderboardPage from "./components/dashboard/leaderboard/page";
 import PointsPage from "./components/dashboard/points/page";
+import PasteTradePage from "./components/dashboard/paste-trade/page";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SignInModal } from "./components/auth/SignInModal";
 import { MobileHeader } from "./components/dashboard/mobile-header";
@@ -255,11 +256,17 @@ function App() {
   }, [cdpSignOut]);
 
   // Derive currentView from URL pathname
-  const getCurrentView = (): "chat" | "account" | "leaderboard" | "points" => {
+  const getCurrentView = ():
+    | "chat"
+    | "account"
+    | "leaderboard"
+    | "points"
+    | "pasteTrade" => {
     const path = location.pathname;
     if (path === "/account") return "account";
     if (path === "/leaderboard") return "leaderboard";
     if (path === "/points") return "points";
+    if (path === "/paste-trade") return "pasteTrade";
     if (path === "/chat" || path === "/") return "chat"; // Chat mode at /chat or /
     return "chat"; // Default to chat for any other path
   };
@@ -1111,6 +1118,11 @@ function AppContent({
     setOpenMobile(false);
   };
 
+  const onPasteTradeClick = () => {
+    navigate("/paste-trade");
+    setOpenMobile(false);
+  };
+
   const onHomeClick = () => {
     navigate("/chat");
     setOpenMobile(false);
@@ -1144,6 +1156,7 @@ function AppContent({
             onChatClick={onChatClick}
             onAccountClick={onAccountClick}
             onLeaderboardClick={onLeaderboardClick}
+            onPasteTradeClick={onPasteTradeClick}
             onHomeClick={onHomeClick}
             agents={agents}
             selectedAgentId={selectedAgentId}
@@ -1156,7 +1169,9 @@ function AppContent({
         <div
           className={cn(
             "col-span-1 lg:col-span-7 h-full overflow-auto overscroll-y-contain",
-            currentView === "leaderboard" || currentView === "points"
+            currentView === "leaderboard" ||
+              currentView === "points" ||
+              currentView === "pasteTrade"
               ? "lg:overflow-auto min-h-[400px]"
               : "lg:overflow-hidden",
           )}
@@ -1193,6 +1208,20 @@ function AppContent({
                 <p className="text-foreground font-medium">Loading agent…</p>
                 <p className="text-sm text-muted-foreground text-center max-w-sm">
                   Select an agent from the sidebar or wait for the list to load.
+                </p>
+              </div>
+            )
+          ) : currentView === "pasteTrade" ? (
+            agentId ? (
+              <ErrorBoundary>
+                <PasteTradePage agentId={agentId} />
+              </ErrorBoundary>
+            ) : (
+              <div className="flex flex-col items-center justify-center min-h-[320px] gap-4 p-8 rounded-xl border border-border bg-muted/20">
+                <p className="text-foreground font-medium">Loading agent…</p>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">
+                  Select an agent from the sidebar. Paste trade uses the VINCE
+                  agent API routes.
                 </p>
               </div>
             )

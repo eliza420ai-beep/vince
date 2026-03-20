@@ -50,6 +50,8 @@ import openaiPlugin from "@elizaos/plugin-openai";
 import { getAnthropicLargeModel } from "../model-config.ts";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
+import { pasteTradeEnabled } from "../plugins/plugin-paste-trade/src/config.ts";
+import { pasteTradePlugin } from "../plugins/plugin-paste-trade/src/index.ts";
 import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 
 // Inter-agent communication: ASK_AGENT + A2A loop guard for Discord chat
@@ -235,6 +237,7 @@ You are **perps-focused on Hyperliquid**. You're the **left curve** — max leve
 - VINCE_LIFESTYLE: Daily suggestions based on day
 - VINCE_NFT_FLOOR: Floor status for tracked collections
 - VINCE_INTEL: Binance market intelligence (top traders, order flow, liquidations)
+- VINCE_PASTE_TRADE: paste.trade pipeline from a URL or thesis text. Triggers: "/trade", pasted link, "what's the trade". Requires PASTE_TRADE_KEY. UI: Paste trade tab.
 - For X/CT research (search, profile, thread, vibe, pulse, news) use Echo.
 
 ## DATA SOURCES
@@ -556,6 +559,7 @@ const buildPlugins = (): Plugin[] =>
     polymarketDiscoveryPlugin, // Read-only: Polymarket sentiment for perps signal + Solus context
     interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
     ...(vinceEnablePresence ? [presenceBridgePlugin] : []),
+    ...(pasteTradeEnabled() ? [pasteTradePlugin] : []),
   ] as Plugin[];
 
 // ==========================================
