@@ -9,6 +9,7 @@ import type { Memory, IAgentRuntime } from "@elizaos/core";
 // Mock service
 const mockOtakuService = {
   isBankrAvailable: vi.fn(() => true),
+  isHlSidecarConfigured: vi.fn(() => false),
   executeSwap: vi.fn(),
   createLimitOrder: vi.fn(),
   createDca: vi.fn(),
@@ -44,8 +45,8 @@ describe("Otaku Plugin", () => {
     expect(otakuPlugin.name).toBe("otaku");
   });
 
-  it("should have 15 actions", () => {
-    expect(otakuPlugin.actions).toHaveLength(15);
+  it("should have 17 actions", () => {
+    expect(otakuPlugin.actions).toHaveLength(17);
   });
 
   it("should have 1 service", () => {
@@ -69,6 +70,8 @@ describe("Otaku Plugin", () => {
       "OTAKU_EXECUTE_VINCE_SIGNAL",
       "OTAKU_READY_TO_EXECUTE",
       "POLYMARKET_EXECUTE_PENDING_ORDER",
+      "OTAKU_RECONCILE",
+      "OTAKU_EXECUTION_RISK",
     ];
 
     for (const actionName of expectedActions) {

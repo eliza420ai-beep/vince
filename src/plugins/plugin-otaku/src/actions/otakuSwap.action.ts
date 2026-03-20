@@ -27,6 +27,8 @@ import {
 } from "../utils/pendingCache";
 import { parseSwapIntentWithLLM } from "../utils/intentParser";
 import { appendNotificationEvent } from "../lib/notificationEvents";
+import { inferSwapRoutingFromText } from "../lib/orderRouting";
+import { enrichSwapRequestForHyperliquid } from "../lib/hlIntentFromText";
 
 /**
  * Parse swap request from text
@@ -78,7 +80,7 @@ function parseSwapRequest(text: string): SwapRequest | null {
  */
 function extractChain(text: string): string | undefined {
   const match = text.match(
-    /on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic|solana|sol)/i,
+    /on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic|solana|sol|hyperliquid|hl)\b/i,
   );
   if (!match) return undefined;
 
@@ -92,6 +94,8 @@ function extractChain(text: string): string | undefined {
     matic: "polygon",
     solana: "solana",
     sol: "solana",
+    hyperliquid: "hyperliquid",
+    hl: "hyperliquid",
   };
 
   return chainMap[match[1].toLowerCase()];
@@ -159,9 +163,9 @@ export const otakuSwapAction: Action = {
       /\b(eth|usdc|usdt|btc|sol|matic)\b/i.test(text);
     if (!hasTokenPair) return false;
 
-    // Check if BANKR is available
     const otakuSvc = runtime.getService("otaku") as OtakuService | null;
-    if (!otakuSvc?.isBankrAvailable?.()) {
+    if (!otakuSvc) return false;
+    if (!otakuSvc.isBankrAvailable() && !otakuSvc.isHlSidecarConfigured()) {
       return false;
     }
 
@@ -213,6 +217,21 @@ export const otakuSwapAction: Action = {
 
     // Add chain if specified (from text or LLM)
     if (!request.chain) request.chain = extractChain(text);
+    if (!request.routing) request.routing = inferSwapRoutingFromText(text);
+
+    request = enrichSwapRequestForHyperliquid(runtime, text, request);
+
+    // HL perps needs explicit size + inferred legs
+    if (
+      (request.executionVenue === "hyperliquid_perps" ||
+        request.chain === "hyperliquid") &&
+      !request.hlPerps
+    ) {
+      await callback?.({
+        text: otakuSvc.formatSwapConfirmation(request),
+      });
+      return { success: true };
+    }
 
     // Check for missing amount
     if (request.amount === "?") {
@@ -235,8 +254,11 @@ export const otakuSwapAction: Action = {
 
       if (result.success) {
         const swapOut = `✅ Swap complete!\n\n${result.response ?? ""}\n\nTX: ${result.txHash ?? "pending"}`;
+        const recon = result.reconciliationSummary
+          ? `\n\n${result.reconciliationSummary}`
+          : "";
         await callback?.({
-          text: "Here's the swap result—\n\n" + swapOut,
+          text: "Here's the swap result—\n\n" + swapOut + recon,
         });
         await appendNotificationEvent(
           runtime,

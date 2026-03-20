@@ -62,7 +62,7 @@ flowchart LR
 ```
 
 - **Input:** Same as paper: aggregated signals, risk checks, mode, primary-signal rule, context_adjustment. No new signal sources required for v1.
-- **Execution:** One code path for “live HL perps”: either extend Otaku with an HL perps action or add a dedicated **Hyperliquid executor service** that only places/cancels orders and reads positions. Recommendation: **dedicated HL executor** called by Otaku (e.g. `OTAKU_EXECUTE_VINCE_PERPS` or similar) so wallet and keys stay in one place and HL logic is isolated.
+- **Execution:** One code path for “live HL perps”: either extend Otaku with an HL perps action or add a dedicated **Hyperliquid executor service** that only places/cancels orders and reads positions. Recommendation: **dedicated HL executor** called by Otaku (e.g. `OTAKU_EXECUTE_VINCE_PERPS` or similar) so wallet and keys stay in one place and HL logic is isolated. **In-repo wiring:** HTTP sidecar contract and `OtakuService` branching — [docs/OTAKU_HL_SIDECAR.md](OTAKU_HL_SIDECAR.md) (`OTAKU_HL_SIDECAR_URL`, `POST /v1/perps/orders`).
 - **Keys:** One wallet (`HYPERLIQUID_ADDRESS`) + delegated signer (`HYPERLIQUID_AGENT_PRIVATE_KEY` or equivalent). Never use main wallet key for bot; EVClaw and HL docs are clear on this.
 
 ---

@@ -2,7 +2,7 @@
  * Otaku Service Tests
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { OtakuService } from "../services/otaku.service";
 import type { IAgentRuntime } from "@elizaos/core";
 
@@ -20,7 +20,10 @@ const mockBankrOrders = {
 };
 
 // Mock runtime
-const createMockRuntime = (configured = true): IAgentRuntime =>
+const createMockRuntime = (
+  configured = true,
+  extraSettings: Record<string, string> = {},
+): IAgentRuntime =>
   ({
     getService: (type: string) => {
       if (type === "bankr_agent") {
@@ -33,16 +36,29 @@ const createMockRuntime = (configured = true): IAgentRuntime =>
       }
       return null;
     },
-    getSetting: () => (configured ? "test-key" : undefined),
+    getCache: vi.fn(async () => undefined),
+    setCache: vi.fn(async () => true),
+    getSetting: (key: string) => {
+      if (key in extraSettings) return extraSettings[key];
+      if (key === "OTAKU_RECONCILE_AFTER_TRADE") return "false";
+      if (key === "OTAKU_RISK_COOLDOWN_ENABLED") return "false";
+      return configured ? "test-key" : undefined;
+    },
   }) as unknown as IAgentRuntime;
 
 describe("OtakuService", () => {
   let service: OtakuService;
+  const origFetch = globalThis.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    globalThis.fetch = origFetch;
     const runtime = createMockRuntime(true);
     service = new OtakuService(runtime);
+  });
+
+  afterEach(() => {
+    globalThis.fetch = origFetch;
   });
 
   describe("isBankrAvailable", () => {
@@ -76,7 +92,7 @@ describe("OtakuService", () => {
       expect(result.success).toBe(true);
       expect(result.txHash).toBe("0xtx123");
       expect(mockBankrAgent.submitPrompt).toHaveBeenCalledWith(
-        "swap 1 ETH to USDC on base",
+        expect.stringMatching(/^swap 1 ETH to USDC on base\./),
       );
     });
 
@@ -110,6 +126,67 @@ describe("OtakuService", () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe("Insufficient balance");
     });
+
+    it("should route hyperliquid_perps market to HL sidecar when configured", async () => {
+      globalThis.fetch = vi.fn(async () => {
+        return new Response(JSON.stringify({ orderId: "hl-999" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }) as unknown as typeof fetch;
+
+      const runtime = createMockRuntime(true, {
+        OTAKU_HL_SIDECAR_URL: "http://sidecar.local",
+      });
+      const hlService = new OtakuService(runtime);
+
+      const result = await hlService.executeSwap({
+        sellToken: "USDC",
+        buyToken: "BTC",
+        amount: "0.1",
+        executionVenue: "hyperliquid_perps",
+        hlPerps: {
+          coin: "BTC",
+          isBuy: true,
+          size: "0.1",
+          orderType: "market",
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.txHash).toBe("hl-999");
+      expect(mockBankrAgent.submitPrompt).not.toHaveBeenCalled();
+    });
+
+    it("should error hyperliquid_perps without hlPerps", async () => {
+      const result = await service.executeSwap({
+        sellToken: "USDC",
+        buyToken: "BTC",
+        amount: "0.1",
+        executionVenue: "hyperliquid_perps",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/hlPerps/);
+    });
+
+    it("should error hyperliquid_perps without sidecar URL", async () => {
+      const runtime = createMockRuntime(true, { OTAKU_HL_SIDECAR_URL: "" });
+      const local = new OtakuService(runtime);
+      const result = await local.executeSwap({
+        sellToken: "USDC",
+        buyToken: "BTC",
+        amount: "0.1",
+        executionVenue: "hyperliquid_perps",
+        hlPerps: {
+          coin: "BTC",
+          isBuy: true,
+          size: "0.1",
+          orderType: "market",
+        },
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/OTAKU_HL_SIDECAR_URL/);
+    });
   });
 
   describe("createLimitOrder", () => {
@@ -132,6 +209,32 @@ describe("OtakuService", () => {
       expect(mockBankrAgent.submitPrompt).toHaveBeenCalledWith(
         expect.stringContaining("limit order"),
       );
+    });
+
+    it("should place HL perps limit via sidecar when configured", async () => {
+      globalThis.fetch = vi.fn(async () => {
+        return new Response(JSON.stringify({ oid: 777 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }) as unknown as typeof fetch;
+
+      const runtime = createMockRuntime(true, {
+        OTAKU_HL_SIDECAR_URL: "http://sidecar.local",
+      });
+      const hlService = new OtakuService(runtime);
+
+      const result = await hlService.createLimitOrder({
+        sellToken: "USDC",
+        buyToken: "ETH",
+        amount: "0.5",
+        limitPrice: "3200",
+        executionVenue: "hyperliquid_perps",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.orderId).toBe("777");
+      expect(mockBankrAgent.submitPrompt).not.toHaveBeenCalled();
     });
   });
 
@@ -156,6 +259,32 @@ describe("OtakuService", () => {
       expect(mockBankrAgent.submitPrompt).toHaveBeenCalledWith(
         expect.stringContaining("DCA"),
       );
+    });
+  });
+
+  describe("getReconciliationReport", () => {
+    it("appends HL sidecar section when reconcile returns JSON summary", async () => {
+      const origFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn(async (url: string) => {
+        if (String(url).includes("/v1/reconcile")) {
+          return new Response(JSON.stringify({ summary: "HL: flat" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response("{}", { status: 404 });
+      }) as unknown as typeof fetch;
+
+      const runtime = createMockRuntime(true, {
+        OTAKU_HL_SIDECAR_URL: "http://recon.test",
+        OTAKU_RECONCILE_AFTER_TRADE: "false",
+      });
+      const svc = new OtakuService(runtime);
+      const report = await svc.getReconciliationReport();
+      expect(report).toContain("BANKR");
+      expect(report).toContain("HL sidecar");
+      expect(report).toContain("HL: flat");
+      globalThis.fetch = origFetch;
     });
   });
 

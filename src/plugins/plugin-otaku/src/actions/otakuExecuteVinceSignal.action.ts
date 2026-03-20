@@ -12,7 +12,16 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
-import { OtakuService } from "../services/otaku.service";
+import {
+  OtakuService,
+  type OtakuExecutionVenue,
+  type SwapRequest,
+} from "../services/otaku.service";
+import type { HlSidecarPerpsIntent } from "../lib/hlSidecar";
+import {
+  enrichSwapRequestForHyperliquid,
+  buildHlPerpsMarketFromSwap,
+} from "../lib/hlIntentFromText";
 import {
   setPending,
   getPending,
@@ -29,6 +38,11 @@ type SwapSignal = {
   buyToken: string;
   amount: string;
   chain?: string;
+  executionVenue?: OtakuExecutionVenue;
+  hlPerps?: HlSidecarPerpsIntent;
+  /** Alias: venue "hyperliquid" | "hl" maps to hyperliquid_perps */
+  venue?: string;
+  hyperliquid?: boolean;
 };
 
 type BridgeSignal = {
@@ -48,6 +62,51 @@ function isSwapSignal(r: unknown): r is SwapSignal {
     typeof (r as any).buyToken === "string" &&
     typeof (r as any).amount === "string"
   );
+}
+
+function normalizeSwapSignal(raw: SwapSignal): SwapSignal {
+  let executionVenue = raw.executionVenue;
+  if (!executionVenue) {
+    const ven = String(raw.venue ?? "").toLowerCase();
+    if (
+      ven === "hyperliquid" ||
+      ven === "hl" ||
+      raw.hyperliquid === true ||
+      String(raw.chain ?? "").toLowerCase() === "hyperliquid"
+    ) {
+      executionVenue = "hyperliquid_perps";
+    }
+  }
+  let hlPerps = raw.hlPerps;
+  if (executionVenue === "hyperliquid_perps" && !hlPerps) {
+    hlPerps =
+      buildHlPerpsMarketFromSwap(
+        "vince hyperliquid perp",
+        raw.sellToken,
+        raw.buyToken,
+        raw.amount,
+      ) ?? undefined;
+  }
+  return {
+    ...raw,
+    chain:
+      raw.chain ??
+      (executionVenue === "hyperliquid_perps" ? "hyperliquid" : raw.chain),
+    executionVenue,
+    hlPerps,
+  };
+}
+
+function swapSignalToSwapRequest(s: SwapSignal): SwapRequest {
+  const n = normalizeSwapSignal(s);
+  return {
+    sellToken: n.sellToken,
+    buyToken: n.buyToken,
+    amount: n.amount,
+    chain: n.chain,
+    executionVenue: n.executionVenue,
+    hlPerps: n.hlPerps,
+  };
 }
 
 function isBridgeSignal(r: unknown): r is BridgeSignal {
@@ -126,15 +185,19 @@ export const otakuExecuteVinceSignalAction: Action = {
       }
 
       if (pending.action === "swap" && otaku.executeSwap) {
-        const result = await otaku.executeSwap({
-          sellToken: pending.sellToken,
-          buyToken: pending.buyToken,
-          amount: pending.amount,
-          chain: pending.chain,
-        });
+        let swapReq = swapSignalToSwapRequest(pending);
+        swapReq = enrichSwapRequestForHyperliquid(runtime, "", swapReq);
+        const result = await otaku.executeSwap(swapReq);
         if (result.success) {
+          const recon = result.reconciliationSummary
+            ? `\n\n${result.reconciliationSummary}`
+            : "";
+          const hlNote =
+            swapReq.executionVenue === "hyperliquid_perps"
+              ? " (Hyperliquid perps via sidecar)"
+              : "";
           await callback?.({
-            text: `✅ Vince’s swap done: ${pending.amount} ${pending.sellToken} → ${pending.buyToken}. ${result.txHash ? `TX: ${result.txHash.slice(0, 24)}...` : ""}`,
+            text: `✅ Vince’s swap done${hlNote}: ${pending.amount} ${pending.sellToken} → ${pending.buyToken}. ${result.txHash ? `Ref: ${String(result.txHash).slice(0, 24)}...` : ""}${recon}`,
           });
           return { success: true };
         }
@@ -192,17 +255,17 @@ export const otakuExecuteVinceSignalAction: Action = {
     }
 
     if (isSwapSignal(signal)) {
-      await setPending(runtime, message, "vinceSignal", signal);
+      const normalized = normalizeSwapSignal(signal);
+      await setPending(runtime, message, "vinceSignal", normalized);
+      const swapReq = enrichSwapRequestForHyperliquid(
+        runtime,
+        "vince",
+        swapSignalToSwapRequest(normalized),
+      );
+      const otaku = runtime.getService("otaku") as OtakuService;
       const summary =
-        (runtime.getService("otaku") as OtakuService)?.formatSwapConfirmation?.(
-          {
-            sellToken: signal.sellToken,
-            buyToken: signal.buyToken,
-            amount: signal.amount,
-            chain: signal.chain,
-          },
-        ) ??
-        `**Swap (from Vince):** ${signal.amount} ${signal.sellToken} → ${signal.buyToken}${signal.chain ? ` on ${signal.chain}` : ""}. Type "confirm" to proceed.`;
+        otaku?.formatSwapConfirmation?.(swapReq) ??
+        `**Swap (from Vince):** ${normalized.amount} ${normalized.sellToken} → ${normalized.buyToken}${normalized.chain ? ` on ${normalized.chain}` : ""}. Type "confirm" to proceed.`;
       await callback?.({ text: summary });
       return { success: true };
     }

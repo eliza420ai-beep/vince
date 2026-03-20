@@ -2,7 +2,7 @@
  * Vince Trade Signal Provider – cross-agent trade loop.
  * Injects Vince's latest trade suggestion into Otaku context so the user can say "execute it".
  * Vince (or any agent) should set cache key "vince:latest_trade_signal" with shape:
- * { action: 'swap', sellToken, buyToken, amount, chain?, confidence? } | { action: 'bridge', ... }
+ * { action: 'swap', sellToken, buyToken, amount, chain?, executionVenue?, hlPerps?, venue?, hyperliquid? } | { action: 'bridge', ... }
  * Optional confidence (0–100) or strength: when >= OTAKU_AUTO_EXECUTE_MIN_CONFIDENCE, Otaku can notify "execute when ready". PRD: One Dream Phase 4 (#18).
  */
 
@@ -29,7 +29,14 @@ export const vinceSignalProvider: Provider = {
       let line = "**Vince’s latest trade idea:** ";
 
       if (action === "swap" && raw.sellToken && raw.buyToken && raw.amount) {
-        line += `Swap ${raw.amount} ${raw.sellToken} → ${raw.buyToken}${raw.chain ? ` on ${raw.chain}` : ""}. Say "execute Vince's suggestion" or "do the swap" to run it.`;
+        const hl =
+          raw.executionVenue === "hyperliquid_perps" ||
+          String(raw.venue ?? "").toLowerCase() === "hyperliquid" ||
+          String(raw.venue ?? "").toLowerCase() === "hl" ||
+          raw.hyperliquid === true ||
+          String(raw.chain ?? "").toLowerCase() === "hyperliquid";
+        const hlTag = hl ? " (Hyperliquid perps — sidecar)" : "";
+        line += `Swap ${raw.amount} ${raw.sellToken} → ${raw.buyToken}${raw.chain ? ` on ${raw.chain}` : ""}${hlTag}. Say "execute Vince's suggestion" or "do the swap" to run it.`;
       } else if (
         action === "bridge" &&
         raw.token &&

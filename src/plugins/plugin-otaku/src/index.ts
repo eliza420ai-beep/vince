@@ -6,7 +6,7 @@
  * - Natural language parsing
  * - Risk checks and balance validation
  *
- * Actions (10):
+ * Actions (12+):
  * - OTAKU_SWAP: Quick token swaps
  * - OTAKU_LIMIT_ORDER: Limit orders at target prices
  * - OTAKU_DCA: Dollar cost averaging schedules
@@ -17,6 +17,8 @@
  * - OTAKU_MORPHO: Supply/withdraw from Morpho vaults
  * - OTAKU_APPROVE: Token approval management
  * - OTAKU_NFT_MINT: Mint NFTs (Sentinel handoff for gen art)
+ * - OTAKU_RECONCILE: Portfolio vs BANKR orders snapshot
+ * - OTAKU_EXECUTION_RISK: Cooldown / hard-stop status and reset phrase
  *
  * Providers:
  * - OTAKU_WALLET_STATUS: Wallet context for multi-agent queries
@@ -54,6 +56,8 @@ import {
   otakuExecuteVinceSignalAction,
   otakuReadyToExecuteAction,
   polymarketExecutePendingOrderAction,
+  otakuReconcileAction,
+  otakuExecutionRiskAction,
 } from "./actions";
 import { walletStatusProvider, vinceSignalProvider } from "./providers";
 import {
@@ -91,6 +95,8 @@ export const otakuPlugin: Plugin = {
     otakuExecuteVinceSignalAction,
     otakuReadyToExecuteAction,
     polymarketExecutePendingOrderAction,
+    otakuReconcileAction,
+    otakuExecutionRiskAction,
   ],
   services: [OtakuService, ExecutionGraduationService],
   init: async (_config, runtime) => {

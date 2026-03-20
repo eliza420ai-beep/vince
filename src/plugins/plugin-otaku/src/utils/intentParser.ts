@@ -47,11 +47,12 @@ export async function parseSwapIntentWithLLM(
   if (!runtime.useModel || text.length < 10) return null;
   try {
     const prompt = `Extract token swap intent from this message. Reply with ONLY a JSON object, no other text.
-Use keys: amount (string, e.g. "1" or "100"), sellToken (uppercase symbol), buyToken (uppercase symbol), chain (optional: base, ethereum, arbitrum, polygon, solana).
+Use keys: amount (string, e.g. "1" or "100"), sellToken (uppercase symbol), buyToken (uppercase symbol), chain (optional: base, ethereum, arbitrum, polygon, solana, hyperliquid).
 
 Message: "${text}"
 
-Example output: {"amount":"0.5","sellToken":"ETH","buyToken":"USDC","chain":"base"}`;
+Example output: {"amount":"0.5","sellToken":"ETH","buyToken":"USDC","chain":"base"}
+For Hyperliquid perps use chain "hyperliquid" when the user says HL / hyperliquid / perps there.`;
 
     const response = await runtime.useModel(ModelType.TEXT_SMALL, {
       prompt,

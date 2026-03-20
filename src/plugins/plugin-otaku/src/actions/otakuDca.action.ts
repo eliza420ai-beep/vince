@@ -235,8 +235,11 @@ export const otakuDcaAction: Action = {
 
       if (result.success) {
         const dcaOut = `✅ DCA schedule created!\n\n${result.response ?? ""}\n\nSchedule ID: ${result.orderId ?? "active"}`;
+        const recon = result.reconciliationSummary
+          ? `\n\n${result.reconciliationSummary}`
+          : "";
         await callback?.({
-          text: "Here's the DCA schedule—\n\n" + dcaOut,
+          text: "Here's the DCA schedule—\n\n" + dcaOut + recon,
         });
         await appendNotificationEvent(
           runtime,

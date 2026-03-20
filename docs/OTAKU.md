@@ -20,12 +20,13 @@ Otaku is the **COO agent** in the VINCE multi-agent system and the **only agent 
 - **Execution layer:** [src/plugins/plugin-otaku/](src/plugins/plugin-otaku/) — OtakuService, actions, providers, evaluators, routes (free + x402-paid).
 - **Wallet & payments:** plugin-cdp (CDP wallet, transfers, x402), plugin-bankr (BANKR Agent + Trading Engine for swaps/DCA/orders).
 - **Chains & protocols:** plugin-relay (bridge), plugin-morpho (lending), plugin-etherscan (tx confirmation), plugin-biconomy (gasless when configured).
+- **Hyperliquid sidecar (optional):** When `OTAKU_HL_SIDECAR_URL` is set, Otaku can route **perps** orders to a separate HTTP service (`POST /v1/perps/orders`) instead of BANKR. Contract and env: [docs/OTAKU_HL_SIDECAR.md](OTAKU_HL_SIDECAR.md). Roadmap context: [docs/PRD_LIVE_HYPERLIQUID_PERPS.md](PRD_LIVE_HYPERLIQUID_PERPS.md).
 
 ---
 
 ## Features (Shipped)
 
-### Actions (13)
+### Actions (15+)
 
 | Action                       | Description                                    |
 | ---------------------------- | ---------------------------------------------- |
@@ -42,6 +43,17 @@ Otaku is the **COO agent** in the VINCE multi-agent system and the **only agent 
 | `OTAKU_YIELD_RECOMMEND`      | Yield strategy suggestions                     |
 | `OTAKU_SET_REBALANCE`        | Rebalance targets and task                     |
 | `OTAKU_EXECUTE_VINCE_SIGNAL` | Execute Vince signal (swap/bridge)             |
+| `OTAKU_RECONCILE`            | Snapshot: parsed portfolio vs active BANKR orders |
+| `OTAKU_EXECUTION_RISK`       | Cooldown / hard-stop status; reset phrase      |
+
+### Execution safety (BANKR)
+
+Otaku does not embed the [agent-cli](https://github.com/eliza420ai-beep/agent-cli) Python stack; it applies the same *ideas* through BANKR natural-language prompts and runtime cache:
+
+- **Order routing:** Swap/limit prompts append maker/post-only vs taker hints (e.g. say `post-only` or `taker` in chat). Implemented in `plugin-otaku/src/lib/orderRouting.ts` and `OtakuService`.
+- **Stops on venue:** Stop-loss/take-profit prompts can ask for **exchange-native trigger orders** when the user text mentions perps / Hyperliquid (or when `OTAKU_EXCHANGE_NATIVE_STOPS_ALWAYS=true`). Env: `OTAKU_EXCHANGE_NATIVE_STOPS`, `OTAKU_EXCHANGE_NATIVE_STOPS_ALWAYS`.
+- **Reconciliation:** After successful swap, limit, or DCA, Otaku can append a short report from `getReconciliationReport()` (parsed position lines + active BANKR order count). If `OTAKU_HL_SIDECAR_URL` is set, the same report also calls the sidecar **`GET /v1/reconcile`** (or `/reconcile`) and appends the HL block. Disable post-trade append with `OTAKU_RECONCILE_AFTER_TRADE=false`. Manual: **"Otaku reconcile portfolio"** → `OTAKU_RECONCILE`. See [OTAKU_HL_SIDECAR.md](OTAKU_HL_SIDECAR.md).
+- **Risk cooldowns:** Consecutive BANKR failures trigger a cooldown (and optional hard stop). Configure `OTAKU_RISK_COOLDOWN_ENABLED`, `OTAKU_RISK_FAIL_THRESHOLD`, `OTAKU_RISK_COOLDOWN_MS`, `OTAKU_RISK_HARD_STOP_AFTER`. Status / reset: **"Otaku execution risk"** / **"otaku reset execution risk"** (exact phrase) → `OTAKU_EXECUTION_RISK`. Logic: `plugin-otaku/src/lib/executionRisk.ts`.
 
 ### Routes
 
@@ -80,6 +92,7 @@ Otaku is the **COO agent** in the VINCE multi-agent system and the **only agent 
 - **OTAKU_MODE:** `degen` (default) or `normies`. Backend only; frontend reads via GET /otaku/config or `VITE_OTAKU_MODE`.
 - **Wallet:** CDP keys (`CDP_API_KEY_ID`, `CDP_API_KEY_SECRET`, `CDP_WALLET_SECRET`), optional `ALCHEMY_API_KEY`. Advanced Trade: `COINBASE_ADVANCED_TRADE_KEY_NAME`, `COINBASE_ADVANCED_TRADE_KEY_SECRET`.
 - **Execution:** `BANKR_API_KEY` (and optional `BANKR_AGENT_URL`, `BANKR_ORDER_URL`), `RELAY_API_KEY` (bridge), `ETHERSCAN_API_KEY` (optional), `BICONOMY_API_KEY` (optional gasless).
+- **HL sidecar (optional):** `OTAKU_HL_SIDECAR_URL`, `OTAKU_HL_SIDECAR_BEARER`, `OTAKU_HL_SIDECAR_TIMEOUT_MS` — see [OTAKU_HL_SIDECAR.md](OTAKU_HL_SIDECAR.md).
 - **x402:** `X402_ENABLED=true`, `X402_PAY_TO`, etc. See `.env.example`.
 
 ---

@@ -13,7 +13,6 @@ import {
   type ActionResult,
   type IAgentRuntime,
   type Memory,
-  type State,
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
@@ -21,6 +20,15 @@ import {
   OtakuService,
   type LimitOrderRequest,
 } from "../services/otaku.service";
+import { inferLimitRoutingFromText } from "../lib/orderRouting";
+import { enrichLimitOrderRequestForHyperliquid } from "../lib/hlIntentFromText";
+import {
+  setPending,
+  getPending,
+  clearPending,
+  isConfirmation,
+  hasPending,
+} from "../utils/pendingCache";
 
 /**
  * Parse limit order request from text
@@ -64,7 +72,7 @@ function parseLimitOrderRequest(text: string): LimitOrderRequest | null {
  */
 function extractChain(text: string): string | undefined {
   const match = text.match(
-    /on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic)/i,
+    /on\s+(base|ethereum|eth|arbitrum|arb|polygon|matic|hyperliquid|hl)\b/i,
   );
   if (!match) return undefined;
 
@@ -76,6 +84,8 @@ function extractChain(text: string): string | undefined {
     arb: "arbitrum",
     polygon: "polygon",
     matic: "polygon",
+    hyperliquid: "hyperliquid",
+    hl: "hyperliquid",
   };
 
   return chainMap[match[1].toLowerCase()];
@@ -157,10 +167,14 @@ export const otakuLimitOrderAction: Action = {
 
     if (!hasLimitIntent) return false;
 
-    // Check if BANKR is available
     const otakuSvc = runtime.getService("otaku") as OtakuService | null;
-    if (!otakuSvc?.isBankrAvailable?.()) {
+    if (!otakuSvc) return false;
+    if (!otakuSvc.isBankrAvailable() && !otakuSvc.isHlSidecarConfigured()) {
       return false;
+    }
+
+    if (isConfirmation(text)) {
+      return hasPending(runtime, message, "limitOrder");
     }
 
     return true;
@@ -169,7 +183,7 @@ export const otakuLimitOrderAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    state?: State,
+    _state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
   ): Promise<ActionResult | undefined> => {
@@ -186,8 +200,40 @@ export const otakuLimitOrderAction: Action = {
       };
     }
 
-    // Parse limit order request
-    const request = parseLimitOrderRequest(text);
+    const pendingOrder = await getPending<LimitOrderRequest>(
+      runtime,
+      message,
+      "limitOrder",
+    );
+
+    if (isConfirmation(text) && pendingOrder) {
+      await clearPending(runtime, message, "limitOrder");
+      await callback?.({
+        text: `Creating limit order: ${pendingOrder.amount} ${pendingOrder.sellToken} → ${pendingOrder.buyToken} at ${pendingOrder.limitPrice}...`,
+      });
+
+      const result = await otakuSvc.createLimitOrder(pendingOrder);
+
+      if (result.success) {
+        const orderOut = `✅ Limit order created!\n\n${result.response ?? ""}\n\nOrder ID: ${result.orderId ?? "pending"}`;
+        const recon = result.reconciliationSummary
+          ? `\n\n${result.reconciliationSummary}`
+          : "";
+        await callback?.({
+          text: "Here's the order—\n\n" + orderOut + recon,
+        });
+        return { success: true };
+      }
+      await callback?.({
+        text: `❌ Order creation failed: ${result.error}`,
+      });
+      return {
+        success: false,
+        error: new Error(result.error ?? "Order creation failed"),
+      };
+    }
+
+    let request = parseLimitOrderRequest(text);
     if (!request) {
       await callback?.({
         text: 'I couldn\'t parse the limit order details. Please specify:\n- Action (buy/sell)\n- Amount\n- Token\n- Price\n\nExamples:\n- "Buy 100 USDC worth of ETH at $3000"\n- "Sell 0.5 ETH at $4000"\n- "Set limit order: sell 1 ETH for USDC at $3500"',
@@ -198,54 +244,29 @@ export const otakuLimitOrderAction: Action = {
       };
     }
 
-    // Add chain and expiration if specified
-    request.chain = extractChain(text);
+    if (!request.chain) request.chain = extractChain(text);
     request.expirationHours = extractExpiration(text);
+    if (!request.routing) request.routing = inferLimitRoutingFromText(text);
 
-    // Check if this is a confirmation
-    const isConfirmation =
-      text.toLowerCase().includes("confirm") ||
-      text.toLowerCase() === "yes" ||
-      text.toLowerCase() === "go ahead" ||
-      text.toLowerCase() === "do it" ||
-      text.toLowerCase() === "proceed";
+    request = enrichLimitOrderRequestForHyperliquid(runtime, text, request);
 
-    // Check state for pending order
-    const pendingOrder = state?.pendingLimitOrder as
-      | LimitOrderRequest
-      | undefined;
-
-    if (isConfirmation && pendingOrder) {
-      // Execute the order
+    if (
+      (request.executionVenue === "hyperliquid_perps" ||
+        request.chain === "hyperliquid") &&
+      !request.hlPerps
+    ) {
       await callback?.({
-        text: `Creating limit order: ${pendingOrder.amount} ${pendingOrder.sellToken} → ${pendingOrder.buyToken} at ${pendingOrder.limitPrice}...`,
+        text: otakuSvc.formatLimitOrderConfirmation(request),
       });
-
-      const result = await otakuSvc.createLimitOrder(pendingOrder);
-
-      if (result.success) {
-        const orderOut = `✅ Limit order created!\n\n${result.response ?? ""}\n\nOrder ID: ${result.orderId ?? "pending"}`;
-        await callback?.({
-          text: "Here's the order—\n\n" + orderOut,
-        });
-        return { success: true };
-      } else {
-        await callback?.({
-          text: `❌ Order creation failed: ${result.error}`,
-        });
-        return {
-          success: false,
-          error: new Error(result.error ?? "Order creation failed"),
-        };
-      }
+      return { success: true };
     }
 
-    // Show confirmation
     const confirmation = otakuSvc.formatLimitOrderConfirmation(request);
     await callback?.({
       text: confirmation,
     });
 
+    await setPending(runtime, message, "limitOrder", request);
     logger.info(
       `[OTAKU_LIMIT_ORDER] Pending order: ${JSON.stringify(request)}`,
     );

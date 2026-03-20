@@ -11,6 +11,7 @@ const TTL_MS = 30 * 60 * 1000; // 30 minutes
 function cacheKey(
   action:
     | "swap"
+    | "limitOrder"
     | "bridge"
     | "morpho"
     | "stopLoss"
@@ -25,6 +26,7 @@ function cacheKey(
 
 export type PendingActionType =
   | "swap"
+  | "limitOrder"
   | "bridge"
   | "morpho"
   | "stopLoss"

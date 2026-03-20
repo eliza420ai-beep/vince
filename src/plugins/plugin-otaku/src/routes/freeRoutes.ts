@@ -11,6 +11,7 @@ import type { IAgentRuntime, RouteRequest, RouteResponse } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { getAlerts } from "../lib/getAlerts";
 import { getNotificationEvents } from "../lib/notificationEvents";
+import { isHlSidecarConfigured } from "../lib/hlSidecar";
 
 export type { AlertItem } from "../lib/getAlerts";
 
@@ -65,6 +66,13 @@ async function handleHealth(
     configured: x402Enabled,
   };
 
+  // Hyperliquid sidecar: optional URL-backed executor; does not affect overall health
+  const hlConfigured = isHlSidecarConfigured(runtime);
+  services.hlSidecar = {
+    available: true,
+    configured: hlConfigured,
+  };
+
   const allHealthy = Object.values(services).every((s) => s.available);
 
   res.status(allHealthy ? 200 : 503).json({
@@ -90,13 +98,22 @@ export const healthRoute = {
 async function handleConfig(
   _req: RouteRequest,
   res: RouteResponse,
-  _runtime: IAgentRuntime,
+  runtime: IAgentRuntime,
 ): Promise<void> {
   const mode =
     (process.env.OTAKU_MODE ?? "degen").toLowerCase() === "normies"
       ? "normies"
       : "degen";
-  res.status(200).json({ mode });
+  const hlSidecarConfigured = isHlSidecarConfigured(runtime);
+  res.status(200).json({
+    mode,
+    hlSidecar: {
+      configured: hlSidecarConfigured,
+      contractVersion: 1,
+      orderPath: "/v1/perps/orders",
+      docs: "docs/OTAKU_HL_SIDECAR.md",
+    },
+  });
 }
 
 export const configRoute = {

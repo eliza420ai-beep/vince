@@ -30,6 +30,12 @@ import {
 import { parseStopLossIntentWithLLM } from "../utils/intentParser";
 import type { BankrAgentService } from "../types/services";
 import { appendNotificationEvent } from "../lib/notificationEvents";
+import {
+  assertExecutionAllowed,
+  recordExecutionFailure,
+  recordExecutionSuccess,
+} from "../lib/executionRisk";
+import { stopLossExchangeNativePrefix } from "../lib/orderRouting";
 
 interface StopLossRequest {
   token: string;
@@ -38,6 +44,8 @@ interface StopLossRequest {
   takeProfitPrice?: string;
   trailingPercent?: number;
   chain?: string;
+  /** Original user message (for perp / HL cueing of exchange-native stops) */
+  sourceText?: string;
 }
 
 /**
@@ -222,6 +230,12 @@ export const otakuStopLossAction: Action = {
     );
 
     if (isConfirmation(text) && pendingOrder) {
+      const gate = await assertExecutionAllowed(runtime);
+      if (!gate.ok) {
+        await callback?.({ text: gate.reason });
+        return { success: false, error: new Error(gate.reason) };
+      }
+
       await clearPending(runtime, message, "stopLoss");
       const bankr = runtime.getService(
         "bankr_agent",
@@ -231,23 +245,28 @@ export const otakuStopLossAction: Action = {
         return { success: false, error: new Error("BANKR not available") };
       }
 
+      const exPrefix = stopLossExchangeNativePrefix(
+        runtime,
+        pendingOrder.sourceText ?? "",
+      );
+
       const prompts: string[] = [];
 
       if (pendingOrder.stopLossPrice) {
         prompts.push(
-          `stop-loss order: sell ${pendingOrder.amount} ${pendingOrder.token} if price drops to $${pendingOrder.stopLossPrice}`,
+          `${exPrefix}stop-loss order: sell ${pendingOrder.amount} ${pendingOrder.token} if price drops to $${pendingOrder.stopLossPrice}`,
         );
       }
 
       if (pendingOrder.takeProfitPrice) {
         prompts.push(
-          `take-profit order: sell ${pendingOrder.amount} ${pendingOrder.token} when price reaches $${pendingOrder.takeProfitPrice}`,
+          `${exPrefix}take-profit order: sell ${pendingOrder.amount} ${pendingOrder.token} when price reaches $${pendingOrder.takeProfitPrice}`,
         );
       }
 
       if (pendingOrder.trailingPercent) {
         prompts.push(
-          `trailing stop ${pendingOrder.trailingPercent}% for ${pendingOrder.amount} ${pendingOrder.token}`,
+          `${exPrefix}trailing stop ${pendingOrder.trailingPercent}% for ${pendingOrder.amount} ${pendingOrder.token}`,
         );
       }
 
@@ -282,6 +301,7 @@ export const otakuStopLossAction: Action = {
       });
       const successCount = results.filter((r) => r.startsWith("✅")).length;
       if (successCount > 0) {
+        await recordExecutionSuccess(runtime);
         await appendNotificationEvent(
           runtime,
           {
@@ -291,6 +311,8 @@ export const otakuStopLossAction: Action = {
           },
           message.entityId,
         );
+      } else {
+        await recordExecutionFailure(runtime);
       }
       return { success: true };
     }
@@ -345,7 +367,10 @@ export const otakuStopLossAction: Action = {
     lines.push('Type "confirm" to place orders.');
 
     await callback?.({ text: lines.join("\n") });
-    await setPending(runtime, message, "stopLoss", request);
+    await setPending(runtime, message, "stopLoss", {
+      ...request,
+      sourceText: text,
+    });
     logger.info(`[OTAKU_STOP_LOSS] Pending stored: ${JSON.stringify(request)}`);
 
     return { success: true };

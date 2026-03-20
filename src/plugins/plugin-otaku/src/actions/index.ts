@@ -13,3 +13,5 @@ export { otakuSetRebalanceAction } from "./otakuSetRebalance.action";
 export { otakuExecuteVinceSignalAction } from "./otakuExecuteVinceSignal.action";
 export { otakuReadyToExecuteAction } from "./otakuReadyToExecute.action";
 export { polymarketExecutePendingOrderAction } from "./polymarketExecutePendingOrder.action";
+export { otakuReconcileAction } from "./otakuReconcile.action";
+export { otakuExecutionRiskAction } from "./otakuExecutionRisk.action";
