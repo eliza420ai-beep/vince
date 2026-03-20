@@ -114,6 +114,7 @@ Deterministic checks we prepared:
 2. Set `ELIZA_SERVER_AUTH_TOKEN` in production so `/api/*` cannot be called without a token.
 3. Decide whether to enable **JWT data isolation** (`ENABLE_DATA_ISOLATION=true`):
    - Meaning (plain English): “isolation” here means **the server will only serve / mutate data for the identity inside the JWT**.
+   - Why we need it: `ELIZA_SERVER_AUTH_TOKEN` is a coarse “is this caller allowed to hit the API at all?” gate. JWT isolation is the “who exactly are you?” gate. It prevents a client from using an arbitrary `entityId` to access or mutate someone else’s data once it has passed the coarse API auth.
    - What it prevents: if isolation is enabled, a caller cannot pick an arbitrary `entityId` (UUID) and use it to access a different entity’s data.
    - Before/after example:
      - With isolation OFF: the client can send `X-Entity-Id: <some-uuid>` (or a socket `handshake.auth.entityId`), and the server will treat that UUID as the caller’s identity for many routes.
