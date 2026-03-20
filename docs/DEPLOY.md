@@ -33,7 +33,15 @@ Like [elizaOS/otaku](https://github.com/elizaOS/otaku), you can deploy to **Rail
      Optionally add `POSTGRES_URL`, Supabase keys, and other vars from [Env vars for production](#env-vars-for-production).
 3. Deploy; Railway will run the build then start with `elizaos start`. The app listens on the port Railway provides (`PORT` env is set automatically).
 
+**Railway probes + alerts:**
+- **Health check target:** configure Railway to hit `GET /healthz` and expect HTTP `200` with JSON `{ "status": "ok" }`.
+- **Spend alerts:** set `VINCE_SPEND_ALERT_MONTHLY_USD` (number). VINCE emits a deterministic log line starting with `SPEND_ALERT_BREACH` when estimated LLM spend crosses the threshold. Configure a Railway log-based alert to match `SPEND_ALERT_BREACH`.
+
 **Persistence:** Same as Eliza Cloud — with **PGLite only** (no `POSTGRES_URL`), redeploys get a fresh filesystem; set **`POSTGRES_URL`** (e.g. Supabase) if you want DB and paper-trade data to persist across deploys. See [Will trading data persist and be used after a redeploy?](#will-trading-data-persist-and-be-used-after-a-redeploy).
+
+**Production checklist (gating, Dexter/AIHF, tests):** [PRD: Three-layer stack, cross-repo integration, and production readiness](standup/prds/PRD_THREE_LAYER_STACK_PRODUCTION_AND_REPO_INTEGRATION.md).
+
+**API auth, health probes, Socket.IO, rate limits:** [API_SECURITY_AND_PRODUCTION.md](API_SECURITY_AND_PRODUCTION.md). Verification script: `scripts/verify-api-gating.sh`.
 
 ---
 

@@ -18,8 +18,10 @@ import {
   getDexterUniverseSet,
   isInDexterUniverse,
   getDexterDriftSummary,
+  resolveDexterArtifactRoot,
   type DexterPortfolios,
 } from "../utils/dexterPortfolio";
+import { loadDexterScorecard } from "../utils/dexterScorecard";
 import { vinceDexterDriftAction } from "../actions/dexterDrift.action";
 
 describe("dexterPortfolio", () => {
@@ -181,6 +183,48 @@ describe("dexterPortfolio", () => {
       const summary = getDexterDriftSummary(p, []);
       expect(summary).toContain("0 paper open");
       expect(summary).toContain("0 in Dexter universe");
+    });
+  });
+
+  describe("resolveDexterArtifactRoot", () => {
+    it("uses DEXTER_ARTIFACT_ROOT when set", () => {
+      const prev = process.env.DEXTER_ARTIFACT_ROOT;
+      try {
+        process.env.DEXTER_ARTIFACT_ROOT = tmpDir;
+        expect(resolveDexterArtifactRoot()).toBe(path.resolve(tmpDir));
+      } finally {
+        if (prev === undefined) delete process.env.DEXTER_ARTIFACT_ROOT;
+        else process.env.DEXTER_ARTIFACT_ROOT = prev;
+      }
+    });
+  });
+
+  describe("loadDexterScorecard paths", () => {
+    it("reads .dexter/scorecard.json when present", () => {
+      const dexDir = path.join(tmpDir, ".dexter");
+      fs.mkdirSync(dexDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(dexDir, "scorecard.json"),
+        JSON.stringify({
+          generatedAt: "2020-01-01T00:00:00.000Z",
+          tickers: [{ symbol: "NVDA", composite: 0.9 }],
+        }),
+      );
+      const idx = loadDexterScorecard(tmpDir);
+      expect(idx).not.toBeNull();
+      expect(idx!.bySymbol.get("NVDA")?.composite).toBe(0.9);
+    });
+
+    it("falls back to scorecard.json at root", () => {
+      fs.writeFileSync(
+        path.join(tmpDir, "scorecard.json"),
+        JSON.stringify({
+          tickers: [{ symbol: "AMAT", composite: 0.5 }],
+        }),
+      );
+      const idx = loadDexterScorecard(tmpDir);
+      expect(idx).not.toBeNull();
+      expect(idx!.bySymbol.get("AMAT")?.composite).toBe(0.5);
     });
   });
 });

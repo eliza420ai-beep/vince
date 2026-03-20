@@ -1,6 +1,28 @@
 import { describe, expect, it } from "bun:test";
 import { character } from "../index";
 
+function normalizeConversations(messageExamples: unknown): any[][] {
+  const groups = Array.isArray(messageExamples) ? messageExamples : [];
+  const conversations: any[][] = [];
+
+  for (const group of groups as any[]) {
+    if (Array.isArray(group)) {
+      conversations.push(group);
+      continue;
+    }
+    const examples = group?.examples;
+    if (!Array.isArray(examples)) continue;
+    const first = examples[0];
+    if (Array.isArray(first)) {
+      conversations.push(...examples);
+    } else {
+      conversations.push(examples);
+    }
+  }
+
+  return conversations;
+}
+
 describe("Character Configuration", () => {
   it("should have all required fields", () => {
     expect(character).toHaveProperty("name");
@@ -67,21 +89,17 @@ describe("Character Configuration", () => {
   });
 
   it("should have message examples for training", () => {
-    expect(Array.isArray(character.messageExamples)).toBe(true);
-    if (character.messageExamples && Array.isArray(character.messageExamples)) {
-      expect(character.messageExamples.length).toBeGreaterThan(0);
+    const conversations = normalizeConversations(character.messageExamples);
+    expect(conversations.length).toBeGreaterThan(0);
 
-      // Check structure of first example
-      const firstExample = character.messageExamples[0];
-      expect(Array.isArray(firstExample)).toBe(true);
-      expect(firstExample.length).toBeGreaterThan(1); // At least a user message and a response
+    const firstExample = conversations[0];
+    expect(Array.isArray(firstExample)).toBe(true);
+    expect(firstExample.length).toBeGreaterThan(1);
 
-      // Check that messages have name and content
-      firstExample.forEach((message) => {
-        expect(message).toHaveProperty("name");
-        expect(message).toHaveProperty("content");
-        expect(message.content).toHaveProperty("text");
-      });
-    }
+    firstExample.forEach((message) => {
+      expect(message).toHaveProperty("name");
+      expect(message).toHaveProperty("content");
+      expect(message.content).toHaveProperty("text");
+    });
   });
 });

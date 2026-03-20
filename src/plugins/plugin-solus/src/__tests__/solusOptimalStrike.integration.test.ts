@@ -260,6 +260,7 @@ describe("SOLUS_OPTIMAL_STRIKE integration", () => {
           "SOLUS_OPTIONS_CONTEXT",
           "SOLUS_CALIBRATION_CONTEXT",
           "VINCE_STRIKE_SUGGESTION",
+          "ECHO_WTT_SIGNAL",
         ]);
 
         const composedState = await composeStateMock.mock.results[0].value;

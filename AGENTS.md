@@ -34,3 +34,5 @@ Standard commands are documented in `package.json` scripts and `CLAUDE.md`. Quic
 6. **Some test failures are expected without API keys.** Tests that require `OPENAI_API_KEY`, `X_BEARER_TOKEN`, or network access to specific services will fail or skip. Core unit tests pass without any keys.
 
 7. **The `plugin-personality` build in postinstall may warn but is non-blocking.** It runs `cd node_modules/@elizaos/plugin-personality && bun run build || true`.
+
+8. **Production API gating** uses `@elizaos/server`: set `ELIZA_SERVER_AUTH_TOKEN` to require `X-API-KEY` on `/api` and Socket.IO. Use **`/healthz`** or **`/health`** for load-balancer probes (not `/api/server/health`, which is gated). See [docs/API_SECURITY_AND_PRODUCTION.md](docs/API_SECURITY_AND_PRODUCTION.md) and `scripts/verify-api-gating.sh`.

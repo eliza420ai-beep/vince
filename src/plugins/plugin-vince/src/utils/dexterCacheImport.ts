@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { resolveDexterArtifactRoot } from "./dexterPortfolio";
 import type {
   FdCompanyFacts,
   FdDomainManifest,
@@ -65,6 +66,8 @@ function writeJsonIfNewer(
 
 function getDexterCacheRoot(projectRoot: string): string {
   const root = path.resolve(projectRoot);
+  const dexterDefault = path.join(root, ".dexter", "cache");
+  if (fs.existsSync(dexterDefault)) return dexterDefault;
   const preferred = path.join(root, "cache_dexter");
   if (fs.existsSync(preferred)) return preferred;
   return path.join(root, "cache");
@@ -427,7 +430,7 @@ export function importDexterCacheToVinceFdWarehouse(
   },
 ): DexterCacheImportResult {
   const sourceRoot = path.resolve(
-    options?.sourceRoot ?? getDexterCacheRoot(projectRoot),
+    options?.sourceRoot ?? getDexterCacheRoot(resolveDexterArtifactRoot()),
   );
   const destRoot = getVinceFdCacheRoot(projectRoot);
   const domains: ImportDomain[] =
@@ -473,10 +476,12 @@ export function importDexterCacheToVinceFdWarehouse(
 }
 
 export function getDexterCacheDomainsPresent(
-  projectRoot: string = process.cwd(),
+  _projectRoot: string = process.cwd(),
   sourceRoot?: string,
 ): Array<{ domain: ImportDomain; path: string; fileCount: number }> {
-  const root = path.resolve(sourceRoot ?? getDexterCacheRoot(projectRoot));
+  const root = path.resolve(
+    sourceRoot ?? getDexterCacheRoot(resolveDexterArtifactRoot()),
+  );
   const out: Array<{ domain: ImportDomain; path: string; fileCount: number }> =
     [];
   const checks: Array<{ domain: ImportDomain; sub: string }> = [

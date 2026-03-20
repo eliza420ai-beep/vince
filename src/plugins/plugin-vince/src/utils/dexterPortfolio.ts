@@ -37,23 +37,74 @@ export interface DexterPortfolios {
   coreCrypto: ["BTC", "SOL", "HYPE"];
 }
 
-const PORTFOLIO_FILES = [
+export const DEXTER_PORTFOLIO_FILENAMES = [
   "portfolio_hyperliquid.json",
   "portfolio_tastytrade.json",
   "portfolio_watchlist.json",
 ] as const;
 
+const PORTFOLIO_FILES = DEXTER_PORTFOLIO_FILENAMES;
+
 const CORE_CRYPTO: ["BTC", "SOL", "HYPE"] = ["BTC", "SOL", "HYPE"];
 
+let dexterArtifactStartupLogged = false;
+
 /**
- * Resolve repo root: prefer process.cwd() (ElizaOS start dir), fallback to plugin dir parent chain.
+ * Root directory for Dexter artifacts: portfolio JSONs, optional `.dexter/scorecard.json`, cache.
+ *
+ * Precedence:
+ * 1. `DEXTER_ARTIFACT_ROOT` when set (absolute or relative path, trimmed) — use for Railway/deploy when
+ *    files are synced or mounted outside repo root.
+ * 2. Else `process.cwd()` if any `portfolio_*.json` exists there (local dev with files in vince root).
+ * 3. Else `process.cwd()` (empty universe until files appear or env is set).
  */
-function resolveRootDir(): string {
+export function resolveDexterArtifactRoot(): string {
+  const fromEnv = process.env.DEXTER_ARTIFACT_ROOT?.trim();
+  if (fromEnv) {
+    return path.resolve(fromEnv);
+  }
   const cwd = process.cwd();
   for (const name of PORTFOLIO_FILES) {
     if (fs.existsSync(path.join(cwd, name))) return cwd;
   }
   return cwd;
+}
+
+export interface DexterArtifactLogSink {
+  info: (msg: string) => void;
+}
+
+/**
+ * One startup line: resolved root, source (env vs cwd), portfolio files present, scorecard present.
+ * Safe to call from every agent that loads plugin-vince; logs at most once per process.
+ */
+export function logDexterArtifactResolutionOnce(
+  log: DexterArtifactLogSink,
+): void {
+  if (dexterArtifactStartupLogged) return;
+  dexterArtifactStartupLogged = true;
+
+  const root = resolveDexterArtifactRoot();
+  const envSet = Boolean(process.env.DEXTER_ARTIFACT_ROOT?.trim());
+  const src = envSet ? "DEXTER_ARTIFACT_ROOT" : "cwd";
+
+  const portfolioParts = PORTFOLIO_FILES.map((name) => {
+    const ok = fs.existsSync(path.join(root, name));
+    return `${name.replace(".json", "")}:${ok ? "ok" : "missing"}`;
+  });
+
+  const scoreDexter = path.join(root, ".dexter", "scorecard.json");
+  const scoreRoot = path.join(root, "scorecard.json");
+  const scoreOk = fs.existsSync(scoreDexter) || fs.existsSync(scoreRoot);
+  const scoreWhich = fs.existsSync(scoreDexter)
+    ? ".dexter/scorecard.json"
+    : fs.existsSync(scoreRoot)
+      ? "scorecard.json"
+      : null;
+
+  log.info(
+    `[plugin-vince] Dexter artifacts (${src}) root=${root} | ${portfolioParts.join(" ")} | scorecard:${scoreOk ? `ok (${scoreWhich})` : "missing"}`,
+  );
 }
 
 /**
@@ -122,7 +173,7 @@ function loadSleeveAssets(
  * Core crypto (BTC, SOL, HYPE) are not included; they are fixed in code.
  */
 export function loadDexterPortfolioAssets(rootDir?: string): SleeveAssetRow[] {
-  const root = rootDir ?? resolveRootDir();
+  const root = rootDir ?? resolveDexterArtifactRoot();
   const snapshotAt = Date.now();
   const hl = loadSleeveAssets(root, "portfolio_hyperliquid.json", snapshotAt);
   const tt = loadSleeveAssets(root, "portfolio_tastytrade.json", snapshotAt);
@@ -145,7 +196,7 @@ export function getFdSleeveTickers(rootDir?: string): string[] {
  * Core crypto is always BTC, SOL, HYPE. Does not throw; missing files yield empty arrays.
  */
 export function loadDexterPortfolios(rootDir?: string): DexterPortfolios {
-  const root = rootDir ?? resolveRootDir();
+  const root = rootDir ?? resolveDexterArtifactRoot();
 
   const hyperliquid = loadSleeveSymbols(root, "portfolio_hyperliquid.json");
   const tastytrade = loadSleeveSymbols(root, "portfolio_tastytrade.json");

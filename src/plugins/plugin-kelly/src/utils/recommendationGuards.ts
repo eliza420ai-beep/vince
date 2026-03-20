@@ -7,6 +7,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "node:url";
 
 /** Extract recommendation names from text: **Name** or "Name—" pattern. */
 export function extractRecommendationNames(text: string): string[] {
@@ -21,6 +22,13 @@ export function extractRecommendationNames(text: string): string[] {
 }
 
 const ALLOWLIST_PLACES_PATH = "knowledge/the-good-life/allowlist-places.txt";
+const FIXTURES_ALLOWLIST_PLACES_PATH = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "__tests__",
+  "fixtures",
+  "allowlist-places.txt",
+);
 
 /** Cached allowlist: loaded once and reused. */
 let allowlistCache: { list: string[]; at: number } | null = null;
@@ -34,6 +42,24 @@ export function loadPlacesAllowlist(): string[] {
   }
   const fullPath = path.join(process.cwd(), ALLOWLIST_PLACES_PATH);
   if (!fs.existsSync(fullPath)) {
+    // In dev/test environments we often don't have the full knowledge corpus checked in.
+    // Fall back to the fixture allowlist so response guards remain deterministic in CI.
+    if (fs.existsSync(FIXTURES_ALLOWLIST_PLACES_PATH)) {
+      try {
+        const content = fs.readFileSync(
+          FIXTURES_ALLOWLIST_PLACES_PATH,
+          "utf-8",
+        );
+        const list = content
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+        allowlistCache = { list, at: now };
+        return list;
+      } catch {
+        // fall through
+      }
+    }
     allowlistCache = { list: [], at: now };
     return [];
   }

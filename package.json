@@ -151,6 +151,8 @@
     "forge:dry": "FORGE_DRY_RUN=true bun scripts/forge-signal-weights.ts",
     "forge:apply": "FORGE_APPLY=true bun scripts/forge-signal-weights.ts",
     "forge:uncertain": "FORGE_REGIME=uncertain bun scripts/forge-signal-weights.ts",
+    "verify:api-gating": "bash scripts/verify-api-gating.sh",
+    "verify:regime-bundle": "bun run scripts/verify-regime-bundle-v1.ts",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
     "test:component": "bun run test:install && bun test",

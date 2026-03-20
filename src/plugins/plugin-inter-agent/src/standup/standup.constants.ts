@@ -131,7 +131,6 @@ export const STANDUP_REPORT_ORDER = [
   "Solus",
   "Otaku",
   "Sentinel",
-  "Forge",
   "Clawterm",
   "Naval",
 ] as const;

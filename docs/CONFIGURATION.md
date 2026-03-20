@@ -40,6 +40,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 
 | Variable                                                   | Purpose                                                                                                                                                                             |
 | :--------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ELIZA_SERVER_AUTH_TOKEN` / `ENABLE_DATA_ISOLATION` / `JWT_SECRET` | HTTP `/api` + Socket.IO gating. See [API_SECURITY_AND_PRODUCTION.md](API_SECURITY_AND_PRODUCTION.md).                                                                              |
 | `POSTGRES_URL`                                             | Supabase/Postgres. Empty = PGLite                                                                                                                                                   |
 | `SUPABASE_SERVICE_ROLE_KEY`                                | Feature-store dual-write, ML bucket                                                                                                                                                 |
 | `SUPABASE_URL`                                             | Optional if direct; required if pooler                                                                                                                                              |

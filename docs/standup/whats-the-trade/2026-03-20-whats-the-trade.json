@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-03-20",
+  "thesis": "No valid structured pick extracted today.",
+  "primaryTicker": "NONE",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 0,
+  "primaryRiskUsd": 0,
+  "invalidateCondition": "n/a",
+  "killConditions": [
+    "no pick"
+  ],
+  "rubric": {
+    "alignment": "direct",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "forgiving"
+  }
+}

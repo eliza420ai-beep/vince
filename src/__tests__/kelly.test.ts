@@ -11,6 +11,34 @@ import {
 } from "../agents/kelly";
 import type { Character, IAgentRuntime, Plugin } from "@elizaos/core";
 
+function normalizeConversations(
+  messageExamples: unknown,
+): Array<
+  Array<{ name: string; content: { text?: string; actions?: string[] } }>
+> {
+  const groups = Array.isArray(messageExamples) ? messageExamples : [];
+  const conversations: Array<
+    Array<{ name: string; content: { text?: string; actions?: string[] } }>
+  > = [];
+
+  for (const group of groups as any[]) {
+    if (Array.isArray(group)) {
+      conversations.push(group);
+      continue;
+    }
+    const examples = group?.examples;
+    if (!Array.isArray(examples)) continue;
+    const first = examples[0];
+    if (Array.isArray(first)) {
+      conversations.push(...(examples as any));
+    } else {
+      conversations.push(examples as any);
+    }
+  }
+
+  return conversations;
+}
+
 describe("Kelly agent", () => {
   describe("exports", () => {
     it("exports kellyCharacter as Character", () => {
@@ -58,22 +86,23 @@ describe("Kelly agent", () => {
     });
 
     it("has knowledge with the-good-life, kelly-btc, teammate, and brand entries", () => {
-      const knowledge = kellyCharacter.knowledge as Array<{
-        directory?: string;
-        path?: string;
-        shared?: boolean;
-      }>;
+      const knowledge = kellyCharacter.knowledge as Array<any>;
       expect(Array.isArray(knowledge)).toBe(true);
-      const dirs = knowledge.map((k) => k.directory ?? k.path).filter(Boolean);
+      const dirs = knowledge
+        .map((k) => {
+          const item = k?.item;
+          if (item?.case === "directory") return item?.value?.directory ?? null;
+          if (item?.case === "path") return String(item?.value ?? "");
+          return null;
+        })
+        .filter(Boolean) as string[];
+
       expect(dirs).toContain("the-good-life");
       expect(dirs).toContain("kelly-btc");
       expect(dirs).toContain("teammate");
-      expect(
-        dirs.some(
-          (d) =>
-            d === "brand" || (typeof d === "string" && d.includes("BRANDING")),
-        ),
-      ).toBe(true);
+      expect(dirs.some((d) => d === "brand" || d.includes("BRANDING"))).toBe(
+        true,
+      );
     });
 
     it("has non-empty string system prompt", () => {
@@ -140,11 +169,11 @@ describe("Kelly agent", () => {
     });
 
     it("has messageExamples as array of conversation arrays", () => {
-      expect(Array.isArray(kellyCharacter.messageExamples)).toBe(true);
-      expect(kellyCharacter.messageExamples!.length).toBeGreaterThan(0);
-      for (const conv of kellyCharacter.messageExamples as Array<
-        Array<{ name: string; content: { text?: string; actions?: string[] } }>
-      >) {
+      const conversations = normalizeConversations(
+        kellyCharacter.messageExamples,
+      );
+      expect(conversations.length).toBeGreaterThan(0);
+      for (const conv of conversations) {
         expect(Array.isArray(conv)).toBe(true);
         expect(conv.length).toBeGreaterThan(0);
         for (const msg of conv) {
@@ -231,12 +260,7 @@ describe("Kelly agent", () => {
   });
 
   describe("messageExamples content", () => {
-    const examples = kellyCharacter.messageExamples as Array<
-      Array<{
-        name: string;
-        content: { text?: string; actions?: string[] };
-      }>
-    >;
+    const examples = normalizeConversations(kellyCharacter.messageExamples);
 
     it("includes at least one Kelly response per conversation", () => {
       for (const conv of examples) {

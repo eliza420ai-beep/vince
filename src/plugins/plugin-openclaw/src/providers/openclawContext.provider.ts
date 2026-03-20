@@ -55,7 +55,9 @@ export const openclawContextProvider: Provider = {
     const combined = `${msgText} ${stateText}`;
     const hasOpenClaw = hasKeyword(combined, OPENCLAW_KEYWORDS);
     const hasAi = hasKeyword(combined, AI_KEYWORDS);
-    if (!hasOpenClaw && !hasAi) return { text: "", values: {} };
+    // When there is no OpenClaw intent, omit both `text` and `values`.
+    // This keeps consumers/tests simple: "no keywords" => `{}`.
+    if (!hasOpenClaw && !hasAi) return {};
     const gatewaySet = isGatewayConfigured();
     let paragraph =
       "OpenClaw is a self-hosted gateway (default port 18789) that connects chat apps to AI agents. ";

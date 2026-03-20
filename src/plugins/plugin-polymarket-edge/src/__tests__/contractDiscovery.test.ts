@@ -3,7 +3,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { discoverContracts } from "../services/contractDiscovery";
+import {
+  discoverContracts,
+  __resetContractDiscoveryCacheForTests,
+} from "../services/contractDiscovery";
 
 const ENV_DISCOVERY_TAGS = "EDGE_DISCOVERY_TAGS";
 const futureExpiry = new Date(Date.now() + 86400000 * 30).toISOString();
@@ -26,6 +29,7 @@ describe("plugin-polymarket-edge: contractDiscovery", () => {
   let originalEnv: string | undefined;
 
   beforeEach(() => {
+    __resetContractDiscoveryCacheForTests();
     originalFetch = globalThis.fetch;
     originalEnv = process.env[ENV_DISCOVERY_TAGS];
   });

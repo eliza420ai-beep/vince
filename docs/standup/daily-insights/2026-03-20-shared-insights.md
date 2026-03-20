@@ -1,15 +1,15 @@
 ---
-date: 2026-03-19T21:32:32.355Z
+date: 2026-03-20T09:38:19.949Z
 type: shared-daily-insights
 ---
 
-# Shared Daily Insights — 2026-03-19
+# Shared Daily Insights — 2026-03-20
 
-**Scorecard:** ✅ VINCE (long 44%) | ✅ Eliza | ✅ ECHO | ✅ Oracle | ✅ Solus (9 pos) | ✅ Otaku | ✅ Sentinel (shipped) | ⚠️ Forge | ✅ Clawterm | ✅ Naval
+**Scorecard:** ✅ VINCE (neutral 0%) | ✅ Eliza | ✅ ECHO | ✅ Oracle | ✅ Solus (12 pos) | ✅ Otaku | ✅ Sentinel (shipped) | ⚠️ Forge | ✅ Clawterm | ✅ Naval
 
 ## TL;DR
 
-Signal short at 76% confidence. Paper: 0 open. REGULATORY NOISE: Choppy ahead - trade smaller
+Signal short at 90% confidence. Paper: 0 open. REGULATORY NOISE: Choppy ahead - trade smaller
 
 **Conviction:** [======----] 6/10
 
@@ -17,7 +17,7 @@ Signal short at 76% confidence. Paper: 0 open. REGULATORY NOISE: Choppy ahead - 
 
 ## VINCE
 ### Delta vs Yesterday
-Signal: long (44%) → short (76%)
+Signal: neutral (0%) → short (90%)
 
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
@@ -25,7 +25,7 @@ Signal: long (44%) → short (76%)
 | SOL | N/A +0.0% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
 | HYPE | N/A +0.0% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
 
-**Signal (BTC):** short (76% conf, NewsSentiment, EchoXSignal)
+**Signal (BTC):** short (90% conf, NewsSentiment)
 
 **Paper:** No trades yet | 0 open, 0 pending
 
@@ -48,7 +48,7 @@ Themes: other (21), regulatory (5), macro (5), institutional (2), security (1)
 ---
 
 ## Eliza
-**Yesterday:** No day report found (first run or missing file).
+**Yesterday TL;DR:** BTC shorts piling on at 46% conviction while ETF inflows keep flowing—watching $68K close for the re
 
 **Essay Suggestion:** [LLM unavailable -- review recent uploads for a timely topic]
 
@@ -57,7 +57,7 @@ Themes: other (21), regulatory (5), macro (5), institutional (2), security (1)
 - 📝 **teammate:** SOUL (591 words) — Preview: Who we are, how we operate, what we stand for. Every agent in VINCE reads this before responding. We are a multi-agent system built around one thesis: a BTC-heavy portfolio with two counter-concentrat…
 - 📝 **teammate:** THREE-CURVES (825 words) — Preview: The three curves define how work and capital flow through the VINCE system. Each curve has a different risk profile, time horizon, and agent responsibility. **What:** Perpetual futures on Hyperliquid.…
 - 📝 **teammate:** MEMORY (823 words) — Preview: Persistent context that survives between sessions. Every agent reads this before starting work. Update after meaningful decisions, preference changes, or strategy shifts. _Last updated: 2026-03-18_ <!…
-- 📝 **teammate:** NO-AI-SLOP (591 words) — Preview: Zero tolerance for generic LLM output. Every agent reads this. Every reply follows it.
+- 📝 **teammate:** NO-AI-SLOP (591 words) — Preview: Zero tolerance for generic LLM output. Every agent reads this.
 
 ---
 
@@ -72,7 +72,7 @@ Themes: other (21), regulatory (5), macro (5), institutional (2), security (1)
 ---
 
 ## Solus
-**Today:** Thursday, 2026-03-19. Hypersurface weekly options settle Friday ~09:00 Paris Time (08:00 UTC / 00:00 PT).
+**Today:** Friday, 2026-03-20. Hypersurface weekly options settle Friday ~09:00 Paris Time (08:00 UTC / 00:00 PT). TODAY IS SETTLEMENT DAY — old positions expire today. Focus on the NEW week's strike.
 
 **⚠️ CRITICAL: Current positions this week:**
 - **HYPE:** Secured puts, strike $30 (collected premium, holding USDT collateral)
@@ -83,10 +83,7 @@ Themes: other (21), regulatory (5), macro (5), institutional (2), security (1)
 This determines what we should focus on and whether to consider BUYING BACK early.
 
 
-**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday ~09:00 Paris Time).
-State: strike price, direction (above/below), premium target, invalidation level.
-Reference the live spot prices above when present; otherwise VINCE's DVOL, funding, and regime. Reference Oracle's odds.
-If uncertain (like last week), say so and explain why with data.
+**Your job (FRIDAY — settlement day):** Old positions settle today at ~09:00 Paris Time. (1) Final status of expiring position if any. (2) Propose NEXT WEEK's BTC covered call strike for Hypersurface (new weekly cycle starts now, settles next Friday ~09:00 Paris Time). State: strike price, direction (above/below), premium target, invalidation level.
 
 ---
 
@@ -104,6 +101,7 @@ If uncertain (like last week), say so and explain why with data.
 
 ## Sentinel
 Recent code (git log --oneline):
+05c3b9ae feat(forge+solus): keep-or-revert for Solus strike ritual knobs
 71debe7b chore(tasks): encode Claude workflow guardrails
 8048d566 Make YES/NO data quality reliable
 841a0f13 chore(standup+signals): update 2026-03-19 reports and similarity tuning
@@ -113,11 +111,10 @@ efa24c12 feat(leaderboard): add YES/NO market risk gate tab
 a60f3d2f docs(otaku): document x402 stack + ERC-8183 roadmap
 933e6727 feat(top100): add freshness + richer detail snapshots
 a3f56ad3 fix(top100): bootstrap yahoo market cap cache
-df96bb14 feat(top100): add AIHF draft compare layer
 
-**Branch:** main (2 uncommitted)
+**Branch:** main (5 uncommitted)
 
-**Shipped this week:** other: encode Claude workflow guardrails, Make YES/NO data quality reliable, update 2026-03-19 reports and similarity tuning | leaderboard: add YES/NO market risk gate tab, surface Unbias consensus on News tab | top100: add freshness + richer detail snapshots, add AIHF draft compare layer, add live overlays, toolbar, detail drawer, and Yahoo quote cache
+**Shipped this week:** other: keep-or-revert for Solus strike ritual knobs, encode Claude workflow guardrails, Make YES/NO data quality reliable | leaderboard: add YES/NO market risk gate tab | top100: add freshness + richer detail snapshots, add AIHF draft compare layer, add live overlays, toolbar, detail drawer, and Yahoo quote cache
 
 **Recent PRDs:** RECURSIVE_NORTH_STAR_ACCELERATION_RUNBOOK.md, PRD_YESNO_US_EQUITY_RISK_GATE_V2.md, PRD_WHATS_THE_TRADE_IMPROVEMENT_SYSTEM.md
 
@@ -142,12 +139,12 @@ OpenClaw data: run CLAWTERM_DAY_REPORT in chat for full report; here report gate
 
 ## Cross-Agent Links
 
-• VINCE signal long 44% — align with Solus strike
+• VINCE signal neutral 0% — align with Solus strike
 • Solus: Active options — prepare strike decision
 • ML Loop: 1 trades in feature store
 
 
 ## Action Items
 
-- **Focus:** VINCE signal long 44% + regime 0 — align Solus strike
-- **Thursday:** Solus — pre-settlement check, early exercise risk, roll decision
+- **Focus:** VINCE signal neutral 0% + regime 0 — align Solus strike
+- **Friday:** Solus — settlement day, next week's strike proposal

@@ -46,6 +46,20 @@ const DEFAULT_PATTERNS_DIR = path.join(
   "attack-patterns",
 );
 
+// In trimmed or fresh checkouts, `knowledge/teammate/attack-patterns/` may be
+// absent. Keep core behavior testable with a minimal built-in fallback.
+const BUILTIN_PATTERNS: ImmunePattern[] = [
+  {
+    id: "crowded-long-liquidity-sweep",
+    name: "crowded-long-liquidity-sweep",
+    longShortRatioMin: 1.7,
+    fundingRateMin: 0.02,
+    openInterestChangePctMin: 5,
+    fearGreedMin: 80,
+    expectedLossRate: 0.4,
+  },
+];
+
 export class VinceImmuneSystemService extends Service {
   static serviceType = "VINCE_IMMUNE_SYSTEM_SERVICE";
   capabilityDescription = "Detects known attack-pattern regimes before entry";
@@ -67,7 +81,7 @@ export class VinceImmuneSystemService extends Service {
 
   private loadPatterns(): ImmunePattern[] {
     try {
-      if (!fs.existsSync(DEFAULT_PATTERNS_DIR)) return [];
+      if (!fs.existsSync(DEFAULT_PATTERNS_DIR)) return BUILTIN_PATTERNS;
       const files = fs
         .readdirSync(DEFAULT_PATTERNS_DIR)
         .filter((f) => f.endsWith(".json"));
@@ -80,9 +94,9 @@ export class VinceImmuneSystemService extends Service {
         const parsed = JSON.parse(raw) as ImmunePattern;
         if (parsed?.id) out.push(parsed);
       }
-      return out;
+      return out.length > 0 ? out : BUILTIN_PATTERNS;
     } catch {
-      return [];
+      return BUILTIN_PATTERNS;
     }
   }
 

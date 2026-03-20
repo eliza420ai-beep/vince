@@ -85,6 +85,7 @@ import {
 } from "./services/fallbacks/aliasServices";
 import { startBox, endBox, logLine, logEmpty, sep } from "./utils/boxLogger";
 import { isVinceAgent, getStartupSummaryLine } from "./utils/dashboard";
+import { logDexterArtifactResolutionOnce } from "./utils/dexterPortfolio";
 
 // Services - Paper Trading Bot
 import { VincePaperTradingService } from "./services/vincePaperTrading.service";
@@ -183,11 +184,14 @@ import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 import { echoSentimentProvider } from "./providers/echoSentiment.provider";
 import { oracleRegimeProvider } from "./providers/oracleRegime.provider";
 import { bankrOrdersProvider } from "./providers/bankrOrders.provider";
+import { aihfSecondOpinionProvider } from "./providers/aihfSecondOpinion.provider";
 
 // Tasks
 import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
 import { registerTrainOnnxTask } from "./tasks/trainOnnx.tasks";
 import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
+import { registerRegimeBundleV1Task } from "./tasks/regimeBundleV1.tasks";
+import { registerSpendAlertsTask } from "./tasks/spendAlerts.tasks";
 import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
@@ -1345,6 +1349,7 @@ export const vincePlugin: Plugin = {
   providers: [
     teammateContextProvider,
     protocolWriteupProvider,
+    aihfSecondOpinionProvider, // Optional Phase D: reads AIHF committee snapshot via HTTP
     vinceContextProvider,
     trenchKnowledgeProvider,
     bankrOrdersProvider, // Cross-agent: active BANKR orders from Otaku
@@ -1357,6 +1362,8 @@ export const vincePlugin: Plugin = {
 
   // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
+    logDexterArtifactResolutionOnce(logger);
+
     // Register a no-op for "discord" so core doesn't log "Send handler not found".
     // NOTE: ElizaOS 1.x has a framework bug where the real Discord handler is never registered.
     // Do NOT replace with a deferred handler — it causes VinceNotificationService to blast all rooms.
@@ -1750,6 +1757,16 @@ export const vincePlugin: Plugin = {
           await registerDailyReportTask(runtime);
         } catch (e) {
           logger.warn("[VINCE] Failed to register daily report task:", e);
+        }
+        try {
+          await registerRegimeBundleV1Task(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register regime bundle v1 task:", e);
+        }
+        try {
+          await registerSpendAlertsTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register spend alerts task:", e);
         }
       });
     }

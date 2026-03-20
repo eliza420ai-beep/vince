@@ -101,7 +101,8 @@ async function main() {
 
   // 3) Wait for API to be ready
   console.log("[dev] Waiting for API on port", API_PORT, "...");
-  const ready = await waitFor(`http://127.0.0.1:${API_PORT}/api/server/health`);
+  // Use root /healthz so dev wait works when ELIZA_SERVER_AUTH_TOKEN gates /api
+  const ready = await waitFor(`http://127.0.0.1:${API_PORT}/healthz`);
   if (!ready) {
     console.warn("[dev] API not ready after 15s; starting Vite anyway.");
   } else {

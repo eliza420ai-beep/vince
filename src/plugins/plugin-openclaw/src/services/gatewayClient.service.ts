@@ -4,10 +4,8 @@
  */
 
 import { logger } from "@elizaos/core";
-import { exec } from "child_process";
 import { promisify } from "util";
 
-const execAsync = promisify(exec);
 const GATEWAY_CLI_TIMEOUT_MS = 120_000;
 
 const DEFAULT_GATEWAY_URL = "http://127.0.0.1:18789";
@@ -162,6 +160,8 @@ export async function getStatus(): Promise<GatewayStatusResult> {
     return { ok: true, status: health.status, message: health.message };
   }
   try {
+    const { exec } = await import("child_process");
+    const execAsync = promisify(exec);
     const { stdout } = await execAsync("openclaw gateway status", {
       timeout: 5000,
     });
@@ -193,6 +193,8 @@ export async function runAgent(
       .map((a) => (a.includes(" ") ? `"${a.replace(/"/g, '\\"')}"` : a))
       .join(" ");
   try {
+    const { exec } = await import("child_process");
+    const execAsync = promisify(exec);
     const { stdout, stderr } = await execAsync(cmd, {
       timeout: GATEWAY_CLI_TIMEOUT_MS,
       maxBuffer: 2 * 1024 * 1024,

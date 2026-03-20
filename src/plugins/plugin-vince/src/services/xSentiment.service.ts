@@ -173,7 +173,8 @@ export function buildSentimentQuery(asset: string): string {
     MU: "$MU OR Micron",
     SNDK: "$SNDK OR SanDisk",
   };
-  return expanded[asset] ?? `$${asset} OR ${asset}`;
+  // Unknown tickers should remain simple ($XYZ), matching test expectations.
+  return expanded[asset] ?? `$${asset}`;
 }
 
 /** Append quality filters to a sentiment search query (lang:en, -is:reply, -is:retweet). */

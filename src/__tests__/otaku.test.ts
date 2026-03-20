@@ -7,6 +7,38 @@ import { describe, it, expect } from "bun:test";
 import { otakuCharacter, otakuAgent, character } from "../agents/otaku";
 import type { Character, IAgentRuntime, Plugin } from "@elizaos/core";
 
+function normalizeConversations(
+  messageExamples: unknown,
+): Array<
+  Array<{ name: string; content: { text?: string; actions?: string[] } }>
+> {
+  const groups = Array.isArray(messageExamples) ? messageExamples : [];
+  const conversations: Array<
+    Array<{ name: string; content: { text?: string; actions?: string[] } }>
+  > = [];
+
+  for (const group of groups as any[]) {
+    if (Array.isArray(group)) {
+      conversations.push(group);
+      continue;
+    }
+    const examples = group?.examples;
+    if (!Array.isArray(examples)) continue;
+
+    const first = examples[0];
+    // messageExamplesGroups() yields:
+    // - group.examples = MessageExample[] (single conversation)
+    // - sometimes group.examples = MessageExample[][] (list of conversations)
+    if (Array.isArray(first)) {
+      conversations.push(...(examples as any));
+    } else {
+      conversations.push(examples as any);
+    }
+  }
+
+  return conversations;
+}
+
 describe("Otaku agent", () => {
   describe("exports", () => {
     it("exports otakuCharacter as Character", () => {
@@ -44,15 +76,17 @@ describe("Otaku agent", () => {
 
     it("has Bankr knowledge directory for RAG", () => {
       expect(otakuCharacter).toHaveProperty("knowledge");
-      const knowledge = otakuCharacter.knowledge as Array<{
-        directory?: string;
-        path?: string;
-      }>;
+      const knowledge = otakuCharacter.knowledge as Array<any>;
       expect(Array.isArray(knowledge)).toBe(true);
-      const bankrEntry = knowledge?.find(
-        (k) => k.directory === "bankr" || k.path?.includes("bankr"),
-      );
-      expect(bankrEntry).toBeDefined();
+      const hasBankrDir = knowledge.some((k) => {
+        const item = k?.item;
+        if (item?.case === "directory")
+          return item?.value?.directory === "bankr";
+        if (item?.case === "path")
+          return String(item?.value ?? "").includes("bankr");
+        return false;
+      });
+      expect(hasBankrDir).toBe(true);
     });
 
     it("has non-empty string system prompt", () => {
@@ -111,11 +145,11 @@ describe("Otaku agent", () => {
     });
 
     it("has messageExamples as array of conversation arrays", () => {
-      expect(Array.isArray(otakuCharacter.messageExamples)).toBe(true);
-      expect(otakuCharacter.messageExamples!.length).toBeGreaterThan(0);
-      for (const conv of otakuCharacter.messageExamples as Array<
-        Array<{ name: string; content: { text?: string } }>
-      >) {
+      const conversations = normalizeConversations(
+        otakuCharacter.messageExamples,
+      );
+      expect(conversations.length).toBeGreaterThan(0);
+      for (const conv of conversations) {
         expect(Array.isArray(conv)).toBe(true);
         expect(conv.length).toBeGreaterThan(0);
         for (const msg of conv) {
@@ -205,9 +239,7 @@ describe("Otaku agent", () => {
   });
 
   describe("messageExamples content", () => {
-    const examples = otakuCharacter.messageExamples as Array<
-      Array<{ name: string; content: { text?: string } }>
-    >;
+    const examples = normalizeConversations(otakuCharacter.messageExamples);
 
     it("includes at least one Otaku response per conversation", () => {
       for (const conv of examples) {

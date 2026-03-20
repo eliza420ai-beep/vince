@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "regime_bundle_v1",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_at",
+    "generated_at_ms",
+    "universe_hash",
+    "universe",
+    "assets",
+    "sleeves",
+    "summary"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "regime_bundle_v1"
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO 8601 timestamp"
+    },
+    "generated_at_ms": {
+      "type": "number"
+    },
+    "universe_hash": {
+      "type": "string",
+      "description": "sha256 hex of the universe tickers"
+    },
+    "universe": {
+      "type": "object",
+      "required": [
+        "hyperliquid",
+        "tastytrade",
+        "watchlist",
+        "coreCrypto"
+      ],
+      "properties": {
+        "hyperliquid": { "type": "array", "items": { "type": "string" } },
+        "tastytrade": { "type": "array", "items": { "type": "string" } },
+        "watchlist": { "type": "array", "items": { "type": "string" } },
+        "coreCrypto": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "direction",
+          "strength",
+          "confidence",
+          "funding_stress",
+          "oi_change_bucket",
+          "regime_label",
+          "factors"
+        ],
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": ["long", "short", "neutral"]
+          },
+          "strength": {
+            "type": ["number", "null"]
+          },
+          "confidence": {
+            "type": ["number", "null"]
+          },
+          "funding_stress": { "type": "boolean" },
+          "oi_change_bucket": { "type": "string" },
+          "regime_label": { "type": "string" },
+          "factors": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "sleeves": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "assets",
+          "aggregate_direction",
+          "funding_stress",
+          "regime_label"
+        ],
+        "properties": {
+          "assets": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "aggregate_direction": {
+            "type": "string",
+            "enum": ["long", "short", "neutral"]
+          },
+          "funding_stress": { "type": "boolean" },
+          "regime_label": { "type": "string" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["overall_direction", "alerts"],
+      "properties": {
+        "overall_direction": {
+          "type": "string",
+          "enum": ["long", "short", "neutral"]
+        },
+        "alerts": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+

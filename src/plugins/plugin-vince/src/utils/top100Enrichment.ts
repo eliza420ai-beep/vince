@@ -456,7 +456,7 @@ function applyOverlays({
   projectRoot: string;
   hip3: HIP3LeaderboardSection | null;
 }): { rows: Top100StockRow[]; metaPatch: Top100MetaPatch } {
-  const dexter = loadDexterScorecard(projectRoot);
+  const dexter = loadDexterScorecard();
   const byTickerHip3 = new Map<
     string,
     { price?: number; change24h?: number; volume?: number; marketCap?: number }
@@ -855,7 +855,7 @@ export function buildTop100StocksSection(args: {
       projectRoot,
       hip3: args.hip3,
     });
-    const dexter = loadDexterScorecard(projectRoot);
+    const dexter = loadDexterScorecard();
     const dexterCoveredCount = enriched.filter(
       (r) => r.scoreSource === "dexter",
     ).length;

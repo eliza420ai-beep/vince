@@ -37,20 +37,40 @@ describe("Clawterm–OpenClaw alignment", () => {
   });
 
   it("messageExamples include at least one example per OpenClaw action", () => {
-    const examples = clawtermCharacter.messageExamples ?? [];
     const actionToExample = new Map<string, boolean>();
     for (const name of OPENCLAW_ACTION_NAMES) {
       actionToExample.set(name, false);
     }
-    for (const pair of examples) {
-      const assistant = Array.isArray(pair)
-        ? pair[1]
-        : ((pair as any).assistant ?? pair[1]);
+
+    const groups = clawtermCharacter.messageExamples ?? [];
+    // `messageExamples` are often created via `messageExamplesGroups()`, which
+    // yields objects like `{ examples: MessageExample[][] }`.
+    const conversations: any[] = [];
+    for (const group of groups as any[]) {
+      if (Array.isArray(group)) {
+        conversations.push(group);
+        continue;
+      }
+      if (Array.isArray(group?.examples)) {
+        // `messageExamplesGroups()` sometimes yields:
+        // - `group.examples` = MessageExample[] (single conversation)
+        // - `group.examples` = MessageExample[][] (list of conversations)
+        const first = group.examples[0];
+        if (Array.isArray(first)) {
+          conversations.push(...group.examples);
+        } else {
+          conversations.push(group.examples);
+        }
+      } else if (Array.isArray(group?.content)) {
+        conversations.push(group.content);
+      }
+    }
+
+    for (const pair of conversations) {
+      const assistant = Array.isArray(pair) ? pair[1] : undefined;
       const actions = assistant?.content?.actions ?? assistant?.actions ?? [];
       for (const a of actions) {
-        if (actionToExample.has(a)) {
-          actionToExample.set(a, true);
-        }
+        if (actionToExample.has(a)) actionToExample.set(a, true);
       }
     }
     const missing: string[] = [];

@@ -24,6 +24,11 @@ interface CacheEntry {
 }
 const tagCache = new Map<string, CacheEntry>();
 
+// Test-only: avoid cross-test contamination from cached discovery rows.
+export function __resetContractDiscoveryCacheForTests() {
+  tagCache.clear();
+}
+
 function cacheKey(base: string, tagSlug: string, limit: number): string {
   return `${base}|${tagSlug}|${limit}`;
 }

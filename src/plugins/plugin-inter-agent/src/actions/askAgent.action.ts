@@ -150,8 +150,11 @@ function resolveTargetInProcess(
   return { id: target.agentId };
 }
 
-async function fetchAgents(baseUrl: string): Promise<AgentListItem[]> {
-  const res = await fetch(`${baseUrl}/api/agents`, {
+async function fetchAgents(
+  baseUrl: string,
+  fetchFn: typeof fetch,
+): Promise<AgentListItem[]> {
+  const res = await fetchFn(`${baseUrl}/api/agents`, {
     headers: getAuthHeaders(),
   });
   if (!res.ok) {
@@ -378,6 +381,21 @@ export const askAgentAction: Action = {
   ): Promise<ActionResult | undefined> => {
     const fromName = runtime.character?.name ?? "I";
     const userText = (message.content?.text ?? "").trim();
+    // Capture the fetch function once per request; other test files may swap `globalThis.fetch`.
+    // This avoids cross-test flakiness and mid-request "undefined fetch result" crashes.
+    const fetchFn: typeof fetch | undefined =
+      (
+        runtime as unknown as {
+          fetch?: typeof fetch;
+        }
+      ).fetch ?? globalThis.fetch;
+    if (!fetchFn) {
+      await callback({
+        text: "Something went wrong asking the agent. No fetch implementation available.",
+        actions: ["ASK_AGENT"],
+      });
+      return { success: false };
+    }
 
     const parsed = extractTargetAndQuestion(userText, fromName);
     let targetName: string;
@@ -447,7 +465,8 @@ export const askAgentAction: Action = {
       let target: AgentListItem | { id: string } | null =
         resolveTargetInProcess(runtime, targetName);
       const agentsInProcess = getAgentsInProcess(runtime);
-      const agentsList = agentsInProcess ?? (await fetchAgents(baseUrl));
+      const agentsList =
+        agentsInProcess ?? (await fetchAgents(baseUrl, fetchFn));
       if (!target) {
         if (!getElizaOS(runtime)) {
           logger.debug(
@@ -911,7 +930,7 @@ export const askAgentAction: Action = {
       }
 
       // Job API: server must emit new_message with channel_id = job channel and author_id = agent id when the agent replies (see plugin README).
-      const createRes = await fetch(`${baseUrl}/api/messaging/jobs`, {
+      const createRes = await fetchFn(`${baseUrl}/api/messaging/jobs`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -954,7 +973,7 @@ export const askAgentAction: Action = {
 
       while (Date.now() - start < POLL_MAX_WAIT_MS) {
         await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-        const getRes = await fetch(`${baseUrl}/api/messaging/jobs/${jobId}`, {
+        const getRes = await fetchFn(`${baseUrl}/api/messaging/jobs/${jobId}`, {
           headers: getAuthHeaders(),
         });
         if (!getRes.ok) {

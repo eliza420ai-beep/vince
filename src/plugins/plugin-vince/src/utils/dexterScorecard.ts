@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { resolveDexterArtifactRoot } from "./dexterPortfolio";
 
 export type DexterSleeve = "tastytrade" | "hyperliquid" | "watchlist";
 
@@ -31,9 +32,23 @@ export interface DexterScorecardIndex {
 }
 
 let cache: {
+  resolvedPath: string;
   mtimeMs: number;
   index: DexterScorecardIndex;
 } | null = null;
+
+/** Dexter writes `bun run score` output to `.dexter/scorecard.json`; legacy flat `scorecard.json` also supported. */
+function resolveScorecardFilePath(projectRoot: string): string | null {
+  const root = path.resolve(projectRoot);
+  const candidates = [
+    path.join(root, ".dexter", "scorecard.json"),
+    path.join(root, "scorecard.json"),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
 
 function safeParseGeneratedAtMs(input?: string): number | null {
   if (!input) return null;
@@ -45,14 +60,28 @@ function normalizeSymbol(sym: string): string {
   return sym.toUpperCase().trim();
 }
 
+/**
+ * Load Dexter scorecard from `DEXTER_ARTIFACT_ROOT` (or cwd heuristic) unless `projectRoot` is passed.
+ * Tries `.dexter/scorecard.json` then `scorecard.json`.
+ */
 export function loadDexterScorecard(
-  projectRoot: string = process.cwd(),
+  projectRoot?: string,
 ): DexterScorecardIndex | null {
-  const filePath = path.join(path.resolve(projectRoot), "scorecard.json");
-  if (!fs.existsSync(filePath)) return null;
+  const root =
+    projectRoot !== undefined && projectRoot !== ""
+      ? path.resolve(projectRoot)
+      : resolveDexterArtifactRoot();
+  const filePath = resolveScorecardFilePath(root);
+  if (!filePath) return null;
 
   const stat = fs.statSync(filePath);
-  if (cache && cache.mtimeMs === stat.mtimeMs) return cache.index;
+  if (
+    cache &&
+    cache.resolvedPath === filePath &&
+    cache.mtimeMs === stat.mtimeMs
+  ) {
+    return cache.index;
+  }
 
   const raw = fs.readFileSync(filePath, "utf-8");
   const parsed = JSON.parse(raw) as DexterScorecardFile;
@@ -93,6 +122,6 @@ export function loadDexterScorecard(
     bySymbol,
   };
 
-  cache = { mtimeMs: stat.mtimeMs, index };
+  cache = { resolvedPath: filePath, mtimeMs: stat.mtimeMs, index };
   return index;
 }

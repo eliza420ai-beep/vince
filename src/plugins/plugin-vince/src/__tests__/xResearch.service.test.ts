@@ -95,7 +95,10 @@ describe("VinceXResearchService", () => {
       expect(result1.length).toBe(1);
       expect(result2.length).toBe(1);
       expect(result2).toEqual(result1);
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const xApiCalls = fetchSpy.mock.calls.filter(([url]) =>
+        String(url).includes("api.x.com/2"),
+      );
+      expect(xApiCalls).toHaveLength(1);
       expect(runtime.setCache).toHaveBeenCalled();
       expect(runtime.getCache).toHaveBeenCalledTimes(3); // rate-limit key once, search cache key twice (miss then hit)
     });
@@ -357,7 +360,16 @@ describe("VinceXResearchService", () => {
       await expect(
         service.search("test", { pages: 1, sortOrder: "relevancy" }),
       ).rejects.toThrow(/X API rate limited\. Resets in \d+s/);
-      expect(fetchSpy).not.toHaveBeenCalled();
+      const encoded = encodeURIComponent("test -is:retweet");
+      const xApiCalls = fetchSpy.mock.calls.filter(([url]) => {
+        const s = String(url);
+        return (
+          s.includes("api.x.com/2") &&
+          s.includes(`query=${encoded}`) &&
+          s.includes("sort_order=relevancy")
+        );
+      });
+      expect(xApiCalls).toHaveLength(0);
     });
 
     it("when fetch returns 429 with x-rate-limit-reset, search throws and sets shared cooldown cache", async () => {

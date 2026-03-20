@@ -40,6 +40,10 @@ _Summarized from docs/standup/post-mortems/*.md. Edit source post-mortems, then 
 
 <!-- POST_MORTEM_LESSONS_END -->
 
+## Runtime + test-harness fixes (this session)
+- **Avoid global `fetch` mocks across concurrent Bun tests:** inject/override `runtime.fetch` (or capture a local fetch function) so one suite’s `mockResolvedValueOnce` chain can’t be consumed by another suite mid-run.
+- **Bun `WriteFailed` during `bun test`:** coverage output can try to write harness artifacts into sandbox-blocked paths. Prefer disabling coverage for sandboxed/CI runs via `bunfig.toml`, or redirect coverage output to a workspace-safe directory.
+
 ---
 
 ## Learnings from runtime (startup / paper loop)

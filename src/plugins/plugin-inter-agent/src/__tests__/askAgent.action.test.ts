@@ -30,12 +30,14 @@ function createMockRuntime(overrides?: {
   character?: { name?: string };
   agentId?: UUID;
   elizaOS?: unknown;
+  fetch?: typeof fetch;
 }): IAgentRuntime {
   const runtime = {
     agentId: (overrides?.agentId ?? uuidv4()) as UUID,
     character: overrides?.character ?? { name: "Kelly" },
     getSetting: () => null,
     getService: () => null,
+    fetch: overrides?.fetch,
   } as unknown as IAgentRuntime;
   if (overrides?.elizaOS !== undefined) {
     (runtime as { elizaOS?: unknown }).elizaOS = overrides.elizaOS;
@@ -119,7 +121,7 @@ describe("askAgentAction", () => {
     it("unparseable message and no state yields I didn't catch which agent", async () => {
       const runtime = createMockRuntime({ elizaOS: undefined });
       (runtime as { elizaOS?: unknown }).elizaOS = undefined;
-      globalThis.fetch = vi.fn().mockResolvedValue({
+      (runtime as any).fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ data: { agents: [] } }),
       });
@@ -145,7 +147,7 @@ describe("askAgentAction", () => {
         character: { name: "Kelly" },
         elizaOS: undefined,
       });
-      globalThis.fetch = vi.fn().mockResolvedValue({
+      (runtime as any).fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
           data: { agents: [{ id: "kelly-id", name: "Kelly" }] },
@@ -411,7 +413,7 @@ describe("askAgentAction", () => {
             result: { message: { content: "Agent reply" } },
           }),
         });
-      globalThis.fetch = mockFetch;
+      (runtime as any).fetch = mockFetch;
       const msg = createMessage("Ask Vince about Bitcoin");
       const { callback, calls } = createMockCallback();
 
@@ -445,7 +447,7 @@ describe("askAgentAction", () => {
           ok: true,
           json: async () => ({ status: "timeout" }),
         });
-      globalThis.fetch = mockFetch;
+      (runtime as any).fetch = mockFetch;
       const msg = createMessage("Ask Vince about Bitcoin");
       const { callback, calls } = createMockCallback();
 
@@ -483,7 +485,7 @@ describe("askAgentAction", () => {
           ok: true,
           json: async () => ({ status: "failed", error: "Something broke" }),
         });
-      globalThis.fetch = mockFetch;
+      (runtime as any).fetch = mockFetch;
       const msg = createMessage("Ask Vince about Bitcoin");
       const { callback, calls } = createMockCallback();
 
@@ -514,7 +516,7 @@ describe("askAgentAction", () => {
           status: 503,
           text: async () => "Service Unavailable",
         });
-      globalThis.fetch = mockFetch;
+      (runtime as any).fetch = mockFetch;
       const msg = createMessage("Ask Vince about Bitcoin");
       const { callback, calls } = createMockCallback();
 
@@ -545,7 +547,7 @@ describe("askAgentAction", () => {
           ok: true,
           json: async () => ({}),
         });
-      globalThis.fetch = mockFetch;
+      (runtime as any).fetch = mockFetch;
       const msg = createMessage("Ask Vince about Bitcoin");
       const { callback, calls } = createMockCallback();
 
@@ -565,7 +567,9 @@ describe("askAgentAction", () => {
   describe("handler - top-level catch", () => {
     it("fetch throws yields Something went wrong and baseUrl in message", async () => {
       const runtime = createMockRuntime({ elizaOS: undefined });
-      globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
+      (runtime as any).fetch = vi
+        .fn()
+        .mockRejectedValue(new Error("Network error"));
       const msg = createMessage("Ask Vince about Bitcoin");
       const { callback, calls } = createMockCallback();
 
@@ -587,7 +591,7 @@ describe("askAgentAction", () => {
     it("agent name not in list yields couldn't find an agent named", async () => {
       const runtime = createMockRuntime({ elizaOS: undefined });
       // Message parses to Vince, but agents list has only Kelly so Vince is not found
-      globalThis.fetch = vi.fn().mockResolvedValue({
+      (runtime as any).fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
           data: { agents: [{ id: "kelly-id", name: "Kelly" }] },

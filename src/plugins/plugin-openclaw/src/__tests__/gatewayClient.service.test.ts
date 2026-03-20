@@ -35,6 +35,14 @@ mock.module("child_process", () => ({
       resolved(null, "", "");
     }
   },
+  // Some other plugin modules import these named exports from `node:child_process`.
+  // Provide safe stubs so those imports don't crash during this test run.
+  spawn: () => {
+    throw new Error("spawn is not mocked in gatewayClient.service.test.ts");
+  },
+  execSync: () => {
+    throw new Error("execSync is not mocked in gatewayClient.service.test.ts");
+  },
 }));
 
 let isGatewayConfigured: typeof import("../services/gatewayClient.service").isGatewayConfigured;
