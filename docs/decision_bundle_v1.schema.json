@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "decision_bundle_v1",
+  "type": "object",
+  "required": [
+    "version",
+    "decisionId",
+    "generated_at",
+    "generated_at_ms",
+    "asset",
+    "direction",
+    "status"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "decision_bundle_v1"
+    },
+    "decisionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO 8601 timestamp"
+    },
+    "generated_at_ms": {
+      "type": "number",
+      "description": "Unix timestamp in ms"
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["long", "short", "neutral"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["OPENED", "AVOIDED", "CLOSED"]
+    },
+    "stage": {
+      "type": ["string", "null"],
+      "description": "Human stage hint (e.g. entry_gate_veto)."
+    },
+    "featureDecisionId": {
+      "type": ["string", "null"],
+      "description": "VINCE feature-store record id when available."
+    },
+    "positionId": {
+      "type": ["string", "null"],
+      "description": "VINCE paper-position id when available."
+    },
+    "evaluate": {
+      "type": ["object", "null"],
+      "properties": {
+        "signal": {
+          "type": "object",
+          "required": ["strength", "confidence", "sources", "factors"],
+          "properties": {
+            "strength": { "type": ["number", "null"] },
+            "confidence": { "type": ["number", "null"] },
+            "sources": { "type": "array", "items": { "type": "string" } },
+            "factors": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "structure": {
+      "type": ["object", "null"],
+      "properties": {
+        "slMode": { "type": ["string", "null"] },
+        "tpMode": { "type": ["string", "null"] },
+        "aggressive": { "type": ["boolean", "null"] },
+        "optionsOiAdjusted": { "type": ["boolean", "null"] },
+        "stopLossPrice": { "type": ["number", "null"] },
+        "takeProfitPrices": {
+          "type": ["array", "null"],
+          "items": { "type": "number" }
+        }
+      }
+    },
+    "kelly": {
+      "type": ["object", "null"],
+      "properties": {
+        "sizeUsd": { "type": ["number", "null"] },
+        "leverage": { "type": ["number", "null"] }
+      }
+    },
+    "execute": {
+      "type": ["object", "null"],
+      "properties": {
+        "entryPrice": { "type": ["number", "null"] },
+        "slippageBps": { "type": ["number", "null"] },
+        "usedPullbackEntry": { "type": ["boolean", "null"] }
+      }
+    },
+    "track": {
+      "type": ["object", "null"],
+      "properties": {
+        "exitPrice": { "type": ["number", "null"] },
+        "realizedPnl": { "type": ["number", "null"] },
+        "realizedPnlPct": { "type": ["number", "null"] },
+        "exitReason": { "type": ["string", "null"] },
+        "holdingPeriodMinutes": { "type": ["number", "null"] }
+      }
+    }
+  }
+}
+

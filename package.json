@@ -153,6 +153,7 @@
     "forge:uncertain": "FORGE_REGIME=uncertain bun scripts/forge-signal-weights.ts",
     "verify:api-gating": "bash scripts/verify-api-gating.sh",
     "verify:regime-bundle": "bun run scripts/verify-regime-bundle-v1.ts",
+    "verify:decision-bundle": "bun run scripts/verify-decision-bundle-v1.ts",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
     "test:component": "bun run test:install && bun test",

@@ -97,6 +97,11 @@ import {
   getContextAdjustmentMultiplier,
   recordContextOutcome,
 } from "../utils/contextFeatureStats";
+import {
+  writeDecisionBundleV1Avoided,
+  writeDecisionBundleV1OpenedPending,
+  finalizeDecisionBundleV1Closed,
+} from "../utils/decisionBundleV1Writer";
 import { getSentimentGateForDirection } from "./vinceSentimentGate";
 import { loadPromptTemplate } from "../utils/loadPromptTemplate";
 import { runPostMortem } from "../utils/postMortem";
@@ -1148,7 +1153,11 @@ export class VincePaperTradingService extends Service {
     signal: AggregatedTradeSignal,
     regime: MarketRegime | null,
     sentiment?: { sentimentScore: number; sentimentLabel: string },
-  ): Promise<boolean> {
+  ): Promise<{
+    proceed: boolean;
+    decision: "APPROVE" | "VETO";
+    reason: string | null;
+  }> {
     const topSources =
       Object.keys(signal.sourceBreakdown ?? {})
         .slice(0, 5)
@@ -1190,14 +1199,22 @@ Reply format: APPROVE reason or VETO reason`;
         .trim()
         .toUpperCase();
       if (line.startsWith("VETO")) {
-        return false;
+        const rawReason = line.replace(/^VETO\s*/i, "").trim();
+        return {
+          proceed: false,
+          decision: "VETO",
+          reason: rawReason.length ? rawReason : null,
+        };
       }
-      return true;
+      if (line.startsWith("APPROVE")) {
+        return { proceed: true, decision: "APPROVE", reason: null };
+      }
+      return { proceed: true, decision: "APPROVE", reason: null };
     } catch (e) {
       logger.debug(
         `[VincePaperTrading] Entry gate fallback (proceed): ${(e as Error).message}`,
       );
-      return true;
+      return { proceed: true, decision: "APPROVE", reason: null };
     }
   }
 
@@ -1356,7 +1373,7 @@ Reply format: APPROVE reason or VETO reason`;
     )
       return;
     try {
-      await featureStore.recordAvoidedDecision({
+      const decisionId = await featureStore.recordAvoidedDecision({
         asset,
         signal,
         reason,
@@ -1370,6 +1387,33 @@ Reply format: APPROVE reason or VETO reason`;
         ...(narrativePhase ? { narrativePhase } : {}),
         ...(immunePattern ? { immunePattern } : {}),
       });
+
+      // Decision bundle artifact for Radon-style replay (best-effort).
+      if (
+        this.persistenceDir &&
+        typeof decisionId === "string" &&
+        decisionId.trim()
+      ) {
+        const sources =
+          (signal as any).sources ??
+          Object.keys((signal as any).sourceBreakdown ?? {}) ??
+          [];
+        const factors =
+          (signal as any).factors ?? (signal as any).reasons ?? [];
+
+        writeDecisionBundleV1Avoided({
+          baseDir: this.persistenceDir,
+          asset,
+          direction: signal.direction,
+          decisionId,
+          featureDecisionId: decisionId,
+          reason,
+          strength: signal.strength ?? null,
+          confidence: signal.confidence ?? null,
+          sources,
+          factors,
+        });
+      }
     } catch (e) {
       logger.debug(`[VincePaperTrading] recordAvoidedDecision failed: ${e}`);
     }
@@ -2390,6 +2434,11 @@ Reply format: APPROVE reason or VETO reason`;
               `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
             );
           }
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            `Primary signal gate: no primary signal (contributing: ${contributingSources.join(", ")})`,
+          );
           incrementFunnelReason(funnel, "no_primary_signal");
           continue;
         }
@@ -2752,6 +2801,11 @@ Reply format: APPROVE reason or VETO reason`;
             tradeValidation.reason || "risk check failed",
           );
           incrementFunnelReason(funnel, "risk_check");
+          void this.recordAvoidedDecisionIfNeeded(
+            asset,
+            signal as AggregatedSignal,
+            `risk check: ${tradeValidation.reason || "risk_check_failed"}`,
+          );
           continue;
         }
 
@@ -2762,8 +2816,14 @@ Reply format: APPROVE reason or VETO reason`;
           this.runtime.getSetting?.("vince_entry_gate_enabled") === true ||
           this.runtime.getSetting?.("vince_entry_gate_enabled") === "true" ||
           process.env.VINCE_ENTRY_GATE_ENABLED === "true";
+        let entryGateMeta:
+          | {
+              decision: "APPROVE" | "VETO";
+              reason: string | null;
+            }
+          | undefined;
         if (entryGateEnabled) {
-          const proceed = await this.runEntryGate(
+          const gateDecision = await this.runEntryGate(
             asset,
             signal.direction as "long" | "short",
             finalSize,
@@ -2774,13 +2834,25 @@ Reply format: APPROVE reason or VETO reason`;
               sentimentLabel: sentimentGate.sentimentLabel,
             },
           );
-          if (!proceed) {
+          if (!gateDecision.proceed) {
             logger.debug(
               `[VincePaperTrading] ${asset} entry gate veto – skipping trade`,
             );
             incrementFunnelReason(funnel, "entry_gate_veto");
+            void this.recordAvoidedDecisionIfNeeded(
+              asset,
+              signal as AggregatedSignal,
+              `entry gate veto: ${gateDecision.reason ?? "model_veto"}`,
+              undefined,
+              undefined,
+              undefined,
+            );
             continue;
           }
+          entryGateMeta = {
+            decision: gateDecision.decision,
+            reason: gateDecision.reason,
+          };
         }
 
         const preMortemService = this.getPreMortemService();
@@ -3373,6 +3445,7 @@ Reply format: APPROVE reason or VETO reason`;
           signal: tradeSignal,
           usedPullbackEntry: false,
           contextBucketKeys: contextKeys.length > 0 ? contextKeys : undefined,
+          entryGateMeta,
           sentimentMeta: {
             sentimentScore: sentimentGate.sentimentScore,
             regime: sentimentGate.regime,
@@ -3673,6 +3746,10 @@ Reply format: APPROVE reason or VETO reason`;
       block: boolean;
     };
     ptqgMeta?: PtqgMetaInput;
+    entryGateMeta?: {
+      decision: "APPROVE" | "VETO";
+      reason: string | null;
+    };
     proofMeta?: {
       regime?: string;
       sleeve?: string;
@@ -3697,6 +3774,7 @@ Reply format: APPROVE reason or VETO reason`;
       narrativePhase,
       immunePattern,
       ptqgMeta,
+      entryGateMeta,
       proofMeta,
     } = params;
 
@@ -3812,6 +3890,8 @@ Reply format: APPROVE reason or VETO reason`;
     let takeProfitPrices: number[];
     let stopLossDistance: number;
     let stopLossPrice: number;
+    let tpSlMode: "ML" | "fallback" = "fallback";
+    let optionsOiAdjusted = false;
 
     if (mlService && regimeService && atrPctForMl > 0) {
       try {
@@ -3870,11 +3950,13 @@ Reply format: APPROVE reason or VETO reason`;
           direction === "long"
             ? entryPrice - stopLossDistance
             : entryPrice + stopLossDistance;
+        tpSlMode = "ML";
         logger.debug(
           `[VincePaperTrading] ${asset} ML TP/SL: TP=${tpMult.toFixed(2)}×ATR SL=${slMult.toFixed(2)}×ATR → SL ${stopLossPct.toFixed(2)}%`,
         );
       } catch (e) {
         logger.debug(`[VincePaperTrading] ML TP/SL skip: ${e}`);
+        tpSlMode = "fallback";
         const defaultSlDistance = entryPrice * (stopLossPct / 100);
         takeProfitPrices = aggressive
           ? (() => {
@@ -3914,6 +3996,7 @@ Reply format: APPROVE reason or VETO reason`;
             : entryPrice + stopLossDistance;
       }
     } else {
+      tpSlMode = "fallback";
       const defaultSlDistance = entryPrice * (stopLossPct / 100);
       takeProfitPrices = aggressive
         ? (() => {
@@ -3991,6 +4074,7 @@ Reply format: APPROVE reason or VETO reason`;
                 `[VincePaperTrading] ${asset} options OI: put support at $${putSupport.strike}, tightening SL from $${stopLossPrice.toFixed(0)} to $${supportSL.toFixed(0)}`,
               );
               stopLossPrice = supportSL;
+              optionsOiAdjusted = true;
             }
           }
           if (
@@ -4008,6 +4092,7 @@ Reply format: APPROVE reason or VETO reason`;
                 `[VincePaperTrading] ${asset} options OI: call resistance at $${callResistance.strike}, adjusting TP1 from $${takeProfitPrices[0].toFixed(0)} to $${resistanceTP.toFixed(0)}`,
               );
               takeProfitPrices[0] = resistanceTP;
+              optionsOiAdjusted = true;
             }
           }
           if (direction === "short" && callResistance) {
@@ -4017,6 +4102,7 @@ Reply format: APPROVE reason or VETO reason`;
                 `[VincePaperTrading] ${asset} options OI: call resistance at $${callResistance.strike}, tightening SL from $${stopLossPrice.toFixed(0)} to $${resistanceSL.toFixed(0)}`,
               );
               stopLossPrice = resistanceSL;
+              optionsOiAdjusted = true;
             }
           }
           if (
@@ -4030,6 +4116,7 @@ Reply format: APPROVE reason or VETO reason`;
                 `[VincePaperTrading] ${asset} options OI: put support at $${putSupport.strike}, adjusting TP1 from $${takeProfitPrices[0].toFixed(0)} to $${supportTP.toFixed(0)}`,
               );
               takeProfitPrices[0] = supportTP;
+              optionsOiAdjusted = true;
             }
           }
         }
@@ -4166,6 +4253,16 @@ Reply format: APPROVE reason or VETO reason`;
           (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean })
             .banditWeightsUsed === true,
         usedPullbackEntry,
+        slippageBps,
+        tpSlMode,
+        optionsOiAdjusted,
+        structureAggressive: aggressive,
+        ...(entryGateMeta
+          ? {
+              entryGateDecision: entryGateMeta.decision,
+              entryGateReason: entryGateMeta.reason,
+            }
+          : {}),
         ...(contextBucketKeys && contextBucketKeys.length > 0
           ? { contextBucketKeys }
           : {}),
@@ -4642,6 +4739,86 @@ Reply format: APPROVE reason or VETO reason`;
           ...(immunePattern ? { immunePattern } : {}),
         });
 
+        // Decision bundle artifact for Radon-style operator replay (opened trade).
+        if (
+          this.persistenceDir &&
+          typeof decisionId === "string" &&
+          decisionId.trim().length > 0
+        ) {
+          const md = position.metadata as Record<string, unknown> | undefined;
+          const entryGateDecision =
+            typeof md?.entryGateDecision === "string"
+              ? (md?.entryGateDecision as "APPROVE" | "VETO")
+              : null;
+          const entryGateReason =
+            typeof md?.entryGateReason === "string"
+              ? (md?.entryGateReason as string)
+              : null;
+
+          const tpSlMode =
+            typeof md?.tpSlMode === "string" ? md.tpSlMode : null;
+          const optionsOiAdjusted =
+            typeof md?.optionsOiAdjusted === "boolean"
+              ? md.optionsOiAdjusted
+              : null;
+          const structureAggressive =
+            typeof md?.structureAggressive === "boolean"
+              ? md.structureAggressive
+              : null;
+
+          const slippageBps =
+            typeof md?.slippageBps === "number" ? md.slippageBps : null;
+          const usedPullbackEntry =
+            typeof md?.usedPullbackEntry === "boolean"
+              ? md.usedPullbackEntry
+              : null;
+
+          const evaluateReason =
+            entryGateDecision != null
+              ? `entry gate ${entryGateDecision}${entryGateReason ? `: ${entryGateReason}` : ""}`
+              : null;
+
+          writeDecisionBundleV1OpenedPending({
+            baseDir: this.persistenceDir,
+            asset: position.asset,
+            direction: position.direction,
+            decisionId,
+            featureDecisionId: decisionId,
+            positionId: position.id,
+            evaluate: {
+              reason: evaluateReason,
+              signal: {
+                strength: aggSignal.strength,
+                confidence: aggSignal.confidence,
+                sources: aggSignal.sources ?? [],
+                factors: aggSignal.factors ?? [],
+              },
+            },
+            structure: {
+              slMode: tpSlMode,
+              tpMode: tpSlMode,
+              aggressive: structureAggressive,
+              optionsOiAdjusted,
+              stopLossPrice: position.stopLossPrice ?? null,
+              takeProfitPrices: position.takeProfitPrices ?? null,
+            },
+            kelly: {
+              sizeUsd: position.sizeUsd ?? null,
+              leverage: position.leverage ?? null,
+            },
+            execute: {
+              entryPrice: position.entryPrice ?? null,
+              slippageBps,
+              usedPullbackEntry,
+            },
+          });
+
+          position.metadata = {
+            ...(position.metadata ?? {}),
+            decisionBundleId: decisionId,
+          };
+        }
+
         // Link the trade to the decision
         await featureStore.linkTrade(decisionId, position.id);
 
@@ -4807,6 +4984,39 @@ Reply format: APPROVE reason or VETO reason`;
           `[VincePaperTrading] Could not record similarity outcome: ${e}`,
         );
       }
+    }
+
+    // Finalize decision bundle artifact for Radon-style operator replay (closed trade).
+    try {
+      const md = position.metadata as Record<string, unknown> | undefined;
+      const decisionBundleId =
+        typeof md?.decisionBundleId === "string" ? md.decisionBundleId : null;
+
+      if (
+        this.persistenceDir &&
+        typeof decisionBundleId === "string" &&
+        decisionBundleId.trim().length > 0
+      ) {
+        const holdingPeriodMinutes =
+          position.closedAt != null && position.openedAt != null
+            ? (position.closedAt - position.openedAt) / (1000 * 60)
+            : null;
+
+        finalizeDecisionBundleV1Closed({
+          baseDir: this.persistenceDir,
+          asset: position.asset,
+          decisionId: decisionBundleId,
+          track: {
+            exitPrice: position.markPrice,
+            realizedPnl: position.realizedPnl ?? null,
+            realizedPnlPct: position.realizedPnlPct ?? null,
+            exitReason: closeReason || "manual",
+            holdingPeriodMinutes,
+          },
+        });
+      }
+    } catch (_e) {
+      // Non-fatal: trade outcome and ML learning must not depend on file IO.
     }
   }
 
