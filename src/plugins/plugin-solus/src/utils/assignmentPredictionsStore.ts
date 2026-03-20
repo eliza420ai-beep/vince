@@ -15,6 +15,9 @@ export interface AssignmentPredictionRow {
   strike: number;
   expiryUtc: string;
   predictedAssignProb: number;
+  /** Options context at record time (used for deterministic evaluation/gating). */
+  dvolAtRecord?: number;
+  putCallRatioAtRecord?: number;
   createdAt: number;
   resolvedAt?: number;
   outcome?: 0 | 1;

@@ -1,5 +1,5 @@
 /**
- * ForgeExperimentService — Mutation + evaluation harness.
+ * ForgeExperimentService - Mutation + evaluation harness.
  *
  * Responsibilities:
  * - Load policies/trading-policy.yaml and prompts/*.md
@@ -44,6 +44,11 @@ import {
   type ForgeSignalRecord,
   type ReplayMetrics,
 } from "../../../plugin-vince/src/forge/forgeSignalCache.ts";
+import {
+  loadRecords as loadSolusAssignmentRecords,
+  type AssignmentPredictionRow,
+} from "../../../plugin-solus/src/utils/assignmentPredictionsStore.ts";
+import { assignmentProbabilityGBM } from "../../../plugin-solus/src/utils/assignmentProbability.ts";
 
 const REPO_ROOT = process.cwd();
 const POLICY_PATH = path.join(REPO_ROOT, "policies", "trading-policy.yaml");
@@ -69,6 +74,11 @@ const HARD_MAX_SINGLE_TRADE_USD = 50_000;
 /** Replay defaults */
 const DEFAULT_HOLDOUT_FRACTION = 0.2;
 const MIN_TRIGGERED_FOR_GATE = 5;
+/** Solus calibration / autoresearch gates */
+const DEFAULT_SOLUS_CALIBRATION_WINDOW_DAYS = 30;
+const MIN_SOLUS_EVAL_COUNT = 30;
+const MIN_SOLUS_BRIER_IMPROVEMENT = 0.001; // candidate mean brier must be lower by this
+const SOLUS_BOUNDS_EPS = 1e-6;
 
 interface ReplayContext {
   holdout: ForgeSignalRecord[];
@@ -165,7 +175,7 @@ export class ForgeExperimentService {
 
   /**
    * Score thesis alignment: experiments that contradict SOUL.md (e.g. loosening gates
-   * when thesis says "do not carelessly execute") get 0.8× multiplier on composite.
+   * when thesis says "do not carelessly execute") get 0.8x multiplier on composite.
    */
   private getThesisAlignmentMultiplier(mutation: ForgeMutation): number {
     const soul = this.readSoulThesis().toLowerCase();
@@ -486,7 +496,7 @@ export class ForgeExperimentService {
               keyPath: "rule.risk_off_strength",
               before: current,
               after,
-              description: `Vince gate: risk-off strength threshold ${current} → ${after}`,
+              description: `Vince gate: risk-off strength threshold ${current} -> ${after}`,
             });
           });
       }
@@ -500,7 +510,7 @@ export class ForgeExperimentService {
               keyPath: "rule.bearish_strength",
               before: current,
               after,
-              description: `Vince gate: bearish long strength threshold ${current} → ${after}`,
+              description: `Vince gate: bearish long strength threshold ${current} -> ${after}`,
             });
           });
       }
@@ -514,9 +524,85 @@ export class ForgeExperimentService {
               keyPath: "rule.hip3_confirming",
               before: current,
               after,
-              description: `Vince gate: HIP-3 confirming minimum ${current} → ${after}`,
+              description: `Vince gate: HIP-3 confirming minimum ${current} -> ${after}`,
             });
           });
+      }
+    }
+
+    // solus-strike-ritual.md: Strike knobs (mutable numbers)
+    if (fs.existsSync(PROMPT_SOLUS_RITUAL)) {
+      const raw = fs.readFileSync(PROMPT_SOLUS_RITUAL, "utf-8");
+
+      const otmMatch = raw.match(
+        /Strike width target\s*\(OTM%\):\s*(\d+(?:\.\d+)?)%/,
+      );
+      const dvolMatch = raw.match(/DVOL minimum to execute:\s*(\d+(?:\.\d+)?)/);
+      const pcrMatch = raw.match(
+        /Put\/Call ratio ceiling to execute:\s*(\d+(?:\.\d+)?)/,
+      );
+
+      if (otmMatch && dvolMatch && pcrMatch) {
+        const otmCurrent = parseFloat(otmMatch[1]);
+        const dvolCurrent = parseFloat(dvolMatch[1]);
+        const pcrCurrent = parseFloat(pcrMatch[1]);
+
+        const otmAfters = [
+          otmCurrent - 2,
+          otmCurrent - 1,
+          otmCurrent + 1,
+          otmCurrent + 2,
+        ]
+          .map((v) => Math.round(v))
+          .filter((v) => Number.isFinite(v) && v >= 10 && v <= 45);
+
+        const dvolAfters = [
+          dvolCurrent - 2,
+          dvolCurrent - 1,
+          dvolCurrent + 1,
+          dvolCurrent + 2,
+        ]
+          .map((v) => Math.round(v))
+          .filter((v) => Number.isFinite(v) && v >= 10 && v <= 40);
+
+        const pcrAfters = [
+          pcrCurrent - 0.1,
+          pcrCurrent - 0.05,
+          pcrCurrent + 0.05,
+          pcrCurrent + 0.1,
+        ]
+          .map((v) => Math.round(v * 100) / 100)
+          .filter((v) => Number.isFinite(v) && v >= 0.8 && v <= 2.0);
+
+        for (const after of otmAfters) {
+          candidates.push({
+            filePath: "prompts/solus-strike-ritual.md",
+            keyPath: "solus.otm_pct_target",
+            before: otmCurrent,
+            after,
+            description: `Solus ritual: strike width target (OTM%) ${otmCurrent}% -> ${after}%`,
+          });
+        }
+
+        for (const after of dvolAfters) {
+          candidates.push({
+            filePath: "prompts/solus-strike-ritual.md",
+            keyPath: "solus.dvol_min",
+            before: dvolCurrent,
+            after,
+            description: `Solus ritual: DVOL minimum to execute ${dvolCurrent} -> ${after}`,
+          });
+        }
+
+        for (const after of pcrAfters) {
+          candidates.push({
+            filePath: "prompts/solus-strike-ritual.md",
+            keyPath: "solus.put_call_ratio_ceiling",
+            before: pcrCurrent,
+            after,
+            description: `Solus ritual: put/call ratio ceiling ${pcrCurrent} -> ${after}`,
+          });
+        }
       }
     }
 
@@ -551,6 +637,23 @@ export class ForgeExperimentService {
             `confirming < ${afterStr}`,
           );
         }
+      } else if (mutation.filePath === "prompts/solus-strike-ritual.md") {
+        if (mutation.keyPath === "solus.otm_pct_target") {
+          content = content.replace(
+            /(Strike width target\s*\(OTM%\):\s*)\d+(?:\.\d+)?%/,
+            `$1${afterStr}%`,
+          );
+        } else if (mutation.keyPath === "solus.dvol_min") {
+          content = content.replace(
+            /(DVOL minimum to execute:\s*)\d+(?:\.\d+)?/,
+            `$1${afterStr}`,
+          );
+        } else if (mutation.keyPath === "solus.put_call_ratio_ceiling") {
+          content = content.replace(
+            /(Put\/Call ratio ceiling to execute:\s*)\d+(?:\.\d+)?/,
+            `$1${afterStr}`,
+          );
+        }
       }
       if (content === original) {
         logger.warn(
@@ -560,7 +663,7 @@ export class ForgeExperimentService {
       }
       fs.writeFileSync(fullPath, content, "utf-8");
       logger.debug(
-        `[ForgeExperiment] Applied prompt mutation: ${mutation.keyPath} ${mutation.before} → ${mutation.after}`,
+        `[ForgeExperiment] Applied prompt mutation: ${mutation.keyPath} ${mutation.before} -> ${mutation.after}`,
       );
       return true;
     } catch (err) {
@@ -590,7 +693,7 @@ export class ForgeExperimentService {
       }
       fs.writeFileSync(POLICY_PATH, updated, "utf-8");
       logger.debug(
-        `[ForgeExperiment] Applied mutation: ${mutation.keyPath} ${mutation.before} → ${mutation.after}`,
+        `[ForgeExperiment] Applied mutation: ${mutation.keyPath} ${mutation.before} -> ${mutation.after}`,
       );
       return true;
     } catch (err) {
@@ -699,7 +802,7 @@ export class ForgeExperimentService {
     if (delta < MIN_COMPOSITE_DELTA) {
       return {
         passed: false,
-        reason: `ΔComposite ${(delta * 100).toFixed(2)}% < required +0.5%`,
+        reason: `DeltaComposite ${(delta * 100).toFixed(2)}% < required +0.5%`,
       };
     }
     if (winRate < 0.45) {
@@ -764,6 +867,234 @@ export class ForgeExperimentService {
       baselineWeights,
       baselineThresholds,
     };
+  }
+
+  private parseSolusKnobsFromPromptRaw(raw: string): {
+    otmPctTarget: number;
+    dvolMin: number;
+    putCallRatioCeiling: number;
+  } | null {
+    const otmMatch = raw.match(
+      /Strike width target\s*\(OTM%\):\s*(\d+(?:\.\d+)?)%/,
+    );
+    const dvolMatch = raw.match(/DVOL minimum to execute:\s*(\d+(?:\.\d+)?)/);
+    const pcrMatch = raw.match(
+      /Put\/Call ratio ceiling to execute:\s*(\d+(?:\.\d+)?)/,
+    );
+
+    if (!otmMatch || !dvolMatch || !pcrMatch) return null;
+
+    const otmPctTarget = parseFloat(otmMatch[1]);
+    const dvolMin = parseFloat(dvolMatch[1]);
+    const putCallRatioCeiling = parseFloat(pcrMatch[1]);
+
+    if (
+      !Number.isFinite(otmPctTarget) ||
+      !Number.isFinite(dvolMin) ||
+      !Number.isFinite(putCallRatioCeiling)
+    ) {
+      return null;
+    }
+
+    return { otmPctTarget, dvolMin, putCallRatioCeiling };
+  }
+
+  private loadSolusResolvedRecordsInWindow(
+    windowDays: number,
+  ): AssignmentPredictionRow[] {
+    const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+    const all = loadSolusAssignmentRecords();
+    return all.filter(
+      (r) =>
+        r.resolvedAt != null &&
+        r.outcome !== undefined &&
+        (r.outcome === 0 || r.outcome === 1) &&
+        r.resolvedAt >= cutoff,
+    );
+  }
+
+  private computeSolusExpirySpotEstimates(
+    records: AssignmentPredictionRow[],
+  ): Map<string, number> {
+    const byKey = new Map<string, AssignmentPredictionRow[]>();
+    for (const r of records) {
+      if (!Number.isFinite(r.spotAtRecord ?? NaN)) continue;
+      if (!Number.isFinite(r.strike ?? NaN)) continue;
+      if (r.outcome !== 0 && r.outcome !== 1) continue;
+      if (!r.expiryUtc) continue;
+      const asset = (r.asset ?? "").toUpperCase();
+      if (!asset) continue;
+      const key = `${asset}::${r.expiryUtc}`;
+      const arr = byKey.get(key) ?? [];
+      arr.push(r);
+      byKey.set(key, arr);
+    }
+
+    const estimateMap = new Map<string, number>();
+    const eps = SOLUS_BOUNDS_EPS;
+
+    for (const [key, group] of byKey.entries()) {
+      let lower = -Infinity;
+      let upper = Infinity;
+
+      for (const r of group) {
+        if (r.spotAtRecord == null || !Number.isFinite(r.spotAtRecord)) {
+          continue;
+        }
+        if (r.strike == null || !Number.isFinite(r.strike)) continue;
+        const spot = r.spotAtRecord;
+        const strike = r.strike;
+        if (strike <= 0 || spot <= 0) continue;
+        if (r.outcome !== 0 && r.outcome !== 1) continue;
+
+        // Infer option mode from strike vs spot.
+        // - strike > spot => selling a covered call (CC)
+        // - strike < spot => selling a cash-secured put (CSP)
+        if (strike === spot) continue;
+
+        if (strike > spot) {
+          // CC: assignment iff expirySpot > strike
+          if (r.outcome === 1) {
+            lower = Math.max(lower, strike + eps);
+          } else {
+            upper = Math.min(upper, strike);
+          }
+        } else {
+          // CSP: assignment iff expirySpot < strike
+          if (r.outcome === 1) {
+            upper = Math.min(upper, strike - eps);
+          } else {
+            lower = Math.max(lower, strike);
+          }
+        }
+      }
+
+      if (!Number.isFinite(lower) || !Number.isFinite(upper)) continue;
+      if (!(upper > lower)) continue;
+
+      estimateMap.set(key, (lower + upper) / 2);
+    }
+
+    return estimateMap;
+  }
+
+  private evaluateSolusCalibrationForKnobs(params: {
+    knobs: {
+      otmPctTarget: number;
+      dvolMin: number;
+      putCallRatioCeiling: number;
+    };
+    recordsInWindow: AssignmentPredictionRow[];
+    expirySpotEstimates: Map<string, number>;
+  }): { meanBrier: number; count: number; winRate: number } {
+    const { knobs, recordsInWindow, expirySpotEstimates } = params;
+    const otmPct = knobs.otmPctTarget / 100;
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+    let brierSum = 0;
+    let count = 0;
+    let wins = 0;
+
+    for (const r of recordsInWindow) {
+      if (r.resolvedAt == null || (r.outcome !== 0 && r.outcome !== 1))
+        continue;
+      if (r.spotAtRecord == null || !Number.isFinite(r.spotAtRecord)) continue;
+      if (r.atmIvAtRecord == null || !Number.isFinite(r.atmIvAtRecord))
+        continue;
+      if (r.dvolAtRecord == null || !Number.isFinite(r.dvolAtRecord)) continue;
+      if (
+        r.putCallRatioAtRecord == null ||
+        !Number.isFinite(r.putCallRatioAtRecord)
+      )
+        continue;
+
+      const asset = (r.asset ?? "").toUpperCase();
+      if (!asset) continue;
+      const key = `${asset}::${r.expiryUtc}`;
+      const expirySpotEstimate = expirySpotEstimates.get(key);
+      if (expirySpotEstimate == null || !Number.isFinite(expirySpotEstimate)) {
+        continue;
+      }
+
+      // Execute vs skip gate (deterministic evaluation)
+      const execute =
+        r.dvolAtRecord >= knobs.dvolMin &&
+        r.putCallRatioAtRecord <= knobs.putCallRatioCeiling;
+      if (!execute) continue;
+
+      const mode: "cc" | "csp" = r.strike > r.spotAtRecord ? "cc" : "csp";
+      if (r.strike <= 0 || r.spotAtRecord <= 0) continue;
+
+      const chosenStrike =
+        mode === "cc"
+          ? r.spotAtRecord * (1 + otmPct)
+          : r.spotAtRecord * (1 - otmPct);
+      if (chosenStrike <= 0) continue;
+
+      const expiryMs = Date.parse(r.expiryUtc);
+      if (!Number.isFinite(expiryMs)) continue;
+      const createdAt = r.createdAt;
+      const tYears = (expiryMs - createdAt) / (365.25 * MS_PER_DAY);
+      if (!(tYears > 0)) continue;
+
+      const sigmaAnnual = r.atmIvAtRecord / 100;
+      if (!(sigmaAnnual > 0)) continue;
+
+      const gbm = assignmentProbabilityGBM({
+        spot: r.spotAtRecord,
+        strike: chosenStrike,
+        sigmaAnnual,
+        TYears: tYears,
+      });
+
+      const predictedAssignProb =
+        mode === "cc" ? gbm.probability : 1 - gbm.probability;
+
+      const actualAssigned =
+        mode === "cc"
+          ? expirySpotEstimate > chosenStrike
+          : expirySpotEstimate < chosenStrike;
+
+      const actual01 = actualAssigned ? 1 : 0;
+      const brier = (predictedAssignProb - actual01) ** 2;
+
+      brierSum += brier;
+      count += 1;
+      wins += actualAssigned ? 1 : 0;
+    }
+
+    const meanBrier = count > 0 ? brierSum / count : 0;
+    const winRate = count > 0 ? wins / count : 0;
+    return { meanBrier, count, winRate };
+  }
+
+  private validateSolusPromotion(input: {
+    baselineMeanBrier: number;
+    candidateMeanBrier: number;
+    baselineCount: number;
+    candidateCount: number;
+  }): { passed: boolean; failures: string[] } {
+    const failures: string[] = [];
+
+    if (input.baselineCount < MIN_SOLUS_EVAL_COUNT) {
+      failures.push(
+        `Solus baseline eval count ${input.baselineCount} < ${MIN_SOLUS_EVAL_COUNT}`,
+      );
+    }
+    if (input.candidateCount < MIN_SOLUS_EVAL_COUNT) {
+      failures.push(
+        `Solus candidate eval count ${input.candidateCount} < ${MIN_SOLUS_EVAL_COUNT}`,
+      );
+    }
+
+    const delta = input.baselineMeanBrier - input.candidateMeanBrier;
+    if (delta < MIN_SOLUS_BRIER_IMPROVEMENT) {
+      failures.push(
+        `Mean Brier improvement ${delta.toFixed(4)} < required ${MIN_SOLUS_BRIER_IMPROVEMENT.toFixed(4)}`,
+      );
+    }
+
+    return { passed: failures.length === 0, failures };
   }
 
   /**
@@ -887,6 +1218,52 @@ export class ForgeExperimentService {
       0,
       opts.maxExperiments,
     );
+
+    // Solus baseline for prompt_solus_ritual keep-or-revert scoring.
+    let solusBaselineComposite = replayCtx.baselineResult.composite;
+    let solusBaselineMeanBrier = 0;
+    let solusBaselineCount = 0;
+    let solusRecordsInWindow: AssignmentPredictionRow[] = [];
+    let solusExpirySpotEstimates: Map<string, number> = new Map();
+
+    const hasSolusPromptMutations = mutations.some(
+      (m) => m.filePath === "prompts/solus-strike-ritual.md",
+    );
+    if (hasSolusPromptMutations) {
+      const windowDays = Number(
+        process.env.SOLUS_CALIBRATION_WINDOW_DAYS ??
+          DEFAULT_SOLUS_CALIBRATION_WINDOW_DAYS,
+      );
+      solusRecordsInWindow = this.loadSolusResolvedRecordsInWindow(windowDays);
+      solusExpirySpotEstimates =
+        this.computeSolusExpirySpotEstimates(solusRecordsInWindow);
+
+      const promptRaw = fs.readFileSync(PROMPT_SOLUS_RITUAL, "utf-8");
+      const baselineKnobs = this.parseSolusKnobsFromPromptRaw(promptRaw);
+      if (baselineKnobs) {
+        const baselineEval = this.evaluateSolusCalibrationForKnobs({
+          knobs: baselineKnobs,
+          recordsInWindow: solusRecordsInWindow,
+          expirySpotEstimates: solusExpirySpotEstimates,
+        });
+        solusBaselineMeanBrier = baselineEval.meanBrier;
+        solusBaselineCount = baselineEval.count;
+        solusBaselineComposite = 1 - baselineEval.meanBrier;
+
+        const solusOnly =
+          mutations.length > 0 &&
+          mutations.every(
+            (m) => m.filePath === "prompts/solus-strike-ritual.md",
+          );
+        if (solusOnly) {
+          summary.baselineComposite = solusBaselineComposite;
+        }
+      } else {
+        logger.warn(
+          "[ForgeExperiment] Could not parse baseline solus knobs from prompts/solus-strike-ritual.md",
+        );
+      }
+    }
     logger.info(
       `[ForgeExperiment] Starting ${mutations.length} experiments (${policyMutations.length} policy, ${promptMutations.length} prompt). Baseline composite: ${replayCtx.baselineResult.composite.toFixed(4)} (holdout=${replayCtx.holdout.length})`,
     );
@@ -896,7 +1273,7 @@ export class ForgeExperimentService {
     for (let i = 0; i < mutations.length; i++) {
       const elapsed = (Date.now() - startTime) / 60_000;
       if (elapsed > opts.budgetMinutes) {
-        logger.info("[ForgeExperiment] Budget exhausted — stopping early");
+        logger.info("[ForgeExperiment] Budget exhausted - stopping early");
         break;
       }
 
@@ -931,26 +1308,78 @@ export class ForgeExperimentService {
         continue;
       }
 
-      // Run replay
-      const result = await this.runPaperBotReplay(mutation, replayCtx);
       const thesisMultiplier = this.getThesisAlignmentMultiplier(mutation);
-      const adjustedComposite = result.composite * thesisMultiplier;
-      const compositeDelta =
-        adjustedComposite - replayCtx.baselineResult.composite;
-      const resultWithAlignment = {
-        ...result,
-        composite: adjustedComposite,
-        thesisAlignment: thesisMultiplier,
-      };
-      const promotion = validatePromotion({
-        composite: adjustedComposite,
-        baselineComposite: replayCtx.baselineResult.composite,
-        winRate: result.winRate,
-        maxDrawdownPct: result.maxDrawdownPct,
-        policy: this.loadPolicy() ?? null,
-        holdoutCount: replayCtx.holdout.length,
-        withOutcome: result.tradeCount,
-      });
+
+      let adjustedComposite: number;
+      let compositeDelta: number;
+      let resultWithAlignment: ForgeReplayResult;
+      let promotion: { passed: boolean; failures: string[] };
+
+      if (surface === "prompt_solus_ritual") {
+        const promptRaw = fs.readFileSync(PROMPT_SOLUS_RITUAL, "utf-8");
+        const candidateKnobs = this.parseSolusKnobsFromPromptRaw(promptRaw);
+
+        if (!candidateKnobs) {
+          logger.warn(
+            `[ForgeExperiment] Could not parse solus knobs for ${experimentId} - skipping`,
+          );
+          await this.gitService!.revertLoser(mutation.filePath);
+          continue;
+        }
+
+        const candidateEval = this.evaluateSolusCalibrationForKnobs({
+          knobs: candidateKnobs,
+          recordsInWindow: solusRecordsInWindow,
+          expirySpotEstimates: solusExpirySpotEstimates,
+        });
+
+        const candidateComposite = 1 - candidateEval.meanBrier;
+        adjustedComposite = candidateComposite * thesisMultiplier;
+        compositeDelta = adjustedComposite - solusBaselineComposite;
+
+        promotion = this.validateSolusPromotion({
+          baselineMeanBrier: solusBaselineMeanBrier,
+          candidateMeanBrier: candidateEval.meanBrier,
+          baselineCount: solusBaselineCount,
+          candidateCount: candidateEval.count,
+        });
+
+        resultWithAlignment = {
+          tradeCount: candidateEval.count,
+          winRate: candidateEval.winRate,
+          sharpe: 0,
+          causalUplift: 0,
+          brierScore: candidateEval.meanBrier,
+          composite: adjustedComposite,
+          maxDrawdownPct: 0,
+          safetyGatePassed: promotion.passed,
+          safetyGateReason: promotion.failures[0],
+          gateFailures:
+            promotion.failures.length > 0 ? promotion.failures : undefined,
+          thesisAlignment: thesisMultiplier,
+        };
+      } else {
+        // Run VINCE paper-bot replay
+        const result = await this.runPaperBotReplay(mutation, replayCtx);
+        adjustedComposite = result.composite * thesisMultiplier;
+        compositeDelta = adjustedComposite - replayCtx.baselineResult.composite;
+        resultWithAlignment = {
+          ...result,
+          composite: adjustedComposite,
+          thesisAlignment: thesisMultiplier,
+        };
+
+        promotion = validatePromotion({
+          composite: adjustedComposite,
+          baselineComposite: replayCtx.baselineResult.composite,
+          winRate: result.winRate,
+          maxDrawdownPct: result.maxDrawdownPct,
+          policy: this.loadPolicy() ?? null,
+          holdoutCount: replayCtx.holdout.length,
+          withOutcome: result.tradeCount,
+        });
+      }
+
       const expResult: ForgeExperimentResult = {
         config,
         result: resultWithAlignment,
@@ -965,16 +1394,23 @@ export class ForgeExperimentService {
 
       if (promotion.passed) {
         // Hard guard: validate again immediately before commit
-        const policy = this.loadPolicy();
-        const hardCheck = validatePromotion({
-          composite: adjustedComposite,
-          baselineComposite: replayCtx.baselineResult.composite,
-          winRate: result.winRate,
-          maxDrawdownPct: result.maxDrawdownPct,
-          policy,
-          holdoutCount: replayCtx.holdout.length,
-          withOutcome: result.tradeCount,
-        });
+        const hardCheck =
+          surface === "prompt_solus_ritual"
+            ? this.validateSolusPromotion({
+                baselineMeanBrier: solusBaselineMeanBrier,
+                candidateMeanBrier: expResult.result.brierScore,
+                baselineCount: solusBaselineCount,
+                candidateCount: expResult.result.tradeCount,
+              })
+            : validatePromotion({
+                composite: adjustedComposite,
+                baselineComposite: replayCtx.baselineResult.composite,
+                winRate: expResult.result.winRate,
+                maxDrawdownPct: expResult.result.maxDrawdownPct,
+                policy: this.loadPolicy() ?? null,
+                holdoutCount: replayCtx.holdout.length,
+                withOutcome: expResult.result.tradeCount,
+              });
         if (!hardCheck.passed) {
           logger.warn(
             `[ForgeExperiment] Hard promotion guard blocked commit: ${hardCheck.failures.join("; ")}`,
@@ -1010,7 +1446,7 @@ export class ForgeExperimentService {
         await this.gitService!.revertLoser(mutation.filePath);
         summary.losers.push(expResult);
         logger.debug(
-          `[ForgeExperiment] Loser reverted: ${mutation.description} — ${(expResult.gateFailures ?? [])[0] ?? result.safetyGateReason}`,
+          `[ForgeExperiment] Loser reverted: ${mutation.description} - ${(expResult.gateFailures ?? [])[0] ?? expResult.result.safetyGateReason}`,
         );
       }
     }
@@ -1042,7 +1478,7 @@ export class ForgeExperimentService {
       );
     }
     logger.info(
-      `[ForgeExperiment] Run complete. ${summary.winners.length} winners, ${summary.losers.length} losers. Best ΔComposite: +${(summary.bestCompositeDelta * 100).toFixed(2)}%`,
+      `[ForgeExperiment] Run complete. ${summary.winners.length} winners, ${summary.losers.length} losers. Best DeltaComposite: +${(summary.bestCompositeDelta * 100).toFixed(2)}%`,
     );
     return summary;
   }
