@@ -124,6 +124,9 @@ import { VincePolicyEngineService } from "./vincePolicyEngine.service";
 import { VinceCapitalBucketsService } from "./vinceCapitalBuckets.service";
 import type { VincePostMortemPolicyLoopService } from "./vincePostMortemPolicyLoop.service";
 import { CircuitBreakerService } from "src/plugins/plugin-otaku/src/services/circuitBreaker.service";
+import { aihfSecondOpinionProvider } from "../providers/aihfSecondOpinion.provider";
+import type { AihfSecondOpinionPayload } from "../utils/aihfSecondOpinionGate";
+import { getAihfSecondOpinionGateDecision } from "../utils/aihfSecondOpinionGate";
 
 // ==========================================
 // Regime helpers
@@ -1822,6 +1825,30 @@ Reply format: APPROVE reason or VETO reason`;
 
     policyLoop?.refreshFromPostMortems();
 
+    // Phase D AIHF: fetch the latest committee second opinion once per loop cycle.
+    // We gate only equity-class assets in the per-asset loop below.
+    let aihfSecondOpinionPayload: AihfSecondOpinionPayload | null = null;
+    try {
+      const triggerMessage = {
+        id: "vince-aihf-gate-trigger",
+        entityId: this.runtime.agentId as any,
+        roomId: this.runtime.agentId as any,
+        agentId: this.runtime.agentId as any,
+        content: { text: "AIHF committee second opinion", source: "system" },
+        createdAt: Date.now(),
+      } as any;
+
+      const aiRes = await aihfSecondOpinionProvider.get(
+        this.runtime,
+        triggerMessage,
+        undefined as any,
+      );
+      aihfSecondOpinionPayload =
+        (aiRes as any)?.values?.aihfSecondOpinion ?? null;
+    } catch (e) {
+      logger.debug(`[VINCE] AIHF second-opinion fetch for gate skipped: ${e}`);
+    }
+
     // First, check pending entries for pullbacks
     await this.checkPendingEntries();
 
@@ -2217,6 +2244,56 @@ Reply format: APPROVE reason or VETO reason`;
           mlQualityScore: (signal as AggregatedSignal).mlQualityScore,
           openWindowBoost: (signal as AggregatedSignal).openWindowBoost,
         };
+
+        // Phase D AIHF conviction gate (VINCE -> second-opinion dampener/booster)
+        // Only applies to equity-class assets and only when a payload is present.
+        if (
+          inferPtqgAssetClass(asset) === "equity" &&
+          aihfSecondOpinionPayload
+        ) {
+          const decision = getAihfSecondOpinionGateDecision(
+            aihfSecondOpinionPayload,
+            asset,
+            tradeSignal.direction,
+          );
+
+          if (decision.apply) {
+            if (
+              typeof decision.confidenceCap === "number" &&
+              Number.isFinite(decision.confidenceCap)
+            ) {
+              tradeSignal.confidence = Math.min(
+                tradeSignal.confidence,
+                decision.confidenceCap,
+              );
+            }
+
+            if (
+              typeof decision.strengthMultiplier === "number" &&
+              Number.isFinite(decision.strengthMultiplier)
+            ) {
+              tradeSignal.strength = Math.min(
+                100,
+                Math.max(0, tradeSignal.strength * decision.strengthMultiplier),
+              );
+              tradeSignal.signals = tradeSignal.signals.map((s) => ({
+                ...s,
+                strength: tradeSignal.strength,
+              }));
+            }
+
+            if (decision.factorText) {
+              tradeSignal.reasons.push(decision.factorText);
+              tradeSignal.signals.push({
+                source: "AIHF",
+                direction: tradeSignal.direction,
+                strength: tradeSignal.strength,
+                description: decision.factorText,
+              });
+            }
+          }
+        }
+
         let regime: MarketRegime | null = null;
         if (regimeService) {
           try {
