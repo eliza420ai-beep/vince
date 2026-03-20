@@ -21,6 +21,92 @@
 
 </div>
 
+## Mac Mini 247 Mindset
+
+Mac mini 247 is the operating rule: run the VINCE + Dexter + AIHF stack 24/7 on a single trusted machine, and treat “production deployment” as something we do only when it is required for distribution (GTM) or real funding-backed operations.
+
+### Why this mindset exists
+
+- The durable edge is process, not infrastructure.
+- The system’s value is in the loop staying unbroken: VINCE monitors, Solus runs weekly, Forge improves overnight, Dexter refreshes sleeves, and AIHF challenges conviction.
+- When we have no GTM and no funding, production-grade hardening mostly adds ceremony and failure modes, not alpha.
+
+### What “247” actually means in practice
+
+- The machine is always on, always reachable locally, and always running the core processes.
+- You assume the machine will be the operator interface most days: terminal + dashboard + a small set of deterministic scripts.
+- The goal is not “perfect uptime”; the goal is “fast recovery with clear operator signals.”
+- Keep the app surface local while we are in 247 mode: bind access to your LAN (or localhost) and do not expose spend-triggering endpoints to the public internet.
+
+#### Default runtime mode
+
+Run the v2 slim roster on the Mac mini by default (4-agent core). Gate other agents out with env flags instead of moving code around.
+
+```bash
+ELIZA_ENABLED=false KELLY_ENABLED=false ECHO_ENABLED=false \
+SENTINEL_ENABLED=false CLAWTERM_ENABLED=false \
+ORACLE_ENABLED=false NAVAL_ENABLED=false bun start
+```
+
+### Core stack responsibilities on the Mac mini
+
+- **VINCE (this repo)**: short-horizon monitoring, paper-bot gating, emits regime bundle artifacts for Dexter operators.
+- **Dexter**: thesis and canonical sleeve artifacts; it is the source of truth for membership and portfolio composition.
+- **AIHF**: adversarial second opinion; VINCE consumes Phase D to apply the conviction gate.
+
+### The contract-first rule (no vibes)
+
+On Mac mini 247, everything important is a contract:
+
+- Dexter artifacts are read from `DEXTER_ARTIFACT_ROOT` and must exist as real files.
+- `portfolio_hyperliquid.json`
+- `portfolio_tastytrade.json`
+- `portfolio_watchlist.json`
+- VINCE writes `regime_bundle_v1.json` into Dexter’s artifact root (or `REGIME_BUNDLE_OUT_PATH` if configured).
+- VINCE applies the AIHF Phase D conviction gate during the paper-trade loop.
+
+If a contract breaks, you fix the contract wiring, not the narrative.
+
+### What we do NOT do (yet)
+
+- We do not build a public-facing production surface.
+- We do not rely on “someone might call the server correctly” as a safety mechanism.
+- We do not pay the ongoing cost of edge allowlists, API gating review, and health-probe ops until distribution or funding requires it.
+
+When we do go prod, we follow the Roy production checklist in `docs/PROD_STACK_SINGLE_SOURCE_OF_TRUTH_ROY.md`, including the API gating and verification scripts.
+
+### Daily operator routine (15 minutes, then stop)
+
+1. Open the dashboard and scan the “Monitor the Situation” signals.
+2. Run a quick sanity check on portfolio state (the three ground-truth JSON files displayed via Dexter artifact sync).
+3. Ask for `drift` / `dexter drift` to confirm the paper-vs-Dexter universe relationship.
+4. Verify Forge completed its overnight run (or at least didn’t silently stall).
+5. Verify VINCE produced the expected downstream artifacts for the Dexter operator workflow.
+6. If something looks off, fix the contract or the inputs first (artifacts present, permissions correct, env vars correct).
+
+After that, you stop. The point is to keep mechanical work out of your day.
+
+### Weekly and “heavy” jobs (run them with intent)
+
+- Weekly cadence (Solus ritual): ensure the weekly workflow ran without gaps; it is part of the core loop.
+- ONNX / ML training: only when the feature-store gates are satisfied, and ideally after you check for obvious data issues.
+- Portfolio cache prewarm: prewarm Financial Datasets cache when you are about to do discovery-heavy work.
+
+Use the scripts already listed in this README; the rule is simple: don’t run the heavy stuff because you feel anxious, run it because the loop needs it.
+
+### Failure handling philosophy
+
+- Treat failures as “operator signals,” not “mysteries.”
+- When something fails, you answer one question: which contract failed (inputs missing, artifacts stale, model files missing, or a gate not applied)?
+- Prefer restarting the loop with the same environment before making architectural changes.
+
+If you’re debugging a prod-like failure later, the relevant production wiring guidance is in:
+
+- `docs/API_SECURITY_AND_PRODUCTION.md`
+- `scripts/verify-api-gating.sh`
+
+But for Mac mini 247, the immediate checklist is simpler: do the contract checks and confirm the loop continues.
+
 ---
 
 ## The Three-Layer System
