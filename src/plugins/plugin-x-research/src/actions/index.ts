@@ -15,3 +15,4 @@ export { xBtcLongTermSentimentAction } from "./xBtcLongTermSentiment.action";
 export { clawtermDayReportAction } from "./clawtermDayReport.action";
 export { whatsTheTradeAction } from "./whatsTheTrade.action";
 export { polymarketVibeAction } from "./polymarketVibe.action";
+export { xBookmarksPipelineAction } from "./xBookmarksPipeline.action";

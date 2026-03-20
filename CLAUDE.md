@@ -357,7 +357,7 @@ elizaos test
 
 **skills/x-research/** — Cursor/Claude skill for read-only X (Twitter) research: search, thread, watchlist, briefings. Requires **X_BEARER_TOKEN** and Bun. [skills/x-research/README.md](skills/x-research/README.md).
 
-**In-chat (VINCE / ECHO):** When `X_BEARER_TOKEN` is set, **X_PULSE**, **X_VIBE**, **X_ACCOUNT**, **X_SAVE_RESEARCH** (plugin-x-research). Watchlist add/remove and save to file: use CLI `bun run x-search.ts ...` in `skills/x-research/`.
+**In-chat (VINCE / ECHO):** When `X_BEARER_TOKEN` is set, **X_PULSE**, **X_VIBE**, **X_ACCOUNT**, **X_SAVE_RESEARCH** (plugin-x-research). **Bookmarks → Pine:** **X_BOOKMARKS_PIPELINE** when `X_BOOKMARKS_PIPELINE_ENABLED=true` (Rust crate in `packages/x-bookmarks-pipeline`). See [docs/X-BOOKMARKS-PIPELINE.md](docs/X-BOOKMARKS-PIPELINE.md). Watchlist add/remove and save to file: use CLI `bun run x-search.ts ...` in `skills/x-research/`.
 
 ---
 

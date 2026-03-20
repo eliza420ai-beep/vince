@@ -10,6 +10,7 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 | **Watchlist** (add/remove/check accounts, heartbeat)                                                    | **CLI**                       | Watchlist lives in `skills/x-research/data/watchlist.json`; CLI is the interface.   |
 | **Saving research to file** (`--save`, `--markdown`)                                                    | **CLI**                       | Writes to `~/clawd/drafts/` or project drafts; no in-chat file write.               |
 | **Quick single-shot** (“what’s CT saying about X?”, “what did @user post?”, “get thread for tweet 123”) | **In-chat** (VINCE / Solus)   | One question → one answer in the conversation.                                      |
+| **Your bookmarks → Pine Script v6** (saved charts / trade ideas on X)                                   | **Rust pipeline + VINCE**     | [docs/X-BOOKMARKS-PIPELINE.md](./X-BOOKMARKS-PIPELINE.md) — classify, plan, validate Pine; not a substitute for live search. |
 
 **The CLI stays the primary way to do multi-query research, watchlist management, and saving to file; in-chat is for quick, single-shot queries.**
 

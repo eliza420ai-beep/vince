@@ -213,3 +213,7 @@
 - Operationalize the input checklist so task handoffs between agents stop degrading output quality.
 - Document context system failure modes and detection mechanisms before shipping production agents.
 - Push nix-openclaw in setup guide and clarify Tailscale binding for remote deployments.
+## 2026-03-20
+
+- Run EDGE_CHECK on BTC perps vs Oracle's 0% floor for $150k March target to align conviction gates.
+- Otaku error on standup—triage wallet setup blocker so execution can move to live trades next week.

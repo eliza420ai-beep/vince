@@ -199,6 +199,8 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
 
   // Standup / Solus (Day Report → signals file) — default 0.6x
   StandupSignal: 0.6,
+  // X bookmarks → Pine pipeline → JSONL overlay (data/x-bookmarks-pipeline/paper-signals.jsonl)
+  XBookmarks: 0.48,
   EchoXSignal: 0.5, // ECHO What's the Trade → docs/standup/signals/YYYY-MM-DD-echo-x.json (same-day)
 };
 

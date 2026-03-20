@@ -1,23 +1,23 @@
 ---
-date: 2026-03-20T09:38:19.949Z
+date: 2026-03-20T21:45:58.722Z
 type: shared-daily-insights
 ---
 
 # Shared Daily Insights — 2026-03-20
 
-**Scorecard:** ✅ VINCE (neutral 0%) | ✅ Eliza | ✅ ECHO | ✅ Oracle | ✅ Solus (12 pos) | ✅ Otaku | ✅ Sentinel (shipped) | ⚠️ Forge | ✅ Clawterm | ✅ Naval
+**Scorecard:** ✅ VINCE (neutral 0%) | ✅ Eliza | ✅ ECHO | ✅ Oracle | ✅ Solus (12 pos) | ✅ Otaku | ✅ Sentinel (shipped) | ✅ Clawterm | ✅ Naval
 
 ## TL;DR
 
-Signal short at 90% confidence. Paper: 0 open. REGULATORY NOISE: Choppy ahead - trade smaller
+Signal long at 29% confidence. Paper: 0 open. NEWS: No data yet - run MANDO_MINUTES to fetch
 
-**Conviction:** [======----] 6/10
+**Conviction:** [====------] 4/10 (signal weak)
 
 ---
 
 ## VINCE
 ### Delta vs Yesterday
-Signal: neutral (0%) → short (90%)
+Signal: neutral (0%) → long (29%)
 
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
@@ -25,7 +25,7 @@ Signal: neutral (0%) → short (90%)
 | SOL | N/A +0.0% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
 | HYPE | N/A +0.0% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
 
-**Signal (BTC):** short (90% conf, NewsSentiment)
+**Signal (BTC):** long (29% conf, XSentiment)
 
 **Paper:** No trades yet | 0 open, 0 pending
 
@@ -35,13 +35,7 @@ Signal: neutral (0%) → short (90%)
 
 **Portfolio:** $100000
 
-**News:** REGULATORY NOISE: Choppy ahead - trade smaller
-❗🔴 BTC ETFs: -$130m | ETH ETFs: -$56m (MandoMinutes) [BTC, ETH]
-❗🔴 SEC approves Nasdaq tokenised equity pilot (coindesk)
-❗🔴 UK lawmakers urge ban on crypto political donation (coindesk)
-❗🔴 US considers deploying troops to secure Strait (reuters)
-🟢 First official S&P 500 perp launched on HYPE (MandoMinutes) [HYPE]
-Themes: other (21), regulatory (5), macro (5), institutional (2), security (1)
+**News:** NEWS: No data yet - run MANDO_MINUTES to fetch
 
 **Regime (BTC):** ranging ADX 15.0 | size 0.8x
 
@@ -52,12 +46,7 @@ Themes: other (21), regulatory (5), macro (5), institutional (2), security (1)
 
 **Essay Suggestion:** [LLM unavailable -- review recent uploads for a timely topic]
 
-**Recent uploads (6):**
-- 📄 **internal-docs:** WORKFLOW-ORCHESTRATION (2019 words) — Preview: > Adapted from the Fairmint AI-Led Development playbook. Codified for the VINCE multi-agent project. Quality of output is directly proportional to quality of input. No exceptions. - Every task file, e…
-- 📝 **teammate:** SOUL (591 words) — Preview: Who we are, how we operate, what we stand for. Every agent in VINCE reads this before responding. We are a multi-agent system built around one thesis: a BTC-heavy portfolio with two counter-concentrat…
-- 📝 **teammate:** THREE-CURVES (825 words) — Preview: The three curves define how work and capital flow through the VINCE system. Each curve has a different risk profile, time horizon, and agent responsibility. **What:** Perpetual futures on Hyperliquid.…
-- 📝 **teammate:** MEMORY (823 words) — Preview: Persistent context that survives between sessions. Every agent reads this before starting work. Update after meaningful decisions, preference changes, or strategy shifts. _Last updated: 2026-03-18_ <!…
-- 📝 **teammate:** NO-AI-SLOP (591 words) — Preview: Zero tolerance for generic LLM output. Every agent reads this.
+**Recent uploads:** No new uploads in last 48h.
 
 ---
 
@@ -101,27 +90,22 @@ This determines what we should focus on and whether to consider BUYING BACK earl
 
 ## Sentinel
 Recent code (git log --oneline):
-05c3b9ae feat(forge+solus): keep-or-revert for Solus strike ritual knobs
-71debe7b chore(tasks): encode Claude workflow guardrails
-8048d566 Make YES/NO data quality reliable
-841a0f13 chore(standup+signals): update 2026-03-19 reports and similarity tuning
-514ce396 docs(standup): update daily insights + metrics
-efa24c12 feat(leaderboard): add YES/NO market risk gate tab
-7561a1e7 docs(workflow): clarify AI-led dev orchestration checklist
-a60f3d2f docs(otaku): document x402 stack + ERC-8183 roadmap
-933e6727 feat(top100): add freshness + richer detail snapshots
-a3f56ad3 fix(top100): bootstrap yahoo market cap cache
+ac8036a0 docs: codify Mac mini 247 mindset
+3b69a382 Add decision_bundle_v1 artifacts for Radon replay
+9d37d360 docs: explain why JWT isolation matters
+62da37c5 docs: clarify JWT data isolation meaning
+3a7bfc1f docs: update README with production stitching summary
+32205d04 docs: clarify JWT data isolation in Roy playbook
+b2cc0065 docs: add Roy production stitching playbook
+d9b5e0ab chore: commit trade attribution + forge history deltas
+28828d8e feat(vince): add AIHF conviction gate to paper trades
+8aa1c6bf docs(railway): document Postgres+Supabase + Dexter artifact root
 
 **Branch:** main (5 uncommitted)
 
-**Shipped this week:** other: keep-or-revert for Solus strike ritual knobs, encode Claude workflow guardrails, Make YES/NO data quality reliable | leaderboard: add YES/NO market risk gate tab | top100: add freshness + richer detail snapshots, add AIHF draft compare layer, add live overlays, toolbar, detail drawer, and Yahoo quote cache
+**Shipped this week:** other: codify Mac mini 247 mindset, Add decision_bundle_v1 artifacts for Radon replay, explain why JWT isolation matters | vince: add AIHF conviction gate to paper trades
 
 **Recent PRDs:** RECURSIVE_NORTH_STAR_ACCELERATION_RUNBOOK.md, PRD_YESNO_US_EQUITY_RISK_GATE_V2.md, PRD_WHATS_THE_TRADE_IMPROVEMENT_SYSTEM.md
-
----
-
-## Forge
-(no data)
 
 ---
 

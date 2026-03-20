@@ -201,6 +201,38 @@ Ask **"drift"** or **"dexter drift"** for a paper-vs-Dexter-universe report. Gua
 
 ---
 
+## From X bookmarks to trades (what you actually do)
+
+Two paths solve different problems: **saving many tweets** vs **turning one source into tracked trade cards**.
+
+### When you bookmark good stuff on X
+
+1. **You** hit bookmark on posts that look like alpha (charts, setups, threads). Nothing runs until you choose to process them.
+2. **You** run the pipeline (CLI `bun run x-bookmarks:fetch`, or chat with **VINCE** and ask to run the **X bookmarks pipeline** when `X_BOOKMARKS_PIPELINE_ENABLED=true`). The Rust job in `packages/x-bookmarks-pipeline` pulls bookmarks, labels finance vs not, and for trade-relevant ones produces **Pine Script** plus `.meta.json` under `data/x-bookmarks-pipeline/output/` (see [docs/X-BOOKMARKS-PIPELINE.md](docs/X-BOOKMARKS-PIPELINE.md)).
+3. **You** get artifacts you can open: TradingView-style scripts, a short **digest** at `data/x-bookmarks-pipeline/digest/latest.md`, and—if the ticker maps to something the paper bot trades—a line in `paper-signals.jsonl`.
+4. **On the next paper-bot cycle**, VINCE treats those lines as a **soft vote** (`XBookmarks` in the signal mix). It nudges direction/confidence for matching assets; it does **not** bypass the rest of the stack (funding, regime, gates). Think *“remember what I saved”*, not *“YOLO because I bookmarked it.”*
+
+**Operator takeaway:** Bookmarks are your **inbox of intent**. The pipeline turns that inbox into **reviewable code + structured fields** and optionally **feeds the paper sim**. Live execution (Otaku / real money) stays a separate decision.
+
+### When to use **paste.trade** instead (or as well)
+
+**paste.trade** is for: *I have this URL or block of text—extract the trade ideas, compare instruments, lock prices, and show me cards I can follow.*
+
+- **Input:** Paste a link (tweet, article, video, PDF) or type a thesis in chat when the paste.trade integration is enabled (`PASTE_TRADE_*` in `.env`, [packages/paste-trade/README.md](packages/paste-trade/README.md)).
+- **What you see:** A **source page** that streams progress; **thesis cards** appear, then resolve with explanation, optional comparison table, and prices (**author time** vs **when you posted** to paste.trade).
+- **Why use it:** You get **auditable, tracked** ideas with P&L context from defined entry prices—not just a chat reply that disappears.
+
+**How the two fit together**
+
+| You want to… | Primary path |
+| ------------ | ------------ |
+| Capture **many** X posts over time and batch them into Pine + paper-bot nudges | X bookmarks pipeline + `paper-signals.jsonl` ([docs/X-BOOKMARKS-PIPELINE.md](docs/X-BOOKMARKS-PIPELINE.md)) |
+| Turn **one** piece of content into explicit trade cards and a living profile | paste.trade flow ([packages/paste-trade/ARCHITECTURE.md](packages/paste-trade/ARCHITECTURE.md) — create → enrich → save → route → post) |
+
+Same research habit on X; different product surfaces depending on whether you are **harvesting bookmarks** or **publishing a single source into trade objects**.
+
+---
+
 ## Agent Roster
 
 Four core agents run always. Six v1 agents are moving to other machines — gate them out with env flags, no code changes required.

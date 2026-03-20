@@ -32,6 +32,7 @@ Just like `VINCE_ALOHA` gives you the daily market vibe, `X_PULSE` gives you the
 - **Thread Discovery**: Find high-engagement threads
 - **Contrarian Warnings**: Flag extreme sentiment as potential reversals
 - Content audit (top posts analysis from top X posts) lives in **plugin-eliza** (CONTENT_AUDIT); Eliza uses this plugin for X data. Primary agent: Eliza. Use `ELIZA_X_BEARER_TOKEN` so Eliza and ECHO don’t share one token and hit rate limits.
+- **X_BOOKMARKS_PIPELINE** (VINCE): Rust pipeline in `packages/x-bookmarks-pipeline` — your **bookmarks** → classify → Pine Script v6. Opt-in: `X_BOOKMARKS_PIPELINE_ENABLED=true`. See [docs/X-BOOKMARKS-PIPELINE.md](../../../docs/X-BOOKMARKS-PIPELINE.md).
 
 ## Setup
 

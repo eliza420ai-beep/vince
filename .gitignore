@@ -62,3 +62,6 @@ tasks/todo.md
 cache_dexter/
 cache_aifh/
 cache_aihf/
+
+# X bookmarks → Pine pipeline (Rust) — local output + SQLite cache
+data/x-bookmarks-pipeline/

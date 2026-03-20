@@ -15,6 +15,7 @@
  * - X_BEARER_TOKEN (required): X API v2 bearer token
  * - X_RESEARCH_QUALITY_LIST_ID (optional): Curated list for quality filtering
  * - ECHO_WHATS_THE_TRADE_ENABLED / ECHO_WHATS_THE_TRADE_HOUR: daily task (ECHO only)
+ * - X_BOOKMARKS_PIPELINE_ENABLED + Rust crate: VINCE runs bookmarks → Pine (see docs/X-BOOKMARKS-PIPELINE.md)
  *
  * @module plugin-x-research
  */
@@ -35,6 +36,7 @@ import {
   clawtermDayReportAction,
   whatsTheTradeAction,
   polymarketVibeAction,
+  xBookmarksPipelineAction,
 } from "./actions";
 import { registerWhatsTheTradeDailyTask } from "./tasks/whatsTheTradeDaily.tasks";
 import { XResearchTradingSentimentService } from "./services/xResearchTradingSentiment.service";
@@ -65,6 +67,7 @@ export const xResearchPlugin: Plugin = {
     clawtermDayReportAction,
     whatsTheTradeAction,
     polymarketVibeAction,
+    xBookmarksPipelineAction,
   ],
 
   providers: [],

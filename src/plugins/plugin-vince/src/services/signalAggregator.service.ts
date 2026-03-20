@@ -102,6 +102,12 @@ import {
   loadEchoXSignals,
   getEchoXSignalForAsset,
 } from "../utils/standupSignalsReader";
+import {
+  loadRecentXBookmarkPaperSignals,
+  latestXBookmarkSignalByAsset,
+  xBookmarkAgeDecay,
+  type XBookmarkPaperSignalLine,
+} from "../utils/xBookmarksPaperQueue";
 
 // WTT (What's The Trade) daily pick → signal aggregator boost
 import { normalizeWttTicker } from "../constants/targetAssets";
@@ -530,6 +536,12 @@ export class VinceSignalAggregatorService extends Service {
   /** Cache today's WTT pick (read once per day, reused across all assets). */
   private wttPickCache: { date: string; pick: WttPick | null } | null = null;
 
+  /** Short-lived cache for X bookmark → paper JSONL overlay (avoid re-reading per asset). */
+  private xBookmarkPaperCache: {
+    expiresAt: number;
+    byAsset: Map<string, XBookmarkPaperSignalLine>;
+  } | null = null;
+
   private getWttPickForToday(): WttPick | null {
     if (!isWttEnabled(this.runtime)) return null;
     const today = new Date().toISOString().slice(0, 10);
@@ -564,6 +576,28 @@ export class VinceSignalAggregatorService extends Service {
     }
     this.wttPickCache = { date: today, pick: null };
     return null;
+  }
+
+  private async getXBookmarkPaperByAsset(): Promise<
+    Map<string, XBookmarkPaperSignalLine>
+  > {
+    const flag = (process.env.VINCE_PAPER_X_BOOKMARKS_ENABLED ?? "true").trim();
+    if (/^(0|false|no)$/i.test(flag)) return new Map();
+
+    const now = Date.now();
+    if (this.xBookmarkPaperCache && now < this.xBookmarkPaperCache.expiresAt) {
+      return this.xBookmarkPaperCache.byAsset;
+    }
+
+    const ttlH = Number(process.env.X_BOOKMARKS_PAPER_SIGNAL_TTL_HOURS ?? 72);
+    const ttlMs = Math.max(1, ttlH) * 3600 * 1000;
+    const rows = await loadRecentXBookmarkPaperSignals({
+      cwd: process.cwd(),
+      maxAgeMs: ttlMs,
+    });
+    const byAsset = latestXBookmarkSignalByAsset(rows);
+    this.xBookmarkPaperCache = { expiresAt: now + 45_000, byAsset };
+    return byAsset;
   }
 
   /**
@@ -738,6 +772,8 @@ export class VinceSignalAggregatorService extends Service {
 
     // Track which optional sources were tried but did not contribute (for DEBUG)
     const triedNoContribution: string[] = [];
+
+    const xBookmarkByAsset = await this.getXBookmarkPaperByAsset();
 
     // Resolve services once for parallel fetch
     const binanceService = this.runtime.getService(
@@ -1681,6 +1717,46 @@ export class VinceSignalAggregatorService extends Service {
         logger.debug(`[VinceSignalAggregator] EchoXSignal error: ${e}`);
         triedNoContribution.push("EchoXSignal");
       }
+    }
+
+    // =========================================
+    // 5f. X bookmarks pipeline → paper overlay (JSONL queue)
+    // =========================================
+    try {
+      const row = xBookmarkByAsset.get(asset.toUpperCase());
+      if (row && (row.direction === "long" || row.direction === "short")) {
+        const ttlH = Number(
+          process.env.X_BOOKMARKS_PAPER_SIGNAL_TTL_HOURS ?? 72,
+        );
+        const ttlMs = Math.max(1, ttlH) * 3600 * 1000;
+        const decay = xBookmarkAgeDecay(row.ingestedAt, ttlMs);
+        if (decay > 0.05) {
+          const strength = Math.round(row.strength * decay);
+          const confidence = Math.round(row.confidence * decay);
+          if (confidence >= 22) {
+            const snippet = row.rationale.slice(0, 140);
+            signals.push({
+              asset,
+              direction: row.direction,
+              strength: Math.max(38, Math.min(74, strength)),
+              confidence: Math.min(72, confidence),
+              source: "XBookmarks",
+              factors: [
+                `X bookmark → Pine: ${row.direction} ${asset} — ${snippet}${row.rationale.length > 140 ? "…" : ""}`,
+              ],
+              timestamp: Date.now(),
+            });
+            sources.push("XBookmarks");
+            allFactors.push(`XBookmarks ${row.direction} ${asset}`);
+          }
+        }
+      }
+      if (!sources.includes("XBookmarks")) {
+        triedNoContribution.push("XBookmarks");
+      }
+    } catch (e) {
+      logger.debug(`[VinceSignalAggregator] XBookmarks overlay error: ${e}`);
+      triedNoContribution.push("XBookmarks");
     }
 
     // =========================================
