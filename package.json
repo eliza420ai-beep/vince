@@ -207,7 +207,8 @@
     "supabase:check": "bun scripts/supabase-migration-check.ts"
   },
   "overrides": {
-    "wrap-ansi-cjs": "8.0.0"
+    "wrap-ansi-cjs": "8.0.0",
+    "markdown-it": "14.1.1"
   },
   "publishConfig": {
     "access": "public"
