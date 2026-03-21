@@ -12,7 +12,7 @@ VINCE integrates [paste.trade](https://github.com/eliza420ai-beep/paste-trade) (
 
 | Variable | Purpose |
 |----------|---------|
-| `PASTE_TRADE_KEY` | Bearer token for your paste.trade API (required). |
+| `PASTE_TRADE_KEY` | Bearer token for the paste.trade API. **Usually unset at first:** the vendored skill auto-provisions via `POST /api/keys` and appends this to `.env` (same as upstream paste.trade). From repo root run once: `bun run packages/paste-trade/scripts/onboard.ts`. **Restart VINCE** after the key is written so `plugin-paste-trade` loads. Set manually only to reuse a key from another client. |
 | `PASTE_TRADE_BASE_URL` or `PASTE_TRADE_URL` | API origin (no trailing slash). Self-hosted or `https://paste.trade`. |
 | `PASTE_TRADE_UI_ORIGIN` | Optional; iframe / links default to base URL. |
 | `PASTE_TRADE_POLL_MS` | Server poll interval for `GET /api/sources/:id` snapshots (default 5000, min 2000). |
@@ -22,7 +22,7 @@ Optional for full skill parity: **`yt-dlp`** on PATH (YouTube), **`GEMINI_API_KE
 
 ## HTTP routes (ElizaOS)
 
-Mounted under the **VINCE** `agentId`:
+Mounted under the **VINCE** `agentId`. The plugin is **always loaded** on VINCE unless `PASTE_TRADE_ENABLED=false`, so these paths exist and return **503** with a clear JSON body when `PASTE_TRADE_KEY` is missing (instead of a generic **404**).
 
 - `POST /api/agents/:agentId/plugins/plugin-paste-trade/paste-trade/runs`  
   Body: `{ "url"?: string, "text"?: string, "roomId"?: string }`  

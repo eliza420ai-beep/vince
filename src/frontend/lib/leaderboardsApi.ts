@@ -1,6 +1,6 @@
 /**
  * Leaderboards API – "who's doing best" market data for the leaderboard page.
- * GET /api/agents/:agentId/plugins/vince/leaderboards
+ * GET /api/agents/:agentId/plugins/plugin-vince/vince/leaderboards
  *
  * Data sources: Markets / Memes / News / More / Digital Art from plugin-vince;
  * Polymarket from plugin-polymarket-discovery (Oracle agent only, separate tab).

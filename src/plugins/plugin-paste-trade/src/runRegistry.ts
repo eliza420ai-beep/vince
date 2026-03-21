@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 export type PasteTradeRunStatus =
@@ -111,4 +111,25 @@ export function appendRunEvent(
   runs.set(runId, cur);
   persistRun(cur);
   return cur;
+}
+
+/** List persisted runs for this agent, newest `updatedAt` first (for leaderboard UI). */
+export function listRunsForAgent(
+  agentId: string,
+  limit = 50,
+): PasteTradeRunRecord[] {
+  try {
+    mkdirSync(dataDir(), { recursive: true });
+    const names = readdirSync(dataDir()).filter((f) => f.endsWith(".json"));
+    const out: PasteTradeRunRecord[] = [];
+    for (const name of names) {
+      const runId = name.replace(/\.json$/, "");
+      const rec = getRun(runId);
+      if (rec && rec.agentId === agentId) out.push(rec);
+    }
+    out.sort((a, b) => b.updatedAt - a.updatedAt);
+    return out.slice(0, Math.max(1, Math.min(limit, 100)));
+  } catch {
+    return [];
+  }
 }

@@ -56,6 +56,8 @@ import {
   LEADERBOARDS_STALE_MS,
   fetchUnbiasSummaryWithError,
 } from "@/frontend/lib/leaderboardsApi";
+import { findVinceAgentId } from "@/frontend/lib/vinceAgentId";
+import { PasteTradeTab } from "@/frontend/components/dashboard/leaderboard/paste-trade-tab";
 import { Top100Tab } from "@/frontend/components/dashboard/leaderboard/top100-tab";
 import { YesNoTab } from "@/frontend/components/dashboard/leaderboard/yesno-tab";
 import type {
@@ -406,12 +408,14 @@ type MainTab =
   | "news"
   | "recursive"
   | "trading_bot"
+  | "paste_trade"
   | "usage"
   | "polymarket";
 
 /** Tabs that are actually shown in the UI. Trading context / more was removed and must not reappear. */
 const VISIBLE_MAIN_TABS: MainTab[] = [
   "trading_bot",
+  "paste_trade",
   "recursive",
   "news",
   "markets",
@@ -427,6 +431,7 @@ const VISIBLE_MAIN_TABS: MainTab[] = [
 /** Display labels for each tab. Only VISIBLE_MAIN_TABS are rendered. */
 const MAIN_TAB_LABELS: Record<MainTab, string> = {
   trading_bot: "Trading Bot",
+  paste_trade: "Paste trade",
   recursive: "Recursive",
   news: "News",
   markets: "Markets",
@@ -1840,7 +1845,7 @@ function StocksDiscoveryEmptyCard({
 const gamificationClient = (elizaClient as any).gamification;
 
 /** Agent from list (id, name, ...). Used to pick VINCE for Markets API. */
-type AgentFromList = { id?: string; name?: string };
+type AgentFromList = { id?: string; name?: string; characterName?: string };
 
 interface LeaderboardPageProps {
   agentId: UUID;
@@ -1852,21 +1857,18 @@ export default function LeaderboardPage({
   agentId,
   agents,
 }: LeaderboardPageProps) {
-  // Markets (HIP-3, Crypto, Memes, etc.) come from plugin-vince — use VINCE agent so the route exists
-  const vinceAgent = agents?.find(
-    (a) => (a.name ?? "").toUpperCase() === "VINCE",
-  );
+  // Markets + Paste trade: plugin-vince routes only exist on an **active** VINCE runtime (inactive DB rows 404).
+  const leaderboardsAgentId = (findVinceAgentId(agents) ?? "") as string;
   const elizaAgent = agents?.find(
     (a) => (a.name ?? "").toUpperCase() === "ELIZA",
   );
   const oracleAgent = agents?.find(
     (a) => (a.name ?? "").toUpperCase() === "ORACLE",
   );
-  const leaderboardsAgentId = (vinceAgent?.id ??
-    agents?.[0]?.id ??
-    agentId) as string;
   // Upload is Eliza-only: use her agent so the request is handled by plugin-eliza
-  const uploadAgentId = (elizaAgent?.id ?? leaderboardsAgentId) as string;
+  const uploadAgentId = (elizaAgent?.id ??
+    agentId ??
+    leaderboardsAgentId) as string;
   const oracleAgentId = (oracleAgent?.id ?? null) as string | null;
   const [mainTab, setMainTab] = useState<MainTab>("trading_bot");
   const [stocksViewFilter, setStocksViewFilter] = useState<"all" | "net_new">(
@@ -6619,6 +6621,13 @@ export default function LeaderboardPage({
                 )}
               </>
             </div>
+          </TabsContent>
+
+          <TabsContent
+            value="paste_trade"
+            className="mt-6 flex-1 min-h-0 flex flex-col data-[state=active]:flex"
+          >
+            <PasteTradeTab agentId={leaderboardsAgentId} />
           </TabsContent>
 
           {/* Knowledge tab: categories explanation + newly added knowledge + points leaderboard + referral */}

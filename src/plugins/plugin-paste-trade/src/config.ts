@@ -1,8 +1,14 @@
 import { join } from "node:path";
 import type { IAgentRuntime } from "@elizaos/core";
 
+/** Plugin is omitted from VINCE entirely when this is true (no HTTP routes). */
+export function isPasteTradePluginDisabled(): boolean {
+  return process.env.PASTE_TRADE_ENABLED === "false";
+}
+
+/** Chat + pipeline: key present and feature not explicitly off. */
 export function pasteTradeEnabled(): boolean {
-  if (process.env.PASTE_TRADE_ENABLED === "false") return false;
+  if (isPasteTradePluginDisabled()) return false;
   const key =
     process.env.PASTE_TRADE_KEY?.trim() ||
     process.env.PASTE_TRADE_API_KEY?.trim();

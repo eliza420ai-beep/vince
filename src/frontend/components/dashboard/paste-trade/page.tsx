@@ -103,10 +103,8 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
         url: u || undefined,
         text: tx || undefined,
       });
-      if (!res?.runId) {
-        setError(
-          "Could not start run. Is PASTE_TRADE_KEY set and the VINCE agent loaded?",
-        );
+      if (!res.ok) {
+        setError(res.message);
         setBusy(false);
         return;
       }

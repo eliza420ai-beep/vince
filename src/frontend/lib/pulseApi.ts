@@ -1,7 +1,7 @@
 /**
  * Dashboard Pulse API – same data as terminal dashboards + LLM insight.
  * ElizaOS server mounts plugin routes at /api/agents/:agentId/plugins + route.path,
- * so path is /api/agents/:agentId/plugins/vince/pulse.
+ * Runtime route path is /plugin-vince/vince/pulse → HTTP .../plugins/plugin-vince/vince/pulse.
  */
 
 export interface PulseSection {
@@ -23,7 +23,7 @@ export async function fetchPulse(
 ): Promise<PulseResponse | null> {
   const base = window.location.origin;
   // Server mounts plugin routes at /api/agents/:agentId/plugins/<route.path>
-  const url = `${base}/api/agents/${agentId}/plugins/vince/pulse`;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/pulse`;
   try {
     const res = await fetch(url, {
       method: "GET",

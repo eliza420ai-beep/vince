@@ -72,3 +72,4 @@
 | 2026-03-16 | BTC broke above our strike, Fed's locked at hold, buying back the call early to  | [View](day-reports/2026-03-16-day-report.md) |
 | 2026-03-19 | BTC shorts piling on at 46% conviction while ETF inflows keep flowing—watching $ | [View](day-reports/2026-03-19-day-report.md) |
 | 2026-03-20 | Fear hit 11, shorts collapsed from 90% to 45% confidence as the ranging market ( | [View](day-reports/2026-03-20-day-report.md) |
+| 2026-03-21 | Fear hit 12 (extreme), signal flipped to short, but household net worth ATH is h | [View](day-reports/2026-03-21-day-report.md) |

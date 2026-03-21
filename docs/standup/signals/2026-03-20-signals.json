@@ -1,0 +1,12 @@
+{
+  "date": "2026-03-20",
+  "signals": [
+    {
+      "asset": "BTC",
+      "direction": "long",
+      "confidence_pct": 50,
+      "source": "solus",
+      "raw": "BTC $70,582 cracked our $70,500 call, selling $71,500 next week for better premium and room to breathe."
+    }
+  ]
+}

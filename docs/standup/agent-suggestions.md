@@ -217,3 +217,8 @@
 
 - Run EDGE_CHECK on BTC perps vs Oracle's 0% floor for $150k March target to align conviction gates.
 - Otaku error on standup—triage wallet setup blocker so execution can move to live trades next week.
+## 2026-03-21
+
+- Vince: Consider running EDGE_CHECK on BTC shorts if spot rallies into resistance to validate reversal setup.
+- Oracle: Offer crude oil / energy pair options (XLE puts) on Hypersurface if available—macro thesis is strong.
+- Clawterm: Measure adoption lift from orchestrator templates vs raw skill approach in next standup to validate hypothesis.

@@ -218,7 +218,7 @@ Two paths solve different problems: **saving many tweets** vs **turning one sour
 
 **paste.trade** is for: *I have this URL or block of text—extract the trade ideas, compare instruments, lock prices, and show me cards I can follow.*
 
-- **Input:** Paste a link (tweet, article, video, PDF) or type a thesis in chat when the paste.trade integration is enabled (`PASTE_TRADE_*` in `.env`, [packages/paste-trade/README.md](packages/paste-trade/README.md)).
+- **Input:** Paste a link (tweet, article, video, PDF) or type a thesis in chat when paste.trade is enabled. The key is usually **auto-provisioned** by the skill (see `.env.example` and [docs/PASTE_TRADE.md](docs/PASTE_TRADE.md)); run `bun run packages/paste-trade/scripts/onboard.ts` once if needed, then restart the server. Details: [packages/paste-trade/README.md](packages/paste-trade/README.md).
 - **What you see:** A **source page** that streams progress; **thesis cards** appear, then resolve with explanation, optional comparison table, and prices (**author time** vs **when you posted** to paste.trade).
 - **Why use it:** You get **auditable, tracked** ideas with P&L context from defined entry prices—not just a chat reply that disappears.
 

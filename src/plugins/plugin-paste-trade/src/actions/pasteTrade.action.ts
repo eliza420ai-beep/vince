@@ -61,7 +61,7 @@ export const pasteTradeAction: Action = {
     if (!client) {
       if (callback) {
         await callback({
-          text: "paste.trade is not configured. Set PASTE_TRADE_KEY and PASTE_TRADE_ENABLED=true.",
+          text: "paste.trade is not configured. Run `bun run packages/paste-trade/scripts/onboard.ts` once to auto-provision PASTE_TRADE_KEY, restart the server, and ensure PASTE_TRADE_ENABLED is not false.",
           actions: ["VINCE_PASTE_TRADE"],
         });
       }

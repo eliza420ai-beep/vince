@@ -6,6 +6,7 @@ import { registerPasteTradeTaskWorkers } from "./registerWorkers.ts";
 import {
   handleGetPasteTradeHandoff,
   handleGetPasteTradeRun,
+  handleGetPasteTradeRunsList,
   handlePostPasteTradeRuns,
 } from "./routes/pasteTradeRoutes.ts";
 
@@ -32,6 +33,12 @@ export const pasteTradePlugin: Plugin = {
       path: "/paste-trade/runs",
       type: "POST",
       handler: handlePostPasteTradeRuns,
+    },
+    {
+      name: "paste-trade-runs-list-get",
+      path: "/paste-trade/runs",
+      type: "GET",
+      handler: handleGetPasteTradeRunsList,
     },
     {
       name: "paste-trade-run-get",

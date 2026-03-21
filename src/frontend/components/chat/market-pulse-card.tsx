@@ -1,6 +1,6 @@
 /**
  * Market Pulse card – LLM insight + optional dashboard sections from terminal data.
- * Fetches GET /api/agents/:agentId/plugins/vince/pulse and shows insight prominently.
+ * Fetches GET /api/agents/:agentId/plugins/plugin-vince/vince/pulse and shows insight prominently.
  */
 
 import { Card, CardContent } from "@/frontend/components/ui/card";

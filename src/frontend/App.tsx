@@ -32,6 +32,7 @@ import { fetchOtakuConfig } from "@/frontend/lib/otakuConfigApi";
 import { UUID } from "@elizaos/core";
 import { AboutModalContent } from "@/frontend/components/about/about-modal-content";
 import { getRandomAvatar, cn } from "@/frontend/lib/utils";
+import { findVinceAgentId } from "@/frontend/lib/vinceAgentId";
 import { LoadingScreen } from "./components/ui/loading-screen";
 
 /** Default message server ID the message bus is subscribed to (local messaging). Use this when getCurrentMessageServer() returns null so replies reach the UI. */
@@ -1071,6 +1072,9 @@ function AppContent({
   const { setOpenMobile } = useSidebar();
   const { showModal, hideModal } = useModal();
 
+  /** paste.trade HTTP routes: active VINCE runtime only (not sidebar Kelly, etc.). */
+  const pasteTradeAgentId = findVinceAgentId(agents);
+
   useEffect(() => {
     setOpenMobile(false);
   }, [currentView]);
@@ -1212,16 +1216,17 @@ function AppContent({
               </div>
             )
           ) : currentView === "pasteTrade" ? (
-            agentId ? (
+            pasteTradeAgentId ? (
               <ErrorBoundary>
-                <PasteTradePage agentId={agentId} />
+                <PasteTradePage agentId={pasteTradeAgentId} />
               </ErrorBoundary>
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[320px] gap-4 p-8 rounded-xl border border-border bg-muted/20">
                 <p className="text-foreground font-medium">Loading agent…</p>
                 <p className="text-sm text-muted-foreground text-center max-w-sm">
-                  Select an agent from the sidebar. Paste trade uses the VINCE
-                  agent API routes.
+                  Paste trade needs VINCE running (status active in the agent
+                  roster). Check GET /api/agents or restart the server if VINCE
+                  failed to start.
                 </p>
               </div>
             )

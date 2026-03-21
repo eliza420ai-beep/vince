@@ -44,6 +44,12 @@ import {
   buildUnbiasAnalystsResponse,
 } from "./routes/unbias";
 import { readLastRunLedgerEntry } from "./research-autopilot/artifactPaths";
+import {
+  handleGetPasteTradeHandoff,
+  handleGetPasteTradeRun,
+  handleGetPasteTradeRunsList,
+  handlePostPasteTradeRuns,
+} from "../../plugin-paste-trade/src/routes/pasteTradeRoutes.ts";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -349,6 +355,31 @@ export const vincePlugin: Plugin = {
 
   // API route: dashboard pulse (snapshot + LLM insight) for frontend
   routes: [
+    // paste.trade — same handlers as plugin-paste-trade; runtime route.path is /plugin-vince/vince/paste-trade/... (core prefixes plugin name).
+    {
+      name: "vince-paste-trade-runs-post",
+      path: "/vince/paste-trade/runs",
+      type: "POST",
+      handler: handlePostPasteTradeRuns,
+    },
+    {
+      name: "vince-paste-trade-runs-list-get",
+      path: "/vince/paste-trade/runs",
+      type: "GET",
+      handler: handleGetPasteTradeRunsList,
+    },
+    {
+      name: "vince-paste-trade-run-get",
+      path: "/vince/paste-trade/run",
+      type: "GET",
+      handler: handleGetPasteTradeRun,
+    },
+    {
+      name: "vince-paste-trade-handoff-get",
+      path: "/vince/paste-trade/handoff",
+      type: "GET",
+      handler: handleGetPasteTradeHandoff,
+    },
     {
       name: "vince-pulse",
       path: "/vince/pulse",
@@ -369,7 +400,7 @@ export const vincePlugin: Plugin = {
         if (!agentRuntime) {
           res.status(503).json({
             error: "Pulse requires agent context",
-            hint: "Use /api/agents/:agentId/plugins/vince/pulse (ElizaOS mounts plugin routes under /plugins).",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/pulse (runtime path includes plugin name prefix).",
           });
           return;
         }

@@ -37,7 +37,7 @@ COPY packages/api-client packages/api-client
 # Install dependencies
 RUN bun install
 
-# Apply plugin-route path fix so GET /api/agents/:id/plugins/vince/pulse works (Express strips /api from req.path)
+# Apply plugin-route path fix so plugin routes match under /api/agents/:id/plugins/... (Express inner req.path)
 COPY scripts/patch-elizaos-server-plugin-routes.cjs scripts/
 RUN node scripts/patch-elizaos-server-plugin-routes.cjs
 
