@@ -209,7 +209,8 @@
   "overrides": {
     "wrap-ansi-cjs": "8.0.0",
     "markdown-it": "14.1.1",
-    "jsondiffpatch": "0.7.3"
+    "jsondiffpatch": "0.7.3",
+    "file-type": "21.3.3"
   },
   "publishConfig": {
     "access": "public"
