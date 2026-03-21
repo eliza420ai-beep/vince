@@ -13,6 +13,8 @@ export interface PasteTradeRunRecord {
   runId: string;
   agentId: string;
   roomId?: string;
+  /** When true, no remote POST /api/sources — extraction + theses only. */
+  localOnly?: boolean;
   sourceId?: string;
   sourceUrl?: string;
   status: PasteTradeRunStatus;
@@ -65,12 +67,14 @@ export function createRun(input: {
   roomId?: string;
   inputUrl?: string;
   inputText?: string;
+  localOnly?: boolean;
 }): PasteTradeRunRecord {
   const now = Date.now();
   const rec: PasteTradeRunRecord = {
     runId: input.runId,
     agentId: input.agentId,
     roomId: input.roomId,
+    localOnly: input.localOnly,
     inputUrl: input.inputUrl,
     inputText: input.inputText,
     status: "pending",

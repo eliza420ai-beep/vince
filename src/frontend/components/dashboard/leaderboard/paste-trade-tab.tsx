@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import DashboardCard from "@/frontend/components/dashboard/card";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
@@ -12,88 +13,19 @@ import {
 } from "@/frontend/components/ui/select";
 import { cn } from "@/frontend/lib/utils";
 import {
+  bestPnlFromSnapshot,
+  leaderboardTradeLinesForRun,
+  snapshotIsLocalOnly,
+  tradesFromSnapshot,
+} from "@/frontend/lib/pasteTradeSnapshot";
+import { usePasteTradeLiveMarksMap } from "@/frontend/lib/usePasteTradeLiveMarks";
+import { normalizePasteTradeTicker } from "@/shared/pasteTradeMarks";
+import {
   fetchPasteTradeRunsList,
   type PasteTradeRunRecord,
 } from "@/frontend/lib/pasteTradeApi";
 
 type SortMode = "recent" | "best_pnl";
-
-function asRecord(x: unknown): Record<string, unknown> | null {
-  return x && typeof x === "object" && !Array.isArray(x)
-    ? (x as Record<string, unknown>)
-    : null;
-}
-
-/** Pull trade-like rows from paste.trade GET /api/sources/:id snapshot (shape may evolve). */
-function tradesFromSnapshot(snap: unknown): Record<string, unknown>[] {
-  const root = asRecord(snap);
-  if (!root) return [];
-  const direct = root.trades;
-  if (Array.isArray(direct)) {
-    return direct.filter((t) => t && typeof t === "object") as Record<
-      string,
-      unknown
-    >[];
-  }
-  const src = asRecord(root.source);
-  if (src && Array.isArray(src.trades)) {
-    return src.trades.filter((t) => t && typeof t === "object") as Record<
-      string,
-      unknown
-    >[];
-  }
-  return [];
-}
-
-function numFromTrade(
-  t: Record<string, unknown>,
-  keys: string[],
-): number | null {
-  for (const k of keys) {
-    const v = t[k];
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string") {
-      const n = Number.parseFloat(v);
-      if (Number.isFinite(n)) return n;
-    }
-  }
-  return null;
-}
-
-function bestPnlFromSnapshot(snap: unknown): number | null {
-  const trades = tradesFromSnapshot(snap);
-  let best: number | null = null;
-  for (const t of trades) {
-    const p =
-      numFromTrade(t, [
-        "pnl_pct",
-        "author_pnl_pct",
-        "posted_pnl_pct",
-        "performance_pct",
-        "return_pct",
-      ]) ?? null;
-    if (p == null) continue;
-    if (best == null || p > best) best = p;
-  }
-  return best;
-}
-
-function formatTradeLine(t: Record<string, unknown>): string {
-  const sym =
-    (typeof t.ticker === "string" && t.ticker) ||
-    (typeof t.symbol === "string" && t.symbol) ||
-    "?";
-  const dir = (typeof t.direction === "string" && t.direction) || "";
-  const p =
-    numFromTrade(t, [
-      "pnl_pct",
-      "author_pnl_pct",
-      "posted_pnl_pct",
-      "performance_pct",
-    ]) ?? null;
-  const pStr = p != null ? `${p >= 0 ? "+" : ""}${p.toFixed(1)}%` : "—";
-  return `${sym} ${dir} ${pStr}`.trim();
-}
 
 function inputPreview(rec: PasteTradeRunRecord): string {
   const u = rec.inputUrl?.trim();
@@ -106,6 +38,7 @@ function inputPreview(rec: PasteTradeRunRecord): string {
 const STALE_MS = 60_000;
 
 export function PasteTradeTab({ agentId }: { agentId: string }) {
+  const navigate = useNavigate();
   const [sort, setSort] = useState<SortMode>("recent");
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
@@ -119,18 +52,34 @@ export function PasteTradeTab({ agentId }: { agentId: string }) {
     enabled: !!agentId,
   });
 
+  const allTickers = useMemo(() => {
+    const s = new Set<string>();
+    for (const rec of data ?? []) {
+      for (const t of tradesFromSnapshot(rec.lastSnapshot)) {
+        const sym = normalizePasteTradeTicker(String(t.ticker ?? ""));
+        if (sym) s.add(sym);
+      }
+    }
+    return [...s];
+  }, [data]);
+
+  const liveByTicker = usePasteTradeLiveMarksMap(
+    allTickers.length > 0,
+    allTickers,
+  );
+
   const sorted = useMemo(() => {
     const runs = data ?? [];
     if (sort === "recent") {
       return [...runs].sort((a, b) => b.updatedAt - a.updatedAt);
     }
     return [...runs].sort((a, b) => {
-      const pa = bestPnlFromSnapshot(a.lastSnapshot) ?? -Infinity;
-      const pb = bestPnlFromSnapshot(b.lastSnapshot) ?? -Infinity;
+      const pa = bestPnlFromSnapshot(a.lastSnapshot, liveByTicker) ?? -Infinity;
+      const pb = bestPnlFromSnapshot(b.lastSnapshot, liveByTicker) ?? -Infinity;
       if (pb !== pa) return pb - pa;
       return b.updatedAt - a.updatedAt;
     });
-  }, [data, sort]);
+  }, [data, sort, liveByTicker]);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-7rem)] pb-8 space-y-6">
@@ -148,7 +97,10 @@ export function PasteTradeTab({ agentId }: { agentId: string }) {
           instruments, and paste.trade tracks <strong>author price</strong>{" "}
           (when the source said it) vs <strong>posted price</strong> (when it
           hit the board). This tab lists runs from this Vince instance so you
-          can scan performance without opening chat.
+          can scan performance without opening chat.{" "}
+          <strong className="text-foreground/90">Local-only</strong> runs keep
+          thesis legs here; live author vs mark % needs publishing to
+          paste.trade.
         </p>
         <p className="text-muted-foreground font-sans text-[11px]">
           Trigger from chat: paste a link or thesis to VINCE (
@@ -220,9 +172,9 @@ export function PasteTradeTab({ agentId }: { agentId: string }) {
         {!isLoading && sorted.length > 0 && (
           <div className="space-y-3">
             {sorted.map((rec) => {
-              const trades = tradesFromSnapshot(rec.lastSnapshot);
-              const best = bestPnlFromSnapshot(rec.lastSnapshot);
-              const lines = trades.slice(0, 4).map(formatTradeLine);
+              const best = bestPnlFromSnapshot(rec.lastSnapshot, liveByTicker);
+              const lines = leaderboardTradeLinesForRun(rec, liveByTicker);
+              const localSnap = snapshotIsLocalOnly(rec.lastSnapshot);
               return (
                 <div
                   key={rec.runId}
@@ -259,6 +211,19 @@ export function PasteTradeTab({ agentId }: { agentId: string }) {
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[10px] text-primary"
+                        onClick={() =>
+                          navigate(
+                            `/paste-trade?runId=${encodeURIComponent(rec.runId)}`,
+                          )
+                        }
+                      >
+                        Open readout
+                      </Button>
                       {rec.sourceUrl ? (
                         <a
                           href={rec.sourceUrl}
@@ -290,6 +255,13 @@ export function PasteTradeTab({ agentId }: { agentId: string }) {
                       No snapshot yet (run in progress or polling not captured).
                     </p>
                   )}
+                  {localSnap && lines.length > 0 ? (
+                    <p className="text-[10px] text-amber-600/90 dark:text-amber-400/85">
+                      Local snapshot — % vs extract-time ref using Hyperliquid /
+                      CoinGecko (refreshes ~45s). Publish to paste.trade for
+                      their board author vs posted math.
+                    </p>
+                  ) : null}
                   {rec.error ? (
                     <p className="text-[11px] text-destructive">{rec.error}</p>
                   ) : null}

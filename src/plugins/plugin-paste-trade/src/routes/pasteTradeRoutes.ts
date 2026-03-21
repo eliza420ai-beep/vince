@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { IAgentRuntime, RouteRequest, RouteResponse } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import type { Task } from "@elizaos/core";
-import { getPasteTradeKey } from "../config.ts";
+import { getPasteTradeKey, resolvePasteTradeRemotePublish } from "../config.ts";
 import { PasteTradeClient } from "../pasteTradeClient.ts";
 import { buildOtakuHandoffPayload } from "../otakuHandoff.ts";
 import { createRun, getRun, listRunsForAgent } from "../runRegistry.ts";
@@ -43,6 +43,15 @@ function requirePasteTradeKey(
   return true;
 }
 
+function requirePasteTradeKeyUnlessLocalRun(
+  res: RouteResponse,
+  runtime: IAgentRuntime,
+  rec: { localOnly?: boolean } | null,
+): boolean {
+  if (rec?.localOnly) return true;
+  return requirePasteTradeKey(res, runtime);
+}
+
 export async function handlePostPasteTradeRuns(
   req: RouteRequest,
   res: RouteResponse,
@@ -50,12 +59,12 @@ export async function handlePostPasteTradeRuns(
 ): Promise<void> {
   const runtime = getRuntime(req, res, runtimeArg);
   if (!runtime) return;
-  if (!requirePasteTradeKey(res, runtime)) return;
 
   const body = (req.body ?? {}) as {
     url?: string;
     text?: string;
     roomId?: string;
+    remotePublish?: boolean;
   };
   const url = typeof body.url === "string" ? body.url.trim() : "";
   const text = typeof body.text === "string" ? body.text.trim() : "";
@@ -64,9 +73,22 @@ export async function handlePostPasteTradeRuns(
     return;
   }
 
+  const remotePublish = resolvePasteTradeRemotePublish(
+    runtime,
+    body.remotePublish,
+  );
+  if (remotePublish && !getPasteTradeKey(runtime)) {
+    res.status(503).json({
+      error: "PASTE_TRADE_KEY not configured",
+      hint: "Run `bun run packages/paste-trade/scripts/onboard.ts` once (or set PASTE_TRADE_KEY), then restart the server. For local-only runs, set body.remotePublish to false or PASTE_TRADE_REMOTE_PUBLISH=false.",
+    });
+    return;
+  }
+
   const worker = runtime.getTaskWorker("PASTE_TRADE_PIPELINE");
-  const clientFallback = worker ? null : PasteTradeClient.fromRuntime(runtime);
-  if (!worker && !clientFallback) {
+  const clientFallback =
+    worker || !remotePublish ? null : PasteTradeClient.fromRuntime(runtime);
+  if (!worker && remotePublish && !clientFallback) {
     res.status(503).json({ error: "PASTE_TRADE_KEY not configured" });
     return;
   }
@@ -78,6 +100,7 @@ export async function handlePostPasteTradeRuns(
     roomId: body.roomId,
     inputUrl: url || undefined,
     inputText: text || undefined,
+    localOnly: !remotePublish,
   });
 
   const task: Task = {
@@ -90,11 +113,13 @@ export async function handlePostPasteTradeRuns(
     void worker
       .execute(runtime, {}, task)
       .catch((e: unknown) => logger.error(`[paste-trade] task execute: ${e}`));
-  } else if (clientFallback) {
+  } else {
     const { runPasteTradePipeline } = await import("../pipeline.ts");
-    void runPasteTradePipeline(runtime, rec, clientFallback).catch(
-      (e: unknown) => logger.error(`[paste-trade] pipeline: ${e}`),
-    );
+    void runPasteTradePipeline(
+      runtime,
+      rec,
+      remotePublish ? clientFallback! : null,
+    ).catch((e: unknown) => logger.error(`[paste-trade] pipeline: ${e}`));
   }
 
   res.status(202).json({
@@ -111,7 +136,6 @@ export async function handleGetPasteTradeRun(
 ): Promise<void> {
   const runtime = getRuntime(req, res, runtimeArg);
   if (!runtime) return;
-  if (!requirePasteTradeKey(res, runtime)) return;
 
   const q = (req as unknown as { query?: Record<string, string> }).query ?? {};
   const runId =
@@ -132,6 +156,7 @@ export async function handleGetPasteTradeRun(
     res.status(403).json({ error: "Run belongs to another agent" });
     return;
   }
+  if (!requirePasteTradeKeyUnlessLocalRun(res, runtime, rec)) return;
   res.json(rec);
 }
 
@@ -165,7 +190,6 @@ export async function handleGetPasteTradeHandoff(
 ): Promise<void> {
   const runtime = getRuntime(req, res, runtimeArg);
   if (!runtime) return;
-  if (!requirePasteTradeKey(res, runtime)) return;
 
   const q = (req as unknown as { query?: Record<string, string> }).query ?? {};
   const runId =
@@ -186,6 +210,7 @@ export async function handleGetPasteTradeHandoff(
     res.status(403).json({ error: "Run belongs to another agent" });
     return;
   }
+  if (!requirePasteTradeKeyUnlessLocalRun(res, runtime, rec)) return;
 
   res.json(buildOtakuHandoffPayload(rec));
 }

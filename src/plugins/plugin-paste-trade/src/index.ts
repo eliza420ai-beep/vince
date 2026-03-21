@@ -16,16 +16,16 @@ export const pasteTradePlugin: Plugin = {
     "paste.trade integration: extract sources, create live pages, thesis batch-save; VINCE UI + chat entry points.",
   actions: [pasteTradeAction],
   init: async (_config, runtime: IAgentRuntime) => {
+    registerPasteTradeTaskWorkers(runtime);
     if (!getPasteTradeKey(runtime)) {
       logger.info(
-        "[plugin-paste-trade] No PASTE_TRADE_KEY — skipping task worker",
+        "[plugin-paste-trade] No PASTE_TRADE_KEY — remote publish unavailable; local-only runs still work (set PASTE_TRADE_REMOTE_PUBLISH=false or pass remotePublish:false).",
       );
-      return;
+    } else {
+      logger.info(
+        "[plugin-paste-trade] Task worker PASTE_TRADE_PIPELINE registered",
+      );
     }
-    registerPasteTradeTaskWorkers(runtime);
-    logger.info(
-      "[plugin-paste-trade] Task worker PASTE_TRADE_PIPELINE registered",
-    );
   },
   routes: [
     {

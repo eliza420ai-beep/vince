@@ -101,4 +101,14 @@ describe("buildOtakuHandoffPayload", () => {
     expect(p.eligible).toBe(false);
     expect(p.message).toContain("No routed");
   });
+
+  test("local-only run mentions no public paste.trade page", () => {
+    const p = buildOtakuHandoffPayload({
+      ...base(),
+      localOnly: true,
+      lastSnapshot: { foo: 1 },
+    });
+    expect(p.message).toContain("Local-only run");
+    expect(p.message).toContain("run-1");
+  });
 });

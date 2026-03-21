@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { socketManager } from "@/frontend/lib/socketManager";
@@ -11,12 +12,17 @@ import {
   type PasteTradeOtakuHandoff,
   type PasteTradeRunRecord,
 } from "@/frontend/lib/pasteTradeApi";
+import { TradeReadoutPanel } from "@/frontend/components/dashboard/paste-trade/trade-readout-panel";
 
 export interface PasteTradePageProps {
   agentId: string;
 }
 
 export default function PasteTradePage({ agentId }: PasteTradePageProps) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const runIdFromUrl = searchParams.get("runId")?.trim() || null;
+
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [runId, setRunId] = useState<string | null>(null);
@@ -26,12 +32,35 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
   const [handoff, setHandoff] = useState<PasteTradeOtakuHandoff | null>(null);
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [publishToPasteTrade, setPublishToPasteTrade] = useState(true);
 
-  const refresh = useCallback(async () => {
-    if (!runId) return;
-    const r = await fetchPasteTradeRun(String(agentId), runId);
-    if (r) setRecord(r);
-  }, [agentId, runId]);
+  const refresh = useCallback(
+    async (idOverride?: string) => {
+      const id = idOverride ?? runId;
+      if (!id) return;
+      const r = await fetchPasteTradeRun(String(agentId), id);
+      if (r) setRecord(r);
+    },
+    [agentId, runId],
+  );
+
+  useEffect(() => {
+    if (!runIdFromUrl || !agentId) return;
+    let cancelled = false;
+    void (async () => {
+      const r = await fetchPasteTradeRun(String(agentId), runIdFromUrl);
+      if (cancelled || !r) return;
+      setRunId(runIdFromUrl);
+      setRecord(r);
+      const iu = r.inputUrl?.trim();
+      const it = r.inputText?.trim();
+      if (iu) setUrl(iu);
+      if (it) setText(it);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [runIdFromUrl, agentId]);
 
   useEffect(() => {
     if (!runId) return;
@@ -102,6 +131,7 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
       const res = await startPasteTradeRun(String(agentId), {
         url: u || undefined,
         text: tx || undefined,
+        remotePublish: publishToPasteTrade,
       });
       if (!res.ok) {
         setError(res.message);
@@ -111,7 +141,10 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
       setRunId(res.runId);
       setRecord(null);
       setHandoff(null);
-      await refresh();
+      navigate(`/paste-trade?runId=${encodeURIComponent(res.runId)}`, {
+        replace: true,
+      });
+      await refresh(res.runId);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -119,7 +152,7 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
     }
   };
 
-  const iframeSrc = record?.sourceUrl ?? null;
+  const sourceUrl = record?.sourceUrl?.trim() || null;
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 max-w-4xl mx-auto w-full">
@@ -148,6 +181,21 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            className="rounded border-input"
+            checked={publishToPasteTrade}
+            onChange={(e) => setPublishToPasteTrade(e.target.checked)}
+          />
+          <span>
+            Publish to paste.trade{" "}
+            <span className="text-muted-foreground">
+              (creates a public source page; uncheck for local-only extract +
+              theses)
+            </span>
+          </span>
+        </label>
         <Button onClick={() => void onStart()} disabled={busy}>
           {busy ? "Starting…" : "Run pipeline"}
         </Button>
@@ -163,13 +211,19 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
         )}
       </div>
 
+      {record && <TradeReadoutPanel record={record} handoff={handoff} />}
+
       {record && (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-2 bg-muted/40 text-xs font-mono uppercase text-muted-foreground">
-            Status: {record.status}
+        <details className="rounded-xl border border-border overflow-hidden group">
+          <summary className="px-4 py-2 bg-muted/40 text-xs font-mono uppercase text-muted-foreground cursor-pointer list-none flex items-center gap-2">
+            <span className="text-[10px] opacity-70 group-open:rotate-90 transition-transform">
+              ▸
+            </span>
+            Pipeline log — {record.status}
             {record.error ? ` — ${record.error}` : ""}
-          </div>
-          <div className="max-h-64 overflow-y-auto p-3 text-sm space-y-2">
+            {record.localOnly ? " — local-only" : ""}
+          </summary>
+          <div className="max-h-64 overflow-y-auto p-3 text-sm space-y-2 border-t border-border/60">
             {record.events.length === 0 ? (
               <p className="text-muted-foreground">Waiting for events…</p>
             ) : (
@@ -189,7 +243,7 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
               ))
             )}
           </div>
-        </div>
+        </details>
       )}
 
       {runId && (
@@ -260,16 +314,36 @@ export default function PasteTradePage({ agentId }: PasteTradePageProps) {
         </div>
       )}
 
-      {iframeSrc && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-display">Live source</h2>
-          <div className="rounded-xl border border-border overflow-hidden h-[min(70vh,560px)]">
-            <iframe
-              title="paste.trade source"
-              src={iframeSrc}
-              className="w-full h-full bg-background"
-              sandbox="allow-scripts allow-same-origin allow-popups"
-            />
+      {sourceUrl && (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/10 p-4">
+          <div>
+            <h2 className="text-lg font-display">Live source</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              paste.trade sets{" "}
+              <span className="font-mono">X-Frame-Options: DENY</span>, so it
+              cannot load inside this app. Open the link in a new tab to view
+              the page.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-mono text-primary underline underline-offset-2 break-all"
+            >
+              {sourceUrl}
+            </a>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0 w-fit"
+              asChild
+            >
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                Open in new tab
+              </a>
+            </Button>
           </div>
         </div>
       )}

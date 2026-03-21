@@ -8,7 +8,10 @@ import type {
   Task,
 } from "@elizaos/core";
 import { randomUUID } from "node:crypto";
-import { pasteTradeEnabled } from "../config.ts";
+import {
+  pasteTradeChatRunnable,
+  resolvePasteTradeRemotePublish,
+} from "../config.ts";
 import { PasteTradeClient } from "../pasteTradeClient.ts";
 import { createRun } from "../runRegistry.ts";
 
@@ -34,7 +37,7 @@ export const pasteTradeAction: Action = {
     "Runs the paste.trade pipeline: extract a URL or typed thesis, create a live source on paste.trade, save theses. Use when the user pastes a link, says /trade, or asks what the trade is in a source.",
 
   validate: async (_runtime: IAgentRuntime, message: Memory) => {
-    if (!pasteTradeEnabled()) return false;
+    if (!pasteTradeChatRunnable(_runtime)) return false;
     const text = (message.content?.text ?? "").trim();
     if (!text) return false;
     const lower = text.toLowerCase();
@@ -57,8 +60,9 @@ export const pasteTradeAction: Action = {
     _options?: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult | undefined> => {
+    const remotePublish = resolvePasteTradeRemotePublish(runtime, undefined);
     const client = PasteTradeClient.fromRuntime(runtime);
-    if (!client) {
+    if (remotePublish && !client) {
       if (callback) {
         await callback({
           text: "paste.trade is not configured. Run `bun run packages/paste-trade/scripts/onboard.ts` once to auto-provision PASTE_TRADE_KEY, restart the server, and ensure PASTE_TRADE_ENABLED is not false.",
@@ -96,6 +100,7 @@ export const pasteTradeAction: Action = {
       roomId: message.roomId,
       inputUrl: inputUrl || undefined,
       inputText: inputText || undefined,
+      localOnly: !remotePublish,
     });
 
     const worker = runtime.getTaskWorker("PASTE_TRADE_PIPELINE");
@@ -119,7 +124,13 @@ export const pasteTradeAction: Action = {
       const { runPasteTradePipeline } = await import("../pipeline.ts");
       const { getRun } = await import("../runRegistry.ts");
       const rec = getRun(runId);
-      if (rec) void runPasteTradePipeline(runtime, rec, client);
+      if (rec) {
+        void runPasteTradePipeline(
+          runtime,
+          rec,
+          remotePublish ? client! : null,
+        );
+      }
     }
 
     return { success: true };

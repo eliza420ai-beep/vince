@@ -94,6 +94,7 @@ function buildMessage(
   expressions: RoutedExpressionPick[],
   sourceUrl: string | undefined,
   runId: string,
+  opts?: { localOnly?: boolean },
 ): { eligible: boolean; reason?: string; message: string } {
   const hlPm = expressions.filter((e) => otakuExecutablePlatform(e.platform));
   const robinhood = expressions.filter(
@@ -111,6 +112,10 @@ function buildMessage(
 
   if (sourceUrl) {
     lines.push(`Source: ${sourceUrl}`);
+  } else if (opts?.localOnly) {
+    lines.push(
+      "Local-only run — no paste.trade public page (extract + theses on this server only).",
+    );
   }
   lines.push(`VINCE paste-trade runId: ${runId}`);
 
@@ -211,6 +216,7 @@ export function buildOtakuHandoffPayload(
     expressions,
     rec.sourceUrl,
     rec.runId,
+    { localOnly: rec.localOnly },
   );
 
   return {

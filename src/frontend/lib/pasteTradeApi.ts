@@ -19,6 +19,8 @@ export interface PasteTradeRunRecord {
   runId: string;
   agentId: string;
   roomId?: string;
+  /** Server set when run did not call paste.trade API (no public source page). */
+  localOnly?: boolean;
   sourceId?: string;
   sourceUrl?: string;
   status: string;
@@ -60,7 +62,13 @@ function formatPasteTradeError(status: number, bodyText: string): string {
  */
 export async function startPasteTradeRun(
   agentId: string,
-  body: { url?: string; text?: string; roomId?: string },
+  body: {
+    url?: string;
+    text?: string;
+    roomId?: string;
+    /** false = extract + theses only, no POST /api/sources (no app.paste.trade page). */
+    remotePublish?: boolean;
+  },
 ): Promise<StartPasteTradeRunResult> {
   const base = window.location.origin;
   const url = pasteTradeUrl(base, agentId, "/runs");

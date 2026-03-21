@@ -15,6 +15,15 @@ export function pasteTradeEnabled(): boolean {
   return !!key;
 }
 
+/**
+ * Chat action may run without a key when the default is local-only (no remote publish).
+ */
+export function pasteTradeChatRunnable(runtime?: IAgentRuntime): boolean {
+  if (isPasteTradePluginDisabled()) return false;
+  if (getPasteTradeKey(runtime)) return true;
+  return !getPasteTradeRemotePublishDefault(runtime);
+}
+
 export function getPasteTradeBaseUrl(runtime?: IAgentRuntime): string {
   const fromRuntime =
     runtime?.getSetting("PASTE_TRADE_BASE_URL") ||
@@ -53,6 +62,34 @@ export function getPasteTradeUiOrigin(runtime?: IAgentRuntime): string {
 export function getPasteTradePollMs(): number {
   const n = Number(process.env.PASTE_TRADE_POLL_MS ?? "5000");
   return Number.isFinite(n) && n >= 2000 ? n : 5000;
+}
+
+/**
+ * When false, the pipeline still extracts + LLM theses + local batch-save, but skips
+ * createSource / events / snapshot polling against paste.trade (no public app.paste.trade page).
+ * Per-run override: POST body `remotePublish: true|false`.
+ */
+export function getPasteTradeRemotePublishDefault(
+  runtime?: IAgentRuntime,
+): boolean {
+  const fromRuntime = runtime?.getSetting("PASTE_TRADE_REMOTE_PUBLISH");
+  const s =
+    (typeof fromRuntime === "string" && fromRuntime.trim()) ||
+    process.env.PASTE_TRADE_REMOTE_PUBLISH?.trim() ||
+    "";
+  const low = s.toLowerCase();
+  if (low === "false" || low === "0" || low === "no" || low === "off") {
+    return false;
+  }
+  return true;
+}
+
+export function resolvePasteTradeRemotePublish(
+  runtime: IAgentRuntime,
+  bodyRemotePublish: boolean | undefined,
+): boolean {
+  if (typeof bodyRemotePublish === "boolean") return bodyRemotePublish;
+  return getPasteTradeRemotePublishDefault(runtime);
 }
 
 export function getPasteTradePackageRoot(): string {

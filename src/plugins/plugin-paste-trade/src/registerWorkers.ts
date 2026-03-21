@@ -2,7 +2,7 @@ import type { IAgentRuntime, Task } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { PasteTradeClient } from "./pasteTradeClient.ts";
 import { runPasteTradePipeline } from "./pipeline.ts";
-import { getRun } from "./runRegistry.ts";
+import { getRun, updateRun } from "./runRegistry.ts";
 
 export function registerPasteTradeTaskWorkers(runtime: IAgentRuntime): void {
   runtime.registerTaskWorker({
@@ -23,9 +23,19 @@ export function registerPasteTradeTaskWorkers(runtime: IAgentRuntime): void {
         logger.warn(`[paste-trade] PASTE_TRADE_PIPELINE unknown run ${runId}`);
         return;
       }
+      if (rec.localOnly) {
+        await runPasteTradePipeline(rt, rec, null);
+        return;
+      }
       const client = PasteTradeClient.fromRuntime(rt);
       if (!client) {
-        logger.warn("[paste-trade] PASTE_TRADE_PIPELINE no API key");
+        logger.warn(
+          `[paste-trade] PASTE_TRADE_PIPELINE run ${runId} needs PASTE_TRADE_KEY for remote publish`,
+        );
+        updateRun(runId, {
+          status: "error",
+          error: "PASTE_TRADE_KEY not configured (required for remote publish)",
+        });
         return;
       }
       await runPasteTradePipeline(rt, rec, client);
