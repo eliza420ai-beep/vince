@@ -29,7 +29,7 @@ Regime: {{regime}}
 {{context}}
 
 ## Your task
-1. State your view in one sentence (directional bias + conviction 1-5).
+1. State your view in one sentence (directional bias + conviction 1-5). If [Vince 7-day Hypersurface temp check] appears in context for BTC/HYPE, align with it for weekly strike width.
 2. Decide Execute vs Skip first using the knobs below:
    - If DVOL < 18, choose Skip.
    - If Put/Call ratio > 1.15, choose Skip.

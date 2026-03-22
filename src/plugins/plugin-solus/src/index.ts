@@ -16,6 +16,7 @@ import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
 import { solusStockCalibrationContextProvider } from "./providers/solusStockCalibrationContext.provider";
 import { solusThemeBriefProvider } from "./providers/solusThemeBrief.provider";
 import { vinceStrikeSuggestionProvider } from "./providers/vinceStrikeSuggestion.provider";
+import { vinceHypersurfaceWeeklyTempProvider } from "./providers/vinceHypersurfaceWeeklyTemp.provider";
 import { echoWttSignalProvider } from "./providers/echoWttSignal.provider";
 import { AlphaVantageService } from "./services/alphaVantage.service";
 import { FinnhubService } from "./services/finnhub.service";
@@ -69,6 +70,7 @@ export const solusPlugin: Plugin = {
     solusStockCalibrationContextProvider,
     solusThemeBriefProvider,
     vinceStrikeSuggestionProvider,
+    vinceHypersurfaceWeeklyTempProvider,
     echoWttSignalProvider,
   ],
   actions: [

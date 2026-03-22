@@ -100,6 +100,7 @@ export const solusPositionAssessAction: Action = {
         "SOLUS_HYPERSURFACE_SPOT_PRICES",
         "SOLUS_OPTIONS_CONTEXT",
         "SOLUS_CALIBRATION_CONTEXT",
+        "VINCE_HYPERSURFACE_WEEKLY_TEMP",
         "ECHO_WTT_SIGNAL",
       ]);
       const contextBlock = typeof state.text === "string" ? state.text : "";
@@ -110,7 +111,7 @@ export const solusPositionAssessAction: Action = {
       );
       const closeEarlyBlock = formatCloseEarlyRecommendation(closeEarlyRec);
 
-      const prompt = `You are Solus, the on-chain options expert. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], (3) spot/regime in [Solus market context] and [Hypersurface spot USD], (4) when present [Solus options context — Deribit] with spot, DVOL, ATM IV, and best strikes for BTC/ETH/SOL; (5) [Solus calibration] with Brier and recent outcomes when present; (6) [ECHO WTT signal context] as a daily directional read with freshness metadata. Use this data to give one clear call.
+      const prompt = `You are Solus, the on-chain options expert. You have: (1) mechanics in [Hypersurface context], (2) wheel and sizing state in [Solus sizing state], (3) spot/regime in [Solus market context] and [Hypersurface spot USD], (4) when present [Solus options context — Deribit] with spot, DVOL, ATM IV, and best strikes for BTC/ETH/SOL; (5) [Solus calibration] with Brier and recent outcomes when present; (6) when present [Vince 7-day Hypersurface temp check] for BTC/HYPE weekly bias; (7) [ECHO WTT signal context] as a daily directional read with freshness metadata. Use this data to give one clear call.
 
 **RULE — you must follow:** Do NOT say you need VINCE, need to ask anyone for IV, or need "VINCE's current SOL IV". If [Solus options context] includes SOL, use that IV and best strikes. If it does not, give your assessment and strike guidance from [Solus sizing state] and spot only (e.g. "SOL spot from context; our stack at $141 cost basis; strikes around $90–95 could collect premium — exact amount depends on current IV"). Never deflect the user to another chat or agent.
 

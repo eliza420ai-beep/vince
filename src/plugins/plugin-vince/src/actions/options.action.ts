@@ -38,6 +38,11 @@ import {
   getOrCreateDeribitService,
 } from "../services/fallbacks";
 import type { IHyperliquidOptionsPulse } from "../types/external-services";
+import {
+  formatHypersurfaceWeeklyTempCheckForPrompt,
+  formatHypersurfaceWeeklyTempCheckHeading,
+  runHypersurfaceWeeklyTempCheck,
+} from "../utils/hypersurfaceWeeklyTempCheck";
 
 // ==========================================
 // Build comprehensive data context for LLM
@@ -210,6 +215,7 @@ async function generateOptionsHumanBriefing(
   dateStr: string,
   isFriday: boolean,
   hypeContext: string | null,
+  weeklyTempCheckBlock: string,
 ): Promise<string> {
   const fridayContext = isFriday
     ? "It's FRIDAY - strike selection day. Your reader is rolling their HYPERSURFACE options and needs guidance on which asset (BTC/ETH/SOL/HYPE) to write and at what strike width."
@@ -224,17 +230,21 @@ IMPORTANT CONTEXT:
 - The Deribit data below is MARKET INTELLIGENCE ONLY - use it to guide strike width and asset selection
 - Your job: recommend which asset to write on HYPERSURFACE this week and approximate OTM distance
 - If 24h perp volume (below) is high, treat the move as more conviction; if low, note that premium or sentiment may not be backed by flow
+- **7-DAY TEMP CHECK:** The block below is your directional prior for BTC and HYPE for the week into Friday. Honor it when choosing OTM width (BULL vs BEAR vs NEUTRAL). ETH/SOL use Deribit skew and vol only unless user focuses them.
+
+${weeklyTempCheckBlock}
 
 DERIBIT MARKET INTELLIGENCE:
 ${dataContext}
 ${hypeContext ? `\nHYPE CONTEXT (Hyperliquid funding as proxy):\n${hypeContext}` : ""}
 
 Write an options analysis that covers:
-1. Start with the overall vol environment - is IV rich or cheap relative to realized? Good week for premium sellers?
-2. Walk through BTC, ETH, SOL naturally using Deribit IV data to inform strike width guidance (e.g., "7-8% OTM looks right")
-3. Mention HYPE as an option - it's available on HYPERSURFACE even though we don't have Deribit IV data for it
-4. Translate yields into dollar terms for a $100K position (e.g., "1.5% weekly = roughly $1,500")
-5. End with your actual recommendation: which asset to write on HYPERSURFACE, calls or puts, and strike width
+1. Open with one sentence echoing the 7-day temp check for **BTC and HYPE** (state BULL/BEAR/NEUTRAL each) and how that biases strike width for the week.
+2. Then the overall vol environment - is IV rich or cheap relative to realized? Good week for premium sellers?
+3. Walk through BTC, ETH, SOL naturally using Deribit IV data to inform strike width guidance (e.g., "7-8% OTM looks right")
+4. Mention HYPE as an option - it's available on HYPERSURFACE even though we don't have Deribit IV data for it; tie to temp check + Hyperliquid funding when relevant
+5. Translate yields into dollar terms for a $100K position (e.g., "1.5% weekly = roughly $1,500")
+6. End with your actual recommendation: which asset to write on HYPERSURFACE, calls or puts, and strike width
 
 STYLE RULES:
 - Write like you're at the options desk explaining this to a fellow trader
@@ -279,7 +289,7 @@ export const vinceOptionsAction: Action = {
     "DERIBIT",
   ],
   description:
-    "HYPERSURFACE options analysis for weekly covered calls and secured puts (BTC, ETH, SOL, HYPE) using Deribit IV data for strike guidance",
+    "HYPERSURFACE options analysis for weekly covered calls and secured puts (BTC, ETH, SOL, HYPE): Deribit IV + 7-day BULL/BEAR temp check for BTC/HYPE (strike prior)",
 
   validate: async (
     runtime: IAgentRuntime,
@@ -297,7 +307,11 @@ export const vinceOptionsAction: Action = {
       text.includes("deribit") ||
       text.includes("delta") ||
       text.includes("premium") ||
-      text.includes("weekly")
+      text.includes("weekly") ||
+      text.includes("temp check") ||
+      text.includes("7-day") ||
+      text.includes("7 day") ||
+      text.includes("bull or bear")
     );
   },
 
@@ -412,6 +426,16 @@ export const vinceOptionsAction: Action = {
         optionsPulse?.assets,
       );
 
+      logger.info(
+        "[VINCE_OPTIONS] Running 7-day Hypersurface temp check (BTC + HYPE)...",
+      );
+      const weeklyTempPayload = await runHypersurfaceWeeklyTempCheck(runtime);
+      const weeklyTempBlock =
+        formatHypersurfaceWeeklyTempCheckForPrompt(weeklyTempPayload);
+      if (!sources.includes("VINCE bull/bear fusion (BTC+HYPE)")) {
+        sources.push("VINCE bull/bear fusion (BTC+HYPE)");
+      }
+
       // Generate human briefing via LLM
       logger.info("[VINCE_OPTIONS] Generating HYPERSURFACE briefing...");
       const briefing = await generateOptionsHumanBriefing(
@@ -420,6 +444,7 @@ export const vinceOptionsAction: Action = {
         `${dayName}, ${dateStr}`,
         isFriday,
         hypeContext,
+        weeklyTempBlock,
       );
 
       // Compose output
@@ -429,6 +454,10 @@ export const vinceOptionsAction: Action = {
       } else {
         sections.push(`**HYPERSURFACE Options** _${dayName}, ${dateStr}_`);
       }
+      sections.push("");
+      sections.push(
+        formatHypersurfaceWeeklyTempCheckHeading(weeklyTempPayload),
+      );
       sections.push("");
       sections.push(briefing);
       sections.push("");

@@ -202,6 +202,7 @@ import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 import { registerHIP3DiscoveryTask } from "./tasks/hip3Discovery.tasks";
 import { registerFdCachePrewarmTask } from "./tasks/fdCachePrewarm.tasks";
+import { registerHypersurfaceWeeklyTempWarmTask } from "./tasks/hypersurfaceWeeklyTempWarm.tasks";
 import {
   registerFdDiscoveryWeeklyTask,
   runFdDiscoveryNow,
@@ -1832,6 +1833,14 @@ export const vincePlugin: Plugin = {
           logger.warn("[VINCE] Failed to register FD cache prewarm task:", e);
         }
         try {
+          await registerHypersurfaceWeeklyTempWarmTask(runtime);
+        } catch (e) {
+          logger.warn(
+            "[VINCE] Failed to register Hypersurface weekly temp warm task:",
+            e,
+          );
+        }
+        try {
           await registerFdDiscoveryWeeklyTask(runtime);
         } catch (e) {
           logger.warn(
@@ -2037,6 +2046,17 @@ export {
   BullBearAnalyzer,
   getBullBearAnalyzer,
 } from "./analysis/bullBearAnalyzer";
+export {
+  HYPERSURFACE_WEEKLY_TEMP_CACHE_KEY,
+  runHypersurfaceWeeklyTempCheck,
+  formatHypersurfaceWeeklyTempCheckForPrompt,
+  formatHypersurfaceWeeklyTempCheckHeading,
+} from "./utils/hypersurfaceWeeklyTempCheck";
+export type {
+  HypersurfaceWeeklyTempRow,
+  HypersurfaceWeeklyTempCheckPayload,
+  WeeklyHypersurfaceTemp,
+} from "./utils/hypersurfaceWeeklyTempCheck";
 
 // ==========================================
 // Evaluator Exports

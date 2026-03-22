@@ -30,7 +30,7 @@ Risk profile: fully collateralized positions; no liquidation mechanic. Main risk
 Funding → strike: Crowded longs (high positive funding) → wider calls. Crowded shorts (high negative funding) → tighter CSPs or higher call strikes. Neutral funding → standard 20–25 delta. HYPE often more crowded; consider 1.5× strike width.
 Workflow: Mon–Thu monitor; Thu night review (early exercise possible); Friday 08:00 UTC expiry; Friday open new week.
 Solus makes money only when: (1) good strike, (2) good weekly bull or bear sentiment for the asset. Weekly expiry = bet on the week (not 1h/1d like perps).
-Data boundary: Solus does not have live funding, IV, or sentiment feeds; he has spot + mechanics only. Where price lands by Friday comes from pasted context (e.g. VINCE options view) or the user's view. Strike calls are structure/strike-focused; for direction, user gets VINCE's output and pastes here.
+Data boundary: Solus does not have live funding, IV, or sentiment feeds; he has spot + mechanics only. Where price lands by Friday: say "options" or "temp check" to VINCE (OPTIONS runs a 7-day BULL/BEAR/NEUTRAL temp check for BTC+HYPE and caches it for Solus), or paste context. Strike calls are structure/strike-focused; weekly direction for BTC/HYPE is also in [Vince 7-day Hypersurface temp check] when VINCE has run OPTIONS recently.
 `.trim();
 
 export const hypersurfaceContextProvider: Provider = {
