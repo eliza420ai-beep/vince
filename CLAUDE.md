@@ -8,6 +8,10 @@
 
 This repository is the **VINCE** project: a unified data-intelligence **multi-agent system** (options, perps, memes, lifestyle, art) with a **self-improving paper trading bot** at the core. One team, one dream: users can chat with **Kelly** (or any agent); she orchestrates Vince, Solus, Eliza, Otaku, Sentinel, Oracle, ECHO via **ASK_AGENT**.
 
+### Local Mac: Claude default (not OpenClaw)
+
+For **local computer use** (open apps, browser, spreadsheets, desk-style tasks), prefer **Claude Cowork** and **Claude Code**—Anthropic **research preview**, **macOS only**. That is the team default instead of adopting **OpenClaw** as a parallel agent OS. **OpenClaw** remains **legacy reference** (e.g. Sentinel docs, old skill “natural home” notes); new workflows should not depend on it. In-repo playbooks: `skills/*/SKILL.md` and `.cursor/skills` (symlink).
+
 ### Agent map (v2 — 4 core always-on + skills)
 
 **v2 Core — always running in ElizaOS:**
@@ -25,10 +29,10 @@ This repository is the **VINCE** project: a unified data-intelligence **multi-ag
 | ------------ | ----------------------------- | ------------------------------------------------ | ------ |
 | **Sentinel** | `skills/sentinel/SKILL.md`   | `CLAUDE.md` / `AGENTS.md` in dev env            | ✅ Migrated |
 | **Naval**    | `skills/naval/SKILL.md`      | Dexter repo — SOUL.md philosophical review       | ✅ Migrated |
-| **Clawterm** | `skills/clawterm/SKILL.md`   | OpenClaw workspace — `openclaw-agents/clawterm/` | ✅ Migrated |
+| **Clawterm** | `skills/clawterm/SKILL.md`   | Cursor + Claude Code (legacy: OpenClaw `openclaw-agents/clawterm/`) | ✅ Migrated |
 | **Eliza**    | `skills/eliza/SKILL.md`      | Mac Mini — Claude Desktop App + filesystem MCP   | ✅ Migrated |
 | **ECHO**     | `skills/echo/SKILL.md`       | Dexter repo — conviction formation layer         | ✅ Migrated |
-| **Kelly**    | `skills/kelly/SKILL.md`      | Mac Mini — OpenClaw + Perplexity Computer        | ✅ Migrated (see PRD) |
+| **Kelly**    | `skills/kelly/SKILL.md`      | Claude Cowork / Code + skills (legacy: OpenClaw) | ✅ Migrated (see PRD) |
 | **Oracle**   | —                             | **RETIRED** — no edge from Polymarket            | 🪦 Retired |
 
 Set `ELIZA_ENABLED=true`, `KELLY_ENABLED=true`, etc. in `.env` to re-enable any v1 agent temporarily.
@@ -42,7 +46,7 @@ Set `ELIZA_ENABLED=true`, `KELLY_ENABLED=true`, etc. in `.env` to re-enable any 
 | **Paper bot, ML, actions**                | `src/plugins/plugin-vince/` — [WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
 | **Feature store (ML)**                    | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md)                                                                                                                                                                   |
 | **Multi-agent (ASK_AGENT, Discord, A2A)** | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md)                                                                                                                                                                       |
-| **Agent briefs (OpenClaw / PRD)**         | [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) — one doc per agent (can/cannot, key files, PRD focus). Use to brief OpenClaw or draft next-iteration PRDs.                                                         |
+| **Agent briefs (PRD)**                   | [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) — one doc per agent (can/cannot, key files, PRD focus). Use to brief Claude / downstream agents or draft next-iteration PRDs.                                      |
 | **Deploy**                                | [docs/DEPLOY.md](docs/DEPLOY.md)                                                                                                                                                                                 |
 | **Trading runtime contract**              | [docs/TRADING_RUNTIME_CONTRACT.md](docs/TRADING_RUNTIME_CONTRACT.md) — CRON vs MANUAL, producer/executor flow.                                                                                                   |
 | **Project overview**                      | [README.md](README.md)                                                                                                                                                                                           |
@@ -50,7 +54,7 @@ Set `ELIZA_ENABLED=true`, `KELLY_ENABLED=true`, etc. in `.env` to re-enable any 
 | **Dexter drift & guardrails**            | Ask VINCE "drift" or "dexter drift" for paper vs Dexter universe (HL/tastytrade/watchlist + core crypto). Leverage caps and process: [docs/GUARDRAILS.md](docs/GUARDRAILS.md). Portfolio sync: [docs/DEXTER-PORTFOLIO-SYNC.md](docs/DEXTER-PORTFOLIO-SYNC.md).                          |
 | **x402 / MPP / Agentic commerce**        | Otaku is an autonomous economic actor via **two protocols**: x402 (USDC crypto micropayments) and MPP (crypto + cards/wallets/SPTs via Stripe). **Dual facilitator:** BANKR for DeFi execution (0.8% swap-fee buybacks), Stripe for data API monetization (fiat settlement, 1.5%, gasless). ERC-8004 (agent identity), ERC-8183 (Jobs/escrow/commerce), ERC-8126 (security scoring). Full analysis: [docs/OTAKU.md § x402 Ecosystem Positioning](docs/OTAKU.md). Reference implementation: [machine-payments fork](https://github.com/eliza420ai-beep/machine-payments). Stripe docs: [docs.stripe.com/payments/machine](https://docs.stripe.com/payments/machine). x402 investable universe: $VIRTUAL, $BNKR, $KITE, $DREAMS, $ROBO. See SOUL.md Layer 9. |
 
-**Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution, x402 micropayments, ERC-8004 identity). Otaku is an **autonomous economic actor** via x402 (crypto) and MPP (fiat) — seller today via x402 paid routes, with Stripe machine payments (fiat settlement + MPP/SPT card payments), x402/MPP buyer, and ERC-8183 commerce on roadmap. Dual facilitator: BANKR for DeFi execution, Stripe for data API monetization. **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
+**Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution, x402 micropayments, ERC-8004 identity). Otaku is an **autonomous economic actor** via x402 (crypto) and MPP (fiat) — seller today via x402 paid routes, with Stripe machine payments (fiat settlement + MPP/SPT card payments), x402/MPP buyer, and ERC-8183 commerce on roadmap. Dual facilitator: BANKR for DeFi execution, Stripe for data API monetization. **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and Claude Code (legacy OpenClaw docs in sentinel-docs). Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
 
 ---
 
@@ -168,7 +172,7 @@ vince/
 │       ├── plugin-eliza/       # Knowledge, UPLOAD, content production
 │       ├── plugin-kelly/       # Lifestyle, daily briefing, tasks
 │       ├── plugin-otaku/       # DeFi execution, BANKR, CDP, routes
-│       ├── plugin-sentinel/    # PRDs, cost, OpenClaw guide, ART
+│       ├── plugin-sentinel/    # PRDs, cost, Claude/OpenClaw guide (legacy), ART
 │       ├── plugin-solus/      # Hypersurface strike, mechanics
 │       ├── plugin-polymarket-discovery/
 │       ├── plugin-x-research/  # X pulse, vibe, watchlist
@@ -180,7 +184,7 @@ vince/
 │   ├── the-good-life/          # Kelly: hotels, dining, wine
 │   └── ...
 ├── docs/                        # Project and agent docs
-│   ├── AGENTS_INDEX.md         # Agent briefing index (OpenClaw / PRD)
+│   ├── AGENTS_INDEX.md         # Agent briefing index (PRD)
 │   ├── ELIZA.md, VINCE.md, ECHO.md, ORACLE.md, SOLUS.md, OTAKU.md, KELLY.md, SENTINEL.md
 │   ├── MULTI_AGENT.md
 │   ├── FEATURE-STORE.md, TREASURY.md, DEPLOY.md
@@ -264,7 +268,7 @@ This repo uses **one file per agent** in `src/agents/` and exports a **project**
 | plugin-eliza                | Eliza                 | UPLOAD, knowledge, content production              |
 | plugin-kelly                | Kelly                 | Lifestyle, daily briefing, plugin-personality      |
 | plugin-otaku                | Otaku                 | DeFi execution, CDP, BANKR, Relay, Morpho, x402    |
-| plugin-sentinel             | Sentinel              | PRDs, project radar, OpenClaw guide, cost, ART     |
+| plugin-sentinel             | Sentinel              | PRDs, project radar, Claude Code + legacy OpenClaw guide, cost, ART |
 | plugin-solus                | Solus                 | Hypersurface strike ritual, mechanics, spot prices |
 | plugin-polymarket-discovery | Oracle                | Polymarket discovery, odds, portfolio              |
 | plugin-x-research           | ECHO, Eliza, Clawterm | X pulse, vibe, watchlist, search                   |
@@ -378,13 +382,13 @@ elizaos test
 - **Tasks:** **SENTINEL_WEEKLY_SUGGESTIONS** (7d; push to sentinel/ops). **SENTINEL_DAILY_DIGEST** (optional; `SENTINEL_DAILY_ENABLED=true`).
 - **Env:** `SENTINEL_WEEKLY_ENABLED`, `SENTINEL_DAILY_ENABLED`, `SENTINEL_DAILY_HOUR_UTC`, `SENTINEL_DISCORD_*`.
 - **Cost:** “What’s our burn?”, “cost status” → **SENTINEL_COST_STATUS** from [docs/TREASURY.md](docs/TREASURY.md).
-- **OpenClaw / Milaidy:** [knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md](knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md). Standup type **prd** → `docs/standup/prds/`; **integration_instructions** → `docs/standup/integration-instructions/`.
+- **Legacy OpenClaw / Milaidy (reference):** [knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md](knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md). Standup type **prd** → `docs/standup/prds/`; **integration_instructions** → `docs/standup/integration-instructions/`.
 
 ---
 
-## Agent briefs (OpenClaw / PRD)
+## Agent briefs (PRD)
 
-[docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) lists **one briefing doc per agent** (Eliza, VINCE, ECHO, Oracle, Solus, Otaku, Kelly, Sentinel). Each doc: what the agent **can** and **cannot yet** do, key files, and “For OpenClaw / PRD” focus. Use them to brief OpenClaw (or any downstream agent) and to draft **next-iteration PRDs**. Individual docs: [docs/ELIZA.md](docs/ELIZA.md), [docs/VINCE.md](docs/VINCE.md), [docs/ECHO.md](docs/ECHO.md), [docs/ORACLE.md](docs/ORACLE.md), [docs/SOLUS.md](docs/SOLUS.md), [docs/OTAKU.md](docs/OTAKU.md), [docs/KELLY.md](docs/KELLY.md), [docs/SENTINEL.md](docs/SENTINEL.md).
+[docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) lists **one briefing doc per agent** (Eliza, VINCE, ECHO, Oracle, Solus, Otaku, Kelly, Sentinel). Each doc: what the agent **can** and **cannot yet** do, key files, and PRD focus. Use them to brief Claude (or any downstream agent) and to draft **next-iteration PRDs**. Individual docs: [docs/ELIZA.md](docs/ELIZA.md), [docs/VINCE.md](docs/VINCE.md), [docs/ECHO.md](docs/ECHO.md), [docs/ORACLE.md](docs/ORACLE.md), [docs/SOLUS.md](docs/SOLUS.md), [docs/OTAKU.md](docs/OTAKU.md), [docs/KELLY.md](docs/KELLY.md), [docs/SENTINEL.md](docs/SENTINEL.md).
 
 ---
 
@@ -393,7 +397,7 @@ elizaos test
 | Doc                                                                      | Purpose                                      |
 | ------------------------------------------------------------------------ | -------------------------------------------- |
 | [README.md](README.md)                                                   | Project overview, quick start                |
-| [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md)                             | Agent briefing index (OpenClaw / PRD)        |
+| [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md)                             | Agent briefing index (PRD)                   |
 | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md)                               | ASK_AGENT, Discord, A2A, standups            |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md)                           | Env and config reference                     |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                       | Common issues and fixes                      |

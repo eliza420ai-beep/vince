@@ -1,6 +1,6 @@
-# Agent Briefing Index (OpenClaw / PRD)
+# Agent Briefing Index (PRD)
 
-This folder contains **one briefing document per agent** in the VINCE multi-agent system. Each doc states what that agent **can** and **cannot yet** do, with key files and suggested PRD angles. They are **actionable for OpenClaw** (or any downstream agent) to draft **next-iteration PRDs**.
+This folder contains **one briefing document per agent** in the VINCE multi-agent system. Each doc states what that agent **can** and **cannot yet** do, with key files and suggested PRD angles. They are **actionable for Claude** (or any downstream agent) to draft **next-iteration PRDs**. Local Mac automation defaults to **Claude Cowork / Claude Code**; OpenClaw is **legacy reference** only—see `CLAUDE.md` § “Local Mac: Claude default”.
 
 ---
 
@@ -15,15 +15,15 @@ This folder contains **one briefing document per agent** in the VINCE multi-agen
 | **Solus**    | [SOLUS.md](SOLUS.md)       | CFO  | Hypersurface options: strike ritual, mechanics, position assess, optimal strike; spot + pasted context; no execution. |
 | **Otaku**    | [OTAKU.md](OTAKU.md)       | COO  | Only agent with a funded wallet; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution. x402 seller (5 paid routes), ERC-8004 identity live. Dual facilitator: BANKR (DeFi execution) + Stripe (fiat data API sales + MPP card/wallet/SPT payments). x402/MPP buyer + ERC-8183 on roadmap. |
 | **Kelly**    | [KELLY.md](KELLY.md)       | CVO  | Lifestyle concierge; one team one dream (orchestrates others via ASK_AGENT); plugin-personality (self-modification).  |
-| **Sentinel** | [SENTINEL.md](SENTINEL.md) | CTO  | Core dev: PRDs, project radar, impact suggestions, OpenClaw expert, cost status, ART; weekly + optional daily tasks.  |
+| **Sentinel** | [SENTINEL.md](SENTINEL.md) | CTO  | Core dev: PRDs, project radar, impact suggestions, Claude Code + legacy OpenClaw docs, cost status, ART; weekly + optional daily tasks.  |
 | **Forge**    | [FORGE.md](FORGE.md)       | —    | MLX AutoResearch: overnight self-optimization experiments; mutate policy/prompts/ML weights → commit winners.         |
 
 ---
 
 ## How to use these docs
 
-1. **OpenClaw / Milaidy:** Ingest the full set (or a subset) to understand current agent capabilities and gaps. Use "What X Cannot Do Yet / Gaps" and "For OpenClaw / PRD" to propose work items and PRDs for the next iteration.
-2. **PRD drafting:** Each doc ends with a short "For OpenClaw / PRD" section suggesting concrete PRD themes (e.g. testnet runbook, fallbacks, new actions).
+1. **Claude / Milaidy / legacy OpenClaw:** Ingest the full set (or a subset) to understand current agent capabilities and gaps. Use "What X Cannot Do Yet / Gaps" and "For OpenClaw / PRD" section headers (historical label) to propose work items and PRDs for the next iteration.
+2. **PRD drafting:** Each doc ends with a short PRD-focused section suggesting concrete themes (e.g. testnet runbook, fallbacks, new actions).
 3. **Onboarding:** New contributors can read the agent doc for the area they work on; "Key files" points to the right places in the repo.
 4. **Consistency:** All agent briefs follow the same shape: role, why they matter, can do, cannot yet, key files, PRD focus, references. OTAKU.md is the longest reference; others are shorter but aligned.
 

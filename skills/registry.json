@@ -13,7 +13,7 @@
     ],
     "owner": "clawterm",
     "riskLevel": "high",
-    "lastUpdated": "2026-03-23T23:13:11.586Z"
+    "lastUpdated": "2026-03-23T23:17:30.044Z"
   },
   {
     "name": "echo",
@@ -168,7 +168,7 @@
     ],
     "owner": "sentinel",
     "riskLevel": "high",
-    "lastUpdated": "2026-03-23T23:13:10.582Z"
+    "lastUpdated": "2026-03-23T23:17:29.538Z"
   },
   {
     "name": "solus",
@@ -188,7 +188,7 @@
     ],
     "owner": "solus",
     "riskLevel": "high",
-    "lastUpdated": "2026-03-23T23:12:52.438Z"
+    "lastUpdated": "2026-03-23T23:13:39.946Z"
   },
   {
     "name": "trading-agent",

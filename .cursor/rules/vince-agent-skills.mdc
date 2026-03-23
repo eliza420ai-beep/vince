@@ -19,7 +19,7 @@ When the task matches a domain, open and follow the matching skill before improv
 | `echo` | CT sentiment, WTT |
 | `eliza` | Knowledge ingest, UPLOAD, corpus-first answers |
 | `sentinel` | PRDs, OpenClaw, cost, architecture |
-| `clawterm` | OpenClaw terminal / setup |
+| `clawterm` | Claude Code terminal framing; legacy OpenClaw setup notes in skill |
 | `naval` | Philosophy, no trading |
 | `quant` | Prediction markets, MC, Brier, copulas |
 | `x-research` | X/Twitter search CLI and research flow |

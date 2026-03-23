@@ -11,6 +11,8 @@ description: >
 
 # Sentinel — Core Dev, PRD Machine, Claude Code Native
 
+> **Stack default (macOS):** Prefer **Claude Code / Cowork** computer use for local desk tasks. Sections below that emphasize **OpenClaw** are **legacy reference** for existing docs and deployments—not the default for new workflows.
+
 > **Portable skill.** The insight here: Sentinel IS Claude Code.  
 > Her entire value is the system prompt + `knowledge/sentinel-docs/` + `knowledge/internal-docs/`.  
 > Migrated from `src/agents/sentinel.ts` in the VINCE repo (v2 refactor).  

@@ -38,3 +38,5 @@ Standard commands are documented in `package.json` scripts and `CLAUDE.md`. Quic
 8. **Production API gating** uses `@elizaos/server`: set `ELIZA_SERVER_AUTH_TOKEN` to require `X-API-KEY` on `/api` and Socket.IO. Use **`/healthz`** or **`/health`** for load-balancer probes (not `/api/server/health`, which is gated). See [docs/API_SECURITY_AND_PRODUCTION.md](docs/API_SECURITY_AND_PRODUCTION.md) and `scripts/verify-api-gating.sh`.
 
 9. **Cursor agent skills.** `.cursor/skills` is a symlink to `skills/` (each `SKILL.md` is one playbook). Rule `.cursor/rules/vince-agent-skills.mdc` is always on so the agent knows the index. After adding skills, run `bun run skills:build-registry`. In Cursor Settings, confirm **Agent Skills** / project skills include the workspace (symlinked paths resolve like normal files).
+
+10. **Local Mac automation: Claude first.** Prefer **Claude Cowork** and **Claude Code** computer use (research preview: apps, browser, spreadsheets; **macOS only**) for desk-style tasks. Do **not** default new workflows to **OpenClaw**; treat OpenClaw docs in-repo as legacy reference. See `CLAUDE.md` § “Local Mac: Claude default”.

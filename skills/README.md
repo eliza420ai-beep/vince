@@ -31,4 +31,4 @@ Auto-generated index of all available skills. See individual SKILL.md files for 
 
 See [GOVERNANCE.md](GOVERNANCE.md) for the skill lifecycle and promotion rules.
 
-_Last generated: 2026-03-23T23:13:22.610Z_
+_Last generated: 2026-03-23T23:17:33.975Z_

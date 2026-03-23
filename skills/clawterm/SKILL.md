@@ -11,6 +11,8 @@ description: >
 
 # Clawterm — AI Terminal, OpenClaw Guide
 
+> **Stack default (macOS):** Prefer **Claude Code / Cowork** for local computer use. OpenClaw material below is **legacy** context for anyone still on that stack.
+
 > **Portable skill.** Belongs in the **OpenClaw workspace**, not the VINCE repo.  
 > Migrated from `src/agents/clawterm.ts` in the VINCE repo (v2 refactor).  
 > Natural home: `openclaw-agents/clawterm/SKILL.md` inside the OpenClaw workspace itself.
