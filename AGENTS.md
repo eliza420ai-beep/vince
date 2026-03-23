@@ -36,3 +36,5 @@ Standard commands are documented in `package.json` scripts and `CLAUDE.md`. Quic
 7. **The `plugin-personality` build in postinstall may warn but is non-blocking.** It runs `cd node_modules/@elizaos/plugin-personality && bun run build || true`.
 
 8. **Production API gating** uses `@elizaos/server`: set `ELIZA_SERVER_AUTH_TOKEN` to require `X-API-KEY` on `/api` and Socket.IO. Use **`/healthz`** or **`/health`** for load-balancer probes (not `/api/server/health`, which is gated). See [docs/API_SECURITY_AND_PRODUCTION.md](docs/API_SECURITY_AND_PRODUCTION.md) and `scripts/verify-api-gating.sh`.
+
+9. **Cursor agent skills.** `.cursor/skills` is a symlink to `skills/` (each `SKILL.md` is one playbook). Rule `.cursor/rules/vince-agent-skills.mdc` is always on so the agent knows the index. After adding skills, run `bun run skills:build-registry`. In Cursor Settings, confirm **Agent Skills** / project skills include the workspace (symlinked paths resolve like normal files).

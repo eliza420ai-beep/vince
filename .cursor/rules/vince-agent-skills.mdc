@@ -1,0 +1,29 @@
+---
+description: Points Cursor at VINCE multi-agent skills under .cursor/skills (symlink to skills/).
+alwaysApply: true
+---
+
+# VINCE project skills
+
+Agent playbooks live at `.cursor/skills/<name>/SKILL.md` (same files as `skills/<name>/SKILL.md`).
+
+When the task matches a domain, open and follow the matching skill before improvising:
+
+| Skill folder | Domain |
+|--------------|--------|
+| `vince` | Paper bot, ALOHA, signals, perps/options context, handoffs — no execution |
+| `solus` | Hypersurface, strikes, wheel, assignment calibration, stock theses |
+| `otaku` | Funded wallet, swap/bridge/DCA/Morpho/stops, execution safety |
+| `kelly` | Lifestyle, hotels/dining/wine/fitness, orchestration — no Kelly-owned market calls |
+| `forge` | Nightly policy/prompt experiments, FORGE_* env |
+| `echo` | CT sentiment, WTT |
+| `eliza` | Knowledge ingest, UPLOAD, corpus-first answers |
+| `sentinel` | PRDs, OpenClaw, cost, architecture |
+| `clawterm` | OpenClaw terminal / setup |
+| `naval` | Philosophy, no trading |
+| `quant` | Prediction markets, MC, Brier, copulas |
+| `x-research` | X/Twitter search CLI and research flow |
+| `trading-agent` | External EVClaw / live HL reference |
+| `whats-the-trade` | WTT / belief-router |
+
+Registry: `skills/registry.json`. Index: `skills/README.md`.

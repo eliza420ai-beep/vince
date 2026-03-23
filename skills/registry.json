@@ -1,5 +1,135 @@
 [
   {
+    "name": "clawterm",
+    "description": "Clawterm agent behavior: AI terminal bridge to OpenClaw, setup guide, AGI/alignment context; routes crypto data questions to VINCE. Use when: (1) user says \"Clawterm\", \"OpenClaw setup\", \"AI terminal\", \"Mac Studio agents\", (2) user needs workspace sync / openclaw-agents orientation, (3) AI futures research separate from market ticks. NOT for: deep HL/options data without handing off to VINCE skill.",
+    "location": "skills/clawterm/SKILL.md",
+    "triggers": [
+      "clawterm",
+      "openclaw setup",
+      "ai terminal",
+      "mac studio agents",
+      "user needs workspace sync / openclaw-agents orientation",
+      "ai futures research separate from market ticks."
+    ],
+    "owner": "clawterm",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:13:11.586Z"
+  },
+  {
+    "name": "echo",
+    "description": "ECHO agent behavior: Crypto Twitter sentiment, WTT (What's The Trade), pulse/vibe/watchlist, contrarian read vs price; portable judgment on top of x-research data. Use when: (1) user says \"ECHO\", \"what's the trade\", \"WTT\", \"crypto twitter\", \"CT sentiment\", (2) user wants divergence trade thesis vs crowd, (3) daily WTT writeup under docs/standup/whats-the-trade/. NOT for: posting tweets or running X API without x-research CLI.",
+    "location": "skills/echo/SKILL.md",
+    "triggers": [
+      "echo",
+      "what's the trade",
+      "wtt",
+      "crypto twitter",
+      "ct sentiment",
+      "divergence trade thesis vs crowd",
+      "daily wtt writeup under docs/standup/whats-the-trade/."
+    ],
+    "owner": "echo",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:13:08.649Z"
+  },
+  {
+    "name": "eliza",
+    "description": "Eliza agent behavior: 24/7 research, knowledge ingestion, UPLOAD workflow, RAG-first answers from corpus; routes live data to VINCE and execution away from Eliza. Use when: (1) user says \"Eliza\", \"upload\", \"ingest\", \"knowledge\", \"YouTube summary\", \"corpus\", (2) user is filing content into knowledge/ with filesystem MCP, (3) methodology/framework answers (not live prices). NOT for: live market data (VINCE), trade execution (Otaku), lifestyle-only (Kelly).",
+    "location": "skills/eliza/SKILL.md",
+    "triggers": [
+      "eliza",
+      "upload",
+      "ingest",
+      "knowledge",
+      "youtube summary",
+      "corpus",
+      "filing content into knowledge/ with filesystem mcp"
+    ],
+    "owner": "eliza",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:13:09.703Z"
+  },
+  {
+    "name": "forge",
+    "description": "Forge agent playbook: MLX AutoResearch overnight experiments on paper-trading policy, prompts, and ML weights; composite metric causal_uplift × Sharpe × Brier; branch/commit winners only. Use when: (1) user says \"Forge\", \"forge nightly\", \"autoresearch\", \"trading-policy.yaml\", \"vince-entry-gate\", \"solus-strike-ritual\" prompt mutations, (2) user is tuning `policies/` or `prompts/` under Forge charter, (3) user asks for FORGE_REPORT / FORGE_REVERT semantics or FORGE_* env. NOT for: Otaku/onchain mutations without approval, manual live trading ops, production deploy without review.",
+    "location": "skills/forge/SKILL.md",
+    "triggers": [
+      "forge",
+      "forge nightly",
+      "autoresearch",
+      "trading-policy.yaml",
+      "vince-entry-gate",
+      "solus-strike-ritual",
+      "tuning `policies/` or `prompts/` under forge charter",
+      "for forge_report / forge_revert semantics or forge_* env."
+    ],
+    "owner": "shared",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:13:04.835Z"
+  },
+  {
+    "name": "kelly",
+    "description": "Kelly agent playbook: lifestyle concierge — hotels, dining, wine, fitness, travel, itineraries, home cooking, tea, entertainment, creative hobbies; standup facilitation; ASK_AGENT orchestration. Use when: (1) user says \"Kelly\", \"hotel\", \"restaurant\", \"wine\", \"itinerary\", \"workout\", \"surf\", \"swim\", \"lifestyle briefing\", \"week ahead\", \"home cooking\", \"tea recommendation\", (2) user wants one conversational entry that pulls VINCE/Solus/Otaku/others via handoff pattern, (3) standup or team facilitation tone without giving Kelly-owned price calls. NOT for: Kelly-sourced trading or market advice (route to VINCE/Solus via ASK_AGENT narrative only).",
+    "location": "skills/kelly/SKILL.md",
+    "triggers": [
+      "kelly",
+      "hotel",
+      "restaurant",
+      "wine",
+      "itinerary",
+      "workout",
+      "surf",
+      "swim",
+      "lifestyle briefing",
+      "week ahead",
+      "home cooking",
+      "tea recommendation",
+      "standup or team facilitation tone without giving kelly-owned price calls."
+    ],
+    "owner": "kelly",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:13:00.615Z"
+  },
+  {
+    "name": "naval",
+    "description": "Naval agent behavior: philosophy of wealth, happiness, leverage, compounding, judgment; mental models without trading or execution advice. Use when: (1) user says \"Naval\", \"specific knowledge\", \"leverage\", \"happiness default\", (2) user wants long-term framing while running automated systems, (3) SOUL.md-style philosophical review for Dexter or side projects. NOT for: price calls, position sizing, or protocol execution.",
+    "location": "skills/naval/SKILL.md",
+    "triggers": [
+      "naval",
+      "specific knowledge",
+      "leverage",
+      "happiness default",
+      "long-term framing while running automated systems",
+      "soul.md-style philosophical review for dexter or side projects."
+    ],
+    "owner": "shared",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:13:12.317Z"
+  },
+  {
+    "name": "otaku",
+    "description": "Otaku agent playbook: only funded-wallet executor — swap, limit, DCA, bridge, Morpho, stop-loss, NFT mint, Vince signal execution; degen vs normies mode; x402 routes; execution risk. Use when: (1) user says \"Otaku\", \"swap\", \"bridge\", \"DCA\", \"execute Vince signal\", \"Morpho\", \"stop loss\", \"wallet\", \"Base\", \"BANKR\", \"CDP\", (2) designing confirmation flows, reconciliation, or HL sidecar perps, (3) x402 paid API routes for positions/quote/yields/history/portfolio. NOT for: paper trading or signal generation (VINCE), strike selection (Solus), generic DeFi research without execution intent.",
+    "location": "skills/otaku/SKILL.md",
+    "triggers": [
+      "otaku",
+      "swap",
+      "bridge",
+      "dca",
+      "execute vince signal",
+      "morpho",
+      "stop loss",
+      "wallet",
+      "base",
+      "bankr",
+      "cdp",
+      "designing confirmation flows, reconciliation, or hl sidecar perps",
+      "x402 paid api routes for positions/quote/yields/history/portfolio."
+    ],
+    "owner": "otaku",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:12:56.409Z"
+  },
+  {
     "name": "quant",
     "description": "Quantitative stack for prediction markets and binary contracts: Monte Carlo, importance sampling, particle filters, variance reduction, copulas, agent-based simulation. Use when: (1) user asks about \"prediction market\", \"Polymarket\", \"binary contract\", \"Monte Carlo\", \"particle filter\", \"importance sampling\", \"copula\", \"tail dependence\", \"Brier score\", \"agent-based simulation\", \"variance reduction\", \"stratified sampling\", \"control variate\", (2) pricing or simulating event probability, tail-risk contracts, or correlated outcomes, (3) building a probability engine, risk layer, or calibration (Brier) for prediction markets. NOT for: general options theory (see options docs); live execution (use trading-agent or Otaku). Content is a single story—read parts in order; skip ahead and the math won't stack.",
     "location": "skills/quant/SKILL.md",
@@ -20,7 +150,45 @@
     ],
     "owner": "shared",
     "riskLevel": "high",
-    "lastUpdated": "2026-03-01T09:53:40.075Z"
+    "lastUpdated": "2026-03-11T14:48:28.858Z"
+  },
+  {
+    "name": "sentinel",
+    "description": "Sentinel agent behavior: core dev, PRDs, project radar, OpenClaw guide, cost/TREASURY, ART, multi-agent architecture stewardship; push-not-pull priorities. Use when: (1) user says \"Sentinel\", \"PRD\", \"OpenClaw\", \"cost status\", \"TREASURY\", \"weekly suggest\", (2) user needs VINCE repo architecture or deploy guardrails, (3) investor report or ship checklist tone. NOT for: onchain execution (Otaku), strike ritual (Solus).",
+    "location": "skills/sentinel/SKILL.md",
+    "triggers": [
+      "sentinel",
+      "prd",
+      "openclaw",
+      "cost status",
+      "treasury",
+      "weekly suggest",
+      "user needs vince repo architecture or deploy guardrails",
+      "investor report or ship checklist tone."
+    ],
+    "owner": "sentinel",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:13:10.582Z"
+  },
+  {
+    "name": "solus",
+    "description": "Solus agent playbook: Hypersurface options, strike ritual, optimal strike, position assess, assignment probability framing, stock pulse (Finnhub/Alpha Vantage), AI-bottleneck equity theses. Use when: (1) user says \"Solus\", \"strike ritual\", \"covered call\", \"cash-secured put\", \"wheel\", \"optimal strike\", \"assignment probability\", \"Brier\", \"Hypersurface\", (2) user pastes VINCE options/Deribit context for a Friday expiry call, (3) offchain stock thesis with causal chain + invalidation (not HL-tradeable). NOT for: placing orders (Otaku), live perps primary read (VINCE), heavy quant implementation (see quant skill).",
+    "location": "skills/solus/SKILL.md",
+    "triggers": [
+      "solus",
+      "strike ritual",
+      "covered call",
+      "cash-secured put",
+      "wheel",
+      "optimal strike",
+      "assignment probability",
+      "brier",
+      "hypersurface",
+      "user pastes vince options/deribit context for a friday expiry call"
+    ],
+    "owner": "solus",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:12:52.438Z"
   },
   {
     "name": "trading-agent",
@@ -36,7 +204,47 @@
     ],
     "owner": "shared",
     "riskLevel": "high",
-    "lastUpdated": "2026-02-25T19:56:03.714Z"
+    "lastUpdated": "2026-03-11T14:48:28.859Z"
+  },
+  {
+    "name": "vince",
+    "description": "VINCE agent playbook: paper trading bot, ALOHA/gm briefings, Hyperliquid perps context, options view (hand off strikes to Solus), memes/HIP-3/NFT floors, multi-agent handoffs. Use when: (1) user says \"VINCE\", \"paper bot\", \"ALOHA\", \"gm briefing\", \"signals\", \"feature store\", (2) user wants left-curve perps/Hyperliquid read without live execution, (3) routing live data vs execution (VINCE observes; Otaku executes), (4) Dexter drift, guardrails, or three-curves framing. NOT for: onchain swap/bridge/orders (Otaku only), Solus strike ritual detail (Solus skill), standalone X search (x-research).",
+    "location": "skills/vince/SKILL.md",
+    "triggers": [
+      "vince",
+      "paper bot",
+      "aloha",
+      "gm briefing",
+      "signals",
+      "feature store",
+      "left-curve perps/hyperliquid read without live execution",
+      "dexter drift, guardrails, or three-curves framing."
+    ],
+    "owner": "vince",
+    "riskLevel": "high",
+    "lastUpdated": "2026-03-23T23:12:48.534Z"
+  },
+  {
+    "name": "belief-router",
+    "description": "ALWAYS activate when user expresses ANY belief, thesis, hunch, or cultural observation with investment or trading implications. Finds the single highest-upside way to express that belief — traditional instruments, adjacent markets, or non-financial actions. Triggers: \"how would I trade this\", \"how to invest in\", \"I think X will happen\", \"is X a good bet\", \"what's the play on\", \"trade this\", \"belief router\", \"express this view\", \"scan this\", \"what's tradeable here\", any pasted content with directional claims (transcripts, articles, tweets, earnings calls), cultural observations (\"everyone's on Ozempic\", \"my rent just spiked\"), or questions about investing in specific people/trends/movements. NOT for: executing trades, managing funds, portfolio rebalancing, or anything requiring private keys or passwords.",
+    "location": "skills/whats-the-trade/SKILL.md",
+    "triggers": [
+      "how would i trade this",
+      "how to invest in",
+      "i think x will happen",
+      "is x a good bet",
+      "what's the play on",
+      "trade this",
+      "belief router",
+      "express this view",
+      "scan this",
+      "what's tradeable here",
+      "everyone's on ozempic",
+      "my rent just spiked"
+    ],
+    "owner": "echo",
+    "riskLevel": "high",
+    "lastUpdated": "2026-02-17T14:13:31.215Z"
   },
   {
     "name": "x-research",
@@ -55,6 +263,6 @@
     ],
     "owner": "shared",
     "riskLevel": "low",
-    "lastUpdated": "2026-02-25T19:56:03.715Z"
+    "lastUpdated": "2026-03-11T14:48:28.859Z"
   }
 ]

@@ -1,3 +1,14 @@
+---
+name: clawterm
+description: >
+  Clawterm agent behavior: AI terminal bridge to OpenClaw, setup guide, AGI/alignment context;
+  routes crypto data questions to VINCE.
+  Use when: (1) user says "Clawterm", "OpenClaw setup", "AI terminal", "Mac Studio agents",
+  (2) user needs workspace sync / openclaw-agents orientation,
+  (3) AI futures research separate from market ticks.
+  NOT for: deep HL/options data without handing off to VINCE skill.
+---
+
 # Clawterm — AI Terminal, OpenClaw Guide
 
 > **Portable skill.** Belongs in the **OpenClaw workspace**, not the VINCE repo.  

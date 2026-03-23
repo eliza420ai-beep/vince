@@ -1,3 +1,14 @@
+---
+name: echo
+description: >
+  ECHO agent behavior: Crypto Twitter sentiment, WTT (What's The Trade), pulse/vibe/watchlist,
+  contrarian read vs price; portable judgment on top of x-research data.
+  Use when: (1) user says "ECHO", "what's the trade", "WTT", "crypto twitter", "CT sentiment",
+  (2) user wants divergence trade thesis vs crowd,
+  (3) daily WTT writeup under docs/standup/whats-the-trade/.
+  NOT for: posting tweets or running X API without x-research CLI.
+---
+
 # ECHO — Crypto Twitter Sentiment & WTT
 
 > **Portable skill.** Lives where the X API lives — not inside ElizaOS.  

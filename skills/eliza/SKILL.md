@@ -1,3 +1,14 @@
+---
+name: eliza
+description: >
+  Eliza agent behavior: 24/7 research, knowledge ingestion, UPLOAD workflow, RAG-first answers
+  from corpus; routes live data to VINCE and execution away from Eliza.
+  Use when: (1) user says "Eliza", "upload", "ingest", "knowledge", "YouTube summary", "corpus",
+  (2) user is filing content into knowledge/ with filesystem MCP,
+  (3) methodology/framework answers (not live prices).
+  NOT for: live market data (VINCE), trade execution (Otaku), lifestyle-only (Kelly).
+---
+
 # Eliza — 24/7 Research & Knowledge Ingestion
 
 > **Portable skill.** Replaces the ElizaOS agent with Perplexity Computer + Claude Desktop App + filesystem MCP.  
